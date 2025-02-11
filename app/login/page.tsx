@@ -52,6 +52,34 @@ export default function LoginPage() {
       setIsLoading(false)
     }
   }
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true)
+    try {
+      const result = await signIn('google', { 
+        callbackUrl: '/dashboard',
+        redirect: false,
+      })
+      
+      if (result?.error) {
+        toast({
+          title: t("errors.error"),
+          description: t("auth.googleSignInFailed"),
+          variant: "destructive",
+        })
+      } else if (result?.url) {
+        router.push(result.url)
+      }
+    } catch (error) {
+      toast({
+        title: t("errors.error"),
+        description: t("auth.loginFailed"),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -109,7 +137,7 @@ export default function LoginPage() {
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              onClick={handleGoogleSignIn}
               disabled={isLoading}
             >
               <svg

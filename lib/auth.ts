@@ -7,6 +7,7 @@ interface User {
   id: string
   email: string
   name: string
+  password: string
   role: 'ADMIN' | 'MANAGER' | 'DRIVER'
 }
 
@@ -15,6 +16,7 @@ const MOCK_USER: User = {
   id: '1',
   email: 'test@example.com',
   name: 'Test User',
+  password: 'password',
   role: 'ADMIN',
 }
 
@@ -49,9 +51,14 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
+    error: '/login', // Redirect to login page on error
   },
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -80,10 +87,6 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
   ],
   callbacks: {
     async jwt({ token, user, account, profile }) {
@@ -97,6 +100,16 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name
       }
       return session
+    },
+    async signIn({ user, account, profile }) {
+      return true // Add any custom sign in logic here
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     },
   },
   debug: process.env.NODE_ENV === 'development',

@@ -1049,6 +1049,7 @@ export const en = {
     signInDescription: "Enter your email and password to sign in",
     signInWithGoogle: "Sign in with Google",
     loginFailed: "Failed to sign in",
+    googleSignInFailed: "Google sign in failed. Please try again.",
   },
   buttons: {
     backToVehicles: "Back to Vehicles",

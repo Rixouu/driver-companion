@@ -478,6 +478,7 @@ export const ja = {
     signInDescription: "メールアドレスとパスワードを入力してサインイン",
     signInWithGoogle: "Googleでサインイン",
     loginFailed: "サインインに失敗しました",
+    googleSignInFailed: "Googleログインに失敗しました。もう一度お試しください。",
   },
   buttons: {
     backToVehicles: "車両一覧に戻る",

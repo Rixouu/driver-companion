@@ -37,9 +37,10 @@ export const ja = {
     inspectionRequired: "点検が必要です",
     startInspection: "点検開始",
     viewInspection: "点検詳細を見る",
-    welcome: "お帰りなさい、{name}さん",
+    welcome: "お帰りなさい、{{name}}さん",
+    welcomeMessage: "ようこそ、{{name}}さん！",
     overview: {
-      title: "車両の状態と予定されたタスク",
+      title: "車両の状態と予定されたタスク"
     },
     vehicle: {
       plateNumber: "ナンバープレート",
@@ -434,14 +435,19 @@ export const ja = {
   },
   settings: {
     title: "設定",
+    description: "アカウント設定と環境設定を管理します。",
     language: "言語",
     languageSettings: "言語設定",
-    profile: "プロフィール設定",
+    profile: "プロフィール",
+    profileDescription: "プロフィール情報を更新します。",
     notifications: "通知",
     enableNotifications: "通知を有効にする",
     name: "名前",
     email: "メールアドレス",
+    emailNote: "メールアドレスはGoogleアカウントで管理されています。",
     saveChanges: "変更を保存",
+    success: "成功",
+    profileUpdated: "プロフィールが正常に更新されました。",
   },
   auth: {
     signIn: "サインイン",
@@ -476,5 +482,11 @@ export const ja = {
   buttons: {
     backToVehicles: "車両一覧に戻る",
     startInspection: "点検を開始"
+  },
+  nav: {
+    dashboard: "ダッシュボード",
+    vehicles: "車両一覧",
+    inspections: "点検一覧",
+    settings: "設定"
   }
 } 

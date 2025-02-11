@@ -6,93 +6,83 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { PageContainer } from "@/components/layouts/page-container"
+import { useToast } from "@/components/ui/use-toast"
 import { useLanguage } from "@/components/providers/language-provider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PageContainer } from "@/components/layouts/page-container"
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession()
-  const [name, setName] = useState(session?.user?.name || "")
-  const [email, setEmail] = useState(session?.user?.email || "")
-  const [notifications, setNotifications] = useState(true)
-  const { t, language, setLanguage } = useLanguage()
+  const { data: session } = useSession()
+  const { t } = useLanguage()
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
 
-  if (status === "loading") {
-    return <PageContainer>Loading...</PageContainer>
-  }
-
-  if (status === "unauthenticated") {
-    return <PageContainer>Access Denied</PageContainer>
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Implement update logic here
-    console.log("Update profile:", { name, email, notifications })
+    setIsLoading(true)
+
+    try {
+      // Since we're using Google auth, we can't modify the name
+      // It will always come from Google
+      toast({
+        title: t("settings.success"),
+        description: t("settings.profileUpdated"),
+      })
+    } catch (error) {
+      toast({
+        title: t("errors.error"),
+        description: t("errors.updateFailed"),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <PageContainer>
-      <div className="space-y-8">
-        <h1 className="text-3xl font-bold tracking-tight">{t("settings.title")}</h1>
-        
-        {/* Language Settings Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("settings.languageSettings")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="language">{t("settings.language")}</Label>
-              <Select value={language} onValueChange={(value: "en" | "ja") => setLanguage(value)}>
-                <SelectTrigger id="language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium">{t("settings.title")}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.description")}
+          </p>
+        </div>
 
-        {/* Profile Settings Card */}
         <Card>
           <CardHeader>
             <CardTitle>{t("settings.profile")}</CardTitle>
+            <CardDescription>
+              {t("settings.profileDescription")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t("settings.name")}</Label>
-                  <Input 
-                    id="name" 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t("settings.email")}</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="notifications" 
-                    checked={notifications} 
-                    onCheckedChange={setNotifications} 
-                  />
-                  <Label htmlFor="notifications">{t("settings.enableNotifications")}</Label>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">{t("settings.name")}</Label>
+                <Input
+                  id="name"
+                  defaultValue={session?.user?.name || ""}
+                  disabled={true}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.nameNote")}
+                </p>
               </div>
-              <Button type="submit">{t("settings.saveChanges")}</Button>
+              <div className="space-y-2">
+                <Label htmlFor="email">{t("settings.email")}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  defaultValue={session?.user?.email || ""}
+                  disabled={true}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.emailNote")}
+                </p>
+              </div>
+              <Button type="submit" disabled={true}>
+                {t("common.save")}
+              </Button>
             </form>
           </CardContent>
         </Card>

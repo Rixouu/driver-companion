@@ -1,3 +1,4 @@
+import { UserRole } from "@/types/next-auth"
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
@@ -85,15 +86,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.role = 'DRIVER' // Default role for new users
+    async jwt({ token, user, account, profile }) {
+      if (profile) {
+        token.name = profile.name
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as string
+        session.user.name = token.name
       }
       return session
     },

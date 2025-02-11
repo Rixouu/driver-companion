@@ -4,6 +4,7 @@
 
 body {
   font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
 }
 
 @layer utilities {
@@ -150,4 +151,8 @@ body {
 
 .status-badge-error {
   @apply bg-red-100 text-red-800;
+}
+
+.auth-page {
+  background: linear-gradient(to bottom right, #1a1a1a, #2d2d2d);
 }

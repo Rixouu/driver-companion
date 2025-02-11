@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,12 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { useLanguage } from "@/components/providers/language-provider"
-import { auth } from "@/lib/auth"
+import Image from "next/image"
 import { signIn } from "next-auth/react"
+import { useState } from "react"
 
 export default function LoginPage() {
-  const router = useRouter()
   const { t } = useLanguage()
+  const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -26,38 +26,22 @@ export default function LoginPage() {
     const password = formData.get("password") as string
 
     try {
-      const { user, error } = await auth.login(email, password)
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
 
-      if (error || !user) {
-        throw new Error(error || 'Login failed')
+      if (result?.error) {
+        toast({
+          title: t("errors.error"),
+          description: t("auth.invalidCredentials"),
+          variant: "destructive",
+        })
+      } else {
+        router.push("/dashboard")
+        router.refresh()
       }
-
-      // Set auth token in cookie using server action
-      await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user }),
-      })
-      
-      router.push('/dashboard')
-      router.refresh()
-    } catch (error) {
-      toast({
-        title: t("errors.error"),
-        description: t("auth.invalidCredentials"),
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true)
-    try {
-      await signIn("google", { callbackUrl: "/dashboard" })
     } catch (error) {
       toast({
         title: t("errors.error"),
@@ -68,53 +52,65 @@ export default function LoginPage() {
       setIsLoading(false)
     }
   }
-
+  
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">{t("auth.signIn")}</CardTitle>
-          <CardDescription>
-            {t("auth.signInDescription")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{t("settings.email")}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="name@example.com"
-                required
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md space-y-8 px-4">
+        <div className="flex flex-col items-center space-y-2">
+          <Image
+            src="https://staging.japandriver.com/wp-content/uploads/2024/04/driver-header-logo.png"
+            alt="Driver Logo"
+            width={150}
+            height={40}
+            priority
+          />
+        </div>
+        
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">
+              {t("auth.signIn")}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {t("auth.signInDescription")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email"
+                  name="email"
+                  type="email" 
+                  placeholder="name@example.com"
+                  required 
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{t("auth.password")}</Label>
+                <Input 
+                  id="password"
+                  name="password" 
+                  type="password" 
+                  required 
+                  disabled={isLoading}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full"
                 disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                disabled={isLoading}
-              />
-            </div>
-            <Button
-              type="submit"
+              >
+                {isLoading ? t("common.loading") : t("auth.signIn")}
+              </Button>
+            </form>
+            <Button 
+              variant="outline" 
               className="w-full"
+              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
               disabled={isLoading}
-            >
-              {isLoading ? t("common.loading") : t("auth.signIn")}
-            </Button>
-          </form>
-          <div className="grid gap-4 mt-4">
-            <Button
-              variant="outline"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full"
             >
               <svg
                 className="mr-2 h-4 w-4"
@@ -133,9 +129,9 @@ export default function LoginPage() {
               </svg>
               {isLoading ? t("common.loading") : t("auth.signInWithGoogle")}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

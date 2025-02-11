@@ -137,9 +137,10 @@ export const en = {
   },
   dashboard: {
     title: "Dashboard",
-    welcome: "Welcome back, {name}",
+    welcome: "Welcome back, {{name}}",
+    welcomeMessage: "Welcome, {{name}}!",
     overview: {
-      title: "Here's your vehicle status and upcoming tasks",
+      title: "Here's your vehicle status and upcoming tasks"
     },
     quickActions: {
       title: "Quick Actions",
@@ -932,13 +933,18 @@ export const en = {
   },
   settings: {
     title: "Settings",
+    description: "Manage your account settings and preferences.",
+    profile: "Profile",
+    profileDescription: "Update your profile information.",
     language: "Language",
     languageSettings: "Language Settings",
-    profile: "Profile Settings",
     notifications: "Notifications",
     enableNotifications: "Enable notifications",
     name: "Name",
     email: "Email",
+    emailNote: "Your email address is managed by your Google account.",
+    success: "Success",
+    profileUpdated: "Your profile has been updated successfully.",
     saveChanges: "Save Changes",
     preferences: {
       title: "Preferences",
@@ -1047,5 +1053,11 @@ export const en = {
   buttons: {
     backToVehicles: "Back to Vehicles",
     startInspection: "Start Inspection"
+  },
+  nav: {
+    dashboard: "Dashboard",
+    vehicles: "Vehicles",
+    inspections: "Inspections",
+    settings: "Settings"
   }
 } 

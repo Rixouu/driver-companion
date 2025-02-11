@@ -4,9 +4,10 @@ import { AuthProvider } from "@/components/providers/auth-provider"
 import { Header } from "@/components/header"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import type { Metadata } from "next"
-import { headers } from "next/headers"
 import { LanguageProvider } from "@/components/providers/language-provider"
 import { NextAuthProvider } from "@/components/providers/session-provider"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 import "./globals.css"
 
@@ -17,14 +18,12 @@ export const metadata: Metadata = {
   description: "Daily vehicle inspection app for drivers",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const headersList = headers()
-  const pathname = headersList.get("x-pathname") || ""
-  const hideHeader = pathname.includes("/inspections/") && pathname !== "/inspections"
+  const session = await getServerSession(authOptions)
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -40,7 +39,7 @@ export default function RootLayout({
             >
               <LanguageProvider>
                 <div className="flex min-h-screen flex-col">
-                  {!hideHeader && <Header />}
+                  {session && <Header />}
                   <main className="flex-1">
                     {children}
                   </main>

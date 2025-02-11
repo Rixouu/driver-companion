@@ -1,22 +1,22 @@
 "use client"
 
 import { PageContainer } from "@/components/layouts/page-container"
-import { DashboardStats } from "@/components/dashboard/dashboard-stats"
 import { VehicleCard } from "@/components/dashboard/vehicle-card"
 import { UpcomingTasks } from "@/components/dashboard/upcoming-tasks"
 import { AlertsList } from "@/components/dashboard/alerts-list"
 import { useLanguage } from "@/components/providers/language-provider"
+import { useSession } from "next-auth/react"
 
 export default function DashboardPage() {
   const { t } = useLanguage()
+  const { data: session } = useSession()
 
   return (
     <PageContainer>
       <div className="space-y-6">
-        {/* Welcome Section */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {t("dashboard.welcome")}
+            {t("dashboard.welcome", { name: session?.user?.name || "User" })}
           </h1>
           <p className="text-muted-foreground mt-2">
             {t("dashboard.overview.title")}

@@ -13,6 +13,7 @@ import { SignaturePad } from "@/components/inspections/signature-pad"
 import { Checkbox } from "@/components/ui/checkbox"
 import { InspectionProgress } from "./inspection-progress"
 import { cn } from "@/lib/utils"
+import { CameraModal } from "@/components/inspections/camera-modal"
 
 // Mock data for the vehicle being inspected
 const MOCK_VEHICLE = {
@@ -113,6 +114,8 @@ export function NewInspectionForm() {
     }), {})
   )
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [currentItemId, setCurrentItemId] = useState<string | null>(null)
 
   // Load saved progress on mount
   useEffect(() => {
@@ -217,6 +220,31 @@ export function NewInspectionForm() {
 
     // TODO: Submit inspection
     console.log("Inspection complete", { items, photos, recordings, signatureData })
+  }
+
+  const handleCameraClick = (sectionId: string, itemId: string) => {
+    setCurrentItemId(itemId)
+    setIsCameraOpen(true)
+  }
+
+  const handlePhotoCapture = (photoUrl: string) => {
+    if (currentItemId && activeTab) {
+      const newPhoto: InspectionPhoto = {
+        id: crypto.randomUUID(),
+        url: photoUrl,
+        timestamp: new Date().toISOString(),
+        sectionId: activeTab
+      }
+      handlePhotoAdd(newPhoto)
+      
+      // Update the item to reference the photo
+      setItems(prev => ({
+        ...prev,
+        [activeTab]: prev[activeTab].map(item =>
+          item.id === currentItemId ? { ...item, photo: newPhoto } : item
+        ),
+      }))
+    }
   }
 
   return (
@@ -327,6 +355,7 @@ export function NewInspectionForm() {
                         size="sm" 
                         variant="outline"
                         className="transition-transform hover:scale-105 active:scale-95"
+                        onClick={() => handleCameraClick(section, item.id)}
                       >
                         <Camera className="h-4 w-4" />
                       </Button>
@@ -388,6 +417,12 @@ export function NewInspectionForm() {
           </div>
         </div>
       </div>
+
+      <CameraModal
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={handlePhotoCapture}
+      />
     </div>
   )
 } 

@@ -5,7 +5,7 @@ import { Header } from "@/components/header"
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration"
 import type { Metadata } from "next"
 import { LanguageProvider } from "@/components/providers/language-provider"
-import { NextAuthProvider } from "@/components/providers/session-provider"
+import { SessionProvider } from "next-auth/react"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -28,7 +28,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <NextAuthProvider>
+        <SessionProvider session={session}>
           <AuthProvider>
             <ThemeProvider
               attribute="class"
@@ -47,7 +47,7 @@ export default async function RootLayout({
               </LanguageProvider>
             </ThemeProvider>
           </AuthProvider>
-        </NextAuthProvider>
+        </SessionProvider>
       </body>
     </html>
   )

@@ -8,7 +8,7 @@ export default async function SignInPage() {
 
   // Redirect to dashboard if already authenticated
   if (session) {
-    redirect("/")
+    redirect("/dashboard")
   }
 
   return <SignInForm />

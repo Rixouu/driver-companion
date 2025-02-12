@@ -40,7 +40,7 @@ export function SignInForm() {
 
       if (result?.error) {
         toast({
-          title: t("errors.error"),
+          title: t("auth.loginFailed"),
           description: t("auth.invalidCredentials"),
           variant: "destructive",
         })
@@ -50,8 +50,8 @@ export function SignInForm() {
       }
     } catch (error) {
       toast({
-        title: t("errors.error"),
-        description: t("auth.loginFailed"),
+        title: t("auth.loginFailed"),
+        description: t("errors.somethingWentWrong"),
         variant: "destructive",
       })
     } finally {
@@ -62,10 +62,12 @@ export function SignInForm() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      await signIn("google", { callbackUrl: "/dashboard" })
+      await signIn("google", {
+        callbackUrl: "/dashboard",
+      })
     } catch (error) {
       toast({
-        title: t("errors.error"),
+        title: t("auth.loginFailed"),
         description: t("auth.googleSignInFailed"),
         variant: "destructive",
       })

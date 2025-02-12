@@ -938,10 +938,14 @@ export const ja = {
       invalid: "無効なセッション",
     },
     password: "パスワード",
-    signInDescription: "メールアドレスとパスワードを入力してサインイン",
+    signInDescription: "メールアドレスとパスワードでサインイン",
+    orContinueWith: "または",
+    email: "メールアドレス",
+    emailPlaceholder: "メールアドレスを入力",
+    passwordPlaceholder: "パスワードを入力",
     signInWithGoogle: "Googleでサインイン",
-    loginFailed: "サインインに失敗しました",
-    googleSignInFailed: "Googleログインに失敗しました。もう一度お試しください。",
+    loginFailed: "ログインに失敗しました",
+    googleSignInFailed: "Googleログインに失敗しました。もう一度お試しください。"
   },
   buttons: {
     backToVehicles: "車両一覧に戻る",

@@ -1055,7 +1055,17 @@ export const en = {
   auth: {
     signIn: "Sign In",
     signOut: "Sign Out",
-    signInWithGoogle: "Sign in with Google"
+    signInWithGoogle: "Sign in with Google",
+    signInDescription: "Sign in with your email and password",
+    orContinueWith: "Or continue with",
+    password: "Password",
+    email: "Email",
+    emailPlaceholder: "Enter your email",
+    passwordPlaceholder: "Enter your password",
+    forgotPassword: "Forgot password?",
+    loginFailed: "Login failed",
+    invalidCredentials: "Invalid email or password",
+    googleSignInFailed: "Google sign in failed. Please try again."
   },
   buttons: {
     startInspection: "Start Inspection",

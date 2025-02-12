@@ -13,6 +13,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
 } from "recharts"
 import { format, addMonths, isSameMonth, startOfMonth } from "date-fns"
 import { MaintenanceForecastService } from "@/lib/services/maintenance-forecast"
@@ -106,235 +108,54 @@ export function MaintenanceCostAnalysis({ vehicleId, totalMileage }: Maintenance
     return forecastService.generateForecast()
   }
 
+  const costData = [
+    { month: "Jan", cost: 150 },
+    { month: "Feb", cost: 300 },
+    { month: "Mar", cost: 200 }
+  ]
+
+  const totalCost = costData.reduce((sum, item) => sum + item.cost, 0)
+  const averageCost = totalCost / costData.length
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.management.maintenance.costs.analysis")}</CardTitle>
+        <CardTitle>{t("vehicles.details.maintenance.costs.title")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {t("vehicles.management.maintenance.costs.total")}
-                </p>
-                <p className="text-2xl font-bold">
-                  ¥{calculateTotalCost().toLocaleString()}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {t("vehicles.management.maintenance.costs.perKilometer")}
-                </p>
-                <p className="text-2xl font-bold">
-                  ¥{costPerKm.toFixed(2)}/km
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {t("vehicles.management.maintenance.costs.monthlyAverage")}
-                </p>
-                <p className="text-2xl font-bold">
-                  ¥{(calculateTotalCost() / 12).toFixed(0)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Cost Trend Chart */}
-          <div>
-            <h4 className="font-medium mb-4">
-              {t("vehicles.management.maintenance.costs.trend")}
-            </h4>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={maintenanceCosts}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(date) => format(new Date(date), "MMM d")}
-                  />
-                  <YAxis />
-                  <Tooltip
-                    labelFormatter={(date) => format(new Date(date), "PPP")}
-                    formatter={(value) => [`¥${value}`, t("vehicles.management.maintenance.costs.amount")]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="cost"
-                    stroke="#0ea5e9"
-                    name={t("vehicles.management.maintenance.costs.amount")}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+      <CardContent>
+        <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {t("vehicles.details.maintenance.costs.total")}
+              </p>
+              <p className="text-2xl font-bold">${totalCost}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {t("vehicles.details.maintenance.costs.average")}
+              </p>
+              <p className="text-2xl font-bold">${averageCost.toFixed(2)}</p>
             </div>
           </div>
 
-          {/* Cost Distribution Chart */}
-          <div>
-            <h4 className="font-medium mb-4">
-              {t("vehicles.management.maintenance.costs.distribution")}
-            </h4>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={costsByType}
-                    dataKey="cost"
-                    nameKey="type"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({ type, percentage }) => 
-                      `${t(`vehicles.management.maintenance.types.${type}`)}: ${percentage.toFixed(1)}%`
-                    }
-                  >
-                    {costsByType.map((entry, index) => (
-                      <Cell key={entry.type} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`¥${value}`, t("vehicles.management.maintenance.costs.amount")]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={costData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip 
+                  formatter={(value) => [`$${value}`, t("vehicles.details.maintenance.costs.amount")]}
+                />
+                <Bar 
+                  dataKey="cost" 
+                  fill="#0ea5e9" 
+                  name={t("vehicles.details.maintenance.costs.amount")}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
-
-        <MaintenanceOptimization 
-          vehicleId={vehicleId}
-          maintenanceCosts={maintenanceCosts}
-        />
-
-        <div className="mt-8">
-          <h4 className="font-medium mb-4">
-            {t("vehicles.management.maintenance.costs.forecast")}
-          </h4>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("vehicles.management.maintenance.costs.sixMonthForecast")}</CardTitle>
-              <CardDescription>
-                {t("vehicles.management.maintenance.costs.forecastDescription")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={generateCostForecast()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(date) => format(new Date(date), "MMM yyyy")}
-                    />
-                    <YAxis />
-                    <Tooltip
-                      labelFormatter={(date) => format(new Date(date), "MMMM yyyy")}
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload
-                          return (
-                            <div className="bg-background border rounded-lg p-3 shadow-lg">
-                              <p className="font-medium">{format(new Date(label), "MMMM yyyy")}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {t("vehicles.management.maintenance.costs.confidence")}: 
-                                {(data.confidence * 100).toFixed(0)}%
-                              </p>
-                              <div className="space-y-1 mt-2">
-                                <p className="text-sm">
-                                  {t("vehicles.management.maintenance.costs.baseline")}: 
-                                  ¥{data.components.baseline.toFixed(0)}
-                                </p>
-                                <p className="text-sm">
-                                  {t("vehicles.management.maintenance.costs.seasonal")}: 
-                                  ¥{data.components.seasonal.toFixed(0)}
-                                </p>
-                                <p className="text-sm">
-                                  {t("vehicles.management.maintenance.costs.scheduled")}: 
-                                  ¥{data.components.scheduled.toFixed(0)}
-                                </p>
-                                <p className="font-medium mt-2">
-                                  {t("vehicles.management.maintenance.costs.total")}: 
-                                  ¥{data.predicted.toFixed(0)}
-                                </p>
-                              </div>
-                            </div>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="actual"
-                      stroke="#0ea5e9"
-                      name="actual"
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="predicted"
-                      stroke="#f59e0b"
-                      name="predicted"
-                      strokeDasharray="5 5"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3 mt-6">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">
-                        {t("vehicles.management.maintenance.costs.predictedNextMonth")}
-                      </p>
-                      <p className="text-2xl font-bold">
-                        ¥{generateCostForecast()[1].predicted.toFixed(0)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">
-                        {t("vehicles.management.maintenance.costs.predictedSixMonths")}
-                      </p>
-                      <p className="text-2xl font-bold">
-                        ¥{generateCostForecast()
-                          .reduce((sum, forecast) => sum + forecast.predicted, 0)
-                          .toFixed(0)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">
-                        {t("vehicles.management.maintenance.costs.yearlyEstimate")}
-                      </p>
-                      <p className="text-2xl font-bold">
-                        ¥{(generateCostForecast()[0].predicted * 12).toFixed(0)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </CardContent>
     </Card>

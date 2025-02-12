@@ -1,159 +1,128 @@
 "use client"
 
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { signOut } from "next-auth/react"
-import { ThemeToggle } from "./theme-toggle"
-import { useLanguage } from "./providers/language-provider"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useLanguage } from "./providers/language-provider"
+import { LanguageToggle } from "@/components/language-toggle"
+import { ThemeToggle } from "./theme-toggle"
+import { Button } from "./ui/button"
+import { LogOut, Menu } from "lucide-react"
+import { signOut } from "next-auth/react"
+import Image from "next/image"
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Menu, LogOut } from "lucide-react"
-
-const menuItems = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/vehicles", label: "Vehicles" },
-  { href: "/inspections", label: "Inspections" },
-  { href: "/settings", label: "Settings" },
-]
 
 export function Header() {
-  const { language, setLanguage, t } = useLanguage()
-  const pathname = usePathname()
+  const { t } = useLanguage()
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Desktop Header */}
-      <div className="container max-w-5xl mx-auto px-4 hidden md:flex h-14 items-center justify-between">
-        <div className="flex items-center gap-4">
+    <header className="border-b">
+      <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4">
+        <Link href="/" className="flex items-center">
           <Image
             src="https://staging.japandriver.com/wp-content/uploads/2024/04/driver-header-logo.png"
-            alt="Driver Logo"
+            alt="Driver"
             width={120}
             height={40}
             className="dark:brightness-200"
             priority
           />
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={language} onValueChange={(value: "en" | "ja") => setLanguage(value)}>
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="ja">日本語</SelectItem>
-            </SelectContent>
-          </Select>
-          <ThemeToggle />
-          <Button
-            variant="outline"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            {t("common.logout")}
-          </Button>
-        </div>
-      </div>
+        </Link>
 
-      {/* Mobile Header */}
-      <div className="md:hidden">
-        <div className="flex h-14 items-center justify-between px-4">
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          <Link 
+            href="/dashboard" 
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            {t("nav.dashboard")}
+          </Link>
+          <Link 
+            href="/vehicles" 
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            {t("nav.vehicles")}
+          </Link>
+          <Link 
+            href="/inspections" 
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            {t("nav.inspections")}
+          </Link>
+          <Link 
+            href="/settings" 
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            {t("nav.settings")}
+          </Link>
+        </nav>
+
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4">
+            <LanguageToggle />
+            <ThemeToggle />
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Mobile Menu */}
           <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="shrink-0">
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="left" 
-              className="w-[80vw] max-w-sm p-0 flex flex-col h-full"
-            >
-              <SheetHeader className="border-b p-4">
-                <Image
-                  src="https://staging.japandriver.com/wp-content/uploads/2024/04/driver-header-logo.png"
-                  alt="Driver Logo"
-                  width={100}
-                  height={33}
-                  className="dark:brightness-200"
-                  priority
-                />
-              </SheetHeader>
-
-              {/* Navigation Links */}
-              <nav className="flex-1 p-4">
-                <ul className="space-y-3">
-                  {menuItems.map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className={`block w-full px-4 py-3 rounded-md text-base font-medium transition-colors
-                            ${isActive 
-                              ? "bg-primary text-primary-foreground" 
-                              : "hover:bg-muted"
-                            }`}
-                        >
-                          {t(`nav.${item.label.toLowerCase()}`)}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </nav>
-
-              {/* Bottom Section */}
-              <div className="border-t p-4 bg-background space-y-4">
-                <div className="flex items-center gap-2">
-                  <Select 
-                    value={language} 
-                    onValueChange={(value: "en" | "ja") => setLanguage(value)}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ja">日本語</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <ThemeToggle />
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+            <SheetContent side="right">
+              <div className="flex flex-col space-y-4 mt-6">
+                <Link 
+                  href="/dashboard" 
+                  className="text-sm font-medium transition-colors hover:text-primary"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {t("common.logout")}
-                </Button>
+                  {t("nav.dashboard")}
+                </Link>
+                <Link 
+                  href="/vehicles" 
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                >
+                  {t("nav.vehicles")}
+                </Link>
+                <Link 
+                  href="/inspections" 
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                >
+                  {t("nav.inspections")}
+                </Link>
+                <Link 
+                  href="/settings" 
+                  className="text-sm font-medium transition-colors hover:text-primary"
+                >
+                  {t("nav.settings")}
+                </Link>
+
+                <div className="pt-4 border-t">
+                  <div className="space-y-4">
+                    <LanguageToggle />
+                    <ThemeToggle />
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start"
+                      onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                    >
+                      <LogOut className="h-5 w-5 mr-2" />
+                      {t("auth.signOut")}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
-
-          <Image
-            src="https://staging.japandriver.com/wp-content/uploads/2024/04/driver-header-logo.png"
-            alt="Driver Logo"
-            width={100}
-            height={33}
-            className="dark:brightness-200"
-            priority
-          />
-
-          <div className="w-10" /> {/* Spacer for centering logo */}
         </div>
       </div>
     </header>

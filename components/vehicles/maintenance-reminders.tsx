@@ -42,63 +42,27 @@ export function MaintenanceReminders({ vehicleId }: MaintenanceRemindersProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.management.maintenance.reminders.title")}</CardTitle>
+        <CardTitle>{t("vehicles.details.maintenance.reminders.title")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="notifications">
-            {t("vehicles.management.maintenance.reminders.enable")}
-          </Label>
-          <Switch
-            id="notifications"
-            checked={settings.enabled}
-            onCheckedChange={(checked) => 
-              setSettings({ ...settings, enabled: checked })
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            {t("vehicles.management.maintenance.reminders.notification")}
-          </Label>
-          <Select
-            value={settings.notificationType}
-            onValueChange={(value) => 
-              setSettings({ ...settings, notificationType: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="email">
-                {t("vehicles.management.maintenance.reminders.email")}
-              </SelectItem>
-              <SelectItem value="push">
-                {t("vehicles.management.maintenance.reminders.push")}
-              </SelectItem>
-              <SelectItem value="both">
-                {t("vehicles.management.maintenance.reminders.both")}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            {t("vehicles.management.maintenance.reminders.before")}
-          </Label>
-          <Input
-            type="number"
-            value={settings.daysBeforeReminder}
-            onChange={(e) => setSettings({
-              ...settings,
-              daysBeforeReminder: parseInt(e.target.value)
-            })}
-            min={1}
-            max={30}
-          />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>{t("vehicles.details.maintenance.reminders.enable")}</Label>
+            <Switch />
+          </div>
+          <div>
+            <Label>{t("vehicles.details.maintenance.reminders.notification")}</Label>
+            <Select>
+              <SelectTrigger>
+                <SelectValue placeholder={t("vehicles.details.maintenance.reminders.both")} />
+              </SelectTrigger>
+            </Select>
+          </div>
+          <div>
+            <Label>{t("vehicles.details.maintenance.reminders.before")}</Label>
+            <Input type="number" />
+            <span className="ml-2">{t("vehicles.details.maintenance.reminders.days")}</span>
+          </div>
         </div>
 
         <Button onClick={handleSave} className="w-full">

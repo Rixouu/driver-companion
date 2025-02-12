@@ -38,6 +38,7 @@ import { CalendarIcon, Plus } from "lucide-react"
 import { MaintenanceCostTracker } from "./maintenance-cost-tracker"
 import { MaintenanceHistory } from "./maintenance-history"
 import { MaintenanceReminders } from "./maintenance-reminders"
+import { Badge } from "@/components/ui/badge"
 
 interface MaintenanceTask {
   id: string
@@ -130,111 +131,20 @@ export function MaintenanceSchedule({ vehicleId }: MaintenanceScheduleProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("vehicles.management.maintenance.schedule")}</CardTitle>
-          <Dialog open={isAddingTask} onOpenChange={setIsAddingTask}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                {t("vehicles.management.maintenance.addTask")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("vehicles.management.maintenance.addTask")}</DialogTitle>
-                <DialogDescription>
-                  {t("vehicles.management.maintenance.addTaskDescription")}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>{t("vehicles.management.maintenance.types.title")}</Label>
-                  <Select
-                    value={newTask.type}
-                    onValueChange={(value) => setNewTask({ ...newTask, type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue 
-                        placeholder={t("vehicles.management.maintenance.selectType")} 
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="oil">
-                        {t("vehicles.management.maintenance.types.oil")}
-                      </SelectItem>
-                      <SelectItem value="tire">
-                        {t("vehicles.management.maintenance.types.tire")}
-                      </SelectItem>
-                      <SelectItem value="brake">
-                        {t("vehicles.management.maintenance.types.brake")}
-                      </SelectItem>
-                      <SelectItem value="filter">
-                        {t("vehicles.management.maintenance.types.filter")}
-                      </SelectItem>
-                      <SelectItem value="battery">
-                        {t("vehicles.management.maintenance.types.battery")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>{t("vehicles.management.maintenance.intervals.days")}</Label>
-                  <Input
-                    type="number"
-                    value={newTask.intervalDays}
-                    onChange={(e) => setNewTask({ 
-                      ...newTask, 
-                      intervalDays: parseInt(e.target.value) 
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label>{t("vehicles.management.maintenance.intervals.kilometers")}</Label>
-                  <Input
-                    type="number"
-                    value={newTask.intervalKm}
-                    onChange={(e) => setNewTask({ 
-                      ...newTask, 
-                      intervalKm: parseInt(e.target.value) 
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label>{t("vehicles.management.maintenance.nextService")}</Label>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    disabled={(date) => date < new Date()}
-                    className="rounded-md border mt-2"
-                  />
-                </div>
-                <div>
-                  <Label>{t("vehicles.management.maintenance.notes")}</Label>
-                  <Textarea
-                    value={newTask.notes}
-                    onChange={(e) => setNewTask({ ...newTask, notes: e.target.value })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddingTask(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={handleAddTask}>
-                  {t("common.save")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <CardTitle>{t("vehicles.details.maintenance.schedule.title")}</CardTitle>
+          <Button variant="outline" size="sm" onClick={() => setIsAddingTask(true)}>
+            {t("vehicles.details.maintenance.schedule.addTask")}
+          </Button>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("vehicles.management.maintenance.types.title")}</TableHead>
-                <TableHead>{t("vehicles.management.maintenance.nextService")}</TableHead>
-                <TableHead>{t("vehicles.management.maintenance.lastService")}</TableHead>
-                <TableHead>{t("vehicles.management.maintenance.intervals.title")}</TableHead>
+                <TableHead>{t("vehicles.details.maintenance.types.title")}</TableHead>
+                <TableHead>{t("vehicles.details.maintenance.schedule.nextService")}</TableHead>
+                <TableHead>{t("vehicles.details.maintenance.schedule.lastService")}</TableHead>
+                <TableHead>{t("vehicles.details.maintenance.schedule.days")}</TableHead>
+                <TableHead>{t("vehicles.details.maintenance.schedule.kilometers")}</TableHead>
                 <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -242,19 +152,17 @@ export function MaintenanceSchedule({ vehicleId }: MaintenanceScheduleProps) {
               {maintenanceTasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>
-                    {t(`vehicles.management.maintenance.types.${task.type}`)}
+                    {t(`vehicles.details.maintenance.types.${task.type}`)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span>{format(task.dueDate, "PPP")}</span>
-                      <span className={`text-sm ${
-                        task.status === 'overdue' 
-                          ? 'text-destructive' 
-                          : 'text-muted-foreground'
-                      }`}>
-                        {t(`vehicles.management.maintenance.intervals.${task.status}`)}
-                      </span>
-                    </div>
+                    {format(task.dueDate, "PPP")}
+                    <span className={`text-sm ${
+                      task.status === 'overdue' 
+                        ? 'text-destructive' 
+                        : 'text-muted-foreground'
+                    }`}>
+                      {t(`inspections.maintenanceSchedule.maintenanceStatus.${task.status}`)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {task.lastCompleted 
@@ -262,10 +170,10 @@ export function MaintenanceSchedule({ vehicleId }: MaintenanceScheduleProps) {
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-muted-foreground">
-                      <div>{task.intervalDays} {t("vehicles.management.maintenance.intervals.days")}</div>
-                      <div>{task.intervalKm} {t("vehicles.management.maintenance.intervals.kilometers")}</div>
-                    </div>
+                    {task.intervalDays} {t("vehicles.management.mileage.metrics.days")}
+                  </TableCell>
+                  <TableCell>
+                    {task.intervalKm} {t("vehicles.management.mileage.metrics.kilometers")}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

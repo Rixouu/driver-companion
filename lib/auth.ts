@@ -46,84 +46,63 @@ export const auth = {
   }
 }
 
+// Define the User type that NextAuth expects
+declare module "next-auth" {
+  interface User {
+    id: string
+    email: string
+    name: string
+    role: 'ADMIN' | 'MANAGER' | 'DRIVER'
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
     CredentialsProvider({
-      name: "credentials",
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials")
+      async authorize(credentials, req) {
+        if (!credentials?.email || !credentials?.password) return null
+        
+        if (credentials.email === "test@example.com" && credentials.password === "password") {
+          return {
+            id: "1",
+            email: credentials.email,
+            name: "Test User",
+            role: "ADMIN"
+          }
         }
-
-        // Check if it matches our test user
-        if (credentials.email !== MOCK_USER.email) {
-          throw new Error("Invalid credentials")
-        }
-
-        // For testing, accept "password" as the password
-        if (credentials.password !== "password") {
-          throw new Error("Invalid credentials")
-        }
-
-        return {
-          id: MOCK_USER.id,
-          email: MOCK_USER.email,
-          name: MOCK_USER.name,
-        }
-      },
+        return null
+      }
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    })
   ],
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: "/auth/signin",
   },
   session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  cookies: {
-    sessionToken: {
-      name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
+    strategy: "jwt"
   },
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account) {
-        token.accessToken = account.access_token
-      }
-      if (profile) {
-        token.name = profile.name
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.name = token.name
+        (session.user as any).role = token.role
       }
       return session
-    },
-    async redirect({ url, baseUrl }) {
-      // Handle redirect URLs
-      if (url.startsWith('/')) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
-    },
-  },
-  debug: process.env.NODE_ENV === 'development',
+    }
+  }
 }
 

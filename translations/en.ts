@@ -112,28 +112,56 @@ export const en = {
     },
     days: "days",
     completed: "Completed",
+    welcome: "Welcome",
+    overview: "Here's an overview of your vehicle inspections",
+    upcomingTasks: "Upcoming Tasks",
+    viewAll: "View All",
+    alerts: "Alerts",
+    pendingInspections: "Pending Inspections",
+    completedToday: "Completed Today",
+    requiresAttention: "Requires Attention",
+    recentInspections: "Recent Inspections",
+    viewDetails: "View Details"
   },
   status: {
     active: "Active",
     inactive: "Inactive",
-    completed: "Completed",
     pending: "Pending",
-    failed: "Failed",
-    maintenance: "Maintenance",
-    draft: "Draft",
+    completed: "Completed",
+    cancelled: "Cancelled",
     inProgress: "In Progress",
-    review: "Under Review",
     approved: "Approved",
     rejected: "Rejected",
     archived: "Archived",
-    status: "Status",
     scheduled: "Scheduled",
+    inspection_due: "Inspection Due",
+    vehicleStatus: {
+      maintenance: "Under Maintenance",
+      inspectionDue: "Inspection Due",
+      active: "Active",
+      inactive: "Inactive"
+    },
+    inspectionStatus: {
+      passed: "Passed",
+      failed: "Failed",
+      na: "N/A",
+      inProgress: "In Progress",
+      scheduled: "Scheduled",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    },
+    maintenanceStatus: {
+      scheduled: "Scheduled",
+      inProgress: "In Progress",
+      completed: "Completed",
+      overdue: "Overdue"
+    }
   },
   navigation: {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     inspections: "Inspections",
-    settings: "Settings",
+    settings: "Settings"
   },
   dashboard: {
     title: "Dashboard",
@@ -300,313 +328,6 @@ export const en = {
   },
   vehicles: {
     title: "Vehicles",
-    new: {
-      title: "Add New Vehicle",
-      success: "Vehicle added successfully",
-      error: "Failed to add vehicle",
-    },
-    details: {
-      title: "Vehicle Information",
-      info: "Vehicle Information",
-      history: "Inspection History",
-      maintenance: "Maintenance Records",
-      documents: "Documents",
-      status: "Current Status",
-      lastInspection: "Last Inspection",
-      nextInspection: "Next Inspection",
-      scheduleInspection: "Schedule Inspection",
-      model: "Model",
-      year: "Year",
-      statusActive: "Status: Active",
-      assignmentSection: "Assignment & Inspection",
-      assignedTo: "Assigned To",
-      maintenanceHistory: "Maintenance History",
-      plate: "Plate",
-    },
-    list: {
-      all: "All Vehicles",
-      active: "Active",
-      maintenance: "In Maintenance",
-      retired: "Retired",
-      noVehicles: "No vehicles found",
-      filterByStatus: "Filter by Status",
-    },
-    fields: {
-      plateNumber: "Plate Number",
-      vin: "VIN",
-      make: "Make",
-      model: "Model",
-      year: "Year",
-      type: "Vehicle Type",
-      status: "Status",
-      assignedTo: "Assigned To",
-      lastService: "Last Service",
-      mileage: "Current Mileage",
-    },
-    addVehicle: "Add Vehicle",
-    viewDetails: "View Details",
-    management: {
-      assignVehicle: "Assign Vehicle",
-      maintenance: {
-        schedule: "Maintenance Schedule",
-        history: "Maintenance History",
-        nextService: "Next Service",
-        lastService: "Last Service",
-        addService: "Add Service Record",
-        serviceType: "Service Type",
-        serviceDate: "Service Date",
-        serviceMileage: "Service Mileage",
-        notes: "Service Notes",
-        types: {
-          oil: "Oil Change",
-          tire: "Tire Rotation",
-          brake: "Brake Service",
-          inspection: "Regular Inspection",
-          filter: "Filter Replacement",
-          battery: "Battery Check",
-          other: "Other Service",
-          transmission: "Transmission Service",
-          aircon: "Air Conditioning Service",
-          suspension: "Suspension Service",
-          title: "Maintenance Types",
-          oilChange: "Oil Change",
-        },
-        intervals: {
-          title: "Service Intervals",
-          days: "Days",
-          kilometers: "Kilometers",
-          next: "Next Due",
-          overdue: "Overdue",
-          upcoming: "Upcoming",
-        },
-        costs: {
-          title: "Service Costs",
-          amount: "Amount",
-          currency: "Currency",
-          total: "Total Cost",
-          average: "Average Cost",
-          analysis: "Cost Analysis",
-          perKilometer: "Cost per Kilometer",
-          monthlyAverage: "Monthly Average",
-          trend: "Cost Trend",
-          distribution: "Cost Distribution",
-          forecast: "Cost Forecast",
-          sixMonthForecast: "6-Month Cost Forecast",
-          forecastDescription: "Based on historical data and maintenance schedules",
-          predictedNextMonth: "Next Month (Predicted)",
-          predictedSixMonths: "Next 6 Months Total",
-          yearlyEstimate: "Yearly Estimate",
-          actual: "Actual Cost",
-          predicted: "Predicted Cost",
-          confidence: "Forecast Confidence",
-          baseline: "Baseline Cost",
-          seasonal: "Seasonal Adjustment",
-          scheduled: "Scheduled Maintenance",
-          forecastComponents: "Forecast Components",
-          seasonalFactors: "Seasonal Factors",
-          winterIncrease: "Winter Increase",
-          summerIncrease: "Summer Increase",
-        },
-        reminders: {
-          title: "Service Reminders",
-          enable: "Enable Reminders",
-          before: "Remind Before",
-          notification: "Notification Type",
-          email: "Email",
-          push: "Push Notification",
-          both: "Both",
-        },
-        status: {
-          scheduled: "Scheduled",
-          inProgress: "In Progress",
-          completed: "Completed",
-          cancelled: "Cancelled",
-          overdue: "Overdue",
-        },
-        addTask: "Add Maintenance Task",
-        addTaskDescription: "Schedule a new maintenance task for this vehicle",
-        selectType: "Select maintenance type",
-        taskAdded: "Maintenance task added successfully",
-        taskCompleted: "Maintenance task marked as completed",
-        errors: {
-          missingFields: "Please fill in all required fields",
-        },
-        optimization: {
-          title: "Cost Optimization Suggestions",
-          potentialSavings: "Potential Savings",
-          implementationCost: "Implementation Cost",
-          priority: {
-            high: "High Priority",
-            medium: "Medium Priority",
-            low: "Low Priority",
-          },
-          bundleSavings: "Bundle Savings",
-          preventiveSavings: "Preventive Savings",
-        },
-        scheduleWarning: {
-          transmission: "Schedule preventive maintenance for transmission soon",
-          tire: "Schedule preventive maintenance for tires soon",
-          suspension: "Schedule preventive maintenance for suspension soon",
-          aircon: "Schedule preventive maintenance for air conditioning soon",
-          oil: "Schedule preventive maintenance for oil change soon",
-          brake: "Schedule preventive maintenance for brakes soon",
-          filter: "Schedule preventive maintenance for filters soon"
-        },
-        bundleRecommendation: {
-          suspension: "Bundle suspension maintenance with tire service",
-          aircon: "Bundle air conditioning maintenance with filter service"
-        },
-        performedBy: "Performed By",
-      },
-      mileage: {
-        title: "Mileage Tracking",
-        current: "Current Mileage",
-        daily: "Daily Average",
-        monthly: "Monthly Average",
-        update: "Update Mileage",
-        reading: "Current Reading",
-        notes: "Notes",
-        lastUpdate: "Last Updated",
-        updated: "Mileage updated successfully",
-        errors: {
-          invalidReading: "Please enter a valid mileage reading",
-          readingTooLow: "New reading must be higher than current mileage",
-        },
-        alerts: {
-          title: "Mileage Alerts",
-          upcoming: "Upcoming Milestones",
-          overdue: "Overdue Services"
-        },
-        tabs: {
-          overview: "Overview",
-          history: "History",
-          analysis: "Analysis"
-        },
-        distance: "Distance",
-        totalDistance: "Total Distance",
-        averagePerTrip: "Average Per Trip",
-        projectedMonthly: "Projected Monthly",
-        analysis: "Mileage Analysis",
-        history: "Mileage History",
-        goals: {
-          title: "Mileage Goals",
-          edit: "Edit Goals",
-          monthly: "Monthly Target",
-          yearly: "Yearly Target"
-        },
-        weeklyComparison: "Weekly Comparison",
-        weeklyAverage: "Weekly Average",
-        yearlyProjection: "Yearly Projection",
-        highestDaily: "Highest Daily",
-        averageSpeed: "Average Speed"
-      },
-      fuel: {
-        consumption: "Fuel Consumption",
-        addRecord: "Add Fuel Record",
-        liters: "Liters",
-        cost: "Cost",
-        mileage: "Current Mileage",
-        efficiency: "Efficiency (km/L)",
-        totalCost: "Total Fuel Cost",
-        averageEfficiency: "Average Fuel Efficiency",
-        recordAdded: "Fuel record added successfully",
-        errors: {
-          missingFields: "Please fill in all required fields",
-        },
-      },
-      assignment: {
-        title: "Vehicle Assignment",
-        assignTo: "Assign to Driver",
-        currentDriver: "Current Driver",
-        assignmentHistory: "Assignment History",
-        startDate: "Start Date",
-        endDate: "End Date",
-        status: "Assignment Status",
-        active: "Currently Assigned",
-        ended: "Assignment Ended",
-        addAssignment: "Add Assignment",
-        removeAssignment: "Remove Assignment",
-        confirmRemoval: "Are you sure you want to remove this assignment?",
-      },
-    },
-    filters: {
-      title: "Filters",
-      status: "Status",
-      type: "Vehicle Type",
-      assignedTo: "Assigned To",
-      location: "Location",
-      clearAll: "Clear All",
-      apply: "Apply Filters",
-    },
-    sort: {
-      title: "Sort By",
-      plateNumber: "Plate Number",
-      lastInspection: "Last Inspection",
-      status: "Status",
-      mileage: "Mileage",
-    },
-    export: {
-      title: "Export",
-      csv: "Export as CSV",
-      pdf: "Export as PDF",
-      print: "Print List",
-    },
-    components: {
-      details: {
-        basicInfo: "Basic Information",
-        specifications: "Specifications",
-        registration: "Registration",
-        insurance: "Insurance",
-        documents: "Documents",
-        history: "History",
-        addDocument: "Add document",
-        documentTypes: {
-          registration: "Registration",
-          insurance: "Insurance",
-          maintenance: "Maintenance",
-          inspection: "Inspection",
-          other: "Other",
-        },
-      },
-      maintenance: {
-        upcoming: "Upcoming Maintenance",
-        history: "Maintenance History",
-        schedule: "Maintenance Schedule",
-        addRecord: "Add Record",
-        noRecords: "No maintenance records",
-        nextService: "Next service in {distance}km or {days} days",
-        overdue: "Service overdue by {days} days",
-      },
-      stats: {
-        dailyUsage: "Daily Usage",
-        fuelEfficiency: "Fuel Efficiency",
-        maintenanceCosts: "Maintenance Costs",
-        availability: "Availability",
-        utilization: "Utilization",
-        downtime: "Downtime",
-      },
-    },
-    tracking: {
-      title: "Vehicle Tracking",
-      lastKnownLocation: "Last Known Location",
-      status: "Tracking Status",
-      history: "Location History",
-      route: "Route Details",
-    },
-    documents: {
-      title: "Vehicle Documents",
-      upload: "Upload Document",
-      preview: "Preview Document",
-      expires: "Expires on",
-      renewal: "Renewal Due",
-      categories: {
-        registration: "Registration",
-        insurance: "Insurance",
-        maintenance: "Maintenance Records",
-        inspection: "Inspection Reports",
-        other: "Other Documents",
-      },
-    },
     alerts: {
       maintenanceDue: "Maintenance due in {days} days",
       documentExpiring: "{document} expires in {days} days",
@@ -615,9 +336,348 @@ export const en = {
     },
     plateNumber: "License Plate",
     name: "Vehicle Name",
+    select: "Select Vehicle",
+    status: {
+      active: "Active",
+      inspection_due: "Inspection Due",
+      maintenance: "In Maintenance"
+    },
+    addVehicle: "Add Vehicle",
+    new: {
+      title: "Add New Vehicle",
+      description: "Enter the details for the new vehicle",
+      form: {
+        vehicleInfo: "Vehicle Information",
+        name: "Vehicle Name",
+        plateNumber: "Plate Number",
+        model: "Model",
+        year: "Year",
+        vin: "VIN",
+        assignTo: "Assign To",
+        image: "Vehicle Image",
+        imageHelp: "Upload a clear photo of the vehicle. Supported formats: JPG, PNG",
+      },
+      actions: {
+        add: "Add Vehicle",
+        adding: "Adding Vehicle...",
+        cancel: "Cancel",
+      },
+    },
+    list: {
+      active: "Active Vehicles",
+      noVehicles: "No vehicles found",
+    },
+    details: {
+      title: "Vehicle Information",
+      model: "Model",
+      year: "Year",
+      vin: "VIN",
+      assignedTo: "Assigned To",
+      lastInspection: "Last Inspection",
+      status: "Status",
+      plateNumber: "Plate Number",
+      maintenance: {
+        schedule: {
+          title: "Maintenance Schedule",
+          nextService: "Next Service",
+          upcoming: "Upcoming",
+          overdue: "Overdue",
+          lastService: "Last Service",
+          addTask: "Add Task",
+          days: "Days",
+          kilometers: "Kilometers"
+        },
+        types: {
+          title: "Maintenance Types",
+          oil: "Oil Change",
+          tire: "Tire Service",
+          brake: "Brake Service",
+          inspection: "Inspection",
+          general: "General Service"
+        },
+        status: {
+          completed: "Completed",
+          scheduled: "Scheduled",
+          overdue: "Overdue"
+        },
+        intervals: {
+          upcoming: "Upcoming",
+          overdue: "Overdue"
+        },
+        mileageCurrent: "Current Mileage",
+        costs: {
+          title: "Cost Overview",
+          total: "Total Maintenance Cost",
+          average: "Monthly Average Cost",
+          amount: "Service Cost"
+        },
+        reminders: {
+          title: "Maintenance Reminders",
+          enable: "Enable Reminders",
+          notification: "Notification Type",
+          both: "Email & SMS",
+          before: "Notify Before",
+          days: "days"
+        },
+        history: {
+          title: "Maintenance History",
+          serviceDate: "Service Date",
+          performedBy: "Performed By",
+          serviceCenter: "Service Center"
+        }
+      },
+      inspections: {
+        title: "Inspection Schedule",
+        upcoming: "Upcoming Inspections",
+        schedule: "Schedule Inspection",
+        reschedule: "Reschedule",
+        cancel: "Cancel Inspection",
+        date: "Inspection Date",
+        time: "Time",
+        status: "Status",
+        actions: "Actions",
+        results: {
+          passed: "Passed",
+          failed: "Failed",
+          na: "N/A"
+        }
+      }
+    },
+    viewDetails: "View Details",
+    management: {
+      assignVehicle: "Assign Vehicle",
+      maintenance: {
+        title: "Maintenance Management",
+        schedule: "Maintenance Schedule",
+        history: "Maintenance History",
+        nextService: "Next Service",
+        lastService: "Last Service",
+        addService: "Add Service Record",
+        costs: {
+          title: "Cost Overview",
+          total: "Total Maintenance Cost",
+          average: "Monthly Average Cost",
+          amount: "Service Cost"
+        },
+      },
+      mileage: {
+        title: "Mileage Overview",
+        current: "Current Mileage",
+        daily: "Daily Average",
+        monthly: "Monthly Average",
+        update: {
+          title: "Update Mileage",
+          reading: "Current Reading",
+          lastUpdate: "Last Update: {date}",
+          notes: "Notes"
+        },
+        alerts: {
+          title: "Mileage Alerts",
+          upcomingService: "Upcoming Service",
+          overdueService: "Overdue Service",
+          status: {
+            upcoming: "Upcoming",
+            overdue: "Overdue"
+          }
+        },
+        goals: {
+          title: "Mileage Goals",
+          monthly: "Monthly Goal",
+          yearly: "Yearly Goal",
+          current: "{current} / {target} km"
+        },
+        analysis: {
+          title: "Mileage Analysis",
+          stats: {
+            lastDistance: "Last Distance",
+            totalDistance: "Total Distance",
+            averagePerTrip: "Average Per Trip",
+            projectedMonthly: "Projected Monthly",
+            weeklyComparison: "Weekly Comparison",
+            averageSpeed: "Average Speed"
+          },
+          metrics: {
+            kilometers: "kilometers",
+            kmPerHour: "km/h",
+            perDay: "per day",
+            perWeek: "per week"
+          },
+          chart: {
+            weekly: "Weekly Distance",
+            monthly: "Monthly Distance",
+            comparison: "Distance Comparison"
+          }
+        },
+        tabs: {
+          overview: "Overview",
+          history: "History",
+          analysis: "Analysis",
+          maintenanceSchedule: "Maintenance Schedule",
+          inspectionHistory: "Inspection History",
+          mileageCurrent: "Current Mileage",
+          fuelConsumption: "Fuel Consumption",
+          assignmentList: "Assignment List"
+        },
+        metrics: {
+          kilometers: "kilometers",
+          days: "days"
+        }
+      },
+      tabs: {
+        maintenanceSchedule: "Maintenance Schedule",
+        inspectionHistory: "Inspection History",
+        mileageCurrent: "Current Mileage",
+        fuelConsumption: "Fuel Consumption",
+        assignmentList: "Assignment List"
+      },
+      fuelConsumption: {
+        title: "Fuel Consumption",
+        stats: {
+          averageConsumption: "Average Consumption",
+          totalFuelCost: "Total Fuel Cost",
+          lastRefuel: "Last Refuel",
+          fuelEfficiency: "Fuel Efficiency"
+        },
+        metrics: {
+          liters: "L",
+          kmPerLiter: "km/L",
+          costPerKm: "$/km"
+        },
+        chart: {
+          consumption: "Consumption",
+          distance: "Distance",
+          cost: "Cost",
+          monthly: "Monthly Consumption",
+          yearly: "Yearly Consumption"
+        },
+        refuel: {
+          addRecord: "Add Refuel Record",
+          date: "Refuel Date",
+          amount: "Amount (L)",
+          cost: "Cost",
+          mileage: "Mileage at Refuel",
+          fullTank: "Full Tank",
+          station: "Station"
+        }
+      },
+      assignment: {
+        title: "Assignment Management",
+        current: {
+          title: "Current Assignment",
+          noAssignment: "No Current Assignment",
+          driver: "Assigned Driver",
+          since: "Assigned Since",
+          until: "Assigned Until"
+        },
+        history: {
+          title: "Assignment History",
+          noHistory: "No Assignment History",
+          previousDrivers: "Previous Drivers"
+        },
+        new: {
+          title: "New Assignment",
+          selectDriver: "Select Driver",
+          period: "Assignment Period",
+          notes: "Assignment Notes"
+        },
+        actions: {
+          assign: "Assign Vehicle",
+          unassign: "Unassign Vehicle",
+          extend: "Extend Assignment",
+          terminate: "Terminate Assignment",
+          addAssignment: "Add Assignment"
+        },
+        status: {
+          active: "Active",
+          completed: "Completed",
+          scheduled: "Scheduled",
+          cancelled: "Cancelled"
+        },
+        assignmentHistory: "Assignment History",
+        addAssignment: "Add Assignment",
+        assignTo: "Assign Vehicle To"
+      },
+      maintenanceSchedule: {
+        title: "Maintenance Schedule",
+        upcoming: "Upcoming Maintenance",
+        overdue: "Overdue Maintenance",
+        addTask: "Add Maintenance Task",
+        taskDetails: {
+          type: "Maintenance Type",
+          dueDate: "Due Date",
+          estimatedCost: "Estimated Cost",
+          assignedTo: "Assigned To",
+          priority: "Priority",
+          notes: "Task Notes"
+        },
+        intervals: {
+          daily: "Daily",
+          weekly: "Weekly",
+          monthly: "Monthly",
+          quarterly: "Quarterly",
+          yearly: "Yearly",
+          custom: "Custom Interval"
+        },
+        maintenanceStatus: {
+          upcoming: "Upcoming",
+          scheduled: "Scheduled",
+          inProgress: "In Progress",
+          completed: "Completed",
+          cancelled: "Cancelled",
+          overdue: "Overdue"
+        }
+      },
+      inspectionSchedule: {
+        title: "Inspection Schedule",
+        upcoming: "Upcoming Inspections",
+        overdue: "Overdue Inspections",
+        schedule: {
+          title: "Schedule Inspection",
+          selectDate: "Select Date",
+          selectTime: "Select Time",
+          inspector: "Assigned Inspector",
+          type: "Inspection Type",
+          notes: "Inspection Notes"
+        },
+        status: {
+          scheduled: "Scheduled",
+          inProgress: "In Progress",
+          completed: "Completed",
+          cancelled: "Cancelled",
+          overdue: "Overdue"
+        },
+        frequency: {
+          weekly: "Weekly",
+          biweekly: "Bi-weekly",
+          monthly: "Monthly",
+          quarterly: "Quarterly",
+          custom: "Custom Schedule"
+        }
+      },
+      qrCode: {
+        generate: "Generate QR Code",
+        download: "Download QR Code",
+        print: "Print QR Code",
+        scan: "Scan QR Code"
+      },
+      fuel: {
+        consumption: "Fuel Consumption",
+        totalCost: "Total Fuel Cost",
+        averageEfficiency: "Average Efficiency",
+        addRecord: "Add Fuel Record",
+        liters: "Liters",
+        mileage: "Mileage at Fill-up",
+        cost: "Fuel Cost"
+      },
+      vehicleStatus: {
+        active: "Active",
+        maintenance: "Under Maintenance",
+        inspection_due: "Inspection Due"
+      }
+    }
   },
   inspections: {
-    title: "Inspections",
+    title: "Vehicle Inspections",
     new: {
       title: "New Inspection",
       start: "Start Inspection",
@@ -629,209 +689,187 @@ export const en = {
       title: "Inspection Details",
       inspector: "Inspector",
       date: "Inspection Date",
-      status: "Status",
-      notes: "Notes",
+      notes: "Inspection Notes",
       photos: "Photos",
       documents: "Documents",
       signature: "Signature",
       completed: "Completed",
       failed: "Failed Items",
       passed: "Passed Items",
+      noIssues: "No Issues Found",
+      issues: "Issues Found",
+      vehicleInformation: "Vehicle Information",
+      inspectionDetails: {
+        title: "Inspection Details",
+        inspector: "Inspector",
+        date: "Inspection Date",
+        notes: "Inspection Notes",
+        photos: "Photos",
+        documents: "Documents",
+        signature: "Signature",
+        completed: "Completed",
+        failed: "Failed Items",
+        passed: "Passed Items",
+        noIssues: "No Issues Found",
+        issues: "Issues Found"
+      }
     },
     schedule: {
-      title: "Schedule Inspection",
-      selectDate: "Select Date",
-      selectTime: "Select Time",
-      selectTimeSlot: "Select time slot",
-      selectDateTime: "Please select both date and time",
-      submit: "Schedule Inspection",
-      success: "Inspection Scheduled",
-      scheduled: "Inspection scheduled for {date} at {time}",
-      error: "Failed to schedule inspection",
+      title: "Inspection Schedule",
       upcoming: "Upcoming Inspections",
-      noUpcoming: "No upcoming inspections",
-      rescheduled: "Inspection Rescheduled",
+      overdue: "Overdue Inspections",
+      new: {
+        title: "Schedule New Inspection",
+        vehicle: "Select Vehicle",
+        inspector: "Assign Inspector",
+        datetime: "Select Date & Time"
+      },
+      status: {
+        scheduled: "Scheduled",
+        inProgress: "In Progress",
+        completed: "Completed",
+        cancelled: "Cancelled",
+        overdue: "Overdue"
+      },
+      actions: {
+        schedule: "Schedule Inspection",
+        reschedule: "Reschedule",
+        cancel: "Cancel Inspection",
+        confirm: "Confirm Schedule"
+      },
+      notifications: {
+        reminder: "Inspection Reminder",
+        scheduled: "Inspection Scheduled",
+        cancelled: "Inspection Cancelled"
+      },
+      selectTime: "Select Time",
+      reschedule: "Reschedule",
       cancel: "Cancel Inspection",
-      reschedule: "Reschedule Inspection",
+      selectTimeSlot: "Select Time Slot",
+      submit: "Submit Inspection",
+      cancelConfirm: "Are you sure you want to cancel this inspection? This action cannot be undone.",
+      scheduleStatus: {
+        scheduled: "Scheduled",
+        inProgress: "In Progress",
+        completed: "Completed",
+        cancelled: "Cancelled",
+        overdue: "Overdue"
+      }
     },
-    list: {
-      all: "All Inspections",
-      upcoming: "Upcoming",
-      completed: "Completed",
-      failed: "Failed",
-      pending: "Pending",
-      noInspections: "No inspections found",
-      filterByStatus: "Filter by Status",
-    },
-    newInspection: "New Vehicle Inspection",
-    inspectionDetails: "Inspection Details",
-    completeInspection: "Complete Inspection",
-    vehicleInformation: "Vehicle Information",
     inspectionChecklist: "Inspection Checklist",
+    actions: {
+      pass: "Mark as Pass",
+      fail: "Mark as Fail",
+      completeInspection: "Complete Inspection"
+    },
     sections: {
-      front: "Front",
+      front: {
+        headlights: "Headlights",
+        signals: "Turn Signals",
+        bumper: "Front Bumper",
+        hood: "Hood",
+        windshield: "Windshield"
+      },
       left: "Left Side",
       right: "Right Side",
-      rear: "Rear",
+      rear: {
+        taillights: "Taillights",
+        trunk: "Trunk/Boot",
+        exhaust: "Exhaust System",
+        bumper: "Rear Bumper"
+      },
+      interior: "Interior",
+      inspectionStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      },
+      sectionItemStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      },
+      checkStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      },
+      validationStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      }
     },
-    items: {
-      f1: "Lights functioning",
-      f2: "Grill condition",
-      f3: "Hood condition",
-      f4: "Windshield condition",
-      l1: "Left front tire condition",
-      l2: "Left rear tire condition",
-      l3: "Left side panels",
-      l4: "Left mirrors",
-      r1: "Right front tire condition",
-      r2: "Right rear tire condition",
-      r3: "Right side panels",
-      r4: "Right mirrors",
-      b1: "Tail lights",
-      b2: "Trunk condition",
-      b3: "Rear bumper",
-      b4: "License plate",
+    history: {
+      title: "Inspection History",
+      allStatuses: "All Statuses"
     },
-    date: "Date",
-    inspector: "Inspector",
+    newInspection: "New Inspection",
+    vehicleInformationTitle: "Vehicle Information",
+    vehicleInformationSubtitle: "Toyota Alphard Z-Class",
+    progressCompleted: "0% Completed",
+    progressStatsPassed: "0 Passed",
+    progressStatsFailed: "0 Failed",
+    progressStatsRemaining: "16 Remaining",
+    checklist: {
+      title: "Inspection Checklist",
+      section: "Section",
+      item: "Item",
+      status: "Status",
+      comments: "Comments",
+      addComment: "Add Comment",
+      markAllPassed: "Mark All as Passed",
+      requiredItems: "Required Items",
+      optionalItems: "Optional Items",
+      incompleteItems: "Incomplete Items",
+      reviewRequired: "Review Required",
+      items: {
+        front: {
+          headlights: "Headlights",
+          signals: "Turn Signals",
+          bumper: "Front Bumper",
+          hood: "Hood",
+          windshield: "Windshield"
+        },
+        sides: {
+          mirrors: "Side Mirrors",
+          doors: "Doors",
+          tires: "Tires",
+          trim: "Body Trim"
+        },
+        rear: {
+          taillights: "Taillights",
+          trunk: "Trunk/Boot",
+          exhaust: "Exhaust System",
+          bumper: "Rear Bumper"
+        }
+      },
+    },
     photos: {
       title: "Photos",
       takePhoto: "Take Photo",
-      upload: "Upload Photo",
-      uploadSuccess: "Photo uploaded successfully",
-      cameraError: "Could not access camera",
-      delete: "Delete photo",
-      deleteConfirm: "Are you sure you want to delete this photo?",
-      required: "Photo required for this section",
-      maxPhotos: "Maximum number of photos reached",
-      section: "Section Photos",
+      upload: "Upload"
     },
     voice: {
-      title: "Voice Notes",
-      record: "Record Voice Note",
-      stop: "Stop Recording",
-      play: "Play Recording",
-      delete: "Delete Recording",
-      microphoneError: "Could not access microphone",
-      recording: "Recording...",
-      maxDuration: "Maximum recording duration reached",
-      minDuration: "Recording too short",
-    },
-    offline: {
-      title: "Offline Mode",
-      offlineMode: "Working in offline mode",
-      syncAvailable: "Back online - sync available",
-      saveFailed: "Failed to save offline",
-      syncFailed: "Failed to sync",
-      pendingSync: "Pending sync",
-      syncing: "Syncing...",
-      syncComplete: "Sync complete",
-      dataAvailable: "Offline data available",
+      title: "Voice Notes"
     },
     signature: {
-      title: "Inspector Signature",
-      confirm: "I confirm that this inspection was performed according to standard procedures and the information provided is accurate",
-      metadata: {
-        timestamp: "Signed at",
-        location: "Location",
-        device: "Device",
-      },
-    },
-    report: {
-      title: "Inspection Report",
-      generate: "Generate PDF Report",
-      download: "Download Report",
-      generating: "Generating Report...",
-      generatedAt: "Report generated at",
-      summary: "Inspection Summary",
-      details: "Inspection Details",
-      attachments: "Attachments",
-      noPhotos: "No photos attached",
-      noVoiceNotes: "No voice notes recorded",
-    },
-    templates: {
-      title: "Inspection Templates",
-      name: "Template Name",
-      description: "Template Description",
-      newTemplate: "New Template",
-      newSection: "New Section",
-      addSection: "Add Section",
-      addItem: "Add Item",
-      required: "Required",
-      requirePhoto: "Requires Photo",
-      requireVoiceNote: "Requires Voice Note",
-      save: "Save Template",
-      saved: "Template saved successfully",
-      delete: "Delete Template",
-      deleteConfirm: "Are you sure you want to delete this template?",
-      makeDefault: "Make Default Template",
-      isDefault: "Default Template",
-    },
-    filters: {
-      title: "Filters",
-      dateRange: "Date Range",
-      inspector: "Inspector",
-      vehicle: "Vehicle",
-      result: "Result",
-      type: "Inspection Type",
-    },
-    results: {
-      pass: "Pass",
-      fail: "Fail",
-      partial: "Partial Pass",
-      cancelled: "Cancelled",
-      pending: "Pending",
-    },
-    metrics: {
-      total: "Total Inspections",
-      passed: "Passed",
-      failed: "Failed",
-      pending: "Pending",
-      completion: "Completion Rate",
+      title: "Signature",
+      instructions: "Sign here to complete the inspection"
     },
     components: {
-      checklist: {
-        title: "Inspection Checklist",
-        section: "Section",
-        item: "Item",
-        status: "Status",
-        comments: "Comments",
-        addComment: "Add comment",
-        markAllPassed: "Mark all as passed",
-        requiredItems: "Required items",
-        optionalItems: "Optional items",
-        incompleteItems: "Incomplete items",
-        reviewRequired: "Review required",
-      },
-      photos: {
-        title: "Photos",
-        addPhoto: "Add photo",
-        photoCount: "{count} photos",
-        requiredCount: "{count} photos required",
-        retake: "Retake photo",
-        preview: "Preview",
-        camera: {
-          flip: "Flip camera",
-          flash: "Toggle flash",
-          capture: "Capture",
-          retake: "Retake",
-        },
-      },
       timer: {
-        elapsed: "Time elapsed",
-        remaining: "Time remaining",
+        elapsed: "Elapsed Time",
+        remaining: "Remaining Time",
         overtime: "Overtime",
         pause: "Pause",
         resume: "Resume",
-        reset: "Reset",
-      },
-      location: {
-        current: "Current location",
-        updating: "Updating location...",
-        accuracy: "Accuracy: {meters}m",
-        unavailable: "Location unavailable",
-        permission: "Location permission required",
-      },
+        reset: "Reset"
+      }
     },
     workflow: {
       title: "Workflow",
@@ -842,110 +880,150 @@ export const en = {
       next: "Next Step",
       previous: "Previous Step",
       skipStep: "Skip Step",
+      workflowStatus: {
+        completed: "Completed",
+        pending: "Pending",
+        failed: "Failed",
+        inProgress: "In Progress"
+      }
     },
-    validation: {
-      incompleteItems: "Some inspection items are not marked as pass or fail",
-      missingPhotos: "Please take at least one photo for each section",
-      missingSignature: "Inspector signature is required",
-      confirmComplete: "Please confirm all items are checked",
-    },
-    status: {
-      completed: "Completed",
-      inProgress: "In Progress",
-      notStarted: "Not Started",
-      failed: "Failed",
-    },
-    vehicleInformation: "Vehicle Information",
-    inspectionChecklist: "Inspection Checklist",
-    newInspection: "New Inspection",
-    photos: {
-      title: "Photos",
-      add: "Add Photo",
-      retake: "Retake",
-      delete: "Delete",
-    },
-    voice: {
-      title: "Voice Notes",
-      record: "Record",
-      stop: "Stop",
-      play: "Play",
-      delete: "Delete",
-    },
-    vehicleInfo: {
-      title: "Vehicle Information",
-      name: "Vehicle Name",
-      plateNumber: "License Plate",
-    },
-    progress: {
-      title: "Inspection Progress",
-      completed: "{count} completed",
-      remaining: "{count} remaining",
-      front: "Front",
-      leftSide: "Left Side",
-      rightSide: "Right Side",
-      rear: "Rear",
-    },
-    checklist: {
-      title: "Inspection Checklist",
-      items: {
-        lights: "Lights Functioning",
-        grill: "Grill Condition",
-        hood: "Hood Condition",
-        windshield: "Windshield Condition",
+    pdfReport: {
+      title: "Inspection Report",
+      summary: "Inspection Summary",
+      details: {
+        vehicle: "Vehicle Details",
+        inspection: "Inspection Details",
+        inspector: "Inspector Information"
+      },
+      sections: {
+        checklist: "Inspection Checklist",
+        photos: "Photo Documentation",
+        notes: "Inspector Notes",
+        signature: "Digital Signature"
+      },
+      metadata: {
+        generated: "Generated on",
+        reportId: "Report ID",
+        location: "Location",
+        duration: "Inspection Duration"
       },
       actions: {
-        info: "View inspection guidelines",
-        pass: "Pass",
-        fail: "Fail",
-        na: "Not Applicable",
+        download: "Download PDF",
+        print: "Print Report",
+        share: "Share Report",
+        archive: "Archive Report"
       },
+      reportStatus: {
+        draft: "Draft Report",
+        final: "Final Report",
+        archived: "Archived Report"
+      }
     },
-    photos: {
-      title: "Photos",
-      takePhoto: "Take Photo",
-      upload: "Upload Photo",
-      instructions: "Take or upload photos of the vehicle",
+    start: {
+      title: "Start New Inspection",
+      subtitle: "Complete all required sections",
+      vehicle: {
+        title: "Vehicle Information",
+        select: "Select Vehicle",
+        details: "Vehicle Details",
+        noVehicle: "No vehicle selected"
+      },
+      preparation: {
+        title: "Preparation",
+        instructions: "Before starting the inspection:",
+        items: [
+          "Ensure vehicle is parked safely",
+          "Check lighting conditions",
+          "Prepare inspection tools"
+        ]
+      },
+      sections: {
+        required: "Required Sections",
+        optional: "Optional Sections",
+        incomplete: "Incomplete Sections",
+        complete: "Completed Sections"
+      },
+      progress: {
+        progressStatus: {
+          completed: "{count} of {total} completed",
+          remaining: "{count} sections remaining"
+        }
+      },
+      actions: {
+        start: "Start Inspection",
+        continue: "Continue Inspection",
+        save: "Save Progress",
+        complete: "Complete Inspection"
+      },
+      validation: {
+        vehicleRequired: "Please select a vehicle",
+        confirmStart: "Are you ready to start the inspection?"
+      },
+      startStatus: {
+        incomplete: "Incomplete",
+        complete: "Complete",
+        inProgress: "In Progress"
+      }
     },
-    voiceNotes: {
-      title: "Voice Notes",
-      record: "Record Note",
-      instructions: "Record voice notes about the inspection",
+    date: "Inspection Date",
+    inspector: "Inspector",
+    results: {
+      resultStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      }
     },
-    signature: {
-      title: "Inspector Signature",
-      instructions: "Sign to complete the inspection",
-      clear: "Clear Signature",
-      download: "Download Signature",
+    vehicleInfo: {
+      // ... vehicle info translations
     },
-    actions: {
-      cancel: "Cancel Inspection",
-      complete: "Complete Inspection",
-      save: "Save Progress",
-      pass: "Pass",
-      fail: "Fail",
-      backToInspections: "Back to Inspections"
+    vehicleInformation: "Vehicle Information",
+    completeInspections: "Complete Inspection",
+    validation: {
+      validationStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A",
+        pending: "Pending"
+      }
     },
-    history: {
-      title: "Inspection History",
-      allStatuses: "All Statuses"
+    completeInspection: "Complete Inspection",
+    maintenanceSchedule: {
+      maintenanceStatus: {
+        upcoming: "Upcoming",
+        scheduled: "Scheduled",
+        inProgress: "In Progress",
+        completed: "Completed",
+        cancelled: "Cancelled",
+        overdue: "Overdue"
+      }
     },
-    notes: "Inspection Notes"
+    vehicleInspection: {
+      checkStatus: {
+        passed: "Passed",
+        failed: "Failed",
+        na: "N/A"
+      }
+    },
+    itemStatus: {
+      passed: "Passed",
+      failed: "Failed",
+      na: "N/A",
+      pending: "Pending"
+    }
   },
   settings: {
     title: "Settings",
     description: "Manage your account settings and preferences.",
-    profile: "Profile",
-    profileDescription: "Update your profile information.",
-    language: "Language",
-    languageSettings: "Language Settings",
-    notifications: "Notifications",
-    enableNotifications: "Enable notifications",
-    name: "Name",
-    email: "Email",
-    emailNote: "Your email address is managed by your Google account.",
-    success: "Success",
-    profileUpdated: "Your profile has been updated successfully.",
-    saveChanges: "Save Changes",
+    profile: {
+      title: "Profile",
+      description: "Update your profile information.",
+      name: "Name",
+      email: "Email",
+      emailNote: "Your email address is managed by your Google account.",
+      updated: "Your profile has been updated successfully.",
+    },
     preferences: {
       title: "Preferences",
       theme: "Theme",
@@ -967,98 +1045,55 @@ export const en = {
         system: "System Updates",
       },
     },
-    account: {
-      title: "Account Settings",
-      profile: "Profile Information",
-      security: "Security Settings",
-      preferences: "User Preferences",
-      integrations: "Integrations",
-    },
-  },
-  errors: {
-    somethingWentWrong: "Something went wrong",
-    tryAgain: "Try again",
-    required: "This field is required",
-    invalidFormat: "Invalid format",
-    validation: {
-      required: "This field is required",
-      email: "Please enter a valid email address",
-      phone: "Please enter a valid phone number",
-      date: "Please enter a valid date",
-      time: "Please enter a valid time",
-      number: "Please enter a valid number",
-      min: "Value must be at least {min}",
-      max: "Value must be at most {max}",
-      length: "Must be exactly {length} characters",
-      minLength: "Must be at least {min} characters",
-      maxLength: "Must be at most {max} characters",
-      passwordMatch: "Passwords must match",
-      plateNumber: "Please enter a valid plate number",
-      vin: "Please enter a valid VIN number",
-      mileage: "Please enter a valid mileage reading",
-    },
-    api: {
-      network: "Network error. Please check your connection",
-      server: "Server error. Please try again later",
-      unauthorized: "Unauthorized. Please log in again",
-      forbidden: "You don't have permission to perform this action",
-      notFound: "Resource not found",
-      conflict: "Resource already exists",
-      timeout: "Request timed out",
-    },
-    form: {
-      submit: "Failed to submit form",
-      save: "Failed to save changes",
-      load: "Failed to load data",
-      delete: "Failed to delete",
-      update: "Failed to update",
-    },
-    shareFailed: "Failed to share",
-  },
-  pagination: {
-    page: "Page",
-    of: "of",
-    perPage: "Per page",
-  },
-  auth: {
-    signIn: "Sign In",
-    signOut: "Sign Out",
-    forgotPassword: "Forgot Password?",
-    resetPassword: "Reset Password",
-    newPassword: "New Password",
-    confirmPassword: "Confirm Password",
-    passwordMismatch: "Passwords do not match",
-    invalidCredentials: "Invalid email or password",
-    roles: {
-      admin: "Administrator",
-      driver: "Driver",
-      manager: "Manager",
-    },
-    twoFactor: {
-      title: "Two-Factor Authentication",
-      enterCode: "Enter verification code",
-      sendCode: "Send Code",
-      verifyCode: "Verify Code",
-      setupInstructions: "Set up two-factor authentication",
-    },
-    session: {
-      expired: "Session expired, please sign in again",
-      invalid: "Invalid session",
-    },
-    password: "Password",
-    signInDescription: "Enter your email and password to sign in",
-    signInWithGoogle: "Sign in with Google",
-    loginFailed: "Failed to sign in",
-    googleSignInFailed: "Google sign in failed. Please try again.",
-  },
-  buttons: {
-    backToVehicles: "Back to Vehicles",
-    startInspection: "Start Inspection"
   },
   nav: {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     inspections: "Inspections",
     settings: "Settings"
+  },
+  auth: {
+    signIn: "Sign In",
+    signOut: "Sign Out",
+    signInWithGoogle: "Sign in with Google"
+  },
+  buttons: {
+    startInspection: "Start Inspection",
+    save: "Save",
+    cancel: "Cancel",
+    next: "Next",
+    previous: "Previous",
+    complete: "Complete"
+  },
+  tasks: {
+    inspection: "Vehicle Inspection",
+    maintenance: "Maintenance Service"
+  },
+  vehicle: {
+    nextInspection: "Next Inspection",
+    alerts: {
+      inspectionRequired: "Inspection required by {date}"
+    },
+    status: {
+      active: "Active",
+      inspection_due: "Inspection Due"
+    }
+  },
+  errors: {
+    somethingWentWrong: "Something went wrong",
+    tryAgain: "Try Again",
+    required: "This field is required",
+  },
+  globalStatus: {
+    active: "Active",
+    inactive: "Inactive",
+    pending: "Pending",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    inProgress: "In Progress",
+    approved: "Approved",
+    rejected: "Rejected",
+    archived: "Archived",
+    scheduled: "Scheduled"
   }
 } 

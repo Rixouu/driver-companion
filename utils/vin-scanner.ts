@@ -34,13 +34,14 @@ export class VinScanner {
   onDetected(callback: (vin: string) => void): void {
     Quagga.onDetected((result) => {
       const code = result.codeResult.code
-      if (this.isValidVIN(code)) {
+      if (code && this.isValidVIN(code)) {
         callback(code)
       }
     })
   }
 
-  private isValidVIN(vin: string): boolean {
+  private isValidVIN(vin: string | null): vin is string {
+    if (!vin) return false
     return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin)
   }
 

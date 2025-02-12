@@ -35,7 +35,6 @@ export default async function RootLayout({
               defaultTheme="system"
               enableSystem
               disableTransitionOnChange
-              suppressHydrationWarning
             >
               <LanguageProvider>
                 <div className="flex min-h-screen flex-col">

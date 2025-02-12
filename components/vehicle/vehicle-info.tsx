@@ -7,11 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { VinScannerDialog } from "@/components/vin/vin-scanner"
 import { Edit2, Save } from "lucide-react"
-import type { Vehicle } from "@/types/api"
+import type { Vehicle } from "@/types"
 
-export function VehicleInfo({ vehicle }: { vehicle: Vehicle }) {
+interface VehicleFormData extends Vehicle {
+  color?: string
+  licensePlate?: string
+}
+
+export function VehicleInfo({ vehicle }: { vehicle: VehicleFormData }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [vehicleData, setVehicleData] = useState(vehicle)
+  const [vehicleData, setVehicleData] = useState<VehicleFormData>(vehicle)
 
   const handleVinDetected = (vin: string) => {
     setVehicleData({ ...vehicleData, vin })

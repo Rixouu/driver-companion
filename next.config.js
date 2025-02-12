@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['staging.japandriver.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'staging.japandriver.com',
+        pathname: '/wp-content/uploads/**',
+      },
+    ],
   },
   headers: async () => {
     return [

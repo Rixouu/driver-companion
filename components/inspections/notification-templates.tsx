@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { useLanguage } from "@/components/providers/language-provider"
-import { Template, Mail, MessageSquare, CalendarPlus, Eye } from "lucide-react"
+import { 
+  FileText,
+  Mail,
+  MessageSquare,
+  CalendarPlus,
+  Eye
+} from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -170,7 +176,7 @@ export function NotificationTemplates({ onSelectTemplate, previewData }: Notific
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Template className="h-5 w-5" />
+            <FileText className="h-5 w-5" />
             {t("inspections.schedule.notifications.templates")}
           </div>
           <Button

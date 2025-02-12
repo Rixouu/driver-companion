@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useLanguage } from "@/components/providers/language-provider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Camera, Download } from "lucide-react"
 import type { Vehicle, CheckItem } from "@/types"
@@ -11,12 +12,31 @@ import type { Vehicle, CheckItem } from "@/types"
 export function InspectionInterface({ vehicle }: { vehicle: Vehicle }) {
   const [selectedArea, setSelectedArea] = useState<string>("front")
   const [photos, setPhotos] = useState<string[]>([])
+  const { t } = useLanguage()
 
   const areas = ["front", "rear", "left", "right", "interior"]
 
   const checkItems: CheckItem[] = [
-    { id: "1", type: "paint", label: "Paint", labelJa: "塗装", checked: false, photos: [], notes: "" },
-    { id: "2", type: "dent", label: "Dent / Scratch", labelJa: "へこみ / 傷", checked: false, photos: [], notes: "" },
+    {
+      id: "1",
+      type: "paint",
+      label: "Paint",
+      labelJa: "塗装",
+      checked: false,
+      photos: [],
+      notes: "",
+      area: "front"
+    },
+    {
+      id: "2",
+      type: "dent",
+      label: "Dent / Scratch",
+      labelJa: "へこみ / 傷",
+      checked: false,
+      photos: [],
+      notes: "",
+      area: "front"
+    },
     {
       id: "3",
       type: "gap",
@@ -25,8 +45,18 @@ export function InspectionInterface({ vehicle }: { vehicle: Vehicle }) {
       checked: false,
       photos: [],
       notes: "",
+      area: "front"
     },
-    { id: "4", type: "malfunction", label: "Malfunction", labelJa: "故障", checked: false, photos: [], notes: "" },
+    {
+      id: "4",
+      type: "malfunction",
+      label: "Malfunction",
+      labelJa: "故障",
+      checked: false,
+      photos: [],
+      notes: "",
+      area: "front"
+    }
   ]
 
   return (

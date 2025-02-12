@@ -14,12 +14,16 @@ export function useGestureCard({
   onSwipeLeft,
   onSwipeRight,
   swipeThreshold = 50,
-}: UseGestureCardProps) {
+}: UseGestureCardProps = {}) {
   const [isOpen, setIsOpen] = useState(false)
   
   const [{ x, scale }, api] = useSpring(() => ({
     x: 0,
     scale: 1,
+    config: {
+      tension: 300,
+      friction: 20,
+    },
   }))
 
   const bind = useDrag(({ down, movement: [mx], velocity: [vx], direction: [dx] }) => {
@@ -40,5 +44,12 @@ export function useGestureCard({
     })
   })
 
-  return { bind, x, scale, isOpen, setIsOpen }
+  return { 
+    bind, 
+    x, 
+    scale, 
+    isOpen, 
+    setIsOpen,
+    AnimatedDiv: animated.div 
+  }
 } 

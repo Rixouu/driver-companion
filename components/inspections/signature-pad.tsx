@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Pen, RotateCcw, Download } from "lucide-react"
@@ -34,6 +34,15 @@ export function SignaturePad({ onSignatureCapture, inspectorName }: SignaturePad
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      canvas.width = canvas.offsetWidth
+      canvas.height = 200
+      initializeCanvas(canvas)
+    }
+  }, [])
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -188,14 +197,7 @@ export function SignaturePad({ onSignatureCapture, inspectorName }: SignaturePad
         <div className="space-y-4">
           <div className="relative border rounded-lg">
             <canvas
-              ref={(canvas) => {
-                if (canvas) {
-                  canvasRef.current = canvas
-                  canvas.width = canvas.offsetWidth
-                  canvas.height = 200
-                  initializeCanvas(canvas)
-                }
-              }}
+              ref={canvasRef}
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}

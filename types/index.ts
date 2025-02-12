@@ -5,15 +5,58 @@ export type User = {
   role: "admin" | "driver"
 }
 
-export type Vehicle = {
+export interface Vehicle {
   id: string
-  vin: string
   name: string
+  plateNumber: string
+  status: 'active' | 'inactive' | 'maintenance'
   model: string
-  imageUrl: string
-  assignedTo?: string // driver ID
+  year: string
+  vin: string
   lastInspection?: string
-  status: "pending" | "completed"
+  assignedTo?: string
+  imageUrl: string
+  maintenanceHistory?: MaintenanceRecord[]
+}
+
+export interface MaintenanceRecord {
+  id: string
+  status: 'scheduled' | 'inProgress' | 'completed' | 'cancelled' | 'overdue'
+  date: string
+  type: string
+  photos: string[]
+  notes: string
+}
+
+export interface CheckItem {
+  id: string
+  type: string
+  label: string
+  labelJa: string
+  checked: boolean
+  photos: string[]
+  notes: string
+  area?: 'front' | 'left' | 'right' | 'rear'
+  status?: 'pass' | 'fail' | null
+  voiceNotes?: string[]
+}
+
+export interface InspectionArea {
+  id: string
+  name: string
+  items: CheckItem[]
+}
+
+export interface InspectionReport {
+  id: string
+  vehicleId: string
+  inspectorId: string
+  date: string
+  status: 'draft' | 'completed' | 'reviewed'
+  areas: InspectionArea[]
+  signature?: string
+  photos?: string[]
+  voiceNotes?: string[]
 }
 
 export type InspectionItem = {
@@ -38,5 +81,11 @@ export type DailyInspection = {
     latitude: number
     longitude: number
   }
+}
+
+interface ValidationItem {
+  id: string
+  status: 'passed' | 'failed' | 'na' | 'pending'
+  // ... other fields
 }
 

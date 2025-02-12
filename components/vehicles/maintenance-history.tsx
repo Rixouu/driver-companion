@@ -1,95 +1,82 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { useLanguage } from "@/components/providers/language-provider"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Search } from "lucide-react"
+import { Label } from "@/components/ui/label"
 
-interface MaintenanceRecord {
-  id: string
-  type: string
-  date: Date
-  cost: number
-  notes: string
-  performedBy: string
-}
-
-interface MaintenanceHistoryProps {
-  vehicleId: string
-}
-
-export function MaintenanceHistory({ vehicleId }: MaintenanceHistoryProps) {
+export function MaintenanceHistory({ vehicleId }: { vehicleId: string }) {
   const { t } = useLanguage()
-  const [searchTerm, setSearchTerm] = useState("")
 
-  // TODO: Replace with actual API call
-  const maintenanceRecords: MaintenanceRecord[] = [
+  const maintenanceHistory = [
     {
-      id: "1",
-      type: "oil",
-      date: new Date(),
-      cost: 150,
-      notes: "Regular oil change",
-      performedBy: "John Doe"
+      id: 1,
+      type: "oilChange",
+      date: new Date("2024-01-15"),
+      cost: 150.00,
+      performedBy: "Service Center A",
+      status: "completed",
+      serviceCenter: "Service Center A"
     },
-    // Add more records...
+    // ... more history items
   ]
-
-  const filteredRecords = maintenanceRecords.filter(record =>
-    record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.notes.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.performedBy.toLowerCase().includes(searchTerm.toLowerCase())
-  )
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.management.maintenance.history")}</CardTitle>
+        <CardTitle>{t("vehicles.details.maintenance.history.title")}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative mb-6">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("common.search")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
+        <div>
+          <h3>{t("vehicles.details.maintenance.history.title")}</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <div>
+                <Label>{t("vehicles.details.maintenance.types.inspection")}</Label>
+                <p>2023-05-10</p>
+              </div>
+              <Badge>{t("status.completed")}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <div>
+                <Label>{t("vehicles.details.maintenance.types.oilChange")}</Label>
+                <p>2023-04-15</p>
+              </div>
+              <Badge>{t("status.completed")}</Badge>
+            </div>
+          </div>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("vehicles.management.maintenance.serviceDate")}</TableHead>
-              <TableHead>{t("vehicles.management.maintenance.serviceType")}</TableHead>
-              <TableHead>{t("vehicles.management.maintenance.costs.amount")}</TableHead>
-              <TableHead>{t("vehicles.management.maintenance.notes")}</TableHead>
-              <TableHead>{t("vehicles.management.maintenance.performedBy")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRecords.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell>{format(record.date, "PPP")}</TableCell>
-                <TableCell>
-                  {t(`vehicles.management.maintenance.types.${record.type}`)}
-                </TableCell>
-                <TableCell>${record.cost.toFixed(2)}</TableCell>
-                <TableCell>{record.notes}</TableCell>
-                <TableCell>{record.performedBy}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="space-y-4">
+          {maintenanceHistory.map((record) => (
+            <div key={record.id} className="p-4 border rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <p className="font-medium">
+                    {t(`vehicles.details.maintenance.types.${record.type}`)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("vehicles.details.maintenance.history.serviceCenter")}: {record.serviceCenter}
+                  </p>
+                </div>
+                <Badge>
+                  {t(`globalStatus.${record.status}`)}
+                </Badge>
+              </div>
+              <div className="text-sm text-muted-foreground mt-2">
+                <p>
+                  {t("vehicles.details.maintenance.history.serviceDate")}: {format(record.date, "PPP")}
+                </p>
+                <p>
+                  {t("vehicles.details.maintenance.history.performedBy")}: {record.performedBy}
+                </p>
+                <p>
+                  {t("vehicles.details.maintenance.costs.amount")}: ${record.cost}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )

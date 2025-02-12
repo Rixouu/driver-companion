@@ -12,6 +12,9 @@ interface InspectionDBSchema extends DBSchema {
       status: 'draft' | 'pending' | 'synced'
       data: any
     }
+    indexes: {
+      'status': 'draft' | 'pending' | 'synced'
+    }
   }
   photos: {
     key: string
@@ -47,7 +50,8 @@ class OfflineStorage {
     this.db = await openDB<InspectionDBSchema>(this.dbName, this.version, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('inspections')) {
-          db.createObjectStore('inspections', { keyPath: 'id' })
+          const inspectionsStore = db.createObjectStore('inspections', { keyPath: 'id' })
+          inspectionsStore.createIndex('status', 'status')
         }
         if (!db.objectStoreNames.contains('photos')) {
           db.createObjectStore('photos', { keyPath: 'id' })

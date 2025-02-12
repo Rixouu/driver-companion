@@ -1,7 +1,33 @@
 "use client"
 
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer'
+import dynamic from 'next/dynamic'
 import { useLanguage } from "@/components/providers/language-provider"
+import type { PDFViewer, Styles } from '@react-pdf/renderer'
+import { StyleSheet } from '@react-pdf/renderer'
+
+// Dynamically import each component
+const PDFDocument = dynamic(() => import('@react-pdf/renderer').then(mod => mod.Document), {
+  ssr: false,
+})
+const PDFPage = dynamic(() => import('@react-pdf/renderer').then(mod => mod.Page), {
+  ssr: false,
+})
+const PDFText = dynamic(() => import('@react-pdf/renderer').then(mod => mod.Text), {
+  ssr: false,
+})
+const PDFView = dynamic(() => import('@react-pdf/renderer').then(mod => mod.View), {
+  ssr: false,
+})
+const PDFImage = dynamic(() => import('@react-pdf/renderer').then(mod => mod.Image), {
+  ssr: false,
+})
+
+// Register fonts
+import { Font } from '@react-pdf/renderer'
+Font.register({
+  family: 'NotoSansJP',
+  src: '/fonts/NotoSansJP-Regular.ttf',
+})
 
 interface InspectionReportProps {
   inspection: {
@@ -40,12 +66,7 @@ interface InspectionReportProps {
   }
 }
 
-// Register fonts if needed
-Font.register({
-  family: 'NotoSansJP',
-  src: '/fonts/NotoSansJP-Regular.ttf',
-})
-
+// Create styles with proper types
 const styles = StyleSheet.create({
   page: {
     padding: 30,
@@ -75,7 +96,7 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   item: {
-    flexDirection: 'row',
+    flexDirection: 'row' as const, // Type assertion for flex direction
     marginBottom: 5,
   },
   itemDescription: {
@@ -83,22 +104,22 @@ const styles = StyleSheet.create({
   },
   status: {
     width: 60,
-    textAlign: 'right',
+    textAlign: 'right' as const, // Type assertion for text align
   },
   photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
     gap: 10,
     marginTop: 10,
   },
   photo: {
     width: '30%',
     height: 100,
-    objectFit: 'cover',
+    objectFit: 'cover' as const,
   },
   signature: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   signatureImage: {
     width: 200,
@@ -106,11 +127,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   footer: {
-    position: 'absolute',
+    position: 'absolute' as const,
     bottom: 30,
     left: 30,
     right: 30,
-    textAlign: 'center',
+    textAlign: 'center' as const,
     color: '#666',
     fontSize: 10,
   },
@@ -120,76 +141,76 @@ export function InspectionReport({ inspection }: InspectionReportProps) {
   const { t } = useLanguage()
 
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
+    <PDFDocument>
+      <PDFPage size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{t("inspections.title")}</Text>
-          <Text style={styles.subtitle}>
+        <PDFView style={styles.header}>
+          <PDFText style={styles.title}>{t("inspections.title")}</PDFText>
+          <PDFText style={styles.subtitle}>
             {t("inspections.vehicleInformation")}: {inspection.vehicleName}
-          </Text>
-          <Text style={styles.subtitle}>
+          </PDFText>
+          <PDFText style={styles.subtitle}>
             {t("vehicles.plateNumber")}: {inspection.plateNumber}
-          </Text>
-          <Text style={styles.subtitle}>
+          </PDFText>
+          <PDFText style={styles.subtitle}>
             {t("inspections.date")}: {new Date(inspection.date).toLocaleDateString()}
-          </Text>
-        </View>
+          </PDFText>
+        </PDFView>
 
         {/* Inspection Sections */}
         {Object.entries(inspection.sections).map(([sectionKey, section]) => (
-          <View key={sectionKey} style={styles.section}>
-            <Text style={styles.sectionTitle}>
+          <PDFView key={sectionKey} style={styles.section}>
+            <PDFText style={styles.sectionTitle}>
               {t(`inspections.sections.${sectionKey}`)}
-            </Text>
+            </PDFText>
 
             {/* Items */}
             {section.items.map((item) => (
-              <View key={item.id} style={styles.item}>
-                <Text style={styles.itemDescription}>
+              <PDFView key={item.id} style={styles.item}>
+                <PDFText style={styles.itemDescription}>
                   {t(`inspections.items.${item.id}`)}
-                </Text>
-                <Text style={styles.status}>
+                </PDFText>
+                <PDFText style={styles.status}>
                   {t(`inspections.actions.${item.status}`)}
-                </Text>
-              </View>
+                </PDFText>
+              </PDFView>
             ))}
 
             {/* Photos */}
             {section.photos.length > 0 && (
-              <View style={styles.photoGrid}>
+              <PDFView style={styles.photoGrid}>
                 {section.photos.map((photo, index) => (
-                  <Image
+                  <PDFImage
                     key={index}
                     src={photo.url}
                     style={styles.photo}
                   />
                 ))}
-              </View>
+              </PDFView>
             )}
-          </View>
+          </PDFView>
         ))}
 
         {/* Signature */}
-        <View style={styles.signature}>
-          <Image
+        <PDFView style={styles.signature}>
+          <PDFImage
             src={inspection.signature.image}
             style={styles.signatureImage}
           />
-          <Text style={styles.subtitle}>
+          <PDFText style={styles.subtitle}>
             {t("inspections.signature.metadata.inspector")}: {inspection.signature.metadata.inspector}
-          </Text>
-          <Text style={styles.subtitle}>
+          </PDFText>
+          <PDFText style={styles.subtitle}>
             {t("inspections.signature.metadata.timestamp")}:{" "}
             {new Date(inspection.signature.metadata.timestamp).toLocaleString()}
-          </Text>
-        </View>
+          </PDFText>
+        </PDFView>
 
         {/* Footer */}
-        <Text style={styles.footer}>
+        <PDFText style={styles.footer}>
           {t("inspections.report.generatedAt")}: {new Date().toLocaleString()}
-        </Text>
-      </Page>
-    </Document>
+        </PDFText>
+      </PDFPage>
+    </PDFDocument>
   )
 } 

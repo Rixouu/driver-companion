@@ -60,9 +60,13 @@ export function AssignmentManager({ vehicleId }: { vehicleId: string }) {
       if (!driver) return
 
       // End any active assignments
-      const updatedAssignments = assignments.map(assignment => 
+      const updatedAssignments = assignments.map((assignment): Assignment => 
         assignment.status === "active" 
-          ? { ...assignment, status: "ended", endDate: new Date().toISOString() }
+          ? { 
+              ...assignment, 
+              status: "ended" as const, 
+              endDate: new Date().toISOString() 
+            }
           : assignment
       )
 
@@ -95,9 +99,13 @@ export function AssignmentManager({ vehicleId }: { vehicleId: string }) {
 
   const handleRemoveAssignment = async (assignmentId: string) => {
     try {
-      const updatedAssignments = assignments.map(assignment =>
+      const updatedAssignments = assignments.map((assignment): Assignment =>
         assignment.id === assignmentId
-          ? { ...assignment, status: "ended", endDate: new Date().toISOString() }
+          ? { 
+              ...assignment, 
+              status: "ended" as const, 
+              endDate: new Date().toISOString() 
+            }
           : assignment
       )
 

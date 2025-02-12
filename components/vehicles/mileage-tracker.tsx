@@ -178,16 +178,16 @@ export function MileageTracker({ vehicleId }: MileageTrackerProps) {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    {t("vehicles.management.mileage.update")}
+                    {t("vehicles.management.mileage.update.title")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>{t("vehicles.management.mileage.update")}</DialogTitle>
+                    <DialogTitle>{t("vehicles.management.mileage.update.title")}</DialogTitle>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                      <Label>{t("vehicles.management.mileage.reading")}</Label>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>{t("vehicles.management.mileage.update.reading")}</Label>
                       <Input
                         type="number"
                         value={newReading.reading}
@@ -195,11 +195,10 @@ export function MileageTracker({ vehicleId }: MileageTrackerProps) {
                           ...newReading,
                           reading: parseInt(e.target.value)
                         })}
-                        min={stats.current}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>{t("vehicles.management.mileage.notes")}</Label>
+                    <div>
+                      <Label>{t("vehicles.management.mileage.update.notes")}</Label>
                       <Input
                         value={newReading.notes}
                         onChange={(e) => setNewReading({
@@ -221,34 +220,42 @@ export function MileageTracker({ vehicleId }: MileageTrackerProps) {
               </Dialog>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3 mb-6">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {t("vehicles.management.mileage.current")}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {stats.current.toLocaleString()} km
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("vehicles.management.mileage.lastUpdate")}: {format(stats.lastUpdate, "PPP")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {t("vehicles.management.mileage.daily")}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {stats.daily.toFixed(1)} km
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {t("vehicles.management.mileage.monthly")}
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {stats.monthly.toFixed(0)} km
-                  </p>
-                </div>
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("vehicles.management.mileage.current")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {stats.current.toLocaleString()} {t("vehicles.management.mileage.metrics.kilometers")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("vehicles.management.mileage.update.lastUpdate", {
+                        date: format(stats.lastUpdate, "PPP")
+                      })}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("vehicles.management.mileage.daily")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {stats.daily.toFixed(1)} {t("vehicles.management.mileage.metrics.kilometers")}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("vehicles.management.mileage.monthly")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      {stats.monthly.toFixed(0)} {t("vehicles.management.mileage.metrics.kilometers")}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">

@@ -14,6 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { InspectionProgress } from "./inspection-progress"
 import { cn } from "@/lib/utils"
 import { CameraModal } from "@/components/inspections/camera-modal"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 // Mock data for the vehicle being inspected
 const MOCK_VEHICLE = {
@@ -23,31 +27,41 @@ const MOCK_VEHICLE = {
   imageUrl: "https://staging.japandriver.com/wp-content/uploads/2024/04/preview-car-alphard-executive-300x200.jpg",
 }
 
-const INSPECTION_ITEMS = {
-  front: [
-    { id: "f1", description: "Lights functioning" },
-    { id: "f2", description: "Grill condition" },
-    { id: "f3", description: "Hood condition" },
-    { id: "f4", description: "Windshield condition" },
-  ],
-  left: [
-    { id: "l1", description: "Left front tire condition" },
-    { id: "l2", description: "Left rear tire condition" },
-    { id: "l3", description: "Left side panels" },
-    { id: "l4", description: "Left mirrors" },
-  ],
-  right: [
-    { id: "r1", description: "Right front tire condition" },
-    { id: "r2", description: "Right rear tire condition" },
-    { id: "r3", description: "Right side panels" },
-    { id: "r4", description: "Right mirrors" },
-  ],
-  rear: [
-    { id: "b1", description: "Tail lights" },
-    { id: "b2", description: "Trunk condition" },
-    { id: "b3", description: "Rear bumper" },
-    { id: "b4", description: "License plate" },
-  ],
+interface InspectionItem {
+  id: string
+  label: string
+  status: "pass" | "fail" | null
+  photos: string[]
+  notes: string
+}
+
+interface InspectionSection {
+  [key: string]: InspectionItem
+}
+
+const initialSections = {
+  front: {
+    headlights: { id: "headlights", label: "Headlights", status: null, photos: [], notes: "" },
+    signals: { id: "signals", label: "Turn Signals", status: null, photos: [], notes: "" },
+    bumper: { id: "bumper", label: "Front Bumper", status: null, photos: [], notes: "" },
+    hood: { id: "hood", label: "Hood", status: null, photos: [], notes: "" },
+    windshield: { id: "windshield", label: "Windshield", status: null, photos: [], notes: "" },
+  },
+  left: {
+    mirror: { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
+    tires: { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
+    body: { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
+  },
+  right: {
+    mirror: { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
+    tires: { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
+    body: { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
+  },
+  rear: {
+    taillights: { id: "taillights", label: "Taillights", status: null, photos: [], notes: "" },
+    bumper: { id: "bumper", label: "Rear Bumper", status: null, photos: [], notes: "" },
+    trunk: { id: "trunk", label: "Trunk/Cargo Door", status: null, photos: [], notes: "" },
+  },
 }
 
 interface InspectionPhoto {
@@ -79,14 +93,6 @@ interface SignatureData {
   }
 }
 
-interface InspectionItem {
-  id: string
-  description: string
-  status?: 'pass' | 'fail'
-  photo?: InspectionPhoto
-  recording?: VoiceRecording
-}
-
 function saveProgress(vehicleId: string, data: {
   items: Record<string, InspectionItem[]>
   photos: InspectionPhoto[]
@@ -103,25 +109,22 @@ function loadProgress(vehicleId: string) {
 
 export function NewInspectionForm() {
   const { t } = useLanguage()
-  const [activeTab, setActiveTab] = useState("front")
+  const router = useRouter()
+  const { toast } = useToast()
+  const [sections, setSections] = useState<Record<string, InspectionSection>>(initialSections)
+  const [currentSection, setCurrentSection] = useState<string>("front")
   const [photos, setPhotos] = useState<InspectionPhoto[]>([])
   const [recordings, setRecordings] = useState<VoiceRecording[]>([])
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null)
-  const [items, setItems] = useState<Record<string, InspectionItem[]>>(
-    Object.entries(INSPECTION_ITEMS).reduce((acc, [section, sectionItems]) => ({
-      ...acc,
-      [section]: sectionItems.map(item => ({ ...item, status: undefined })),
-    }), {})
-  )
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [isCameraOpen, setIsCameraOpen] = useState(false)
-  const [currentItemId, setCurrentItemId] = useState<string | null>(null)
+  const [currentItem, setCurrentItem] = useState<string | null>(null)
 
   // Load saved progress on mount
   useEffect(() => {
     const saved = loadProgress(MOCK_VEHICLE.id)
     if (saved) {
-      setItems(saved.items)
+      setSections(saved.items)
       setPhotos(saved.photos)
       setRecordings(saved.recordings)
       setSignatureData(saved.signature)
@@ -131,12 +134,25 @@ export function NewInspectionForm() {
   // Save progress when data changes
   useEffect(() => {
     saveProgress(MOCK_VEHICLE.id, {
-      items,
+      items: sections,
       photos,
       recordings,
       signature: signatureData,
     })
-  }, [items, photos, recordings, signatureData])
+  }, [sections, photos, recordings, signatureData])
+
+  const handleStatusChange = (itemId: string, status: "pass" | "fail") => {
+    setSections(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        [itemId]: {
+          ...prev[currentSection][itemId],
+          status,
+        },
+      },
+    }))
+  }
 
   const handlePhotoAdd = (photo: InspectionPhoto) => {
     setPhotos((prevPhotos) => [...prevPhotos, photo])
@@ -159,7 +175,7 @@ export function NewInspectionForm() {
   }
 
   const getSectionProgress = (section: string) => {
-    const sectionItems = items[section]
+    const sectionItems = Object.values(sections[section])
     return {
       id: section,
       total: sectionItems.length,
@@ -168,12 +184,18 @@ export function NewInspectionForm() {
     }
   }
 
-  const handleItemStatus = (sectionId: string, itemId: string, status: 'pass' | 'fail') => {
-    setItems(prev => ({
+  const handlePhotoCapture = (photoUrl: string) => {
+    if (!currentItem) return
+
+    setSections(prev => ({
       ...prev,
-      [sectionId]: prev[sectionId].map(item =>
-        item.id === itemId ? { ...item, status } : item
-      ),
+      [currentSection]: {
+        ...prev[currentSection],
+        [currentItem]: {
+          ...prev[currentSection][currentItem],
+          photos: [...prev[currentSection][currentItem].photos, photoUrl],
+        },
+      },
     }))
   }
 
@@ -208,7 +230,7 @@ export function NewInspectionForm() {
 
   const handleComplete = () => {
     const errors = validateInspection({
-      items,
+      items: sections,
       photos,
       signature: signatureData,
     })
@@ -219,32 +241,7 @@ export function NewInspectionForm() {
     }
 
     // TODO: Submit inspection
-    console.log("Inspection complete", { items, photos, recordings, signatureData })
-  }
-
-  const handleCameraClick = (sectionId: string, itemId: string) => {
-    setCurrentItemId(itemId)
-    setIsCameraOpen(true)
-  }
-
-  const handlePhotoCapture = (photoUrl: string) => {
-    if (currentItemId && activeTab) {
-      const newPhoto: InspectionPhoto = {
-        id: crypto.randomUUID(),
-        url: photoUrl,
-        timestamp: new Date().toISOString(),
-        sectionId: activeTab
-      }
-      handlePhotoAdd(newPhoto)
-      
-      // Update the item to reference the photo
-      setItems(prev => ({
-        ...prev,
-        [activeTab]: prev[activeTab].map(item =>
-          item.id === currentItemId ? { ...item, photo: newPhoto } : item
-        ),
-      }))
-    }
+    console.log("Inspection complete", { items: sections, photos, recordings, signatureData })
   }
 
   return (
@@ -287,8 +284,8 @@ export function NewInspectionForm() {
 
       {/* Progress Component - Now above the checklist */}
       <InspectionProgress
-        sections={Object.keys(items).map(getSectionProgress)}
-        currentSection={activeTab}
+        sections={Object.keys(sections).map(getSectionProgress)}
+        currentSection={currentSection}
       />
 
       {/* Inspection Checklist with Tabs */}
@@ -298,12 +295,12 @@ export function NewInspectionForm() {
         </CardHeader>
         <CardContent>
           <div className="flex border-b mb-6">
-            {Object.keys(INSPECTION_ITEMS).map((section) => (
+            {Object.keys(sections).map((section) => (
               <button
                 key={section}
-                onClick={() => setActiveTab(section)}
+                onClick={() => setCurrentSection(section)}
                 className={`px-6 py-3 text-sm font-medium capitalize border-b-2 -mb-[2px] transition-colors ${
-                  activeTab === section 
+                  currentSection === section 
                     ? "border-primary text-primary" 
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
                 }`}
@@ -313,65 +310,52 @@ export function NewInspectionForm() {
             ))}
           </div>
 
-          {Object.entries(items).map(([section, sectionItems]) => (
-            <div key={section} className={activeTab === section ? "block" : "hidden"}>
+          {Object.entries(sections[currentSection]).map(([itemId, item]) => (
+            <div key={itemId} className={currentSection === itemId ? "block" : "hidden"}>
               <div className="space-y-6">
-                {sectionItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between py-4 border-b last:border-0 
-                      animate-in slide-in-from-left duration-300 ease-in-out hover:bg-muted/50 
-                      transition-colors"
+                <div className="flex justify-between items-start">
+                  <Label className="text-base">{item.label}</Label>
+                  <RadioGroup
+                    value={item.status || ""}
+                    onValueChange={(value) => handleStatusChange(itemId, value as "pass" | "fail")}
+                    className="flex gap-4"
                   >
-                    <p className="text-base font-medium">
-                      {t(`inspections.items.${item.id}`)}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant={item.status === 'pass' ? 'default' : 'outline'}
-                        className={cn(
-                          "w-[90px] transition-all duration-300",
-                          item.status === 'pass' && "bg-emerald-600 hover:bg-emerald-700 animate-in zoom-in",
-                          "hover:scale-105 active:scale-95"
-                        )}
-                        onClick={() => handleItemStatus(section, item.id, 'pass')}
-                      >
-                        {t("inspections.actions.pass")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={item.status === 'fail' ? 'destructive' : 'outline'}
-                        className={cn(
-                          "w-[90px] transition-all duration-300",
-                          item.status === 'fail' && "animate-in zoom-in",
-                          "hover:scale-105 active:scale-95"
-                        )}
-                        onClick={() => handleItemStatus(section, item.id, 'fail')}
-                      >
-                        {t("inspections.actions.fail")}
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="transition-transform hover:scale-105 active:scale-95"
-                        onClick={() => handleCameraClick(section, item.id)}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="pass" id={`${itemId}-pass`} />
+                      <Label htmlFor={`${itemId}-pass`}>{t("inspections.results.pass")}</Label>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fail" id={`${itemId}-fail`} />
+                      <Label htmlFor={`${itemId}-fail`}>{t("inspections.results.fail")}</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCurrentItem(itemId)
+                      setIsCameraOpen(true)
+                    }}
+                  >
+                    {t("inspections.photos.takePhoto")}
+                  </Button>
+                </div>
+
+                {item.photos.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {item.photos.map((photo, index) => (
+                      <img
+                        key={index}
+                        src={photo}
+                        alt={`${item.label} photo ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                    ))}
                   </div>
-                ))}
-                <PhotoUpload
-                  sectionId={section}
-                  onPhotoAdd={handlePhotoAdd}
-                  onPhotoRemove={handlePhotoRemove}
-                />
-                <VoiceRecorder
-                  sectionId={section}
-                  onRecordingAdd={handleRecordingAdd}
-                  onRecordingRemove={handleRecordingRemove}
-                />
+                )}
               </div>
             </div>
           ))}

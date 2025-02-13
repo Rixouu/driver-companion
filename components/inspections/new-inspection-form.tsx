@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { offlineStorage } from "@/lib/offline-storage"
 
 // Mock data for the vehicle being inspected
 const MOCK_VEHICLE = {
@@ -35,33 +36,32 @@ interface InspectionItem {
   notes: string
 }
 
-interface InspectionSection {
-  [key: string]: InspectionItem
-}
+type VehicleSide = "front" | "left" | "right" | "rear"
 
-const initialSections = {
-  front: {
-    headlights: { id: "headlights", label: "Headlights", status: null, photos: [], notes: "" },
-    signals: { id: "signals", label: "Turn Signals", status: null, photos: [], notes: "" },
-    bumper: { id: "bumper", label: "Front Bumper", status: null, photos: [], notes: "" },
-    hood: { id: "hood", label: "Hood", status: null, photos: [], notes: "" },
-    windshield: { id: "windshield", label: "Windshield", status: null, photos: [], notes: "" },
-  },
-  left: {
-    mirror: { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
-    tires: { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
-    body: { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
-  },
-  right: {
-    mirror: { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
-    tires: { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
-    body: { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
-  },
-  rear: {
-    taillights: { id: "taillights", label: "Taillights", status: null, photos: [], notes: "" },
-    bumper: { id: "bumper", label: "Rear Bumper", status: null, photos: [], notes: "" },
-    trunk: { id: "trunk", label: "Trunk/Cargo Door", status: null, photos: [], notes: "" },
-  },
+// Changed to use arrays instead of objects
+const initialSections: Record<VehicleSide, InspectionItem[]> = {
+  front: [
+    { id: "headlights", label: "Headlights", status: null, photos: [], notes: "" },
+    { id: "signals", label: "Turn Signals", status: null, photos: [], notes: "" },
+    { id: "bumper", label: "Front Bumper", status: null, photos: [], notes: "" },
+    { id: "hood", label: "Hood", status: null, photos: [], notes: "" },
+    { id: "windshield", label: "Windshield", status: null, photos: [], notes: "" },
+  ],
+  left: [
+    { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
+    { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
+    { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
+  ],
+  right: [
+    { id: "mirror", label: "Side Mirror", status: null, photos: [], notes: "" },
+    { id: "tires", label: "Tires", status: null, photos: [], notes: "" },
+    { id: "body", label: "Body Panels", status: null, photos: [], notes: "" },
+  ],
+  rear: [
+    { id: "taillights", label: "Taillights", status: null, photos: [], notes: "" },
+    { id: "bumper", label: "Rear Bumper", status: null, photos: [], notes: "" },
+    { id: "trunk", label: "Trunk/Cargo Door", status: null, photos: [], notes: "" },
+  ],
 }
 
 interface InspectionPhoto {
@@ -93,15 +93,6 @@ interface SignatureData {
   }
 }
 
-function saveProgress(vehicleId: string, data: {
-  items: Record<string, InspectionItem[]>
-  photos: InspectionPhoto[]
-  recordings: VoiceRecording[]
-  signature: SignatureData | null
-}) {
-  localStorage.setItem(`inspection-progress-${vehicleId}`, JSON.stringify(data))
-}
-
 function loadProgress(vehicleId: string) {
   const saved = localStorage.getItem(`inspection-progress-${vehicleId}`)
   return saved ? JSON.parse(saved) : null
@@ -111,10 +102,10 @@ export function NewInspectionForm() {
   const { t } = useLanguage()
   const router = useRouter()
   const { toast } = useToast()
-  const [sections, setSections] = useState<Record<string, InspectionSection>>(initialSections)
-  const [currentSection, setCurrentSection] = useState<string>("front")
-  const [photos, setPhotos] = useState<InspectionPhoto[]>([])
-  const [recordings, setRecordings] = useState<VoiceRecording[]>([])
+  const [sections, setSections] = useState<Record<VehicleSide, InspectionItem[]>>(initialSections)
+  const [currentSection, setCurrentSection] = useState<VehicleSide>("front")
+  const [photos, setPhotos] = useState<string[]>([])
+  const [recordings, setRecordings] = useState<string[]>([])
   const [signatureData, setSignatureData] = useState<SignatureData | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [isCameraOpen, setIsCameraOpen] = useState(false)
@@ -133,49 +124,43 @@ export function NewInspectionForm() {
 
   // Save progress when data changes
   useEffect(() => {
-    saveProgress(MOCK_VEHICLE.id, {
-      items: sections,
-      photos,
-      recordings,
-      signature: signatureData,
-    })
-  }, [sections, photos, recordings, signatureData])
+    const saveData = async () => {
+      await offlineStorage.saveProgress(MOCK_VEHICLE.id, {
+        items: sections,
+        photos,
+        recordings,
+        timestamp: new Date().toISOString()
+      })
+    }
+    saveData()
+  }, [sections, photos, recordings])
 
   const handleStatusChange = (itemId: string, status: "pass" | "fail") => {
     setSections(prev => ({
       ...prev,
-      [currentSection]: {
-        ...prev[currentSection],
-        [itemId]: {
-          ...prev[currentSection][itemId],
-          status,
-        },
-      },
+      [currentSection]: prev[currentSection].map(item =>
+        item.id === itemId ? { ...item, status } : item
+      ),
     }))
   }
 
-  const handlePhotoAdd = (photo: InspectionPhoto) => {
-    setPhotos((prevPhotos) => [...prevPhotos, photo])
-  }
-
-  const handlePhotoRemove = (photoId: string) => {
-    setPhotos((prevPhotos) => prevPhotos.filter((photo) => photo.id !== photoId))
-  }
-
-  const handleRecordingAdd = (recording: VoiceRecording) => {
-    setRecordings((prev) => [...prev, recording])
-  }
-
-  const handleRecordingRemove = (recordingId: string) => {
-    setRecordings((prev) => prev.filter((r) => r.id !== recordingId))
-  }
-
-  const handleSignatureCapture = (data: SignatureData) => {
-    setSignatureData(data)
+  const handlePhotoCapture = (photoUrl: string) => {
+    if (currentItem) {
+      setSections(prev => ({
+        ...prev,
+        [currentSection]: prev[currentSection].map(item =>
+          item.id === currentItem
+            ? { ...item, photos: [...item.photos, photoUrl] }
+            : item
+        ),
+      }))
+      setPhotos(prev => [...prev, photoUrl])
+    }
+    setIsCameraOpen(false)
   }
 
   const getSectionProgress = (section: string) => {
-    const sectionItems = Object.values(sections[section])
+    const sectionItems = Object.values(sections[section as VehicleSide])
     return {
       id: section,
       total: sectionItems.length,
@@ -184,25 +169,10 @@ export function NewInspectionForm() {
     }
   }
 
-  const handlePhotoCapture = (photoUrl: string) => {
-    if (!currentItem) return
-
-    setSections(prev => ({
-      ...prev,
-      [currentSection]: {
-        ...prev[currentSection],
-        [currentItem]: {
-          ...prev[currentSection][currentItem],
-          photos: [...prev[currentSection][currentItem].photos, photoUrl],
-        },
-      },
-    }))
-  }
-
   // Move validation inside component
   const validateInspection = (data: {
     items: Record<string, InspectionItem[]>
-    photos: InspectionPhoto[]
+    photos: string[]
     signature: SignatureData | null
   }) => {
     const allItems = Object.values(data.items).flat()
@@ -298,7 +268,7 @@ export function NewInspectionForm() {
             {Object.keys(sections).map((section) => (
               <button
                 key={section}
-                onClick={() => setCurrentSection(section)}
+                onClick={() => setCurrentSection(section as VehicleSide)}
                 className={`px-6 py-3 text-sm font-medium capitalize border-b-2 -mb-[2px] transition-colors ${
                   currentSection === section 
                     ? "border-primary text-primary" 
@@ -310,23 +280,23 @@ export function NewInspectionForm() {
             ))}
           </div>
 
-          {Object.entries(sections[currentSection]).map(([itemId, item]) => (
-            <div key={itemId} className={currentSection === itemId ? "block" : "hidden"}>
+          {sections[currentSection as VehicleSide].map((item) => (
+            <div key={item.id} className={currentSection === item.id ? "block" : "hidden"}>
               <div className="space-y-6">
                 <div className="flex justify-between items-start">
                   <Label className="text-base">{item.label}</Label>
                   <RadioGroup
                     value={item.status || ""}
-                    onValueChange={(value) => handleStatusChange(itemId, value as "pass" | "fail")}
+                    onValueChange={(value) => handleStatusChange(item.id, value as "pass" | "fail")}
                     className="flex gap-4"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="pass" id={`${itemId}-pass`} />
-                      <Label htmlFor={`${itemId}-pass`}>{t("inspections.results.pass")}</Label>
+                      <RadioGroupItem value="pass" id={`${item.id}-pass`} />
+                      <Label htmlFor={`${item.id}-pass`}>{t("inspections.results.pass")}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="fail" id={`${itemId}-fail`} />
-                      <Label htmlFor={`${itemId}-fail`}>{t("inspections.results.fail")}</Label>
+                      <RadioGroupItem value="fail" id={`${item.id}-fail`} />
+                      <Label htmlFor={`${item.id}-fail`}>{t("inspections.results.fail")}</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -336,7 +306,7 @@ export function NewInspectionForm() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      setCurrentItem(itemId)
+                      setCurrentItem(item.id)
                       setIsCameraOpen(true)
                     }}
                   >
@@ -364,7 +334,7 @@ export function NewInspectionForm() {
 
       <div className="space-y-6">
         <SignaturePad 
-          onSignatureCapture={handleSignatureCapture}
+          onSignatureCapture={setSignatureData}
           inspectorName="John Doe"
         />
         <div className="flex items-center space-x-2">
@@ -402,11 +372,13 @@ export function NewInspectionForm() {
         </div>
       </div>
 
-      <CameraModal
-        isOpen={isCameraOpen}
-        onClose={() => setIsCameraOpen(false)}
-        onCapture={handlePhotoCapture}
-      />
+      {isCameraOpen && (
+        <CameraModal
+          isOpen={isCameraOpen}
+          onClose={() => setIsCameraOpen(false)}
+          onCapture={handlePhotoCapture}
+        />
+      )}
     </div>
   )
 } 

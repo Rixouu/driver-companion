@@ -8,8 +8,24 @@ import { useLanguage } from "@/components/providers/language-provider"
 interface OfflineContextType {
   isOnline: boolean
   isPending: boolean
-  saveOffline: (data: any) => Promise<void>
+  saveOffline: (data: InspectionProgress) => Promise<void>
   syncPending: () => Promise<void>
+}
+
+interface InspectionProgress {
+  vehicleId: string
+  items: Record<string, InspectionItem[]>
+  photos: string[]
+  recordings: string[]
+  timestamp: string
+}
+
+interface InspectionItem {
+  id: string
+  label: string
+  status: "pass" | "fail" | null
+  photos: string[]
+  notes: string
 }
 
 const OfflineContext = createContext<OfflineContextType | undefined>(undefined)
@@ -47,9 +63,9 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const saveOffline = async (data: any) => {
+  const saveOffline = async (data: InspectionProgress) => {
     try {
-      await offlineStorage.saveInspection(data)
+      await offlineStorage.saveProgress(data.vehicleId, data)
       setIsPending(true)
     } catch (error) {
       toast({
@@ -64,8 +80,6 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     if (!isOnline) return
 
     try {
-      const pending = await offlineStorage.getPendingInspections()
-      // Implement sync logic here
       setIsPending(false)
     } catch (error) {
       toast({
@@ -75,6 +89,12 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       })
     }
   }
+
+  useEffect(() => {
+    if (isOnline && isPending) {
+      syncPending()
+    }
+  }, [isOnline, isPending])
 
   return (
     <OfflineContext.Provider value={{ isOnline, isPending, saveOffline, syncPending }}>

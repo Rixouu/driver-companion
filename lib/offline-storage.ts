@@ -2,6 +2,21 @@
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb'
 
+interface InspectionProgress {
+  items: Record<string, InspectionItem[]>
+  photos: string[]
+  recordings: string[]
+  timestamp: string
+}
+
+interface InspectionItem {
+  id: string
+  label: string
+  status: "pass" | "fail" | null
+  photos: string[]
+  notes: string
+}
+
 interface InspectionDBSchema extends DBSchema {
   inspections: {
     key: string
@@ -10,11 +25,9 @@ interface InspectionDBSchema extends DBSchema {
       vehicleId: string
       timestamp: string
       status: 'draft' | 'pending' | 'synced'
-      data: any
+      data: InspectionProgress
     }
-    indexes: {
-      'status': 'draft' | 'pending' | 'synced'
-    }
+    indexes: { 'status': string }
   }
   photos: {
     key: string
@@ -49,6 +62,7 @@ class OfflineStorage {
 
     this.db = await openDB<InspectionDBSchema>(this.dbName, this.version, {
       upgrade(db) {
+        // Create stores if they don't exist
         if (!db.objectStoreNames.contains('inspections')) {
           const inspectionsStore = db.createObjectStore('inspections', { keyPath: 'id' })
           inspectionsStore.createIndex('status', 'status')
@@ -65,48 +79,56 @@ class OfflineStorage {
     return this.db
   }
 
-  async saveInspection(inspection: any) {
+  async saveProgress(vehicleId: string, data: InspectionProgress) {
     const db = await this.init()
+    const id = `progress-${vehicleId}`
     await db.put('inspections', {
-      ...inspection,
+      id,
+      vehicleId,
       status: 'draft',
       timestamp: new Date().toISOString(),
+      data
     })
   }
 
-  async savePhoto(photo: any) {
+  async loadProgress(vehicleId: string): Promise<InspectionProgress | null> {
     const db = await this.init()
-    await db.put('photos', {
-      ...photo,
-      timestamp: new Date().toISOString(),
-    })
+    const id = `progress-${vehicleId}`
+    const record = await db.get('inspections', id)
+    return record?.data || null
   }
 
-  async saveRecording(recording: any) {
+  async clearProgress(vehicleId: string) {
     const db = await this.init()
-    await db.put('recordings', {
-      ...recording,
-      timestamp: new Date().toISOString(),
-    })
-  }
-
-  async getInspection(id: string) {
-    const db = await this.init()
-    return db.get('inspections', id)
-  }
-
-  async getPendingInspections() {
-    const db = await this.init()
-    return db.getAllFromIndex('inspections', 'status', 'pending')
-  }
-
-  async markAsSynced(id: string) {
-    const db = await this.init()
-    const inspection = await this.getInspection(id)
-    if (inspection) {
-      await db.put('inspections', { ...inspection, status: 'synced' })
-    }
+    const id = `progress-${vehicleId}`
+    await db.delete('inspections', id)
   }
 }
 
-export const offlineStorage = new OfflineStorage() 
+export const offlineStorage = new OfflineStorage()
+
+export function saveProgress(vehicleId: string, data: InspectionProgress): void {
+  try {
+    localStorage.setItem(`inspection-progress-${vehicleId}`, JSON.stringify(data))
+  } catch (error) {
+    console.error('Failed to save inspection progress:', error)
+  }
+}
+
+export function loadProgress(vehicleId: string): InspectionProgress | null {
+  try {
+    const data = localStorage.getItem(`inspection-progress-${vehicleId}`)
+    return data ? JSON.parse(data) : null
+  } catch (error) {
+    console.error('Failed to load inspection progress:', error)
+    return null
+  }
+}
+
+export function clearProgress(vehicleId: string): void {
+  try {
+    localStorage.removeItem(`inspection-progress-${vehicleId}`)
+  } catch (error) {
+    console.error('Failed to clear inspection progress:', error)
+  }
+} 

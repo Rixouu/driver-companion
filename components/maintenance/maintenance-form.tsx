@@ -89,11 +89,23 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
           description: "Maintenance task updated successfully",
         })
       } else {
-        await createMaintenanceTask(formattedData)
-        toast({
-          title: "Success",
-          description: "Maintenance task created successfully",
+        const { data, error } = await createMaintenanceTask({
+          ...formattedData,
+          user_id: user?.id,
         })
+        if (error) {
+          console.error('Error:', error)
+          toast({
+            title: "Error",
+            description: "Failed to create maintenance task",
+            variant: "destructive",
+          })
+        } else {
+          toast({
+            title: "Success",
+            description: "Maintenance task created successfully",
+          })
+        }
       }
 
       router.push("/maintenance")

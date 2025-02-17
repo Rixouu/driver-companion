@@ -121,7 +121,9 @@ export const en = {
     completedToday: "Completed Today",
     requiresAttention: "Requires Attention",
     recentInspections: "Recent Inspections",
-    viewDetails: "View Details"
+    viewDetails: "View Details",
+    details: "Details",
+    saving: "Saving...",
   },
   status: {
     active: "Active",
@@ -161,6 +163,7 @@ export const en = {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     inspections: "Inspections",
+    drivers: "Drivers",
     settings: "Settings"
   },
   dashboard: {
@@ -673,11 +676,26 @@ export const en = {
         active: "Active",
         maintenance: "Under Maintenance",
         inspection_due: "Inspection Due"
+      },
+      form: {
+        name: "Vehicle Name",
+        plateNumber: "Plate Number",
+        model: "Model",
+        year: "Year",
+        status: "Status",
+        selectStatus: "Select status",
+        success: "Vehicle created",
+        successMessage: "The vehicle has been created successfully.",
+        error: "Error",
+        errorMessage: "Failed to create vehicle. Please try again.",
       }
-    }
+    },
+    selectVehicle: "Select a vehicle",
+    search: "Search vehicles...",
+    noResults: "No vehicles found",
   },
   inspections: {
-    title: "Vehicle Inspections",
+    title: "Inspections",
     new: {
       title: "New Inspection",
       start: "Start Inspection",
@@ -1056,16 +1074,13 @@ export const en = {
     signIn: "Sign In",
     signOut: "Sign Out",
     signInWithGoogle: "Sign in with Google",
-    signInDescription: "Sign in with your email and password",
+    signInDescription: "Enter your credentials to access your account",
     orContinueWith: "Or continue with",
-    password: "Password",
     email: "Email",
-    emailPlaceholder: "Enter your email",
-    passwordPlaceholder: "Enter your password",
-    forgotPassword: "Forgot password?",
-    loginFailed: "Login failed",
-    invalidCredentials: "Invalid email or password",
-    googleSignInFailed: "Google sign in failed. Please try again."
+    password: "Password",
+    errors: {
+      invalidCredentials: "Invalid email or password",
+    },
   },
   buttons: {
     startInspection: "Start Inspection",
@@ -1093,6 +1108,9 @@ export const en = {
     somethingWentWrong: "Something went wrong",
     tryAgain: "Try Again",
     required: "This field is required",
+    error: "Error",
+    saveFailed: "Failed to save",
+    cameraAccess: "Unable to access camera",
   },
   globalStatus: {
     active: "Active",
@@ -1106,4 +1124,4 @@ export const en = {
     archived: "Archived",
     scheduled: "Scheduled"
   }
-} 
+} as const 

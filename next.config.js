@@ -7,7 +7,18 @@ const nextConfig = {
         hostname: 'staging.japandriver.com',
         pathname: '/wp-content/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'oxahlhhddnatkiymemgz.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
+    domains: ['placehold.co'],
   },
   headers: async () => {
     return [

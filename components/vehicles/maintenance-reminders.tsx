@@ -14,14 +14,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface MaintenanceRemindersProps {
   vehicleId: string
 }
 
 export function MaintenanceReminders({ vehicleId }: MaintenanceRemindersProps) {
-  const { t } = useLanguage()
   const { toast } = useToast()
   const [settings, setSettings] = useState({
     enabled: true,
@@ -34,39 +32,39 @@ export function MaintenanceReminders({ vehicleId }: MaintenanceRemindersProps) {
     await new Promise(resolve => setTimeout(resolve, 1000))
 
     toast({
-      title: t("common.success"),
-      description: t("vehicles.management.maintenance.reminders.saved"),
+      title: "common.success",
+      description: "vehicles.management.maintenance.reminders.saved",
     })
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.details.maintenance.reminders.title")}</CardTitle>
+        <CardTitle>{"vehicles.details.maintenance.reminders.title"}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label>{t("vehicles.details.maintenance.reminders.enable")}</Label>
+            <Label>{"vehicles.details.maintenance.reminders.enable"}</Label>
             <Switch />
           </div>
           <div>
-            <Label>{t("vehicles.details.maintenance.reminders.notification")}</Label>
+            <Label>{"vehicles.details.maintenance.reminders.notification"}</Label>
             <Select>
               <SelectTrigger>
-                <SelectValue placeholder={t("vehicles.details.maintenance.reminders.both")} />
+                <SelectValue placeholder={"vehicles.details.maintenance.reminders.both"} />
               </SelectTrigger>
             </Select>
           </div>
           <div>
-            <Label>{t("vehicles.details.maintenance.reminders.before")}</Label>
+            <Label>{"vehicles.details.maintenance.reminders.before"}</Label>
             <Input type="number" />
-            <span className="ml-2">{t("vehicles.details.maintenance.reminders.days")}</span>
+            <span className="ml-2">{"vehicles.details.maintenance.reminders.days"}</span>
           </div>
         </div>
 
         <Button onClick={handleSave} className="w-full">
-          {t("common.save")}
+          {"common.save"}
         </Button>
       </CardContent>
     </Card>

@@ -1,6 +1,5 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface ScheduleDisplayProps {
   schedule: {
@@ -9,7 +8,6 @@ interface ScheduleDisplayProps {
 }
 
 export function ScheduleDisplay({ schedule }: ScheduleDisplayProps) {
-  const { t } = useLanguage()
 
   return (
     <span className={`schedule-status ${
@@ -19,7 +17,7 @@ export function ScheduleDisplay({ schedule }: ScheduleDisplayProps) {
           ? 'bg-red-500/10 text-red-500'
           : 'bg-blue-500/10 text-blue-500'
     }`}>
-      {t(`inspections.schedule.scheduleStatus.${schedule.status}`)}
+    {schedule.status}
     </span>
   )
 } 

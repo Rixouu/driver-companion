@@ -1,8 +1,10 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { LoadingState } from "@/components/ui/loading-state"
 import { UserRole } from "@/types/next-auth"
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface RequireAuthProps {
   children: React.ReactNode
@@ -10,10 +12,20 @@ interface RequireAuthProps {
 }
 
 export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
-  const { data: session } = useSession()
-  const { t } = useLanguage()
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
-  if (!session?.user) {
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin")
+    }
+  }, [status, router])
+
+  if (status === "loading") {
+    return <LoadingState />
+  }
+
+  if (!session) {
     return null
   }
 
@@ -21,7 +33,7 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <p className="text-muted-foreground">
-          {t("errors.unauthorized")}
+          {"errors.unauthorized"}
         </p>
       </div>
     )

@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { useLanguage } from "@/components/providers/language-provider"
 import { format } from "date-fns"
 
 interface Inspection {
@@ -39,7 +38,6 @@ interface UpcomingInspectionsProps {
 
 export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
   const router = useRouter()
-  const { t } = useLanguage()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null)
@@ -70,15 +68,15 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       toast({
-        title: t("common.success"),
-        description: t("inspections.schedule.cancelSuccess"),
+        title: "common.success",
+        description: "inspections.schedule.cancelSuccess",
       })
       
       router.refresh()
     } catch (error) {
       toast({
-        title: t("errors.error"),
-        description: t("inspections.schedule.cancelError"),
+        title: "errors.error",
+        description: "inspections.schedule.cancelError",
         variant: "destructive",
       })
     } finally {
@@ -95,11 +93,11 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t("inspections.schedule.upcoming")}</CardTitle>
+          <CardTitle>{"inspections.schedule.upcoming"}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            {t("inspections.schedule.noUpcoming")}
+            {"inspections.schedule.noUpcoming"}
           </p>
         </CardContent>
       </Card>
@@ -110,16 +108,16 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{t("inspections.schedule.upcoming")}</CardTitle>
+          <CardTitle>{"inspections.schedule.upcoming"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("inspections.date")}</TableHead>
-                <TableHead>{t("inspections.schedule.selectTime")}</TableHead>
-                <TableHead>{t("status.status")}</TableHead>
-                <TableHead className="text-right">{t("common.actions")}</TableHead>
+                <TableHead>{"inspections.date"}</TableHead>
+                <TableHead>{"inspections.schedule.selectTime"}</TableHead>
+                <TableHead>{"status.status"}</TableHead>
+                <TableHead className="text-right">{"common.actions"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -129,7 +127,7 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
                     {format(inspection.date, "PPP")}
                   </TableCell>
                   <TableCell>{inspection.timeSlot}</TableCell>
-                  <TableCell>{t(`status.${inspection.status}`)}</TableCell>
+                  <TableCell>{inspection.status}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
                       <Button
@@ -137,14 +135,14 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
                         size="sm"
                         onClick={() => handleReschedule(inspection)}
                       >
-                        {t("inspections.schedule.reschedule")}
+                        {"inspections.schedule.reschedule"}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => handleCancel(inspection)}
                       >
-                        {t("inspections.schedule.cancel")}
+                        {"inspections.schedule.cancel"}
                       </Button>
                     </div>
                   </TableCell>
@@ -159,21 +157,21 @@ export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t("inspections.schedule.cancel")}
+              {"inspections.schedule.cancel"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("inspections.schedule.cancelConfirm")}
+              {"inspections.schedule.cancelConfirm"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isLoading}>
-              {t("common.cancel")}
+              {"common.cancel"}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelConfirm}
               disabled={isLoading}
             >
-              {isLoading ? t("common.loading") : t("common.confirm")}
+              {isLoading ? "common.loading" : "common.confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

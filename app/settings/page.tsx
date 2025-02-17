@@ -1,42 +1,51 @@
-"use client"
-
-import { useSession } from "next-auth/react"
+import { Metadata } from "next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { useLanguage } from "@/components/providers/language-provider"
-import { useTheme } from "next-themes"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { ClientThemeSelector } from "@/components/theme-selector"
 
-export default function SettingsPage() {
-  const { data: session } = useSession()
-  const { t, language, setLanguage } = useLanguage()
-  const { theme, setTheme } = useTheme()
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Manage your account settings and preferences",
+}
+
+export default async function SettingsPage() {
+  const supabase = createServerComponentClient({ cookies })
+  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
   return (
-    <div className="container max-w-6xl mx-auto py-6">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-        <p className="text-muted-foreground">{t("settings.description")}</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your account settings and preferences
+        </p>
+      </div>
 
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>{t("settings.profile.title")}</CardTitle>
+            <CardTitle>Profile</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {t("settings.profile.description")}
+              Manage your account settings
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">{t("settings.profile.name")}</Label>
+              <Label htmlFor="name">Name</Label>
               <Input 
                 id="name" 
-                value={session?.user?.name || ""} 
+                value={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || ""} 
                 disabled 
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{t("settings.profile.email")}</Label>
+              <Label htmlFor="email">Email</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -44,7 +53,7 @@ export default function SettingsPage() {
                 disabled 
               />
               <p className="text-sm text-muted-foreground">
-                {t("settings.profile.emailNote")}
+                Your email address is used for notifications and sign-in
               </p>
             </div>
           </CardContent>
@@ -52,33 +61,15 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("settings.preferences.title")}</CardTitle>
+            <CardTitle>Preferences</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Customize your application experience
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="language">{t("settings.preferences.language")}</Label>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("settings.preferences.language")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="theme">{t("settings.preferences.theme")}</Label>
-              <Select value={theme} onValueChange={setTheme}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("settings.preferences.theme")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="theme">Theme</Label>
+              <ClientThemeSelector />
             </div>
           </CardContent>
         </Card>

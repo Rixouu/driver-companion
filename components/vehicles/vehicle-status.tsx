@@ -1,12 +1,10 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 
 export function VehicleStatus({ vehicleId }: { vehicleId: string }) {
-  const { t } = useLanguage()
 
   const status = {
     current: "active",
@@ -27,35 +25,35 @@ export function VehicleStatus({ vehicleId }: { vehicleId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.details.status")}</CardTitle>
+        <CardTitle>{"vehicles.details.status"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
-              {t("vehicles.details.status")}
+              {"vehicles.details.status"}
             </span>
             <Badge>
-              {t(`globalStatus.${status.current}`)}
+             {status.current}
             </Badge>
           </div>
 
           <div className="grid gap-4">
             <div>
               <p className="text-sm text-muted-foreground">
-                {t("vehicles.details.lastInspection")}
+                {"vehicles.details.lastInspection"}
               </p>
               <p className="font-medium">{format(status.lastInspection, "PPP")}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                {t("vehicles.details.nextInspection")}
+                {"vehicles.details.nextInspection"}
               </p>
               <p className="font-medium">{format(status.nextInspection, "PPP")}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">
-                {t("vehicles.details.mileage")}
+                {"vehicles.details.mileage"}
               </p>
               <p className="font-medium">{status.mileage.toLocaleString()} km</p>
             </div>
@@ -63,13 +61,13 @@ export function VehicleStatus({ vehicleId }: { vehicleId: string }) {
 
           {status.alerts.length > 0 && (
             <div className="space-y-2">
-              <p className="font-medium">{t("common.alerts")}</p>
+              <p className="font-medium">{"common.alerts"}</p>
               {status.alerts.map((alert) => (
                 <div
                   key={alert.id}
                   className="p-2 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
                 >
-                  {t(`vehicles.alerts.${alert.message}`)}
+                 {alert.message}
                 </div>
               ))}
             </div>

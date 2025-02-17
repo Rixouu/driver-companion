@@ -1,6 +1,5 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface VehicleInspectionProps {
   check: {
@@ -9,7 +8,6 @@ interface VehicleInspectionProps {
 }
 
 export function VehicleInspection({ check }: VehicleInspectionProps) {
-  const { t } = useLanguage()
 
   return (
     <span className={`check-status ${
@@ -19,7 +17,7 @@ export function VehicleInspection({ check }: VehicleInspectionProps) {
           ? 'bg-red-500/10 text-red-500'
           : 'bg-gray-500/10 text-gray-500'
     }`}>
-      {t(`inspections.vehicleInspection.checkStatus.${check.status}`)}
+      {check.status}
     </span>
   )
 } 

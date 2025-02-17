@@ -8,7 +8,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "./ui/select"
-import { useLanguage } from "./providers/language-provider"
 
 interface SearchFilterProps {
   onSearch: (value: string) => void
@@ -17,18 +16,17 @@ interface SearchFilterProps {
 }
 
 export function SearchFilter({ onSearch, onFilter, filterOptions }: SearchFilterProps) {
-  const { t } = useLanguage()
 
   return (
     <div className="flex gap-4">
       <Input 
-        placeholder={t("common.search")} 
+        placeholder={"common.search"} 
         onChange={(e) => onSearch(e.target.value)}
         className="max-w-[300px]"
       />
       <Select onValueChange={onFilter}>
         <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder={t("common.filter")} />
+          <SelectValue placeholder={"common.filter"} />
         </SelectTrigger>
         <SelectContent>
           {filterOptions.map((option) => (

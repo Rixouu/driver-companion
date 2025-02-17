@@ -2,12 +2,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Car, ClipboardCheck, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Car, ClipboardCheck, Settings, LogOut, Wrench } from "lucide-react"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Car, label: "Vehicles", href: "/vehicles" },
   { icon: ClipboardCheck, label: "Inspections", href: "/inspections" },
+  { icon: Wrench, label: "Maintenance", href: "/maintenance" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
 

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -14,204 +13,126 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { useLanguage } from "@/components/providers/language-provider"
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from "recharts"
-import { Plus } from "lucide-react"
-import { format } from "date-fns"
-
-interface FuelRecord {
-  id: string
-  date: Date
-  liters: number
-  cost: number
-  mileage: number
-  efficiency?: number // km/L
-}
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import type { FuelEntry } from "@/types/vehicles"
 
 interface FuelTrackerProps {
   vehicleId: string
+  fuelHistory: FuelEntry[]
+  onAddEntry: (entry: Omit<FuelEntry, "id" | "vehicle_id">) => Promise<void>
 }
 
-export function FuelTracker({ vehicleId }: FuelTrackerProps) {
-  const { t } = useLanguage()
+export function FuelTracker({
+  vehicleId,
+  fuelHistory,
+  onAddEntry,
+}: FuelTrackerProps) {
   const { toast } = useToast()
-  const [isAddingRecord, setIsAddingRecord] = useState(false)
-  const [newRecord, setNewRecord] = useState({
-    liters: 0,
-    cost: 0,
-    mileage: 0,
-  })
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // TODO: Replace with actual API call
-  const fuelRecords: FuelRecord[] = [
-    {
-      id: "1",
-      date: new Date(),
-      liters: 40,
-      cost: 60,
-      mileage: 12500,
-      efficiency: 12.5
-    },
-    {
-      id: "2",
-      date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      liters: 45,
-      cost: 67.5,
-      mileage: 12000,
-      efficiency: 11.8
-    },
-  ]
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
 
-  const handleAddRecord = async () => {
-    if (!newRecord.liters || !newRecord.cost || !newRecord.mileage) {
+    try {
+      const formData = new FormData(e.currentTarget)
+      await onAddEntry({
+        date: new Date().toISOString(),
+        liters: Number(formData.get("liters")),
+        cost: Number(formData.get("cost")),
+        mileage: Number(formData.get("mileage")),
+      })
+
       toast({
-        title: t("errors.error"),
-        description: t("vehicles.management.fuel.errors.missingFields"),
+        title: "vehicles.fuel.success",
+        description: "vehicles.fuel.successDescription",
+      })
+      setIsOpen(false)
+    } catch (error) {
+      toast({
+        title: "vehicles.fuel.error",
+        description: "vehicles.fuel.errorDescription",
         variant: "destructive",
       })
-      return
+    } finally {
+      setIsLoading(false)
     }
-
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    toast({
-      title: t("common.success"),
-      description: t("vehicles.management.fuel.recordAdded"),
-    })
-
-    setIsAddingRecord(false)
-    setNewRecord({
-      liters: 0,
-      cost: 0,
-      mileage: 0,
-    })
   }
 
-  const totalCost = fuelRecords.reduce((sum, record) => sum + record.cost, 0)
-  const averageEfficiency = fuelRecords.reduce((sum, record) => sum + (record.efficiency || 0), 0) / fuelRecords.length
-
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("vehicles.management.fuel.consumption")}</CardTitle>
-          <Dialog open={isAddingRecord} onOpenChange={setIsAddingRecord}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                {t("vehicles.management.fuel.addRecord")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("vehicles.management.fuel.addRecord")}</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t("vehicles.management.fuel.liters")}</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={newRecord.liters}
-                    onChange={(e) => setNewRecord({
-                      ...newRecord,
-                      liters: parseFloat(e.target.value)
-                    })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("vehicles.management.fuel.cost")}</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={newRecord.cost}
-                    onChange={(e) => setNewRecord({
-                      ...newRecord,
-                      cost: parseFloat(e.target.value)
-                    })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("vehicles.management.fuel.mileage")}</Label>
-                  <Input
-                    type="number"
-                    value={newRecord.mileage}
-                    onChange={(e) => setNewRecord({
-                      ...newRecord,
-                      mileage: parseInt(e.target.value)
-                    })}
-                  />
-                </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{"vehicles.fuel.title"}</CardTitle>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              {"vehicles.fuel.addEntry"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{"vehicles.fuel.addEntry"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="liters">{"vehicles.fuel.liters"}</Label>
+                <Input
+                  id="liters"
+                  name="liters"
+                  type="number"
+                  step="0.01"
+                  required
+                />
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddingRecord(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button onClick={handleAddRecord}>
-                  {t("common.save")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 mb-6">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t("vehicles.management.fuel.totalCost")}
-              </p>
-              <p className="text-2xl font-bold">
-                ${totalCost.toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {t("vehicles.management.fuel.averageEfficiency")}
-              </p>
-              <p className="text-2xl font-bold">
-                {averageEfficiency.toFixed(1)} km/L
-              </p>
-            </div>
-          </div>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={fuelRecords}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(date) => format(new Date(date), "MMM d")}
+              <div className="space-y-2">
+                <Label htmlFor="cost">{"vehicles.fuel.cost"}</Label>
+                <Input
+                  id="cost"
+                  name="cost"
+                  type="number"
+                  step="0.01"
+                  required
                 />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="efficiency"
-                  stroke="#0ea5e9"
-                  name={t("vehicles.management.fuel.efficiency")}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mileage">{"vehicles.fuel.mileage"}</Label>
+                <Input
+                  id="mileage"
+                  name="mileage"
+                  type="number"
+                  required
                 />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="cost"
-                  stroke="#f43f5e"
-                  name={t("vehicles.management.fuel.cost")}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              </div>
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? "common.saving" : "common.save"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={fuelHistory}>
+              <XAxis
+                dataKey="date"
+                tickFormatter={(date) => new Date(date).toLocaleDateString()}
+              />
+              <YAxis />
+              <Tooltip
+                labelFormatter={(date) => new Date(date).toLocaleDateString()}
+              />
+              <Line
+                type="monotone"
+                dataKey="liters"
+                stroke="#2563eb"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   )
 } 

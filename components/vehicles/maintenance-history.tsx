@@ -1,13 +1,11 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { Label } from "@/components/ui/label"
 
 export function MaintenanceHistory({ vehicleId }: { vehicleId: string }) {
-  const { t } = useLanguage()
 
   const maintenanceHistory = [
     {
@@ -25,25 +23,25 @@ export function MaintenanceHistory({ vehicleId }: { vehicleId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("vehicles.details.maintenance.history.title")}</CardTitle>
+        <CardTitle>{"vehicles.details.maintenance.history.title"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div>
-          <h3>{t("vehicles.details.maintenance.history.title")}</h3>
+          <h3>{"vehicles.details.maintenance.history.title"}</h3>
           <div className="space-y-4">
             <div className="flex justify-between">
               <div>
-                <Label>{t("vehicles.details.maintenance.types.inspection")}</Label>
+                <Label>{"vehicles.details.maintenance.types.inspection"}</Label>
                 <p>2023-05-10</p>
               </div>
-              <Badge>{t("status.completed")}</Badge>
+              <Badge>{"status.completed"}</Badge>
             </div>
             <div className="flex justify-between">
               <div>
-                <Label>{t("vehicles.details.maintenance.types.oilChange")}</Label>
+                <Label>{"vehicles.details.maintenance.types.oilChange"}</Label>
                 <p>2023-04-15</p>
               </div>
-              <Badge>{t("status.completed")}</Badge>
+              <Badge>{"status.completed"}</Badge>
             </div>
           </div>
         </div>
@@ -53,25 +51,25 @@ export function MaintenanceHistory({ vehicleId }: { vehicleId: string }) {
               <div className="flex justify-between items-center mb-2">
                 <div>
                   <p className="font-medium">
-                    {t(`vehicles.details.maintenance.types.${record.type}`)}
+                    {record.type}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {t("vehicles.details.maintenance.history.serviceCenter")}: {record.serviceCenter}
+                    {"vehicles.details.maintenance.history.serviceCenter"}: {record.serviceCenter}
                   </p>
                 </div>
                 <Badge>
-                  {t(`globalStatus.${record.status}`)}
+                  {record.status}
                 </Badge>
               </div>
               <div className="text-sm text-muted-foreground mt-2">
                 <p>
-                  {t("vehicles.details.maintenance.history.serviceDate")}: {format(record.date, "PPP")}
+                  {"vehicles.details.maintenance.history.serviceDate"}: {format(record.date, "PPP")}
                 </p>
                 <p>
-                  {t("vehicles.details.maintenance.history.performedBy")}: {record.performedBy}
+                  {"vehicles.details.maintenance.history.performedBy"}: {record.performedBy}
                 </p>
                 <p>
-                  {t("vehicles.details.maintenance.costs.amount")}: ${record.cost}
+                  {"vehicles.details.maintenance.costs.amount"}: ${record.cost}
                 </p>
               </div>
             </div>

@@ -4,26 +4,14 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar } from "@/components/ui/calendar"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -31,169 +19,191 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/components/ui/use-toast"
-import { format, addDays } from "date-fns"
-import { CalendarIcon, Plus } from "lucide-react"
-import { MaintenanceCostTracker } from "./maintenance-cost-tracker"
-import { MaintenanceHistory } from "./maintenance-history"
-import { MaintenanceReminders } from "./maintenance-reminders"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { CheckCircle, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-
 interface MaintenanceTask {
   id: string
   type: string
-  dueDate: Date
-  status: 'upcoming' | 'overdue' | 'completed'
+  status: "scheduled" | "completed" | "overdue"
+  dueDate: string
+  completedDate?: string
   notes?: string
-  lastCompleted?: Date
-  intervalDays: number
-  intervalKm?: number
 }
 
 interface MaintenanceScheduleProps {
   vehicleId: string
+  tasks?: MaintenanceTask[]
+  onAddTask?: (task: Omit<MaintenanceTask, "id">) => Promise<void>
+  onUpdateTask?: (id: string, status: "completed") => Promise<void>
 }
 
-export function MaintenanceSchedule({ vehicleId }: MaintenanceScheduleProps) {
-  const { t } = useLanguage()
+export function MaintenanceSchedule({
+  vehicleId,
+  tasks = [],
+  onAddTask,
+  onUpdateTask,
+}: MaintenanceScheduleProps) {
   const { toast } = useToast()
-  const [isAddingTask, setIsAddingTask] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>()
-  const [newTask, setNewTask] = useState({
-    type: '',
-    intervalDays: 30,
-    intervalKm: 5000,
-    notes: '',
-  })
 
-  // TODO: Replace with actual API call
-  const maintenanceTasks: MaintenanceTask[] = [
-    {
-      id: '1',
-      type: 'oil',
-      dueDate: addDays(new Date(), 7),
-      status: 'upcoming',
-      intervalDays: 90,
-      intervalKm: 5000,
-      lastCompleted: new Date(Date.now() - 83 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: '2',
-      type: 'tire',
-      dueDate: addDays(new Date(), -2),
-      status: 'overdue',
-      intervalDays: 180,
-      intervalKm: 10000,
-      lastCompleted: new Date(Date.now() - 182 * 24 * 60 * 60 * 1000),
-    },
-  ]
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!selectedDate) return
+    
+    setIsLoading(true)
+    try {
+      const formData = new FormData(e.currentTarget)
+      await onAddTask?.({
+        type: formData.get("type") as string,
+        status: "scheduled",
+        dueDate: selectedDate.toISOString(),
+        notes: formData.get("notes") as string,
+      })
 
-  const handleAddTask = async () => {
-    if (!selectedDate || !newTask.type) {
       toast({
-        title: t("errors.error"),
-        description: t("vehicles.management.maintenance.errors.missingFields"),
+        title: "vehicles.maintenance.success",
+        description: "vehicles.maintenance.successDescription",
+      })
+      setIsOpen(false)
+    } catch (error) {
+      toast({
+        title: "vehicles.maintenance.error",
+        description: "vehicles.maintenance.errorDescription",
         variant: "destructive",
       })
-      return
+    } finally {
+      setIsLoading(false)
     }
-
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    toast({
-      title: t("common.success"),
-      description: t("vehicles.management.maintenance.taskAdded"),
-    })
-
-    setIsAddingTask(false)
-    setNewTask({
-      type: '',
-      intervalDays: 30,
-      intervalKm: 5000,
-      notes: '',
-    })
-    setSelectedDate(undefined)
   }
 
-  const handleCompleteTask = async (taskId: string) => {
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    toast({
-      title: t("common.success"),
-      description: t("vehicles.management.maintenance.taskCompleted"),
-    })
+  const handleComplete = async (taskId: string) => {
+    try {
+      await onUpdateTask?.(taskId, "completed")
+      toast({
+        title: "vehicles.maintenance.taskCompleted",
+        description: "vehicles.maintenance.taskCompletedDescription",
+      })
+    } catch (error) {
+      toast({
+        title: "vehicles.maintenance.error",
+        description: "vehicles.maintenance.errorDescription",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("vehicles.details.maintenance.schedule.title")}</CardTitle>
-          <Button variant="outline" size="sm" onClick={() => setIsAddingTask(true)}>
-            {t("vehicles.details.maintenance.schedule.addTask")}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("vehicles.details.maintenance.types.title")}</TableHead>
-                <TableHead>{t("vehicles.details.maintenance.schedule.nextService")}</TableHead>
-                <TableHead>{t("vehicles.details.maintenance.schedule.lastService")}</TableHead>
-                <TableHead>{t("vehicles.details.maintenance.schedule.days")}</TableHead>
-                <TableHead>{t("vehicles.details.maintenance.schedule.kilometers")}</TableHead>
-                <TableHead className="text-right">{t("common.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {maintenanceTasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>
-                    {t(`vehicles.details.maintenance.types.${task.type}`)}
-                  </TableCell>
-                  <TableCell>
-                    {format(task.dueDate, "PPP")}
-                    <span className={`text-sm ${
-                      task.status === 'overdue' 
-                        ? 'text-destructive' 
-                        : 'text-muted-foreground'
-                    }`}>
-                      {t(`inspections.maintenanceSchedule.maintenanceStatus.${task.status}`)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {task.lastCompleted 
-                      ? format(task.lastCompleted, "PPP")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {task.intervalDays} {t("vehicles.management.mileage.metrics.days")}
-                  </TableCell>
-                  <TableCell>
-                    {task.intervalKm} {t("vehicles.management.mileage.metrics.kilometers")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCompleteTask(task.id)}
-                    >
-                      {t("status.completed")}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
-      <MaintenanceCostTracker vehicleId={vehicleId} />
-      <MaintenanceHistory vehicleId={vehicleId} />
-      <MaintenanceReminders vehicleId={vehicleId} />
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>{"vehicles.maintenance.schedule"}</CardTitle>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              {"vehicles.maintenance.addTask"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{"vehicles.maintenance.addTask"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>{"vehicles.maintenance.type"}</Label>
+                <Select name="type" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder={"vehicles.maintenance.selectType"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="oil_change">
+                      {"vehicles.maintenance.types.oil_change"}
+                    </SelectItem>
+                    <SelectItem value="tire_rotation">
+                      {"vehicles.maintenance.types.tire_rotation"}
+                    </SelectItem>
+                    <SelectItem value="brake_service">
+                      {"vehicles.maintenance.types.brake_service"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{"vehicles.maintenance.dueDate"}</Label>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">{"vehicles.maintenance.notes"}</Label>
+                <Input
+                  id="notes"
+                  name="notes"
+                />
+              </div>
+
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading ? "common.saving" : "common.save"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {tasks.map((task) => (
+            <div
+              key={task.id}
+              className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+            >
+              <div className="space-y-1">
+                <p className="font-medium">
+                  {task.type}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  {format(new Date(task.dueDate), "PPP")}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={
+                    task.status === "completed"
+                      ? "default"
+                      : task.status === "overdue"
+                      ? "destructive"
+                      : "secondary"
+                  }
+                >
+                  {task.status}
+                </Badge>
+                {task.status !== "completed" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleComplete(task.id)}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+          {tasks.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground">
+              {"vehicles.maintenance.noTasks"}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 } 

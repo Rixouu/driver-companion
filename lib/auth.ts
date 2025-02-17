@@ -1,7 +1,8 @@
 import { UserRole } from "@/types/next-auth"
-import { NextAuthOptions } from "next-auth"
+import { NextAuthOptions, AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
+import { supabase } from "./supabase"
 
 interface User {
   id: string
@@ -52,14 +53,25 @@ declare module "next-auth" {
     id: string
     email: string
     name: string
-    role: 'ADMIN' | 'MANAGER' | 'DRIVER'
+    role: UserRole
   }
 }
 
-export const authOptions: NextAuthOptions = {
+declare module "next-auth/jwt" {
+  interface JWT {
+    role?: UserRole
+    sub: string
+  }
+}
+
+export const authOptions: AuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
@@ -67,26 +79,25 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null
         
-        if (credentials.email === "test@example.com" && credentials.password === "password") {
-          return {
-            id: "1",
-            email: credentials.email,
-            name: "Test User",
-            role: "ADMIN"
-          }
+        const { data: { user }, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
+        })
+
+        if (error || !user) return null
+
+        return {
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name,
+          role: user.user_metadata?.role,
         }
-        return null
       }
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    })
   ],
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
+    signIn: "/auth/signin",
   },
   session: {
     strategy: "jwt"
@@ -95,21 +106,20 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role
+        token.id = user.id
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).role = token.role
+      return {
+        ...session,
+        user: {
+          email: session.user.email,
+          name: session.user.name,
+          id: token.sub!,
+          role: token.role as UserRole
+        }
       }
-      return session
-    },
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
     },
   }
 }

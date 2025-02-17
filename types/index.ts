@@ -1,91 +1,63 @@
-export type User = {
-  id: string
-  name: string
-  email: string
-  role: "admin" | "driver"
-}
+import type { Database } from "./supabase"
 
-export interface Vehicle {
-  id: string
-  name: string
-  plateNumber: string
-  status: 'active' | 'inactive' | 'maintenance'
-  model: string
-  year: string
-  vin: string
-  lastInspection?: string
-  assignedTo?: string
-  imageUrl: string
-  maintenanceHistory?: MaintenanceRecord[]
-}
+// Database Types
+export type DbVehicle = Database['public']['Tables']['vehicles']['Row']
+export type DbInspection = Database['public']['Tables']['inspections']['Row']
+export type DbMaintenance = Database['public']['Tables']['maintenance_tasks']['Row']
 
-export interface MaintenanceRecord {
-  id: string
-  status: 'scheduled' | 'inProgress' | 'completed' | 'cancelled' | 'overdue'
+// Insert Types
+export type VehicleInsert = Database['public']['Tables']['vehicles']['Insert']
+export type InspectionInsert = {
+  vehicle_id: string
+  inspector_id: string
   date: string
-  type: string
-  photos: string[]
-  notes: string
+  status: InspectionStatusType
+  type: 'daily' | 'monthly' | 'annual'
+  items: any[] // or more specific type if you have one
+  notes?: string
+}
+export type MaintenanceInsert = Database['public']['Tables']['maintenance_tasks']['Insert']
+
+// Update Types
+export type VehicleUpdate = Database['public']['Tables']['vehicles']['Update']
+export type InspectionUpdate = Database['public']['Tables']['inspections']['Update']
+export type MaintenanceUpdate = Database['public']['Tables']['maintenance_tasks']['Update']
+
+// Joined Types
+export type VehicleWithRelations = DbVehicle & {
+  inspections?: DbInspection[]
+  maintenance_tasks?: DbMaintenance[]
 }
 
-export interface CheckItem {
-  id: string
-  type: string
-  label: string
-  labelJa: string
-  checked: boolean
-  photos: string[]
-  notes: string
-  area?: 'front' | 'left' | 'right' | 'rear'
-  status?: 'pass' | 'fail' | null
-  voiceNotes?: string[]
+export type InspectionWithVehicle = DbInspection & {
+  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number'>
 }
 
-export interface InspectionArea {
-  id: string
-  name: string
-  items: CheckItem[]
+export type MaintenanceWithVehicle = DbMaintenance & {
+  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number'>
 }
 
-export interface InspectionReport {
-  id: string
-  vehicleId: string
-  inspectorId: string
-  date: string
-  status: 'draft' | 'completed' | 'reviewed'
-  areas: InspectionArea[]
-  signature?: string
-  photos?: string[]
-  voiceNotes?: string[]
-}
+// Enums and Constants
+export const VehicleStatus = {
+  ACTIVE: 'active',
+  MAINTENANCE: 'maintenance',
+  INACTIVE: 'inactive',
+} as const
 
-export type InspectionItem = {
-  id: string
-  description: string
-  status: "pass" | "fail" | null
-  photos: string[]
-  notes: string
-}
+export type VehicleStatus = typeof VehicleStatus[keyof typeof VehicleStatus]
 
-export type VehicleSide = "Front" | "Left" | "Right" | "Rear"
+export const InspectionStatus = {
+  SCHEDULED: 'scheduled',
+  COMPLETED: 'completed',
+  IN_PROGRESS: 'in_progress'
+} as const
 
-export type DailyInspection = {
-  id: string
-  vehicleId: string
-  driverId: string
-  date: string
-  status: "pending" | "completed"
-  completedAt?: string
-  items: Record<VehicleSide, InspectionItem[]>
-  location?: {
-    latitude: number
-    longitude: number
-  }
-}
+export type InspectionStatusType = typeof InspectionStatus[keyof typeof InspectionStatus]
 
-interface ValidationItem {
-  id: string
-  status: 'passed' | 'failed' | 'na' | 'pending'
-  // ... other fields
-}
-
+// Add this type to help with form data
+export type NewInspectionData = {
+  vehicle_id: string
+  inspector_id: string
+  status: 'pending' | 'in_progress' | 'completed'
+  notes?: string
+} 

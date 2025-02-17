@@ -1,6 +1,5 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface ValidationDisplayProps {
   item: {
@@ -9,7 +8,6 @@ interface ValidationDisplayProps {
 }
 
 export function ValidationDisplay({ item }: ValidationDisplayProps) {
-  const { t } = useLanguage()
 
   return (
     <span className={`status-badge ${
@@ -19,7 +17,7 @@ export function ValidationDisplay({ item }: ValidationDisplayProps) {
           ? 'bg-red-500/10 text-red-500'
           : 'bg-gray-500/10 text-gray-500'
     }`}>
-      {t(`inspections.validation.validationStatus.${item.status}`)}
+      {item.status}
     </span>
   )
 } 

@@ -1,280 +1,223 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useLanguage } from "@/components/providers/language-provider"
-import { Download, Share2, Archive, CheckCircle2, AlertCircle, Clock, Camera } from "lucide-react"
-import Image from "next/image"
+import { supabase } from "@/lib/supabase/client"
 import { format } from "date-fns"
+import Image from "next/image"
+import { useToast } from "@/components/ui/use-toast"
+import { Check, X } from "lucide-react"
+import { InspectionDetails as InspectionDetailsType, InspectionResult } from "@/types/inspections"
+import { Image as NextImage } from "@/components/shared/image"
 
 interface InspectionDetailsProps {
-  vehicleId: string
+  inspectionId: string
 }
 
-export function InspectionDetails({ vehicleId }: InspectionDetailsProps) {
-  const { t } = useLanguage()
-  const [activeTab, setActiveTab] = useState("details")
+export function InspectionDetails({ inspectionId }: InspectionDetailsProps) {
+  const [inspection, setInspection] = useState<InspectionDetailsType | null>(null)
+  const [results, setResults] = useState<InspectionResult[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
-  // TODO: Replace with actual API call
-  const details = {
-    id: "INS-2024-001",
-    date: new Date(),
-    inspector: "John Doe",
-    status: "completed",
-    duration: "45 minutes",
-    location: "Main Service Center",
-    notes: "Regular inspection completed. Minor issues found with left rear tire.",
-    signature: {
-      image: "/mock/signature.png",
-      timestamp: new Date(),
-      location: "35.6762° N, 139.6503° E",
-      device: "iPad Pro",
-    },
-    photos: [
-      { url: "/mock/inspection-1.jpg", section: "Front", timestamp: new Date() },
-      { url: "/mock/inspection-2.jpg", section: "Left Side", timestamp: new Date() },
-      { url: "/mock/inspection-3.jpg", section: "Issue - Left Rear Tire", timestamp: new Date() },
-    ],
-    results: {
-      total: 24,
-      passed: 23,
-      failed: 1,
-      skipped: 0,
-    },
-    history: [
-      {
-        id: "INS-2024-000",
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        inspector: "Jane Smith",
-        status: "completed",
-        issues: 0,
-      },
-      {
-        id: "INS-2023-099",
-        date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        inspector: "John Doe",
-        status: "completed",
-        issues: 2,
-      },
-    ],
+  useEffect(() => {
+    if (!inspectionId) return
+    fetchInspectionDetails()
+  }, [inspectionId])
+
+  const fetchInspectionDetails = async () => {
+    try {
+      console.log('Fetching inspection details for ID:', inspectionId)
+
+      // Fetch inspection details using the view
+      const { data: inspectionData, error: inspectionError } = await supabase
+        .from('inspection_details')
+        .select('*')
+        .eq('id', inspectionId)
+        .single()
+
+      if (inspectionError) {
+        console.error('Inspection fetch error:', inspectionError)
+        throw inspectionError
+      }
+
+      setInspection(inspectionData)
+
+      // Fetch inspection results
+      const { data: resultsData, error: resultsError } = await supabase
+        .from('inspection_results')
+        .select(`
+          id,
+          status,
+          notes,
+          item:inspection_items(
+            id,
+            category,
+            item
+          ),
+          photos:inspection_photos(
+            id,
+            photo_url
+          )
+        `)
+        .eq('inspection_id', inspectionId)
+
+      if (resultsError) {
+        console.error('Results fetch error:', resultsError)
+        throw resultsError
+      }
+
+      console.log('Fetched results:', resultsData)
+
+      setResults(resultsData as unknown as InspectionResult[])
+    } catch (error: any) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load inspection details",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!inspection) {
+    return <div>Inspection not found</div>
+  }
+
+  // Group results by category
+  const resultsByCategory = results.reduce((acc, result) => {
+    const category = result.item.category
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    acc[category].push(result)
+    return acc
+  }, {} as Record<string, InspectionResult[]>)
 
   return (
     <div className="space-y-6">
-      {/* Summary Card */}
+      {/* Vehicle Information */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t("inspections.details.title")}</CardTitle>
-              <CardDescription>ID: {details.id}</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                {t("inspections.actions.export")}
-              </Button>
-              <Button variant="outline" size="sm">
-                <Share2 className="h-4 w-4 mr-2" />
-                {t("inspections.actions.share")}
-              </Button>
-              <Button variant="outline" size="sm">
-                <Archive className="h-4 w-4 mr-2" />
-                {t("inspections.actions.archive")}
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Vehicle Information</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.date")}
-                </p>
-                <p className="text-base">{format(details.date, "PPP")}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.inspector")}
-                </p>
-                <p className="text-base">{details.inspector}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.status")}
-                </p>
-                <Badge variant="outline" className="mt-1">
-                  {t(`status.${details.status}`)}
-                </Badge>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.duration")}
-                </p>
-                <p className="text-base">{details.duration}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.location")}
-                </p>
-                <p className="text-base">{details.location}</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.results")}
-                </p>
-                <div className="flex gap-4 mt-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>{details.results.passed}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                    <span>{details.results.failed}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-yellow-500" />
-                    <span>{details.results.skipped}</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t("inspections.details.notes")}
-                </p>
-                <p className="text-base">{details.notes}</p>
-              </div>
-            </div>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="text-sm font-medium">Vehicle</p>
+            <p className="text-sm text-muted-foreground">
+              {inspection.vehicle_name} ({inspection.plate_number})
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Model</p>
+            <p className="text-sm text-muted-foreground">
+              {inspection.model} {inspection.year}
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabs for Details, Photos, History */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="details">{t("common.details")}</TabsTrigger>
-          <TabsTrigger value="photos">{t("inspections.details.photos")}</TabsTrigger>
-          <TabsTrigger value="history">{t("inspections.details.history")}</TabsTrigger>
-        </TabsList>
+      {/* Inspection Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Inspection Information</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="text-sm font-medium">Date</p>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(inspection.date), 'PPP')}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Status</p>
+            <Badge variant={inspection.status === 'completed' ? 'success' : 'secondary'}>
+              {inspection.status}
+            </Badge>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Inspector</p>
+            <p className="text-sm text-muted-foreground">
+              {inspection.inspector_name || 'Not assigned'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("inspections.details.signature")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="border rounded-lg p-4 bg-muted/50">
-                  <Image
-                    src={details.signature.image}
-                    alt="Inspector signature"
-                    width={300}
-                    height={100}
-                    className="dark:invert"
-                  />
-                </div>
-                <div className="grid gap-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t("inspections.signature.metadata.timestamp")}
-                    </span>
-                    <span>{format(details.signature.timestamp, "PPp")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t("inspections.signature.metadata.location")}
-                    </span>
-                    <span>{details.signature.location}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      {t("inspections.signature.metadata.device")}
-                    </span>
-                    <span>{details.signature.device}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="photos">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("inspections.details.photos")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6">
-                {details.photos.map((photo, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{photo.section}</span>
-                      <span className="text-muted-foreground">
-                        {format(photo.timestamp, "p")}
-                      </span>
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-                      <Image
-                        src={photo.url}
-                        alt={`Inspection photo - ${photo.section}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </div>
+      {/* Inspection Results */}
+      {Object.keys(resultsByCategory).length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Inspection Results</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue={Object.keys(resultsByCategory)[0]}>
+              <TabsList className="grid grid-cols-5 w-full">
+                {Object.keys(resultsByCategory).map(category => (
+                  <TabsTrigger key={category} value={category}>
+                    {category}
+                  </TabsTrigger>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </TabsList>
+              {Object.entries(resultsByCategory).map(([category, items]) => (
+                <TabsContent key={category} value={category}>
+                  <div className="space-y-4">
+                    {items.map(result => (
+                      <div key={result.id} className="p-4 border rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{result.item.item}</span>
+                          <Badge variant={result.status === 'pass' ? 'success' : 'destructive'}>
+                            {result.status === 'pass' ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Badge>
+                        </div>
+                        
+                        {result.notes && (
+                          <div className="text-sm text-muted-foreground">
+                            {result.notes}
+                          </div>
+                        )}
 
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("inspections.details.history")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {details.history.map((record) => (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between py-4 border-b last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium">{record.id}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(record.date, "PPP")} • {record.inspector}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="outline">
-                        {t(`status.${record.status}`)}
-                      </Badge>
-                      {record.issues > 0 ? (
-                        <Badge variant="destructive">
-                          {record.issues} {t("inspections.details.issues")}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          {t("inspections.details.noIssues")}
-                        </Badge>
-                      )}
-                    </div>
+                        {result.photos && result.photos.length > 0 && (
+                          <div className="grid grid-cols-4 gap-2">
+                            {result.photos.map((photo, index) => (
+                              <div key={photo.id} className="relative aspect-square">
+                                <NextImage
+                                  src={photo.photo_url}
+                                  alt={`Photo ${index + 1}`}
+                                  fill
+                                  className="object-cover rounded-md"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="py-6 text-center text-muted-foreground">
+            No inspection results found
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 } 

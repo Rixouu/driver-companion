@@ -1,53 +1,51 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useLanguage } from "@/components/providers/language-provider"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, AlertCircle } from "lucide-react"
+import { formatDate } from "@/lib/utils"
+
+const MOCK_ALERTS = [
+  {
+    id: 1,
+    title: "Vehicle Inspection Due",
+    vehicle: "Toyota Camry",
+    date: "2024-02-15",
+    type: "inspection",
+    status: "pending",
+  },
+  // ... other alerts
+]
 
 export function AlertsList() {
-  const { t } = useLanguage()
-
-  const alerts = [
-    {
-      id: 1,
-      message: "dashboard.alerts.types.inspection",
-      priority: "high",
-      count: 1,
-    },
-    {
-      id: 2,
-      message: "dashboard.alerts.types.maintenance",
-      priority: "medium",
-      count: 2,
-    },
-  ]
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("dashboard.alerts.title")}</CardTitle>
+        <CardTitle>Recent Alerts</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {alerts.map((alert) => (
+          {MOCK_ALERTS.map((alert) => (
             <div
               key={alert.id}
-              className="flex items-start gap-4 p-4 rounded-lg border bg-muted/50"
+              className="flex items-center justify-between p-4 border rounded-lg"
             >
-              {alert.priority === "high" ? (
-                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
-              )}
-              <div>
-                <p className="font-medium">
-                  {t(alert.message, { count: alert.count })}
-                </p>
+              <div className="space-y-1">
+                <p className="font-medium">{alert.title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {t(`dashboard.priority.${alert.priority}`)}
+                  {alert.vehicle} • {formatDate(alert.date)}
                 </p>
               </div>
+              <Badge
+                variant={
+                  alert.status === "completed"
+                    ? "success"
+                    : alert.status === "in_progress"
+                    ? "warning"
+                    : "secondary"
+                }
+              >
+                {alert.status}
+              </Badge>
             </div>
           ))}
         </div>

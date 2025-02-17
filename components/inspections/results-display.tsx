@@ -1,6 +1,5 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface ResultsDisplayProps {
   result: {
@@ -9,7 +8,6 @@ interface ResultsDisplayProps {
 }
 
 export function ResultsDisplay({ result }: ResultsDisplayProps) {
-  const { t } = useLanguage()
 
   const statusClassName = `status-badge ${
     result.status === 'passed' 
@@ -20,8 +18,6 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
   }`
 
   return (
-    <span className={statusClassName}>
-      {t(`inspections.results.resultStatus.${result.status}`)}
-    </span>
+    <span className={statusClassName}>{result.status}</span>
   )
 } 

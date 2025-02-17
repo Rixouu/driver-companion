@@ -1,13 +1,11 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 
 interface ValidationStatusProps {
   status: 'passed' | 'failed' | 'na' | 'pending'
 }
 
 export function ValidationStatus({ status }: ValidationStatusProps) {
-  const { t } = useLanguage()
 
   const statusClassName = `status-badge ${
     status === 'passed' 
@@ -19,7 +17,7 @@ export function ValidationStatus({ status }: ValidationStatusProps) {
 
   return (
     <span className={statusClassName}>
-      {t(`inspections.validation.validationStatus.${status}`)}
+      {status}
     </span>
   )
 } 

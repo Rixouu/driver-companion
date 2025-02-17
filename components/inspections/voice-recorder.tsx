@@ -4,7 +4,6 @@ import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Mic, Square, Play, Trash2 } from "lucide-react"
-import { useLanguage } from "@/components/providers/language-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { formatDuration } from "@/lib/utils"
 
@@ -23,7 +22,6 @@ interface VoiceRecording {
 }
 
 export function VoiceRecorder({ sectionId, onRecordingAdd, onRecordingRemove }: VoiceRecorderProps) {
-  const { t } = useLanguage()
   const { toast } = useToast()
   const [isRecording, setIsRecording] = useState(false)
   const [recordings, setRecordings] = useState<VoiceRecording[]>([])
@@ -69,8 +67,8 @@ export function VoiceRecorder({ sectionId, onRecordingAdd, onRecordingRemove }: 
 
     } catch (error) {
       toast({
-        title: t("errors.error"),
-        description: t("inspections.voice.microphoneError"),
+        title: "errors.error",
+        description: "inspections.voice.microphoneError",
         variant: "destructive",
       })
     }
@@ -98,7 +96,7 @@ export function VoiceRecorder({ sectionId, onRecordingAdd, onRecordingRemove }: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("inspections.voice.title")}</CardTitle>
+        <CardTitle>{"inspections.voice.title"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

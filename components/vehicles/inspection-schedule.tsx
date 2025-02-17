@@ -1,6 +1,5 @@
 "use client"
 
-import { useLanguage } from "@/components/providers/language-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,36 +12,35 @@ import {
 } from "@/components/ui/table"
 
 export function InspectionSchedule() {
-  const { t } = useLanguage()
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{t("vehicles.details.inspections.title")}</CardTitle>
+        <CardTitle>{"vehicles.details.inspections.title"}</CardTitle>
         <Button>
-          {t("vehicles.details.inspections.schedule")}
+          {"vehicles.details.inspections.schedule"}
         </Button>
       </CardHeader>
       <CardContent>
         <div>
-          <h3>{t("vehicles.details.inspections.title")}</h3>
+          <h3>{"vehicles.details.inspections.title"}</h3>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("vehicles.details.inspections.date")}</TableHead>
-                <TableHead>{t("vehicles.details.inspections.time")}</TableHead>
-                <TableHead>{t("vehicles.details.inspections.status")}</TableHead>
-                <TableHead>{t("vehicles.details.inspections.actions")}</TableHead>
+                <TableHead>{"vehicles.details.inspections.date"}</TableHead>
+                <TableHead>{"vehicles.details.inspections.time"}</TableHead>
+                <TableHead>{"vehicles.details.inspections.status"}</TableHead>
+                <TableHead>{"vehicles.details.inspections.actions"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow>
                 <TableCell>February 12th, 2025</TableCell>
                 <TableCell>10:00</TableCell>
-                <TableCell>{t("status.scheduled")}</TableCell>
+                <TableCell>{"status.scheduled"}</TableCell>
                 <TableCell>
-                  <Button variant="outline">{t("vehicles.details.inspections.reschedule")}</Button>
-                  <Button variant="destructive">{t("vehicles.details.inspections.cancel")}</Button>
+                  <Button variant="outline">{"vehicles.details.inspections.reschedule"}</Button>
+                  <Button variant="destructive">{"vehicles.details.inspections.cancel"}</Button>
                 </TableCell>
               </TableRow>
             </TableBody>

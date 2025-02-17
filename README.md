@@ -1,7 +1,53 @@
-# Vehicle Inspection App
+# Vehicle Fleet Management System
 
-A modern web application for managing vehicle inspections, maintenance schedules, and fleet management. Built with Next.js 14, TypeScript, Tailwind CSS, and Shadcn UI.
+A comprehensive web application for managing vehicle fleets, inspections, and maintenance schedules. Built with Next.js 14, TypeScript, Tailwind CSS, and Supabase.
 
+## 🚀 Core Features
+
+### Vehicle Management
+- Vehicle registration and tracking
+- Status monitoring (active, maintenance, inactive)
+- Vehicle details and history
+- Image upload and management
+
+### Maintenance System
+- Schedule maintenance tasks
+- Priority-based task management
+- Cost and duration tracking
+- Status updates and notifications
+
+### Inspection Module
+- Digital inspection checklists
+- Photo capture and documentation
+- Real-time status updates
+- Inspection history tracking
+
+## 🛠 Tech Stack
+
+### Frontend
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Shadcn UI / Radix UI
+- React Hook Form + Zod validation
+
+### Backend & Services
+- Supabase (Database & Auth)
+- Next.js Server Actions
+- Vercel (Hosting)
+
+## 📦 Project Structure
+
+```
+├── app/
+│   ├── (dashboard)/dashboard)/
+│   ├── (maintenance)/maintenance)/
+│   ├── (inspection)/inspection)/
+│   ├── (settings)/settings)/
+│   ├── (auth)/auth)/
+│   ├── (api)/api)/
+│   ├── (public)/public)/
+│   ├── (styles)/styles)/
 ## Features
 
 - 🚗 Vehicle Management
@@ -23,21 +69,6 @@ A modern web application for managing vehicle inspections, maintenance schedules
   - Mobile-first approach
   - Touch-optimized interface
   - Progressive Web App (PWA) support
-
-## 🛠 Tech Stack
-
-- **Frontend**
-  - Next.js 14 (App Router)
-  - TypeScript
-  - Tailwind CSS
-  - Shadcn UI / Radix UI
-  - React Hook Form + Zod
-
-- **Backend & Services**
-  - NextAuth.js for authentication
-  - Supabase for database
-  - Recharts for data visualization
-  - PWA with service workers
 
 ## 🚀 Getting Started
 
@@ -80,16 +111,6 @@ A modern web application for managing vehicle inspections, maintenance schedules
 4. Push your changes to your fork
 5. Create a pull request
 
-## 📦 Project Structure
-
-- `app` - Next.js App Router pages
-- `components` - Reusable React components
-- `lib` - Utility functions
-- `public` - Static assets
-- `styles` - Global CSS styles
-- `types` - TypeScript type definitions
-- `utils` - Helper functions
-
 ## 🔑 Key Features in Detail
 
 ### Vehicle Management
@@ -130,5 +151,4 @@ A modern web application for managing vehicle inspections, maintenance schedules
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.# driver-companion
-# driver-companion
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

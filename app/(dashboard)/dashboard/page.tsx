@@ -6,16 +6,14 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 export default function DashboardPage() {
   return (
-      <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Here's an overview of your fleet status and upcoming tasks
-          </p>
-        </div>      
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Here's an overview of your fleet status and upcoming tasks
+        </p>
       </div>
-      
+
       <Suspense fallback={<LoadingSpinner />}>
         <DashboardStats />
       </Suspense>

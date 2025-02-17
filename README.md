@@ -130,4 +130,5 @@ A modern web application for managing vehicle inspections, maintenance schedules
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.# driver-companion
+# driver-companion

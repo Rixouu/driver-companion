@@ -14,7 +14,11 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-export function LoginForm() {
+interface LoginFormProps {
+  onLoginSuccess?: () => void
+}
+
+export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = React.useState(false)
@@ -32,6 +36,9 @@ export function LoginForm() {
       })
 
       if (error) throw error
+
+      // Call onLoginSuccess after successful login
+      onLoginSuccess?.()
     } catch (error) {
       console.error('Error:', error)
     } finally {

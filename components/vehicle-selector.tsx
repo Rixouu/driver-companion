@@ -71,15 +71,15 @@ export function VehicleSelector({ value, onChange }: VehicleSelectorProps) {
               {selectedVehicle.name} ({selectedVehicle.plate_number})
             </span>
           ) : (
-            <span>{"vehicles.selectVehicle"}</span>
+            <span>Select Vehicle</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder={"vehicles.search"} />
-          <CommandEmpty>{"vehicles.noResults"}</CommandEmpty>
+          <CommandInput placeholder={"Search"} />
+          <CommandEmpty>{"No results found."}</CommandEmpty>
           <CommandGroup>
             {vehicles.map((vehicle) => (
               <CommandItem

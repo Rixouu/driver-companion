@@ -8,8 +8,13 @@ export function LoginFormWrapper() {
   const router = useRouter()
   
   const handleLoginSuccess = () => {
-    const redirectTo = searchParams.get('redirectedFrom') || '/'
-    router.push(redirectTo)
+    const redirectedFrom = searchParams.get('redirectedFrom')
+    // If the redirectedFrom is the callback URL, redirect to dashboard
+    if (redirectedFrom?.includes('/auth/callback')) {
+      router.push('/')
+    } else {
+      router.push(redirectedFrom || '/')
+    }
   }
 
   return <LoginForm onLoginSuccess={handleLoginSuccess} />

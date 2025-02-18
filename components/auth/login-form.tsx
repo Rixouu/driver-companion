@@ -23,7 +23,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = React.useState(false)
 
-  const redirectTo = searchParams.get("redirectTo") || "/"
+  const redirectTo = searchParams.get("redirectedFrom") || "/"
 
   async function handleGoogleLogin() {
     try {
@@ -31,14 +31,13 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${redirectTo}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
       if (error) throw error
 
-      // Call onLoginSuccess after successful login
-      onLoginSuccess?.()
+      // The callback will handle the redirection, so we don't need onLoginSuccess here
     } catch (error) {
       console.error('Error:', error)
     } finally {

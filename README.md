@@ -5,18 +5,21 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 ## 🚀 Core Features
 
 ### Vehicle Management
+
 - Vehicle registration and tracking
 - Status monitoring (active, maintenance, inactive)
 - Vehicle details and history
 - Image upload and management
 
 ### Maintenance System
+
 - Schedule maintenance tasks
 - Priority-based task management
 - Cost and duration tracking
 - Status updates and notifications
 
 ### Inspection Module
+
 - Digital inspection checklists
 - Photo capture and documentation
 - Real-time status updates
@@ -25,6 +28,7 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 ## 🛠 Tech Stack
 
 ### Frontend
+
 - Next.js 14 (App Router)
 - TypeScript
 - Tailwind CSS
@@ -32,13 +36,13 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 - React Hook Form + Zod validation
 
 ### Backend & Services
+
 - Supabase (Database & Auth)
 - Next.js Server Actions
 - Vercel (Hosting)
 
 ## 📦 Project Structure
 
-```
 ├── app/
 │   ├── (dashboard)/dashboard)/
 │   ├── (maintenance)/maintenance)/
@@ -48,6 +52,15 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 │   ├── (api)/api)/
 │   ├── (public)/public)/
 │   ├── (styles)/styles)/
+│   ├── (types)/types)/
+│   ├── (utils)/utils)/
+│   ├── (components)/components)/
+│   ├── (lib)/lib)/
+│   ├── (hooks)/hooks)/
+│   ├── (constants)/constants)/
+│   ├── (config)/config)/
+
+
 ## Features
 
 - 🚗 Vehicle Management
@@ -114,18 +127,21 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 ## 🔑 Key Features in Detail
 
 ### Vehicle Management
+
 - Complete vehicle lifecycle tracking
 - Automated maintenance scheduling
 - Real-time status updates
 - Historical data analysis
 
 ### Inspection Workflow
+
 - Customizable inspection templates
 - Multi-media data capture
 - Offline-first architecture
 - Automated report generation
 
 ### User Interface
+
 - Responsive design system
 - Dark mode support
 - Touch and gesture controls

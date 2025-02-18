@@ -14,16 +14,12 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-interface LoginFormProps {
-  onLoginSuccess?: () => void
-}
-
-export function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = React.useState(false)
 
-  const redirectTo = searchParams.get("redirectedFrom") || "/"
+  const redirectTo = searchParams.get("redirectTo") || "/"
 
   async function handleGoogleLogin() {
     try {
@@ -31,13 +27,11 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${redirectTo}`,
         },
       })
 
       if (error) throw error
-
-      // The callback will handle the redirection, so we don't need onLoginSuccess here
     } catch (error) {
       console.error('Error:', error)
     } finally {

@@ -1,32 +1,41 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+
+export const runtime = 'nodejs' // Change runtime to nodejs instead of edge
 
 // Define public routes that don't require authentication
-const publicRoutes = ['/auth/login', '/auth/signup', '/auth/error', '/api/auth']
+const publicRoutes = ['/auth/login', '/auth/signup', '/auth/error']
 
-export async function middleware(req: NextRequest) {
+// This function can be marked `async` if using `await` inside
+export async function middleware(request: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createMiddlewareClient({ req: request, res })
 
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Protect all routes except auth routes
-  if (!session && !req.nextUrl.pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/auth/login', req.url))
+  const { pathname } = request.nextUrl
+
+  // Allow access to public routes and static files
+  if (publicRoutes.includes(pathname) || 
+      pathname.startsWith('/_next') || 
+      pathname.startsWith('/api')) {
+    return res
   }
 
-  // Redirect logged in users away from auth pages
-  if (session && req.nextUrl.pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/', req.url))
+  // Redirect to login if not authenticated
+  if (!session) {
+    const redirectUrl = new URL('/auth/login', request.url)
+    redirectUrl.searchParams.set('redirectedFrom', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
   return res
 }
 
-// Update the matcher to be more specific
+// Configure which paths should be handled by this middleware
 export const config = {
   matcher: [
     /*
@@ -36,6 +45,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|public/|api/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|ico|jpg|jpeg|png|gif|webp)$).*)',
   ],
 } 

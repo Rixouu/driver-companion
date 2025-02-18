@@ -3,7 +3,6 @@ import { Providers } from "@/components/providers"
 import { Header } from "@/components/layout/header"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
-import "./sw"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { getSession } from "@/lib/db/server"
@@ -20,7 +19,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
+      <body className={cn(inter.className, "min-h-screen bg-background")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

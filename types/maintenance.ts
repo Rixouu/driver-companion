@@ -7,6 +7,8 @@ export interface MaintenanceTaskWithVehicle {
   estimated_duration?: number | null
   cost?: number | null
   notes?: string | null
+  completed_date?: string | null
+  priority: 'High' | 'Medium' | 'Low'
   vehicle: {
     id: string
     name: string

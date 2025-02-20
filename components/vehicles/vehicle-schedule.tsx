@@ -2,17 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DbVehicle, MaintenanceTask, Inspection } from "@/types"
-import { Plus, Calendar } from "lucide-react"
+import { DbVehicle } from "@/types"
+import { Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
@@ -24,6 +16,16 @@ interface VehicleScheduleProps {
 export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
   const router = useRouter()
 
+  // Filter maintenance tasks to show only scheduled ones
+  const scheduledMaintenance = vehicle.maintenance_tasks?.filter(
+    task => task.status === 'scheduled' || task.status === 'pending'
+  ) || []
+
+  // Filter inspections to show scheduled and in progress
+  const activeInspections = vehicle.inspections?.filter(
+    inspection => ['scheduled', 'in_progress'].includes(inspection.status)
+  ) || []
+
   return (
     <div className="grid gap-6">
       {/* Maintenance Tasks */}
@@ -33,10 +35,14 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
             <div>
               <CardTitle>Maintenance Tasks</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Manage vehicle maintenance tasks
+                Scheduled maintenance tasks
               </p>
             </div>
-            <Button asChild size="sm" className="w-full sm:w-auto">
+            <Button 
+              asChild 
+              size="sm" 
+              className="w-full sm:w-auto"
+            >
               <Link href={`/vehicles/${vehicle.id}/maintenance/new`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Task
@@ -45,90 +51,32 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Desktop view */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vehicle.maintenance_tasks?.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell>{task.title}</TableCell>
-                    <TableCell>{formatDate(task.due_date)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          task.status === "completed"
-                            ? "success"
-                            : task.status === "in_progress"
-                            ? "warning"
-                            : "secondary"
-                        }
-                      >
-                        {task.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/maintenance/${task.id}`}>
-                          View Details
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!vehicle.maintenance_tasks || vehicle.maintenance_tasks.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center">
-                      No maintenance tasks scheduled.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile view */}
-          <div className="grid gap-4 md:hidden">
-            {vehicle.maintenance_tasks?.map((task) => (
-              <div
-                key={task.id}
-                className="rounded-lg border p-4 space-y-3"
+          <div className="space-y-4">
+            {scheduledMaintenance.map((task) => (
+              <Link 
+                key={task.id} 
+                href={`/maintenance/${task.id}`}
+                className="block"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{task.title}</h3>
-                  <Badge
-                    variant={
-                      task.status === "completed"
-                        ? "success"
-                        : task.status === "in_progress"
-                        ? "warning"
-                        : "secondary"
-                    }
-                  >
-                    {task.status}
-                  </Badge>
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
+                  <div className="space-y-1">
+                    <p className="font-medium">{task.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Due {formatDate(task.due_date)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge>
+                      {task.status === 'scheduled' ? 'Scheduled' : 'Pending'}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Due: {formatDate(task.due_date)}
-                </div>
-                <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href={`/maintenance/${task.id}`}>
-                    View Details
-                  </Link>
-                </Button>
-              </div>
+              </Link>
             ))}
-            {(!vehicle.maintenance_tasks || vehicle.maintenance_tasks.length === 0) && (
-              <div className="text-center text-muted-foreground py-4">
-                No maintenance tasks scheduled.
-              </div>
+            {scheduledMaintenance.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No scheduled maintenance tasks.
+              </p>
             )}
           </div>
         </CardContent>
@@ -141,106 +89,46 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
             <div>
               <CardTitle>Inspections</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Schedule and track inspections
+                Scheduled and ongoing inspections
               </p>
             </div>
-            <Button asChild size="sm" className="w-full sm:w-auto">
+            <Button 
+              asChild 
+              size="sm" 
+              className="w-full sm:w-auto"
+            >
               <Link href={`/vehicles/${vehicle.id}/inspections/schedule`}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule
+                <Plus className="mr-2 h-4 w-4" />
+                Schedule Inspection
               </Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Desktop view */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vehicle.inspections?.map((inspection) => (
-                  <TableRow key={inspection.id}>
-                    <TableCell className="capitalize">
-                      {inspection.schedule_type?.replace('_', ' ')}
-                    </TableCell>
-                    <TableCell>{formatDate(inspection.due_date)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          inspection.status === "completed"
-                            ? "success"
-                            : inspection.status === "in_progress"
-                            ? "warning"
-                            : "secondary"
-                        }
-                      >
-                        {inspection.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/inspections/${inspection.id}`}>
-                          View Details
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {(!vehicle.inspections || vehicle.inspections.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center">
-                      No inspections scheduled.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile view */}
-          <div className="grid gap-4 md:hidden">
-            {vehicle.inspections?.map((inspection) => (
-              <div
-                key={inspection.id}
-                className="rounded-lg border p-4 space-y-3"
+          <div className="space-y-4">
+            {activeInspections.map((inspection) => (
+              <Link 
+                key={inspection.id} 
+                href={`/inspections/${inspection.id}`}
+                className="block"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium capitalize">
-                    {inspection.schedule_type?.replace('_', ' ')}
-                  </h3>
-                  <Badge
-                    variant={
-                      inspection.status === "completed"
-                        ? "success"
-                        : inspection.status === "in_progress"
-                        ? "warning"
-                        : "secondary"
-                    }
-                  >
-                    {inspection.status}
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
+                  <div className="space-y-1">
+                    <p className="font-medium">{inspection.schedule_type} Inspection</p>
+                    <p className="text-sm text-muted-foreground">
+                      Due {formatDate(inspection.due_date)}
+                    </p>
+                  </div>
+                  <Badge variant={inspection.status === 'in_progress' ? 'warning' : 'secondary'}>
+                    {inspection.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
                   </Badge>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  Due: {formatDate(inspection.due_date)}
-                </div>
-                <Button variant="ghost" size="sm" className="w-full" asChild>
-                  <Link href={`/inspections/${inspection.id}`}>
-                    View Details
-                  </Link>
-                </Button>
-              </div>
+              </Link>
             ))}
-            {(!vehicle.inspections || vehicle.inspections.length === 0) && (
-              <div className="text-center text-muted-foreground py-4">
-                No inspections scheduled.
-              </div>
+            {activeInspections.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No active inspections.
+              </p>
             )}
           </div>
         </CardContent>

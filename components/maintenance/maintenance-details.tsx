@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { MaintenanceTaskWithVehicle } from "@/types/maintenance"
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 import { 
   Car, 
   Calendar, 
@@ -20,7 +20,8 @@ import {
   DollarSign,
   CheckCircle,
   XCircle,
-  Wrench
+  Wrench,
+  AlertTriangle
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase/client"
@@ -96,7 +97,7 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Task Details */}
         <Card>
           <CardHeader>
@@ -104,20 +105,38 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Car className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{task.vehicle.name}</span>
+                  <span className="font-medium">Vehicle</span>
                 </div>
-                <span className="text-muted-foreground">({task.vehicle.plate_number})</span>
+                <span>{task.vehicle.name} ({task.vehicle.plate_number})</span>
               </div>
+
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Due Date</span>
                 </div>
-                <span>{format(new Date(task.due_date), 'PPP')}</span>
+                <span>{formatDate(task.due_date)}</span>
               </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Priority</span>
+                </div>
+                <Badge variant={
+                  task.priority === "High" 
+                    ? "destructive" 
+                    : task.priority === "Medium" 
+                    ? "warning" 
+                    : "secondary"
+                }>
+                  {task.priority}
+                </Badge>
+              </div>
+
               {task.estimated_duration && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -127,6 +146,7 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
                   <span>{task.estimated_duration} hours</span>
                 </div>
               )}
+
               {task.cost && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -141,7 +161,6 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
             <div className="pt-4 border-t">
               <Badge 
                 className={cn(
-                  "w-full sm:w-auto justify-center sm:justify-start",
                   task.status === 'completed' && "bg-green-500",
                   task.status === 'overdue' && "bg-red-500",
                   task.status === 'in_progress' && "bg-blue-500",
@@ -155,19 +174,34 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Notes */}
-        {task.notes && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {task.notes}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Description & Notes */}
+        <div className="space-y-6">
+          {task.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Description</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {task.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {task.notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {task.notes}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -3,6 +3,9 @@ import { notFound } from "next/navigation"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { VehicleDetails } from "@/components/vehicles/vehicle-details"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 interface VehiclePageProps {
   params: {
@@ -31,20 +34,8 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     .from('vehicles')
     .select(`
       *,
-      maintenance_tasks (
-        id,
-        title,
-        status,
-        due_date
-      ),
-      inspections (
-        id,
-        status,
-        date,
-        schedule_type,
-        due_date,
-        notes
-      )
+      maintenance_tasks (*),
+      inspections (*)
     `)
     .eq('id', params.id)
     .order('due_date', { foreignTable: 'maintenance_tasks', ascending: true })
@@ -52,16 +43,29 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     .single()
 
   if (!vehicle) {
-    notFound()
+    return notFound()
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{vehicle.name}</h1>
-        <p className="text-muted-foreground">
-          View and manage vehicle details
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{vehicle.name}</h1>
+          <p className="text-muted-foreground">
+            View and manage vehicle details
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="w-full sm:w-auto"
+          asChild
+        >
+          <Link href="/vehicles" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to vehicles
+          </Link>
+        </Button>
       </div>
 
       <VehicleDetails vehicle={vehicle} />

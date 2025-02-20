@@ -84,6 +84,11 @@ export interface MaintenanceTask {
   title: string
   status: string
   due_date: string
+  priority: 'high' | 'medium' | 'low'
+  completed_date?: string
+  notes?: string
+  cost?: number
+  estimated_duration?: number
 }
 
 export interface Inspection {

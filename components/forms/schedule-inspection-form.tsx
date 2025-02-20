@@ -38,7 +38,7 @@ import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 
 const formSchema = z.object({
-  schedule_type: z.string(),
+  schedule_type: z.enum(["routine", "maintenance", "safety"]),
   due_date: z.date(),
   notes: z.string().optional(),
 })

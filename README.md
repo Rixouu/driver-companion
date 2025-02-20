@@ -1,29 +1,40 @@
 # Vehicle Fleet Management System
 
-A comprehensive web application for managing vehicle fleets, inspections, and maintenance schedules. Built with Next.js 14, TypeScript, Tailwind CSS, and Supabase.
+A comprehensive web application for managing vehicle fleets, maintenance schedules, and inspections. Built with Next.js 14, TypeScript, Tailwind CSS, and Supabase.
 
 ## 🚀 Core Features
 
+### Dashboard
+
+- Real-time overview of fleet statistics
+- Quick access to vehicles, maintenance, and inspections
+- Recent maintenance and inspection activities
+- Scheduled maintenance and inspection tracking
+- Mobile-responsive layout
+
 ### Vehicle Management
 
-- Vehicle registration and tracking
+- Complete vehicle registration and tracking
 - Status monitoring (active, maintenance, inactive)
 - Vehicle details and history
 - Image upload and management
+- VIN and license plate tracking
 
 ### Maintenance System
 
-- Schedule maintenance tasks
-- Priority-based task management
+- Schedule and track maintenance tasks
+- Priority-based task management (high, medium, low)
 - Cost and duration tracking
-- Status updates and notifications
+- Status updates (pending, in_progress, completed, overdue)
+- Maintenance history
 
 ### Inspection Module
 
 - Digital inspection checklists
-- Photo capture and documentation
+- Schedule inspections (routine, maintenance, safety)
 - Real-time status updates
 - Inspection history tracking
+- Mobile-friendly inspection forms
 
 ## 🛠 Tech Stack
 
@@ -38,57 +49,72 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 ### Backend & Services
 
 - Supabase (Database & Auth)
-- Next.js Server Actions
-- Vercel (Hosting)
+- Next.js Server Components
+- Supabase Auth (Google OAuth)
+- Supabase Storage for images
 
-## 📦 Project Structure
+## 📱 Mobile Responsiveness
+
+- Mobile-first approach
+- Responsive navigation with slide-out menu
+- Touch-friendly interfaces
+- Adaptive layouts for all screen sizes
+- Optimized forms and tables
+
+## 🔐 Authentication & Authorization
+
+- Google OAuth integration
+- Protected routes
+- Role-based access control
+- Secure session management
+
+## 📊 Data Management
+
+- Real-time data updates
+- Efficient data fetching with Server Components
+- Optimistic updates for better UX
+- Proper error handling and validation
+
+## 🎨 UI/UX Features
+
+- Dark/Light mode support
+- Consistent design language
+- Interactive feedback
+- Loading states
+- Toast notifications
+- Form validation
+- Responsive tables
+- Mobile navigation
+
+## �� Project Structure
 
 ├── app/
-│   ├── (dashboard)/dashboard)/
-│   ├── (maintenance)/maintenance)/
-│   ├── (inspection)/inspection)/
-│   ├── (settings)/settings)/
-│   ├── (auth)/auth)/
-│   ├── (api)/api)/
-│   ├── (public)/public)/
-│   ├── (styles)/styles)/
-│   ├── (types)/types)/
-│   ├── (utils)/utils)/
-│   ├── (components)/components)/
-│   ├── (lib)/lib)/
-│   ├── (hooks)/hooks)/
-│   ├── (constants)/constants)/
-│   ├── (config)/config)/
-
-
-## Features
-
-- 🚗 Vehicle Management
-  - Track vehicle details and history
-  - Manage maintenance schedules
-  - Monitor vehicle status and alerts
-
-- 📋 Inspection System
-  - Digital inspection checklists
-  - Photo and voice note capture
-  - Digital signature collection
-  - Offline support
-
-- 🌐 Multi-language Support
-  - English and Japanese interfaces
-  - Extensible translation system
-
-- 📱 Responsive Design
-  - Mobile-first approach
-  - Touch-optimized interface
-  - Progressive Web App (PWA) support
+│ ├── (auth)/
+│ ├── (dashboard)/
+│ ├── maintenance/
+│ ├── vehicles/
+│ ├── inspections/
+│ └── settings/
+├── components/
+│ ├── layout/
+│ ├── shared/
+│ ├── vehicles/
+│ ├── maintenance/
+│ ├── inspections/
+│ └── ui/
+├── lib/
+│ ├── services/
+│ ├── utils/
+│ ├── validations/
+│ └── db/
+└── types/
 
 ## 🚀 Getting Started
 
 1. Clone the repository
 2. Install dependencies
-3. Create a `.env` file with your configuration
-4. Run the development server
+3. Set up environment variables
+4. Start the development server
 
 ## Prerequisites
 
@@ -105,47 +131,24 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 3. Create a `.env` file with your configuration
 4. Run the development server
 
-## Configuration
+## 📝 License
 
-1. Create a `.env` file in the root directory
-2. Add your configuration variables
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
-## Usage
-
-1. Run the development server
-2. Open the application in your browser
-3. Use the application
-
-## Contributing
+## 👥 Contributing
 
 1. Fork the repository
-2. Create a new branch
-3. Make your changes and commit them
-4. Push your changes to your fork
-5. Create a pull request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 🔑 Key Features in Detail
+## 🙏 Acknowledgments
 
-### Vehicle Management
-
-- Complete vehicle lifecycle tracking
-- Automated maintenance scheduling
-- Real-time status updates
-- Historical data analysis
-
-### Inspection Workflow
-
-- Customizable inspection templates
-- Multi-media data capture
-- Offline-first architecture
-- Automated report generation
-
-### User Interface
-
-- Responsive design system
-- Dark mode support
-- Touch and gesture controls
-- Loading states and animations
+- Shadcn UI for the component library
+- Next.js team for the amazing framework
+- Supabase team for the backend infrastructure
+- Vercel for hosting and deployment
 
 ## 🤝 Contributing
 
@@ -158,13 +161,3 @@ A comprehensive web application for managing vehicle fleets, inspections, and ma
 ## 👥 Authors
 
 - **Jonathan** - *Initial work* - [Rixouu](https://github.com/Rixouu)
-
-## 🙏 Acknowledgments
-
-- Shadcn UI for the component library
-- Next.js team for the amazing framework
-- Vercel for hosting and deployment
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details

@@ -24,7 +24,7 @@ export default async function MaintenancePage() {
         plate_number
       )
     `)
-    .order('due_date', { ascending: true })
+    .order('created_at', { ascending: false })
 
   return (
     <div className="space-y-6">

@@ -127,7 +127,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="border rounded-lg p-6 space-y-6">
+        <div className="border rounded-lg p-4 sm:p-6 space-y-6">
           <FormField
             control={form.control}
             name="vehicle_id"
@@ -166,6 +166,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                 <FormControl>
                   <Textarea 
                     placeholder="Describe the maintenance task" 
+                    className="min-h-[100px]"
                     {...field} 
                   />
                 </FormControl>
@@ -174,7 +175,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
             )}
           />
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="priority"
@@ -183,7 +184,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                   <FormLabel>Priority</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select priority" />
                       </SelectTrigger>
                     </FormControl>
@@ -205,7 +206,11 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                 <FormItem>
                   <FormLabel>Due Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input 
+                      type="date" 
+                      {...field}
+                      className="w-full"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -213,7 +218,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="estimated_duration"
@@ -261,6 +266,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                 <FormControl>
                   <Textarea 
                     placeholder="Add any additional notes"
+                    className="min-h-[100px]"
                     {...field} 
                   />
                 </FormControl>
@@ -270,16 +276,21 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
           />
         </div>
 
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={() => router.back()}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting 
               ? mode === 'create' ? "Creating..." : "Updating..."
               : mode === 'create' ? "Create Task" : "Update Task"

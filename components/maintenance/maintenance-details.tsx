@@ -68,16 +68,18 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
           <p className="text-muted-foreground">{task.description}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           {task.status !== 'completed' && (
             <Button
               onClick={() => handleStatusUpdate('completed')}
               disabled={isUpdating}
+              className="w-full sm:w-auto"
             >
               <CheckCircle className="mr-2 h-4 w-4" />
               Complete Task
@@ -86,6 +88,7 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
           <Button
             variant="outline"
             onClick={() => router.push(`/maintenance/${task.id}/edit`)}
+            className="w-full sm:w-auto"
           >
             <Wrench className="mr-2 h-4 w-4" />
             Edit
@@ -93,7 +96,7 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         {/* Task Details */}
         <Card>
           <CardHeader>
@@ -101,25 +104,36 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4">
-              <div className="flex items-center gap-2">
-                <Car className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{task.vehicle.name}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div className="flex items-center gap-2">
+                  <Car className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{task.vehicle.name}</span>
+                </div>
                 <span className="text-muted-foreground">({task.vehicle.plate_number})</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Due Date</span>
+                </div>
                 <span>{format(new Date(task.due_date), 'PPP')}</span>
               </div>
               {task.estimated_duration && (
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Duration</span>
+                  </div>
                   <span>{task.estimated_duration} hours</span>
                 </div>
               )}
               {task.cost && (
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span>{task.cost.toFixed(2)}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Cost</span>
+                  </div>
+                  <span>${task.cost.toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -127,6 +141,7 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
             <div className="pt-4 border-t">
               <Badge 
                 className={cn(
+                  "w-full sm:w-auto justify-center sm:justify-start",
                   task.status === 'completed' && "bg-green-500",
                   task.status === 'overdue' && "bg-red-500",
                   task.status === 'in_progress' && "bg-blue-500",

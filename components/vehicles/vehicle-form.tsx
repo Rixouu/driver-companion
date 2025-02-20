@@ -29,11 +29,13 @@ import { vehicleSchema, type VehicleFormData, VehicleFormProps } from "@/lib/val
 import { supabase } from "@/lib/supabase/client"
 import { decode } from "@/lib/utils"
 import { Car } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export function VehicleForm({ initialData }: VehicleFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState(false)
+  const [completion, setCompletion] = useState(0)
 
   const form = useForm<VehicleFormData>({
     resolver: zodResolver(vehicleSchema),
@@ -48,6 +50,28 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
       plate_number: "",
     },
   })
+
+  // Add watch to monitor form fields with proper typing
+  const watchedFields = form.watch() as Record<string, string>
+
+  // Calculate completion percentage whenever form fields change
+  useEffect(() => {
+    const requiredFields = [
+      'name',
+      'brand',
+      'model',
+      'year',
+      'plate_number',
+      'status'
+    ] as const
+
+    const filledFields = requiredFields.filter(
+      field => watchedFields[field] && watchedFields[field].length > 0
+    )
+
+    const percentage = Math.round((filledFields.length / requiredFields.length) * 100)
+    setCompletion(percentage)
+  }, [watchedFields])
 
   async function onSubmit(data: VehicleFormData) {
     try {
@@ -80,10 +104,23 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
         imageUrl = publicUrl
       }
 
-      // Generate a temporary VIN if not provided (for testing only)
-      const vin = data.vin || `TEMP-${Date.now()}`
+      // Generate a unique VIN if not provided
+      const vin = data.vin || `TEMP-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
 
-      // Insert vehicle directly using Supabase client
+      // Check if VIN already exists
+      if (data.vin) {
+        const { data: existingVehicle } = await supabase
+          .from('vehicles')
+          .select('id')
+          .eq('vin', data.vin)
+          .single()
+
+        if (existingVehicle) {
+          throw new Error("A vehicle with this VIN already exists")
+        }
+      }
+
+      // Insert vehicle
       const { error: insertError } = await supabase
         .from('vehicles')
         .insert([
@@ -124,17 +161,20 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Form Completion Progress */}
         <div className="space-y-2">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between px-1">
             <span className="text-sm text-muted-foreground">Form completion</span>
-            <span className="text-sm font-medium">0%</span>
+            <span className="text-sm font-medium">{completion}%</span>
           </div>
-          <div className="bg-secondary h-2 rounded-full">
-            <div className="bg-primary h-full rounded-full w-0" />
+          <div className="h-2 rounded-full bg-secondary">
+            <div 
+              className="h-full rounded-full bg-primary transition-all duration-300 ease-in-out"
+              style={{ width: `${completion}%` }}
+            />
           </div>
         </div>
 
-        <div className="border rounded-lg p-6 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+        <div className="border rounded-lg p-4 sm:p-6 space-y-6">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="name"
@@ -142,7 +182,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>Vehicle Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Family SUV" {...field} />
+                    <Input placeholder="e.g., Family SUV" {...field} className="w-full" />
                   </FormControl>
                   <FormDescription>
                     A friendly name to identify this vehicle
@@ -159,7 +199,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>Brand</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Toyota" {...field} />
+                    <Input placeholder="e.g., Toyota" {...field} className="w-full" />
                   </FormControl>
                   <FormDescription>
                     The manufacturer of the vehicle
@@ -170,7 +210,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="model"
@@ -178,7 +218,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>Model</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Camry" {...field} />
+                    <Input placeholder="e.g., Camry" {...field} className="w-full" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -192,7 +232,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>Year</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 2024" {...field} />
+                    <Input placeholder="e.g., 2024" {...field} className="w-full" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,7 +240,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="vin"
@@ -208,7 +248,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>VIN</FormLabel>
                   <FormControl>
-                    <Input placeholder="Vehicle Identification Number" {...field} />
+                    <Input placeholder="Vehicle Identification Number" {...field} className="w-full" />
                   </FormControl>
                   <FormDescription>
                     17-character vehicle identification number
@@ -225,7 +265,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                 <FormItem>
                   <FormLabel>License Plate</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., ABC123" {...field} />
+                    <Input placeholder="e.g., ABC123" {...field} className="w-full" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -267,7 +307,7 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                   </FormControl>
@@ -286,16 +326,21 @@ export function VehicleForm({ initialData }: VehicleFormProps) {
           />
         </div>
 
-        <div className="flex justify-end gap-4">
+        <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-end">
           <Button
             type="button"
             variant="outline"
             onClick={() => router.back()}
             disabled={isLoading}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
             <Car className="mr-2 h-4 w-4" />
             {isLoading ? "Adding..." : "Add Vehicle"}
           </Button>

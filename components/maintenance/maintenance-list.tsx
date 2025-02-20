@@ -31,60 +31,42 @@ interface MaintenanceTask {
   }
 }
 
+interface MaintenanceListProps {
+  tasks: MaintenanceTask[]
+}
+
 const ITEMS_PER_PAGE = 10
 
-export function MaintenanceList() {
+export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [tasks, setTasks] = useState<MaintenanceTask[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [filteredTasks, setFilteredTasks] = useState<MaintenanceTask[]>(initialTasks)
+  const [isLoading, setIsLoading] = useState(false)
   const [filter, setFilter] = useState(searchParams.get("status") || 'all')
   const [search, setSearch] = useState(searchParams.get("search") || '')
-  const [totalPages, setTotalPages] = useState(1)
+  const [totalPages, setTotalPages] = useState(Math.ceil(initialTasks.length / ITEMS_PER_PAGE))
   const debouncedSearch = useDebounce(search, 500)
   const currentPage = Number(searchParams.get("page")) || 1
 
   useEffect(() => {
-    async function fetchTasks() {
-      try {
-        const from = (currentPage - 1) * ITEMS_PER_PAGE
-        const to = from + ITEMS_PER_PAGE - 1
+    // Filter and search tasks locally
+    let result = [...initialTasks]
 
-        let query = getSupabaseClient()
-          .from("maintenance_tasks")
-          .select(`
-            *,
-            vehicle:vehicles(
-              name, 
-              plate_number
-            )
-          `, { count: 'exact' })
-
-        if (filter !== 'all') {
-          query = query.eq('status', filter)
-        }
-
-        if (debouncedSearch) {
-          query = query.or(`title.ilike.%${debouncedSearch}%,vehicle.name.ilike.%${debouncedSearch}%`)
-        }
-
-        const { data, error, count } = await query
-          .range(from, to)
-          .order('due_date', { ascending: true })
-
-        if (error) throw error
-
-        setTasks(data || [])
-        setTotalPages(count ? Math.ceil(count / ITEMS_PER_PAGE) : 1)
-      } catch (error) {
-        console.error("Error fetching maintenance tasks:", error)
-      } finally {
-        setIsLoading(false)
-      }
+    if (filter !== 'all') {
+      result = result.filter(task => task.status === filter)
     }
 
-    fetchTasks()
-  }, [currentPage, filter, debouncedSearch])
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase()
+      result = result.filter(task => 
+        task.title.toLowerCase().includes(searchLower) ||
+        task.vehicle.name.toLowerCase().includes(searchLower)
+      )
+    }
+
+    setFilteredTasks(result)
+    setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE))
+  }, [filter, debouncedSearch, initialTasks])
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -115,6 +97,11 @@ export function MaintenanceList() {
     params.set("page", "1")
     router.push(`/maintenance?${params.toString()}`)
   }
+
+  // Get current page items
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE
+  const currentItems = filteredTasks.slice(indexOfFirstItem, indexOfLastItem)
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -189,7 +176,7 @@ export function MaintenanceList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.map((task) => (
+              {currentItems.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>{task.title}</TableCell>
                   <TableCell>{task.vehicle.name}</TableCell>
@@ -216,7 +203,7 @@ export function MaintenanceList() {
                   </TableCell>
                 </TableRow>
               ))}
-              {tasks.length === 0 && (
+              {currentItems.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center">
                     No maintenance tasks found.

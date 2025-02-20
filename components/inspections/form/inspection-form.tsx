@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { InspectionProgress } from "./inspection-progress"
@@ -110,13 +110,99 @@ export function InspectionForm({ inspectionId, vehicle }: InspectionFormProps) {
     },
   })
 
-  const handleStatusChange = (itemId: string, status: "pass" | "fail") => {
-    setSections(prev => ({
-      ...prev,
-      [currentSection]: prev[currentSection].map(item =>
-        item.id === itemId ? { ...item, status } : item
-      ),
-    }))
+  useEffect(() => {
+    async function loadInspectionItems() {
+      if (!inspectionId) return
+
+      try {
+        const { data: items, error } = await supabase
+          .from('inspection_items')
+          .select('*')
+          .eq('inspection_id', inspectionId)
+
+        if (error) throw error
+
+        if (items?.length) {
+          // Update sections with existing items
+          const updatedSections = { ...INSPECTION_SECTIONS }
+          items.forEach(item => {
+            const section = Object.keys(updatedSections).find(
+              key => key === item.category
+            )
+            if (section) {
+              const sectionItemIndex = updatedSections[section].findIndex(
+                sectionItem => sectionItem.label === item.item
+              )
+              if (sectionItemIndex !== -1) {
+                updatedSections[section][sectionItemIndex] = {
+                  ...updatedSections[section][sectionItemIndex],
+                  status: item.status as 'pass' | 'fail',
+                  notes: item.notes || '',
+                }
+              }
+            }
+          })
+          setSections(updatedSections)
+        }
+      } catch (error) {
+        console.error('Error loading inspection items:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load inspection items",
+          variant: "destructive",
+        })
+      }
+    }
+
+    loadInspectionItems()
+  }, [inspectionId])
+
+  const handleStatusChange = async (itemId: string, status: "pass" | "fail") => {
+    if (!user?.id) return
+
+    try {
+      // Update local state
+      setSections(prev => ({
+        ...prev,
+        [currentSection]: prev[currentSection].map(item =>
+          item.id === itemId ? { ...item, status } : item
+        ),
+      }))
+
+      // Save progress if we have an inspectionId
+      if (inspectionId) {
+        const item = sections[currentSection].find(i => i.id === itemId)
+        if (!item) return
+
+        // Save or update the inspection item
+        const { error } = await supabase
+          .from('inspection_items')
+          .upsert({
+            inspection_id: inspectionId,
+            category: currentSection,
+            item: item.label,
+            status,
+            notes: item.notes || null,
+            user_id: user.id
+          })
+
+        if (error) throw error
+
+        // Update inspection status to in_progress if it was scheduled
+        await supabase
+          .from('inspections')
+          .update({ status: 'in_progress' })
+          .eq('id', inspectionId)
+          .eq('status', 'scheduled')
+      }
+    } catch (error) {
+      console.error('Error saving inspection item:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save inspection item",
+        variant: "destructive",
+      })
+    }
   }
 
   const handlePhotoCapture = (photoUrl: string) => {

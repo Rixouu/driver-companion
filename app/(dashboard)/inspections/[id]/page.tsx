@@ -15,6 +15,31 @@ interface InspectionDetailsPageProps {
   }
 }
 
+interface InspectionItem {
+  id: string
+  category: string
+  item: string
+  status: string
+  notes: string | null
+}
+
+interface ItemsByCategory {
+  [key: string]: InspectionItem[]
+}
+
+interface Inspection {
+  id: string
+  status: string
+  schedule_type: string
+  due_date: string
+  notes?: string
+  vehicle: {
+    name: string
+    plate_number: string
+  }
+  inspection_items: InspectionItem[]
+}
+
 export const metadata: Metadata = {
   title: "Inspection Details",
   description: "View inspection details",
@@ -49,13 +74,13 @@ export default async function InspectionDetailsPage({ params }: InspectionDetail
     return notFound()
   }
 
-  const itemsByCategory = inspection.inspection_items?.reduce((acc: any, item) => {
+  const itemsByCategory = (inspection.inspection_items || []).reduce((acc: ItemsByCategory, item: InspectionItem) => {
     if (!acc[item.category]) {
       acc[item.category] = []
     }
     acc[item.category].push(item)
     return acc
-  }, {})
+  }, {} as ItemsByCategory)
 
   return (
     <div className="space-y-6">
@@ -66,11 +91,11 @@ export default async function InspectionDetailsPage({ params }: InspectionDetail
             View and manage inspection
           </p>
         </div>
-        {inspection.status === 'scheduled' && (
+        {(inspection.status === 'scheduled' || inspection.status === 'in_progress') && (
           <Button asChild>
             <Link href={`/inspections/${inspection.id}/perform`}>
               <PlayCircle className="mr-2 h-4 w-4" />
-              Start Inspection
+              {inspection.status === 'in_progress' ? 'Continue Inspection' : 'Start Inspection'}
             </Link>
           </Button>
         )}
@@ -120,7 +145,7 @@ export default async function InspectionDetailsPage({ params }: InspectionDetail
           </CardContent>
         </Card>
 
-        {itemsByCategory && Object.entries(itemsByCategory).map(([category, items]: [string, any[]]) => (
+        {itemsByCategory && (Object.entries(itemsByCategory) as [string, InspectionItem[]][]).map(([category, items]) => (
           <Card key={category}>
             <CardHeader>
               <CardTitle>{category}</CardTitle>
@@ -131,7 +156,7 @@ export default async function InspectionDetailsPage({ params }: InspectionDetail
                   <div key={item.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{item.item}</span>
-                      <Badge
+                      <Badge 
                         variant={item.status === "pass" ? "success" : "destructive"}
                       >
                         {item.status}

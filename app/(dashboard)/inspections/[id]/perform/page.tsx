@@ -27,16 +27,21 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
     .eq('id', params.id)
     .single()
 
-  if (!inspection || inspection.status !== 'scheduled') {
+  if (!inspection || (inspection.status !== 'scheduled' && inspection.status !== 'in_progress')) {
     return notFound()
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Perform Inspection</h1>
+        <h1 className="text-2xl font-bold">
+          {inspection.status === 'in_progress' ? 'Continue Inspection' : 'Perform Inspection'}
+        </h1>
         <p className="text-muted-foreground">
-          Perform inspection for {inspection.vehicle.name}
+          {inspection.status === 'in_progress' 
+            ? `Continue inspection for ${inspection.vehicle.name}`
+            : `Perform inspection for ${inspection.vehicle.name}`
+          }
         </p>
       </div>
       <InspectionForm inspectionId={inspection.id} vehicle={inspection.vehicle} />

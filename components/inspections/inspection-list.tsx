@@ -16,8 +16,15 @@ import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import { getSupabaseClient } from "@/lib/db/client"
 import { Input } from "@/components/ui/input"
-import { Search, Plus } from "lucide-react"
+import { Search } from "lucide-react"
 import { useDebounce } from "@/hooks/use-debounce"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Inspection {
   id: string
@@ -123,7 +130,7 @@ export function InspectionList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -133,37 +140,22 @@ export function InspectionList() {
             className="pl-8"
           />
         </div>
+        <Select value={filter} onValueChange={handleFilterChange}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="border rounded-lg p-6 space-y-6">
-        <div className="flex gap-2">
-          <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => handleFilterChange('all')}
-          >
-            All
-          </Button>
-          <Button
-            variant={filter === 'scheduled' ? 'default' : 'outline'}
-            onClick={() => handleFilterChange('scheduled')}
-          >
-            Scheduled
-          </Button>
-          <Button
-            variant={filter === 'in_progress' ? 'default' : 'outline'}
-            onClick={() => handleFilterChange('in_progress')}
-          >
-            In Progress
-          </Button>
-          <Button
-            variant={filter === 'completed' ? 'default' : 'outline'}
-            onClick={() => handleFilterChange('completed')}
-          >
-            Completed
-          </Button>
-        </div>
-
-        <div className="rounded-md border">
+      <div className="rounded-md border">
+        {/* Desktop view */}
+        <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -213,20 +205,59 @@ export function InspectionList() {
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-4">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
+        {/* Mobile view */}
+        <div className="grid gap-4 p-4 md:hidden">
+          {inspections.map((inspection) => (
+            <div
+              key={inspection.id}
+              className="rounded-lg border p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">{inspection.vehicle?.name}</h3>
+                <Badge
+                  variant={
+                    inspection.status === "completed"
+                      ? "success"
+                      : inspection.status === "in_progress"
+                      ? "warning"
+                      : "secondary"
+                  }
+                >
+                  {inspection.status}
+                </Badge>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <div>Due: {inspection.due_date ? formatDate(inspection.due_date) : 'Not scheduled'}</div>
+              </div>
+              <Button variant="ghost" size="sm" className="w-full" asChild>
+                <Link href={`/inspections/${inspection.id}`}>
+                  View Details
+                </Link>
               </Button>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+          {inspections.length === 0 && (
+            <div className="text-center text-muted-foreground">
+              No inspections found.
+            </div>
+          )}
+        </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={currentPage === page ? "default" : "outline"}
+              onClick={() => handlePageChange(page)}
+              className="w-8 h-8 p-0"
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   )
 } 

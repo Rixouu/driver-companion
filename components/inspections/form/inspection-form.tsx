@@ -314,132 +314,123 @@ export function InspectionForm({ inspectionId, vehicle }: InspectionFormProps) {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Select Vehicle</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="vehicle_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle</FormLabel>
-                  <VehicleSelector
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={!!vehicle}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Inspection Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Inspection Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-2 mb-6">
-              {Object.keys(INSPECTION_SECTIONS).map((section) => (
-                <Button
-                  key={section}
-                  type="button"
-                  variant={currentSection === section ? "default" : "outline"}
-                  onClick={() => setCurrentSection(section as SectionKey)}
-                >
-                  {section}
-                </Button>
-              ))}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle>Inspection Items</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Check and record inspection results
+              </p>
             </div>
-
-            <div className="space-y-4">
-              {sections[currentSection].map((item) => (
-                <div key={item.id} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{item.label}</span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "transition-colors",
-                          item.status === 'pass' && "bg-green-500 text-white hover:bg-green-600"
-                        )}
-                        onClick={() => handleStatusChange(item.id, 'pass')}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "transition-colors",
-                          item.status === 'fail' && "bg-red-500 text-white hover:bg-red-600"
-                        )}
-                        onClick={() => handleStatusChange(item.id, 'fail')}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedItemId(item.id)
-                          setIsCameraOpen(true)
-                        }}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                    </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Select value={currentSection} onValueChange={(value) => setCurrentSection(value as SectionKey)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(sections).map((section) => (
+                    <SelectItem key={section} value={section}>
+                      {section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {sections[currentSection].map((item) => (
+              <div key={item.id} className="rounded-lg border p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <span className="font-medium flex-1">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "flex-1 sm:flex-none transition-colors",
+                        item.status === 'pass' && "bg-green-500 text-white hover:bg-green-600"
+                      )}
+                      onClick={() => handleStatusChange(item.id, 'pass')}
+                    >
+                      <Check className="h-4 w-4" />
+                      <span className="ml-2 sm:hidden">Pass</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "flex-1 sm:flex-none transition-colors",
+                        item.status === 'fail' && "bg-red-500 text-white hover:bg-red-600"
+                      )}
+                      onClick={() => handleStatusChange(item.id, 'fail')}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="ml-2 sm:hidden">Fail</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                      onClick={() => {
+                        setSelectedItemId(item.id)
+                        setIsCameraOpen(true)
+                      }}
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="ml-2 sm:hidden">Photo</span>
+                    </Button>
                   </div>
-
-                  {item.photos?.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
-                      {item.photos.map((photo, index) => (
-                        <img
-                          key={index}
-                          src={photo}
-                          alt={`Photo ${index + 1}`}
-                          className="w-full aspect-square object-cover rounded-lg"
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <Textarea
-                    placeholder="Add notes..."
-                    value={item.notes}
-                    onChange={(e) => handleNotesChange(item.id, e.target.value)}
-                  />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Inspection"}
-          </Button>
-        </div>
-      </form>
+                {item.photos?.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {item.photos.map((photo, index) => (
+                      <img
+                        key={index}
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full aspect-square object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <Textarea
+                  placeholder="Add notes..."
+                  value={item.notes}
+                  onChange={(e) => handleNotesChange(item.id, e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          className="w-full sm:w-auto"
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={() => handleSubmit(form.getValues())}
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
+          {isSubmitting ? "Saving..." : "Complete Inspection"}
+        </Button>
+      </div>
 
       <CameraModal
         isOpen={isCameraOpen}
@@ -449,6 +440,6 @@ export function InspectionForm({ inspectionId, vehicle }: InspectionFormProps) {
         }}
         onCapture={handlePhotoCapture}
       />
-    </Form>
+    </div>
   )
 } 

@@ -17,6 +17,13 @@ import { Search } from "lucide-react"
 import Link from "next/link"
 import { DbVehicle } from "@/types"
 import { useDebounce } from "@/hooks/use-debounce"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface VehicleListProps {
   vehicles: DbVehicle[]
@@ -48,7 +55,7 @@ export function VehicleList({ vehicles = [], currentPage, totalPages }: VehicleL
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -58,37 +65,21 @@ export function VehicleList({ vehicles = [], currentPage, totalPages }: VehicleL
             className="pl-8"
           />
         </div>
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="maintenance">Maintenance</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="border rounded-lg p-6 space-y-6">
-        <div className="flex gap-2">
-          <Button
-            variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => setFilter('all')}
-          >
-            All
-          </Button>
-          <Button
-            variant={filter === 'active' ? 'default' : 'outline'}
-            onClick={() => setFilter('active')}
-          >
-            Active
-          </Button>
-          <Button
-            variant={filter === 'maintenance' ? 'default' : 'outline'}
-            onClick={() => setFilter('maintenance')}
-          >
-            Maintenance
-          </Button>
-          <Button
-            variant={filter === 'inactive' ? 'default' : 'outline'}
-            onClick={() => setFilter('inactive')}
-          >
-            Inactive
-          </Button>
-        </div>
-
-        <div className="rounded-md border">
+      <div className="rounded-md border">
+        <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -136,20 +127,58 @@ export function VehicleList({ vehicles = [], currentPage, totalPages }: VehicleL
           </Table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-4">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                onClick={() => handlePageChange(page)}
-              >
-                {page}
+        <div className="grid gap-4 p-4 md:hidden">
+          {filteredVehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              className="rounded-lg border p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">{vehicle.name}</h3>
+                <Badge
+                  variant={
+                    vehicle.status === "active"
+                      ? "success"
+                      : vehicle.status === "maintenance"
+                      ? "warning"
+                      : "secondary"
+                  }
+                >
+                  {vehicle.status}
+                </Badge>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {vehicle.plate_number}
+              </div>
+              <Button variant="ghost" size="sm" className="w-full" asChild>
+                <Link href={`/vehicles/${vehicle.id}`}>
+                  View Details
+                </Link>
               </Button>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+          {filteredVehicles.length === 0 && (
+            <div className="text-center text-muted-foreground">
+              No vehicles found.
+            </div>
+          )}
+        </div>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2 mt-4">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={currentPage === page ? "default" : "outline"}
+              onClick={() => handlePageChange(page)}
+              className="w-8 h-8 p-0"
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   )
 } 

@@ -14,25 +14,19 @@ export async function generateMetadata({ params }: VehiclePageProps): Promise<Me
   const supabase = createServerComponentClient({ cookies })
   const { data: vehicle } = await supabase
     .from('vehicles')
-    .select('*')
+    .select('name')
     .eq('id', params.id)
     .single()
   
-  if (!vehicle) {
-    return {
-      title: "Vehicle Not Found",
-    }
-  }
-
   return {
-    title: vehicle.name,
-    description: `Details for ${vehicle.name} (${vehicle.plate_number})`,
+    title: vehicle ? `${vehicle.name} - Vehicle Details` : 'Vehicle Details',
+    description: 'View and manage vehicle details',
   }
 }
 
 export default async function VehiclePage({ params }: VehiclePageProps) {
   const supabase = createServerComponentClient({ cookies })
-
+  
   const { data: vehicle } = await supabase
     .from('vehicles')
     .select(`
@@ -61,5 +55,16 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     notFound()
   }
 
-  return <VehicleDetails vehicle={vehicle} />
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{vehicle.name}</h1>
+        <p className="text-muted-foreground">
+          View and manage vehicle details
+        </p>
+      </div>
+
+      <VehicleDetails vehicle={vehicle} />
+    </div>
+  )
 } 

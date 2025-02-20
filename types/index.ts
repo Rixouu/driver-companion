@@ -1,7 +1,23 @@
 import type { Database } from "./supabase"
 
 // Database Types
-export type DbVehicle = Database['public']['Tables']['vehicles']['Row']
+export interface DbVehicle {
+  id: string
+  name: string
+  plate_number: string
+  brand: string
+  model: string
+  year: string
+  status: "active" | "maintenance" | "inactive"
+  image_url?: string
+  created_at: string
+  updated_at: string
+  user_id: string
+  vin: string
+  maintenance_tasks?: MaintenanceTask[]
+  inspections?: Inspection[]
+}
+
 export type DbInspection = Database['public']['Tables']['inspections']['Row']
 export type DbMaintenance = Database['public']['Tables']['maintenance_tasks']['Row']
 
@@ -59,5 +75,21 @@ export type NewInspectionData = {
   vehicle_id: string
   inspector_id: string
   status: 'pending' | 'in_progress' | 'completed'
+  notes?: string
+}
+
+// Add these interfaces if they don't exist
+export interface MaintenanceTask {
+  id: string
+  title: string
+  status: string
+  due_date: string
+}
+
+export interface Inspection {
+  id: string
+  status: string
+  schedule_type: string
+  due_date: string
   notes?: string
 } 

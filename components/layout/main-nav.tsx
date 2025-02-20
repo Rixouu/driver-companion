@@ -31,21 +31,39 @@ export function MainNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex items-center space-x-6">
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "text-sm font-medium transition-colors hover:text-primary",
-            pathname === item.href
-              ? "text-foreground"
-              : "text-muted-foreground"
-          )}
-        >
-          {item.title}
-        </Link>
-      ))}
+    <nav className="flex md:items-center md:space-x-6">
+      <div className="flex md:hidden flex-col space-y-4">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              pathname === item.href
+                ? "text-foreground"
+                : "text-muted-foreground"
+            )}
+          >
+            {item.title}
+          </Link>
+        ))}
+      </div>
+      <div className="hidden md:flex md:items-center md:space-x-6">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "text-sm font-medium transition-colors hover:text-primary",
+              pathname === item.href
+                ? "text-foreground"
+                : "text-muted-foreground"
+            )}
+          >
+            {item.title}
+          </Link>
+        ))}
+      </div>
     </nav>
   )
 } 

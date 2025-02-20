@@ -30,13 +30,16 @@ export default async function ScheduleInspectionPage({ params }: ScheduleInspect
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Schedule Inspection</h1>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Schedule Inspection</h1>
         <p className="text-muted-foreground">
           Schedule a new inspection for {vehicle.name}
         </p>
       </div>
-      <ScheduleInspectionForm vehicleId={vehicle.id} />
+
+      <div className="grid gap-6">
+        <ScheduleInspectionForm vehicleId={vehicle.id} />
+      </div>
     </div>
   )
 } 

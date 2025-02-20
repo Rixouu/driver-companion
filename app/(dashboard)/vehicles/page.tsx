@@ -30,19 +30,19 @@ export default async function VehiclesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Vehicles</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Vehicles</h1>
           <p className="text-muted-foreground">
             Manage your vehicle fleet and details
           </p>
         </div>
-        <Link href="/vehicles/new">
-          <Button>
+        <Button asChild className="sm:flex-shrink-0">
+          <Link href="/vehicles/new">
             <Plus className="mr-2 h-4 w-4" />
             Add Vehicle
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </div>
 
       <VehicleList

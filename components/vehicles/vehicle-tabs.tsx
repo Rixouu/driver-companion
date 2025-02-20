@@ -6,6 +6,7 @@ import { VehicleHistory } from "./vehicle-history"
 import { VehicleCosts } from "./vehicle-costs"
 import { VehicleReminders } from "./vehicle-reminders"
 import { DbVehicle } from "@/types"
+import { cn } from "@/lib/utils"
 
 interface VehicleTabsProps {
   vehicle: DbVehicle
@@ -14,28 +15,47 @@ interface VehicleTabsProps {
 export function VehicleTabs({ vehicle }: VehicleTabsProps) {
   return (
     <Tabs defaultValue="schedule" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="schedule">Schedule</TabsTrigger>
-        <TabsTrigger value="history">History</TabsTrigger>
-        <TabsTrigger value="costs">Costs</TabsTrigger>
-        <TabsTrigger value="reminders">Reminders</TabsTrigger>
-      </TabsList>
+      <div className="border-b">
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <div className="flex min-w-full md:min-w-0">
+            {[
+              { value: "schedule", label: "Schedule" },
+              { value: "history", label: "History" },
+              { value: "costs", label: "Costs" },
+              { value: "reminders", label: "Reminders" }
+            ].map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className={cn(
+                  "flex-1 md:flex-none whitespace-nowrap",
+                  "data-[state=active]:bg-background"
+                )}
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </div>
+        </TabsList>
+      </div>
       
-      <TabsContent value="schedule" className="space-y-4">
-        <VehicleSchedule vehicle={vehicle} />
-      </TabsContent>
-      
-      <TabsContent value="history" className="space-y-4">
-        <VehicleHistory vehicle={vehicle} />
-      </TabsContent>
-      
-      <TabsContent value="costs" className="space-y-4">
-        <VehicleCosts vehicle={vehicle} />
-      </TabsContent>
-      
-      <TabsContent value="reminders" className="space-y-4">
-        <VehicleReminders vehicle={vehicle} />
-      </TabsContent>
+      <div className="mt-6">
+        <TabsContent value="schedule">
+          <VehicleSchedule vehicle={vehicle} />
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <VehicleHistory vehicle={vehicle} />
+        </TabsContent>
+        
+        <TabsContent value="costs">
+          <VehicleCosts vehicle={vehicle} />
+        </TabsContent>
+        
+        <TabsContent value="reminders">
+          <VehicleReminders vehicle={vehicle} />
+        </TabsContent>
+      </div>
     </Tabs>
   )
 }

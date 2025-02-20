@@ -15,84 +15,68 @@ interface VehicleDetailsProps {
 
 export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-start">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold">{vehicle.name}</h1>
-          <p className="text-muted-foreground">{vehicle.plate_number}</p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/vehicles">Back to Vehicles</Link>
-        </Button>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="relative aspect-video overflow-hidden rounded-lg">
-              {vehicle.image_url ? (
-                <Image
-                  src={vehicle.image_url}
-                  alt={`${vehicle.name} image`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  unoptimized={vehicle.image_url?.startsWith('data:')}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center bg-muted">
-                  <Icons.car className="h-10 w-10 text-muted-foreground" />
-                </div>
-              )}
+    <div className="grid gap-6 md:grid-cols-2">
+      {/* Vehicle Image and Status */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="aspect-video relative rounded-lg overflow-hidden mb-6">
+            <Image
+              src={vehicle.image_url || "/img/vehicle-placeholder.png"}
+              alt={vehicle.name}
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-semibold tracking-tight">
+                {vehicle.brand} {vehicle.model}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {vehicle.year}
+              </p>
             </div>
-            
-            <div className="grid gap-2">
-              <div className="flex justify-between">
-                <span className="font-medium">Status</span>
-                <Badge 
-                  variant={
-                    vehicle.status === 'active' 
-                      ? 'success' 
-                      : vehicle.status === 'maintenance'
-                      ? 'warning'
-                      : 'secondary'
-                  }
-                >
-                  {vehicle.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Brand</span>
-                <span>{vehicle.brand}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Model</span>
-                <span>{vehicle.model}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Year</span>
-                <span>{vehicle.year}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">License Plate</span>
-                <span>{vehicle.plate_number}</span>
-              </div>
-              {vehicle.vin && (
-                <div className="flex justify-between">
-                  <span className="font-medium">VIN</span>
-                  <span>{vehicle.vin}</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            <Badge
+              variant={
+                vehicle.status === "active"
+                  ? "success"
+                  : vehicle.status === "maintenance"
+                  ? "warning"
+                  : "secondary"
+              }
+              className="capitalize"
+            >
+              {vehicle.status}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="space-y-6">
-          <VehicleTabs vehicle={vehicle} />
-        </div>
+      {/* Vehicle Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Vehicle Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <div className="flex justify-between">
+              <span className="font-medium">License Plate</span>
+              <span>{vehicle.plate_number}</span>
+            </div>
+            {vehicle.vin && (
+              <div className="flex justify-between">
+                <span className="font-medium">VIN</span>
+                <span>{vehicle.vin}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Vehicle Tabs - Full Width */}
+      <div className="md:col-span-2">
+        <VehicleTabs vehicle={vehicle} />
       </div>
     </div>
   )

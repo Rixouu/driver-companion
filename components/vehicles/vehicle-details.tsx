@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { DbVehicle } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Icons } from "@/components/icons"
+import { VehicleTabs } from "./vehicle-tabs"
 
 interface VehicleDetailsProps {
   vehicle: DbVehicle
@@ -34,7 +35,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             <div className="relative aspect-video overflow-hidden rounded-lg">
               {vehicle.image_url ? (
                 <Image
-                  src={vehicle.image_url || "/placeholder.jpg"}
+                  src={vehicle.image_url}
                   alt={`${vehicle.name} image`}
                   fill
                   className="object-cover"
@@ -90,23 +91,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
         </Card>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Inspections</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">No recent inspections found.</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Maintenance History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">No maintenance history found.</p>
-            </CardContent>
-          </Card>
+          <VehicleTabs vehicle={vehicle} />
         </div>
       </div>
     </div>

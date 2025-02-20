@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { getVehicleById } from "@/lib/services/vehicles"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 import { VehicleDetails } from "@/components/vehicles/vehicle-details"
 
 interface VehiclePageProps {
@@ -10,7 +11,12 @@ interface VehiclePageProps {
 }
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
-  const vehicle = await getVehicleById(params.id)
+  const supabase = createServerComponentClient({ cookies })
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('id', params.id)
+    .single()
   
   if (!vehicle) {
     return {
@@ -25,7 +31,31 @@ export async function generateMetadata({ params }: VehiclePageProps): Promise<Me
 }
 
 export default async function VehiclePage({ params }: VehiclePageProps) {
-  const vehicle = await getVehicleById(params.id)
+  const supabase = createServerComponentClient({ cookies })
+
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select(`
+      *,
+      maintenance_tasks (
+        id,
+        title,
+        status,
+        due_date
+      ),
+      inspections (
+        id,
+        status,
+        date,
+        schedule_type,
+        due_date,
+        notes
+      )
+    `)
+    .eq('id', params.id)
+    .order('due_date', { foreignTable: 'maintenance_tasks', ascending: true })
+    .order('due_date', { foreignTable: 'inspections', ascending: true })
+    .single()
 
   if (!vehicle) {
     notFound()

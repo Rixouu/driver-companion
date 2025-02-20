@@ -19,7 +19,7 @@ export default function InspectionsPage() {
             Schedule and track vehicle inspections
           </p>
         </div>
-        <Link href="/inspections/new">
+        <Link href="/inspections/perform">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             New Inspection

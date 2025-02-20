@@ -17,6 +17,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { supabase } from "@/lib/supabase/client"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Vehicle {
   id: string
@@ -27,9 +34,10 @@ interface Vehicle {
 interface VehicleSelectorProps {
   value?: string
   onChange: (value: string) => void
+  disabled?: boolean
 }
 
-export function VehicleSelector({ value, onChange }: VehicleSelectorProps) {
+export function VehicleSelector({ value, onChange, disabled }: VehicleSelectorProps) {
   const [open, setOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -64,7 +72,7 @@ export function VehicleSelector({ value, onChange }: VehicleSelectorProps) {
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={isLoading}
+          disabled={isLoading || disabled}
         >
           {selectedVehicle ? (
             <span>

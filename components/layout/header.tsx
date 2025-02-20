@@ -8,12 +8,29 @@ import { Button } from "@/components/ui/button"
 import { MainNav } from "@/components/layout/main-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
+import { Menu, X, Gauge, Truck, ClipboardCheck, FileCheck, Settings, LogOut, Moon } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { useTheme } from "next-themes"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const supabase = createClientComponentClient()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/auth/login')
+    router.refresh()
+  }
+
+  const handleThemeToggle = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
+  }
 
   if (pathname.startsWith("/auth")) return null
 
@@ -38,30 +55,120 @@ export function Header() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
+            {/* Show theme toggle and login only on desktop */}
+            <div className="hidden md:flex items-center gap-4">
+              <ThemeToggle />
+              {!loading && !user && (
+                <Button asChild>
+                  <Link href="/auth/login">Login</Link>
+                </Button>
+              )}
+            </div>
+
             {!loading && (
               <>
-                {user ? (
-                  <div className="flex items-center gap-4">
-                    {/* Show mobile menu on mobile */}
-                    <Sheet>
-                      <SheetTrigger asChild className="md:hidden">
-                        <Button variant="ghost" size="icon">
-                          <Menu className="h-5 w-5" />
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent side="left" className="w-64">
-                        <div className="py-4">
-                          <MainNav />
+                {/* Single mobile menu for both authenticated and non-authenticated users */}
+                <Sheet>
+                  <SheetTrigger asChild className="md:hidden">
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[300px] p-0">
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between p-6">
+                        <span className="text-xl font-semibold">Menu</span>
+                        <SheetClose asChild>
+                          <Button variant="ghost" size="icon">
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </SheetClose>
+                      </div>
+
+                      <Separator />
+
+                      <nav className="flex-1 px-6">
+                        <div className="space-y-4 py-6">
+                          <Link
+                            href="/dashboard"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <Gauge className="h-5 w-5" />
+                            Dashboard
+                          </Link>
+                          <Link
+                            href="/vehicles"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <Truck className="h-5 w-5" />
+                            Vehicles
+                          </Link>
+                          <Link
+                            href="/maintenance"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <ClipboardCheck className="h-5 w-5" />
+                            Maintenance
+                          </Link>
+                          <Link
+                            href="/inspections"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <FileCheck className="h-5 w-5" />
+                            Inspections
+                          </Link>
+                          <Link
+                            href="/settings"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <Settings className="h-5 w-5" />
+                            Settings
+                          </Link>
                         </div>
-                      </SheetContent>
-                    </Sheet>
+                      </nav>
+
+                      <div className="border-t p-6">
+                        <div className="flex flex-col gap-4">
+                          {user ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full justify-start gap-2"
+                              onClick={handleLogout}
+                            >
+                              <LogOut className="h-5 w-5" />
+                              Logout
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              className="w-full justify-start gap-2"
+                              asChild
+                            >
+                              <Link href="/auth/login">
+                                <LogOut className="h-5 w-5" />
+                                Login
+                              </Link>
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start gap-2"
+                            onClick={handleThemeToggle}
+                          >
+                            <Moon className="h-5 w-5" />
+                            Dark Mode
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Show user nav on desktop when authenticated */}
+                {user && (
+                  <div className="hidden md:flex">
                     <UserNav user={user} />
                   </div>
-                ) : (
-                  <Button asChild>
-                    <Link href="/auth/login">Login</Link>
-                  </Button>
                 )}
               </>
             )}

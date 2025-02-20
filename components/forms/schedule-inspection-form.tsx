@@ -106,13 +106,13 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
           <FormField
             control={form.control}
             name="vehicle_id"
-            render={({ field }) => (
+            render={({ field }) => (  
               <FormItem>
                 <FormLabel>Vehicle</FormLabel>
                 <VehicleSelector
                   value={field.value}
                   onChange={field.onChange}
-                  disabled={true}
+                  disabled={true} 
                 />
                 <FormMessage />
               </FormItem>

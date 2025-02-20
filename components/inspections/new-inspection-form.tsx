@@ -16,10 +16,8 @@ import {
 } from "@/components/ui/form"
 import { useToast } from "@/components/ui/use-toast"
 import { VehicleSelector } from "@/components/vehicle-selector"
-import { createInspection } from "@/app/actions/inspections"
+import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { InspectionStatus } from "@/types"
-import type { InspectionInsert } from "@/types"
 
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
@@ -30,8 +28,8 @@ type InspectionFormData = z.infer<typeof inspectionSchema>
 export function NewInspectionForm() {
   const router = useRouter()
   const { toast } = useToast()
-  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { user } = useAuth()
 
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -40,30 +38,38 @@ export function NewInspectionForm() {
     },
   })
 
-  const onSubmit = async (data: InspectionFormData) => {
+  async function onSubmit(data: InspectionFormData) {
     if (!user?.id) return
 
     try {
       setIsSubmitting(true)
-      const inspection: InspectionInsert = {
-        vehicle_id: data.vehicle_id,
-        inspector_id: user.id,
-        date: new Date().toISOString(),
-        status: 'scheduled',
-        type: 'daily',
-        items: []
-      }
 
-      const result = await createInspection(inspection)
+      const { data: inspection, error } = await supabase
+        .from('inspections')
+        .insert([
+          {
+            vehicle_id: data.vehicle_id,
+            inspector_id: user.id,
+            status: 'scheduled',
+            date: new Date().toISOString(),
+            schedule_type: 'routine',
+            due_date: new Date().toISOString(),
+          }
+        ])
+        .select()
+        .single()
+
+      if (error) throw error
 
       toast({
         title: "Success",
         description: "Inspection created successfully",
       })
 
-      router.push(`/inspections/${result.id}/perform`)
+      router.push(`/inspections/${inspection.id}/perform`)
+      router.refresh()
     } catch (error) {
-      console.error('Error creating inspection:', error)
+      console.error('Error:', error)
       toast({
         title: "Error",
         description: "Failed to create inspection",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,19 +17,80 @@ import { Search, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
+import { getSupabaseClient } from "@/lib/db/client"
 
-interface MaintenanceListProps {
-  tasks: any[]
-  currentPage: number
-  totalPages: number
+interface MaintenanceTask {
+  id: string
+  title: string
+  status: string
+  due_date: string
+  vehicle: {
+    id: string
+    name: string
+    plate_number: string
+  }
 }
 
-export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceListProps) {
+const ITEMS_PER_PAGE = 10
+
+export function MaintenanceList() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [search, setSearch] = useState(searchParams.get("search") || "")
-  const debouncedSearch = useDebounce(search, 500)
+  const [tasks, setTasks] = useState<MaintenanceTask[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState(searchParams.get("status") || 'all')
+  const [search, setSearch] = useState(searchParams.get("search") || '')
+  const [totalPages, setTotalPages] = useState(1)
+  const debouncedSearch = useDebounce(search, 500)
+  const currentPage = Number(searchParams.get("page")) || 1
+
+  useEffect(() => {
+    async function fetchTasks() {
+      try {
+        const from = (currentPage - 1) * ITEMS_PER_PAGE
+        const to = from + ITEMS_PER_PAGE - 1
+
+        let query = getSupabaseClient()
+          .from("maintenance_tasks")
+          .select(`
+            *,
+            vehicle:vehicles(
+              name, 
+              plate_number
+            )
+          `, { count: 'exact' })
+
+        if (filter !== 'all') {
+          query = query.eq('status', filter)
+        }
+
+        if (debouncedSearch) {
+          query = query.or(`title.ilike.%${debouncedSearch}%,vehicle.name.ilike.%${debouncedSearch}%`)
+        }
+
+        const { data, error, count } = await query
+          .range(from, to)
+          .order('due_date', { ascending: true })
+
+        if (error) throw error
+
+        setTasks(data || [])
+        setTotalPages(count ? Math.ceil(count / ITEMS_PER_PAGE) : 1)
+      } catch (error) {
+        console.error("Error fetching maintenance tasks:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [currentPage, filter, debouncedSearch])
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", page.toString())
+    router.push(`/maintenance?${params.toString()}`)
+  }
 
   const handleSearch = (term: string) => {
     setSearch(term)
@@ -55,18 +116,8 @@ export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceL
     router.push(`/maintenance?${params.toString()}`)
   }
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'all') return true
-    if (filter === 'pending') return task.status === 'pending'
-    if (filter === 'overdue') return task.status === 'overdue'
-    return true
-  })
-
-  const statusColors = {
-    pending: "bg-yellow-500",
-    in_progress: "bg-blue-500",
-    completed: "bg-green-500",
-    overdue: "bg-red-500",
+  if (isLoading) {
+    return <div>Loading...</div>
   }
 
   return (
@@ -113,10 +164,16 @@ export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceL
             Pending
           </Button>
           <Button
-            variant={filter === 'overdue' ? 'default' : 'outline'}
-            onClick={() => handleFilterChange('overdue')}
+            variant={filter === 'in_progress' ? 'default' : 'outline'}
+            onClick={() => handleFilterChange('in_progress')}
           >
-            Overdue
+            In Progress
+          </Button>
+          <Button
+            variant={filter === 'completed' ? 'default' : 'outline'}
+            onClick={() => handleFilterChange('completed')}
+          >
+            Completed
           </Button>
         </div>
 
@@ -132,22 +189,26 @@ export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceL
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => (
+              {tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>{task.title}</TableCell>
                   <TableCell>{task.vehicle.name}</TableCell>
                   <TableCell>{formatDate(task.due_date)}</TableCell>
                   <TableCell>
-                    <Badge className={statusColors[task.status as keyof typeof statusColors]}>
+                    <Badge
+                      variant={
+                        task.status === "completed"
+                          ? "success"
+                          : task.status === "in_progress"
+                          ? "warning"
+                          : "secondary"
+                      }
+                    >
                       {task.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                    >
+                    <Button variant="ghost" size="sm" asChild>
                       <Link href={`/maintenance/${task.id}`}>
                         View Details
                       </Link>
@@ -155,7 +216,7 @@ export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceL
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredTasks.length === 0 && (
+              {tasks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center">
                     No maintenance tasks found.
@@ -172,11 +233,7 @@ export function MaintenanceList({ tasks, currentPage, totalPages }: MaintenanceL
               <Button
                 key={page}
                 variant={currentPage === page ? "default" : "outline"}
-                onClick={() => {
-                  const params = new URLSearchParams(searchParams.toString())
-                  params.set("page", page.toString())
-                  router.push(`/maintenance?${params.toString()}`)
-                }}
+                onClick={() => handlePageChange(page)}
               >
                 {page}
               </Button>

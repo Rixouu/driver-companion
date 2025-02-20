@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, RotateCw, X } from "lucide-react"
+import { Camera, RotateCw, X, RefreshCw } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 
@@ -17,6 +17,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -24,10 +25,13 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
   }, [])
 
   useEffect(() => {
-    if (isOpen && !stream) {
+    if (isOpen && !stream && !capturedImage) {
       startCamera()
     }
-    return () => stopCamera()
+    if (!isOpen) {
+      stopCamera()
+      setCapturedImage(null)
+    }
   }, [isOpen])
 
   const startCamera = async () => {
@@ -41,7 +45,7 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
       }
       setError(null)
     } catch (err) {
-      setError("errors.cameraAccess")
+      setError("Failed to access camera")
     }
   }
 
@@ -49,6 +53,38 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
     if (stream) {
       stream.getTracks().forEach(track => track.stop())
       setStream(null)
+    }
+  }
+
+  const handleCapture = async () => {
+    if (!videoRef.current || !stream) return
+
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = videoRef.current.videoWidth
+      canvas.height = videoRef.current.videoHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error("Could not get canvas context")
+      
+      ctx.drawImage(videoRef.current, 0, 0)
+      const photoUrl = canvas.toDataURL("image/jpeg", 0.8)
+      stopCamera() // Stop camera after capturing
+      setCapturedImage(photoUrl)
+    } catch (error) {
+      console.error("Capture error:", error)
+      setError(error instanceof Error ? error.message : "Failed to capture photo")
+    }
+  }
+
+  const handleRetake = () => {
+    setCapturedImage(null)
+    startCamera()
+  }
+
+  const handleSave = () => {
+    if (capturedImage) {
+      onCapture(capturedImage)
+      onClose()
     }
   }
 
@@ -61,28 +97,15 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
     }
   }
 
-  const handleCapture = () => {
-    if (!videoRef.current || !stream) return
-
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.drawImage(videoRef.current, 0, 0)
-    const photoUrl = canvas.toDataURL("image/jpeg")
-    onCapture(photoUrl)
-  }
-
   if (!mounted) return null
 
-  const modal = (
+  return createPortal(
     <div className={`fixed inset-0 z-50 ${isOpen ? "" : "hidden"}`}>
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="relative w-full max-w-lg aspect-[3/4] bg-black">
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="absolute right-2 top-2 z-10 rounded-full bg-background/50 hover:bg-background/70"
@@ -97,35 +120,62 @@ export function CameraModal({ isOpen, onClose, onCapture }: CameraModalProps) {
             </div>
           )}
 
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          
-          <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4 px-4">
-            <Button 
-              className="p-3 bg-background/80 backdrop-blur rounded-full hover:bg-background/90"
-              onClick={toggleCamera}
-            >
-              <RotateCw className="h-6 w-6" />
-            </Button>
-            <Button 
-              className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full flex items-center gap-2"
-              onClick={handleCapture}
-              disabled={!stream}
-            >
-              <Camera className="h-6 w-6" />
-              <span className="font-medium">
-                {"inspections.photos.takePhoto"}
-              </span>
-            </Button>
-          </div>
+          {capturedImage ? (
+            <>
+              <img
+                src={capturedImage}
+                alt="Captured photo"
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+              <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4 px-4">
+                <Button 
+                  type="button"
+                  className="px-6 py-3 bg-background/80 backdrop-blur rounded-full hover:bg-background/90"
+                  onClick={handleRetake}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retake
+                </Button>
+                <Button 
+                  type="button"
+                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
+                  onClick={handleSave}
+                >
+                  Save Photo
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-4 px-4">
+                <Button 
+                  type="button"
+                  className="p-3 bg-background/80 backdrop-blur rounded-full hover:bg-background/90"
+                  onClick={toggleCamera}
+                >
+                  <RotateCw className="h-6 w-6" />
+                </Button>
+                <Button 
+                  type="button"
+                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full"
+                  onClick={handleCapture}
+                  disabled={!stream}
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Take Photo
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
-
-  return createPortal(modal, document.body)
 } 

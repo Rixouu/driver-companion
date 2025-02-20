@@ -52,13 +52,13 @@ type SectionType = Record<VehicleSide, InspectionItem[]>
 
 const SECTIONS: VehicleSide[] = ["front", "left", "right", "rear"]
 
-const INSPECTION_SECTIONS = {
-  "Steering System": [
+const INSPECTION_SECTIONS: Record<string, InspectionItem[]> = {
+  "Steering": [
     { id: "steering-wheel", label: "Steering Wheel", status: null, photos: [], notes: "" },
     { id: "power-steering", label: "Power Steering", status: null, photos: [], notes: "" },
     // Add other steering items
   ],
-  "Brake System": [
+  "Brake": [
     { id: "brake-pads", label: "Brake Pads", status: null, photos: [], notes: "" },
     { id: "brake-discs", label: "Brake Discs", status: null, photos: [], notes: "" },
     // Add other brake items
@@ -88,10 +88,15 @@ const inspectionSchema = z.object({
 
 type InspectionFormData = z.infer<typeof inspectionSchema>
 
-export function InspectionForm() {
+interface InspectionFormProps {
+  inspectionId?: string
+  vehicle?: DbVehicle
+}
+
+export function InspectionForm({ inspectionId, vehicle }: InspectionFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [currentSection, setCurrentSection] = useState<SectionKey>("Steering System")
+  const [currentSection, setCurrentSection] = useState<SectionKey>("Steering")
   const [sections, setSections] = useState<Record<SectionKey, InspectionItem[]>>(INSPECTION_SECTIONS)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
@@ -101,7 +106,7 @@ export function InspectionForm() {
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
     defaultValues: {
-      vehicle_id: "",
+      vehicle_id: vehicle?.id || "",
     },
   })
 
@@ -115,17 +120,22 @@ export function InspectionForm() {
   }
 
   const handlePhotoCapture = (photoUrl: string) => {
-    if (selectedItemId) {
-      setSections(prev => ({
-        ...prev,
-        [currentSection]: prev[currentSection].map(item =>
-          item.id === selectedItemId 
-            ? { ...item, photos: [...item.photos, photoUrl] }
-            : item
-        ),
-      }))
-    }
+    if (!selectedItemId) return
+
+    setSections(prev => ({
+      ...prev,
+      [currentSection]: prev[currentSection].map(item =>
+        item.id === selectedItemId
+          ? {
+              ...item,
+              photos: [...(item.photos || []), photoUrl]
+            }
+          : item
+      ),
+    }))
+
     setIsCameraOpen(false)
+    setSelectedItemId(null)
   }
 
   const handleNotesChange = (itemId: string, notes: string) => {
@@ -143,14 +153,41 @@ export function InspectionForm() {
     try {
       setIsSubmitting(true)
 
-      // Create inspection
+      // Collect all inspection items that have been checked
+      const inspectionItems = Object.entries(sections)
+        .flatMap(([sectionName, items]) => 
+          items
+            .filter(item => item.status !== null)
+            .map(item => ({
+              category: sectionName,
+              item: item.label,
+              status: item.status,
+              notes: item.notes || null
+            }))
+        )
+
+      // Check if any items have been checked
+      if (inspectionItems.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please complete at least one inspection item",
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+        return
+      }
+
+      // Create the inspection
       const { data: inspection, error: inspectionError } = await supabase
         .from('inspections')
         .insert([
           {
             vehicle_id: data.vehicle_id,
             inspector_id: user.id,
-            status: 'in_progress',
+            status: 'completed',
+            date: new Date().toISOString(),
+            schedule_type: 'routine',
+            due_date: new Date().toISOString(),
           }
         ])
         .select()
@@ -158,24 +195,16 @@ export function InspectionForm() {
 
       if (inspectionError) throw inspectionError
 
-      // Save inspection items
-      const resultsToSave = Object.entries(sections)
-        .flatMap(([sectionName, items]) => 
-          items
-            .filter(item => item.status !== null)
-            .map(item => ({
-              inspection_id: inspection.id,
-              item_id: item.id,
-              category: sectionName,
-              status: item.status,
-              notes: item.notes,
-              photos: item.photos
-            }))
-        )
-
+      // Save all inspection items
       const { error: itemsError } = await supabase
         .from('inspection_items')
-        .insert(resultsToSave)
+        .insert(
+          inspectionItems.map(item => ({
+            inspection_id: inspection.id,
+            ...item,
+            user_id: user.id
+          }))
+        )
 
       if (itemsError) throw itemsError
 
@@ -184,7 +213,7 @@ export function InspectionForm() {
         description: "Inspection created successfully",
       })
 
-      router.push(`/vehicles/${data.vehicle_id}`)
+      router.push(`/inspections/${inspection.id}`)
       router.refresh()
     } catch (error) {
       console.error('Error:', error)
@@ -201,7 +230,6 @@ export function InspectionForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Vehicle Selection */}
         <Card>
           <CardHeader>
             <CardTitle>Select Vehicle</CardTitle>
@@ -216,6 +244,7 @@ export function InspectionForm() {
                   <VehicleSelector
                     value={field.value}
                     onChange={field.onChange}
+                    disabled={!!vehicle}
                   />
                   <FormMessage />
                 </FormItem>
@@ -234,6 +263,7 @@ export function InspectionForm() {
               {Object.keys(INSPECTION_SECTIONS).map((section) => (
                 <Button
                   key={section}
+                  type="button"
                   variant={currentSection === section ? "default" : "outline"}
                   onClick={() => setCurrentSection(section as SectionKey)}
                 >
@@ -249,6 +279,7 @@ export function InspectionForm() {
                     <span className="font-medium">{item.label}</span>
                     <div className="flex items-center gap-2">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         className={cn(
@@ -260,6 +291,7 @@ export function InspectionForm() {
                         <Check className="h-4 w-4" />
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         className={cn(
@@ -271,6 +303,7 @@ export function InspectionForm() {
                         <X className="h-4 w-4" />
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => {
@@ -283,7 +316,7 @@ export function InspectionForm() {
                     </div>
                   </div>
 
-                  {item.photos.length > 0 && (
+                  {item.photos?.length > 0 && (
                     <div className="grid grid-cols-4 gap-2">
                       {item.photos.map((photo, index) => (
                         <img

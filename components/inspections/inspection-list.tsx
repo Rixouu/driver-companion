@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -23,6 +24,7 @@ interface Inspection {
   vehicle_id: string
   status: string
   created_at: string
+  due_date: string
   vehicle: {
     id: string
     name: string
@@ -30,29 +32,51 @@ interface Inspection {
   }
 }
 
+const ITEMS_PER_PAGE = 10
+
 export function InspectionList() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [inspections, setInspections] = useState<Inspection[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState(searchParams.get("status") || 'all')
+  const [search, setSearch] = useState(searchParams.get("search") || '')
+  const [totalPages, setTotalPages] = useState(1)
   const debouncedSearch = useDebounce(search, 500)
+  const currentPage = Number(searchParams.get("page")) || 1
 
   useEffect(() => {
     async function fetchInspections() {
       try {
-        const { data, error } = await getSupabaseClient()
+        const from = (currentPage - 1) * ITEMS_PER_PAGE
+        const to = from + ITEMS_PER_PAGE - 1
+
+        let query = getSupabaseClient()
           .from("inspections")
           .select(`
             *,
-            vehicle:vehicles(name, plate_number)
-          `)
-          .order("created_at", { ascending: false })
+            vehicle:vehicles(
+              name, 
+              plate_number
+            )
+          `, { count: 'exact' })
 
-        if (error) {
-          throw error
+        if (filter !== 'all') {
+          query = query.eq('status', filter)
         }
 
+        if (debouncedSearch) {
+          query = query.or(`vehicle.name.ilike.%${debouncedSearch}%,vehicle.plate_number.ilike.%${debouncedSearch}%`)
+        }
+
+        const { data, error, count } = await query
+          .range(from, to)
+          .order('due_date', { ascending: true })
+
+        if (error) throw error
+
         setInspections(data || [])
+        setTotalPages(count ? Math.ceil(count / ITEMS_PER_PAGE) : 1)
       } catch (error) {
         console.error("Error fetching inspections:", error)
       } finally {
@@ -61,16 +85,37 @@ export function InspectionList() {
     }
 
     fetchInspections()
-  }, [])
+  }, [currentPage, filter, debouncedSearch])
 
-  const filteredInspections = inspections.filter(inspection => {
-    const matchesFilter = filter === 'all' || inspection.status === filter
-    const matchesSearch = !debouncedSearch || 
-      inspection.vehicle?.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      inspection.vehicle?.plate_number?.toLowerCase().includes(debouncedSearch.toLowerCase())
-    
-    return matchesFilter && matchesSearch
-  })
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", page.toString())
+    router.push(`/inspections?${params.toString()}`)
+  }
+
+  const handleSearch = (term: string) => {
+    setSearch(term)
+    const params = new URLSearchParams(searchParams.toString())
+    if (term) {
+      params.set("search", term)
+    } else {
+      params.delete("search")
+    }
+    params.set("page", "1")
+    router.push(`/inspections?${params.toString()}`)
+  }
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter)
+    const params = new URLSearchParams(searchParams.toString())
+    if (newFilter !== 'all') {
+      params.set("status", newFilter)
+    } else {
+      params.delete("status")
+    }
+    params.set("page", "1")
+    router.push(`/inspections?${params.toString()}`)
+  }
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -84,7 +129,7 @@ export function InspectionList() {
           <Input
             placeholder="Search inspections..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="pl-8"
           />
         </div>
@@ -94,25 +139,25 @@ export function InspectionList() {
         <div className="flex gap-2">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
-            onClick={() => setFilter('all')}
+            onClick={() => handleFilterChange('all')}
           >
             All
           </Button>
           <Button
             variant={filter === 'scheduled' ? 'default' : 'outline'}
-            onClick={() => setFilter('scheduled')}
+            onClick={() => handleFilterChange('scheduled')}
           >
             Scheduled
           </Button>
           <Button
             variant={filter === 'in_progress' ? 'default' : 'outline'}
-            onClick={() => setFilter('in_progress')}
+            onClick={() => handleFilterChange('in_progress')}
           >
             In Progress
           </Button>
           <Button
             variant={filter === 'completed' ? 'default' : 'outline'}
-            onClick={() => setFilter('completed')}
+            onClick={() => handleFilterChange('completed')}
           >
             Completed
           </Button>
@@ -123,17 +168,18 @@ export function InspectionList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Vehicle</TableHead>
-                <TableHead>License Plate</TableHead>
+                <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInspections.map((inspection) => (
+              {inspections.map((inspection) => (
                 <TableRow key={inspection.id}>
                   <TableCell>{inspection.vehicle?.name}</TableCell>
-                  <TableCell>{inspection.vehicle?.plate_number}</TableCell>
+                  <TableCell>
+                    {inspection.due_date ? formatDate(inspection.due_date) : 'Not scheduled'}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -147,7 +193,6 @@ export function InspectionList() {
                       {inspection.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(inspection.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/inspections/${inspection.id}`}>
@@ -157,9 +202,9 @@ export function InspectionList() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredInspections.length === 0 && (
+              {inspections.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">
+                  <TableCell colSpan={4} className="text-center">
                     No inspections found.
                   </TableCell>
                 </TableRow>
@@ -167,6 +212,20 @@ export function InspectionList() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-4">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

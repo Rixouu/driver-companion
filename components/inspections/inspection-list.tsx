@@ -25,6 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
+import { ViewToggle } from "@/components/ui/view-toggle"
+import { Calendar, User, CheckCircle } from "lucide-react"
 
 interface Inspection {
   id: string
@@ -37,6 +40,12 @@ interface Inspection {
     name: string
     plate_number: string
   }
+  inspector?: {
+    name: string
+  }
+  type: string
+  date: string
+  completed_items?: number
 }
 
 const ITEMS_PER_PAGE = 10
@@ -51,6 +60,7 @@ export function InspectionList() {
   const [totalPages, setTotalPages] = useState(1)
   const debouncedSearch = useDebounce(search, 500)
   const currentPage = Number(searchParams.get("page")) || 1
+  const [view, setView] = useState<"list" | "grid">("list")
 
   useEffect(() => {
     async function fetchInspections() {
@@ -124,125 +134,160 @@ export function InspectionList() {
     router.push(`/inspections?${params.toString()}`)
   }
 
+  const filteredInspections = inspections.filter(inspection => {
+    const matchesFilter = filter === 'all' || inspection.status === filter
+    const matchesSearch = !search || 
+      inspection.vehicle.name.toLowerCase().includes(search.toLowerCase()) ||
+      inspection.inspector?.name?.toLowerCase().includes(search.toLowerCase())
+    
+    return matchesFilter && matchesSearch
+  })
+
   if (isLoading) {
     return <div>Loading...</div>
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search inspections..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-8"
+            className="pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={handleFilterChange}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={filter} onValueChange={handleFilterChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+          <ViewToggle view={view} onViewChange={setView} />
+        </div>
       </div>
 
-      <div className="rounded-md border">
-        {/* Desktop view */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inspections.map((inspection) => (
-                <TableRow key={inspection.id}>
-                  <TableCell>{inspection.vehicle?.name}</TableCell>
-                  <TableCell>
-                    {inspection.due_date ? formatDate(inspection.due_date) : 'Not scheduled'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        inspection.status === "completed"
-                          ? "success"
-                          : inspection.status === "in_progress"
-                          ? "warning"
-                          : "secondary"
-                      }
-                    >
+      {view === "list" ? (
+        <div className="rounded-md border">
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Inspector</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInspections.map((inspection) => (
+                  <TableRow key={inspection.id}>
+                    <TableCell className="font-medium">
+                      {inspection.vehicle.name}
+                    </TableCell>
+                    <TableCell>
+                      {inspection.inspector?.name || 'Unassigned'}
+                    </TableCell>
+                    <TableCell>{formatDate(inspection.date)}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(inspection.status)}>
+                        {inspection.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/inspections/${inspection.id}`}>
+                          View Details
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile List */}
+          <div className="divide-y md:hidden">
+            {filteredInspections.map((inspection) => (
+              <Link 
+                key={inspection.id} 
+                href={`/inspections/${inspection.id}`}
+                className="block p-4 hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium">{inspection.vehicle.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {inspection.inspector?.name || 'Unassigned'} • {formatDate(inspection.date)}
+                    </p>
+                  </div>
+                  <Badge variant={getStatusVariant(inspection.status)}>
+                    {inspection.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredInspections.map((inspection) => (
+            <Card key={inspection.id}>
+              <CardContent className="p-4">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{inspection.vehicle.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {inspection.type} Inspection
+                      </p>
+                    </div>
+                    <Badge variant={getStatusVariant(inspection.status)}>
                       {inspection.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/inspections/${inspection.id}`}>
-                        View Details
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {inspections.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center">
-                    No inspections found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Mobile view */}
-        <div className="grid gap-4 p-4 md:hidden">
-          {inspections.map((inspection) => (
-            <div
-              key={inspection.id}
-              className="rounded-lg border p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{inspection.vehicle?.name}</h3>
-                <Badge
-                  variant={
-                    inspection.status === "completed"
-                      ? "success"
-                      : inspection.status === "in_progress"
-                      ? "warning"
-                      : "secondary"
-                  }
-                >
-                  {inspection.status}
-                </Badge>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <div>Due: {inspection.due_date ? formatDate(inspection.due_date) : 'Not scheduled'}</div>
-              </div>
-              <Button variant="ghost" size="sm" className="w-full" asChild>
-                <Link href={`/inspections/${inspection.id}`}>
-                  View Details
-                </Link>
-              </Button>
-            </div>
+                  </div>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Date: {formatDate(inspection.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>Inspector: {inspection.inspector?.name || 'Unassigned'}</span>
+                    </div>
+                    {inspection.completed_items && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>{inspection.completed_items} items completed</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    className="w-full mt-2" 
+                    asChild
+                  >
+                    <Link href={`/inspections/${inspection.id}`}>
+                      View Details
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-          {inspections.length === 0 && (
-            <div className="text-center text-muted-foreground">
-              No inspections found.
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
@@ -260,4 +305,17 @@ export function InspectionList() {
       )}
     </div>
   )
+}
+
+function getStatusVariant(status: string) {
+  switch (status) {
+    case "completed":
+      return "success"
+    case "in_progress":
+      return "warning"
+    case "failed":
+      return "destructive"
+    default:
+      return "secondary"
+  }
 } 

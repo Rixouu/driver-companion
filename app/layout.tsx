@@ -33,7 +33,7 @@ export default async function RootLayout({
                 {children?.toString().includes('LoginForm') ? (
                   children
                 ) : (
-                  <div className="container mx-auto px-4">{children}</div>
+                  <div className="container mx-auto px-4 pt-6">{children}</div>
                 )}
               </main>
             </div>

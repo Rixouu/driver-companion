@@ -21,10 +21,12 @@ import {
   CheckCircle,
   XCircle,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  ArrowLeft
 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase/client"
+import Link from "next/link"
 
 interface MaintenanceDetailsProps {
   task: MaintenanceTaskWithVehicle
@@ -69,12 +71,29 @@ export function MaintenanceDetails({ task }: MaintenanceDetailsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
-          <p className="text-muted-foreground">{task.description}</p>
+        <div className="flex flex-col gap-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
+            asChild
+          >
+            <Link href="/maintenance" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to maintenance</span>
+              <span className="sm:hidden">Back</span>
+            </Link>
+          </Button>
+
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{task.title}</h1>
+            <p className="text-muted-foreground">
+              View maintenance task details
+            </p>
+          </div>
         </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           {task.status !== 'completed' && (
             <Button

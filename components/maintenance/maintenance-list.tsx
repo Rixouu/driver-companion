@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useDebounce } from "@/hooks/use-debounce"
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, Calendar, Clock, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
@@ -25,12 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
+import { ViewToggle } from "@/components/ui/view-toggle"
 
 interface MaintenanceTask {
   id: string
   title: string
   status: string
   due_date: string
+  estimated_duration?: number | null
+  priority?: 'high' | 'medium' | 'low' | null
   vehicle: {
     id: string
     name: string
@@ -54,6 +58,7 @@ export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
   const [totalPages, setTotalPages] = useState(Math.ceil(initialTasks.length / ITEMS_PER_PAGE))
   const debouncedSearch = useDebounce(search, 500)
   const currentPage = Number(searchParams.get("page")) || 1
+  const [view, setView] = useState<"list" | "grid">("list")
 
   useEffect(() => {
     // Filter and search tasks locally
@@ -115,50 +120,121 @@ export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search tasks..."
+            placeholder="Search maintenance tasks..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="pl-8"
+            className="pl-9"
           />
         </div>
-        <Select value={filter} onValueChange={handleFilterChange}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Tasks</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={filter} onValueChange={handleFilterChange}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+          <ViewToggle view={view} onViewChange={setView} />
+        </div>
       </div>
 
-      <div className="rounded-md border">
-        {/* Desktop view */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentItems.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>{task.title}</TableCell>
-                  <TableCell>{task.vehicle.name}</TableCell>
-                  <TableCell>{formatDate(task.due_date)}</TableCell>
-                  <TableCell>
+      {view === "list" ? (
+        <div className="rounded-md border">
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Task</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentItems.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="font-medium">{task.title}</TableCell>
+                    <TableCell>{task.vehicle.name}</TableCell>
+                    <TableCell>{formatDate(task.due_date)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          task.status === "completed"
+                            ? "success"
+                            : task.status === "in_progress"
+                            ? "warning"
+                            : "secondary"
+                        }
+                      >
+                        {task.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/maintenance/${task.id}`}>View Details</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile List */}
+          <div className="divide-y md:hidden">
+            {currentItems.map((task) => (
+              <Link 
+                key={task.id} 
+                href={`/maintenance/${task.id}`}
+                className="block p-4 hover:bg-muted/50"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="font-medium">{task.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {task.vehicle.name} • {formatDate(task.due_date)}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      task.status === "completed"
+                        ? "success"
+                        : task.status === "in_progress"
+                        ? "warning"
+                        : "secondary"
+                    }
+                  >
+                    {task.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {currentItems.map((task) => (
+            <Card key={task.id}>
+              <CardContent className="p-4">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{task.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {task.vehicle.name}
+                      </p>
+                    </div>
                     <Badge
                       variant={
                         task.status === "completed"
@@ -170,66 +246,40 @@ export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
                     >
                       {task.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/maintenance/${task.id}`}>
-                        View Details
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {currentItems.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center">
-                    No maintenance tasks found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Mobile view */}
-        <div className="grid gap-4 p-4 md:hidden">
-          {currentItems.map((task) => (
-            <div
-              key={task.id}
-              className="rounded-lg border p-4 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">{task.title}</h3>
-                <Badge
-                  variant={
-                    task.status === "completed"
-                      ? "success"
-                      : task.status === "in_progress"
-                      ? "warning"
-                      : "secondary"
-                  }
-                >
-                  {task.status}
-                </Badge>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <div>{task.vehicle.name}</div>
-                <div>{formatDate(task.due_date)}</div>
-              </div>
-              <Button variant="ghost" size="sm" className="w-full" asChild>
-                <Link href={`/maintenance/${task.id}`}>
-                  View Details
-                </Link>
-              </Button>
-            </div>
+                  </div>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Due: {formatDate(task.due_date)}</span>
+                    </div>
+                    {task.estimated_duration && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{task.estimated_duration} hours</span>
+                      </div>
+                    )}
+                    {task.priority && (
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        <span>Priority: {task.priority}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    className="w-full mt-2" 
+                    asChild
+                  >
+                    <Link href={`/maintenance/${task.id}`}>
+                      View Details
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-          {currentItems.length === 0 && (
-            <div className="text-center text-muted-foreground">
-              No maintenance tasks found.
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">

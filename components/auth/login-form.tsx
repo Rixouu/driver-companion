@@ -19,15 +19,25 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = React.useState(false)
 
-  const redirectTo = searchParams.get("redirectTo") || "/"
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard"
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
 
   async function handleGoogleLogin() {
     try {
       setIsLoading(true)
+      
+      // Determine the callback URL based on the current environment
+      const callbackUrl = new URL('/auth/callback', currentOrigin)
+      callbackUrl.searchParams.set('redirect_to', redirectTo)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${redirectTo}`,
+          redirectTo: callbackUrl.toString(),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 

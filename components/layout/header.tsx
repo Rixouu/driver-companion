@@ -43,8 +43,8 @@ export function Header() {
               <Image
                 src="/img/driver-header-logo.png"
                 alt="Driver Logo"
-                width={100}
-                height={25}
+                width={140}
+                height={45}
                 priority
                 unoptimized
               />

@@ -112,8 +112,6 @@ export default async function DashboardPage() {
     .order('date', { ascending: false })
     .limit(2)
 
-  console.log('Completed Inspections:', completedInspections) // For debugging
-
   return (
     <div className="space-y-6">
       {/* Make stats cards clickable */}

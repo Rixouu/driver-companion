@@ -28,6 +28,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import { Calendar, User, CheckCircle } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
 interface Inspection {
   id: string
@@ -50,6 +51,11 @@ interface Inspection {
 
 const ITEMS_PER_PAGE = 10
 
+function capitalizeFirstLetter(text: string | null) {
+  if (!text) return 'N/A'
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function InspectionList() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -65,18 +71,29 @@ export function InspectionList() {
   useEffect(() => {
     async function fetchInspections() {
       try {
+        setIsLoading(true)
         const from = (currentPage - 1) * ITEMS_PER_PAGE
         const to = from + ITEMS_PER_PAGE - 1
 
         let query = getSupabaseClient()
-          .from("inspections")
+          .from('inspections')
           .select(`
             *,
             vehicle:vehicles(
-              name, 
+              id,
+              name,
               plate_number
+            ),
+            inspection_items(
+              id,
+              category,
+              item,
+              status,
+              notes
             )
           `, { count: 'exact' })
+          .order('date', { ascending: false })
+          .range(from, to)
 
         if (filter !== 'all') {
           query = query.eq('status', filter)
@@ -87,15 +104,21 @@ export function InspectionList() {
         }
 
         const { data, error, count } = await query
-          .range(from, to)
-          .order('due_date', { ascending: true })
+
+        console.log('Fetched inspections:', data)
+        console.log('Fetch error:', error)
 
         if (error) throw error
 
         setInspections(data || [])
         setTotalPages(count ? Math.ceil(count / ITEMS_PER_PAGE) : 1)
       } catch (error) {
-        console.error("Error fetching inspections:", error)
+        console.error('Error fetching inspections:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load inspections",
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
       }
@@ -183,8 +206,8 @@ export function InspectionList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Vehicle</TableHead>
-                  <TableHead>Inspector</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -195,10 +218,10 @@ export function InspectionList() {
                     <TableCell className="font-medium">
                       {inspection.vehicle.name}
                     </TableCell>
-                    <TableCell>
-                      {inspection.inspector?.name || 'Unassigned'}
-                    </TableCell>
                     <TableCell>{formatDate(inspection.date)}</TableCell>
+                    <TableCell>
+                      {capitalizeFirstLetter(inspection.schedule_type)}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(inspection.status)}>
                         {inspection.status}
@@ -229,7 +252,7 @@ export function InspectionList() {
                   <div className="space-y-1">
                     <p className="font-medium">{inspection.vehicle.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {inspection.inspector?.name || 'Unassigned'} • {formatDate(inspection.date)}
+                      {capitalizeFirstLetter(inspection.schedule_type)} • {formatDate(inspection.date)}
                     </p>
                   </div>
                   <Badge variant={getStatusVariant(inspection.status)}>
@@ -250,7 +273,7 @@ export function InspectionList() {
                     <div>
                       <h3 className="font-medium">{inspection.vehicle.name}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {inspection.type} Inspection
+                        {capitalizeFirstLetter(inspection.schedule_type)} Inspection
                       </p>
                     </div>
                     <Badge variant={getStatusVariant(inspection.status)}>

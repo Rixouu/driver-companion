@@ -33,11 +33,10 @@ interface Vehicle {
 
 interface VehicleSelectorProps {
   value?: string
-  onChange: (value: string) => void
-  disabled?: boolean
+  onValueChange: (value: string) => void
 }
 
-export function VehicleSelector({ value, onChange, disabled }: VehicleSelectorProps) {
+export function VehicleSelector({ value, onValueChange }: VehicleSelectorProps) {
   const [open, setOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -72,7 +71,7 @@ export function VehicleSelector({ value, onChange, disabled }: VehicleSelectorPr
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={isLoading || disabled}
+          disabled={isLoading}
         >
           {selectedVehicle ? (
             <span>
@@ -94,7 +93,7 @@ export function VehicleSelector({ value, onChange, disabled }: VehicleSelectorPr
                 key={vehicle.id}
                 value={vehicle.id}
                 onSelect={() => {
-                  onChange(vehicle.id)
+                  onValueChange(vehicle.id)
                   setOpen(false)
                 }}
               >

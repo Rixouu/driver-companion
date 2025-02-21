@@ -36,12 +36,15 @@ import { useToast } from "@/components/ui/use-toast"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
+import { Input } from "@/components/ui/input"
 
-const formSchema = z.object({
-  schedule_type: z.enum(["routine", "maintenance", "safety"]),
-  due_date: z.date(),
-  notes: z.string().optional(),
+const scheduleSchema = z.object({
+  date: z.string().min(1, "Date is required"),
+  schedule_type: z.enum(['routine', 'maintenance', 'safety']),
+  notes: z.string().optional()
 })
+
+type ScheduleFormData = z.infer<typeof scheduleSchema>
 
 interface ScheduleInspectionFormProps {
   vehicleId: string
@@ -53,15 +56,15 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ScheduleFormData>({
+    resolver: zodResolver(scheduleSchema),
     defaultValues: {
-      schedule_type: "routine",
-      notes: "",
+      date: new Date().toISOString().split('T')[0],
+      schedule_type: 'routine'
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(data: ScheduleFormData) {
     if (!user?.id) return
 
     try {
@@ -69,17 +72,14 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
 
       const { error } = await supabase
         .from('inspections')
-        .insert([
-          {
-            vehicle_id: vehicleId,
-            inspector_id: user.id,
-            schedule_type: values.schedule_type,
-            due_date: values.due_date.toISOString(),
-            date: new Date().toISOString(),
-            notes: values.notes,
-            status: 'scheduled',
-          }
-        ])
+        .insert({
+          vehicle_id: vehicleId,
+          inspector_id: user.id,
+          date: new Date(data.date).toISOString(),
+          status: 'scheduled',
+          schedule_type: data.schedule_type,
+          notes: data.notes
+        })
 
       if (error) throw error
 
@@ -88,7 +88,7 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
         description: "Inspection scheduled successfully",
       })
 
-      router.push(`/vehicles/${vehicleId}`)
+      router.push('/inspections')
       router.refresh()
     } catch (error) {
       console.error('Error:', error)
@@ -112,13 +112,30 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
           <CardContent className="grid gap-6">
             <FormField
               control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="schedule_type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select inspection type" />
                       </SelectTrigger>
                     </FormControl>
@@ -128,48 +145,6 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
                       <SelectItem value="safety">Safety</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="due_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Due Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

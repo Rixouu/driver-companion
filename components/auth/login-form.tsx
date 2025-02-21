@@ -26,8 +26,14 @@ export function LoginForm() {
     try {
       setIsLoading(true)
       
-      // Determine the callback URL based on the current environment
-      const callbackUrl = new URL('/auth/callback', currentOrigin)
+      // Use the production URL for Supabase callback
+      const callbackUrl = new URL(
+        '/auth/callback', 
+        process.env.NEXT_PUBLIC_SITE_URL
+      )
+      
+      // Add the current origin and redirect path as parameters
+      callbackUrl.searchParams.set('origin', currentOrigin)
       callbackUrl.searchParams.set('redirect_to', redirectTo)
       
       const { error } = await supabase.auth.signInWithOAuth({
@@ -50,7 +56,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
+    <div className="container flex h-screen flex-col items-center justify-center">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
           <div className="mx-auto">

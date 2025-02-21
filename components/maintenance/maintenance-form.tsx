@@ -28,6 +28,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { createMaintenanceTask, updateMaintenanceTask } from "@/lib/services/maintenance"
 import { useAuth } from "@/hooks/use-auth"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 const maintenanceSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
@@ -127,154 +128,159 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="border rounded-lg p-4 sm:p-6 space-y-6">
-          <FormField
-            control={form.control}
-            name="vehicle_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle</FormLabel>
-                <VehicleSelector
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Oil Change" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Describe the maintenance task" 
-                    className="min-h-[100px]"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid gap-6 sm:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Maintenance Details</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-6">
             <FormField
               control={form.control}
-              name="priority"
+              name="vehicle_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Priority</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>Vehicle</FormLabel>
+                  <VehicleSelector
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Oil Change" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe the maintenance task" 
+                      className="min-h-[100px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
                     <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
+                      <Input 
+                        type="date" 
+                        {...field}
+                        className="w-full"
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="estimated_duration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estimated Duration (hours)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 2"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estimated Cost</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g., 100.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
-              name="due_date"
+              name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Due Date</FormLabel>
+                  <FormLabel>Notes</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="date" 
-                      {...field}
-                      className="w-full"
+                    <Textarea 
+                      placeholder="Add any additional notes"
+                      className="min-h-[100px]"
+                      {...field} 
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="estimated_duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estimated Duration (hours)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="e.g., 2"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estimated Cost</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g., 100.00"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Add any additional notes"
-                    className="min-h-[100px]"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+          </CardContent>
+        </Card>
 
         <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-end">
           <Button

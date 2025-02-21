@@ -92,7 +92,7 @@ export function NewInspectionForm() {
                 <FormLabel>Vehicle</FormLabel>
                 <VehicleSelector
                   value={field.value}
-                  onChange={field.onChange}
+                  onValueChange={field.onChange}
                 />
                 <FormMessage />
               </FormItem>

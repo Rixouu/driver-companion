@@ -39,7 +39,9 @@ import { useAuth } from "@/hooks/use-auth"
 import { Input } from "@/components/ui/input"
 
 const scheduleSchema = z.object({
-  date: z.string().min(1, "Date is required"),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
   schedule_type: z.enum(['routine', 'maintenance', 'safety']),
   notes: z.string().optional()
 })
@@ -59,7 +61,7 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
   const form = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: new Date(),
       schedule_type: 'routine'
     },
   })
@@ -75,7 +77,7 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
         .insert({
           vehicle_id: vehicleId,
           inspector_id: user.id,
-          date: new Date(data.date).toISOString(),
+          date: data.date.toISOString(),
           status: 'scheduled',
           schedule_type: data.schedule_type,
           notes: data.notes
@@ -114,11 +116,39 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date < new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -130,10 +160,7 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select inspection type" />

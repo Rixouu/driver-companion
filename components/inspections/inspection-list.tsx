@@ -44,7 +44,7 @@ interface Inspection {
   inspector?: {
     name: string
   }
-  type: string
+  schedule_type: string
   date: string
   completed_items?: number
 }

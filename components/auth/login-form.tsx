@@ -58,46 +58,47 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black p-4">
-      <div className="w-full max-w-[400px] text-center">
-        {/* Logo */}
-        <div className="mb-8">
-          <Image
-            src="/img/driver-header-logo.png"
-            alt="Driver Logo"
-            width={240}
-            height={60}
-            priority
-            className="h-auto w-full"
-            unoptimized
-          />
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-[350px]">
+        <div className="flex flex-col space-y-6">
+          <div className="flex flex-col items-center">
+            <div className="w-[200px] text-center">
+              <Image
+                src="/img/driver-header-logo.png"
+                alt="Driver Logo"
+                width={200}
+                height={50}
+                priority
+                className="h-auto w-full"
+                unoptimized
+              />
+            </div>
+            <Card className="w-full">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                <CardDescription>
+                  Sign in to your account to continue
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleGoogleLogin}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icons.google className="mr-2 h-4 w-4" />
+                  )}
+                  Continue with Google
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* Card */}
-        <Card className="border-0 bg-black/50 text-white">
-          <CardHeader className="space-y-3 pb-4">
-            <CardTitle className="text-3xl font-bold">Welcome back</CardTitle>
-            <CardDescription className="text-lg text-gray-400">
-              Sign in to your account to continue
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="outline"
-              type="button"
-              disabled={isLoading}
-              onClick={handleGoogleLogin}
-              className="w-full border-gray-800 bg-transparent text-white hover:bg-white/10"
-            >
-              {isLoading ? (
-                <Icons.spinner className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <Icons.google className="mr-2 h-5 w-5" />
-              )}
-              Continue with Google
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

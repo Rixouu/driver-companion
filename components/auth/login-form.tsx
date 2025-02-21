@@ -26,14 +26,16 @@ export function LoginForm() {
     try {
       setIsLoading(true)
       
-      // Use the production URL for Supabase callback
+      // Get the callback URL based on environment
       const callbackUrl = new URL(
         '/auth/callback', 
-        process.env.NEXT_PUBLIC_SITE_URL
+        process.env.NODE_ENV === 'development' 
+          ? 'http://localhost:3000' 
+          : process.env.NEXT_PUBLIC_SITE_URL
       )
       
       // Add the current origin and redirect path as parameters
-      callbackUrl.searchParams.set('origin', currentOrigin)
+      callbackUrl.searchParams.set('origin', window.location.origin)
       callbackUrl.searchParams.set('redirect_to', redirectTo)
       
       const { error } = await supabase.auth.signInWithOAuth({
@@ -56,46 +58,48 @@ export function LoginForm() {
   }
 
   return (
-    <div className="container flex h-screen flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-        <div className="flex flex-col space-y-2 text-center">
-          <div className="mx-auto">
-            <Image
-              src="/img/driver-header-logo.png"
-              alt="Driver Logo"
-              width={200}
-              height={50}
-              priority
-              className="h-auto w-auto"
-              unoptimized
-            />
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-[350px]">
+        <div className="flex flex-col space-y-6">
+          <div className="flex flex-col items-center space-y-6">
+            <div className="w-[200px]">
+              <Image
+                src="/img/driver-header-logo.png"
+                alt="Driver Logo"
+                width={200}
+                height={50}
+                priority
+                className="h-auto w-full"
+                unoptimized
+              />
+            </div>
+            <Card className="w-full">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+                <CardDescription>
+                  Sign in to your account to continue
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    disabled={isLoading}
+                    onClick={handleGoogleLogin}
+                    className="w-full"
+                  >
+                    {isLoading ? (
+                      <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icons.google className="mr-2 h-4 w-4" />
+                    )}
+                    Continue with Google
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-              <CardDescription>
-                Sign in to your account to continue
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6">
-                <Button
-                  variant="outline"
-                  type="button"
-                  disabled={isLoading}
-                  onClick={handleGoogleLogin}
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Icons.google className="mr-2 h-4 w-4" />
-                  )}
-                  Continue with Google
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

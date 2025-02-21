@@ -27,12 +27,14 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <div className="min-h-screen flex flex-col">
-              <Header />
+            <div className="flex min-h-screen flex-col">
+              {!children?.toString().includes('LoginForm') && <Header />}
               <main className="flex-1">
-                <div className="container mx-auto p-6">
-                  {children}
-                </div>
+                {children?.toString().includes('LoginForm') ? (
+                  children
+                ) : (
+                  <div className="container mx-auto px-4">{children}</div>
+                )}
               </main>
             </div>
             <Toaster />

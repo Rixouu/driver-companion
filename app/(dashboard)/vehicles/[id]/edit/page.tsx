@@ -1,12 +1,11 @@
 import { Metadata } from "next"
-import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { getDictionary } from "@/lib/i18n/server"
 import { VehicleForm } from "@/components/vehicles/vehicle-form"
+import { getVehicles } from "@/lib/services/vehicles"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { getDictionary } from "@/lib/i18n/server"
+import type { DbVehicle } from "@/types"
 
 interface EditVehiclePageProps {
   params: {
@@ -14,8 +13,16 @@ interface EditVehiclePageProps {
   }
 }
 
+// Transform DbVehicle to match VehicleForm expected type
+function transformVehicle(vehicle: DbVehicle) {
+  return {
+    ...vehicle,
+    year: vehicle.year ? parseInt(vehicle.year) : undefined
+  }
+}
+
 export async function generateMetadata({ params }: EditVehiclePageProps): Promise<Metadata> {
-  const dictionary = await getDictionary()
+  const { dictionary } = await getDictionary()
   
   return {
     title: dictionary.vehicles.edit.title,
@@ -24,50 +31,39 @@ export async function generateMetadata({ params }: EditVehiclePageProps): Promis
 }
 
 export default async function EditVehiclePage({ params }: EditVehiclePageProps) {
-  const supabase = createServerComponentClient({ cookies })
-  const dictionary = await getDictionary()
-  
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  const { t, dictionary } = await getDictionary()
+  const { vehicles } = await getVehicles()
+  const dbVehicle = vehicles.find(v => v.id === params.id)
 
-  if (!vehicle) {
-    return notFound()
+  if (!dbVehicle) {
+    return null
   }
 
+  const vehicle = transformVehicle(dbVehicle)
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
-              asChild
-            >
-              <Link href={`/vehicles/${params.id}`} className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">{dictionary.common.backTo.replace('{page}', dictionary.vehicles.details || 'vehicle details')}</span>
-                <span className="sm:hidden">{dictionary.common.back}</span>
-              </Link>
-            </Button>
-          </div>
-
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {dictionary.vehicles.edit.title}
-            </h1>
-            <p className="text-muted-foreground">
-              {dictionary.vehicles.edit.description}
-            </p>
-          </div>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <Button
+            variant="link"
+            className="pl-0 text-muted-foreground"
+            asChild
+          >
+            <Link href="/vehicles">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {dictionary.common.backTo} {dictionary.vehicles.title}
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {dictionary.vehicles.edit.title}
+          </h1>
+          <p className="text-muted-foreground">
+            {dictionary.vehicles.edit.description}
+          </p>
         </div>
-
-        <VehicleForm vehicle={vehicle} />
       </div>
+      <VehicleForm vehicle={vehicle} />
     </div>
   )
 } 

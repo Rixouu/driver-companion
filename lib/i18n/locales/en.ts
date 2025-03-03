@@ -2,8 +2,17 @@ import type { Translations } from '../types'
 
 export const en: Translations = {
   common: {
+    status: {
+      inProgress: "In Progress",
+      upcoming: "Upcoming",
+      recent: "Recent",
+      active: "Active",
+      inactive: "Inactive",
+      completed: "Completed",
+      scheduled: "Scheduled"
+    },
     loading: "Loading...",
-    error: "An error occurred",
+    error: "Error",
     success: "Success",
     cancel: "Cancel",
     save: "Save",
@@ -17,7 +26,6 @@ export const en: Translations = {
     noResults: "No results found",
     details: "Details",
     actions: "Actions",
-    status: "Status",
     viewDetails: "View Details",
     addNew: "Add New",
     backTo: "Back to {page}",
@@ -27,7 +35,10 @@ export const en: Translations = {
     deleting: "Deleting...",
     menu: "Menu",
     login: "Login",
-    logout: "Logout"
+    logout: "Logout",
+    inProgress: "In Progress",
+    upcoming: "Upcoming",
+    recent: "Recent"
   },
   navigation: {
     dashboard: "Dashboard",
@@ -819,7 +830,23 @@ export const en: Translations = {
   },
   dashboard: {
     title: "Dashboard",
-    description: "Vehicle fleet management dashboard",
+    description: "Monitor your fleet's performance and activities",
+    quickActions: {
+      title: "Quick Actions",
+      description: "Common tasks and actions",
+      addVehicle: "Add Vehicle",
+      scheduleMaintenance: "Schedule Maintenance",
+      scheduleInspection: "Schedule Inspection",
+      viewReports: "View Reports"
+    },
+    maintenance: {
+      title: "Maintenance",
+      description: "Overview of maintenance tasks"
+    },
+    inspections: {
+      title: "Inspections",
+      description: "Overview of vehicle inspections"
+    },
     stats: {
       totalVehicles: "Total Vehicles",
       maintenanceTasks: "Maintenance Tasks",
@@ -829,33 +856,32 @@ export const en: Translations = {
     sections: {
       maintenanceSchedule: {
         title: "Maintenance Schedule",
-        noPending: "No pending maintenance tasks"
+        noPending: "No pending maintenance"
       },
       inspectionSchedule: {
         title: "Inspection Schedule",
-        noScheduled: "No scheduled inspections"
+        noPending: "No pending inspections"
       },
       recentMaintenance: {
         title: "Recent Maintenance",
-        noCompleted: "No completed maintenance tasks",
-        completedOn: "Completed {date}"
+        noCompleted: "No completed maintenance"
       },
       recentInspections: {
         title: "Recent Inspections",
-        noCompleted: "No completed inspections",
-        completedOn: "Completed {date}"
-      }
-    },
-    labels: {
-      due: "Due {date}",
-      priority: {
-        high: "High",
-        medium: "Medium",
-        low: "Low"
-      },
-      status: {
-        scheduled: "Scheduled"
+        noCompleted: "No completed inspections"
       }
     }
   },
+  labels: {
+    due: "Due {date}",
+    priority: {
+      high: "High",
+      medium: "Medium",
+      low: "Low"
+    },
+    status: {
+      scheduled: "Scheduled",
+      inProgress: "In Progress"
+    }
+  }
 } as const 

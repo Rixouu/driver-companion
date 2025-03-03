@@ -3,6 +3,7 @@ import type { Database } from '@/types/supabase'
 import type { InspectionInsert } from "@/types"
 import { supabase } from "@/lib/supabase/client"
 import type { InspectionWithVehicle as ImportedInspection, InspectionFormData } from "@/types"
+import type { DbInspection } from "@/types"
 
 type Inspection = Database['public']['Tables']['inspections']['Row']
 type InspectionUpdate = Database['public']['Tables']['inspections']['Update']
@@ -22,7 +23,13 @@ export async function getInspections(options?: {
       vehicle:vehicles (
         id,
         name,
-        plate_number
+        plate_number,
+        brand,
+        model,
+        year,
+        status,
+        image_url,
+        vin
       )
     `, { count: 'exact' })
 
@@ -39,28 +46,34 @@ export async function getInspections(options?: {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return { inspections: data, count }
+  return { inspections: data as DbInspection[], count }
 }
 
 export async function getInspectionById(id: string) {
-  const { data, error } = await getSupabaseClient()
+  const { data, error } = await supabase
     .from('inspections')
     .select(`
       *,
       vehicle:vehicles (
         id,
         name,
-        plate_number
+        plate_number,
+        brand,
+        model,
+        year,
+        status,
+        image_url,
+        vin
       )
     `)
     .eq('id', id)
     .single()
 
   if (error) throw error
-  return data
+  return data as DbInspection
 }
 
-export async function createInspection(inspection: InspectionFormData) {
+export async function createInspection(inspection: Omit<DbInspection, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('inspections')
     .insert(inspection)
@@ -68,7 +81,7 @@ export async function createInspection(inspection: InspectionFormData) {
     .single()
 
   if (error) throw error
-  return data
+  return data as DbInspection
 }
 
 export async function updateInspectionStatus(id: string, status: Inspection['status']) {

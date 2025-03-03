@@ -9,38 +9,109 @@ export type TranslationKeys<T> = {
     : never
 }
 
-type RecursiveStringRecord = {
-  [key: string]: string | RecursiveStringRecord
+export type RecursiveStringRecord = {
+  [key: string]: string | RecursiveStringRecord | CommonTranslations | DashboardTranslations
+}
+
+export interface CommonTranslations {
+  status: {
+    inProgress: string
+    upcoming: string
+    recent: string
+    active: string
+    inactive: string
+    completed: string
+    scheduled: string
+  }
+  loading: string
+  error: string
+  success: string
+  cancel: string
+  save: string
+  edit: string
+  delete: string
+  view: string
+  back: string
+  search: string
+  filter: string
+  all: string
+  noResults: string
+  menu: string
+  login: string
+  logout: string
+  details: string
+  actions: string
+  viewDetails: string
+  addNew: string
+  backTo: string
+  saving: string
+  update: string
+  create: string
+  deleting: string
+  inProgress: string
+  upcoming: string
+  recent: string
+}
+
+export interface DashboardTranslations {
+  title: string
+  description: string
+  quickActions: {
+    title: string
+    description: string
+    addVehicle: string
+    scheduleMaintenance: string
+    scheduleInspection: string
+    viewReports: string
+  }
+  maintenance: {
+    title: string
+    description: string
+  }
+  inspections: {
+    title: string
+    description: string
+  }
+  stats: {
+    totalVehicles: string
+    maintenanceTasks: string
+    inspections: string
+    activeVehicles: string
+  }
+  sections: {
+    maintenanceSchedule: {
+      title: string
+      noPending: string
+    }
+    inspectionSchedule: {
+      title: string
+      noPending: string
+    }
+    recentMaintenance: {
+      title: string
+      noCompleted: string
+    }
+    recentInspections: {
+      title: string
+      noCompleted: string
+    }
+  }
 }
 
 export interface TranslationValues extends RecursiveStringRecord {
-  common: {
-    loading: string
-    error: string
-    success: string
-    cancel: string
-    save: string
-    edit: string
-    delete: string
-    view: string
-    back: string
-    search: string
-    filter: string
-    all: string
-    noResults: string
-    details: string
-    actions: string
-    status: string
-    viewDetails: string
-    addNew: string
-    backTo: string
-    saving: string
-    update: string
-    create: string
-    deleting: string
-    menu: string
-    login: string
-    logout: string
+  common: CommonTranslations
+  dashboard: DashboardTranslations
+  labels: {
+    due: string
+    priority: {
+      high: string
+      medium: string
+      low: string
+    }
+    status: {
+      scheduled: string
+      inProgress: string
+    }
   }
   navigation: {
     dashboard: string
@@ -829,47 +900,6 @@ export interface TranslationValues extends RecursiveStringRecord {
       cancel: string
       button: string
       details: string
-    }
-  }
-  dashboard: {
-    title: string
-    description: string
-    stats: {
-      totalVehicles: string
-      maintenanceTasks: string
-      inspections: string
-      activeVehicles: string
-    }
-    sections: {
-      maintenanceSchedule: {
-        title: string
-        noPending: string
-      }
-      inspectionSchedule: {
-        title: string
-        noScheduled: string
-      }
-      recentMaintenance: {
-        title: string
-        noCompleted: string
-        completedOn: string
-      }
-      recentInspections: {
-        title: string
-        noCompleted: string
-        completedOn: string
-      }
-    }
-    labels: {
-      due: string
-      priority: {
-        high: string
-        medium: string
-        low: string
-      }
-      status: {
-        scheduled: string
-      }
     }
   }
 }

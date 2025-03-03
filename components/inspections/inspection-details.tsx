@@ -158,94 +158,66 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   function getTranslationKeys(templateName: string | undefined): { section: string; item: string } {
     if (!templateName) return { section: '', item: '' }
     
-    const name = templateName.toLowerCase()
+    // Convert template name to lowercase and remove extra spaces
+    const name = templateName.toLowerCase().trim()
     
-    // Map template names to their correct sections
-    const sectionMap: Record<string, string> = {
-      'steering wheel': 'steering_system',
-      'power steering': 'steering_system',
-      'steering column': 'steering_system',
-      'brake pedal': 'brake_system',
-      'brake discs': 'brake_system',
-      'brake fluid': 'brake_system',
-      'emergency brake': 'brake_safety',
-      'brake lines': 'brake_safety',
-      'abs system': 'brake_safety',
-      'seatbelt condition': 'restraint_systems',
-      'airbag indicators': 'restraint_systems',
-      'child locks': 'restraint_systems',
-      'windshield condition': 'visibility',
-      'mirror condition': 'visibility',
-      'window operation': 'visibility',
-      'shock absorbers': 'suspension',
-      'springs': 'suspension',
-      'bushings': 'suspension',
-      'headlights': 'lighting',
-      'taillights': 'lighting',
-      'turn indicators': 'lighting',
-      'tire pressure': 'tires',
-      'tread depth': 'tires',
-      'wear pattern': 'tires',
-      'oil level': 'engine',
-      'coolant level': 'engine',
-      'drive belts': 'engine',
-      'fluid leaks': 'engine',
-      'transmission fluid': 'transmission',
-      'shifting operation': 'transmission',
-      'clutch operation': 'transmission',
-      'battery condition': 'electrical',
-      'alternator output': 'electrical',
-      'starter operation': 'electrical',
-      'seatbelt operation': 'safety_equipment',
-      'airbag system': 'safety_equipment',
-      'wiper operation': 'safety_equipment'
+    // Map template names to their correct sections and items
+    const mappings: Record<string, { section: string; item: string }> = {
+      'steering wheel': { section: 'steering_system', item: 'steering_wheel' },
+      'power steering': { section: 'steering_system', item: 'power_steering' },
+      'steering column': { section: 'steering_system', item: 'steering_column' },
+      'brake pedal': { section: 'brake_system', item: 'brake_pedal' },
+      'brake discs': { section: 'brake_system', item: 'brake_discs' },
+      'brake fluid': { section: 'brake_system', item: 'brake_fluid' },
+      'emergency brake': { section: 'brake_safety', item: 'emergency_brake' },
+      'brake lines': { section: 'brake_safety', item: 'brake_lines' },
+      'abs system': { section: 'brake_safety', item: 'abs_system' },
+      'seatbelt condition': { section: 'restraint_systems', item: 'seatbelt_condition' },
+      'airbag indicators': { section: 'restraint_systems', item: 'airbag_indicators' },
+      'child locks': { section: 'restraint_systems', item: 'child_locks' },
+      'windshield condition': { section: 'visibility', item: 'windshield_condition' },
+      'mirror condition': { section: 'visibility', item: 'mirror_condition' },
+      'window operation': { section: 'visibility', item: 'window_operation' },
+      'shock absorbers': { section: 'suspension', item: 'shock_absorbers' },
+      'springs': { section: 'suspension', item: 'springs' },
+      'bushings': { section: 'suspension', item: 'bushings' },
+      'ball joints': { section: 'suspension', item: 'ball_joints' },
+      'headlights': { section: 'lighting', item: 'headlights' },
+      'taillights': { section: 'lighting', item: 'taillights' },
+      'turn indicators': { section: 'lighting', item: 'turn_indicators' },
+      'tire pressure': { section: 'tires', item: 'tire_pressure' },
+      'tread depth': { section: 'tires', item: 'tread_depth' },
+      'tire condition': { section: 'tires', item: 'tire_condition' },
+      'wheel alignment': { section: 'tires', item: 'wheel_alignment' },
+      'wear pattern': { section: 'tires', item: 'wear_pattern' },
+      'oil level': { section: 'engine', item: 'oil_level' },
+      'coolant level': { section: 'engine', item: 'coolant_level' },
+      'belts': { section: 'engine', item: 'belts' },
+      'drive belts': { section: 'engine', item: 'drive_belts' },
+      'hoses': { section: 'engine', item: 'hoses' },
+      'fluid leaks': { section: 'engine', item: 'fluid_leaks' },
+      'transmission fluid': { section: 'transmission', item: 'transmission_fluid' },
+      'shifting operation': { section: 'transmission', item: 'shifting_operation' },
+      'clutch operation': { section: 'transmission', item: 'clutch_operation' },
+      'leaks': { section: 'transmission', item: 'leaks' },
+      'battery condition': { section: 'electrical', item: 'battery_condition' },
+      'alternator output': { section: 'electrical', item: 'alternator_output' },
+      'starter operation': { section: 'electrical', item: 'starter_operation' },
+      'seatbelt operation': { section: 'safety_equipment', item: 'seatbelt_operation' },
+      'airbag system': { section: 'safety_equipment', item: 'airbag_system' },
+      'wiper operation': { section: 'safety_equipment', item: 'wiper_operation' },
+      'oil change': { section: 'scheduled_maintenance', item: 'oil_change' },
+      'filter replacement': { section: 'scheduled_maintenance', item: 'filter_replacement' },
+      'fluid levels': { section: 'scheduled_maintenance', item: 'fluid_levels' },
+      'brake pads': { section: 'wear_items', item: 'brake_pads' },
+      'tire rotation': { section: 'wear_items', item: 'tire_rotation' },
+      'belt condition': { section: 'wear_items', item: 'belt_condition' },
+      'computer scan': { section: 'diagnostics', item: 'computer_scan' },
+      'sensor check': { section: 'diagnostics', item: 'sensor_check' },
+      'emissions test': { section: 'diagnostics', item: 'emissions_test' }
     }
 
-    // Map template names to their translation item keys
-    const itemMap: Record<string, string> = {
-      'steering wheel': 'steering_wheel',
-      'power steering': 'power_steering',
-      'steering column': 'steering_column',
-      'brake pedal': 'brake_pedal',
-      'brake discs': 'brake_discs',
-      'brake fluid': 'brake_fluid',
-      'emergency brake': 'emergency_brake',
-      'brake lines': 'brake_lines',
-      'abs system': 'abs_system',
-      'seatbelt condition': 'seatbelt_condition',
-      'airbag indicators': 'airbag_indicators',
-      'child locks': 'child_locks',
-      'windshield condition': 'windshield_condition',
-      'mirror condition': 'mirror_condition',
-      'window operation': 'window_operation',
-      'shock absorbers': 'shock_absorbers',
-      'springs': 'springs',
-      'bushings': 'bushings',
-      'headlights': 'headlights',
-      'taillights': 'taillights',
-      'turn indicators': 'turn_indicators',
-      'tire pressure': 'tire_pressure',
-      'tread depth': 'tread_depth',
-      'wear pattern': 'wear_pattern',
-      'oil level': 'oil_level',
-      'coolant level': 'coolant_level',
-      'drive belts': 'drive_belts',
-      'fluid leaks': 'fluid_leaks',
-      'transmission fluid': 'transmission_fluid',
-      'shifting operation': 'shifting_operation',
-      'clutch operation': 'clutch_operation',
-      'battery condition': 'battery_condition',
-      'alternator output': 'alternator_output',
-      'starter operation': 'starter_operation',
-      'seatbelt operation': 'seatbelt_operation',
-      'airbag system': 'airbag_system',
-      'wiper operation': 'wiper_operation'
-    }
-
-    return {
-      section: sectionMap[name] || '',
-      item: itemMap[name] || ''
-    }
+    return mappings[name] || { section: '', item: '' }
   }
 
   // Function to create a maintenance task from failed items
@@ -523,14 +495,20 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                           <CardTitle className="text-base">
                             {(() => {
                               const keys = getTranslationKeys(item.template?.name)
-                              return t(`inspections.sections.${keys.section}.items.${keys.item}.title`) || item.template?.name || t('common.noResults')
+                              const translatedTitle = keys.section && keys.item
+                                ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
+                                : item.template?.name
+                              return translatedTitle || t('common.noResults')
                             })()}
                           </CardTitle>
                           {item.template?.description && (
                             <CardDescription>
                               {(() => {
                                 const keys = getTranslationKeys(item.template?.name)
-                                return t(`inspections.sections.${keys.section}.items.${keys.item}.description`) || item.template?.description
+                                const translatedDescription = keys.section && keys.item
+                                  ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
+                                  : item.template?.description
+                                return translatedDescription || item.template?.description || ''
                               })()}
                             </CardDescription>
                           )}
@@ -662,18 +640,20 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                                   <CardTitle className="text-base text-red-800 dark:text-red-300">
                                     {(() => {
                                       const keys = getTranslationKeys(item.template?.name)
-                                      return keys.item 
-                                        ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`) 
-                                        : item.template?.name || t('common.noResults')
+                                      const translatedTitle = keys.section && keys.item
+                                        ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
+                                        : item.template?.name
+                                      return translatedTitle || t('common.noResults')
                                     })()}
                                   </CardTitle>
                                   {item.template?.description && (
                                     <CardDescription className="text-red-700/80 dark:text-red-400/80">
                                       {(() => {
                                         const keys = getTranslationKeys(item.template?.name)
-                                        return keys.item
-                                          ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`) 
+                                        const translatedDescription = keys.section && keys.item
+                                          ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
                                           : item.template?.description
+                                        return translatedDescription || item.template?.description || ''
                                       })()}
                                     </CardDescription>
                                   )}
@@ -820,14 +800,20 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                               <CardTitle className="text-base text-green-800 dark:text-green-300">
                                 {(() => {
                                   const keys = getTranslationKeys(item.template?.name)
-                                  return t(`inspections.sections.${keys.section}.items.${keys.item}.title`) || item.template?.name || t('common.noResults')
+                                  const translatedTitle = keys.section && keys.item
+                                    ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
+                                    : item.template?.name
+                                  return translatedTitle || t('common.noResults')
                                 })()}
                               </CardTitle>
                               {item.template?.description && (
                                 <CardDescription className="text-green-700/80 dark:text-green-400/80">
                                   {(() => {
                                     const keys = getTranslationKeys(item.template?.name)
-                                    return t(`inspections.sections.${keys.section}.items.${keys.item}.description`) || item.template?.description
+                                    const translatedDescription = keys.section && keys.item
+                                      ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
+                                      : item.template?.description
+                                    return translatedDescription || item.template?.description || ''
                                   })()}
                                 </CardDescription>
                               )}

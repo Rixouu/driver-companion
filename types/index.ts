@@ -1,24 +1,57 @@
-import type { Database } from "./supabase"
+import type { Database } from './supabase'
 
-// Database Types
-export interface DbVehicle {
+// Define the base types from the database schema
+type DbTables = Database['public']['Tables']
+
+export type DbVehicle = {
   id: string
   name: string
   plate_number: string
   brand?: string
   model?: string
   year?: string
-  status: string
+  status: 'active' | 'maintenance' | 'inactive'
   image_url?: string
+  vin?: string
   created_at: string
   updated_at: string
   user_id: string
-  vin?: string
-  maintenance_tasks?: MaintenanceTask[]
-  inspections?: Inspection[]
+  maintenance_tasks?: DbMaintenanceTask[]
+  inspections?: DbInspection[]
 }
 
-export type DbInspection = Database['public']['Tables']['inspections']['Row']
+export type DbInspection = {
+  id: string
+  vehicle_id: string
+  vehicle?: DbVehicle
+  type: 'routine' | 'safety' | 'maintenance'
+  date: string
+  status: 'scheduled' | 'in_progress' | 'completed'
+  created_at: string
+  updated_at: string
+  user_id: string
+}
+
+export type DbMaintenanceTask = {
+  id: string
+  vehicle_id: string
+  vehicle?: DbVehicle
+  title: string
+  description?: string
+  status: 'in_progress' | 'completed' | 'scheduled' | 'overdue'
+  priority: 'low' | 'medium' | 'high'
+  due_date: string
+  completed_date?: string
+  started_at?: string
+  created_at: string
+  updated_at: string
+  user_id: string
+}
+
+// Export the Database type
+export type { Database }
+
+// Database Types
 export type DbMaintenance = Database['public']['Tables']['maintenance_tasks']['Row']
 
 // Insert Types

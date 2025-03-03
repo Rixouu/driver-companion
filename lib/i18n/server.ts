@@ -1,24 +1,29 @@
 import { cookies } from 'next/headers'
+import { createTranslator } from './translator'
 import { en } from './locales/en'
 import { ja } from './locales/ja'
-import type { Translations } from './types'
+import type { TranslationValues } from './types'
 
-const dictionaries = {
+const locales = {
   en,
-  ja,
+  ja
+} as const
+
+export async function getDictionary() {
+  const cookieStore = cookies()
+  const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en'
+  
+  // Get the translations for the current locale
+  const translations = locales[locale as keyof typeof locales] || locales.en
+  
+  // Create a translator function
+  const t = createTranslator(translations)
+  
+  return {
+    t,
+    dictionary: translations as TranslationValues
+  }
 }
 
-export async function getDictionary(locale?: string): Promise<Translations> {
-  // If locale is not provided, try to get it from cookies
-  if (!locale) {
-    const cookieStore = cookies()
-    locale = cookieStore.get('NEXT_LOCALE')?.value || 'en'
-  }
-  
-  // Ensure locale is valid
-  if (!['en', 'ja'].includes(locale)) {
-    locale = 'en'
-  }
-  
-  return dictionaries[locale as keyof typeof dictionaries]
-} 
+export type Locale = keyof typeof locales
+export type Translations = typeof en 

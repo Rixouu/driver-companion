@@ -1,12 +1,19 @@
 import { supabase } from '@/lib/db/client'
 import type { Database } from '@/types/supabase'
+import type { DbVehicle } from "@/types"
 
 type Vehicle = Database['public']['Tables']['vehicles']['Row']
 type VehicleInsert = Database['public']['Tables']['vehicles']['Insert']
 type VehicleUpdate = Database['public']['Tables']['vehicles']['Update']
 
-export async function getVehicles(page = 1, status = 'all', search = '') {
+export async function getVehicles(options?: {
+  page?: number;
+  status?: string;
+  search?: string;
+}) {
+  const { page = 1, status = 'all', search = '' } = options || {}
   const itemsPerPage = 10
+  
   let query = supabase
     .from('vehicles')
     .select('*', { count: 'exact' })
@@ -16,7 +23,7 @@ export async function getVehicles(page = 1, status = 'all', search = '') {
   }
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,model.ilike.%${search}%,brand.ilike.%${search}%`)
+    query = query.or(`name.ilike.%${search}%,plate_number.ilike.%${search}%,brand.ilike.%${search}%,model.ilike.%${search}%`)
   }
 
   const { data, error, count } = await query
@@ -24,7 +31,7 @@ export async function getVehicles(page = 1, status = 'all', search = '') {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return { vehicles: data, count }
+  return { vehicles: data as DbVehicle[], count }
 }
 
 export async function getVehicleById(id: string) {
@@ -35,21 +42,21 @@ export async function getVehicleById(id: string) {
     .single()
 
   if (error) throw error
-  return data
+  return data as DbVehicle
 }
 
-export async function createVehicle(vehicle: VehicleInsert) {
+export async function createVehicle(vehicle: Omit<DbVehicle, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('vehicles')
-    .insert([vehicle])
+    .insert(vehicle)
     .select()
     .single()
 
   if (error) throw error
-  return data
+  return data as DbVehicle
 }
 
-export async function updateVehicle(id: string, vehicle: VehicleUpdate) {
+export async function updateVehicle(id: string, vehicle: Partial<DbVehicle>) {
   const { data, error } = await supabase
     .from('vehicles')
     .update(vehicle)
@@ -58,5 +65,14 @@ export async function updateVehicle(id: string, vehicle: VehicleUpdate) {
     .single()
 
   if (error) throw error
-  return data
+  return data as DbVehicle
+}
+
+export async function deleteVehicle(id: string) {
+  const { error } = await supabase
+    .from('vehicles')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
 } 

@@ -2,8 +2,17 @@ import type { Translations } from '../types'
 
 export const ja: Translations = {
   common: {
+    status: {
+      inProgress: "進行中",
+      upcoming: "予定",
+      recent: "最近",
+      active: "稼働中",
+      inactive: "非稼働",
+      completed: "完了",
+      scheduled: "予定"
+    },
     loading: "読み込み中...",
-    error: "エラーが発生しました",
+    error: "エラー",
     success: "成功",
     cancel: "キャンセル",
     save: "保存",
@@ -17,7 +26,6 @@ export const ja: Translations = {
     noResults: "結果が見つかりません",
     details: "詳細",
     actions: "アクション",
-    status: "ステータス",
     viewDetails: "詳細を表示",
     addNew: "新規追加",
     backTo: "{page}に戻る",
@@ -27,7 +35,10 @@ export const ja: Translations = {
     deleting: "削除中...",
     menu: "メニュー",
     login: "ログイン",
-    logout: "ログアウト"
+    logout: "ログアウト",
+    inProgress: "進行中",
+    upcoming: "予定",
+    recent: "最近"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -819,7 +830,23 @@ export const ja: Translations = {
   },
   dashboard: {
     title: "ダッシュボード",
-    description: "車両管理ダッシュボード",
+    description: "車両管理の概要と活動状況",
+    quickActions: {
+      title: "クイックアクション",
+      description: "よく使う機能",
+      addVehicle: "車両を追加",
+      scheduleMaintenance: "メンテナンス予約",
+      scheduleInspection: "点検予約",
+      viewReports: "レポート表示"
+    },
+    maintenance: {
+      title: "メンテナンス",
+      description: "メンテナンスタスクの概要"
+    },
+    inspections: {
+      title: "点検",
+      description: "車両点検の概要"
+    },
     stats: {
       totalVehicles: "総車両数",
       maintenanceTasks: "メンテナンスタスク",
@@ -829,33 +856,32 @@ export const ja: Translations = {
     sections: {
       maintenanceSchedule: {
         title: "メンテナンススケジュール",
-        noPending: "保留中のメンテナンスタスクはありません"
+        noPending: "予定されているメンテナンスはありません"
       },
       inspectionSchedule: {
         title: "点検スケジュール",
-        noScheduled: "予定されている点検はありません"
+        noPending: "予定されている点検はありません"
       },
       recentMaintenance: {
         title: "最近のメンテナンス",
-        noCompleted: "完了したメンテナンスタスクはありません",
-        completedOn: "{date}に完了"
+        noCompleted: "完了したメンテナンスはありません"
       },
       recentInspections: {
         title: "最近の点検",
-        noCompleted: "完了した点検はありません",
-        completedOn: "{date}に完了"
+        noCompleted: "完了した点検はありません"
       }
     },
-    labels: {
-      due: "{date}まで",
-      priority: {
-        high: "高",
-        medium: "中",
-        low: "低"
-      },
-      status: {
-        scheduled: "予定済み"
-      }
-    }
   },
+  labels: {
+    due: "{date}まで",
+    priority: {
+      high: "高",
+      medium: "中",
+      low: "低"
+    },
+    status: {
+      scheduled: "予定済み",
+      inProgress: "進行中"
+    }
+  }
 } as const 

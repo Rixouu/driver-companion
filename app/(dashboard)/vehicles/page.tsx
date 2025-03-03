@@ -10,7 +10,7 @@ import { Plus } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const dictionary = await getDictionary()
+  const { dictionary } = await getDictionary()
   
   return {
     title: dictionary.vehicles.title,

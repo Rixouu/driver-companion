@@ -7,23 +7,28 @@ import { VehicleCosts } from "./vehicle-costs"
 import { VehicleReminders } from "./vehicle-reminders"
 import { DbVehicle } from "@/types"
 import { cn } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/context"
 
 interface VehicleTabsProps {
   vehicle: DbVehicle
 }
 
 export function VehicleTabs({ vehicle }: VehicleTabsProps) {
+  const { t } = useI18n()
+
+  const tabs = [
+    { value: "schedule", label: t("vehicles.tabs.schedule") },
+    { value: "history", label: t("vehicles.tabs.history") },
+    { value: "costs", label: t("vehicles.tabs.costs") },
+    { value: "reminders", label: t("vehicles.tabs.reminders") }
+  ]
+
   return (
     <Tabs defaultValue="schedule" className="w-full">
       <div className="border-b">
         <TabsList className="w-full justify-start overflow-x-auto">
           <div className="flex min-w-full md:min-w-0">
-            {[
-              { value: "schedule", label: "Schedule" },
-              { value: "history", label: "History" },
-              { value: "costs", label: "Costs" },
-              { value: "reminders", label: "Reminders" }
-            ].map((tab) => (
+            {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}

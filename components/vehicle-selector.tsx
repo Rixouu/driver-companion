@@ -17,13 +17,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { supabase } from "@/lib/supabase/client"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 interface Vehicle {
   id: string
@@ -32,11 +25,18 @@ interface Vehicle {
 }
 
 interface VehicleSelectorProps {
-  value?: string
+  value: string
   onValueChange: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
 }
 
-export function VehicleSelector({ value, onValueChange }: VehicleSelectorProps) {
+export function VehicleSelector({
+  value,
+  onValueChange,
+  placeholder = "Select a vehicle",
+  disabled = false
+}: VehicleSelectorProps) {
   const [open, setOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -78,15 +78,15 @@ export function VehicleSelector({ value, onValueChange }: VehicleSelectorProps) 
               {selectedVehicle.name} ({selectedVehicle.plate_number})
             </span>
           ) : (
-            <span>Select Vehicle</span>
+            <span>{placeholder}</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder={"Search"} />
-          <CommandEmpty>{"No results found."}</CommandEmpty>
+          <CommandInput placeholder="Search vehicles..." />
+          <CommandEmpty>No vehicles found.</CommandEmpty>
           <CommandGroup>
             {vehicles.map((vehicle) => (
               <CommandItem

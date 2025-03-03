@@ -1,13 +1,14 @@
-import { Metadata } from "next"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+"use client"
+
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import Link from "next/link"
 import { Gauge, Car, Wrench, ClipboardCheck } from "lucide-react"
+import { useI18n } from "@/lib/i18n/context"
+import { useEffect, useState } from "react"
 
-// Add these interfaces
 interface Vehicle {
   id: string
   name: string
@@ -20,6 +21,7 @@ interface Inspection {
   inspector_id: string
   status: string
   date: string
+  due_date: string
   schedule_type: string
   vehicle: Vehicle
 }
@@ -34,87 +36,119 @@ interface MaintenanceTask {
   vehicle: Vehicle
 }
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Vehicle fleet management dashboard",
-}
+export default function DashboardPage() {
+  const supabase = createClientComponentClient()
+  const { t } = useI18n()
+  const [stats, setStats] = useState<any[]>([])
+  const [totalVehicles, setTotalVehicles] = useState(0)
+  const [totalInspections, setTotalInspections] = useState(0)
+  const [totalMaintenance, setTotalMaintenance] = useState(0)
+  const [scheduledMaintenance, setScheduledMaintenance] = useState<MaintenanceTask[]>([])
+  const [scheduledInspections, setScheduledInspections] = useState<Inspection[]>([])
+  const [completedMaintenance, setCompletedMaintenance] = useState<MaintenanceTask[]>([])
+  const [completedInspections, setCompletedInspections] = useState<Inspection[]>([])
 
-export default async function DashboardPage() {
-  const supabase = createServerComponentClient({ cookies })
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        // Fetch stats
+        const { data: statsData } = await supabase
+          .from('vehicles')
+          .select('status', { count: 'exact' })
+        setStats(statsData || [])
 
-  // Fetch stats
-  const { data: stats } = await supabase
-    .from('vehicles')
-    .select('status', { count: 'exact' })
+        const { count: vehiclesCount } = await supabase
+          .from('vehicles')
+          .select('*', { count: 'exact' })
+        setTotalVehicles(vehiclesCount || 0)
 
-  const { count: totalVehicles } = await supabase
-    .from('vehicles')
-    .select('*', { count: 'exact' })
+        const { count: inspectionsCount } = await supabase
+          .from('inspections')
+          .select('*', { count: 'exact' })
+        setTotalInspections(inspectionsCount || 0)
 
-  const { count: totalInspections } = await supabase
-    .from('inspections')
-    .select('*', { count: 'exact' })
+        const { count: maintenanceCount } = await supabase
+          .from('maintenance_tasks')
+          .select('*', { count: 'exact' })
+        setTotalMaintenance(maintenanceCount || 0)
 
-  const { count: totalMaintenance } = await supabase
-    .from('maintenance_tasks')
-    .select('*', { count: 'exact' })
+        // Fetch scheduled maintenance
+        const { data: scheduledMaintenanceData } = await supabase
+          .from('maintenance_tasks')
+          .select(`
+            *,
+            vehicle:vehicles (id, name, plate_number)
+          `)
+          .eq('status', 'pending')
+          .order('due_date', { ascending: true })
+          .limit(2)
+        setScheduledMaintenance(scheduledMaintenanceData as MaintenanceTask[] || [])
 
-  // Fetch scheduled maintenance (pending status)
-  const { data: scheduledMaintenance } = await supabase
-    .from('maintenance_tasks')
-    .select(`
-      *,
-      vehicle:vehicles (name, plate_number)
-    `)
-    .eq('status', 'pending')
-    .order('due_date', { ascending: true })
-    .limit(2)
+        // Fetch scheduled inspections
+        const { data: scheduledInspectionsData } = await supabase
+          .from('inspections')
+          .select(`
+            id,
+            vehicle_id,
+            inspector_id,
+            status,
+            date,
+            due_date,
+            schedule_type,
+            vehicle:vehicles (id, name, plate_number)
+          `)
+          .eq('status', 'scheduled')
+          .order('due_date', { ascending: true })
+          .limit(2)
+        setScheduledInspections(scheduledInspectionsData as unknown as Inspection[] || [])
 
-  // Fetch scheduled inspections
-  const { data: scheduledInspections } = await supabase
-    .from('inspections')
-    .select(`
-      *,
-      vehicle:vehicles (name, plate_number)
-    `)
-    .eq('status', 'scheduled')
-    .order('due_date', { ascending: true })
-    .limit(2)
+        // Fetch completed maintenance
+        const { data: completedMaintenanceData } = await supabase
+          .from('maintenance_tasks')
+          .select(`
+            *,
+            vehicle:vehicles (id, name, plate_number)
+          `)
+          .eq('status', 'completed')
+          .order('completed_date', { ascending: false })
+          .limit(2)
+        setCompletedMaintenance(completedMaintenanceData as MaintenanceTask[] || [])
 
-  // Fetch recently completed maintenance
-  const { data: completedMaintenance } = await supabase
-    .from('maintenance_tasks')
-    .select(`
-      *,
-      vehicle:vehicles (name, plate_number)
-    `)
-    .eq('status', 'completed')
-    .order('completed_date', { ascending: false })
-    .limit(2)
+        // Fetch completed inspections
+        const { data: completedInspectionsData } = await supabase
+          .from('inspections')
+          .select(`
+            id,
+            vehicle_id,
+            inspector_id,
+            status,
+            date,
+            due_date,
+            schedule_type,
+            vehicle:vehicles (id, name, plate_number)
+          `)
+          .eq('status', 'completed')
+          .order('date', { ascending: false })
+          .limit(2)
+        setCompletedInspections(completedInspectionsData as unknown as Inspection[] || [])
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
+      }
+    }
 
-  // Fetch recently completed inspections
-  const { data: completedInspections } = await supabase
-    .from('inspections')
-    .select<any, Inspection>(`
-      id,
-      vehicle_id,
-      inspector_id,
-      status,
-      date,
-      schedule_type,
-      vehicle:vehicles (
-        id,
-        name,
-        plate_number
-      )
-    `)
-    .eq('status', 'completed')
-    .order('date', { ascending: false })
-    .limit(2)
+    loadDashboardData()
+  }, [supabase])
 
   return (
     <div className="space-y-6">
-      {/* Make stats cards clickable */}
+      <div>
+        <h1 className="text-2xl font-bold">{t("dashboard.title")}</h1>
+        <p className="text-muted-foreground">
+          {t("dashboard.description")}
+        </p>
+      </div>
+
+      {/* Stats cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link href="/vehicles">
           <Card className="hover:bg-accent transition-colors">
@@ -123,7 +157,7 @@ export default async function DashboardPage() {
                 <Car className="h-8 w-8 text-muted-foreground" />
                 <div>
                   <p className="text-2xl font-bold">{totalVehicles || 0}</p>
-                  <p className="text-sm text-muted-foreground">Total Vehicles</p>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.stats.totalVehicles")}</p>
                 </div>
               </div>
             </CardContent>
@@ -137,7 +171,7 @@ export default async function DashboardPage() {
                 <Wrench className="h-8 w-8 text-muted-foreground" />
                 <div>
                   <p className="text-2xl font-bold">{totalMaintenance || 0}</p>
-                  <p className="text-sm text-muted-foreground">Maintenance Tasks</p>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.stats.maintenanceTasks")}</p>
                 </div>
               </div>
             </CardContent>
@@ -151,7 +185,7 @@ export default async function DashboardPage() {
                 <ClipboardCheck className="h-8 w-8 text-muted-foreground" />
                 <div>
                   <p className="text-2xl font-bold">{totalInspections || 0}</p>
-                  <p className="text-sm text-muted-foreground">Inspections</p>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.stats.inspections")}</p>
                 </div>
               </div>
             </CardContent>
@@ -168,7 +202,7 @@ export default async function DashboardPage() {
                 <Gauge className="h-8 w-8 text-muted-foreground" />
                 <div>
                   <p className="text-2xl font-bold">{stats?.filter(v => v.status === 'active').length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Active Vehicles</p>
+                  <p className="text-sm text-muted-foreground">{t("dashboard.stats.activeVehicles")}</p>
                 </div>
               </div>
             </CardContent>
@@ -181,7 +215,7 @@ export default async function DashboardPage() {
         {/* Maintenance Schedule */}
         <Card>
           <CardHeader>
-            <CardTitle>Maintenance Schedule</CardTitle>
+            <CardTitle>{t("dashboard.sections.maintenanceSchedule.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -195,18 +229,18 @@ export default async function DashboardPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{task.title}</p>
                       <p className="text-sm text-muted-foreground">
-                        {task.vehicle.name} • Due {formatDate(task.due_date)}
+                        {task.vehicle.name} • {t("dashboard.labels.due", { date: formatDate(task.due_date) })}
                       </p>
                     </div>
                     <Badge variant={task.priority === "high" ? "destructive" : "secondary"}>
-                      {task.priority}
+                      {t(`dashboard.labels.priority.${task.priority}`)}
                     </Badge>
                   </div>
                 </Link>
               ))}
               {(!scheduledMaintenance || scheduledMaintenance.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No pending maintenance tasks
+                  {t("dashboard.sections.maintenanceSchedule.noPending")}
                 </p>
               )}
             </div>
@@ -216,7 +250,7 @@ export default async function DashboardPage() {
         {/* Inspection Schedule */}
         <Card>
           <CardHeader>
-            <CardTitle>Inspection Schedule</CardTitle>
+            <CardTitle>{t("dashboard.sections.inspectionSchedule.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -230,16 +264,16 @@ export default async function DashboardPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{inspection.vehicle.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {inspection.schedule_type} • Due {formatDate(inspection.due_date)}
+                        {inspection.schedule_type} • {t("dashboard.labels.due", { date: formatDate(inspection.due_date) })}
                       </p>
                     </div>
-                    <Badge>Scheduled</Badge>
+                    <Badge>{t("dashboard.labels.status.scheduled")}</Badge>
                   </div>
                 </Link>
               ))}
               {(!scheduledInspections || scheduledInspections.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No scheduled inspections
+                  {t("dashboard.sections.inspectionSchedule.noScheduled")}
                 </p>
               )}
             </div>
@@ -252,7 +286,7 @@ export default async function DashboardPage() {
         {/* Recent Maintenance */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Maintenance</CardTitle>
+            <CardTitle>{t("dashboard.sections.recentMaintenance.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -266,16 +300,16 @@ export default async function DashboardPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{task.title}</p>
                       <p className="text-sm text-muted-foreground">
-                        {task.vehicle.name} • Completed {formatDate(task.completed_date)}
+                        {task.vehicle.name} • {t("dashboard.sections.recentMaintenance.completedOn", { date: formatDate(task.completed_date) })}
                       </p>
                     </div>
-                    <Badge variant="success">Completed</Badge>
+                    <Badge variant="success">{t("maintenance.status.completed")}</Badge>
                   </div>
                 </Link>
               ))}
               {(!completedMaintenance || completedMaintenance.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No completed maintenance tasks
+                  {t("dashboard.sections.recentMaintenance.noCompleted")}
                 </p>
               )}
             </div>
@@ -285,7 +319,7 @@ export default async function DashboardPage() {
         {/* Recent Inspections */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Inspections</CardTitle>
+            <CardTitle>{t("dashboard.sections.recentInspections.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -299,16 +333,16 @@ export default async function DashboardPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{inspection.vehicle.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {inspection.schedule_type} • Completed {formatDate(inspection.date)}
+                        {inspection.schedule_type} • {t("dashboard.sections.recentInspections.completedOn", { date: formatDate(inspection.date) })}
                       </p>
                     </div>
-                    <Badge variant="success">Completed</Badge>
+                    <Badge variant="success">{t("inspections.status.completed")}</Badge>
                   </div>
                 </Link>
               ))}
               {(!completedInspections || completedInspections.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No completed inspections
+                  {t("dashboard.sections.recentInspections.noCompleted")}
                 </p>
               )}
             </div>

@@ -3,32 +3,34 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-
-const items = [
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-  },
-  {
-    title: "Vehicles",
-    href: "/vehicles",
-  },
-  {
-    title: "Maintenance",
-    href: "/maintenance",
-  },
-  {
-    title: "Inspections",
-    href: "/inspections",
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-  },
-]
+import { useI18n } from "@/lib/i18n/context"
 
 export function MainNav() {
   const pathname = usePathname()
+  const { t } = useI18n()
+  
+  const items = [
+    {
+      title: t("navigation.dashboard"),
+      href: "/dashboard",
+    },
+    {
+      title: t("navigation.vehicles"),
+      href: "/vehicles",
+    },
+    {
+      title: t("navigation.maintenance"),
+      href: "/maintenance",
+    },
+    {
+      title: t("navigation.inspections"),
+      href: "/inspections",
+    },
+    {
+      title: t("navigation.settings"),
+      href: "/settings",
+    },
+  ]
 
   return (
     <nav className="flex md:items-center md:space-x-6">

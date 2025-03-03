@@ -1,52 +1,43 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Moon, Sun, Monitor } from "lucide-react"
+import { useI18n } from "@/lib/i18n/context"
 
 export function ClientThemeSelector() {
-  const { theme, setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  // Prevent hydration mismatch by mounting after initial render
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <Select disabled>
-        <SelectTrigger>
-          <SelectValue placeholder="Theme" />
-        </SelectTrigger>
-      </Select>
-    )
-  }
-
-  // Use resolvedTheme to get the actual theme (especially important for 'system' setting)
-  const currentTheme = theme === 'system' ? resolvedTheme : theme
+  const { setTheme, theme } = useTheme()
+  const { t } = useI18n()
 
   return (
-    <Select value={theme} onValueChange={setTheme}>
-      <SelectTrigger>
-        <SelectValue>
-          {theme === 'system' ? 'System' : 
-           theme === 'dark' ? 'Dark' : 
-           theme === 'light' ? 'Light' : 
-           'System'}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="light">Light</SelectItem>
-        <SelectItem value="dark">Dark</SelectItem>
-        <SelectItem value="system">System</SelectItem>
-      </SelectContent>
-    </Select>
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant={theme === "light" ? "default" : "outline"}
+        onClick={() => setTheme("light")}
+        className="flex items-center gap-2"
+        size="sm"
+      >
+        <Sun className="h-4 w-4" />
+        {t("settings.preferences.theme.light")}
+      </Button>
+      <Button
+        variant={theme === "dark" ? "default" : "outline"}
+        onClick={() => setTheme("dark")}
+        className="flex items-center gap-2"
+        size="sm"
+      >
+        <Moon className="h-4 w-4" />
+        {t("settings.preferences.theme.dark")}
+      </Button>
+      <Button
+        variant={theme === "system" ? "default" : "outline"}
+        onClick={() => setTheme("system")}
+        className="flex items-center gap-2"
+        size="sm"
+      >
+        <Monitor className="h-4 w-4" />
+        {t("settings.preferences.theme.system")}
+      </Button>
+    </div>
   )
 } 

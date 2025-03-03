@@ -1,55 +1,39 @@
 import { Metadata } from "next"
 import { VehicleList } from "@/components/vehicles/vehicle-list"
+import { VehiclesPageContent } from "@/components/vehicles/vehicles-page-content"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
+import type { Database } from "@/types/supabase"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
+import { getDictionary } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Vehicles",
-  description: "Manage your vehicle fleet",
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = await getDictionary()
+  
+  return {
+    title: dictionary.vehicles.title,
+    description: dictionary.vehicles.description,
+  }
 }
 
-export default async function VehiclesPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
-  const supabase = createServerComponentClient({ cookies })
-  const page = Number(searchParams.page) || 1
-  const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 9
 
-  const { data: vehicles, count } = await supabase
+export default async function VehiclesPage() {
+  const supabase = createServerComponentClient({ cookies })
+  const dictionary = await getDictionary()
+  
+  const { data: vehicles } = await supabase
     .from('vehicles')
-    .select('*', { count: 'exact' })
-    .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1)
+    .select('*')
     .order('created_at', { ascending: false })
 
-  const totalPages = count ? Math.ceil(count / ITEMS_PER_PAGE) : 0
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vehicles</h1>
-          <p className="text-muted-foreground">
-            Manage your vehicle fleet and details
-          </p>
-        </div>
-        <Button asChild className="sm:flex-shrink-0">
-          <Link href="/vehicles/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Vehicle
-          </Link>
-        </Button>
-      </div>
-
-      <VehicleList
-        vehicles={vehicles || []}
-        currentPage={page}
-        totalPages={totalPages}
-      />
-    </div>
+    <VehiclesPageContent 
+      vehicles={vehicles || []} 
+      currentPage={1} 
+      totalPages={1} 
+    />
   )
 } 

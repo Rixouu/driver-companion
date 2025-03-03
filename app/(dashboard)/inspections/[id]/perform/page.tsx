@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
-import { InspectionForm } from "@/components/inspections/form/inspection-form"
+import { InspectionForm } from "@/components/inspections/inspection-form"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -64,7 +64,11 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
           </div>
         </div>
 
-        <InspectionForm inspectionId={inspection.id} vehicle={inspection.vehicle} />
+        <InspectionForm 
+          inspectionId={inspection.id} 
+          type={inspection.type} 
+          vehicleId={inspection.vehicle.id} 
+        />
       </div>
     </div>
   )

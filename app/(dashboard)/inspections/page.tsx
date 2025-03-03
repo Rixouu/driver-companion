@@ -3,31 +3,40 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { InspectionList } from "@/components/inspections/inspection-list"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+import { InspectionPageContent } from "@/components/inspections/inspection-page-content"
+import type { Database } from "@/types/supabase"
 
-export const metadata: Metadata = {
+const ITEMS_PER_PAGE = 9
+
+export const metadata = {
   title: "Inspections",
-  description: "Schedule and track vehicle inspections",
+  description: "Vehicle inspection management",
 }
 
-export default function InspectionsPage() {
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inspections</h1>
-          <p className="text-muted-foreground">
-            Schedule and track vehicle inspections
-          </p>
-        </div>
-        <Button asChild className="sm:flex-shrink-0">
-          <Link href="/inspections/perform">
-            <Plus className="mr-2 h-4 w-4" />
-            New Inspection
-          </Link>
-        </Button>
-      </div>
+export default async function InspectionsPage() {
+  const supabase = createServerComponentClient({ cookies })
+  
+  // Fetch inspections
+  const { data: inspections } = await supabase
+    .from('inspections')
+    .select('*')
+    .order('date', { ascending: false })
 
-      <InspectionList />
+  // Fetch vehicles
+  const { data: vehicles } = await supabase
+    .from('vehicles')
+    .select('*')
+    .order('name')
+
+  return (
+    <div className="container mx-auto py-6">
+      <InspectionList 
+        inspections={inspections || []} 
+        vehicles={vehicles || []}
+      />
     </div>
   )
 } 

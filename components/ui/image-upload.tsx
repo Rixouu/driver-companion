@@ -11,6 +11,9 @@ interface ImageUploadProps {
   onChange: (value: string) => void
   disabled?: boolean
   className?: string
+  buttonText?: string
+  dragText?: string
+  sizeLimit?: string
 }
 
 export function ImageUpload({
@@ -18,6 +21,9 @@ export function ImageUpload({
   onChange,
   disabled,
   className,
+  buttonText = "Upload Image",
+  dragText = "Drag and drop an image here, or click to select",
+  sizeLimit = "Maximum file size: 5MB"
 }: ImageUploadProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [preview, setPreview] = React.useState<string | null>(value || null)
@@ -112,7 +118,7 @@ export function ImageUpload({
           disabled={disabled}
         >
           <ImageIcon className="mr-2 h-4 w-4" />
-          Upload Image
+          {buttonText}
         </Button>
       )}
     </div>

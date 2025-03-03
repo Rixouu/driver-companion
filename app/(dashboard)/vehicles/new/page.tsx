@@ -1,23 +1,16 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { redirect } from "next/navigation"
-import { VehicleForm } from "@/components/vehicles/vehicle-form"
+import { Metadata } from "next"
+import { NewVehiclePageContent } from "@/components/vehicles/new-vehicle-page-content"
+import { getDictionary } from "@/lib/i18n/server"
+
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = await getDictionary()
+  
+  return {
+    title: dictionary.vehicles.addNewTitle,
+    description: dictionary.vehicles.addNewDescription,
+  }
+}
 
 export default async function NewVehiclePage() {
-  const supabase = createServerComponentClient({ cookies })
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    redirect('/auth/login')
-  }
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Add New Vehicle</h1>
-      <p className="text-muted-foreground">
-        Add a new vehicle to the fleet
-      </p>
-      <VehicleForm />
-    </div>
-  )
+  return <NewVehiclePageContent />
 } 

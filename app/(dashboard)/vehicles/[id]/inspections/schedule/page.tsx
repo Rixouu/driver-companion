@@ -2,7 +2,8 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
-import { ScheduleInspectionForm } from "@/components/forms/schedule-inspection-form"
+import { ScheduleInspectionForm } from "@/components/inspections/schedule-inspection-form"
+import { ScheduleInspectionContent } from "./content"
 
 interface ScheduleInspectionPageProps {
   params: {
@@ -28,18 +29,5 @@ export default async function ScheduleInspectionPage({ params }: ScheduleInspect
     return notFound()
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Schedule Inspection</h1>
-        <p className="text-muted-foreground">
-          Schedule a new inspection for {vehicle.name}
-        </p>
-      </div>
-
-      <div className="grid gap-6">
-        <ScheduleInspectionForm vehicleId={vehicle.id} />
-      </div>
-    </div>
-  )
+  return <ScheduleInspectionContent vehicle={vehicle} />
 } 

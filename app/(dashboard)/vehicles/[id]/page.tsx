@@ -6,6 +6,7 @@ import { VehicleDetails } from "@/components/vehicles/vehicle-details"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { getDictionary } from "@/lib/i18n/server"
 
 interface VehiclePageProps {
   params: {
@@ -15,6 +16,8 @@ interface VehiclePageProps {
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
   const supabase = createServerComponentClient({ cookies })
+  const dictionary = await getDictionary()
+  
   const { data: vehicle } = await supabase
     .from('vehicles')
     .select('name')
@@ -22,13 +25,14 @@ export async function generateMetadata({ params }: VehiclePageProps): Promise<Me
     .single()
   
   return {
-    title: vehicle ? `${vehicle.name} - Vehicle Details` : 'Vehicle Details',
-    description: 'View and manage vehicle details',
+    title: vehicle ? `${vehicle.name} - ${dictionary.vehicles.details}` : dictionary.vehicles.details,
+    description: dictionary.vehicles.description,
   }
 }
 
 export default async function VehiclePage({ params }: VehiclePageProps) {
   const supabase = createServerComponentClient({ cookies })
+  const dictionary = await getDictionary()
   
   const { data: vehicle } = await supabase
     .from('vehicles')
@@ -48,25 +52,17 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{vehicle.name}</h1>
-          <p className="text-muted-foreground">
-            View and manage vehicle details
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="w-full sm:w-auto"
-          asChild
-        >
-          <Link href="/vehicles" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to vehicles
-          </Link>
-        </Button>
-      </div>
+      <Button 
+        variant="ghost" 
+        size="sm"
+        className="mb-2"
+        asChild
+      >
+        <Link href="/vehicles" className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          {dictionary.common.backTo.replace('{page}', dictionary.navigation.vehicles)}
+        </Link>
+      </Button>
 
       <VehicleDetails vehicle={vehicle} />
     </div>

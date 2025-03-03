@@ -4,20 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { useDebounce } from "@/hooks/use-debounce"
-import { Search, Plus, Calendar, Clock, Wrench } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils"
+import { Search } from "lucide-react"
+import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
-import { getSupabaseClient } from "@/lib/db/client"
+import { useDebounce } from "@/hooks/use-debounce"
 import {
   Select,
   SelectContent,
@@ -26,97 +16,102 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { ViewToggle } from "@/components/ui/view-toggle"
-
-interface MaintenanceTask {
-  id: string
-  title: string
-  status: string
-  due_date: string
-  estimated_duration?: number | null
-  priority?: 'high' | 'medium' | 'low' | null
-  vehicle: {
-    id: string
-    name: string
-    plate_number: string
-  }
-}
+import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/context"
+import type { MaintenanceTask, DbVehicle } from "@/types"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import Image from "next/image"
+import { supabase } from "@/lib/supabase"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 interface MaintenanceListProps {
   tasks: MaintenanceTask[]
+  vehicles?: DbVehicle[]
+  currentPage?: number
+  totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 9
 
-export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
+export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, totalPages = 1 }: MaintenanceListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [filteredTasks, setFilteredTasks] = useState<MaintenanceTask[]>(initialTasks)
-  const [isLoading, setIsLoading] = useState(false)
-  const [filter, setFilter] = useState(searchParams.get("status") || 'all')
-  const [search, setSearch] = useState(searchParams.get("search") || '')
-  const [totalPages, setTotalPages] = useState(Math.ceil(initialTasks.length / ITEMS_PER_PAGE))
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
-  const currentPage = Number(searchParams.get("page")) || 1
-  const [view, setView] = useState<"list" | "grid">("list")
+  const { t, language } = useI18n()
+  const [tasksWithVehicles, setTasksWithVehicles] = useState(tasks)
 
   useEffect(() => {
-    // Filter and search tasks locally
-    let result = [...initialTasks]
+    async function loadVehicleData() {
+      try {
+        const updatedTasks = await Promise.all(
+          tasks.map(async (task) => {
+            if (task.vehicle?.id) {
+              const { data: vehicleData, error: vehicleError } = await supabase
+                .from('vehicles')
+                .select('*')
+                .eq('id', task.vehicle.id)
+                .single()
 
-    if (filter !== 'all') {
-      result = result.filter(task => task.status === filter)
+              if (vehicleError) throw vehicleError
+
+              return {
+                ...task,
+                vehicle: vehicleData
+              }
+            }
+            return task
+          })
+        )
+        // Sort tasks by due date (most recent first)
+        const sortedTasks = updatedTasks.sort((a, b) => 
+          new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
+        )
+        setTasksWithVehicles(sortedTasks)
+      } catch (error) {
+        console.error('Error loading vehicle data:', error)
+      }
     }
 
-    if (debouncedSearch) {
-      const searchLower = debouncedSearch.toLowerCase()
-      result = result.filter(task => 
-        task.title.toLowerCase().includes(searchLower) ||
-        task.vehicle.name.toLowerCase().includes(searchLower)
-      )
-    }
+    loadVehicleData()
+  }, [tasks])
 
-    setFilteredTasks(result)
-    setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE))
-  }, [filter, debouncedSearch, initialTasks])
+  const filteredTasks = tasksWithVehicles.filter(task => {
+    const matchesFilter = filter === 'all' || task.status === filter
+    const matchesSearch = !debouncedSearch || 
+      task.title.toLowerCase().includes(debouncedSearch.toLowerCase())
+    
+    return matchesFilter && matchesSearch
+  })
+
+  const formatScheduledDate = (date: string) => {
+    return t("maintenance.details.scheduledFor", {
+      date: formatDate(date)
+    })
+  }
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set("page", page.toString())
     router.push(`/maintenance?${params.toString()}`)
-  }
-
-  const handleSearch = (term: string) => {
-    setSearch(term)
-    const params = new URLSearchParams(searchParams.toString())
-    if (term) {
-      params.set("search", term)
-    } else {
-      params.delete("search")
-    }
-    params.set("page", "1")
-    router.push(`/maintenance?${params.toString()}`)
-  }
-
-  const handleFilterChange = (newFilter: string) => {
-    setFilter(newFilter)
-    const params = new URLSearchParams(searchParams.toString())
-    if (newFilter !== 'all') {
-      params.set("status", newFilter)
-    } else {
-      params.delete("status")
-    }
-    params.set("page", "1")
-    router.push(`/maintenance?${params.toString()}`)
-  }
-
-  // Get current page items
-  const indexOfLastItem = currentPage * ITEMS_PER_PAGE
-  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE
-  const currentItems = filteredTasks.slice(indexOfFirstItem, indexOfLastItem)
-
-  if (isLoading) {
-    return <div>Loading...</div>
   }
 
   return (
@@ -125,176 +120,193 @@ export function MaintenanceList({ tasks: initialTasks }: MaintenanceListProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search maintenance tasks..."
+            placeholder={t("maintenance.searchPlaceholder")}
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={filter} onValueChange={handleFilterChange}>
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={filter === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilter('all')}
+            >
+              {t("common.all")}
+            </Button>
+            <Button 
+              variant={filter === 'scheduled' ? 'default' : 'outline'}
+              onClick={() => setFilter('scheduled')}
+            >
+              {t("maintenance.status.scheduled")}
+            </Button>
+            <Button 
+              variant={filter === 'in_progress' ? 'default' : 'outline'}
+              onClick={() => setFilter('in_progress')}
+            >
+              {t("maintenance.status.in_progress")}
+            </Button>
+            <Button 
+              variant={filter === 'completed' ? 'default' : 'outline'}
+              onClick={() => setFilter('completed')}
+            >
+              {t("maintenance.status.completed")}
+            </Button>
+          </div>
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
 
-      {view === "list" ? (
-        <div className="rounded-md border">
-          {/* Desktop Table */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentItems.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-medium">{task.title}</TableCell>
-                    <TableCell>{task.vehicle.name}</TableCell>
-                    <TableCell>{formatDate(task.due_date)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          task.status === "completed"
-                            ? "success"
-                            : task.status === "in_progress"
-                            ? "warning"
-                            : "secondary"
-                        }
-                      >
-                        {task.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/maintenance/${task.id}`}>View Details</Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile List */}
-          <div className="divide-y md:hidden">
-            {currentItems.map((task) => (
-              <Link 
-                key={task.id} 
-                href={`/maintenance/${task.id}`}
-                className="block p-4 hover:bg-muted/50"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">{task.title}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {task.vehicle.name} • {formatDate(task.due_date)}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={
-                      task.status === "completed"
-                        ? "success"
-                        : task.status === "in_progress"
-                        ? "warning"
-                        : "secondary"
-                    }
-                  >
-                    {task.status}
-                  </Badge>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+      {filteredTasks.length === 0 ? (
+        <p className="text-center text-muted-foreground py-6">
+          {t("maintenance.noTasks")}
+        </p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {currentItems.map((task) => (
-            <Card key={task.id}>
-              <CardContent className="p-4">
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{task.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {task.vehicle.name}
-                      </p>
+        <>
+          {view === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTasks.map((task) => (
+                <Card key={task.id}>
+                  <Link href={`/maintenance/${task.id}`}>
+                    <div className="relative aspect-video w-full">
+                      {task.vehicle?.image_url ? (
+                        <Image
+                          src={task.vehicle.image_url}
+                          alt={task.vehicle?.name || ""}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <p className="text-muted-foreground">{t('maintenance.details.vehicleInfo.noImage')}</p>
+                        </div>
+                      )}
                     </div>
-                    <Badge
-                      variant={
-                        task.status === "completed"
-                          ? "success"
-                          : task.status === "in_progress"
-                          ? "warning"
-                          : "secondary"
-                      }
+                  </Link>
+                  <CardContent className="p-6">
+                    <div className="flex flex-col space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">{task.title}</h3>
+                        {task.vehicle && (
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{task.vehicle.name}</p>
+                            <p className="text-sm text-muted-foreground">{task.vehicle.plate_number}</p>
+                          </div>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          {formatScheduledDate(task.due_date)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Badge variant={getStatusVariant(task.status)}>
+                          {t(`maintenance.status.${task.status}`)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {t(`maintenance.priority.${task.priority}`)}
+                        </Badge>
+                      </div>
+                      <Button variant="secondary" className="w-full" asChild>
+                        <Link href={`/maintenance/${task.id}`}>
+                          {t("common.viewDetails")}
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("maintenance.fields.title")}</TableHead>
+                    <TableHead>{t("vehicles.fields.name")}</TableHead>
+                    <TableHead>{t("maintenance.fields.dueDate")}</TableHead>
+                    <TableHead>{t("maintenance.priority.title")}</TableHead>
+                    <TableHead>{t("common.status")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTasks.map((task) => (
+                    <TableRow 
+                      key={task.id}
+                      className="cursor-pointer hover:bg-accent"
+                      onClick={() => router.push(`/maintenance/${task.id}`)}
                     >
-                      {task.status}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>Due: {formatDate(task.due_date)}</span>
-                    </div>
-                    {task.estimated_duration && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{task.estimated_duration} hours</span>
-                      </div>
-                    )}
-                    {task.priority && (
-                      <div className="flex items-center gap-2">
-                        <Wrench className="h-4 w-4" />
-                        <span>Priority: {task.priority}</span>
-                      </div>
-                    )}
-                  </div>
-                  <Button 
-                    variant="secondary" 
-                    className="w-full mt-2" 
-                    asChild
-                  >
-                    <Link href={`/maintenance/${task.id}`}>
-                      View Details
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>
+                        {task.vehicle?.name}
+                        {task.vehicle?.plate_number && (
+                          <span className="text-muted-foreground ml-2">
+                            ({task.vehicle.plate_number})
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatDate(task.due_date)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {t(`maintenance.priority.${task.priority}`)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(task.status)}>
+                          {t(`maintenance.status.${task.status}`)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={currentPage === page ? "default" : "outline"}
-              onClick={() => handlePageChange(page)}
-              className="w-8 h-8 p-0"
-            >
-              {page}
-            </Button>
-          ))}
-        </div>
+          <Pagination>
+            <PaginationContent>
+              {currentPage > 1 && (
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href="#"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  />
+                </PaginationItem>
+              )}
+              {[...Array(totalPages)].map((_, i) => (
+                <PaginationItem key={i + 1}>
+                  <PaginationLink
+                    href="#"
+                    onClick={() => handlePageChange(i + 1)}
+                    isActive={currentPage === i + 1}
+                  >
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              {currentPage < totalPages && (
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  />
+                </PaginationItem>
+              )}
+            </PaginationContent>
+          </Pagination>
+        </>
       )}
     </div>
   )
+}
+
+function getStatusVariant(status: string) {
+  switch (status) {
+    case "completed":
+      return "success"
+    case "in_progress":
+      return "warning"
+    case "scheduled":
+      return "secondary"
+    default:
+      return "default"
+  }
 } 

@@ -1,22 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils"
-import { getSupabaseClient } from "@/lib/db/client"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
+import { Search, Plus, Calendar, Clipboard } from "lucide-react"
+import { ViewToggle } from "@/components/ui/view-toggle"
+import Link from "next/link"
 import { useDebounce } from "@/hooks/use-debounce"
 import {
   Select,
@@ -26,106 +16,101 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { ViewToggle } from "@/components/ui/view-toggle"
-import { Calendar, User, CheckCircle } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/utils"
+import { useI18n } from "@/lib/i18n/context"
+import type { Inspection, DbVehicle } from "@/types"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import Image from "next/image"
+import { supabase } from "@/lib/supabase"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-interface Inspection {
-  id: string
-  vehicle_id: string
-  status: string
-  created_at: string
-  due_date: string
-  vehicle: {
-    id: string
-    name: string
-    plate_number: string
-  }
-  inspector?: {
-    name: string
-  }
-  schedule_type: string
-  date: string
-  completed_items?: number
+interface InspectionListProps {
+  inspections: Inspection[]
+  vehicles: DbVehicle[]
+  currentPage?: number
+  totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 9
 
-function capitalizeFirstLetter(text: string | null) {
-  if (!text) return 'N/A'
-  return text.charAt(0).toUpperCase() + text.slice(1)
-}
-
-export function InspectionList() {
+export function InspectionList({ inspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [inspections, setInspections] = useState<Inspection[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState(searchParams.get("status") || 'all')
-  const [search, setSearch] = useState(searchParams.get("search") || '')
-  const [totalPages, setTotalPages] = useState(1)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
-  const currentPage = Number(searchParams.get("page")) || 1
-  const [view, setView] = useState<"list" | "grid">("list")
+  const { t, language } = useI18n()
+  const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
 
   useEffect(() => {
-    async function fetchInspections() {
+    async function loadVehicleData() {
       try {
-        setIsLoading(true)
-        const from = (currentPage - 1) * ITEMS_PER_PAGE
-        const to = from + ITEMS_PER_PAGE - 1
-
-        let query = getSupabaseClient()
-          .from('inspections')
-          .select(`
-            *,
-            vehicle:vehicles(
-              id,
-              name,
-              plate_number
-            ),
-            inspection_items(
-              id,
-              category,
-              item,
-              status,
-              notes
-            )
-          `, { count: 'exact' })
-          .order('date', { ascending: false })
-          .range(from, to)
-
-        if (filter !== 'all') {
-          query = query.eq('status', filter)
-        }
-
-        if (debouncedSearch) {
-          query = query.or(`vehicle.name.ilike.%${debouncedSearch}%,vehicle.plate_number.ilike.%${debouncedSearch}%`)
-        }
-
-        const { data, error, count } = await query
-
-        console.log('Fetched inspections:', data)
-        console.log('Fetch error:', error)
-
-        if (error) throw error
-
-        setInspections(data || [])
-        setTotalPages(count ? Math.ceil(count / ITEMS_PER_PAGE) : 1)
+        const updatedInspections = await Promise.all(
+          inspections.map(async (inspection) => {
+            if (inspection.vehicle_id) {
+              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id)
+              if (vehicle) {
+                return {
+                  ...inspection,
+                  vehicle
+                }
+              }
+            }
+            return inspection
+          })
+        )
+        // Sort inspections by date (most recent first)
+        const sortedInspections = updatedInspections.sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+        setInspectionsWithVehicles(sortedInspections)
       } catch (error) {
-        console.error('Error fetching inspections:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load inspections",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
+        console.error('Error loading vehicle data:', error)
       }
     }
 
-    fetchInspections()
-  }, [currentPage, filter, debouncedSearch])
+    loadVehicleData()
+  }, [inspections, vehicles])
+
+  const filteredInspections = inspectionsWithVehicles.filter(inspection => {
+    if (!inspection) return false
+    
+    const matchesFilter = filter === 'all' || inspection.status === filter
+    const matchesSearch = !debouncedSearch || 
+      (inspection.vehicle?.name && 
+       inspection.vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+    
+    return matchesFilter && matchesSearch
+  })
+
+  const formatScheduledDate = (date: string) => {
+    return t("inspections.details.scheduledFor", {
+      date: formatDate(date)
+    })
+  }
 
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -133,212 +118,235 @@ export function InspectionList() {
     router.push(`/inspections?${params.toString()}`)
   }
 
-  const handleSearch = (term: string) => {
-    setSearch(term)
-    const params = new URLSearchParams(searchParams.toString())
-    if (term) {
-      params.set("search", term)
-    } else {
-      params.delete("search")
+  function getStatusVariant(status: string) {
+    switch (status) {
+      case "completed":
+        return "success"
+      case "in_progress":
+        return "warning"
+      case "scheduled":
+        return "secondary"
+      default:
+        return "default"
     }
-    params.set("page", "1")
-    router.push(`/inspections?${params.toString()}`)
   }
 
-  const handleFilterChange = (newFilter: string) => {
-    setFilter(newFilter)
-    const params = new URLSearchParams(searchParams.toString())
-    if (newFilter !== 'all') {
-      params.set("status", newFilter)
-    } else {
-      params.delete("status")
-    }
-    params.set("page", "1")
-    router.push(`/inspections?${params.toString()}`)
-  }
-
-  const filteredInspections = inspections.filter(inspection => {
-    const matchesFilter = filter === 'all' || inspection.status === filter
-    const matchesSearch = !search || 
-      inspection.vehicle.name.toLowerCase().includes(search.toLowerCase()) ||
-      inspection.inspector?.name?.toLowerCase().includes(search.toLowerCase())
-    
-    return matchesFilter && matchesSearch
-  })
-
-  if (isLoading) {
-    return <div>Loading...</div>
+  const getInspectionType = (type: string | null | undefined) => {
+    if (!type) return 'unspecified'
+    const baseType = type.split('_')[0]
+    return baseType || 'unspecified'
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search inspections..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-9"
-          />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{t("inspections.title")}</h1>
+          <p className="text-muted-foreground">
+            {t("inspections.description")}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={filter} onValueChange={handleFilterChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-          <ViewToggle view={view} onViewChange={setView} />
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("inspections.addInspection")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href="/inspections/schedule" className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" />
+                {t("inspections.schedule.title")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/inspections/create" className="flex items-center">
+                <Clipboard className="mr-2 h-4 w-4" />
+                {t("inspections.createDirect")}
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {view === "list" ? (
-        <div className="rounded-md border">
-          {/* Desktop Table */}
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInspections.map((inspection) => (
-                  <TableRow key={inspection.id}>
-                    <TableCell className="font-medium">
-                      {inspection.vehicle.name}
-                    </TableCell>
-                    <TableCell>{formatDate(inspection.date)}</TableCell>
-                    <TableCell>
-                      {capitalizeFirstLetter(inspection.schedule_type)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(inspection.status)}>
-                        {inspection.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/inspections/${inspection.id}`}>
-                          View Details
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t("inspections.searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
-
-          {/* Mobile List */}
-          <div className="divide-y md:hidden">
-            {filteredInspections.map((inspection) => (
-              <Link 
-                key={inspection.id} 
-                href={`/inspections/${inspection.id}`}
-                className="block p-4 hover:bg-muted/50"
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant={filter === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilter('all')}
               >
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">{inspection.vehicle.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {capitalizeFirstLetter(inspection.schedule_type)} • {formatDate(inspection.date)}
-                    </p>
-                  </div>
-                  <Badge variant={getStatusVariant(inspection.status)}>
-                    {inspection.status}
-                  </Badge>
-                </div>
-              </Link>
-            ))}
+                {t("common.all")}
+              </Button>
+              <Button 
+                variant={filter === 'scheduled' ? 'default' : 'outline'}
+                onClick={() => setFilter('scheduled')}
+              >
+                {t("inspections.status.scheduled")}
+              </Button>
+              <Button 
+                variant={filter === 'in_progress' ? 'default' : 'outline'}
+                onClick={() => setFilter('in_progress')}
+              >
+                {t("inspections.status.in_progress")}
+              </Button>
+              <Button 
+                variant={filter === 'completed' ? 'default' : 'outline'}
+                onClick={() => setFilter('completed')}
+              >
+                {t("inspections.status.completed")}
+              </Button>
+            </div>
+            <ViewToggle view={view} onViewChange={setView} />
           </div>
         </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredInspections.map((inspection) => (
-            <Card key={inspection.id}>
-              <CardContent className="p-4">
-                <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{inspection.vehicle.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {capitalizeFirstLetter(inspection.schedule_type)} Inspection
-                      </p>
-                    </div>
-                    <Badge variant={getStatusVariant(inspection.status)}>
-                      {inspection.status}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>Date: {formatDate(inspection.date)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span>Inspector: {inspection.inspector?.name || 'Unassigned'}</span>
-                    </div>
-                    {inspection.completed_items && (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>{inspection.completed_items} items completed</span>
-                      </div>
-                    )}
-                  </div>
-                  <Button 
-                    variant="secondary" 
-                    className="w-full mt-2" 
-                    asChild
-                  >
-                    <Link href={`/inspections/${inspection.id}`}>
-                      View Details
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <Button
-              key={page}
-              variant={currentPage === page ? "default" : "outline"}
-              onClick={() => handlePageChange(page)}
-              className="w-8 h-8 p-0"
-            >
-              {page}
-            </Button>
-          ))}
-        </div>
-      )}
+        {filteredInspections.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
+            <p className="text-muted-foreground text-center">
+              {t("inspections.noInspections")}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className={view === "grid" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "rounded-md border"}>
+              {view === "grid" ? (
+                filteredInspections.map((inspection) => (
+                  <Card key={inspection.id}>
+                    <Link href={`/inspections/${inspection.id}`}>
+                      <div className="relative aspect-video w-full">
+                        {inspection.vehicle?.image_url ? (
+                          <Image
+                            src={inspection.vehicle.image_url}
+                            alt={inspection.vehicle?.name || ""}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <p className="text-muted-foreground">{t('inspections.details.vehicleInfo.noImage')}</p>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col space-y-4">
+                        <div className="space-y-2">
+                          {inspection.vehicle && (
+                            <div className="space-y-1">
+                              <h3 className="font-medium">{inspection.vehicle.name}</h3>
+                              <p className="text-sm text-muted-foreground">{inspection.vehicle.plate_number}</p>
+                            </div>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {formatScheduledDate(inspection.date)}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Badge variant={getStatusVariant(inspection.status)}>
+                            {t(`inspections.status.${inspection.status}`)}
+                          </Badge>
+                          <Badge variant="outline">
+                            {t(`inspections.type.${getInspectionType(inspection.type)}`)}
+                          </Badge>
+                        </div>
+                        <Button variant="secondary" className="w-full" asChild>
+                          <Link href={`/inspections/${inspection.id}`}>
+                            {t("common.viewDetails")}
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("vehicles.fields.name")}</TableHead>
+                      <TableHead>{t("inspections.fields.date")}</TableHead>
+                      <TableHead>{t("inspections.type.select")}</TableHead>
+                      <TableHead>{t("common.status")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredInspections.map((inspection) => (
+                      <TableRow 
+                        key={inspection.id}
+                        className="cursor-pointer hover:bg-accent"
+                        onClick={() => router.push(`/inspections/${inspection.id}`)}
+                      >
+                        <TableCell className="font-medium">
+                          {inspection.vehicle?.name}
+                          {inspection.vehicle?.plate_number && (
+                            <span className="text-muted-foreground ml-2">
+                              ({inspection.vehicle.plate_number})
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatDate(inspection.date)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {t(`inspections.type.${getInspectionType(inspection.type)}`)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(inspection.status)}>
+                            {t(`inspections.status.${inspection.status}`)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+
+            <Pagination>
+              <PaginationContent>
+                {currentPage > 1 && (
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      href="#"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                    />
+                  </PaginationItem>
+                )}
+                {[...Array(totalPages)].map((_, i) => (
+                  <PaginationItem key={i + 1}>
+                    <PaginationLink
+                      href="#"
+                      onClick={() => handlePageChange(i + 1)}
+                      isActive={currentPage === i + 1}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                {currentPage < totalPages && (
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                    />
+                  </PaginationItem>
+                )}
+              </PaginationContent>
+            </Pagination>
+          </>
+        )}
+      </div>
     </div>
   )
-}
-
-function getStatusVariant(status: string) {
-  switch (status) {
-    case "completed":
-      return "success"
-    case "in_progress":
-      return "warning"
-    case "failed":
-      return "destructive"
-    default:
-      return "secondary"
-  }
 } 

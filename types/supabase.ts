@@ -72,7 +72,7 @@ export interface Database {
           vehicle_id: string
           title: string
           description?: string
-          status: "pending" | "in_progress" | "completed" | "overdue"
+          status: "scheduled" | "in_progress" | "completed" | "overdue"
           priority: "low" | "medium" | "high"
           due_date: string
           completed_date?: string
@@ -80,10 +80,11 @@ export interface Database {
           cost?: number
           notes?: string
           created_at: string
-          updated_at: string
           user_id: string
+          inspection_id?: string
+          started_at?: string
         }
-        Insert: Omit<Database['public']['Tables']['maintenance_tasks']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<Database['public']['Tables']['maintenance_tasks']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['maintenance_tasks']['Insert']>
       }
       mileage_entries: {

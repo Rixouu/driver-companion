@@ -5,15 +5,15 @@ export interface DbVehicle {
   id: string
   name: string
   plate_number: string
-  brand: string
-  model: string
-  year: string
-  status: "active" | "maintenance" | "inactive"
+  brand?: string
+  model?: string
+  year?: string
+  status: string
   image_url?: string
   created_at: string
   updated_at: string
   user_id: string
-  vin: string
+  vin?: string
   maintenance_tasks?: MaintenanceTask[]
   inspections?: Inspection[]
 }
@@ -46,11 +46,11 @@ export type VehicleWithRelations = DbVehicle & {
 }
 
 export type InspectionWithVehicle = DbInspection & {
-  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number'>
+  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number' | 'image_url'>
 }
 
 export type MaintenanceWithVehicle = DbMaintenance & {
-  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number'>
+  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number' | 'image_url'>
 }
 
 // Enums and Constants
@@ -81,20 +81,53 @@ export type NewInspectionData = {
 // Add these interfaces if they don't exist
 export interface MaintenanceTask {
   id: string
+  vehicle_id: string
   title: string
-  status: string
-  due_date: string
+  description?: string
+  status: 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
   priority: 'high' | 'medium' | 'low'
-  completed_date?: string
-  notes?: string
-  cost?: number
+  due_date: string
   estimated_duration?: number
+  cost?: number
+  notes?: string
+  user_id: string
+  created_at: string
+  started_at?: string
+  completed_date?: string
+  vehicle?: {
+    id: string
+    name: string
+    plate_number: string
+    image_url?: string
+    brand?: string
+  }
 }
 
 export interface Inspection {
   id: string
-  status: string
-  schedule_type: string
-  due_date: string
+  vehicle_id: string
+  inspector_id: string
+  type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  date: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  vehicle?: {
+    id: string
+    name: string
+    plate_number: string
+    image_url?: string
+  }
+  inspector?: {
+    id: string
+    name: string
+  }
+}
+
+export interface InspectionFormData {
+  vehicle_id: string
+  type: Inspection['type']
+  date: string
   notes?: string
 } 

@@ -75,4 +75,31 @@ export async function deleteVehicle(id: string) {
     .eq('id', id)
 
   if (error) throw error
+}
+
+export async function getVehicle(id: string) {
+  try {
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(`
+        *,
+        maintenance_tasks (
+          id,
+          title,
+          description,
+          status,
+          due_date,
+          completed_date
+        )
+      `)
+      .eq("id", id)
+      .single()
+
+    if (error) throw error
+
+    return { vehicle: data }
+  } catch (error) {
+    console.error("Error:", error)
+    return { vehicle: null }
+  }
 } 

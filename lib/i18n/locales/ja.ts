@@ -28,7 +28,7 @@ export const ja: Translations = {
     actions: "アクション",
     viewDetails: "詳細を表示",
     addNew: "新規追加",
-    backTo: "{page}に戻る",
+    backTo: "一覧に戻る",
     saving: "保存中...",
     update: "更新",
     create: "作成",
@@ -871,6 +871,60 @@ export const ja: Translations = {
         noCompleted: "完了した点検はありません"
       }
     },
+  },
+  fuel: {
+    title: "燃料ログ",
+    description: "燃料補給の記録を管理",
+    new: {
+      title: "新規燃料ログ",
+      description: "新しい燃料補給を記録"
+    },
+    edit: {
+      title: "燃料ログを編集",
+      description: "燃料補給の記録を編集"
+    },
+    fields: {
+      date: "日付",
+      odometer_reading: "走行距離",
+      fuel_amount: "給油量",
+      fuel_cost: "費用",
+      fuel_type: "燃料タイプ",
+      station_name: "給油所",
+      full_tank: "満タン給油",
+      notes: "メモ"
+    },
+    messages: {
+      created: "燃料ログを作成しました",
+      updated: "燃料ログを更新しました",
+      deleted: "燃料ログを削除しました",
+      error: "エラーが発生しました"
+    }
+  },
+  mileage: {
+    title: "走行距離ログ",
+    description: "走行距離の記録を管理",
+    new: {
+      title: "新規走行距離ログ",
+      description: "新しい走行距離を記録"
+    },
+    edit: {
+      title: "走行距離ログを編集",
+      description: "走行距離の記録を編集"
+    },
+    fields: {
+      date: "日付",
+      start_odometer: "開始時の走行距離",
+      end_odometer: "終了時の走行距離",
+      distance: "走行距離",
+      purpose: "目的",
+      notes: "メモ"
+    },
+    messages: {
+      created: "走行距離ログを作成しました",
+      updated: "走行距離ログを更新しました",
+      deleted: "走行距離ログを削除しました",
+      error: "エラーが発生しました"
+    }
   },
   labels: {
     due: "{date}まで",

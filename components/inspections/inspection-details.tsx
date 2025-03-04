@@ -290,310 +290,199 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   const itemsWithNotes = items.filter(item => item.notes).length
   const totalPhotos = items.reduce((sum, item) => sum + (item.inspection_photos?.length || 0), 0)
 
+  const tabs = [
+    { value: "details", label: t("inspections.details.tabs.details"), icon: FileText },
+    { value: "failed", label: t("inspections.details.tabs.failed"), icon: XCircle },
+    { value: "passed", label: t("inspections.details.tabs.passed"), icon: CheckCircle },
+  ]
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2"
-            asChild
-          >
-            <Link href="/inspections" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t("common.backTo", { page: t("inspections.title").toLowerCase() })}
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">
-            {t(`inspections.type.${inspection.type}`)}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("inspections.details.scheduledFor", { date: formatDate(inspection.date) })}
-            </p>
-          </div>
-        <div className="flex gap-2">
-          {inspection.status === 'scheduled' && (
-            <Button
-              variant="default"
-              onClick={handleStartInspection}
-              disabled={isUpdating}
-            >
-              <Play className="mr-2 h-4 w-4" />
-              {t("inspections.actions.markInProgress")}
-            </Button>
-          )}
-          {inspection.status === 'in_progress' && (
-            <Button
-              variant="default"
-              onClick={() => router.push(`/inspections/${inspection.id}/perform`)}
-              disabled={isUpdating}
-            >
-              <Play className="mr-2 h-4 w-4" />
-              {t("inspections.actions.resume")}
-            </Button>
-          )}
-        </div>
-          </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
+      {/* Header Card */}
       <Card>
-        <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{t("inspections.details.vehicleDetails")}</CardTitle>
-                <CardDescription>{inspection.vehicle?.name}</CardDescription>
-              </div>
-              <Badge variant={getStatusVariant(inspection.status)}>
-                {t(`inspections.status.${inspection.status}`)}
-              </Badge>
+        <CardHeader className="space-y-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+                asChild
+              >
+                <Link href={`/vehicles/${inspection.vehicle_id}`}>
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('common.backTo')}
+                </Link>
+              </Button>
             </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Printer className="h-4 w-4" />
+                {t('inspections.details.actions.print')}
+              </Button>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Download className="h-4 w-4" />
+                {t('inspections.details.actions.export')}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden">
-              {inspection.vehicle?.image_url ? (
-                <Image
-                  src={inspection.vehicle.image_url}
-                  alt={inspection.vehicle?.name || ""}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <p className="text-muted-foreground">{t('inspections.details.vehicleInfo.noImage')}</p>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-          <div>
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  {t("vehicles.fields.plateNumber")}
-                </h3>
-                <p>{inspection.vehicle?.plate_number}</p>
-          </div>
-          <div>
-                <h3 className="font-medium text-sm text-muted-foreground">
-                  {t("vehicles.fields.brand")}
-                </h3>
-                <p>{inspection.vehicle?.brand || 'N/A'}</p>
-          </div>
-          </div>
-        </CardContent>
       </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("inspections.details.inspectionDetails")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-medium mb-2">{t("inspections.fields.type")}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t(`inspections.type.description.${inspection.type}`)}
-              </p>
-            </div>
-            
-            {/* Inspection Results Summary */}
-            {(inspection.status === 'completed' || inspection.status === 'in_progress') && items.length > 0 && (
-              <div className="pt-4 border-t">
-                <h3 className="font-medium mb-3">{t("inspections.details.results.title")}</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.passCount", { count: String(passedItems) })}</p>
-                    <p className="text-xl font-semibold mt-1 text-green-600 dark:text-green-400">{passedItems}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.failCount", { count: String(failedItems) })}</p>
-                    <p className="text-xl font-semibold mt-1 text-red-600 dark:text-red-400">{failedItems}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.photoCount", { count: String(totalPhotos) })}</p>
-                    <p className="text-xl font-semibold mt-1">{totalPhotos}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.notesCount", { count: String(itemsWithNotes) })}</p>
-                    <p className="text-xl font-semibold mt-1">{itemsWithNotes}</p>
-                  </div>
-                </div>
-                
-                {/* Completion Rate Progress Bar */}
-                {totalItems > 0 && (
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="text-sm font-medium">{t("inspections.details.results.completionRate")}</p>
-                      <p className="text-sm font-medium">{Math.round(((passedItems + failedItems) / totalItems) * 100)}%</p>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2.5">
-                      <div 
-                        className="bg-primary h-2.5 rounded-full" 
-                        style={{ width: `${Math.round(((passedItems + failedItems) / totalItems) * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Last Updated */}
-                <div className="mt-4 text-sm text-muted-foreground">
-                  <p>{t("inspections.details.results.lastUpdated")}: {formatDate(inspection.updated_at || inspection.created_at)}</p>
-                </div>
-              </div>
-            )}
-            
-            {inspection.notes && (
-              <div className="pt-4 border-t">
-                <h3 className="font-medium mb-2">{t("inspections.fields.notes")}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {inspection.notes}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Only show items if this is a completed or in-progress inspection */}
-      {(inspection.status === 'completed' || inspection.status === 'in_progress') && items.length > 0 && (
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              {t("inspections.details.tabs.details")}
-            </TabsTrigger>
-            <TabsTrigger value="failed" className="flex items-center gap-2">
-              <XCircle className="h-4 w-4" />
-              {t("inspections.details.tabs.failed")}
-            </TabsTrigger>
-            <TabsTrigger value="passed" className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              {t("inspections.details.tabs.passed")}
-            </TabsTrigger>
+      {/* Tabs Section */}
+      <Tabs defaultValue="details" className="w-full">
+        {/* Desktop Tabs */}
+        <div className="hidden md:block">
+          <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="relative rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                <tab.icon className="h-4 w-4 mr-2" />
+                {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
-          <TabsContent value="details">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <CardTitle>{t("inspections.details.results.title")}</CardTitle>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 mt-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {t("inspections.details.results.lastUpdated")}: {formatDate(inspection.updated_at || inspection.date)}
-                  </div>
-                  <div>
-                    {t("inspections.details.results.completionRate")}: {Math.round(((passedItems + failedItems) / totalItems) * 100)}%
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {items.map((item) => (
-                  <Card key={item.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-base">
-                            {(() => {
-                              const keys = getTranslationKeys(item.template?.name)
-                              const translatedTitle = keys.section && keys.item
-                                ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
-                                : item.template?.name
-                              return translatedTitle || t('common.noResults')
-                            })()}
-                          </CardTitle>
-                          {item.template?.description && (
-                            <CardDescription>
-                              {(() => {
-                                const keys = getTranslationKeys(item.template?.name)
-                                const translatedDescription = keys.section && keys.item
-                                  ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
-                                  : item.template?.description
-                                return translatedDescription || item.template?.description || ''
-                              })()}
-                            </CardDescription>
-                          )}
-                        </div>
-                        <Badge variant={item.status === 'pass' ? 'success' : 'destructive'}>
-                          {item.status === 'pass' ? t('inspections.actions.pass') : t('inspections.actions.fail')}
-                        </Badge>
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
+          <TabsList className="w-full grid grid-cols-3 gap-0">
+            {tabs.map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex flex-col items-center py-4 px-2 gap-2 min-h-[5rem]"
+              >
+                <tab.icon className="h-6 w-6" />
+                <span className="text-sm font-medium text-center whitespace-normal leading-tight">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        {/* Tab Content with Mobile Padding */}
+        <div className="mt-4 pb-24 md:pb-0">
+          <TabsContent value="details" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Vehicle Info Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('inspections.details.vehicleDetails')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden">
+                    {inspection.vehicle?.image_url ? (
+                      <Image
+                        src={inspection.vehicle.image_url}
+                        alt={inspection.vehicle?.name || ""}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <p className="text-muted-foreground">{t('inspections.details.vehicleInfo.noImage')}</p>
                       </div>
-                    </CardHeader>
-                    {(item.notes || (item.inspection_photos && item.inspection_photos.length > 0)) && (
-                      <CardContent>
-                        {item.notes && (
-                          <div className="mb-4">
-                            <h3 className="font-medium text-sm text-muted-foreground mb-1">{t('inspections.fields.notes')}</h3>
-                            <p>{item.notes}</p>
-                          </div>
-                        )}
-                        {item.inspection_photos && item.inspection_photos.length > 0 && (
-                          <div>
-                            <h3 className="font-medium text-sm text-muted-foreground mb-2">{t('inspections.details.photos.title')}</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                              {item.inspection_photos.map((photo) => (
-                                <div key={photo.id} className="group relative aspect-square">
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <button className="w-full h-full" title={t('inspections.fields.photo')}>
-                                        <Image
-                                          src={photo.photo_url}
-                                          alt={t('inspections.fields.photo')}
-                                          fill
-                                          className="rounded-lg object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                                          <Expand className="h-6 w-6 text-white" />
-                                        </div>
-                                      </button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-4xl">
-                                      <div className="relative aspect-video w-full">
-                                        <Image
-                                          src={photo.photo_url}
-                                          alt={t('inspections.fields.photo')}
-                                          fill
-                                          className="rounded-lg object-contain"
-                                        />
-                                      </div>
-                                      <div className="flex justify-end gap-2 mt-4">
-                                        <Button variant="outline" size="sm" asChild>
-                                          <a href={photo.photo_url} download target="_blank" rel="noopener noreferrer">
-                                            <Download className="h-4 w-4 mr-2" />
-                                            {t('inspections.details.photos.downloadPhoto')}
-                                          </a>
-                                        </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
                     )}
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">
+                        {t("vehicles.fields.plateNumber")}
+                      </h3>
+                      <p>{inspection.vehicle?.plate_number}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">
+                        {t("vehicles.fields.brand")}
+                      </h3>
+                      <p>{inspection.vehicle?.brand || 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Inspection Details Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('inspections.details.inspectionDetails')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h3 className="font-medium mb-2">{t("inspections.fields.type")}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {t(`inspections.type.description.${inspection.type}`)}
+                    </p>
+                  </div>
+                  
+                  {/* Inspection Results Summary */}
+                  {(inspection.status === 'completed' || inspection.status === 'in_progress') && items.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <h3 className="font-medium mb-3">{t("inspections.details.results.title")}</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.passCount", { count: String(passedItems) })}</p>
+                          <p className="text-xl font-semibold mt-1 text-green-600 dark:text-green-400">{passedItems}</p>
+                        </div>
+                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.failCount", { count: String(failedItems) })}</p>
+                          <p className="text-xl font-semibold mt-1 text-red-600 dark:text-red-400">{failedItems}</p>
+                        </div>
+                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.photoCount", { count: String(totalPhotos) })}</p>
+                          <p className="text-xl font-semibold mt-1">{totalPhotos}</p>
+                        </div>
+                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.notesCount", { count: String(itemsWithNotes) })}</p>
+                          <p className="text-xl font-semibold mt-1">{itemsWithNotes}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Completion Rate Progress Bar */}
+                      {totalItems > 0 && (
+                        <div className="mt-4">
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-medium">{t("inspections.details.results.completionRate")}</p>
+                            <p className="text-sm font-medium">{Math.round(((passedItems + failedItems) / totalItems) * 100)}%</p>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2.5">
+                            <div 
+                              className="bg-primary h-2.5 rounded-full" 
+                              style={{ width: `${Math.round(((passedItems + failedItems) / totalItems) * 100)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Last Updated */}
+                      <div className="mt-4 text-sm text-muted-foreground">
+                        <p>{t("inspections.details.results.lastUpdated")}: {formatDate(inspection.updated_at || inspection.created_at)}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {inspection.notes && (
+                    <div className="pt-4 border-t">
+                      <h3 className="font-medium mb-2">{t("inspections.fields.notes")}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {inspection.notes}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
-          <TabsContent value="failed">
+
+          <TabsContent value="failed" className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <CardTitle>{t("inspections.details.results.failedItemsFound", { count: String(failedItems) })}</CardTitle>
-                  
-                  {/* Add Schedule Repair button when there are failed items */}
-                  {failedItems > 0 && (
-                    <Button 
-                      onClick={handleScheduleRepair}
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
-                    >
-                      <Wrench className="mr-2 h-4 w-4" />
-                      {t("inspections.actions.scheduleRepair")}
-                    </Button>
-                  )}
-                </div>
+                <CardTitle>{t('inspections.details.results.failedItemsFound', { count: `${itemsWithTemplates.filter(item => item.status === 'fail').length}` })}</CardTitle>
+                <CardDescription>{t('inspections.details.results.failedItemsDescription')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {failedItems === 0 ? (
@@ -755,140 +644,148 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="passed" className="space-y-4 mt-4">
-            {passedItems === 0 ? (
-              <div className="text-center py-8 bg-muted/30 rounded-lg">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">{t('inspections.details.results.allPassed')}</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  {t('inspections.details.results.noFailedItems')}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+
+          <TabsContent value="passed" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('inspections.details.results.passCount', { count: `${itemsWithTemplates.filter(item => item.status === 'pass').length}` })}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {passedItems === 0 ? (
+                  <div className="text-center py-8 bg-muted/30 rounded-lg">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
-                        {t('inspections.details.results.failedItemsFound', { count: String(failedItems) })}
-                      </h3>
-                      <div className="mt-2 text-sm text-green-700 dark:text-green-300/80">
-                        <p>{t('inspections.details.results.failedItemsDescription')}</p>
+                    <h3 className="text-lg font-medium mb-2">{t('inspections.details.results.allPassed')}</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      {t('inspections.details.results.noFailedItems')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg p-4 mb-4">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
+                            {t('inspections.details.results.failedItemsFound', { count: String(failedItems) })}
+                          </h3>
+                          <div className="mt-2 text-sm text-green-700 dark:text-green-300/80">
+                            <p>{t('inspections.details.results.failedItemsDescription')}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                
-                {items
-                  .filter((item) => item.status === 'pass')
-                  .map((item, index) => (
-                    <Card key={item.id} className="border-green-200 dark:border-green-900/50 shadow-sm">
-                      <CardHeader className="bg-green-50/50 dark:bg-green-900/20">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-1">
-                              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 font-medium text-sm">
-                                {index + 1}
-                              </div>
-                            </div>
-                            <div>
-                              <CardTitle className="text-base text-green-800 dark:text-green-300">
-                                {(() => {
-                                  const keys = getTranslationKeys(item.template?.name)
-                                  const translatedTitle = keys.section && keys.item
-                                    ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
-                                    : item.template?.name
-                                  return translatedTitle || t('common.noResults')
-                                })()}
-                              </CardTitle>
-                              {item.template?.description && (
-                                <CardDescription className="text-green-700/80 dark:text-green-400/80">
-                                  {(() => {
-                                    const keys = getTranslationKeys(item.template?.name)
-                                    const translatedDescription = keys.section && keys.item
-                                      ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
-                                      : item.template?.description
-                                    return translatedDescription || item.template?.description || ''
-                                  })()}
-                                </CardDescription>
-                              )}
-                            </div>
-                          </div>
-                          <Badge variant="success">{t('inspections.actions.pass')}</Badge>
-                        </div>
-                      </CardHeader>
-                      {(item.notes || (item.inspection_photos && item.inspection_photos.length > 0)) && (
-                        <CardContent className="pt-4">
-                          {item.notes && (
-                            <div className="mb-4 bg-muted/30 p-3 rounded-md">
-                              <h3 className="font-medium text-sm mb-1 flex items-center gap-1">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
-                                {t('inspections.fields.notes')}
-                              </h3>
-                              <p className="text-sm">{item.notes}</p>
-                            </div>
-                          )}
-                          {item.inspection_photos && item.inspection_photos.length > 0 && (
-                            <div>
-                              <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
-                                {t('inspections.details.photos.title')} ({item.inspection_photos.length})
-                              </h3>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                {item.inspection_photos.map((photo) => (
-                                  <div key={photo.id} className="group relative aspect-square rounded-md overflow-hidden border border-green-200 dark:border-green-900/30">
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <button className="w-full h-full" title={t('inspections.fields.photo')}>
-                                          <Image
-                                            src={photo.photo_url}
-                                            alt={t('inspections.fields.photo')}
-                                            fill
-                                            className="object-cover"
-                                          />
-                                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Expand className="h-6 w-6 text-white" />
-                                          </div>
-                                        </button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-4xl">
-                                        <div className="relative aspect-video w-full">
-                                          <Image
-                                            src={photo.photo_url}
-                                            alt={t('inspections.fields.photo')}
-                                            fill
-                                            className="rounded-lg object-contain"
-                                          />
-                                        </div>
-                                        <div className="flex justify-end gap-2 mt-4">
-                                          <Button variant="outline" size="sm" asChild>
-                                            <a href={photo.photo_url} download target="_blank" rel="noopener noreferrer">
-                                              <Download className="h-4 w-4 mr-2" />
-                                              {t('inspections.details.photos.downloadPhoto')}
-                                            </a>
-                                          </Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                    
+                    {items
+                      .filter((item) => item.status === 'pass')
+                      .map((item, index) => (
+                        <Card key={item.id} className="border-green-200 dark:border-green-900/50 shadow-sm">
+                          <CardHeader className="bg-green-50/50 dark:bg-green-900/20">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 font-medium text-sm">
+                                    {index + 1}
                                   </div>
-                                ))}
+                                </div>
+                                <div>
+                                  <CardTitle className="text-base text-green-800 dark:text-green-300">
+                                    {(() => {
+                                      const keys = getTranslationKeys(item.template?.name)
+                                      const translatedTitle = keys.section && keys.item
+                                        ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
+                                        : item.template?.name
+                                      return translatedTitle || t('common.noResults')
+                                    })()}
+                                  </CardTitle>
+                                  {item.template?.description && (
+                                    <CardDescription className="text-green-700/80 dark:text-green-400/80">
+                                      {(() => {
+                                        const keys = getTranslationKeys(item.template?.name)
+                                        const translatedDescription = keys.section && keys.item
+                                          ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
+                                          : item.template?.description
+                                        return translatedDescription || item.template?.description || ''
+                                      })()}
+                                    </CardDescription>
+                                  )}
+                                </div>
                               </div>
+                              <Badge variant="success">{t('inspections.actions.pass')}</Badge>
                             </div>
+                          </CardHeader>
+                          {(item.notes || (item.inspection_photos && item.inspection_photos.length > 0)) && (
+                            <CardContent className="pt-4">
+                              {item.notes && (
+                                <div className="mb-4 bg-muted/30 p-3 rounded-md">
+                                  <h3 className="font-medium text-sm mb-1 flex items-center gap-1">
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
+                                    {t('inspections.fields.notes')}
+                                  </h3>
+                                  <p className="text-sm">{item.notes}</p>
+                                </div>
+                              )}
+                              {item.inspection_photos && item.inspection_photos.length > 0 && (
+                                <div>
+                                  <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
+                                    {t('inspections.details.photos.title')} ({item.inspection_photos.length})
+                                  </h3>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                    {item.inspection_photos.map((photo) => (
+                                      <div key={photo.id} className="group relative aspect-square rounded-md overflow-hidden border border-green-200 dark:border-green-900/30">
+                                        <Dialog>
+                                          <DialogTrigger asChild>
+                                            <button className="w-full h-full" title={t('inspections.fields.photo')}>
+                                              <Image
+                                                src={photo.photo_url}
+                                                alt={t('inspections.fields.photo')}
+                                                fill
+                                                className="object-cover"
+                                              />
+                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Expand className="h-6 w-6 text-white" />
+                                              </div>
+                                            </button>
+                                          </DialogTrigger>
+                                          <DialogContent className="max-w-4xl">
+                                            <div className="relative aspect-video w-full">
+                                              <Image
+                                                src={photo.photo_url}
+                                                alt={t('inspections.fields.photo')}
+                                                fill
+                                                className="rounded-lg object-contain"
+                                              />
+                                            </div>
+                                            <div className="flex justify-end gap-2 mt-4">
+                                              <Button variant="outline" size="sm" asChild>
+                                                <a href={photo.photo_url} download target="_blank" rel="noopener noreferrer">
+                                                  <Download className="h-4 w-4 mr-2" />
+                                                  {t('inspections.details.photos.downloadPhoto')}
+                                                </a>
+                                              </Button>
+                                            </div>
+                                          </DialogContent>
+                                        </Dialog>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
                           )}
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))}
-              </div>
-            )}
+                        </Card>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
-        </Tabs>
-      )}
+        </div>
+      </Tabs>
     </div>
   )
 } 

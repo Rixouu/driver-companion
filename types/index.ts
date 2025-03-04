@@ -1,3 +1,4 @@
+import { RecursiveStringRecord } from '@/lib/i18n/types'
 import type { Database } from './supabase'
 
 // Define the base types from the database schema
@@ -163,4 +164,76 @@ export interface InspectionFormData {
   type: Inspection['type']
   date: string
   notes?: string
+}
+
+export interface FuelLog {
+  id: string
+  vehicle_id: string
+  user_id: string
+  date: string
+  odometer_reading: number
+  fuel_amount: number
+  fuel_cost: number
+  full_tank: boolean
+  created_at: string
+  vehicle?: DbVehicle
+}
+
+export interface MileageLog {
+  id: string
+  vehicle_id: string
+  user_id: string
+  date: string
+  reading: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+  vehicle?: DbVehicle
+}
+
+// Add to TranslationValues interface
+export interface TranslationValues extends RecursiveStringRecord {
+  // ... existing translations ...
+  fuel: {
+    title: string
+    description: string
+    addLog: string
+    noLogs: string
+    fields: {
+      date: string
+      odometer: string
+      amount: string
+      cost: string
+      fuelType: string
+      stationName: string
+      fullTank: string
+      notes: string
+    }
+    messages: {
+      createSuccess: string
+      updateSuccess: string
+      deleteSuccess: string
+      error: string
+    }
+  }
+  mileage: {
+    title: string
+    description: string
+    addLog: string
+    noLogs: string
+    fields: {
+      date: string
+      startOdometer: string
+      endOdometer: string
+      distance: string
+      purpose: string
+      notes: string
+    }
+    messages: {
+      createSuccess: string
+      updateSuccess: string
+      deleteSuccess: string
+      error: string
+    }
+  }
 } 

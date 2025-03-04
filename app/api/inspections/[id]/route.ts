@@ -60,7 +60,7 @@ export async function PATCH(
       .update({
         status,
         ...(status === 'in_progress' ? { started_at: new Date().toISOString() } : {}),
-        ...(status === 'completed' ? { completed_at: new Date().toISOString() } : {})
+        ...(status === 'completed' ? { completed_date: new Date().toISOString() } : {})
       })
       .eq('id', id)
       .select()

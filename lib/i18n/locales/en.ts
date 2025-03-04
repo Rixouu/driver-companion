@@ -28,7 +28,7 @@ export const en: Translations = {
     actions: "Actions",
     viewDetails: "View Details",
     addNew: "Add New",
-    backTo: "Back to {page}",
+    backTo: "Back to List",
     saving: "Saving...",
     update: "Update",
     create: "Create",
@@ -883,5 +883,61 @@ export const en: Translations = {
       scheduled: "Scheduled",
       inProgress: "In Progress"
     }
-  }
-} as const 
+  },
+  fuel: {
+    title: "Fuel Logs",
+    description: "Track your vehicle's fuel consumption and expenses.",
+    new: {
+      title: "Add Fuel Log",
+      description: "Record a new fuel fill-up for your vehicle.",
+    },
+    edit: {
+      title: "Edit Fuel Log",
+      description: "Update the details of your fuel log.",
+    },
+    fields: {
+      date: "Date",
+      odometer_reading: "Odometer Reading",
+      fuel_amount: "Fuel Amount (Liters)",
+      fuel_cost: "Fuel Cost",
+      fuel_type: "Fuel Type",
+      station_name: "Station Name",
+      full_tank: "Full Tank",
+      notes: "Notes",
+    },
+    messages: {
+      created: "Fuel log created successfully",
+      updated: "Fuel log updated successfully",
+      deleted: "Fuel log deleted successfully",
+      error: "Something went wrong",
+    },
+  },
+  mileage: {
+    title: "Mileage Logs",
+    description: "Track your vehicle's mileage and trips.",
+    new: {
+      title: "Add Mileage Log",
+      description: "Record a new trip for your vehicle.",
+    },
+    edit: {
+      title: "Edit Mileage Log",
+      description: "Update the details of your mileage log.",
+    },
+    fields: {
+      date: "Date",
+      start_odometer: "Start Odometer",
+      end_odometer: "End Odometer",
+      distance: "Distance",
+      purpose: "Purpose",
+      notes: "Notes",
+    },
+    messages: {
+      created: "Mileage log created successfully",
+      updated: "Mileage log updated successfully",
+      deleted: "Mileage log deleted successfully",
+      error: "Something went wrong",
+    },
+  },
+} as const
+
+export default en 

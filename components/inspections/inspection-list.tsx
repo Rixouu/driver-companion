@@ -53,7 +53,7 @@ interface InspectionListProps {
   totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 9
+const ITEMS_PER_PAGE = 6
 
 export function InspectionList({ inspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
   const router = useRouter()
@@ -105,6 +105,11 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     
     return matchesFilter && matchesSearch
   })
+
+  // Calculate pagination
+  const totalFilteredPages = Math.ceil(filteredInspections.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedInspections = filteredInspections.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
   const formatScheduledDate = (date: string) => {
     return t("inspections.details.scheduledFor", {
@@ -212,7 +217,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           </div>
         </div>
 
-        {filteredInspections.length === 0 ? (
+        {paginatedInspections.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
             <p className="text-muted-foreground text-center">
               {t("inspections.noInspections")}
@@ -222,7 +227,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           <>
             <div className={view === "grid" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "rounded-md border"}>
               {view === "grid" ? (
-                filteredInspections.map((inspection) => (
+                paginatedInspections.map((inspection) => (
                   <Card key={inspection.id}>
                     <Link href={`/inspections/${inspection.id}`}>
                       <div className="relative aspect-video w-full">
@@ -276,12 +281,12 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     <TableRow>
                       <TableHead>{t("vehicles.fields.name")}</TableHead>
                       <TableHead>{t("inspections.fields.date")}</TableHead>
-                      <TableHead>{t("inspections.type.select")}</TableHead>
-                      <TableHead>{t("common.status")}</TableHead>
+                      <TableHead>{t("inspections.fields.type")}</TableHead>
+                      <TableHead>{t("inspections.fields.status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredInspections.map((inspection) => (
+                    {paginatedInspections.map((inspection) => (
                       <TableRow 
                         key={inspection.id}
                         className="cursor-pointer hover:bg-accent"
@@ -323,7 +328,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     />
                   </PaginationItem>
                 )}
-                {[...Array(totalPages)].map((_, i) => (
+                {[...Array(totalFilteredPages)].map((_, i) => (
                   <PaginationItem key={i + 1}>
                     <PaginationLink
                       href="#"
@@ -334,7 +339,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     </PaginationLink>
                   </PaginationItem>
                 ))}
-                {currentPage < totalPages && (
+                {currentPage < totalFilteredPages && (
                   <PaginationItem>
                     <PaginationNext
                       href="#"

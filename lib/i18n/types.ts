@@ -902,6 +902,60 @@ export interface TranslationValues extends RecursiveStringRecord {
       details: string
     }
   }
+  fuel: {
+    title: string
+    description: string
+    new: {
+      title: string
+      description: string
+    }
+    edit: {
+      title: string
+      description: string
+    }
+    fields: {
+      date: string
+      odometer_reading: string
+      fuel_amount: string
+      fuel_cost: string
+      fuel_type: string
+      station_name: string
+      full_tank: string
+      notes: string
+    }
+    messages: {
+      created: string
+      updated: string
+      deleted: string
+      error: string
+    }
+  }
+  mileage: {
+    title: string
+    description: string
+    new: {
+      title: string
+      description: string
+    }
+    edit: {
+      title: string
+      description: string
+    }
+    fields: {
+      date: string
+      start_odometer: string
+      end_odometer: string
+      distance: string
+      purpose: string
+      notes: string
+    }
+    messages: {
+      created: string
+      updated: string
+      deleted: string
+      error: string
+    }
+  }
 }
 
 export type Translations = TranslationValues 

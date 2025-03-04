@@ -37,7 +37,7 @@ interface VehicleListProps {
   totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 9
+const ITEMS_PER_PAGE = 6
 
 export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: VehicleListProps) {
   const router = useRouter()
@@ -177,7 +177,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                   <TableRow>
                     <TableHead>{t("vehicles.fields.name")}</TableHead>
                     <TableHead>{t("vehicles.fields.plateNumber")}</TableHead>
-                    <TableHead>{t("common.status")}</TableHead>
+                    <TableHead>{t("vehicles.fields.status")}</TableHead>
                     <TableHead className="text-right">{t("common.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>

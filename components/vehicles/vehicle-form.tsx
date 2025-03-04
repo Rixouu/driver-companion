@@ -33,6 +33,7 @@ import { decode } from "@/lib/utils"
 import { Car } from "lucide-react"
 import { useState, useEffect } from "react"
 import { z } from "zod"
+import { useAuth } from "@/components/providers/auth-provider"
 
 interface VehicleFormProps {
   vehicle?: {
@@ -55,6 +56,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   const { t } = useI18n()
   const router = useRouter()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(vehicle?.image_url || null)
@@ -96,6 +98,15 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   }, []);
 
   async function onSubmit(data: z.infer<typeof vehicleSchema>) {
+    if (!user) {
+      toast({
+        title: t('common.error'),
+        description: t('common.loginRequired'),
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setIsSubmitting(true)
 
@@ -143,6 +154,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       const vehicleData = {
         ...data,
         image_url: imageUrl,
+        user_id: user.id,
       }
 
       let result;

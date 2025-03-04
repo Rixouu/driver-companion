@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { db } from "@/lib/db"
 import { isAfter, isBefore, addDays } from "date-fns"
 
 export async function GET(
-  request: Request,
-  { params }: { params: { vehicleId: string } }
+  _request: Request,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { data, error } = await supabase
+    const { data: tasks } = await db
       .from("maintenance_tasks")
       .select("*")
-      .eq("vehicle_id", params.vehicleId)
+      .eq("vehicle_id", params.id)
       .eq("status", "scheduled")
       .order("due_date", { ascending: true })
-      .limit(5)
 
-    if (error) throw error
+    if (!tasks) {
+      return NextResponse.json({ error: "No tasks found" }, { status: 404 })
+    }
 
-    const upcomingServices = data.map(task => ({
+    const upcomingServices = tasks.map(task => ({
       id: task.id,
       title: task.title,
       dueDate: task.due_date,
@@ -29,10 +30,7 @@ export async function GET(
 
     return NextResponse.json(upcomingServices)
   } catch (error) {
-    console.error("Failed to fetch upcoming services:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch upcoming services" },
-      { status: 500 }
-    )
+    console.error("Error fetching upcoming maintenance:", error)
+    return new NextResponse("Error fetching upcoming maintenance", { status: 500 })
   }
 } 

@@ -2,7 +2,9 @@ import {
   Loader2,
   LucideProps,
   Wrench,
-  Car
+  Car,
+  MoreVertical,
+  BoxSelect,
 } from "lucide-react"
 
 export const Icons = {
@@ -30,4 +32,6 @@ export const Icons = {
     </svg>
   ),
   maintenance: Wrench,
+  empty: BoxSelect,
+  more: MoreVertical,
 } 

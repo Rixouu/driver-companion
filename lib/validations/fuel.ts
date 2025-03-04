@@ -1,10 +1,11 @@
-import { z } from "zod"
+import * as z from "zod"
 
-export const fuelEntrySchema = z.object({
-  date: z.string().datetime(),
-  liters: z.number().positive(),
-  cost: z.number().positive(),
-  mileage: z.number().positive(),
+export const fuelLogSchema = z.object({
+  date: z.string(),
+  odometer_reading: z.number().min(0),
+  fuel_amount: z.number().min(0),
+  fuel_cost: z.number().min(0),
+  full_tank: z.boolean().default(true),
 })
 
-export type FuelEntryFormData = z.infer<typeof fuelEntrySchema> 
+export type FuelLogFormData = z.infer<typeof fuelLogSchema> 

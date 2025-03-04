@@ -47,7 +47,7 @@ interface MaintenanceListProps {
   totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 9
+const ITEMS_PER_PAGE = 6
 
 export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, totalPages = 1 }: MaintenanceListProps) {
   const router = useRouter()
@@ -101,6 +101,11 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
     
     return matchesFilter && matchesSearch
   })
+
+  // Calculate pagination
+  const totalFilteredPages = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedTasks = filteredTasks.slice(startIndex, startIndex + ITEMS_PER_PAGE)
 
   const formatScheduledDate = (date: string) => {
     return t("maintenance.details.scheduledFor", {
@@ -157,7 +162,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
         </div>
       </div>
 
-      {filteredTasks.length === 0 ? (
+      {paginatedTasks.length === 0 ? (
         <p className="text-center text-muted-foreground py-6">
           {t("maintenance.noTasks")}
         </p>
@@ -165,7 +170,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
         <>
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredTasks.map((task) => (
+              {paginatedTasks.map((task) => (
                 <Card key={task.id}>
                   <Link href={`/maintenance/${task.id}`}>
                     <div className="relative aspect-video w-full">
@@ -224,11 +229,11 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                     <TableHead>{t("vehicles.fields.name")}</TableHead>
                     <TableHead>{t("maintenance.fields.dueDate")}</TableHead>
                     <TableHead>{t("maintenance.priority.title")}</TableHead>
-                    <TableHead>{t("common.status")}</TableHead>
+                    <TableHead>{t("maintenance.fields.status")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTasks.map((task) => (
+                  {paginatedTasks.map((task) => (
                     <TableRow 
                       key={task.id}
                       className="cursor-pointer hover:bg-accent"
@@ -271,7 +276,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                   />
                 </PaginationItem>
               )}
-              {[...Array(totalPages)].map((_, i) => (
+              {[...Array(totalFilteredPages)].map((_, i) => (
                 <PaginationItem key={i + 1}>
                   <PaginationLink
                     href="#"
@@ -282,7 +287,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                   </PaginationLink>
                 </PaginationItem>
               ))}
-              {currentPage < totalPages && (
+              {currentPage < totalFilteredPages && (
                 <PaginationItem>
                   <PaginationNext
                     href="#"

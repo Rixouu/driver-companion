@@ -17,7 +17,7 @@ export async function getStats(): Promise<DashboardStats> {
     .from('inspections')
     .select('id')
     .eq('status', 'completed')
-    .gte('completed_at', today)
+    .gte('completed_date', today)
 
   const { data: attention } = await supabase
     .from('inspections')

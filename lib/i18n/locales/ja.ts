@@ -9,7 +9,8 @@ export const ja: Translations = {
       active: "稼働中",
       inactive: "非稼働",
       completed: "完了",
-      scheduled: "予定"
+      scheduled: "予定",
+      type: "タイプ"
     },
     loading: "読み込み中...",
     error: "エラー",
@@ -38,7 +39,8 @@ export const ja: Translations = {
     logout: "ログアウト",
     inProgress: "進行中",
     upcoming: "予定",
-    recent: "最近"
+    recent: "最近",
+    total: "合計"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -46,6 +48,7 @@ export const ja: Translations = {
     maintenance: "メンテナンス",
     inspections: "点検",
     settings: "設定",
+    reporting: "レポート",
   },
   settings: {
     title: "設定",
@@ -644,15 +647,15 @@ export const ja: Translations = {
     actions: {
       pass: "合格",
       fail: "不合格",
-      complete: "点検完了",
+      complete: "完了",
       markComplete: "完了としてマーク",
-      markInProgress: "点検開始",
-      cancel: "点検をキャンセル",
-      edit: "点検を編集",
-      delete: "点検を削除",
+      markInProgress: "進行中としてマーク",
+      cancel: "キャンセル",
+      edit: "編集",
+      delete: "削除",
       addPhoto: "写真を追加",
       addNotes: "メモを追加",
-      resume: "点検を再開",
+      resume: "再開",
       scheduleRepair: "修理を予約",
       needsRepair: "修理が必要",
       scheduleRepairDescription: "不合格項目の修理タスクを予約して、車両を最適な状態に保ちましょう。"
@@ -937,5 +940,133 @@ export const ja: Translations = {
       scheduled: "予定済み",
       inProgress: "進行中"
     }
-  }
+  },
+  reporting: {
+    title: "レポート & 分析",
+    description: "車両管理の詳細なレポートと分析を表示します。",
+    filters: {
+      vehicleType: "車両タイプ",
+      status: "ステータス",
+      apply: "フィルター適用",
+      reset: "リセット",
+    },
+    export: {
+      title: "エクスポート",
+      pdf: "PDFとしてエクスポート",
+      excel: "Excelとしてエクスポート",
+    },
+    fromPreviousPeriod: "前期間比",
+    sections: {
+      overview: "概要",
+      analytics: "分析",
+      reports: {
+        title: "レポート",
+        maintenance: "メンテナンス履歴レポート",
+        maintenanceDescription: "各車両の詳細なメンテナンス記録",
+        fuel: "燃費レポート",
+        fuelDescription: "燃料消費と効率の分析",
+        cost: "コスト分析レポート",
+        costDescription: "全車両関連コストの詳細な内訳",
+        downloadCSV: "CSVをダウンロード",
+        downloadPDF: "PDFをダウンロード",
+        customReport: "カスタムレポート",
+        customReportDescription: "複数のソースからデータを組み合わせて単一のレポートを作成",
+        recentReports: "最近のレポート",
+        createCustomReport: "カスタムレポートを作成",
+        generateReport: "レポートを生成",
+        reportName: "レポート名",
+        reportType: "レポートタイプ",
+        includeData: "データを含める",
+        vehicleInformation: "車両情報",
+        maintenanceData: "メンテナンスデータ",
+        fuelData: "燃料データ",
+        costAnalysis: "コスト分析",
+        cancel: "キャンセル"
+      },
+      fleetOverview: {
+        title: "車両概要",
+        totalVehicles: "総車両数",
+        activeVehicles: "稼働中の車両",
+        inMaintenance: "メンテナンス中",
+        inactive: "非稼働",
+      },
+      maintenanceMetrics: {
+        title: "メンテナンス指標",
+        totalTasks: "総タスク数",
+        completedTasks: "完了タスク",
+        averageCompletionTime: "平均完了時間（日）",
+        upcomingTasks: "予定タスク",
+        tasksByPriority: "優先度別タスク",
+        tasksByStatus: "状態別タスク",
+        costOverTime: "メンテナンスコストの推移",
+        totalCost: "総メンテナンスコスト",
+        scheduledCost: "計画メンテナンス",
+        unscheduledCost: "緊急メンテナンス"
+      },
+      inspectionMetrics: {
+        title: "点検指標",
+        totalInspections: "総点検数",
+        passRate: "合格率",
+        failRate: "不合格率",
+        commonFailures: "一般的な不具合",
+        inspectionsByStatus: "状態別点検",
+      },
+      vehicleUtilization: {
+        title: "車両稼働率",
+        maintenanceCostPerVehicle: "車両別メンテナンスコスト",
+        inspectionPassRateByVehicle: "車両別点検合格率",
+        vehicleStatus: "車両状態分布",
+      },
+      vehiclePerformance: {
+        title: "車両パフォーマンス",
+        description: "各車両のパフォーマンス指標",
+        vehicle: "車両",
+        utilization: "稼働率",
+        distance: "走行距離 (km)",
+        fuelUsed: "燃料使用量 (L)",
+        efficiency: "燃費 (km/L)",
+        costPerKm: "1km当たりのコスト",
+        noData: "選択期間のパフォーマンスデータがありません",
+        search: "車両を検索...",
+        filterByBrand: "ブランドでフィルター",
+        allBrands: "すべてのブランド",
+        noVehiclesFound: "条件に一致する車両が見つかりません",
+        scheduled: "計画メンテナンス",
+        unscheduled: "緊急メンテナンス",
+        consumption: "消費量",
+        maintenance: "メンテナンス",
+        fuel: "燃料"
+      },
+      costPerKm: {
+        title: "1キロメートルあたりのコスト",
+        description: "車両ごとのメンテナンスと燃料の1キロメートルあたりのコスト"
+      },
+      fuelConsumption: {
+        title: "燃料消費傾向",
+        description: "車両タイプ別の月間燃料消費量",
+        noData: "選択期間の燃料消費データがありません"
+      },
+      monthlyMileage: {
+        title: "月間走行距離傾向",
+        description: "車両タイプ別の月間走行距離",
+        noData: "選択期間の走行距離データがありません"
+      },
+      maintenanceFrequency: {
+        title: "メンテナンス頻度",
+        description: "計画・緊急メンテナンスの頻度"
+      },
+      vehicleAvailability: {
+        title: "車両稼働状況",
+        description: "車両の稼働時間とメンテナンス期間"
+      },
+      maintenanceCosts: {
+        title: "メンテナンスコスト分布",
+        range: "コスト範囲",
+        count: "タスク数",
+        total: "総コスト",
+        average: "平均コスト"
+      }
+    },
+    noData: "選択したフィルターに該当するデータがありません",
+  },
 } as const 

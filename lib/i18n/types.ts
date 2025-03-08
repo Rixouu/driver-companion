@@ -22,6 +22,7 @@ export interface CommonTranslations {
     inactive: string
     completed: string
     scheduled: string
+    type: string
   }
   loading: string
   error: string
@@ -51,6 +52,7 @@ export interface CommonTranslations {
   inProgress: string
   upcoming: string
   recent: string
+  total: string
 }
 
 export interface DashboardTranslations {
@@ -119,6 +121,7 @@ export interface TranslationValues extends RecursiveStringRecord {
     maintenance: string
     inspections: string
     settings: string
+    reporting: string
   }
   settings: {
     title: string
@@ -955,6 +958,134 @@ export interface TranslationValues extends RecursiveStringRecord {
       deleted: string
       error: string
     }
+  }
+  reporting: {
+    title: string
+    description: string
+    filters: {
+      vehicleType: string
+      status: string
+      apply: string
+      reset: string
+    }
+    export: {
+      title: string
+      pdf: string
+      excel: string
+    }
+    fromPreviousPeriod: string
+    sections: {
+      overview: string
+      analytics: string
+      reports: {
+        title: string
+        maintenance: string
+        maintenanceDescription: string
+        fuel: string
+        fuelDescription: string
+        cost: string
+        costDescription: string
+        downloadCSV: string
+        downloadPDF: string
+        customReport: string
+        customReportDescription: string
+        recentReports: string
+        createCustomReport: string
+        generateReport: string
+        reportName: string
+        reportType: string
+        includeData: string
+        vehicleInformation: string
+        maintenanceData: string
+        fuelData: string
+        costAnalysis: string
+        cancel: string
+      }
+      fleetOverview: {
+        title: string
+        totalVehicles: string
+        activeVehicles: string
+        inMaintenance: string
+        inactive: string
+      }
+      maintenanceMetrics: {
+        title: string
+        totalTasks: string
+        completedTasks: string
+        averageCompletionTime: string
+        upcomingTasks: string
+        tasksByPriority: string
+        tasksByStatus: string
+        costOverTime: string
+        totalCost: string
+        scheduledCost: string
+        unscheduledCost: string
+      }
+      inspectionMetrics: {
+        title: string
+        totalInspections: string
+        passRate: string
+        failRate: string
+        commonFailures: string
+        inspectionsByStatus: string
+      }
+      vehicleUtilization: {
+        title: string
+        maintenanceCostPerVehicle: string
+        inspectionPassRateByVehicle: string
+        vehicleStatus: string
+      }
+      vehiclePerformance: {
+        title: string
+        description: string
+        vehicle: string
+        utilization: string
+        distance: string
+        fuelUsed: string
+        efficiency: string
+        costPerKm: string
+        noData: string
+        search: string
+        filterByBrand: string
+        allBrands: string
+        noVehiclesFound: string
+        scheduled: string
+        unscheduled: string
+        consumption: string
+        maintenance: string
+        fuel: string
+      }
+      costPerKm: {
+        title: string
+        description: string
+      }
+      fuelConsumption: {
+        title: string
+        description: string
+        noData: string
+      }
+      monthlyMileage: {
+        title: string
+        description: string
+        noData: string
+      }
+      maintenanceFrequency: {
+        title: string
+        description: string
+      }
+      vehicleAvailability: {
+        title: string
+        description: string
+      }
+      maintenanceCosts: {
+        title: string
+        range: string
+        count: string
+        total: string
+        average: string
+      }
+    }
+    noData: string
   }
 }
 

@@ -9,7 +9,8 @@ export const en: Translations = {
       active: "Active",
       inactive: "Inactive",
       completed: "Completed",
-      scheduled: "Scheduled"
+      scheduled: "Scheduled",
+      type: "Type"
     },
     loading: "Loading...",
     error: "Error",
@@ -38,13 +39,15 @@ export const en: Translations = {
     logout: "Logout",
     inProgress: "In Progress",
     upcoming: "Upcoming",
-    recent: "Recent"
+    recent: "Recent",
+    total: "Total"
   },
   navigation: {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     maintenance: "Maintenance",
     inspections: "Inspections",
+    reporting: "Reporting",
     settings: "Settings",
   },
   settings: {
@@ -870,16 +873,16 @@ export const en: Translations = {
         title: "Recent Inspections",
         noCompleted: "No completed inspections"
       }
-    }
-  },
-  labels: {
-    due: "Due {date}",
-    priority: {
-      high: "High",
-      medium: "Medium",
-      low: "Low"
+      }
     },
-    status: {
+    labels: {
+      due: "Due {date}",
+      priority: {
+        high: "High",
+        medium: "Medium",
+        low: "Low"
+      },
+      status: {
       scheduled: "Scheduled",
       inProgress: "In Progress"
     }
@@ -938,6 +941,134 @@ export const en: Translations = {
       error: "Something went wrong",
     },
   },
-} as const
+  reporting: {
+    title: "Reports & Analytics",
+    description: "View detailed reports and analytics for your vehicle fleet.",
+    filters: {
+      vehicleType: "Vehicle Type",
+      status: "Status",
+      apply: "Apply Filters",
+      reset: "Reset",
+    },
+    export: {
+      title: "Export",
+      pdf: "Export as PDF",
+      excel: "Export as Excel",
+    },
+    fromPreviousPeriod: "from previous period",
+    sections: {
+      overview: "Overview",
+      analytics: "Analytics",
+      reports: {
+        title: "Reports",
+        maintenance: "Maintenance History Report",
+        maintenanceDescription: "Detailed maintenance records for each vehicle",
+        fuel: "Fuel Efficiency Report",
+        fuelDescription: "Fuel consumption and efficiency analysis",
+        cost: "Cost Analysis Report",
+        costDescription: "Detailed breakdown of all vehicle-related costs",
+        downloadCSV: "Download CSV",
+        downloadPDF: "Download PDF",
+        customReport: "Custom Report",
+        customReportDescription: "Combine data from multiple sources into a single report",
+        recentReports: "Recent Reports",
+        createCustomReport: "Create Custom Report",
+        generateReport: "Generate Report",
+        reportName: "Report Name",
+        reportType: "Report Type",
+        includeData: "Include Data",
+        vehicleInformation: "Vehicle Information",
+        maintenanceData: "Maintenance Data",
+        fuelData: "Fuel Data",
+        costAnalysis: "Cost Analysis",
+        cancel: "Cancel"
+      },
+      fleetOverview: {
+        title: "Fleet Overview",
+        totalVehicles: "Total Vehicles",
+        activeVehicles: "Active Vehicles",
+        inMaintenance: "In Maintenance",
+        inactive: "Inactive",
+      },
+      maintenanceMetrics: {
+        title: "Maintenance Metrics",
+        totalTasks: "Total Tasks",
+        completedTasks: "Completed Tasks",
+        averageCompletionTime: "Average Completion Time (Days)",
+        upcomingTasks: "Upcoming Tasks",
+        tasksByPriority: "Tasks by Priority",
+        tasksByStatus: "Tasks by Status",
+        costOverTime: "Maintenance Cost Over Time",
+        totalCost: "Total Maintenance Cost",
+        scheduledCost: "Scheduled Maintenance",
+        unscheduledCost: "Unscheduled Maintenance"
+      },
+      inspectionMetrics: {
+        title: "Inspection Metrics",
+        totalInspections: "Total Inspections",
+        passRate: "Pass Rate",
+        failRate: "Fail Rate",
+        commonFailures: "Common Failures",
+        inspectionsByStatus: "Inspections by Status",
+      },
+      vehicleUtilization: {
+        title: "Vehicle Utilization",
+        maintenanceCostPerVehicle: "Maintenance Cost per Vehicle",
+        inspectionPassRateByVehicle: "Inspection Pass Rate by Vehicle",
+        vehicleStatus: "Vehicle Status Distribution",
+      },
+      vehiclePerformance: {
+        title: "Vehicle Performance",
+        description: "Performance metrics for each vehicle",
+        vehicle: "Vehicle",
+        utilization: "Utilization",
+        distance: "Distance (km)",
+        fuelUsed: "Fuel Used (L)",
+        efficiency: "Efficiency (km/L)",
+        costPerKm: "Cost/km",
+        noData: "No performance data available for the selected period",
+        search: "Search vehicles...",
+        filterByBrand: "Filter by brand",
+        allBrands: "All Brands",
+        noVehiclesFound: "No vehicles found matching your criteria",
+        scheduled: "Scheduled",
+        unscheduled: "Unscheduled",
+        consumption: "Consumption",
+        maintenance: "Maintenance",
+        fuel: "Fuel"
+      },
+      costPerKm: {
+        title: "Cost Per Kilometer",
+        description: "Maintenance and fuel costs per kilometer by vehicle"
+      },
+      fuelConsumption: {
+        title: "Fuel Consumption Trend",
+        description: "Monthly fuel consumption by vehicle type",
+        noData: "No fuel consumption data available for the selected period"
+      },
+      monthlyMileage: {
+        title: "Monthly Mileage Trend",
+        description: "Monthly distance traveled by vehicle type",
+        noData: "No mileage data available for the selected period"
+      },
+      maintenanceFrequency: {
+        title: "Maintenance Frequency",
+        description: "Frequency of scheduled vs unscheduled maintenance"
+      },
+      vehicleAvailability: {
+        title: "Vehicle Availability",
+        description: "Vehicle uptime and maintenance periods"
+      },
+      maintenanceCosts: {
+        title: "Maintenance Cost Distribution",
+        range: "Cost Range",
+        count: "Tasks",
+        total: "Total Cost",
+        average: "Average Cost"
+      }
+    },
+    noData: "No data available for the selected filters",
+  },
+} as const 
 
 export default en 

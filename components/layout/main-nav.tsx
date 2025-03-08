@@ -27,6 +27,10 @@ export function MainNav() {
       href: "/inspections",
     },
     {
+      title: t("navigation.reporting"),
+      href: "/reporting",
+    },
+    {
       title: t("navigation.settings"),
       href: "/settings",
     },

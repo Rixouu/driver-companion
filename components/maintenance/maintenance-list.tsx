@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
@@ -133,30 +133,48 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
         </div>
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-            >
-              {t("common.all")}
-            </Button>
-            <Button 
-              variant={filter === 'scheduled' ? 'default' : 'outline'}
-              onClick={() => setFilter('scheduled')}
-            >
-              {t("maintenance.status.scheduled")}
-            </Button>
-            <Button 
-              variant={filter === 'in_progress' ? 'default' : 'outline'}
-              onClick={() => setFilter('in_progress')}
-            >
-              {t("maintenance.status.in_progress")}
-            </Button>
-            <Button 
-              variant={filter === 'completed' ? 'default' : 'outline'}
-              onClick={() => setFilter('completed')}
-            >
-              {t("maintenance.status.completed")}
-            </Button>
+            <div className="sm:hidden">
+              <Select
+                value={filter}
+                onValueChange={setFilter}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder={t("common.filter")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
+                  <SelectItem value="scheduled">{t("maintenance.status.scheduled")}</SelectItem>
+                  <SelectItem value="in_progress">{t("maintenance.status.in_progress")}</SelectItem>
+                  <SelectItem value="completed">{t("maintenance.status.completed")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2">
+              <Button 
+                variant={filter === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilter('all')}
+              >
+                {t("common.all")}
+              </Button>
+              <Button 
+                variant={filter === 'scheduled' ? 'default' : 'outline'}
+                onClick={() => setFilter('scheduled')}
+              >
+                {t("maintenance.status.scheduled")}
+              </Button>
+              <Button 
+                variant={filter === 'in_progress' ? 'default' : 'outline'}
+                onClick={() => setFilter('in_progress')}
+              >
+                {t("maintenance.status.in_progress")}
+              </Button>
+              <Button 
+                variant={filter === 'completed' ? 'default' : 'outline'}
+                onClick={() => setFilter('completed')}
+              >
+                {t("maintenance.status.completed")}
+              </Button>
+            </div>
           </div>
           <ViewToggle view={view} onViewChange={setView} />
         </div>
@@ -221,49 +239,92 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
               ))}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("maintenance.fields.title")}</TableHead>
-                    <TableHead>{t("vehicles.fields.name")}</TableHead>
-                    <TableHead>{t("maintenance.fields.dueDate")}</TableHead>
-                    <TableHead>{t("maintenance.priority.title")}</TableHead>
-                    <TableHead>{t("maintenance.fields.status")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedTasks.map((task) => (
-                    <TableRow 
-                      key={task.id}
-                      className="cursor-pointer hover:bg-accent"
-                      onClick={() => router.push(`/maintenance/${task.id}`)}
-                    >
-                      <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>
-                        {task.vehicle?.name}
-                        {task.vehicle?.plate_number && (
-                          <span className="text-muted-foreground ml-2">
-                            ({task.vehicle.plate_number})
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatDate(task.due_date)}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {t(`maintenance.priority.${task.priority}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(task.status)}>
-                          {t(`maintenance.status.${task.status}`)}
-                        </Badge>
-                      </TableCell>
+            <>
+              {/* Desktop Table View - Hidden on Mobile */}
+              <div className="hidden sm:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("maintenance.fields.title")}</TableHead>
+                      <TableHead>{t("vehicles.fields.name")}</TableHead>
+                      <TableHead>{t("maintenance.fields.dueDate")}</TableHead>
+                      <TableHead>{t("maintenance.priority.title")}</TableHead>
+                      <TableHead>{t("maintenance.fields.status")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedTasks.map((task) => (
+                      <TableRow 
+                        key={task.id}
+                        className="cursor-pointer hover:bg-accent"
+                        onClick={() => router.push(`/maintenance/${task.id}`)}
+                      >
+                        <TableCell className="font-medium">{task.title}</TableCell>
+                        <TableCell>
+                          {task.vehicle?.name}
+                          {task.vehicle?.plate_number && (
+                            <span className="text-muted-foreground ml-2">
+                              ({task.vehicle.plate_number})
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>{formatDate(task.due_date)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {t(`maintenance.priority.${task.priority}`)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(task.status)}>
+                            {t(`maintenance.status.${task.status}`)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 gap-4 sm:hidden">
+                {paginatedTasks.map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className="overflow-hidden cursor-pointer"
+                    onClick={() => router.push(`/maintenance/${task.id}`)}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{task.title}</CardTitle>
+                      {task.vehicle && (
+                        <CardDescription>
+                          {task.vehicle.name}
+                          {task.vehicle.plate_number && ` (${task.vehicle.plate_number})`}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pb-3 pt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t("maintenance.fields.dueDate")}</p>
+                          <p className="text-sm font-medium">{formatDate(task.due_date)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t("maintenance.priority.title")}</p>
+                          <Badge variant="outline" className="mt-1">
+                            {t(`maintenance.priority.${task.priority}`)}
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-0 flex justify-between items-center">
+                      <Badge variant={getStatusVariant(task.status)}>
+                        {t(`maintenance.status.${task.status}`)}
+                      </Badge>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
 
           <Pagination>

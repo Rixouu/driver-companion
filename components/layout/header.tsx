@@ -9,7 +9,7 @@ import { MainNav } from "@/components/layout/main-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
-import { Menu, X, Gauge, Truck, ClipboardCheck, FileCheck, Settings, LogOut, Moon, Globe } from "lucide-react"
+import { Menu, X, Gauge, Truck, ClipboardCheck, FileCheck, Settings, LogOut, Moon, Globe, BarChart } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useTheme } from "next-themes"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
@@ -120,6 +120,13 @@ export function Header() {
                           >
                             <FileCheck className="h-5 w-5" />
                             {t('navigation.inspections')}
+                          </Link>
+                          <Link
+                            href="/reporting"
+                            className="flex items-center gap-3 text-base"
+                          >
+                            <BarChart className="h-5 w-5" />
+                            {t('navigation.reporting')}
                           </Link>
                           <Link
                             href="/settings"

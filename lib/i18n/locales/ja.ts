@@ -650,6 +650,7 @@ export const ja: Translations = {
       complete: "完了",
       markComplete: "完了としてマーク",
       markInProgress: "進行中としてマーク",
+      startInspection: "点検を開始",
       cancel: "キャンセル",
       edit: "編集",
       delete: "削除",

@@ -5,7 +5,7 @@ import { Camera, RotateCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 
 interface CameraModalProps {
   isOpen: boolean

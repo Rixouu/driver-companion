@@ -4,7 +4,7 @@ import * as React from "react"
 import { ImageIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Image } from "@/components/shared/image"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 
 interface ImageUploadProps {
   value?: string

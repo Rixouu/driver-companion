@@ -1,4 +1,4 @@
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { PostgrestError } from "@supabase/supabase-js"
 
 export function handleError(error: unknown) {

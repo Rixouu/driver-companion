@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { useState } from "react"
 import { Edit, Car } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase/client"
 import { VehicleTabs } from "./vehicle-tabs"
 import {

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils/formatting"
 import { useI18n } from "@/lib/i18n/context"
 import type { Inspection, DbVehicle } from "@/types"
 import {
@@ -143,7 +143,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{t("inspections.title")}</h1>

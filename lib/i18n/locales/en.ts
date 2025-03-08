@@ -328,6 +328,23 @@ export const en: Translations = {
     noInspections: "No inspections found",
     createDirect: "Create Directly",
     defaultType: "Standard Inspection",
+    actions: {
+      pass: "Pass",
+      fail: "Fail",
+      complete: "Complete Inspection",
+      markComplete: "Mark as Complete",
+      markInProgress: "Start Inspection",
+      startInspection: "Start Inspection",
+      cancel: "Cancel Inspection",
+      edit: "Edit Inspection",
+      delete: "Delete Inspection",
+      addPhoto: "Add Photo",
+      addNotes: "Add Notes",
+      resume: "Resume Inspection",
+      scheduleRepair: "Schedule Repair",
+      needsRepair: "Repairs Needed",
+      scheduleRepairDescription: "Schedule maintenance tasks for the failed items to keep your vehicle in optimal condition."
+    },
     status: {
       scheduled: "Scheduled",
       in_progress: "In Progress",
@@ -696,22 +713,6 @@ export const en: Translations = {
         name: "Safety Equipment",
         description: "Safety equipment inspection"
       }
-    },
-    actions: {
-      pass: "Pass",
-      fail: "Fail",
-      complete: "Complete Inspection",
-      markComplete: "Mark as Complete",
-      markInProgress: "Start Inspection",
-      cancel: "Cancel Inspection",
-      edit: "Edit Inspection",
-      delete: "Delete Inspection",
-      addPhoto: "Add Photo",
-      addNotes: "Add Notes",
-      resume: "Resume Inspection",
-      scheduleRepair: "Schedule Repair",
-      needsRepair: "Repairs Needed",
-      scheduleRepairDescription: "Schedule maintenance tasks for the failed items to keep your vehicle in optimal condition."
     },
     details: {
       title: "Inspection Details",

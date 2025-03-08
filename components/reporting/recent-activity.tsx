@@ -32,19 +32,23 @@ export function RecentActivity() {
         .order('completed_date', { ascending: false })
         .limit(5)
 
-      // Fetch recent fuel logs
-      const { data: fuel } = await supabase
-        .from('fuel_logs')
-        .select('id, vehicle_id, date, liters, cost')
+      // Get recent fuel logs
+      const { data: fuelEntries, error: fuelError } = await supabase
+        .from('fuel_entries')
+        .select('*, vehicles(name)')
         .order('date', { ascending: false })
         .limit(5)
 
-      // Fetch recent mileage logs
-      const { data: mileage } = await supabase
-        .from('mileage_logs')
-        .select('id, vehicle_id, date, reading')
+      if (fuelError) throw fuelError
+
+      // Get recent mileage logs
+      const { data: mileageEntries, error: mileageError } = await supabase
+        .from('mileage_entries')
+        .select('*, vehicles(name)')
         .order('date', { ascending: false })
         .limit(5)
+
+      if (mileageError) throw mileageError
 
       // Combine and format all activities
       const allActivities: Activity[] = [
@@ -56,20 +60,20 @@ export function RecentActivity() {
           date: task.completed_date,
           cost: task.cost
         })) || []),
-        ...(fuel?.map(log => ({
-          id: log.id,
+        ...(fuelEntries?.map(entry => ({
+          id: entry.id,
           type: 'fuel' as const,
-          vehicleName: vehicleMap.get(log.vehicle_id) || 'Unknown Vehicle',
-          description: `Refueled ${log.liters}L`,
-          date: log.date,
-          cost: log.cost
+          vehicleName: vehicleMap.get(entry.vehicle_id) || 'Unknown Vehicle',
+          description: `Refueled ${entry.liters}L`,
+          date: entry.date,
+          cost: entry.cost
         })) || []),
-        ...(mileage?.map(log => ({
-          id: log.id,
+        ...(mileageEntries?.map(entry => ({
+          id: entry.id,
           type: 'mileage' as const,
-          vehicleName: vehicleMap.get(log.vehicle_id) || 'Unknown Vehicle',
-          description: `Mileage updated to ${log.reading}km`,
-          date: log.date
+          vehicleName: vehicleMap.get(entry.vehicle_id) || 'Unknown Vehicle',
+          description: `Mileage updated to ${entry.reading}km`,
+          date: entry.date
         })) || [])
       ]
 

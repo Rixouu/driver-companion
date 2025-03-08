@@ -6,9 +6,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { CameraModal } from "./camera-modal"
 import { InspectionItem } from "@/types/inspections"
 import { Check, X, Camera } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { supabase } from "@/lib/supabase/client"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 interface InspectionItemProps {
   item: InspectionItem

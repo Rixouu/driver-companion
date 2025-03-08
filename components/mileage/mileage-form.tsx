@@ -85,7 +85,7 @@ export function MileageForm({ vehicleId, initialData }: MileageFormProps) {
           throw error
         }
         toast.success("Mileage log created successfully")
-        router.push(`/vehicles/${vehicleId}/mileage`)
+        router.push(`/vehicles/${vehicleId}`)
       }
       router.refresh()
     } catch (error) {

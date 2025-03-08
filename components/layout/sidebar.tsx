@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Car, ClipboardCheck, Settings, LogOut, Wrench } from "lucide-react"
 

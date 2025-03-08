@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Printer, Download, Expand, X, Pencil, Play, CheckCircle, XCircle, Clock, Camera, FileText, AlertTriangle, Wrench } from "lucide-react"
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils/formatting"
 import { format as dateFormat } from "date-fns"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import type { Inspection } from "@/types"
 
 // Add extended inspection type with inspection_items
@@ -316,14 +316,28 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
               </Button>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Printer className="h-4 w-4" />
-                {t('inspections.details.actions.print')}
-              </Button>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Download className="h-4 w-4" />
-                {t('inspections.details.actions.export')}
-              </Button>
+              {inspection.status === 'scheduled' && (
+                <Button 
+                  onClick={handleStartInspection} 
+                  disabled={isUpdating}
+                  className="gap-2"
+                >
+                  <Play className="h-4 w-4" />
+                  {t('inspections.actions.startInspection')}
+                </Button>
+              )}
+              {inspection.status === 'completed' && (
+                <>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Printer className="h-4 w-4" />
+                    {t('inspections.details.actions.print')}
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    {t('inspections.details.actions.export')}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </CardHeader>

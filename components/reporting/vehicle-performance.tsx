@@ -81,14 +81,13 @@ export function VehiclePerformance({ dateRange }: VehiclePerformanceProps) {
               .lte('completed_date', endDateStr)
               .not('completed_date', 'is', null),
             supabase
-              .from('fuel_logs')
-              .select('liters, cost, date')
-              .eq('vehicle_id', vehicle.id)
+              .from('fuel_entries')
+              .select('vehicle_id, fuel_amount, fuel_cost, date')
               .gte('date', startDateStr)
               .lte('date', endDateStr),
             supabase
-              .from('mileage_logs')
-              .select('reading, date')
+              .from('mileage_entries')
+              .select('vehicle_id, reading, date')
               .eq('vehicle_id', vehicle.id)
               .gte('date', startDateStr)
               .lte('date', endDateStr)
@@ -110,12 +109,12 @@ export function VehiclePerformance({ dateRange }: VehiclePerformanceProps) {
 
           // Calculate fuel metrics
           const totalFuel = fuelData.data?.reduce((sum, entry) => {
-            const liters = typeof entry.liters === 'string' ? parseFloat(entry.liters) : entry.liters
+            const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
             return sum + (liters || 0)
           }, 0) || 0
 
           const fuelCosts = fuelData.data?.reduce((sum, entry) => {
-            const cost = typeof entry.cost === 'string' ? parseFloat(entry.cost) : entry.cost
+            const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
             return sum + (cost || 0)
           }, 0) || 0
 

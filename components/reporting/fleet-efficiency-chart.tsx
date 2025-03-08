@@ -39,8 +39,8 @@ export function FleetEfficiencyChart({ dateRange }: FleetEfficiencyChartProps) {
         if (vehiclesError) throw vehiclesError
 
         // Get mileage logs
-        const { data: mileageLogs, error: mileageError } = await supabase
-          .from('mileage_logs')
+        const { data: mileageEntries, error: mileageError } = await supabase
+          .from('mileage_entries')
           .select('reading, vehicle_id, date')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
@@ -49,9 +49,9 @@ export function FleetEfficiencyChart({ dateRange }: FleetEfficiencyChartProps) {
         if (mileageError) throw mileageError
 
         // Get fuel logs
-        const { data: fuelLogs, error: fuelError } = await supabase
-          .from('fuel_logs')
-          .select('liters, cost, vehicle_id, date')
+        const { data: fuelEntries, error: fuelError } = await supabase
+          .from('fuel_entries')
+          .select('fuel_amount, fuel_cost, vehicle_id, date')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
 
@@ -59,28 +59,33 @@ export function FleetEfficiencyChart({ dateRange }: FleetEfficiencyChartProps) {
 
         // Calculate metrics for each vehicle
         const fleetData = vehicles.map(vehicle => {
-          // Get vehicle's mileage logs
-          const vehicleMileageLogs = mileageLogs.filter(log => log.vehicle_id === vehicle.id)
+          // Get vehicle's mileage entries
+          const vehicleMileageEntries = mileageEntries.filter(entry => entry.vehicle_id === vehicle.id)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           
           // Calculate total distance
           let totalDistance = 0
-          if (vehicleMileageLogs.length >= 2) {
-            const firstReading = vehicleMileageLogs[0].reading
-            const lastReading = vehicleMileageLogs[vehicleMileageLogs.length - 1].reading
-            totalDistance = lastReading - firstReading
+          if (vehicleMileageEntries.length >= 2) {
+            const firstReading = typeof vehicleMileageEntries[0].reading === 'string' 
+              ? parseFloat(vehicleMileageEntries[0].reading) 
+              : vehicleMileageEntries[0].reading;
+            const lastReading = typeof vehicleMileageEntries[vehicleMileageEntries.length - 1].reading === 'string'
+              ? parseFloat(vehicleMileageEntries[vehicleMileageEntries.length - 1].reading)
+              : vehicleMileageEntries[vehicleMileageEntries.length - 1].reading;
+            totalDistance = lastReading - firstReading;
           }
 
-          // Get vehicle's fuel logs
-          const vehicleFuelLogs = fuelLogs.filter(log => log.vehicle_id === vehicle.id)
+          // Get vehicle's fuel entries
+          const vehicleFuelEntries = fuelEntries.filter(entry => entry.vehicle_id === vehicle.id)
           
           // Calculate total fuel and cost
-          const totalFuel = vehicleFuelLogs.reduce((sum, log) => {
-            const liters = typeof log.liters === 'string' ? parseFloat(log.liters) : log.liters
+          const totalFuel = vehicleFuelEntries.reduce((sum, entry) => {
+            const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
             return sum + (liters || 0)
           }, 0)
 
-          const totalCost = vehicleFuelLogs.reduce((sum, log) => {
-            const cost = typeof log.cost === 'string' ? parseFloat(log.cost) : log.cost
+          const totalCost = vehicleFuelEntries.reduce((sum, entry) => {
+            const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
             return sum + (cost || 0)
           }, 0)
 

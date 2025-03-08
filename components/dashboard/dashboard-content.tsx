@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useI18n } from "@/lib/i18n/context"
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils/formatting"
 import {
   Car,
   Wrench,

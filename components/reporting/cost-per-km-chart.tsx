@@ -44,13 +44,23 @@ export function CostPerKmChart({ dateRange }: CostPerKmChartProps) {
         if (vehiclesError) throw vehiclesError
 
         // Get fuel logs
-        const { data: fuelLogs, error: fuelError } = await supabase
-          .from('fuel_logs')
-          .select('vehicle_id, cost, mileage')
+        const { data: fuelEntries, error: fuelError } = await supabase
+          .from('fuel_entries')
+          .select('vehicle_id, fuel_cost, odometer_reading')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
 
         if (fuelError) throw fuelError
+
+        // Get mileage entries for distance calculation
+        const { data: mileageEntries, error: mileageError } = await supabase
+          .from('mileage_entries')
+          .select('vehicle_id, reading, date')
+          .gte('date', dateRange.from?.toISOString())
+          .lte('date', dateRange.to?.toISOString())
+          .order('date')
+
+        if (mileageError) throw mileageError
 
         // Get maintenance costs
         const { data: maintenanceLogs, error: maintenanceError } = await supabase
@@ -63,18 +73,37 @@ export function CostPerKmChart({ dateRange }: CostPerKmChartProps) {
 
         // Calculate costs per vehicle
         const costData = vehicles.map(vehicle => {
-          // Calculate fuel costs and distance
-          const vehicleFuelLogs = fuelLogs.filter(log => log.vehicle_id === vehicle.id)
-          const fuelCost = vehicleFuelLogs.reduce((sum, log) => {
-            const cost = typeof log.cost === 'string' ? parseFloat(log.cost) : log.cost
+          // Calculate fuel costs
+          const vehicleFuelEntries = fuelEntries.filter(entry => entry.vehicle_id === vehicle.id)
+          const fuelCost = vehicleFuelEntries.reduce((sum, entry) => {
+            const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
             return sum + (cost || 0)
           }, 0)
 
-          // Calculate total distance
-          const distances = vehicleFuelLogs.map(log => log.mileage).filter(Boolean)
-          const distance = distances.length >= 2 
-            ? distances[distances.length - 1] - distances[0]
-            : 0
+          // Calculate total distance from mileage entries
+          let distance = 0;
+          const vehicleMileageEntries = mileageEntries
+            .filter(entry => entry.vehicle_id === vehicle.id)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          if (vehicleMileageEntries.length >= 2) {
+            const firstReading = vehicleMileageEntries[0].reading;
+            const lastReading = vehicleMileageEntries[vehicleMileageEntries.length - 1].reading;
+            distance = lastReading - firstReading;
+          }
+
+          // If no mileage entries, try to use odometer readings from fuel entries
+          if (distance <= 0) {
+            const vehicleFuelEntriesWithOdometer = vehicleFuelEntries
+              .filter(entry => entry.odometer_reading)
+              .sort((a, b) => a.odometer_reading - b.odometer_reading);
+            
+            if (vehicleFuelEntriesWithOdometer.length >= 2) {
+              const firstReading = vehicleFuelEntriesWithOdometer[0].odometer_reading;
+              const lastReading = vehicleFuelEntriesWithOdometer[vehicleFuelEntriesWithOdometer.length - 1].odometer_reading;
+              distance = lastReading - firstReading;
+            }
+          }
 
           // Calculate maintenance costs
           const maintenanceCost = maintenanceLogs

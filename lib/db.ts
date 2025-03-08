@@ -1,6 +1,8 @@
-import { createClient } from "@supabase/supabase-js"
+/**
+ * Database utilities
+ * 
+ * @deprecated Import from lib/db/* instead
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const db = createClient(supabaseUrl, supabaseKey) 
+export * from "./db/client"
+export * from "./db/server"

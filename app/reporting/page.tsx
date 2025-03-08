@@ -229,7 +229,7 @@ export default function ReportingPage() {
         break
       case 'fuel':
         const { data: fuelData } = await supabase
-          .from('fuel_logs')
+          .from('fuel_entries')
           .select('*, vehicles(name)')
           .gte('date', startDate.toISOString())
           .lte('date', endDate.toISOString())
@@ -244,7 +244,7 @@ export default function ReportingPage() {
             .gte('completed_date', startDate.toISOString())
             .lte('completed_date', endDate.toISOString()),
           supabase
-            .from('fuel_logs')
+            .from('fuel_entries')
             .select('*, vehicles(name)')
             .gte('date', startDate.toISOString())
             .lte('date', endDate.toISOString())
@@ -267,7 +267,7 @@ export default function ReportingPage() {
             { data: [] },
           customReportOptions.includeFuel ? 
             supabase
-              .from('fuel_logs')
+              .from('fuel_entries')
               .select('*, vehicles(name)')
               .gte('date', startDate.toISOString())
               .lte('date', endDate.toISOString()) : 
@@ -320,7 +320,12 @@ export default function ReportingPage() {
   }
 
   const handleResetDateRange = () => {
-    setDateRange(defaultDateRange)
+    const today = new Date();
+    const newDefaultRange = {
+      from: addMonths(today, -1),
+      to: today
+    };
+    setDateRange(newDefaultRange);
   }
 
   const getReportIcon = (type: string) => {

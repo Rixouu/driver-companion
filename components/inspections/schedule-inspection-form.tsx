@@ -23,10 +23,10 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useI18n } from "@/lib/i18n/context"
 import { InspectionType } from "@/lib/types/inspections"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase/client"
 
 const scheduleSchema = z.object({

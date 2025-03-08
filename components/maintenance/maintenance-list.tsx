@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils/formatting"
 import { useI18n } from "@/lib/i18n/context"
 import type { MaintenanceTask, DbVehicle } from "@/types"
 import {

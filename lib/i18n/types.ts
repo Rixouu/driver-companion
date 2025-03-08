@@ -777,6 +777,7 @@ export interface TranslationValues extends RecursiveStringRecord {
       complete: string
       markComplete: string
       markInProgress: string
+      startInspection: string
       cancel: string
       edit: string
       delete: string

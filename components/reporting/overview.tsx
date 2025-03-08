@@ -45,14 +45,14 @@ export function Overview({ dateRange }: OverviewProps) {
         // Fetch current month data
         const [currentMileage, currentFuel] = await Promise.all([
           supabase
-            .from('mileage_logs')
+            .from('mileage_entries')
             .select('reading, vehicle_id, date')
             .gte('date', currentStart)
             .lte('date', currentEnd)
             .order('date'),
           supabase
-            .from('fuel_logs')
-            .select('liters, date')
+            .from('fuel_entries')
+            .select('fuel_amount, date')
             .gte('date', currentStart)
             .lte('date', currentEnd)
         ])
@@ -60,14 +60,14 @@ export function Overview({ dateRange }: OverviewProps) {
         // Fetch previous month data
         const [prevMileage, prevFuel] = await Promise.all([
           supabase
-            .from('mileage_logs')
+            .from('mileage_entries')
             .select('reading, vehicle_id, date')
             .gte('date', prevStart)
             .lte('date', prevEnd)
             .order('date'),
           supabase
-            .from('fuel_logs')
-            .select('liters, date')
+            .from('fuel_entries')
+            .select('fuel_amount, date')
             .gte('date', prevStart)
             .lte('date', prevEnd)
         ])
@@ -167,7 +167,7 @@ function calculateTotalDistance(mileageLogs: any[]) {
 
 function calculateTotalFuel(fuelLogs: any[]) {
   return fuelLogs.reduce((total, log) => {
-    const liters = typeof log.liters === 'string' ? parseFloat(log.liters) : log.liters
+    const liters = typeof log.fuel_amount === 'string' ? parseFloat(log.fuel_amount) : log.fuel_amount
     return total + (liters || 0)
   }, 0)
 } 

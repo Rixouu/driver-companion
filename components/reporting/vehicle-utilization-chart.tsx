@@ -8,7 +8,7 @@ import { DateRange } from "react-day-picker"
 
 interface UtilizationData {
   name: string
-  value: number
+  utilization: number
 }
 
 interface VehicleUtilizationChartProps {
@@ -31,9 +31,9 @@ export function VehicleUtilizationChart({ dateRange }: VehicleUtilizationChartPr
 
         if (vehiclesError) throw vehiclesError
 
-        // Get mileage logs
-        const { data: mileageLogs, error: mileageError } = await supabase
-          .from('mileage_logs')
+        // Fetch mileage data
+        const { data: mileageEntries, error: mileageError } = await supabase
+          .from('mileage_entries')
           .select('reading, vehicle_id, date')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
@@ -41,46 +41,33 @@ export function VehicleUtilizationChart({ dateRange }: VehicleUtilizationChartPr
 
         if (mileageError) throw mileageError
 
-        // Calculate distance traveled per vehicle
-        const vehicleDistances: { [key: string]: { id: string; name: string; distance: number } } = {}
-        
-        vehicles.forEach(vehicle => {
-          vehicleDistances[vehicle.id] = {
-            id: vehicle.id,
-            name: vehicle.name,
-            distance: 0
+        // Calculate utilization for each vehicle
+        const utilizationData = vehicles.map(vehicle => {
+          // Get vehicle's mileage entries
+          const vehicleMileageEntries = mileageEntries
+            .filter(entry => entry.vehicle_id === vehicle.id)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          // Calculate total distance
+          let totalDistance = 0;
+          if (vehicleMileageEntries.length >= 2) {
+            const firstReading = typeof vehicleMileageEntries[0].reading === 'string' 
+              ? parseFloat(vehicleMileageEntries[0].reading) 
+              : vehicleMileageEntries[0].reading;
+            const lastReading = typeof vehicleMileageEntries[vehicleMileageEntries.length - 1].reading === 'string'
+              ? parseFloat(vehicleMileageEntries[vehicleMileageEntries.length - 1].reading)
+              : vehicleMileageEntries[vehicleMileageEntries.length - 1].reading;
+            totalDistance = lastReading - firstReading;
           }
-        })
 
-        // Group logs by vehicle and calculate distances
-        mileageLogs.forEach(log => {
-          const vehicleId = log.vehicle_id
-          if (!vehicleDistances[vehicleId]) return
-
-          const reading = typeof log.reading === 'string' ? parseFloat(log.reading) : log.reading
-          if (vehicleDistances[vehicleId].distance === 0) {
-            vehicleDistances[vehicleId].distance = reading
-          } else {
-            const distance = reading - vehicleDistances[vehicleId].distance
-            if (distance > 0) {
-              vehicleDistances[vehicleId].distance = reading
-            }
-          }
-        })
-
-        // Calculate total distance and percentages
-        const totalDistance = Object.values(vehicleDistances).reduce((sum, v) => sum + v.distance, 0)
-        
-        // Create chart data with percentages
-        const chartData = Object.values(vehicleDistances)
-          .map(vehicle => ({
+          return {
             name: vehicle.name,
-            value: totalDistance > 0 ? Math.round((vehicle.distance / totalDistance) * 100) : 0
-          }))
-          .filter(item => item.value > 0)
-          .sort((a, b) => b.value - a.value)
+            utilization: Math.round(totalDistance)
+          }
+        }).filter(item => item.utilization > 0)
+          .sort((a, b) => b.utilization - a.utilization)
 
-        setData(chartData)
+        setData(utilizationData)
       } catch (error) {
         console.error('Error fetching utilization data:', error)
         setData([])
@@ -108,18 +95,18 @@ export function VehicleUtilizationChart({ dateRange }: VehicleUtilizationChartPr
             data={data}
             cx="50%"
             cy="50%"
-            labelLine={false}
+            labelLine={true}
             outerRadius={80}
             fill="#8884d8"
-            dataKey="value"
-            label={({ name, value }) => `${name} (${value}%)`}
+            dataKey="utilization"
+            label={({ name, utilization }) => `${name} (${utilization} km)`}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => [`${value}%`, 'Utilization']}
+            formatter={(value: number) => [`${value} km`, 'Utilization']}
             contentStyle={{
               backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF',
               border: 'none',

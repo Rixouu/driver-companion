@@ -32,9 +32,9 @@ export function BarChart({ dateRange }: BarChartProps) {
         if (vehiclesError) throw vehiclesError
 
         // Fetch mileage data
-        const { data: mileageLogs, error: mileageError } = await supabase
-          .from('mileage_logs')
-          .select('reading, vehicle_id')
+        const { data: mileageEntries, error: mileageError } = await supabase
+          .from('mileage_entries')
+          .select('reading, vehicle_id, date')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
           .order('date')
@@ -42,9 +42,9 @@ export function BarChart({ dateRange }: BarChartProps) {
         if (mileageError) throw mileageError
 
         // Fetch fuel data
-        const { data: fuelLogs, error: fuelError } = await supabase
-          .from('fuel_logs')
-          .select('liters, cost, vehicle_id')
+        const { data: fuelEntries, error: fuelError } = await supabase
+          .from('fuel_entries')
+          .select('fuel_amount, fuel_cost, vehicle_id')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
 
@@ -52,18 +52,29 @@ export function BarChart({ dateRange }: BarChartProps) {
 
         // Calculate performance metrics for each vehicle
         const performanceData = vehicles.map(vehicle => {
-          const vehicleMileage = mileageLogs
-            .filter(log => log.vehicle_id === vehicle.id)
-            .reduce((total, log) => {
-              const reading = typeof log.reading === 'string' ? parseFloat(log.reading) : log.reading
-              return total + reading
-            }, 0)
+          // Get vehicle's mileage entries
+          const vehicleMileageEntries = mileageEntries
+            .filter(entry => entry.vehicle_id === vehicle.id)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          
+          // Calculate total distance
+          let totalDistance = 0;
+          if (vehicleMileageEntries.length >= 2) {
+            const firstReading = typeof vehicleMileageEntries[0].reading === 'string' 
+              ? parseFloat(vehicleMileageEntries[0].reading) 
+              : vehicleMileageEntries[0].reading;
+            const lastReading = typeof vehicleMileageEntries[vehicleMileageEntries.length - 1].reading === 'string'
+              ? parseFloat(vehicleMileageEntries[vehicleMileageEntries.length - 1].reading)
+              : vehicleMileageEntries[vehicleMileageEntries.length - 1].reading;
+            totalDistance = lastReading - firstReading;
+          }
 
-          const vehicleFuel = fuelLogs
-            .filter(log => log.vehicle_id === vehicle.id)
-            .reduce((acc, log) => {
-              const liters = typeof log.liters === 'string' ? parseFloat(log.liters) : log.liters
-              const cost = typeof log.cost === 'string' ? parseFloat(log.cost) : log.cost
+          // Calculate fuel metrics
+          const vehicleFuel = fuelEntries
+            .filter(entry => entry.vehicle_id === vehicle.id)
+            .reduce((acc, entry) => {
+              const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
+              const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
               return {
                 liters: acc.liters + (liters || 0),
                 cost: acc.cost + (cost || 0)
@@ -72,8 +83,8 @@ export function BarChart({ dateRange }: BarChartProps) {
 
           return {
             name: vehicle.name,
-            mileage: Math.round(vehicleMileage),
-            fuelEfficiency: vehicleFuel.liters > 0 ? Math.round(vehicleMileage / vehicleFuel.liters * 100) / 100 : 0,
+            mileage: Math.round(totalDistance),
+            fuelEfficiency: vehicleFuel.liters > 0 ? Math.round(totalDistance / vehicleFuel.liters * 100) / 100 : 0,
             cost: Math.round(vehicleFuel.cost)
           }
         })

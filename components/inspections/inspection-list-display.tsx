@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils"
+import { formatDate } from "@/lib/utils/formatting"
 import type { Inspection } from "@/types/inspections"
 
 interface InspectionListDisplayProps {

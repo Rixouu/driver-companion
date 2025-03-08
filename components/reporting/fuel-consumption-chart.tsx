@@ -24,9 +24,9 @@ export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
   useEffect(() => {
     async function fetchFuelData() {
       try {
-        const { data: fuelLogs, error } = await supabase
-          .from('fuel_logs')
-          .select('date, liters, cost')
+        const { data: fuelEntries, error } = await supabase
+          .from('fuel_entries')
+          .select('date, fuel_amount, fuel_cost')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
           .order('date')
@@ -34,13 +34,13 @@ export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
         if (error) throw error
 
         // Group fuel data by date
-        const fuelByDate = fuelLogs.reduce((acc: { [key: string]: { liters: number; cost: number } }, log) => {
-          const date = format(parseISO(log.date), 'MMM d')
+        const fuelByDate = fuelEntries.reduce((acc: { [key: string]: { liters: number; cost: number } }, entry) => {
+          const date = format(parseISO(entry.date), 'MMM d')
           if (!acc[date]) {
             acc[date] = { liters: 0, cost: 0 }
           }
-          const liters = typeof log.liters === 'string' ? parseFloat(log.liters) : log.liters
-          const cost = typeof log.cost === 'string' ? parseFloat(log.cost) : log.cost
+          const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
+          const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
           acc[date].liters += liters || 0
           acc[date].cost += cost || 0
           return acc

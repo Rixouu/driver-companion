@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
-import { format, parseISO } from "date-fns"
+import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns"
+import { useI18n } from "@/lib/i18n/context"
 
 interface MileageData {
   date: string
@@ -19,74 +20,112 @@ interface MonthlyMileageChartProps {
 export function MonthlyMileageChart({ dateRange }: MonthlyMileageChartProps) {
   const [data, setData] = useState<MileageData[]>([])
   const { theme } = useTheme()
+  const { t } = useI18n()
 
   useEffect(() => {
     async function fetchMileageData() {
       try {
-        // Get mileage logs for each vehicle
-        const { data: mileageLogs, error } = await supabase
-          .from('mileage_logs')
+        if (!dateRange.from || !dateRange.to) return;
+
+        // Get all vehicles
+        const { data: vehicles, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('id, name')
+          .eq('status', 'active');
+
+        if (vehiclesError) throw vehiclesError;
+
+        // Get mileage entries for each vehicle
+        const { data: mileageEntries, error } = await supabase
+          .from('mileage_entries')
           .select('date, reading, vehicle_id')
-          .gte('date', dateRange.from?.toISOString())
-          .lte('date', dateRange.to?.toISOString())
-          .order('date')
+          .gte('date', dateRange.from.toISOString())
+          .lte('date', dateRange.to.toISOString())
+          .order('date');
 
-        if (error) throw error
+        if (error) throw error;
 
-        // Group by vehicle and calculate daily mileage
-        const vehicleMileage: { [key: string]: { [key: string]: number } } = {}
-        
-        mileageLogs.forEach(log => {
-          const vehicleId = log.vehicle_id
-          if (!vehicleMileage[vehicleId]) {
-            vehicleMileage[vehicleId] = {}
+        // Create an array of all months in the date range
+        const months = eachMonthOfInterval({
+          start: dateRange.from,
+          end: dateRange.to
+        });
+
+        // Initialize monthly mileage data with zero values
+        const monthlyMileage: { [key: string]: number } = {};
+        months.forEach(month => {
+          const monthKey = format(month, 'MMM yyyy');
+          monthlyMileage[monthKey] = 0;
+        });
+
+        // Group entries by vehicle
+        const entriesByVehicle: { [key: string]: any[] } = {};
+        mileageEntries.forEach(entry => {
+          if (!entriesByVehicle[entry.vehicle_id]) {
+            entriesByVehicle[entry.vehicle_id] = [];
           }
-          const date = format(parseISO(log.date), 'MMM d')
-          const reading = typeof log.reading === 'string' ? parseFloat(log.reading) : log.reading
-          vehicleMileage[vehicleId][date] = reading
-        })
+          entriesByVehicle[entry.vehicle_id].push({
+            ...entry,
+            reading: typeof entry.reading === 'string' ? parseFloat(entry.reading) : entry.reading,
+            date: new Date(entry.date)
+          });
+        });
 
-        // Calculate daily distance for each vehicle
-        const dailyDistance: { [key: string]: number } = {}
-        
-        Object.entries(vehicleMileage).forEach(([vehicleId, readings]) => {
-          const dates = Object.keys(readings).sort()
-          for (let i = 1; i < dates.length; i++) {
-            const prevReading = readings[dates[i - 1]]
-            const currentReading = readings[dates[i]]
-            const distance = currentReading - prevReading
-            if (distance > 0) {
-              dailyDistance[dates[i]] = (dailyDistance[dates[i]] || 0) + distance
+        // Calculate monthly distance for each vehicle
+        Object.values(entriesByVehicle).forEach(vehicleEntries => {
+          // Sort entries by date
+          vehicleEntries.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+          // Process entries to calculate monthly distances
+          for (let i = 1; i < vehicleEntries.length; i++) {
+            const prevEntry = vehicleEntries[i - 1];
+            const currEntry = vehicleEntries[i];
+            
+            // Skip if readings are invalid or if current reading is less than previous
+            if (currEntry.reading <= prevEntry.reading) continue;
+            
+            const distance = currEntry.reading - prevEntry.reading;
+            
+            // Only count reasonable distances (avoid outliers)
+            if (distance > 0 && distance < 10000) {
+              // Determine which month to attribute the mileage to
+              const monthKey = format(currEntry.date, 'MMM yyyy');
+              monthlyMileage[monthKey] = (monthlyMileage[monthKey] || 0) + distance;
             }
           }
-        })
+        });
 
         // Convert to chart data format
-        const chartData = Object.entries(dailyDistance)
+        const chartData = Object.entries(monthlyMileage)
           .map(([date, mileage]) => ({
             date,
             mileage: Math.round(mileage)
           }))
-          .sort((a, b) => a.date.localeCompare(b.date))
+          .sort((a, b) => {
+            // Sort by date (MMM yyyy format)
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateA.getTime() - dateB.getTime();
+          });
 
-        setData(chartData)
+        setData(chartData);
       } catch (error) {
-        console.error('Error fetching mileage data:', error)
-        setData([])
+        console.error('Error fetching mileage data:', error);
+        setData([]);
       }
     }
 
     if (dateRange.from && dateRange.to) {
-      fetchMileageData()
+      fetchMileageData();
     }
-  }, [dateRange])
+  }, [dateRange]);
 
   if (data.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center">
-        <p className="text-muted-foreground">No mileage data available for the selected period</p>
+        <p className="text-muted-foreground">{t('reporting.noData')}</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -103,7 +142,7 @@ export function MonthlyMileageChart({ dateRange }: MonthlyMileageChartProps) {
             tick={{ fill: 'currentColor' }}
           />
           <Tooltip 
-            formatter={(value: number) => [`${value.toLocaleString()} km`, 'Mileage']}
+            formatter={(value: number) => [`${value.toLocaleString()} km`, t('reporting.sections.monthlyMileage.title')]}
             contentStyle={{
               backgroundColor: theme === 'dark' ? '#1F2937' : '#FFFFFF',
               border: 'none',
@@ -115,7 +154,7 @@ export function MonthlyMileageChart({ dateRange }: MonthlyMileageChartProps) {
           <Line 
             type="monotone"
             dataKey="mileage"
-            name="Monthly Mileage"
+            name={t('reporting.sections.monthlyMileage.title')}
             stroke="#8B5CF6"
             strokeWidth={2}
             dot={{ fill: '#8B5CF6' }}
@@ -123,5 +162,5 @@ export function MonthlyMileageChart({ dateRange }: MonthlyMileageChartProps) {
         </LineChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 } 

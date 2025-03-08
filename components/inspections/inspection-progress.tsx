@@ -3,7 +3,7 @@
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, AlertCircle, Clock } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { Card, CardContent } from "@/components/ui/card"
 
 interface ProgressSection {

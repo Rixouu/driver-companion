@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { useI18n } from "@/lib/i18n/context"
 
 export function MainNav() {

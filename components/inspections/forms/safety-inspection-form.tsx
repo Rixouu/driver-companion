@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { useI18n } from "@/lib/i18n/context"
 import { Check, X, Camera, ChevronDown, ChevronUp } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/styles"
 import { getInspectionTemplates } from "@/lib/services/inspections"
 import type { InspectionCategory, InspectionItemTemplate } from "@/lib/types/inspections"
 

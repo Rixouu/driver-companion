@@ -1,5 +1,4 @@
-import { supabase } from "@/lib/supabase/client"
-import { createServiceClient } from '@/lib/supabase/service-client'
+import { supabase, createServiceClient } from "@/lib/supabase"
 import type { FuelLog } from "@/types"
 import type { Database } from '@/types/supabase'
 
@@ -57,8 +56,7 @@ export async function getFuelLog(id: string, userId?: string) {
 
     if (fuelError) {
       // If RLS blocks access, try with service client
-      const serviceClient = createServiceClient()
-      const { data: adminFuelLog, error: adminError } = await serviceClient
+      const { data: adminFuelLog, error: adminError } = await createServiceClient()
         .from('fuel_entries')
         .select(`
           *,

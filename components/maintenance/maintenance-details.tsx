@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ArrowLeft, Pencil, CheckCircle, Calendar, Clock, DollarSign, Wrench, AlertTriangle, Tag, BarChart } from "lucide-react"
-import { formatDate, formatCurrency, formatCurrencyJP } from "@/lib/utils"
+import { formatDate, formatCurrency, formatCurrencyJP } from "@/lib/utils/formatting"
 import { useI18n } from "@/lib/i18n/context"
 import type { MaintenanceTask } from "@/types"
 import Image from "next/image"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Progress } from "@/components/ui/progress"
 
 interface MaintenanceDetailsProps {

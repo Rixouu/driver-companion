@@ -34,7 +34,7 @@ export function CostBreakdownChart({ dateRange }: CostBreakdownChartProps) {
     async function fetchCostData() {
       try {
         // Fetch maintenance costs
-        const { data: maintenanceCosts, error: maintenanceError } = await supabase
+        const { data: maintenanceTasks, error: maintenanceError } = await supabase
           .from('maintenance_tasks')
           .select('cost, title')
           .gte('completed_date', dateRange.from?.toISOString())
@@ -42,23 +42,28 @@ export function CostBreakdownChart({ dateRange }: CostBreakdownChartProps) {
 
         if (maintenanceError) throw maintenanceError
 
-        // Fetch fuel costs
-        const { data: fuelCosts, error: fuelError } = await supabase
-          .from('fuel_logs')
-          .select('cost')
+        // Get fuel costs
+        const { data: fuelEntries, error: fuelError } = await supabase
+          .from('fuel_entries')
+          .select('fuel_cost, date')
           .gte('date', dateRange.from?.toISOString())
           .lte('date', dateRange.to?.toISOString())
 
         if (fuelError) throw fuelError
 
-        // Calculate total fuel costs
-        const totalFuelCost = fuelCosts.reduce((sum, log) => {
-          const cost = typeof log.cost === 'string' ? parseFloat(log.cost) : log.cost
+        // Calculate total costs
+        const maintenanceCost = maintenanceTasks.reduce((sum, task) => {
+          const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : task.cost
+          return sum + (cost || 0)
+        }, 0)
+
+        const fuelCost = fuelEntries.reduce((sum, entry) => {
+          const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
           return sum + (cost || 0)
         }, 0)
 
         // Group maintenance costs by category
-        const maintenanceCostsByCategory = maintenanceCosts.reduce((acc: { [key: string]: number }, task) => {
+        const maintenanceCostsByCategory = maintenanceTasks.reduce((acc: { [key: string]: number }, task) => {
           const title = task.title || ''
           const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : task.cost
 
@@ -77,7 +82,7 @@ export function CostBreakdownChart({ dateRange }: CostBreakdownChartProps) {
 
         // Combine all costs
         const chartData = [
-          { name: 'Fuel', value: Math.round(totalFuelCost) },
+          { name: 'Fuel', value: Math.round(fuelCost) },
           ...Object.entries(maintenanceCostsByCategory)
             .filter(([_, cost]) => cost > 0)
             .map(([category, cost]) => ({

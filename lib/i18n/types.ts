@@ -903,6 +903,7 @@ export interface TranslationValues extends RecursiveStringRecord {
       cancel: string
       button: string
       details: string
+      backToInspections: string
     }
   }
   fuel: {

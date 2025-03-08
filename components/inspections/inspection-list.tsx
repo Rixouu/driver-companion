@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/context"
@@ -188,30 +188,48 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           </div>
           <div className="flex items-center justify-between">
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant={filter === 'all' ? 'default' : 'outline'}
-                onClick={() => setFilter('all')}
-              >
-                {t("common.all")}
-              </Button>
-              <Button 
-                variant={filter === 'scheduled' ? 'default' : 'outline'}
-                onClick={() => setFilter('scheduled')}
-              >
-                {t("inspections.status.scheduled")}
-              </Button>
-              <Button 
-                variant={filter === 'in_progress' ? 'default' : 'outline'}
-                onClick={() => setFilter('in_progress')}
-              >
-                {t("inspections.status.in_progress")}
-              </Button>
-              <Button 
-                variant={filter === 'completed' ? 'default' : 'outline'}
-                onClick={() => setFilter('completed')}
-              >
-                {t("inspections.status.completed")}
-              </Button>
+              <div className="sm:hidden">
+                <Select
+                  value={filter}
+                  onValueChange={setFilter}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder={t("common.filter")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("common.all")}</SelectItem>
+                    <SelectItem value="scheduled">{t("inspections.status.scheduled")}</SelectItem>
+                    <SelectItem value="in_progress">{t("inspections.status.in_progress")}</SelectItem>
+                    <SelectItem value="completed">{t("inspections.status.completed")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="hidden sm:flex flex-wrap gap-2">
+                <Button 
+                  variant={filter === 'all' ? 'default' : 'outline'}
+                  onClick={() => setFilter('all')}
+                >
+                  {t("common.all")}
+                </Button>
+                <Button 
+                  variant={filter === 'scheduled' ? 'default' : 'outline'}
+                  onClick={() => setFilter('scheduled')}
+                >
+                  {t("inspections.status.scheduled")}
+                </Button>
+                <Button 
+                  variant={filter === 'in_progress' ? 'default' : 'outline'}
+                  onClick={() => setFilter('in_progress')}
+                >
+                  {t("inspections.status.in_progress")}
+                </Button>
+                <Button 
+                  variant={filter === 'completed' ? 'default' : 'outline'}
+                  onClick={() => setFilter('completed')}
+                >
+                  {t("inspections.status.completed")}
+                </Button>
+              </div>
             </div>
             <ViewToggle view={view} onViewChange={setView} />
           </div>
@@ -225,9 +243,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           </div>
         ) : (
           <>
-            <div className={view === "grid" ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3" : "rounded-md border"}>
-              {view === "grid" ? (
-                paginatedInspections.map((inspection) => (
+            {view === "grid" ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {paginatedInspections.map((inspection) => (
                   <Card key={inspection.id}>
                     <Link href={`/inspections/${inspection.id}`}>
                       <div className="relative aspect-video w-full">
@@ -248,11 +266,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     <CardContent className="p-6">
                       <div className="flex flex-col space-y-4">
                         <div className="space-y-2">
+                          <h3 className="font-medium">{inspection.vehicle?.name}</h3>
                           {inspection.vehicle && (
-                            <div className="space-y-1">
-                              <h3 className="font-medium">{inspection.vehicle.name}</h3>
-                              <p className="text-sm text-muted-foreground">{inspection.vehicle.plate_number}</p>
-                            </div>
+                            <p className="text-sm text-muted-foreground">{inspection.vehicle.plate_number}</p>
                           )}
                           <p className="text-sm text-muted-foreground">
                             {formatScheduledDate(inspection.date)}
@@ -266,57 +282,91 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                             {t(`inspections.type.${getInspectionType(inspection.type)}`)}
                           </Badge>
                         </div>
-                        <Button variant="secondary" className="w-full" asChild>
-                          <Link href={`/inspections/${inspection.id}`}>
-                            {t("common.viewDetails")}
-                          </Link>
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                ))
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("vehicles.fields.name")}</TableHead>
-                      <TableHead>{t("inspections.fields.date")}</TableHead>
-                      <TableHead>{t("inspections.fields.type")}</TableHead>
-                      <TableHead>{t("inspections.fields.status")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedInspections.map((inspection) => (
-                      <TableRow 
-                        key={inspection.id}
-                        className="cursor-pointer hover:bg-accent"
-                        onClick={() => router.push(`/inspections/${inspection.id}`)}
-                      >
-                        <TableCell className="font-medium">
-                          {inspection.vehicle?.name}
-                          {inspection.vehicle?.plate_number && (
-                            <span className="text-muted-foreground ml-2">
-                              ({inspection.vehicle.plate_number})
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>{formatDate(inspection.date)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {t(`inspections.type.${getInspectionType(inspection.type)}`)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusVariant(inspection.status)}>
-                            {t(`inspections.status.${inspection.status}`)}
-                          </Badge>
-                        </TableCell>
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table View - Hidden on Mobile */}
+                <div className="hidden sm:block rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("vehicles.fields.name")}</TableHead>
+                        <TableHead>{t("vehicles.fields.plateNumber")}</TableHead>
+                        <TableHead>{t("inspections.fields.date")}</TableHead>
+                        <TableHead>{t("inspections.fields.type")}</TableHead>
+                        <TableHead>{t("inspections.fields.status")}</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedInspections.map((inspection) => (
+                        <TableRow 
+                          key={inspection.id}
+                          className="cursor-pointer hover:bg-accent"
+                          onClick={() => router.push(`/inspections/${inspection.id}`)}
+                        >
+                          <TableCell className="font-medium">{inspection.vehicle?.name}</TableCell>
+                          <TableCell>{inspection.vehicle?.plate_number}</TableCell>
+                          <TableCell>{formatDate(inspection.date)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {t(`inspections.type.${getInspectionType(inspection.type)}`)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusVariant(inspection.status)}>
+                              {t(`inspections.status.${inspection.status}`)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="grid grid-cols-1 gap-4 sm:hidden">
+                  {paginatedInspections.map((inspection) => (
+                    <Card 
+                      key={inspection.id} 
+                      className="overflow-hidden cursor-pointer"
+                      onClick={() => router.push(`/inspections/${inspection.id}`)}
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{inspection.vehicle?.name}</CardTitle>
+                        {inspection.vehicle && (
+                          <CardDescription>
+                            {inspection.vehicle.plate_number}
+                          </CardDescription>
+                        )}
+                      </CardHeader>
+                      <CardContent className="pb-3 pt-0">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t("inspections.fields.date")}</p>
+                            <p className="text-sm font-medium">{formatDate(inspection.date)}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground">{t("inspections.fields.type")}</p>
+                            <Badge variant="outline" className="mt-1">
+                              {t(`inspections.type.${getInspectionType(inspection.type)}`)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0 flex justify-between items-center">
+                        <Badge variant={getStatusVariant(inspection.status)}>
+                          {t(`inspections.status.${inspection.status}`)}
+                        </Badge>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
 
             <Pagination>
               <PaginationContent>

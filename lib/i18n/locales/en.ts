@@ -823,12 +823,13 @@ export const en: Translations = {
     },
     schedule: {
       title: "Schedule Inspection",
-      description: "Schedule a new inspection for {vehicle}",
-      selectDate: "Select Date",
-      datePlaceholder: "Pick a date",
+      description: "Schedule a new inspection by selecting a vehicle and date",
+      selectDate: "Select Inspection Date",
+      datePlaceholder: "Select date",
       cancel: "Cancel",
       button: "Schedule Inspection",
-      details: "Schedule Details"
+      details: "Inspection Details",
+      backToInspections: "Back to inspections"
     },
   },
   dashboard: {

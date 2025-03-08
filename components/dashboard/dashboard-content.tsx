@@ -92,13 +92,13 @@ export function DashboardContent({
                 <span className="text-center">{t("dashboard.quickActions.scheduleMaintenance")}</span>
               </Button>
             </Link>
-            <Link href="/inspections/new" className="col-span-1">
+            <Link href="/inspections/schedule" className="col-span-1">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <ClipboardCheck className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.scheduleInspection")}</span>
               </Button>
             </Link>
-            <Link href="/vehicles" className="col-span-1">
+            <Link href="/reporting" className="col-span-1">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <BarChart3 className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.viewReports")}</span>

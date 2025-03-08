@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,13 @@ import { DbVehicle } from "@/types"
 import { useDebounce } from "@/hooks/use-debounce"
 import Image from "next/image"
 import { useI18n } from "@/lib/i18n/context"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Pagination,
   PaginationContent,
@@ -48,12 +55,6 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
   const debouncedSearch = useDebounce(search, 500)
   const { t } = useI18n()
 
-  const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", page.toString())
-    router.push(`/vehicles?${params.toString()}`)
-  }
-
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesFilter = filter === 'all' || vehicle.status === filter
     const matchesSearch = !debouncedSearch || 
@@ -62,6 +63,30 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
     
     return matchesFilter && matchesSearch
   })
+
+  // Calculate pagination
+  const totalFilteredPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedVehicles = filteredVehicles.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", page.toString())
+    router.push(`/vehicles?${params.toString()}`)
+  }
+
+  function getStatusVariant(status: string) {
+    switch (status) {
+      case "active":
+        return "success"
+      case "maintenance":
+        return "warning"
+      case "inactive":
+        return "destructive"
+      default:
+        return "default"
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -77,45 +102,65 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
         </div>
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">
-            <Button 
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-            >
-              {t("common.all")}
-            </Button>
-            <Button 
-              variant={filter === 'active' ? 'default' : 'outline'}
-              onClick={() => setFilter('active')}
-            >
-              {t("vehicles.status.active")}
-            </Button>
-            <Button 
-              variant={filter === 'maintenance' ? 'default' : 'outline'}
-              onClick={() => setFilter('maintenance')}
-            >
-              {t("vehicles.status.maintenance")}
-            </Button>
-            <Button 
-              variant={filter === 'inactive' ? 'default' : 'outline'}
-              onClick={() => setFilter('inactive')}
-            >
-              {t("vehicles.status.inactive")}
-            </Button>
+            <div className="sm:hidden">
+              <Select
+                value={filter}
+                onValueChange={setFilter}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder={t("common.filter")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
+                  <SelectItem value="active">{t("vehicles.status.active")}</SelectItem>
+                  <SelectItem value="maintenance">{t("vehicles.status.maintenance")}</SelectItem>
+                  <SelectItem value="inactive">{t("vehicles.status.inactive")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="hidden sm:flex flex-wrap gap-2">
+              <Button 
+                variant={filter === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilter('all')}
+              >
+                {t("common.all")}
+              </Button>
+              <Button 
+                variant={filter === 'active' ? 'default' : 'outline'}
+                onClick={() => setFilter('active')}
+              >
+                {t("vehicles.status.active")}
+              </Button>
+              <Button 
+                variant={filter === 'maintenance' ? 'default' : 'outline'}
+                onClick={() => setFilter('maintenance')}
+              >
+                {t("vehicles.status.maintenance")}
+              </Button>
+              <Button 
+                variant={filter === 'inactive' ? 'default' : 'outline'}
+                onClick={() => setFilter('inactive')}
+              >
+                {t("vehicles.status.inactive")}
+              </Button>
+            </div>
           </div>
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
 
-      {filteredVehicles.length === 0 ? (
-        <p className="text-center text-muted-foreground py-6">
-          {t("vehicles.noVehicles")}
-        </p>
+      {paginatedVehicles.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
+          <p className="text-muted-foreground text-center">
+            {t("vehicles.noVehicles")}
+          </p>
+        </div>
       ) : (
         <>
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredVehicles.map((vehicle) => (
-                <Card key={vehicle.id} className="overflow-hidden">
+              {paginatedVehicles.map((vehicle) => (
+                <Card key={vehicle.id}>
                   <Link href={`/vehicles/${vehicle.id}`}>
                     <div className="relative aspect-video w-full">
                       {vehicle.image_url ? (
@@ -124,11 +169,10 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                           alt={vehicle.name}
                           fill
                           className="object-cover"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       ) : (
                         <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <p className="text-muted-foreground">{t('vehicles.fields.noImage')}</p>
+                          <p className="text-muted-foreground">{t('vehicles.noImage')}</p>
                         </div>
                       )}
                     </div>
@@ -136,87 +180,97 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                   <CardContent className="p-6">
                     <div className="flex flex-col space-y-4">
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium">{vehicle.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {vehicle.plate_number}
-                            </p>
-                          </div>
-                          <Badge
-                            variant={
-                              vehicle.status === "active"
-                                ? "success"
-                                : vehicle.status === "maintenance"
-                                ? "warning"
-                                : "secondary"
-                            }
-                          >
-                            {t(`vehicles.status.${vehicle.status}`)}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <p>{vehicle.brand} {vehicle.model}</p>
-                          <p>Year: {vehicle.year}</p>
-                        </div>
+                        <h3 className="font-medium">{vehicle.name}</h3>
+                        <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
                       </div>
-                      <Button variant="secondary" className="w-full" asChild>
-                        <Link href={`/vehicles/${vehicle.id}`}>
-                          {t("common.viewDetails")}
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-between">
+                        <Badge variant={getStatusVariant(vehicle.status)}>
+                          {t(`vehicles.status.${vehicle.status}`)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {vehicle.brand} {vehicle.model}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("vehicles.fields.name")}</TableHead>
-                    <TableHead>{t("vehicles.fields.plateNumber")}</TableHead>
-                    <TableHead>{t("vehicles.fields.status")}</TableHead>
-                    <TableHead className="text-right">{t("common.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredVehicles.map((vehicle) => (
-                    <TableRow 
-                      key={vehicle.id}
-                      className="cursor-pointer hover:bg-accent"
-                      onClick={() => router.push(`/vehicles/${vehicle.id}`)}
-                    >
-                      <TableCell className="font-medium">{vehicle.name}</TableCell>
-                      <TableCell>{vehicle.plate_number}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            vehicle.status === "active"
-                              ? "success"
-                              : vehicle.status === "maintenance"
-                              ? "warning"
-                              : "secondary"
-                          }
-                        >
-                          {t(`vehicles.status.${vehicle.status}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          {t("common.details")}
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Desktop Table View - Hidden on Mobile */}
+              <div className="hidden sm:block rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("vehicles.fields.name")}</TableHead>
+                      <TableHead>{t("vehicles.fields.plateNumber")}</TableHead>
+                      <TableHead>{t("vehicles.fields.type")}</TableHead>
+                      <TableHead>{t("vehicles.fields.status")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedVehicles.map((vehicle) => (
+                      <TableRow 
+                        key={vehicle.id}
+                        className="cursor-pointer hover:bg-accent"
+                        onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+                      >
+                        <TableCell className="font-medium">{vehicle.name}</TableCell>
+                        <TableCell>{vehicle.plate_number}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {vehicle.brand} {vehicle.model}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(vehicle.status)}>
+                            {t(`vehicles.status.${vehicle.status}`)}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="grid grid-cols-1 gap-4 sm:hidden">
+                {paginatedVehicles.map((vehicle) => (
+                  <Card 
+                    key={vehicle.id} 
+                    className="overflow-hidden cursor-pointer"
+                    onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+                  >
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{vehicle.name}</CardTitle>
+                      <CardDescription>{vehicle.plate_number}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3 pt-0">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t("vehicles.fields.brand")}</p>
+                          <Badge variant="outline" className="mt-1">
+                            {vehicle.brand} {vehicle.model}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">{t("vehicles.fields.year")}</p>
+                          <p className="text-sm font-medium">
+                            {vehicle.year}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-0 flex justify-between items-center">
+                      <Badge variant={getStatusVariant(vehicle.status)}>
+                        {t(`vehicles.status.${vehicle.status}`)}
+                      </Badge>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
 
           <Pagination>
@@ -229,7 +283,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                   />
                 </PaginationItem>
               )}
-              {Array.from({ length: totalPages }).map((_, i) => (
+              {[...Array(totalFilteredPages)].map((_, i) => (
                 <PaginationItem key={i + 1}>
                   <PaginationLink
                     href="#"
@@ -240,7 +294,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                   </PaginationLink>
                 </PaginationItem>
               ))}
-              {currentPage < totalPages && (
+              {currentPage < totalFilteredPages && (
                 <PaginationItem>
                   <PaginationNext
                     href="#"

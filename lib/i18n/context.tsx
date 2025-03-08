@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import { en } from "./locales/en"
 import { ja } from "./locales/ja"
+import { getCookie, setCookie } from "cookies-next"
 
 type Language = "en" | "ja"
 type Translations = typeof en
@@ -24,15 +25,28 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>("en")
 
   useEffect(() => {
+    // First check cookie (server-side preference)
+    const cookieLang = getCookie('NEXT_LOCALE') as Language
+    
+    // Then check localStorage (client-side preference)
     const savedLang = localStorage.getItem("language") as Language
-    if (savedLang && (savedLang === "en" || savedLang === "ja")) {
+    
+    // Use cookie first, then localStorage, then default to "en"
+    if (cookieLang && (cookieLang === "en" || cookieLang === "ja")) {
+      setLanguage(cookieLang)
+      // Sync localStorage with cookie
+      localStorage.setItem("language", cookieLang)
+    } else if (savedLang && (savedLang === "en" || savedLang === "ja")) {
       setLanguage(savedLang)
+      // Sync cookie with localStorage
+      setCookie('NEXT_LOCALE', savedLang, { maxAge: 60 * 60 * 24 * 30 }) // 30 days
     }
   }, [])
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang)
     localStorage.setItem("language", lang)
+    setCookie('NEXT_LOCALE', lang, { maxAge: 60 * 60 * 24 * 30 }) // 30 days
   }
 
   const t = (key: string, params?: Record<string, string>) => {

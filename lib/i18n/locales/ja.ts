@@ -821,13 +821,14 @@ export const ja: Translations = {
       }
     },
     schedule: {
-      title: "点検予約",
-      description: "{vehicle}の新規点検予約",
+      title: "点検を予約",
+      description: "車両と日付を選択して新しい点検を予約",
       selectDate: "点検日を選択",
       datePlaceholder: "日付を選択",
       cancel: "キャンセル",
       button: "点検を予約",
-      details: "点検予約詳細"
+      details: "点検の詳細",
+      backToInspections: "点検一覧に戻る"
     },
     defaultType: "標準点検",
   },

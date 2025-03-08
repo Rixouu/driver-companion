@@ -5,14 +5,19 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { InspectionScheduleForm } from "@/components/inspections/inspection-schedule-form"
+import { getDictionary } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Schedule Inspection",
-  description: "Schedule a new vehicle inspection",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getDictionary()
+  return {
+    title: t("inspections.schedule.title"),
+    description: t("inspections.schedule.description"),
+  }
 }
 
 export default async function ScheduleInspectionPage() {
   const supabase = createServerComponentClient({ cookies })
+  const { t } = await getDictionary()
   
   // Fetch vehicles for the form
   const { data: vehicles } = await supabase
@@ -32,17 +37,17 @@ export default async function ScheduleInspectionPage() {
           >
             <Link href="/inspections" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to inspections</span>
-              <span className="sm:hidden">Back</span>
+              <span className="hidden sm:inline">{t("inspections.schedule.backToInspections")}</span>
+              <span className="sm:hidden">{t("common.back")}</span>
             </Link>
           </Button>
 
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
-              Schedule Inspection
+              {t("inspections.schedule.title")}
             </h1>
             <p className="text-muted-foreground">
-              Schedule a new inspection by selecting a vehicle and date
+              {t("inspections.schedule.description")}
             </p>
           </div>
         </div>

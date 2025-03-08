@@ -30,6 +30,7 @@ export const ja: Translations = {
     viewDetails: "詳細を表示",
     addNew: "新規追加",
     backTo: "一覧に戻る",
+    backToList: "一覧に戻る",
     saving: "保存中...",
     update: "更新",
     create: "作成",
@@ -686,12 +687,13 @@ export const ja: Translations = {
     details: {
       title: "点検詳細",
       description: "点検の詳細と結果を表示",
-      inspectionProgress: "点検進捗",
+      inspectionProgress: "点検の進捗",
       inspectionDetails: "点検詳細",
       vehicleDetails: "車両詳細",
       inspectionItems: "点検項目",
-      noItems: "点検項目なし",
+      noItems: "点検項目が追加されていません",
       scheduledFor: "{date}に予定",
+      printTitle: "点検レポート",
       vehicleInfo: {
         title: "車両情報",
         plateNumber: "ナンバープレート",
@@ -764,10 +766,13 @@ export const ja: Translations = {
       createSuccess: "点検が正常に作成されました",
       updateSuccess: "点検が正常に更新されました",
       selectVehicle: "車両を選択してください",
-      loginRequired: "点検を作成するにはログインが必要です",
+      loginRequired: "点検を作成するにはログインする必要があります",
       tryAgain: "もう一度お試しください",
       photoAdded: "写真が追加されました",
       photoUploadError: "写真のアップロードに失敗しました。もう一度お試しください。",
+      printStarted: "印刷ダイアログが開きました",
+      exportSuccess: "点検が正常にエクスポートされました",
+      exportError: "点検のエクスポート中にエラーが発生しました"
     },
     templates: {
       routine: {

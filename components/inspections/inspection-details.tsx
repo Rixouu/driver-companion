@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Printer, Download, Expand, X, Pencil, Play, CheckCircle, XCircle, Clock, Camera, FileText, AlertTriangle, Wrench } from "lucide-react"
+import { ArrowLeft, Printer, Download, Expand, X, Pencil, Play, CheckCircle, XCircle, Clock, Camera, FileText, AlertTriangle, Wrench, Car, Clipboard, Tag, Hash, Truck } from "lucide-react"
 import { formatDate } from "@/lib/utils/formatting"
 import { format as dateFormat } from "date-fns"
 import { useI18n } from "@/lib/i18n/context"
@@ -17,6 +17,8 @@ import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { Inspection } from "@/types"
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
+import { saveAs } from "file-saver"
 
 // Add extended inspection type with inspection_items
 interface ExtendedInspection extends Inspection {
@@ -28,6 +30,7 @@ interface ExtendedInspection extends Inspection {
     plate_number: string;
     image_url?: string;
     brand?: string;
+    model?: string;
   };
 }
 
@@ -64,6 +67,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   const [isUpdating, setIsUpdating] = useState(false)
   const [itemsWithTemplates, setItemsWithTemplates] = useState<InspectionItem[]>([])
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     async function loadTemplates() {
@@ -269,6 +273,94 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     router.push(`/maintenance/new?${params.toString()}`);
   };
 
+  // Function to handle printing the report
+  const handlePrintReport = () => {
+    // Use browser's print functionality
+    window.print();
+    
+    toast({
+      title: t('inspections.messages.printStarted'),
+    });
+  };
+
+  // Function to handle exporting the report as CSV
+  const handleExportReport = () => {
+    try {
+      setIsExporting(true);
+      
+      // Format date for filename
+      const formattedDate = inspection.date ? 
+        new Date(inspection.date).toISOString().split('T')[0] : 
+        new Date().toISOString().split('T')[0];
+      
+      // Create a more descriptive filename with vehicle name and date
+      const vehicleName = inspection.vehicle?.name || 'vehicle';
+      const sanitizedVehicleName = vehicleName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const filename = `${sanitizedVehicleName}-inspection-${formattedDate}.csv`;
+      
+      // Add vehicle information to CSV
+      const vehicleInfo = [
+        ['Vehicle Information', ''],
+        ['Name', inspection.vehicle?.name || 'N/A'],
+        ['Plate Number', inspection.vehicle?.plate_number || 'N/A'],
+        ['Brand', inspection.vehicle?.brand || 'N/A'],
+        ['Model', inspection.vehicle?.model || 'N/A'],
+        ['', '']  // Empty row as separator
+      ];
+      
+      // Add inspection information
+      const inspectionInfo = [
+        ['Inspection Information', ''],
+        ['Date', formatDate(inspection.date)],
+        ['Type', inspection.type || 'N/A'],
+        ['Status', inspection.status || 'N/A'],
+        ['', '']  // Empty row as separator
+      ];
+      
+      // Add inspection items
+      const headers = ['Item', 'Status', 'Notes'];
+      const rows = itemsWithTemplates.map(item => {
+        const templateName = item.template?.name || 'Unknown';
+        const status = item.status || 'pending';
+        const notes = item.notes || '';
+        return `"${templateName}","${status}","${notes}"`;
+      });
+      
+      // Combine all sections
+      const csvContent = [
+        ...vehicleInfo.map(row => row.map(cell => `"${cell}"`).join(',')),
+        ...inspectionInfo.map(row => row.map(cell => `"${cell}"`).join(',')),
+        headers.join(','),
+        ...rows
+      ].join('\n');
+      
+      // Create a blob and download it
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      saveAs(blob, filename);
+      
+      toast({
+        title: t('inspections.messages.exportSuccess'),
+      });
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      toast({
+        title: t('inspections.messages.exportError'),
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Function to navigate to a specific tab
+  const navigateToTab = (tabValue: string) => {
+    // Find the tab element and click it
+    const tabElement = document.querySelector(`[role="tab"][value="${tabValue}"]`) as HTMLElement;
+    if (tabElement) {
+      tabElement.click();
+    }
+  };
+
   if (!inspection) {
     return (
       <Card>
@@ -299,8 +391,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card>
-        <CardHeader className="space-y-0">
+      <Card className="shadow-sm print-hide">
+        <CardHeader className="space-y-0 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
@@ -327,26 +419,75 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                 </Button>
               )}
               {inspection.status === 'completed' && (
-                <>
-                  <Button variant="outline" size="sm" className="gap-2">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 hidden sm:flex"
+                    onClick={handlePrintReport}
+                    disabled={isExporting}
+                  >
                     <Printer className="h-4 w-4" />
                     {t('inspections.details.actions.print')}
                   </Button>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 hidden sm:flex"
+                    onClick={handleExportReport}
+                    disabled={isExporting}
+                  >
                     <Download className="h-4 w-4" />
                     {t('inspections.details.actions.export')}
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
         </CardHeader>
       </Card>
 
+      {/* Floating Action Button for Mobile */}
+      {inspection.status === 'completed' && (
+        <div className="fixed right-4 bottom-20 z-50 flex flex-col gap-2 md:hidden print-hide">
+          <Button
+            size="icon"
+            className="rounded-full shadow-lg"
+            onClick={handlePrintReport}
+            disabled={isExporting}
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            className="rounded-full shadow-lg"
+            onClick={handleExportReport}
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Print Header - Only visible when printing */}
+      <div className="hidden print:block print:mb-6">
+        <h1 className="text-2xl font-bold mb-2">{t('inspections.details.printTitle')}</h1>
+        <div className="flex justify-between">
+          <div>
+            <p className="font-medium">{inspection.vehicle?.name || 'Vehicle'}</p>
+            <p>{inspection.vehicle?.plate_number || ''}</p>
+          </div>
+          <div className="text-right">
+            <p>{formatDate(inspection.date)}</p>
+            <InspectionStatusBadge status={inspection.status} />
+          </div>
+        </div>
+      </div>
+
       {/* Tabs Section */}
       <Tabs defaultValue="details" className="w-full">
         {/* Desktop Tabs */}
-        <div className="hidden md:block">
+        <div className="hidden md:block print-hide">
           <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
             {tabs.map((tab) => (
               <TabsTrigger
@@ -361,33 +502,36 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           </TabsList>
         </div>
 
-        {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
-          <TabsList className="w-full grid grid-cols-3 gap-0">
+        {/* Mobile Bottom Navigation - Fixed height and better spacing */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden h-16 print-hide">
+          <TabsList className="w-full grid grid-cols-3 gap-0 h-full">
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex flex-col items-center py-4 px-2 gap-2 min-h-[5rem]"
+                className="flex flex-col items-center justify-center py-1 px-2 gap-1 h-full"
               >
-                <tab.icon className="h-6 w-6" />
-                <span className="text-sm font-medium text-center whitespace-normal leading-tight">{tab.label}</span>
+                <tab.icon className="h-5 w-5" />
+                <span className="text-xs font-medium text-center truncate w-full">{tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
 
         {/* Tab Content with Mobile Padding */}
-        <div className="mt-4 pb-24 md:pb-0">
-          <TabsContent value="details" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mt-4 pb-20 md:pb-0 print-content">
+          <TabsContent value="details" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-6 print:grid-cols-2">
               {/* Vehicle Info Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('inspections.details.vehicleDetails')}</CardTitle>
+              <Card className="shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Car className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-2xl">{t('vehicles.vehicleInformation')}</CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="relative aspect-video w-full mb-4 rounded-lg overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="relative aspect-video w-full">
                     {inspection.vehicle?.image_url ? (
                       <Image
                         src={inspection.vehicle.image_url}
@@ -403,29 +547,56 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                       </div>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">
-                        {t("vehicles.fields.plateNumber")}
-                      </h3>
-                      <p>{inspection.vehicle?.plate_number}</p>
+                  <div className="grid grid-cols-2 gap-6 p-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Tag className="h-4 w-4" />
+                        <h3 className="font-medium text-sm">
+                          {t('vehicles.fields.name')}
+                        </h3>
+                      </div>
+                      <p className="font-medium">{inspection.vehicle?.name || 'N/A'}</p>
                     </div>
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">
-                        {t("vehicles.fields.brand")}
-                      </h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Hash className="h-4 w-4" />
+                        <h3 className="font-medium text-sm">
+                          {t('vehicles.fields.plateNumber')}
+                        </h3>
+                      </div>
+                      <p className="font-medium">{inspection.vehicle?.plate_number || 'N/A'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Truck className="h-4 w-4" />
+                        <h3 className="font-medium text-sm">
+                          {t('vehicles.fields.brand')}
+                        </h3>
+                      </div>
                       <p>{inspection.vehicle?.brand || 'N/A'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Car className="h-4 w-4" />
+                        <h3 className="font-medium text-sm">
+                          {t('vehicles.fields.model')}
+                        </h3>
+                      </div>
+                      <p>{inspection.vehicle?.model || 'N/A'}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Inspection Details Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('inspections.details.inspectionDetails')}</CardTitle>
+              <Card className="shadow-sm overflow-hidden">
+                <CardHeader className="bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Clipboard className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-2xl">{t('inspections.details.inspectionDetails')}</CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-6 sm:p-6 space-y-4">
                   <div>
                     <h3 className="font-medium mb-2">{t("inspections.fields.type")}</h3>
                     <p className="text-sm text-muted-foreground">
@@ -438,11 +609,17 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     <div className="pt-4 border-t">
                       <h3 className="font-medium mb-3">{t("inspections.details.results.title")}</h3>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                        <div 
+                          className="bg-muted/30 rounded-lg p-3 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => navigateToTab('passed')}
+                        >
                           <p className="text-sm text-muted-foreground">{t("inspections.details.results.passCount", { count: String(passedItems) })}</p>
                           <p className="text-xl font-semibold mt-1 text-green-600 dark:text-green-400">{passedItems}</p>
                         </div>
-                        <div className="bg-muted/30 rounded-lg p-3 text-center">
+                        <div 
+                          className="bg-muted/30 rounded-lg p-3 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => navigateToTab('failed')}
+                        >
                           <p className="text-sm text-muted-foreground">{t("inspections.details.results.failCount", { count: String(failedItems) })}</p>
                           <p className="text-xl font-semibold mt-1 text-red-600 dark:text-red-400">{failedItems}</p>
                         </div>
@@ -458,7 +635,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                       
                       {/* Completion Rate Progress Bar */}
                       {totalItems > 0 && (
-                        <div className="mt-4">
+                        <div className="mt-6">
                           <div className="flex justify-between items-center mb-1">
                             <p className="text-sm font-medium">{t("inspections.details.results.completionRate")}</p>
                             <p className="text-sm font-medium">{Math.round(((passedItems + failedItems) / totalItems) * 100)}%</p>

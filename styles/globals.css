@@ -144,3 +144,57 @@ body {
 .animate-pulse-subtle {
   animation: pulse-subtle 2s infinite;
 }
+
+/* Add print styles for inspection reports */
+@media print {
+  /* Hide navigation and unnecessary elements */
+  header, footer, nav, .fixed, button, .print-hide {
+    display: none !important;
+  }
+  
+  /* Ensure the content takes the full page */
+  body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: white;
+    color: black;
+  }
+  
+  /* Make sure content is visible */
+  .print-content {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Adjust card styles for printing */
+  .card, .shadow-sm {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+  
+  /* Ensure images print properly */
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Add page breaks where needed */
+  .page-break {
+    page-break-after: always;
+  }
+  
+  /* Ensure text is readable */
+  p, h1, h2, h3, h4, h5, h6, span {
+    color: black !important;
+  }
+  
+  /* Adjust spacing */
+  .space-y-6 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+}

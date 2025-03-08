@@ -45,6 +45,7 @@ export interface CommonTranslations {
   viewDetails: string
   addNew: string
   backTo: string
+  backToList: string
   saving: string
   update: string
   create: string
@@ -797,6 +798,7 @@ export interface TranslationValues extends RecursiveStringRecord {
       inspectionItems: string
       noItems: string
       scheduledFor: string
+      printTitle: string
       vehicleInfo: {
         title: string
         plateNumber: string
@@ -895,6 +897,9 @@ export interface TranslationValues extends RecursiveStringRecord {
       tryAgain: string
       photoAdded: string
       photoUploadError: string
+      printStarted: string
+      exportSuccess: string
+      exportError: string
     }
     schedule: {
       title: string

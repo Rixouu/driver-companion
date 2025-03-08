@@ -29,7 +29,8 @@ export const en: Translations = {
     actions: "Actions",
     viewDetails: "View Details",
     addNew: "Add New",
-    backTo: "Back to List",
+    backTo: "Back to",
+    backToList: "Back to List",
     saving: "Saving...",
     update: "Update",
     create: "Create",
@@ -723,6 +724,7 @@ export const en: Translations = {
       inspectionItems: "Inspection Items",
       noItems: "No inspection items added",
       scheduledFor: "Scheduled for {date}",
+      printTitle: "Inspection Report",
       vehicleInfo: {
         title: "Vehicle Information",
         plateNumber: "License Plate",
@@ -821,6 +823,9 @@ export const en: Translations = {
       tryAgain: "Please try again",
       photoAdded: "Photo added",
       photoUploadError: "Failed to upload photo. Please try again.",
+      printStarted: "Print dialog opened",
+      exportSuccess: "Inspection exported successfully",
+      exportError: "Error exporting inspection"
     },
     schedule: {
       title: "Schedule Inspection",

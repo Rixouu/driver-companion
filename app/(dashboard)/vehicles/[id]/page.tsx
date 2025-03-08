@@ -35,18 +35,6 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
   return (
     <div className="space-y-6">
-      <Button 
-        variant="ghost" 
-        size="sm"
-        className="mb-2"
-        asChild
-      >
-        <Link href="/vehicles" className="flex items-center gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          {dictionary.common.backTo} {dictionary.navigation.vehicles}
-        </Link>
-      </Button>
-
       <VehicleDetails vehicle={vehicle} />
     </div>
   )

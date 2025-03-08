@@ -44,24 +44,24 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
         </TabsList>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden">
-        <TabsList className="w-full grid grid-cols-4 gap-0">
+      {/* Mobile Bottom Navigation - Fixed height and better spacing */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden h-16">
+        <TabsList className="w-full grid grid-cols-4 gap-0 h-full">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="flex flex-col items-center py-4 px-2 gap-2 min-h-[5rem]"
+              className="flex flex-col items-center justify-center py-1 px-2 gap-1 h-full"
             >
-              <tab.icon className="h-6 w-6" />
-              <span className="text-sm font-medium text-center whitespace-normal leading-tight">{tab.label}</span>
+              <tab.icon className="h-5 w-5" />
+              <span className="text-xs font-medium text-center truncate w-full">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
       </div>
       
-      {/* Add padding to content on mobile to account for bottom navigation */}
-      <div className="mt-4 pb-24 md:pb-0">
+      {/* Tab Content with Mobile Padding */}
+      <div className="mt-4 pb-20 md:pb-0">
         <TabsContent value="info" className="space-y-6">
           <VehicleInfo vehicle={vehicle} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

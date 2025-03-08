@@ -1,11 +1,10 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { DbVehicle } from "@/types"
 import { useI18n } from "@/lib/i18n/context"
 import { useState } from "react"
-import { Edit, Car } from "lucide-react"
+import { Edit, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase/client"
@@ -20,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import Link from "next/link"
+import { Card, CardHeader } from "@/components/ui/card"
 
 interface VehicleDetailsProps {
   vehicle: DbVehicle
@@ -62,57 +63,35 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Vehicle Header with Muted Background */}
-      <div className="relative rounded-xl overflow-hidden border bg-card shadow-sm">
-        <div className="relative z-10 p-4 md:p-6 flex flex-col gap-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Car className="h-5 w-5 text-primary" />
-                <h1 className="text-2xl md:text-3xl font-bold">{vehicle.name}</h1>
-              </div>
-              <p className="text-muted-foreground text-base md:text-lg">{vehicle.plate_number}</p>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <Badge variant="outline">
-                  {vehicle.brand || 'N/A'} {vehicle.model || ''}
-                </Badge>
-                {vehicle.year && (
-                  <Badge variant="outline">
-                    {vehicle.year}
-                  </Badge>
-                )}
-                <Badge variant={vehicle.status === 'active' ? 'success' : vehicle.status === 'maintenance' ? 'warning' : 'secondary'}>
-                  {t(`vehicles.status.${vehicle.status || 'active'}`)}
-                </Badge>
-              </div>
-            </div>
+    <div className="space-y-6 mt-6">
+      {/* Header Card */}
+      <Card className="shadow-sm print-hide">
+        <CardHeader className="space-y-0 p-4 sm:p-6">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              asChild
+            >
+              <Link href="/vehicles">
+                <ArrowLeft className="h-4 w-4" />
+                {t('common.backToList')}
+              </Link>
+            </Button>
             
-            {/* Desktop Actions */}
-            <div className="hidden md:flex">
-              <Button 
-                variant="outline" 
-                onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                {t('common.edit')}
-              </Button>
-            </div>
-
-            {/* Mobile Actions */}
-            <div className="md:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
-              >
-                <Edit className="h-4 w-4" />
-                <span className="sr-only">{t('common.edit')}</span>
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
+              className="gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              {t('common.edit')}
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
       
       {/* Vehicle Tabs */}
       <VehicleTabs vehicle={vehicle} />

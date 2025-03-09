@@ -87,6 +87,81 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['maintenance_tasks']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['maintenance_tasks']['Insert']>
       }
+      maintenance_task_templates: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          category: string
+          estimated_duration: number
+          estimated_cost: number
+          priority: "low" | "medium" | "high"
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['maintenance_task_templates']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['maintenance_task_templates']['Insert']>
+      }
+      maintenance_schedules: {
+        Row: {
+          id: string
+          vehicle_id: string
+          title: string
+          description?: string
+          priority: "low" | "medium" | "high"
+          frequency: "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannually" | "annually" | "custom"
+          interval_days?: number
+          start_date: string
+          end_date?: string
+          last_generated_date?: string
+          template_id?: string
+          estimated_duration?: number
+          estimated_cost?: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          user_id: string
+          notes?: string
+        }
+        Insert: Omit<Database['public']['Tables']['maintenance_schedules']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['maintenance_schedules']['Insert']>
+      }
+      inspection_schedules: {
+        Row: {
+          id: string
+          vehicle_id: string
+          title: string
+          description?: string
+          type: "routine" | "safety" | "maintenance"
+          frequency: "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "biannually" | "annually" | "custom"
+          interval_days?: number
+          start_date: string
+          end_date?: string
+          last_generated_date?: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          user_id: string
+          notes?: string
+        }
+        Insert: Omit<Database['public']['Tables']['inspection_schedules']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['inspection_schedules']['Insert']>
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: "maintenance" | "inspection" | "system"
+          related_id?: string
+          is_read: boolean
+          created_at: string
+          due_date?: string
+        }
+        Insert: Omit<Database['public']['Tables']['notifications']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>
+      }
       mileage_entries: {
         Row: {
           id: string

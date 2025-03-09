@@ -4,7 +4,7 @@ export const ja: Translations = {
   common: {
     status: {
       inProgress: "進行中",
-      upcoming: "予定",
+      upcoming: "今後",
       recent: "最近",
       active: "稼働中",
       inactive: "非稼働",
@@ -21,6 +21,7 @@ export const ja: Translations = {
     delete: "削除",
     view: "表示",
     back: "戻る",
+    next: "次へ",
     search: "検索",
     filter: "フィルター",
     all: "すべて",
@@ -29,7 +30,7 @@ export const ja: Translations = {
     actions: "アクション",
     viewDetails: "詳細を表示",
     addNew: "新規追加",
-    backTo: "一覧に戻る",
+    backTo: "戻る",
     backToList: "一覧に戻る",
     saving: "保存中...",
     update: "更新",
@@ -38,10 +39,12 @@ export const ja: Translations = {
     menu: "メニュー",
     login: "ログイン",
     logout: "ログアウト",
+    darkMode: "ダークモード",
     inProgress: "進行中",
-    upcoming: "予定",
+    upcoming: "今後",
     recent: "最近",
-    total: "合計"
+    total: "合計",
+    type: "タイプ"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -50,6 +53,18 @@ export const ja: Translations = {
     inspections: "点検",
     settings: "設定",
     reporting: "レポート",
+  },
+  labels: {
+    due: "{date}まで",
+    priority: {
+      high: "高",
+      medium: "中",
+      low: "低"
+    },
+    status: {
+      scheduled: "予定",
+      inProgress: "進行中"
+    }
   },
   settings: {
     title: "設定",
@@ -217,14 +232,26 @@ export const ja: Translations = {
   },
   maintenance: {
     title: "メンテナンス",
-    description: "車両メンテナンスのスケジュールと管理",
-    addTask: "メンテナンスを追加",
-    newTask: "新規メンテナンスタスク",
+    description: "車両のメンテナンスタスクを管理する",
+    addTask: "タスクを追加",
+    newTask: "新しいメンテナンスタスク",
     editTask: "メンテナンスタスクを編集",
     searchPlaceholder: "メンテナンスタスクを検索...",
     noTasks: "メンテナンスタスクが見つかりません",
+    createImmediateTask: "即時タスクを作成",
+    createImmediateTaskDescription: "定期的なスケジュールに加えて、1回限りのタスクを即時に作成する",
+    recurringTask: "定期タスク",
+    oneTime: "1回限り",
+    schedule: {
+      title: "メンテナンスを予定",
+      details: "新しいメンテナンスタスクを予定",
+      description: "車両のメンテナンスタスクを作成",
+      button: "予定する",
+      id: "スケジュールID"
+    },
+    createDirect: "タスクを作成",
     status: {
-      pending: "未着手",
+      pending: "保留中",
       scheduled: "予定済み",
       in_progress: "進行中",
       completed: "完了",
@@ -235,6 +262,30 @@ export const ja: Translations = {
       high: "高",
       medium: "中",
       low: "低"
+    },
+    templates: {
+      selectTemplate: "タスクテンプレートを選択",
+      searchPlaceholder: "テンプレートを検索...",
+      noResults: "テンプレートが見つかりません",
+      createCustomTask: "カスタムタスクを作成",
+      useTemplate: "テンプレートを使用",
+      manualEntry: "手動入力",
+      templateInfo: "クイックタスク作成",
+      templateInfoDescription: "事前定義されたタスクテンプレートを選択して、標準的な所要時間とコストを持つ一般的なメンテナンスタスクをすばやく入力できます。",
+      templateApplied: "テンプレートが適用されました",
+      templateAppliedDescription: "テンプレートが適用されました。必要に応じてタスクの詳細をカスタマイズできます。"
+    },
+    form: {
+      description: "以下のフォームに入力して、新しいメンテナンスタスクを作成します",
+      basicInfo: "基本情報",
+      scheduleInfo: "スケジュール",
+      additionalDetails: "詳細",
+      stepOneTitle: "基本情報を入力",
+      stepOneDescription: "テンプレートを選択（任意）し、基本的なタスク情報を入力します。",
+      stepTwoTitle: "スケジュールを設定",
+      stepTwoDescription: "このタスクを繰り返す頻度と開始時期を定義します。",
+      stepThreeTitle: "追加詳細を入力",
+      stepThreeDescription: "このメンテナンスタスクに関する追加情報を提供します。"
     },
     fields: {
       title: "タスク名",
@@ -297,11 +348,14 @@ export const ja: Translations = {
       }
     },
     messages: {
-      createSuccess: "メンテナンスタスクを作成しました",
-      updateSuccess: "メンテナンスタスクを更新しました",
-      deleteSuccess: "メンテナンスタスクを削除しました",
-      taskStarted: "メンテナンスタスクを開始しました",
-      error: "メンテナンスタスクの保存に失敗しました"
+      createSuccess: "メンテナンスタスクが正常に作成されました",
+      updateSuccess: "メンテナンスタスクが正常に更新されました",
+      deleteSuccess: "メンテナンスタスクが正常に削除されました",
+      taskStarted: "メンテナンスタスクが開始されました",
+      error: "エラーが発生しました",
+      immediateTaskError: "即時タスクの作成中にエラーが発生しました",
+      nextTaskCreated: "次の定期タスクが作成されました",
+      nextTaskScheduled: "次のタスクは{date}に予定されています"
     },
     actions: {
       markComplete: "完了としてマーク",
@@ -311,23 +365,16 @@ export const ja: Translations = {
       edit: "タスクを編集",
       delete: "タスクを削除"
     },
-    schedule: {
-      title: "メンテナンスを予約",
-      details: "メンテナンスタスクの詳細",
-      description: "新規メンテナンスタスクを予約",
-      button: "メンテナンスを予約"
-    },
-    createDirect: "直接作成",
   },
   inspections: {
-    title: "点検予約",
-    description: "新規点検予約の登録",
+    title: "点検",
+    description: "車両の点検を管理する",
     addInspection: "点検を追加",
-    newInspection: "新規点検",
+    newInspection: "新しい点検",
     editInspection: "点検を編集",
     searchPlaceholder: "点検を検索...",
     noInspections: "点検が見つかりません",
-    createDirect: "直接作成",
+    createInspection: "点検を作成",
     status: {
       scheduled: "予定済み",
       in_progress: "進行中",
@@ -836,29 +883,62 @@ export const ja: Translations = {
       details: "点検の詳細",
       backToInspections: "点検一覧に戻る"
     },
-    defaultType: "標準点検",
+    defaultType: "定期点検",
   },
   dashboard: {
     title: "ダッシュボード",
-    description: "車両管理の概要と活動状況",
+    description: "車両フリートの概要",
     quickActions: {
       title: "クイックアクション",
-      description: "よく使う機能",
+      description: "一般的なタスクとアクション",
       addVehicle: "車両を追加",
-      scheduleMaintenance: "メンテナンス予約",
-      scheduleInspection: "点検予約",
-      viewReports: "レポート表示"
+      scheduleMaintenance: "メンテナンスを予定",
+      scheduleInspection: "点検を作成",
+      viewReports: "レポートを表示"
+    },
+    activityFeed: {
+      title: "アクティビティフィード",
+      description: "最近および今後のアクティビティ",
+      noUpcoming: "今後のアクティビティはありません",
+      noRecent: "最近のアクティビティはありません",
+      viewAll: "すべて表示"
+    },
+    dailyChecklist: {
+      title: "日次チェックリスト",
+      description: "今日完了するタスク",
+      completeChecklist: "チェックリストを完了",
+      checkAllItems: "すべての項目をチェックして完了",
+      upcomingReminders: "今後のリマインダー",
+      completed: {
+        title: "チェックリスト完了！",
+        message: "お疲れ様でした！日次チェックがすべて完了しました。また明日！",
+        reset: "チェックリストをリセット"
+      },
+      items: {
+        checkTires: "タイヤの空気圧と状態を確認",
+        checkLights: "すべてのライトが機能していることを確認",
+        checkFluids: "オイルと冷却水のレベルを確認",
+        checkBrakes: "ブレーキとパーキングブレーキをテスト",
+        visualInspection: "目視検査を実施"
+      }
+    },
+    vehicleStats: {
+      title: "車両概要",
+      description: "車両の簡単な統計",
+      fuelLevel: "燃料レベル",
+      mileage: "走行距離",
+      viewAllVehicles: "すべての車両を表示"
     },
     maintenance: {
       title: "メンテナンス",
-      description: "メンテナンスタスクの概要"
+      description: "今後および最近のメンテナンスタスク"
     },
     inspections: {
       title: "点検",
-      description: "車両点検の概要"
+      description: "今後および最近の点検"
     },
     stats: {
-      totalVehicles: "総車両数",
+      totalVehicles: "車両総数",
       maintenanceTasks: "メンテナンスタスク",
       inspections: "点検",
       activeVehicles: "稼働中の車両"
@@ -866,21 +946,21 @@ export const ja: Translations = {
     sections: {
       maintenanceSchedule: {
         title: "メンテナンススケジュール",
-        noPending: "予定されているメンテナンスはありません"
+        noPending: "保留中のメンテナンスタスクはありません"
       },
       inspectionSchedule: {
         title: "点検スケジュール",
-        noPending: "予定されている点検はありません"
+        noPending: "保留中の点検はありません"
       },
       recentMaintenance: {
         title: "最近のメンテナンス",
-        noCompleted: "完了したメンテナンスはありません"
+        noCompleted: "完了したメンテナンスタスクはありません"
       },
       recentInspections: {
         title: "最近の点検",
         noCompleted: "完了した点検はありません"
       }
-    },
+    }
   },
   fuel: {
     title: "燃料ログ",
@@ -934,18 +1014,6 @@ export const ja: Translations = {
       updated: "走行距離ログを更新しました",
       deleted: "走行距離ログを削除しました",
       error: "エラーが発生しました"
-    }
-  },
-  labels: {
-    due: "{date}まで",
-    priority: {
-      high: "高",
-      medium: "中",
-      low: "低"
-    },
-    status: {
-      scheduled: "予定済み",
-      inProgress: "進行中"
     }
   },
   reporting: {
@@ -1075,5 +1143,81 @@ export const ja: Translations = {
       }
     },
     noData: "選択したフィルターに該当するデータがありません",
+  },
+  notifications: {
+    title: "通知",
+    empty: "通知はありません",
+    toggle: "通知の切り替え",
+    delete: "通知を削除",
+    deleteSuccess: "通知を削除しました",
+    deleteError: "通知の削除に失敗しました",
+    markAllAsRead: "すべて既読にする",
+    markAsRead: "既読にする",
+    markAsReadSuccess: "既読にしました",
+    markAsReadError: "既読にできませんでした",
+    upcoming: "今後",
+    today: "今日",
+    thisWeek: "今週",
+    newNotifications: "{count}件の新しい通知",
+    clickToView: "クリックして表示",
+    unread: "未読{count}件"
+  },
+  schedules: {
+    title: "スケジュール",
+    createSchedule: "スケジュール作成",
+    frequency: "頻度",
+    selectFrequency: "頻度を選択",
+    frequencyDescription: "このタスクを実行する頻度",
+    intervalDays: "間隔（日）",
+    intervalDaysPlaceholder: "日数を入力",
+    intervalDaysDescription: "各発生の間の日数",
+    startDate: "開始日",
+    startDateDescription: "タスク生成を開始する日",
+    endDate: "終了日（任意）",
+    endDatePlaceholder: "終了日なし",
+    endDateDescription: "タスク生成を停止する日",
+    selectDate: "日付を選択",
+    frequencies: {
+      daily: "毎日",
+      weekly: "毎週",
+      biweekly: "隔週",
+      monthly: "毎月",
+      quarterly: "四半期ごと",
+      biannually: "半年ごと",
+      annually: "毎年",
+      custom: "カスタム"
+    },
+    maintenance: {
+      title: "定期メンテナンスのスケジュール",
+      description: "指定した頻度で自動的にスケジュールされる定期メンテナンスタスクを設定する",
+      createSuccess: "メンテナンススケジュールが正常に作成されました",
+      createError: "メンテナンススケジュールの作成に失敗しました",
+      updateSuccess: "メンテナンススケジュールが正常に更新されました",
+      updateError: "メンテナンススケジュールの更新に失敗しました",
+      deleteSuccess: "メンテナンススケジュールが正常に削除されました",
+      deleteError: "メンテナンススケジュールの削除に失敗しました"
+    },
+    inspection: {
+      title: "定期点検のスケジュール",
+      description: "指定した頻度で自動的にスケジュールされる定期点検を設定する",
+      createSuccess: "点検スケジュールが正常に作成されました",
+      createError: "点検スケジュールの作成に失敗しました",
+      updateSuccess: "点検スケジュールが正常に更新されました",
+      updateError: "点検スケジュールの更新に失敗しました",
+      deleteSuccess: "点検スケジュールが正常に削除されました",
+      deleteError: "点検スケジュールの削除に失敗しました"
+    }
+  },
+  auth: {
+    login: "ログイン",
+    logout: "ログアウト",
+    email: "メールアドレス",
+    password: "パスワード",
+    forgotPassword: "パスワードをお忘れですか",
+    resetPassword: "パスワードをリセット",
+    register: "登録",
+    loginSuccess: "ログインに成功しました",
+    loginError: "ログインに失敗しました",
+    logoutSuccess: "ログアウトに成功しました"
   },
 } as const 

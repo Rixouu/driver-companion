@@ -112,9 +112,9 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
             <Wrench className="h-5 w-5 text-primary" />
             {t('vehicles.schedule.maintenanceTitle')}
           </CardTitle>
-          <Link href={`/maintenance/new?vehicle_id=${vehicle.id}`}>
+          <Link href={`/maintenance/schedule?vehicle_id=${vehicle.id}`}>
             <Button size="sm" variant="outline">
-              {t('vehicles.tabs.addMaintenanceTask')}
+              {t('maintenance.schedule.title')}
             </Button>
           </Link>
         </CardHeader>

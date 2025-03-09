@@ -2,16 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Plus, Calendar, Wrench } from "lucide-react"
+import { Plus, Calendar } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { MaintenanceList } from "./maintenance-list"
 import type { MaintenanceTask } from "@/types"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 interface MaintenancePageContentProps {
   tasks: MaintenanceTask[]
@@ -29,28 +23,12 @@ export function MaintenancePageContent({ tasks }: MaintenancePageContentProps) {
             {t("maintenance.description")}
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("maintenance.addTask")}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/maintenance/schedule" className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4" />
-                {t("maintenance.schedule.title")}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/maintenance/new" className="flex items-center">
-                <Wrench className="mr-2 h-4 w-4" />
-                {t("maintenance.createDirect")}
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button asChild>
+          <Link href="/maintenance/schedule">
+            <Plus className="mr-2 h-4 w-4" />
+            {t("maintenance.schedule.title")}
+          </Link>
+        </Button>
       </div>
 
       <MaintenanceList tasks={tasks} />

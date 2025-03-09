@@ -1,7 +1,6 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { redirect } from "next/navigation"
-import { NewMaintenancePageContent } from "@/components/maintenance/new-maintenance-page-content"
 
 export default async function NewMaintenancePage() {
   const supabase = createServerComponentClient({ cookies })
@@ -11,5 +10,6 @@ export default async function NewMaintenancePage() {
     redirect('/auth/login')
   }
 
-  return <NewMaintenancePageContent />
+  // Redirect to the schedule page
+  redirect('/maintenance/schedule')
 } 

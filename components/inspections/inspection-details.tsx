@@ -264,13 +264,12 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       description,
       vehicle_id: inspection.vehicle_id,
       priority: 'high',
-      source: 'inspection',
       inspection_id: inspection.id,
-      status: 'scheduled' // Ensure the status is set to 'scheduled' instead of 'pending'
+      create_immediate_task: 'true' // Set to create an immediate task by default
     });
     
-    // Navigate to the maintenance creation page with prefilled data
-    router.push(`/maintenance/new?${params.toString()}`);
+    // Navigate to the maintenance schedule form with prefilled data
+    router.push(`/maintenance/schedule?${params.toString()}`);
   };
 
   // Function to handle printing the report
@@ -395,32 +394,32 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
         <CardHeader className="space-y-0 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
+          <Button
+            variant="ghost"
+            size="sm"
                 className="gap-2"
-                asChild
-              >
+            asChild
+          >
                 <Link href={`/vehicles/${inspection.vehicle_id}`}>
-                  <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" />
                   {t('common.backTo')}
-                </Link>
-              </Button>
-            </div>
+            </Link>
+          </Button>
+          </div>
             <div className="flex items-center gap-2">
-              {inspection.status === 'scheduled' && (
-                <Button 
-                  onClick={handleStartInspection} 
-                  disabled={isUpdating}
+          {inspection.status === 'scheduled' && (
+            <Button
+              onClick={handleStartInspection}
+              disabled={isUpdating}
                   className="gap-2"
-                >
+            >
                   <Play className="h-4 w-4" />
                   {t('inspections.actions.startInspection')}
-                </Button>
-              )}
+            </Button>
+          )}
               {inspection.status === 'completed' && (
                 <div className="flex gap-2">
-                  <Button 
+            <Button
                     variant="outline" 
                     size="sm" 
                     className="gap-2 hidden sm:flex"
@@ -429,7 +428,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   >
                     <Printer className="h-4 w-4" />
                     {t('inspections.details.actions.print')}
-                  </Button>
+            </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -441,8 +440,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     {t('inspections.details.actions.export')}
                   </Button>
                 </div>
-              )}
-            </div>
+          )}
+        </div>
           </div>
         </CardHeader>
       </Card>
@@ -473,10 +472,10 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       <div className="hidden print:block print:mb-6">
         <h1 className="text-2xl font-bold mb-2">{t('inspections.details.printTitle')}</h1>
         <div className="flex justify-between">
-          <div>
+              <div>
             <p className="font-medium">{inspection.vehicle?.name || 'Vehicle'}</p>
             <p>{inspection.vehicle?.plate_number || ''}</p>
-          </div>
+              </div>
           <div className="text-right">
             <p>{formatDate(inspection.date)}</p>
             <InspectionStatusBadge status={inspection.status} />
@@ -528,33 +527,33 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   <div className="flex items-center gap-2">
                     <Car className="h-5 w-5 text-primary" />
                     <CardTitle className="text-2xl">{t('vehicles.vehicleInformation')}</CardTitle>
-                  </div>
-                </CardHeader>
+            </div>
+        </CardHeader>
                 <CardContent className="p-0">
                   <div className="relative aspect-video w-full">
-                    {inspection.vehicle?.image_url ? (
-                      <Image
-                        src={inspection.vehicle.image_url}
-                        alt={inspection.vehicle?.name || ""}
-                        fill
-                        className="object-cover"
-                        priority
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <p className="text-muted-foreground">{t('inspections.details.vehicleInfo.noImage')}</p>
-                      </div>
-                    )}
-                  </div>
+              {inspection.vehicle?.image_url ? (
+                <Image
+                  src={inspection.vehicle.image_url}
+                  alt={inspection.vehicle?.name || ""}
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <p className="text-muted-foreground">{t('inspections.details.vehicleInfo.noImage')}</p>
+                </div>
+              )}
+            </div>
                   <div className="grid grid-cols-2 gap-6 p-6">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Tag className="h-4 w-4" />
                         <h3 className="font-medium text-sm">
                           {t('vehicles.fields.name')}
-                        </h3>
-                      </div>
+                </h3>
+          </div>
                       <p className="font-medium">{inspection.vehicle?.name || 'N/A'}</p>
                     </div>
                     <div className="space-y-2">
@@ -562,7 +561,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                         <Hash className="h-4 w-4" />
                         <h3 className="font-medium text-sm">
                           {t('vehicles.fields.plateNumber')}
-                        </h3>
+                </h3>
                       </div>
                       <p className="font-medium">{inspection.vehicle?.plate_number || 'N/A'}</p>
                     </div>
@@ -573,8 +572,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                           {t('vehicles.fields.brand')}
                         </h3>
                       </div>
-                      <p>{inspection.vehicle?.brand || 'N/A'}</p>
-                    </div>
+                <p>{inspection.vehicle?.brand || 'N/A'}</p>
+          </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Car className="h-4 w-4" />
@@ -584,9 +583,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                       </div>
                       <p>{inspection.vehicle?.model || 'N/A'}</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+          </div>
+        </CardContent>
+      </Card>
 
               {/* Inspection Details Card */}
               <Card className="shadow-sm overflow-hidden">
@@ -595,78 +594,78 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     <Clipboard className="h-5 w-5 text-primary" />
                     <CardTitle className="text-2xl">{t('inspections.details.inspectionDetails')}</CardTitle>
                   </div>
-                </CardHeader>
+          </CardHeader>
                 <CardContent className="p-6 sm:p-6 space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">{t("inspections.fields.type")}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t(`inspections.type.description.${inspection.type}`)}
-                    </p>
-                  </div>
-                  
-                  {/* Inspection Results Summary */}
-                  {(inspection.status === 'completed' || inspection.status === 'in_progress') && items.length > 0 && (
-                    <div className="pt-4 border-t">
-                      <h3 className="font-medium mb-3">{t("inspections.details.results.title")}</h3>
-                      <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-medium mb-2">{t("inspections.fields.type")}</h3>
+              <p className="text-sm text-muted-foreground">
+                {t(`inspections.type.description.${inspection.type}`)}
+              </p>
+            </div>
+            
+            {/* Inspection Results Summary */}
+            {(inspection.status === 'completed' || inspection.status === 'in_progress') && items.length > 0 && (
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-3">{t("inspections.details.results.title")}</h3>
+                <div className="grid grid-cols-2 gap-4">
                         <div 
                           className="bg-muted/30 rounded-lg p-3 text-center cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => navigateToTab('passed')}
                         >
-                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.passCount", { count: String(passedItems) })}</p>
-                          <p className="text-xl font-semibold mt-1 text-green-600 dark:text-green-400">{passedItems}</p>
-                        </div>
+                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.passCount", { count: String(passedItems) })}</p>
+                    <p className="text-xl font-semibold mt-1 text-green-600 dark:text-green-400">{passedItems}</p>
+                  </div>
                         <div 
                           className="bg-muted/30 rounded-lg p-3 text-center cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => navigateToTab('failed')}
                         >
-                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.failCount", { count: String(failedItems) })}</p>
-                          <p className="text-xl font-semibold mt-1 text-red-600 dark:text-red-400">{failedItems}</p>
-                        </div>
-                        <div className="bg-muted/30 rounded-lg p-3 text-center">
-                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.photoCount", { count: String(totalPhotos) })}</p>
-                          <p className="text-xl font-semibold mt-1">{totalPhotos}</p>
-                        </div>
-                        <div className="bg-muted/30 rounded-lg p-3 text-center">
-                          <p className="text-sm text-muted-foreground">{t("inspections.details.results.notesCount", { count: String(itemsWithNotes) })}</p>
-                          <p className="text-xl font-semibold mt-1">{itemsWithNotes}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Completion Rate Progress Bar */}
-                      {totalItems > 0 && (
+                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.failCount", { count: String(failedItems) })}</p>
+                    <p className="text-xl font-semibold mt-1 text-red-600 dark:text-red-400">{failedItems}</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.photoCount", { count: String(totalPhotos) })}</p>
+                    <p className="text-xl font-semibold mt-1">{totalPhotos}</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-sm text-muted-foreground">{t("inspections.details.results.notesCount", { count: String(itemsWithNotes) })}</p>
+                    <p className="text-xl font-semibold mt-1">{itemsWithNotes}</p>
+                  </div>
+                </div>
+                
+                {/* Completion Rate Progress Bar */}
+                {totalItems > 0 && (
                         <div className="mt-6">
-                          <div className="flex justify-between items-center mb-1">
-                            <p className="text-sm font-medium">{t("inspections.details.results.completionRate")}</p>
-                            <p className="text-sm font-medium">{Math.round(((passedItems + failedItems) / totalItems) * 100)}%</p>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2.5">
-                            <div 
-                              className="bg-primary h-2.5 rounded-full" 
-                              style={{ width: `${Math.round(((passedItems + failedItems) / totalItems) * 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Last Updated */}
-                      <div className="mt-4 text-sm text-muted-foreground">
-                        <p>{t("inspections.details.results.lastUpdated")}: {formatDate(inspection.updated_at || inspection.created_at)}</p>
-                      </div>
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-sm font-medium">{t("inspections.details.results.completionRate")}</p>
+                      <p className="text-sm font-medium">{Math.round(((passedItems + failedItems) / totalItems) * 100)}%</p>
                     </div>
-                  )}
-                  
-                  {inspection.notes && (
-                    <div className="pt-4 border-t">
-                      <h3 className="font-medium mb-2">{t("inspections.fields.notes")}</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {inspection.notes}
-                      </p>
+                    <div className="w-full bg-muted rounded-full h-2.5">
+                      <div 
+                        className="bg-primary h-2.5 rounded-full" 
+                        style={{ width: `${Math.round(((passedItems + failedItems) / totalItems) * 100)}%` }}
+                      ></div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                  </div>
+                )}
+                
+                {/* Last Updated */}
+                <div className="mt-4 text-sm text-muted-foreground">
+                  <p>{t("inspections.details.results.lastUpdated")}: {formatDate(inspection.updated_at || inspection.created_at)}</p>
+                </div>
+              </div>
+            )}
+            
+            {inspection.notes && (
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-2">{t("inspections.fields.notes")}</h3>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {inspection.notes}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
           </TabsContent>
 
           <TabsContent value="failed" className="space-y-6">
@@ -721,7 +720,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                                     {(() => {
                                       const keys = getTranslationKeys(item.template?.name)
                                       const translatedTitle = keys.section && keys.item
-                                        ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
+                                        ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`) 
                                         : item.template?.name
                                       return translatedTitle || t('common.noResults')
                                     })()}
@@ -731,7 +730,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                                       {(() => {
                                         const keys = getTranslationKeys(item.template?.name)
                                         const translatedDescription = keys.section && keys.item
-                                          ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
+                                          ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`) 
                                           : item.template?.description
                                         return translatedDescription || item.template?.description || ''
                                       })()}
@@ -832,8 +831,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                     </Card>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+          </CardContent>
+        </Card>
           </TabsContent>
 
           <TabsContent value="passed" className="space-y-6">
@@ -842,141 +841,141 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                 <CardTitle>{t('inspections.details.results.passCount', { count: `${itemsWithTemplates.filter(item => item.status === 'pass').length}` })}</CardTitle>
               </CardHeader>
               <CardContent>
-                {passedItems === 0 ? (
-                  <div className="text-center py-8 bg-muted/30 rounded-lg">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                      <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            {passedItems === 0 ? (
+              <div className="text-center py-8 bg-muted/30 rounded-lg">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">{t('inspections.details.results.allPassed')}</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {t('inspections.details.results.noFailedItems')}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
-                    <h3 className="text-lg font-medium mb-2">{t('inspections.details.results.allPassed')}</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      {t('inspections.details.results.noFailedItems')}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 rounded-lg p-4 mb-4">
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div className="ml-3">
-                          <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
-                            {t('inspections.details.results.failedItemsFound', { count: String(failedItems) })}
-                          </h3>
-                          <div className="mt-2 text-sm text-green-700 dark:text-green-300/80">
-                            <p>{t('inspections.details.results.failedItemsDescription')}</p>
-                          </div>
-                        </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
+                        {t('inspections.details.results.failedItemsFound', { count: String(failedItems) })}
+                      </h3>
+                      <div className="mt-2 text-sm text-green-700 dark:text-green-300/80">
+                        <p>{t('inspections.details.results.failedItemsDescription')}</p>
                       </div>
                     </div>
-                    
-                    {items
-                      .filter((item) => item.status === 'pass')
-                      .map((item, index) => (
-                        <Card key={item.id} className="border-green-200 dark:border-green-900/50 shadow-sm">
-                          <CardHeader className="bg-green-50/50 dark:bg-green-900/20">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 mt-1">
-                                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 font-medium text-sm">
-                                    {index + 1}
-                                  </div>
-                                </div>
-                                <div>
-                                  <CardTitle className="text-base text-green-800 dark:text-green-300">
-                                    {(() => {
-                                      const keys = getTranslationKeys(item.template?.name)
+                  </div>
+                </div>
+                
+                {items
+                  .filter((item) => item.status === 'pass')
+                  .map((item, index) => (
+                    <Card key={item.id} className="border-green-200 dark:border-green-900/50 shadow-sm">
+                      <CardHeader className="bg-green-50/50 dark:bg-green-900/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 mt-1">
+                              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 font-medium text-sm">
+                                {index + 1}
+                              </div>
+                            </div>
+                            <div>
+                              <CardTitle className="text-base text-green-800 dark:text-green-300">
+                                {(() => {
+                                  const keys = getTranslationKeys(item.template?.name)
                                       const translatedTitle = keys.section && keys.item
                                         ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
                                         : item.template?.name
                                       return translatedTitle || t('common.noResults')
-                                    })()}
-                                  </CardTitle>
-                                  {item.template?.description && (
-                                    <CardDescription className="text-green-700/80 dark:text-green-400/80">
-                                      {(() => {
-                                        const keys = getTranslationKeys(item.template?.name)
+                                })()}
+                              </CardTitle>
+                              {item.template?.description && (
+                                <CardDescription className="text-green-700/80 dark:text-green-400/80">
+                                  {(() => {
+                                    const keys = getTranslationKeys(item.template?.name)
                                         const translatedDescription = keys.section && keys.item
                                           ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
                                           : item.template?.description
                                         return translatedDescription || item.template?.description || ''
-                                      })()}
-                                    </CardDescription>
-                                  )}
-                                </div>
-                              </div>
-                              <Badge variant="success">{t('inspections.actions.pass')}</Badge>
+                                  })()}
+                                </CardDescription>
+                              )}
                             </div>
-                          </CardHeader>
-                          {(item.notes || (item.inspection_photos && item.inspection_photos.length > 0)) && (
-                            <CardContent className="pt-4">
-                              {item.notes && (
-                                <div className="mb-4 bg-muted/30 p-3 rounded-md">
-                                  <h3 className="font-medium text-sm mb-1 flex items-center gap-1">
-                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
-                                    {t('inspections.fields.notes')}
-                                  </h3>
-                                  <p className="text-sm">{item.notes}</p>
-                                </div>
-                              )}
-                              {item.inspection_photos && item.inspection_photos.length > 0 && (
-                                <div>
-                                  <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
-                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
-                                    {t('inspections.details.photos.title')} ({item.inspection_photos.length})
-                                  </h3>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                    {item.inspection_photos.map((photo) => (
-                                      <div key={photo.id} className="group relative aspect-square rounded-md overflow-hidden border border-green-200 dark:border-green-900/30">
-                                        <Dialog>
-                                          <DialogTrigger asChild>
-                                            <button className="w-full h-full" title={t('inspections.fields.photo')}>
-                                              <Image
-                                                src={photo.photo_url}
-                                                alt={t('inspections.fields.photo')}
-                                                fill
-                                                className="object-cover"
-                                              />
-                                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <Expand className="h-6 w-6 text-white" />
-                                              </div>
-                                            </button>
-                                          </DialogTrigger>
-                                          <DialogContent className="max-w-4xl">
-                                            <div className="relative aspect-video w-full">
-                                              <Image
-                                                src={photo.photo_url}
-                                                alt={t('inspections.fields.photo')}
-                                                fill
-                                                className="rounded-lg object-contain"
-                                              />
-                                            </div>
-                                            <div className="flex justify-end gap-2 mt-4">
-                                              <Button variant="outline" size="sm" asChild>
-                                                <a href={photo.photo_url} download target="_blank" rel="noopener noreferrer">
-                                                  <Download className="h-4 w-4 mr-2" />
-                                                  {t('inspections.details.photos.downloadPhoto')}
-                                                </a>
-                                              </Button>
-                                            </div>
-                                          </DialogContent>
-                                        </Dialog>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </CardContent>
+                          </div>
+                          <Badge variant="success">{t('inspections.actions.pass')}</Badge>
+                        </div>
+                      </CardHeader>
+                      {(item.notes || (item.inspection_photos && item.inspection_photos.length > 0)) && (
+                        <CardContent className="pt-4">
+                          {item.notes && (
+                            <div className="mb-4 bg-muted/30 p-3 rounded-md">
+                              <h3 className="font-medium text-sm mb-1 flex items-center gap-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
+                                {t('inspections.fields.notes')}
+                              </h3>
+                              <p className="text-sm">{item.notes}</p>
+                            </div>
                           )}
-                        </Card>
-                      ))}
-                  </div>
-                )}
+                          {item.inspection_photos && item.inspection_photos.length > 0 && (
+                            <div>
+                              <h3 className="font-medium text-sm mb-2 flex items-center gap-1">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>
+                                {t('inspections.details.photos.title')} ({item.inspection_photos.length})
+                              </h3>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {item.inspection_photos.map((photo) => (
+                                  <div key={photo.id} className="group relative aspect-square rounded-md overflow-hidden border border-green-200 dark:border-green-900/30">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <button className="w-full h-full" title={t('inspections.fields.photo')}>
+                                          <Image
+                                            src={photo.photo_url}
+                                            alt={t('inspections.fields.photo')}
+                                            fill
+                                            className="object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Expand className="h-6 w-6 text-white" />
+                                          </div>
+                                        </button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-4xl">
+                                        <div className="relative aspect-video w-full">
+                                          <Image
+                                            src={photo.photo_url}
+                                            alt={t('inspections.fields.photo')}
+                                            fill
+                                            className="rounded-lg object-contain"
+                                          />
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                          <Button variant="outline" size="sm" asChild>
+                                            <a href={photo.photo_url} download target="_blank" rel="noopener noreferrer">
+                                              <Download className="h-4 w-4 mr-2" />
+                                              {t('inspections.details.photos.downloadPhoto')}
+                                            </a>
+                                          </Button>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+          </CardContent>
+                      )}
+        </Card>
+                  ))}
+              </div>
+            )}
               </CardContent>
             </Card>
           </TabsContent>
         </div>
-      </Tabs>
+        </Tabs>
     </div>
   )
 } 

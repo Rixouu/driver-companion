@@ -119,6 +119,19 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
     router.push(`/maintenance?${params.toString()}`)
   }
 
+  // Function to check if a task is recurring based on notes
+  const isRecurringTask = (task: MaintenanceTask) => {
+    return task.notes && task.notes.includes(`[${t('maintenance.recurringTask')}`);
+  };
+
+  // Function to extract frequency from notes
+  const getTaskFrequency = (task: MaintenanceTask) => {
+    if (!task.notes) return null;
+    
+    const match = task.notes.match(/\[.*? - (.*?)\]/);
+    return match ? match[1] : null;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
@@ -219,6 +232,16 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                         <p className="text-sm text-muted-foreground">
                           {formatScheduledDate(task.due_date)}
                         </p>
+                        {isRecurringTask(task) && (
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <Badge variant="outline" className="bg-primary/10">
+                              {getTaskFrequency(task)}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {t('maintenance.recurringTask')}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center justify-between">
                         <Badge variant={getStatusVariant(task.status)}>
@@ -248,36 +271,45 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                       <TableHead>{t("maintenance.fields.title")}</TableHead>
                       <TableHead>{t("vehicles.fields.name")}</TableHead>
                       <TableHead>{t("maintenance.fields.dueDate")}</TableHead>
-                      <TableHead>{t("maintenance.priority.title")}</TableHead>
                       <TableHead>{t("maintenance.fields.status")}</TableHead>
+                      <TableHead>{t("maintenance.fields.priority")}</TableHead>
+                      <TableHead>{t("common.type")}</TableHead>
+                      <TableHead className="text-right">{t("common.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedTasks.map((task) => (
-                      <TableRow 
-                        key={task.id}
-                        className="cursor-pointer hover:bg-accent"
-                        onClick={() => router.push(`/maintenance/${task.id}`)}
-                      >
+                      <TableRow key={task.id}>
                         <TableCell className="font-medium">{task.title}</TableCell>
-                        <TableCell>
-                          {task.vehicle?.name}
-                          {task.vehicle?.plate_number && (
-                            <span className="text-muted-foreground ml-2">
-                              ({task.vehicle.plate_number})
-                            </span>
-                          )}
-                        </TableCell>
+                        <TableCell>{task.vehicle?.name || "-"}</TableCell>
                         <TableCell>{formatDate(task.due_date)}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(task.status)}>
+                            {t(`maintenance.status.${task.status}`)}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">
                             {t(`maintenance.priority.${task.priority}`)}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(task.status)}>
-                            {t(`maintenance.status.${task.status}`)}
-                          </Badge>
+                          {isRecurringTask(task) ? (
+                            <Badge variant="outline" className="bg-primary/10">
+                              {getTaskFrequency(task)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              {t('maintenance.oneTime')}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/maintenance/${task.id}`}>
+                              {t("common.viewDetails")}
+                            </Link>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

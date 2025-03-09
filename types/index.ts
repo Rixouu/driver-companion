@@ -135,6 +135,14 @@ export interface MaintenanceTask {
     image_url?: string
     brand?: string
   }
+  metadata?: {
+    is_recurring: boolean
+    frequency: string
+    interval_days?: number
+    start_date: string
+    end_date?: string | null
+    schedule_id: string
+  }
 }
 
 export interface Inspection {

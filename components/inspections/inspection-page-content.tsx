@@ -57,9 +57,9 @@ export function InspectionPageContent() {
           </p>
         </div>
         <Button asChild className="sm:flex-shrink-0">
-          <Link href="/inspections/new">
+          <Link href="/inspections/create">
             <Plus className="mr-2 h-4 w-4" />
-            {t("inspections.addInspection")}
+            {t("inspections.createInspection")}
           </Link>
         </Button>
       </div>

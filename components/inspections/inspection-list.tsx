@@ -151,28 +151,12 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             {t("inspections.description")}
           </p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              {t("inspections.addInspection")}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/inspections/schedule" className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4" />
-                {t("inspections.schedule.title")}
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/inspections/create" className="flex items-center">
-                <Clipboard className="mr-2 h-4 w-4" />
-                {t("inspections.createDirect")}
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button asChild>
+          <Link href="/inspections/create">
+            <Plus className="mr-2 h-4 w-4" />
+            {t("inspections.createInspection")}
+          </Link>
+        </Button>
       </div>
 
       <div className="space-y-4">

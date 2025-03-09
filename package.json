@@ -60,7 +60,7 @@
     "dotenv": "^16.4.7",
     "embla-carousel-react": "8.5.1",
     "file-saver": "^2.0.5",
-    "framer-motion": "^12.4.2",
+    "framer-motion": "^12.4.10",
     "idb": "latest",
     "input-otp": "1.4.1",
     "leaflet": "latest",

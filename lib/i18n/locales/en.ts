@@ -21,6 +21,7 @@ export const en: Translations = {
     delete: "Delete",
     view: "View",
     back: "Back",
+    next: "Next",
     search: "Search",
     filter: "Filter",
     all: "All",
@@ -38,18 +39,103 @@ export const en: Translations = {
     menu: "Menu",
     login: "Login",
     logout: "Logout",
+    darkMode: "Dark Mode",
     inProgress: "In Progress",
     upcoming: "Upcoming",
     recent: "Recent",
-    total: "Total"
+    total: "Total",
+    type: "Type"
   },
   navigation: {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     maintenance: "Maintenance",
     inspections: "Inspections",
-    reporting: "Reporting",
     settings: "Settings",
+    reporting: "Reporting"
+  },
+  labels: {
+    due: "Due {date}",
+    priority: {
+      high: "High",
+      medium: "Medium",
+      low: "Low"
+    },
+    status: {
+      scheduled: "Scheduled",
+      inProgress: "In Progress"
+    }
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications",
+    toggle: "Toggle notifications",
+    delete: "Delete notification",
+    deleteSuccess: "Notification deleted",
+    deleteError: "Failed to delete notification",
+    markAllAsRead: "Mark all as read",
+    markAsRead: "Mark as read",
+    markAsReadSuccess: "Marked as read",
+    markAsReadError: "Failed to mark as read",
+    upcoming: "Upcoming",
+    today: "Today",
+    thisWeek: "This Week",
+    newNotifications: "{count} new notifications",
+    clickToView: "Click to view",
+    unread: "{count} unread"
+  },
+  schedules: {
+    title: "Schedules",
+    createSchedule: "Create Schedule",
+    frequency: "Frequency",
+    selectFrequency: "Select frequency",
+    frequencyDescription: "How often this task should be performed",
+    intervalDays: "Interval (days)",
+    intervalDaysPlaceholder: "Enter number of days",
+    intervalDaysDescription: "Number of days between each occurrence",
+    startDate: "Start Date",
+    startDateDescription: "When to start generating tasks",
+    endDate: "End Date (Optional)",
+    endDatePlaceholder: "No end date",
+    endDateDescription: "When to stop generating tasks",
+    selectDate: "Select a date",
+    frequencies: {
+      daily: "Daily",
+      weekly: "Weekly",
+      biweekly: "Bi-weekly",
+      monthly: "Monthly",
+      quarterly: "Quarterly",
+      biannually: "Bi-annually",
+      annually: "Annually",
+      custom: "Custom"
+    },
+    maintenance: {
+      title: "Schedule Recurring Maintenance",
+      description: "Set up a recurring maintenance task that will be automatically scheduled at the specified frequency",
+      createSuccess: "Maintenance schedule created successfully",
+      createError: "Failed to create maintenance schedule",
+      updateSuccess: "Maintenance schedule updated successfully",
+      updateError: "Failed to update maintenance schedule",
+      deleteSuccess: "Maintenance schedule deleted successfully",
+      deleteError: "Failed to delete maintenance schedule"
+    },
+    inspection: {
+      title: "Schedule Recurring Inspection",
+      description: "Set up a recurring inspection that will be automatically scheduled at the specified frequency",
+      createSuccess: "Inspection schedule created successfully",
+      createError: "Failed to create inspection schedule",
+      updateSuccess: "Inspection schedule updated successfully",
+      updateError: "Failed to update inspection schedule",
+      deleteSuccess: "Inspection schedule deleted successfully",
+      deleteError: "Failed to delete inspection schedule"
+    },
+    schedule: {
+      title: "Schedule Maintenance",
+      details: "Schedule a new maintenance task",
+      description: "Create a maintenance task for your vehicle",
+      button: "Schedule",
+      id: "Schedule ID"
+    }
   },
   settings: {
     title: "Settings",
@@ -217,19 +303,36 @@ export const en: Translations = {
   },
   maintenance: {
     title: "Maintenance",
-    description: "Schedule and track vehicle maintenance",
-    addTask: "Add Maintenance",
+    description: "Manage maintenance tasks for your vehicles",
+    addTask: "Add Task",
     newTask: "New Maintenance Task",
     editTask: "Edit Maintenance Task",
     searchPlaceholder: "Search maintenance tasks...",
     noTasks: "No maintenance tasks found",
+    createImmediateTask: "Create immediate task",
+    createImmediateTaskDescription: "Create a one-time task immediately in addition to the recurring schedule",
+    recurringTask: "Recurring Task",
+    oneTime: "One-time",
+    form: {
+      description: "Create a new maintenance task by filling out the form below",
+      basicInfo: "Basic Info",
+      scheduleInfo: "Schedule",
+      additionalDetails: "Details",
+      stepOneTitle: "Enter Basic Information",
+      stepOneDescription: "Start by selecting a template (optional) and entering the basic task information.",
+      stepTwoTitle: "Set Schedule",
+      stepTwoDescription: "Define how often this task should repeat and when it should start.",
+      stepThreeTitle: "Add Additional Details",
+      stepThreeDescription: "Provide any additional details about this maintenance task."
+    },
     schedule: {
       title: "Schedule Maintenance",
-      details: "Maintenance Task Details",
-      description: "Schedule a new maintenance task",
-      button: "Schedule Maintenance"
+      details: "Schedule a new maintenance task",
+      description: "Create a maintenance task for your vehicle",
+      button: "Schedule",
+      id: "Schedule ID"
     },
-    createDirect: "Create Directly",
+    createDirect: "Create Task",
     status: {
       pending: "Pending",
       scheduled: "Scheduled",
@@ -242,6 +345,18 @@ export const en: Translations = {
       high: "High",
       medium: "Medium",
       low: "Low"
+    },
+    templates: {
+      selectTemplate: "Select a Task Template",
+      searchPlaceholder: "Search templates...",
+      noResults: "No templates found",
+      createCustomTask: "Create Custom Task",
+      useTemplate: "Use Template",
+      manualEntry: "Manual Entry",
+      templateInfo: "Quick Task Creation",
+      templateInfoDescription: "Select a predefined task template to quickly fill in common maintenance tasks with standard durations and costs.",
+      templateApplied: "Template Applied",
+      templateAppliedDescription: "The template has been applied. You can now customize the task details if needed."
     },
     fields: {
       title: "Task Title",
@@ -307,8 +422,11 @@ export const en: Translations = {
       createSuccess: "Maintenance task created successfully",
       updateSuccess: "Maintenance task updated successfully",
       deleteSuccess: "Maintenance task deleted successfully",
-      taskStarted: "Maintenance task started successfully",
-      error: "Failed to save maintenance task"
+      taskStarted: "Maintenance task started",
+      error: "An error occurred",
+      immediateTaskError: "Error creating immediate task",
+      nextTaskCreated: "Next recurring task created",
+      nextTaskScheduled: "Next task scheduled for {date}"
     },
     actions: {
       markComplete: "Mark as Complete",
@@ -321,14 +439,14 @@ export const en: Translations = {
   },
   inspections: {
     title: "Inspections",
-    description: "Schedule and track vehicle inspections",
+    description: "Manage vehicle inspections",
     addInspection: "Add Inspection",
     newInspection: "New Inspection",
     editInspection: "Edit Inspection",
     searchPlaceholder: "Search inspections...",
     noInspections: "No inspections found",
-    createDirect: "Create Directly",
-    defaultType: "Standard Inspection",
+    createInspection: "Create Inspection",
+    defaultType: "Routine",
     actions: {
       pass: "Pass",
       fail: "Fail",
@@ -840,22 +958,55 @@ export const en: Translations = {
   },
   dashboard: {
     title: "Dashboard",
-    description: "Monitor your fleet's performance and activities",
+    description: "Overview of your vehicle fleet",
     quickActions: {
       title: "Quick Actions",
       description: "Common tasks and actions",
       addVehicle: "Add Vehicle",
       scheduleMaintenance: "Schedule Maintenance",
-      scheduleInspection: "Schedule Inspection",
+      scheduleInspection: "Create Inspection",
       viewReports: "View Reports"
+    },
+    activityFeed: {
+      title: "Activity Feed",
+      description: "Recent and upcoming activities",
+      noUpcoming: "No upcoming activities",
+      noRecent: "No recent activities",
+      viewAll: "View All"
+    },
+    dailyChecklist: {
+      title: "Daily Checklist",
+      description: "Tasks to complete today",
+      completeChecklist: "Complete Checklist",
+      checkAllItems: "Check all items to complete",
+      upcomingReminders: "Upcoming Reminders",
+      completed: {
+        title: "Checklist Completed!",
+        message: "Great job! You've completed all the daily checks. See you tomorrow!",
+        reset: "Reset Checklist"
+      },
+      items: {
+        checkTires: "Check tire pressure and condition",
+        checkLights: "Verify all lights are working",
+        checkFluids: "Check oil and coolant levels",
+        checkBrakes: "Test brakes and parking brake",
+        visualInspection: "Perform visual inspection"
+      }
+    },
+    vehicleStats: {
+      title: "Vehicle Overview",
+      description: "Quick stats for your vehicles",
+      fuelLevel: "Fuel Level",
+      mileage: "Mileage",
+      viewAllVehicles: "View All Vehicles"
     },
     maintenance: {
       title: "Maintenance",
-      description: "Overview of maintenance tasks"
+      description: "Upcoming and recent maintenance tasks"
     },
     inspections: {
       title: "Inspections",
-      description: "Overview of vehicle inspections"
+      description: "Upcoming and recent inspections"
     },
     stats: {
       totalVehicles: "Total Vehicles",
@@ -866,7 +1017,7 @@ export const en: Translations = {
     sections: {
       maintenanceSchedule: {
         title: "Maintenance Schedule",
-        noPending: "No pending maintenance"
+        noPending: "No pending maintenance tasks"
       },
       inspectionSchedule: {
         title: "Inspection Schedule",
@@ -874,24 +1025,12 @@ export const en: Translations = {
       },
       recentMaintenance: {
         title: "Recent Maintenance",
-        noCompleted: "No completed maintenance"
+        noCompleted: "No completed maintenance tasks"
       },
       recentInspections: {
         title: "Recent Inspections",
         noCompleted: "No completed inspections"
       }
-      }
-    },
-    labels: {
-      due: "Due {date}",
-      priority: {
-        high: "High",
-        medium: "Medium",
-        low: "Low"
-      },
-      status: {
-      scheduled: "Scheduled",
-      inProgress: "In Progress"
     }
   },
   fuel: {
@@ -1075,6 +1214,18 @@ export const en: Translations = {
       }
     },
     noData: "No data available for the selected filters",
+  },
+  auth: {
+    login: "Login",
+    logout: "Logout",
+    email: "Email",
+    password: "Password",
+    forgotPassword: "Forgot Password",
+    resetPassword: "Reset Password",
+    register: "Register",
+    loginSuccess: "Login successful",
+    loginError: "Login failed",
+    logoutSuccess: "Logout successful"
   },
 } as const 
 

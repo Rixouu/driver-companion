@@ -27,7 +27,7 @@ export default async function RootLayout({
       <body className={cn(
         workSans.className,
         workSans.variable,
-        "min-h-screen bg-background"
+        "min-h-screen bg-[hsl(var(--background))]"
       )}>
         <ThemeProvider
           attribute="class"

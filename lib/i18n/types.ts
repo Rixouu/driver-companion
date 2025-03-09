@@ -33,6 +33,7 @@ export interface CommonTranslations {
   delete: string
   view: string
   back: string
+  next: string
   search: string
   filter: string
   all: string
@@ -50,10 +51,12 @@ export interface CommonTranslations {
   update: string
   create: string
   deleting: string
+  darkMode: string
   inProgress: string
   upcoming: string
   recent: string
   total: string
+  type: string
 }
 
 export interface DashboardTranslations {
@@ -66,6 +69,39 @@ export interface DashboardTranslations {
     scheduleMaintenance: string
     scheduleInspection: string
     viewReports: string
+  }
+  activityFeed: {
+    title: string
+    description: string
+    noUpcoming: string
+    noRecent: string
+    viewAll: string
+  }
+  dailyChecklist: {
+    title: string
+    description: string
+    completeChecklist: string
+    checkAllItems: string
+    upcomingReminders: string
+    completed: {
+      title: string
+      message: string
+      reset: string
+    }
+    items: {
+      checkTires: string
+      checkLights: string
+      checkFluids: string
+      checkBrakes: string
+      visualInspection: string
+    }
+  }
+  vehicleStats: {
+    title: string
+    description: string
+    fuelLevel: string
+    mileage: string
+    viewAllVehicles: string
   }
   maintenance: {
     title: string
@@ -104,6 +140,18 @@ export interface DashboardTranslations {
 export interface TranslationValues extends RecursiveStringRecord {
   common: CommonTranslations
   dashboard: DashboardTranslations
+  auth: {
+    login: string
+    logout: string
+    email: string
+    password: string
+    forgotPassword: string
+    resetPassword: string
+    register: string
+    loginSuccess: string
+    loginError: string
+    logoutSuccess: string
+  }
   labels: {
     due: string
     priority: {
@@ -123,6 +171,70 @@ export interface TranslationValues extends RecursiveStringRecord {
     inspections: string
     settings: string
     reporting: string
+  }
+  notifications: {
+    title: string
+    empty: string
+    toggle: string
+    delete: string
+    deleteSuccess: string
+    deleteError: string
+    markAllAsRead: string
+    markAsRead: string
+    markAsReadSuccess: string
+    markAsReadError: string
+    upcoming: string
+    today: string
+    thisWeek: string
+    newNotifications: string
+    clickToView: string
+    unread: string
+  }
+  schedules: {
+    title: string
+    createSchedule: string
+    frequency: string
+    selectFrequency: string
+    frequencyDescription: string
+    intervalDays: string
+    intervalDaysPlaceholder: string
+    intervalDaysDescription: string
+    startDate: string
+    startDateDescription: string
+    endDate: string
+    endDatePlaceholder: string
+    endDateDescription: string
+    selectDate: string
+    frequencies: {
+      daily: string
+      weekly: string
+      biweekly: string
+      monthly: string
+      quarterly: string
+      biannually: string
+      annually: string
+      custom: string
+    }
+    maintenance: {
+      title: string
+      description: string
+      createSuccess: string
+      createError: string
+      updateSuccess: string
+      updateError: string
+      deleteSuccess: string
+      deleteError: string
+    }
+    inspection: {
+      title: string
+      description: string
+      createSuccess: string
+      createError: string
+      updateSuccess: string
+      updateError: string
+      deleteSuccess: string
+      deleteError: string
+    }
   }
   settings: {
     title: string
@@ -297,11 +409,16 @@ export interface TranslationValues extends RecursiveStringRecord {
     editTask: string
     searchPlaceholder: string
     noTasks: string
+    createImmediateTask: string
+    createImmediateTaskDescription: string
+    recurringTask: string
+    oneTime: string
     schedule: {
       title: string
       details: string
       description: string
       button: string
+      id: string
     }
     createDirect: string
     status: {
@@ -316,6 +433,30 @@ export interface TranslationValues extends RecursiveStringRecord {
       high: string
       medium: string
       low: string
+    }
+    templates: {
+      selectTemplate: string
+      searchPlaceholder: string
+      noResults: string
+      createCustomTask: string
+      useTemplate: string
+      manualEntry: string
+      templateInfo: string
+      templateInfoDescription: string
+      templateApplied: string
+      templateAppliedDescription: string
+    }
+    form: {
+      description: string
+      basicInfo: string
+      scheduleInfo: string
+      additionalDetails: string
+      stepOneTitle: string
+      stepOneDescription: string
+      stepTwoTitle: string
+      stepTwoDescription: string
+      stepThreeTitle: string
+      stepThreeDescription: string
     }
     fields: {
       title: string
@@ -383,6 +524,9 @@ export interface TranslationValues extends RecursiveStringRecord {
       deleteSuccess: string
       taskStarted: string
       error: string
+      immediateTaskError: string
+      nextTaskCreated: string
+      nextTaskScheduled: string
     }
     actions: {
       markComplete: string
@@ -401,7 +545,7 @@ export interface TranslationValues extends RecursiveStringRecord {
     editInspection: string
     searchPlaceholder: string
     noInspections: string
-    createDirect: string
+    createInspection: string
     defaultType: string
     status: {
       scheduled: string

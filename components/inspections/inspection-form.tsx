@@ -53,7 +53,45 @@ interface InspectionSection {
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
   type: z.enum(["routine", "safety", "maintenance"]).default("routine"),
+  is_scheduled: z.boolean().default(false),
+  scheduled_date: z.string().optional(),
+  frequency: z.enum([
+    "daily", 
+    "weekly", 
+    "biweekly", 
+    "monthly", 
+    "quarterly", 
+    "biannually", 
+    "annually", 
+    "custom"
+  ]).optional(),
+  interval_days: z.string().optional(),
+  end_date: z.string().optional(),
 })
+.refine(
+  (data) => {
+    if (data.is_scheduled) {
+      return !!data.scheduled_date && !!data.frequency;
+    }
+    return true;
+  },
+  {
+    message: "Scheduled date and frequency are required for scheduled inspections",
+    path: ["scheduled_date"],
+  }
+)
+.refine(
+  (data) => {
+    if (data.frequency === "custom" && data.is_scheduled) {
+      return !!data.interval_days && parseInt(data.interval_days) > 0;
+    }
+    return true;
+  },
+  {
+    message: "Interval days is required for custom frequency",
+    path: ["interval_days"],
+  }
+);
 
 type InspectionFormData = z.infer<typeof inspectionSchema>
 

@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 }
 
 export default async function NewInspectionPage() {
-  // For new inspections, we'll redirect to the vehicle selection page
-  // This is because the InspectionForm requires a vehicle ID and type
-  return redirect("/vehicles")
+  // Redirect to the create inspection page
+  return redirect("/inspections/create")
 } 

@@ -68,17 +68,17 @@ export const ja: Translations = {
   },
   settings: {
     title: "設定",
-    description: "アカウント設定と環境設定を管理",
+    description: "アカウント設定と環境設定を管理する",
     profile: {
       title: "プロフィール",
-      description: "アカウント設定を管理",
+      description: "プロフィール情報を管理する",
       name: "名前",
       email: "メールアドレス",
-      emailDescription: "メールアドレスは通知とサインインに使用されます"
+      emailDescription: "メールアドレスはログインと通知に使用されます。"
     },
     preferences: {
       title: "環境設定",
-      description: "アプリケーションの表示設定をカスタマイズ",
+      description: "アプリケーション体験をカスタマイズする",
       theme: {
         title: "テーマ",
         light: "ライト",
@@ -90,6 +90,15 @@ export const ja: Translations = {
         en: "英語",
         ja: "日本語"
       }
+    },
+    menu: {
+      title: "メニュー設定",
+      description: "ナビゲーションに表示するメニュー項目をカスタマイズする",
+      menuItem: "メニュー項目",
+      desktop: "デスクトップ",
+      mobile: "モバイル",
+      desktopSettingsHidden: "デスクトップ設定は大きな画面でのみ表示されます。",
+      alwaysVisible: "常に表示"
     }
   },
   vehicles: {

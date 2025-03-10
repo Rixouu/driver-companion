@@ -65,6 +65,26 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const { t, language } = useI18n()
   const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
 
+  // Set default view based on screen size
+  useEffect(() => {
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
+    if (isMobile) {
+      setView("list");
+    }
+    
+    // Add resize listener to change view when resizing between mobile and desktop
+    const handleResize = () => {
+      const isMobileNow = window.innerWidth < 640;
+      if (isMobileNow && view === "grid") {
+        setView("list");
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [view]);
+
   useEffect(() => {
     async function loadVehicleData() {
       try {

@@ -132,6 +132,26 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
     return match ? match[1] : null;
   };
 
+  // Set default view based on screen size
+  useEffect(() => {
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
+    if (isMobile) {
+      setView("list");
+    }
+    
+    // Add resize listener to change view when resizing between mobile and desktop
+    const handleResize = () => {
+      const isMobileNow = window.innerWidth < 640;
+      if (isMobileNow && view === "grid") {
+        setView("list");
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [view]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">

@@ -36,6 +36,17 @@ export function Header() {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
+  // Function to get the current page title based on the pathname
+  const getPageTitle = (path: string, t: any) => {
+    if (path.startsWith('/dashboard')) return t('navigation.dashboard')
+    if (path.startsWith('/vehicles')) return t('navigation.vehicles')
+    if (path.startsWith('/maintenance')) return t('navigation.maintenance')
+    if (path.startsWith('/inspections')) return t('navigation.inspections')
+    if (path.startsWith('/reporting')) return t('navigation.reporting')
+    if (path.startsWith('/settings')) return t('navigation.settings')
+    return 'Driver'
+  }
+
   if (pathname.startsWith("/auth")) return null
 
   return (
@@ -58,6 +69,7 @@ export function Header() {
               <MainNav />
             </div>
           </div>
+          
           <div className="flex items-center gap-4">
             {/* Show theme toggle and login only on desktop */}
             <div className="hidden md:flex items-center gap-4">
@@ -73,136 +85,16 @@ export function Header() {
 
             {!loading && (
               <>
-                {/* Single mobile menu for both authenticated and non-authenticated users */}
-                <Sheet>
-                  <SheetTrigger asChild className="md:hidden">
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] p-0">
-                    <div className="flex flex-col h-full">
-                      <div className="flex items-center justify-between p-3">
-                        <span className="text-xl font-semibold">{t('common.menu')}</span>
-                        <SheetClose asChild>
-                          <Button variant="ghost" size="icon">
-                            <X className="h-5 w-5" />
-                          </Button>
-                        </SheetClose>
-                      </div>
-
-                      <Separator />
-
-                      <nav className="flex-1 px-6">
-                        <div className="space-y-6 py-6">
-                          <SheetClose asChild>
-                            <Link
-                              href="/dashboard"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <Gauge className="h-5 w-5" />
-                              {t('navigation.dashboard')}
-                            </Link>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Link
-                              href="/vehicles"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <Truck className="h-5 w-5" />
-                              {t('navigation.vehicles')}
-                            </Link>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Link
-                              href="/maintenance"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <ClipboardCheck className="h-5 w-5" />
-                              {t('navigation.maintenance')}
-                            </Link>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Link
-                              href="/inspections"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <FileCheck className="h-5 w-5" />
-                              {t('navigation.inspections')}
-                            </Link>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Link
-                              href="/reporting"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <BarChart className="h-5 w-5" />
-                              {t('navigation.reporting')}
-                            </Link>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Link
-                              href="/settings"
-                              className="flex items-center gap-3 text-base"
-                            >
-                              <Settings className="h-5 w-5" />
-                              {t('navigation.settings')}
-                            </Link>
-                          </SheetClose>
-                        </div>
-                      </nav>
-
-                      <div className="border-t p-6">
-                        <div className="flex flex-col gap-4">
-                          <SheetClose asChild>
-                            <Button 
-                              variant="outline" 
-                              className="w-full justify-start gap-2"
-                              onClick={() => setLanguage(language === "en" ? "ja" : "en")}
-                            >
-                              <Globe className="h-5 w-5" />
-                              {language === "en" ? "日本語" : "English"}
-                            </Button>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Button 
-                              variant="outline" 
-                              className="w-full justify-start gap-2"
-                              onClick={handleThemeToggle}
-                            >
-                              <Moon className="h-5 w-5" />
-                              {t('common.darkMode')}
-                            </Button>
-                          </SheetClose>
-                          
-                          <SheetClose asChild>
-                            <Button 
-                              variant="outline" 
-                              className="w-full justify-start gap-2"
-                              onClick={handleLogout}
-                            >
-                              <LogOut className="h-5 w-5" />
-                              {t('auth.logout')}
-                            </Button>
-                          </SheetClose>
-                        </div>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                {/* Show user nav on desktop when authenticated */}
-                {user && (
-                  <div className="hidden md:flex">
-                    <UserNav user={user} />
-                  </div>
-                )}
+                {/* Mobile Actions */}
+                <div className="flex md:hidden items-center gap-2">
+                  {user && <NotificationBell />}
+                  {user && <UserNav user={user} />}
+                </div>
+                
+                {/* Desktop User Nav */}
+                <div className="hidden md:flex">
+                  {user && <UserNav user={user} />}
+                </div>
               </>
             )}
           </div>

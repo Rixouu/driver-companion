@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Table,
@@ -54,6 +54,26 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
   const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
   const { t } = useI18n()
+
+  // Set default view based on screen size
+  useEffect(() => {
+    // Check if we're on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
+    if (isMobile) {
+      setView("list");
+    }
+    
+    // Add resize listener to change view when resizing between mobile and desktop
+    const handleResize = () => {
+      const isMobileNow = window.innerWidth < 640;
+      if (isMobileNow && view === "grid") {
+        setView("list");
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [view]);
 
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesFilter = filter === 'all' || vehicle.status === filter
@@ -239,34 +259,48 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                 {paginatedVehicles.map((vehicle) => (
                   <Card 
                     key={vehicle.id} 
-                    className="overflow-hidden cursor-pointer"
+                    className="overflow-hidden cursor-pointer relative"
                     onClick={() => router.push(`/vehicles/${vehicle.id}`)}
                   >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">{vehicle.name}</CardTitle>
-                      <CardDescription>{vehicle.plate_number}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-3 pt-0">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">{t("vehicles.fields.brand")}</p>
-                          <Badge variant="outline" className="mt-1">
+                    {/* Status Badge - Top Right Corner */}
+                    <Badge 
+                      variant={getStatusVariant(vehicle.status)}
+                      className="absolute top-2 right-2 z-10"
+                    >
+                      {t(`vehicles.status.${vehicle.status}`)}
+                    </Badge>
+                    
+                    <div className="flex">
+                      {/* Vehicle Thumbnail */}
+                      <div className="w-32 h-[100px] relative flex-shrink-0">
+                        {vehicle.image_url ? (
+                          <Image
+                            src={vehicle.image_url}
+                            alt={vehicle.name}
+                            fill
+                            sizes="128px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground">No Image</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Vehicle Info */}
+                      <div className="flex-1 p-3">
+                        <h3 className="font-medium text-base mb-1">{vehicle.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-2">{vehicle.plate_number}</p>
+                        
+                        <div className="flex items-center justify-between mt-auto">
+                          <Badge variant="outline" className="text-xs">
                             {vehicle.brand} {vehicle.model}
                           </Badge>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">{t("vehicles.fields.year")}</p>
-                          <p className="text-sm font-medium">
-                            {vehicle.year}
-                          </p>
+                          <span className="text-xs font-medium">{vehicle.year}</span>
                         </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="pt-0 flex justify-between items-center">
-                      <Badge variant={getStatusVariant(vehicle.status)}>
-                        {t(`vehicles.status.${vehicle.status}`)}
-                      </Badge>
-                    </CardFooter>
+                    </div>
                   </Card>
                 ))}
               </div>

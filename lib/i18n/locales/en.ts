@@ -142,10 +142,10 @@ export const en: Translations = {
     description: "Manage your account settings and preferences",
     profile: {
       title: "Profile",
-      description: "Manage your account settings",
+      description: "Manage your profile information",
       name: "Name",
       email: "Email",
-      emailDescription: "Your email address is used for notifications and sign-in"
+      emailDescription: "Your email address is used for login and notifications."
     },
     preferences: {
       title: "Preferences",
@@ -161,6 +161,15 @@ export const en: Translations = {
         en: "English",
         ja: "Japanese"
       }
+    },
+    menu: {
+      title: "Menu Settings",
+      description: "Customize which menu items are visible in the navigation",
+      menuItem: "Menu Item",
+      desktop: "Desktop",
+      mobile: "Mobile",
+      desktopSettingsHidden: "Desktop settings are only visible on larger screens.",
+      alwaysVisible: "Always visible"
     }
   },
   vehicles: {

@@ -261,6 +261,15 @@ export interface TranslationValues extends RecursiveStringRecord {
         ja: string
       }
     }
+    menu: {
+      title: string
+      description: string
+      menuItem: string
+      desktop: string
+      mobile: string
+      desktopSettingsHidden: string
+      alwaysVisible: string
+    }
   }
   vehicles: {
     title: string

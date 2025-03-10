@@ -87,13 +87,6 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("inspections.title")}</h1>
-        <p className="text-muted-foreground">
-          {t("inspections.description")}
-        </p>
-      </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
@@ -155,7 +148,7 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "w-[240px] pl-3 text-left font-normal",
+                              "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
                           >

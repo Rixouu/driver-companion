@@ -39,8 +39,6 @@ export function MaintenanceDetails({ task: initialTask }: MaintenanceDetailsProp
     vehicle: initialTask.vehicle as unknown as ExtendedVehicle
   })
   const [isUpdating, setIsUpdating] = useState(false)
-  const [maintenanceHistory, setMaintenanceHistory] = useState<MaintenanceTask[]>([])
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
 
   useEffect(() => {
     async function loadVehicleData() {
@@ -55,27 +53,13 @@ export function MaintenanceDetails({ task: initialTask }: MaintenanceDetailsProp
 
           if (vehicleError) throw vehicleError
           
-          // Load maintenance history for this vehicle
-          const { data: historyData, error: historyError } = await supabase
-            .from('maintenance_tasks')
-            .select('*')
-            .eq('vehicle_id', task.vehicle.id)
-            .order('due_date', { ascending: false })
-            .limit(5)
-            
-          if (historyError) throw historyError
-          
           setTask({
             ...task,
             vehicle: vehicleData
           })
-          
-          setMaintenanceHistory(historyData || [])
         }
       } catch (error) {
         console.error('Error loading data:', error)
-      } finally {
-        setIsLoadingHistory(false)
       }
     }
 
@@ -338,27 +322,43 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
     <div className="space-y-6 mt-6">
       {/* Header Card */}
       <Card className="rounded-lg border bg-card text-card-foreground shadow-sm print-hide">
-        <CardHeader className="space-y-0 p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              asChild
-            >
-              <Link href="/maintenance">
-                <ArrowLeft className="h-4 w-4" />
-                {t('common.backToList')}
-              </Link>
-            </Button>
-            
-            <div className="flex items-center gap-2">
+        <CardHeader className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+                asChild
+              >
+                <Link href="/maintenance">
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('common.backToList')}
+                </Link>
+              </Button>
+              
               {task.status !== 'completed' && (
                 <Button 
                   variant="outline" 
                   size="sm"
                   asChild
-                  className="gap-2"
+                  className="gap-2 sm:hidden"
+                >
+                  <Link href={`/maintenance/${task.id}/edit`}>
+                    <Pencil className="h-4 w-4" />
+                    {t("common.edit")}
+                  </Link>
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {task.status !== 'completed' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  asChild
+                  className="gap-2 hidden sm:inline-flex"
                 >
                   <Link href={`/maintenance/${task.id}/edit`}>
                     <Pencil className="h-4 w-4" />
@@ -373,7 +373,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   size="sm"
                   onClick={handleStartTask}
                   disabled={isUpdating}
-                  className="gap-2"
+                  className="gap-2 flex-1 sm:flex-none justify-center"
                 >
                   <Wrench className="h-4 w-4" />
                   {isUpdating ? t("common.saving") : t("maintenance.actions.startTask")}
@@ -386,7 +386,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   size="sm"
                   onClick={handleComplete}
                   disabled={isUpdating}
-                  className="gap-2"
+                  className="gap-2 flex-1 sm:flex-none justify-center"
                 >
                   <CheckCircle className="h-4 w-4" />
                   {isUpdating ? t("common.saving") : t("maintenance.actions.markComplete")}
@@ -460,39 +460,6 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                 </div>
                 <p>{task.vehicle?.model || 'N/A'}</p>
               </div>
-            </div>
-            
-            {/* Vehicle Maintenance History */}
-            <div className="p-6 mt-4 border-t">
-              <h3 className="font-medium mb-3">{t("maintenance.details.taskHistory")}</h3>
-              {isLoadingHistory ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-                </div>
-              ) : maintenanceHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {maintenanceHistory.slice(0, 3).map((historyItem) => (
-                    <div 
-                      key={historyItem.id} 
-                      className={`p-3 rounded-lg border ${historyItem.id === task.id ? 'bg-muted/50 border-primary' : ''}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium">{historyItem.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(historyItem.due_date)}
-                          </p>
-                        </div>
-                        <Badge variant={getStatusVariant(historyItem.status)}>
-                          {t(`maintenance.status.${historyItem.status}`)}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">{t("maintenance.details.noHistory")}</p>
-              )}
             </div>
           </CardContent>
         </Card>

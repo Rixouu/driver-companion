@@ -422,6 +422,8 @@ export interface TranslationValues extends RecursiveStringRecord {
     createImmediateTaskDescription: string
     recurringTask: string
     oneTime: string
+    isRecurring: string
+    isRecurringDescription: string
     schedule: {
       title: string
       details: string

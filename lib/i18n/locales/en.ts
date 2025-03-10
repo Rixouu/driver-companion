@@ -319,9 +319,11 @@ export const en: Translations = {
     searchPlaceholder: "Search maintenance tasks...",
     noTasks: "No maintenance tasks found",
     createImmediateTask: "Create immediate task",
-    createImmediateTaskDescription: "Create a one-time task immediately in addition to the recurring schedule",
+    createImmediateTaskDescription: "Create a task immediately in addition to the recurring schedule",
     recurringTask: "Recurring Task",
-    oneTime: "One-time",
+    oneTime: "One-time Task",
+    isRecurring: "Make this a recurring maintenance",
+    isRecurringDescription: "Schedule this maintenance to repeat at regular intervals",
     form: {
       description: "Create a new maintenance task by filling out the form below",
       basicInfo: "Basic Info",

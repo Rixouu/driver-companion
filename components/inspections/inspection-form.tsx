@@ -983,9 +983,6 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
                             <h4 className="font-medium">{item.title}</h4>
                             {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
                           </div>
-                          {item.requires_photo && (
-                            <Badge variant="outline" className="ml-2">{t('inspections.fields.photoRequired')}</Badge>
-                          )}
                         </div>
 
                         <div className="flex gap-2">

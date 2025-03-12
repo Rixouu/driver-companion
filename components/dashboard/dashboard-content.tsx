@@ -385,26 +385,30 @@ export function DashboardContent({
                     </h4>
                     <div className="space-y-2">
                       {upcomingMaintenance.slice(0, 1).map((task) => (
-                        <div key={task.id} className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm">
-                          <div className="flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-amber-600" />
-                            <span className="font-medium">{task.title}</span>
+                        <Link key={task.id} href={`/maintenance/${task.id}`}>
+                          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <Wrench className="h-4 w-4 text-amber-600" />
+                              <span className="font-medium">{task.title}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {task.vehicle?.name} • {t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {task.vehicle?.name} • {t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
-                          </p>
-                        </div>
+                        </Link>
                       ))}
                       {upcomingInspections.slice(0, 1).map((inspection) => (
-                        <div key={inspection.id} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm">
-                          <div className="flex items-center gap-2">
-                            <ClipboardCheck className="h-4 w-4 text-blue-600" />
-                            <span className="font-medium">{inspection.type || t('inspections.defaultType')}</span>
+                        <Link key={inspection.id} href={`/inspections/${inspection.id}`}>
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <ClipboardCheck className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium">{inspection.type || t('inspections.defaultType')}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {inspection.vehicle?.name} • {t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {inspection.vehicle?.name} • {t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
-                          </p>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>

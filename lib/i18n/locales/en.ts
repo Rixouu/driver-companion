@@ -44,7 +44,10 @@ export const en: Translations = {
     upcoming: "Upcoming",
     recent: "Recent",
     total: "Total",
-    type: "Type"
+    type: "Type",
+    saveChanges: "Save Changes",
+    confirmDelete: "Confirm Deletion",
+    untitled: "Untitled"
   },
   navigation: {
     dashboard: "Dashboard",
@@ -128,13 +131,6 @@ export const en: Translations = {
       updateError: "Failed to update inspection schedule",
       deleteSuccess: "Inspection schedule deleted successfully",
       deleteError: "Failed to delete inspection schedule"
-    },
-    schedule: {
-      title: "Schedule Maintenance",
-      details: "Schedule a new maintenance task",
-      description: "Create a maintenance task for your vehicle",
-      button: "Schedule",
-      id: "Schedule ID"
     }
   },
   settings: {
@@ -170,6 +166,16 @@ export const en: Translations = {
       mobile: "Mobile",
       desktopSettingsHidden: "Desktop settings are only visible on larger screens.",
       alwaysVisible: "Always visible"
+    },
+    templates: {
+      title: "Inspection Templates",
+      description: "Manage the structure of your inspection forms (sections and items)."
+    },
+    tabs: {
+      profile: "Profile",
+      preferences: "Preferences",
+      menu: "Menu",
+      templates: "Templates"
     }
   },
   vehicles: {
@@ -285,7 +291,7 @@ export const en: Translations = {
       inspectionsTitle: "Scheduled Inspections",
       noUpcoming: "No upcoming tasks scheduled",
       noMaintenanceTasks: "No maintenance tasks scheduled",
-      noInspections: "No inspections scheduled",
+      noInspections: "No inspections scheduled"
     },
     history: {
       title: "Vehicle History",
@@ -295,7 +301,7 @@ export const en: Translations = {
       noMaintenanceRecords: "No completed maintenance records",
       noInspectionRecords: "No completed inspection records",
       inspection: "Inspection",
-      maintenance: "Maintenance",
+      maintenance: "Maintenance"
     },
     deleteDialog: {
       title: "Delete Vehicle",
@@ -307,8 +313,8 @@ export const en: Translations = {
       inspectionsTitle: "Inspections In Progress",
       noTasks: "No tasks in progress",
       noMaintenanceTasks: "No maintenance tasks in progress",
-      noInspections: "No inspections in progress",
-    },
+      noInspections: "No inspections in progress"
+    }
   },
   maintenance: {
     title: "Maintenance",
@@ -397,7 +403,7 @@ export const en: Translations = {
       notes: "Additional Notes",
       notesPlaceholder: "Enter any additional notes or requirements",
       notesDescription: "Any extra information about the maintenance task",
-      dueDatePlaceholder: "Pick a date",
+      dueDatePlaceholder: "Pick a date"
     },
     details: {
       taskDetails: "Task Details",
@@ -790,9 +796,41 @@ export const en: Translations = {
             description: "Test all power windows for smooth operation"
           }
         }
-      },
+      }
     },
     templates: {
+      title: "Inspection Template Management",
+      manageTitle: "Manage {type} Template",
+      loadError: "Failed to load {type} template data.",
+      noSections: "No sections defined for this template yet.",
+      addSection: "Add Section",
+      newSectionTitle: "Add New Section",
+      newSectionDescription: "Enter the details for the new inspection section.",
+      sectionNameLabel: "Section Name",
+      sectionNamePlaceholder: "e.g., Engine System",
+      sectionDescriptionLabel: "Description (Optional)",
+      sectionDescriptionPlaceholder: "Brief description of the section",
+      addSectionSuccess: "Section added successfully",
+      addSectionError: "Failed to add section",
+      deleteSectionConfirm: "Are you sure you want to delete the section \"{name}\"? This will also delete all items within it.",
+      deleteSectionSuccess: "Section deleted successfully",
+      deleteSectionError: "Failed to delete section",
+      addItem: "Add Item",
+      newItemTitle: "Add New Item to {sectionName}",
+      newItemDescription: "Enter the details for the new inspection item.",
+      itemNameLabel: "Item Name",
+      itemNamePlaceholder: "e.g., Check Oil Level",
+      itemDescriptionLabel: "Item Description (Optional)",
+      itemDescriptionPlaceholder: "Details about what to check",
+      requiresPhoto: "Requires Photo",
+      requiresNotes: "Requires Notes",
+      addItemSuccess: "Item added successfully",
+      addItemError: "Failed to add item",
+      deleteItemConfirm: "Are you sure you want to delete the item \"{name}\"?",
+      deleteItemSuccess: "Item deleted successfully",
+      deleteItemError: "Failed to delete item",
+      updateSuccess: "Template updated successfully",
+      updateError: "Failed to update template",
       routine: {
         title: "Routine Vehicle Inspection",
         description: "Comprehensive inspection of all vehicle systems"
@@ -965,7 +1003,7 @@ export const en: Translations = {
       button: "Schedule Inspection",
       details: "Inspection Details",
       backToInspections: "Back to inspections"
-    },
+    }
   },
   dashboard: {
     title: "Dashboard",
@@ -1049,11 +1087,11 @@ export const en: Translations = {
     description: "Track your vehicle's fuel consumption and expenses.",
     new: {
       title: "Add Fuel Log",
-      description: "Record a new fuel fill-up for your vehicle.",
+      description: "Record a new fuel fill-up for your vehicle."
     },
     edit: {
       title: "Edit Fuel Log",
-      description: "Update the details of your fuel log.",
+      description: "Update the details of your fuel log."
     },
     fields: {
       date: "Date",
@@ -1063,25 +1101,26 @@ export const en: Translations = {
       fuel_type: "Fuel Type",
       station_name: "Station Name",
       full_tank: "Full Tank",
-      notes: "Notes",
+      notes: "Notes"
     },
     messages: {
       created: "Fuel log created successfully",
       updated: "Fuel log updated successfully",
       deleted: "Fuel log deleted successfully",
-      error: "Something went wrong",
+      error: "Something went wrong"
     },
+    noData: "No fuel log data available"
   },
   mileage: {
     title: "Mileage Logs",
     description: "Track your vehicle's mileage and trips.",
     new: {
       title: "Add Mileage Log",
-      description: "Record a new trip for your vehicle.",
+      description: "Record a new trip for your vehicle."
     },
     edit: {
       title: "Edit Mileage Log",
-      description: "Update the details of your mileage log.",
+      description: "Update the details of your mileage log."
     },
     fields: {
       date: "Date",
@@ -1089,14 +1128,14 @@ export const en: Translations = {
       end_odometer: "End Odometer",
       distance: "Distance",
       purpose: "Purpose",
-      notes: "Notes",
+      notes: "Notes"
     },
     messages: {
       created: "Mileage log created successfully",
       updated: "Mileage log updated successfully",
       deleted: "Mileage log deleted successfully",
-      error: "Something went wrong",
-    },
+      error: "Something went wrong"
+    }
   },
   reporting: {
     title: "Reports & Analytics",
@@ -1105,12 +1144,12 @@ export const en: Translations = {
       vehicleType: "Vehicle Type",
       status: "Status",
       apply: "Apply Filters",
-      reset: "Reset",
+      reset: "Reset"
     },
     export: {
       title: "Export",
       pdf: "Export as PDF",
-      excel: "Export as Excel",
+      excel: "Export as Excel"
     },
     fromPreviousPeriod: "from previous period",
     sections: {
@@ -1145,7 +1184,7 @@ export const en: Translations = {
         totalVehicles: "Total Vehicles",
         activeVehicles: "Active Vehicles",
         inMaintenance: "In Maintenance",
-        inactive: "Inactive",
+        inactive: "Inactive"
       },
       maintenanceMetrics: {
         title: "Maintenance Metrics",
@@ -1166,13 +1205,13 @@ export const en: Translations = {
         passRate: "Pass Rate",
         failRate: "Fail Rate",
         commonFailures: "Common Failures",
-        inspectionsByStatus: "Inspections by Status",
+        inspectionsByStatus: "Inspections by Status"
       },
       vehicleUtilization: {
         title: "Vehicle Utilization",
         maintenanceCostPerVehicle: "Maintenance Cost per Vehicle",
         inspectionPassRateByVehicle: "Inspection Pass Rate by Vehicle",
-        vehicleStatus: "Vehicle Status Distribution",
+        vehicleStatus: "Vehicle Status Distribution"
       },
       vehiclePerformance: {
         title: "Vehicle Performance",
@@ -1224,7 +1263,7 @@ export const en: Translations = {
         average: "Average Cost"
       }
     },
-    noData: "No data available for the selected filters",
+    noData: "No data available for the selected filters"
   },
   auth: {
     login: "Login",
@@ -1237,7 +1276,7 @@ export const en: Translations = {
     loginSuccess: "Login successful",
     loginError: "Login failed",
     logoutSuccess: "Logout successful"
-  },
-} as const 
+  }
+} as const
 
 export default en 

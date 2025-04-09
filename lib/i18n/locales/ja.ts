@@ -44,7 +44,10 @@ export const ja: Translations = {
     upcoming: "今後",
     recent: "最近",
     total: "合計",
-    type: "タイプ"
+    type: "タイプ",
+    saveChanges: "変更を保存",
+    confirmDelete: "削除の確認",
+    untitled: "無題"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -99,6 +102,16 @@ export const ja: Translations = {
       mobile: "モバイル",
       desktopSettingsHidden: "デスクトップ設定は大きな画面でのみ表示されます。",
       alwaysVisible: "常に表示"
+    },
+    templates: {
+      title: "点検テンプレート",
+      description: "点検フォーム（セクションと項目）の構造を管理します。"
+    },
+    tabs: {
+      profile: "プロフィール",
+      preferences: "環境設定",
+      menu: "メニュー",
+      templates: "テンプレート"
     }
   },
   vehicles: {
@@ -386,6 +399,23 @@ export const ja: Translations = {
     searchPlaceholder: "点検を検索...",
     noInspections: "点検が見つかりません",
     createInspection: "点検を作成",
+    actions: {
+      pass: "合格",
+      fail: "不合格",
+      complete: "完了",
+      markComplete: "完了としてマーク",
+      markInProgress: "進行中としてマーク",
+      startInspection: "点検を開始",
+      cancel: "キャンセル",
+      edit: "編集",
+      delete: "削除",
+      addPhoto: "写真を追加",
+      addNotes: "メモを追加",
+      resume: "再開",
+      scheduleRepair: "修理を予約",
+      needsRepair: "修理が必要",
+      scheduleRepairDescription: "不合格項目の修理タスクを予約して、車両を最適な状態に保ちましょう。"
+    },
     status: {
       scheduled: "予定済み",
       in_progress: "進行中",
@@ -703,23 +733,6 @@ export const ja: Translations = {
         }
       },
     },
-    actions: {
-      pass: "合格",
-      fail: "不合格",
-      complete: "完了",
-      markComplete: "完了としてマーク",
-      markInProgress: "進行中としてマーク",
-      startInspection: "点検を開始",
-      cancel: "キャンセル",
-      edit: "編集",
-      delete: "削除",
-      addPhoto: "写真を追加",
-      addNotes: "メモを追加",
-      resume: "再開",
-      scheduleRepair: "修理を予約",
-      needsRepair: "修理が必要",
-      scheduleRepairDescription: "不合格項目の修理タスクを予約して、車両を最適な状態に保ちましょう。"
-    },
     fields: {
       vehicle: "車両",
       vehicleDescription: "点検する車両を選択してください",
@@ -833,6 +846,38 @@ export const ja: Translations = {
       exportError: "点検のエクスポート中にエラーが発生しました"
     },
     templates: {
+      title: "点検テンプレート管理",
+      manageTitle: "{type} テンプレートを管理",
+      loadError: "{type} テンプレートデータの読み込みに失敗しました。",
+      noSections: "このテンプレートにはまだセクションが定義されていません。",
+      addSection: "セクションを追加",
+      newSectionTitle: "新しいセクションを追加",
+      newSectionDescription: "新しい点検セクションの詳細を入力してください。",
+      sectionNameLabel: "セクション名",
+      sectionNamePlaceholder: "例：エンジンシステム",
+      sectionDescriptionLabel: "説明（任意）",
+      sectionDescriptionPlaceholder: "セクションの簡単な説明",
+      addSectionSuccess: "セクションが正常に追加されました",
+      addSectionError: "セクションの追加に失敗しました",
+      deleteSectionConfirm: "セクション「{name}」を削除してもよろしいですか？ これにより、セクション内のすべての項目も削除されます。",
+      deleteSectionSuccess: "セクションが正常に削除されました",
+      deleteSectionError: "セクションの削除に失敗しました",
+      addItem: "項目を追加",
+      newItemTitle: "{sectionName} に新しい項目を追加",
+      newItemDescription: "新しい点検項目の詳細を入力してください。",
+      itemNameLabel: "項目名",
+      itemNamePlaceholder: "例：オイルレベルの確認",
+      itemDescriptionLabel: "項目の説明（任意）",
+      itemDescriptionPlaceholder: "チェック内容の詳細",
+      requiresPhoto: "写真必須",
+      requiresNotes: "メモ必須",
+      addItemSuccess: "項目が正常に追加されました",
+      addItemError: "項目の追加に失敗しました",
+      deleteItemConfirm: "項目「{name}」を削除してもよろしいですか？",
+      deleteItemSuccess: "項目が正常に削除されました",
+      deleteItemError: "項目の削除に失敗しました",
+      updateSuccess: "テンプレートが正常に更新されました",
+      updateError: "テンプレートの更新に失敗しました",
       routine: {
         title: "定期車両点検",
         description: "全車両システムの総合点検"
@@ -999,7 +1044,8 @@ export const ja: Translations = {
       updated: "燃料ログを更新しました",
       deleted: "燃料ログを削除しました",
       error: "エラーが発生しました"
-    }
+    },
+    noData: "燃料ログデータがありません"
   },
   mileage: {
     title: "走行距離ログ",

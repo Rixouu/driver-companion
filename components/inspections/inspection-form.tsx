@@ -19,7 +19,7 @@ import * as z from "zod"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { Progress } from "@/components/ui/progress"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionType } from "@/lib/types/inspections"
+import type { InspectionType } from "@/types/inspections"
 import { Badge } from "@/components/ui/badge"
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form"
 import {
@@ -31,11 +31,16 @@ import {
 } from "@/components/ui/select"
 import { InspectionTypeSelector } from "./inspection-type-selector"
 
-// Define inspection item type
-type InspectionItemType = {
+// Define translation object type
+type TranslationObject = { [key: string]: string }
+
+// Define inspection item type with translations
+interface InspectionItemType {
   id: string
-  title: string
-  description?: string
+  name_translations: TranslationObject
+  description_translations: TranslationObject
+  title: string // Display title derived from translations
+  description?: string // Display description derived from translations
   requires_photo: boolean
   requires_notes: boolean
   status: 'pass' | 'fail' | null
@@ -43,10 +48,13 @@ type InspectionItemType = {
   photos: string[]
 }
 
+// Define inspection section type with translations
 interface InspectionSection {
   id: string
-  title: string
-  description?: string
+  name_translations: TranslationObject
+  description_translations: TranslationObject
+  title: string // Display title derived from translations
+  description?: string // Display description derived from translations
   items: InspectionItemType[]
 }
 
@@ -117,19 +125,20 @@ interface Vehicle {
 }
 
 // Map our section IDs to the actual UUIDs from the database
-const CATEGORY_IDS = {
-  steering: '63a30ec2-c4da-40ea-a408-da98b6e4fde',
-  brake: '49884798-34d3-4576-a771-bae768eff1f3',
-  suspension: '44ff8e2e-1773-49d9-b93c-a3128b760443',
-  lighting: 'effb87ad-2917-4207-a51a-6889f4d4eeb7',
-  tires: '5e18c77d-b822-4ba5-b45c-482635bd46d'
-}
+// This mapping might become less relevant if fetching dynamically
+// const CATEGORY_IDS = {
+//   steering: '63a30ec2-c4da-40ea-a408-da98b6e4fde',
+//   brake: '49884798-34d3-4576-a771-bae768eff1f3',
+//   suspension: '44ff8e2e-1773-49d9-b93c-a3128b760443',
+//   lighting: 'effb87ad-2917-4207-a51a-6889f4d4eeb7',
+//   tires: '5e18c77d-b822-4ba5-b45c-482635bd46d'
+// }
 
 export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: InspectionFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
   const [selectedType, setSelectedType] = useState<InspectionType>(type)
@@ -200,62 +209,87 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
           }
         }
 
+        // Fetch categories and items with translation columns
         const { data: categories, error: categoriesError } = await supabase
           .from('inspection_categories')
           .select(`
             id,
-            name,
-            description,
+            name_translations,
+            description_translations,
             type,
+            order_number,
             inspection_item_templates (
               id,
-              name,
-              description,
+              name_translations,
+              description_translations,
               requires_photo,
               requires_notes,
               order_number
             )
           `)
           .eq('type', selectedType)
-          .order('order_number', { ascending: true })
+          // Sort categories by order_number (handle potential nulls)
+          .order('order_number', { ascending: true, nullsFirst: true }) 
+          // Sort items within categories by order_number (handle potential nulls)
+          .order('order_number', { 
+            referencedTable: 'inspection_item_templates', 
+            ascending: true, 
+            nullsFirst: true 
+          });
 
-        if (categoriesError) throw categoriesError
+        if (categoriesError) {
+           console.error('Error fetching categories:', categoriesError); // Log the specific error
+           throw categoriesError;
+        }
 
         if (categories) {
-          const formattedSections: InspectionSection[] = categories.map(category => {
-            const categoryKey = category.name.toLowerCase().replace(/\s+/g, '_')
-            const translatedTitle = t(`inspections.sections.${categoryKey}.title`)
+          // Map fetched data to the frontend InspectionSection structure
+          const formattedSections: InspectionSection[] = categories.map((category: any): InspectionSection => {
+            // Provide default empty objects if translations are null/undefined
+            const nameTrans = category.name_translations || { en: '', ja: '' };
+            const descTrans = category.description_translations || { en: '', ja: '' };
             
+            // Determine display title based on ACTUAL locale, fallback to 'en', then provide default
+            const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled');
+            const description = descTrans[locale] || descTrans['en'] || undefined;
+
             return {
               id: category.id,
-              title: translatedTitle || category.name,
-              description: category.description,
-              items: (category.inspection_item_templates || [])
-                .sort((a, b) => a.order_number - b.order_number)
-                .map(item => {
-                  const itemKey = item.name.toLowerCase().replace(/\s+/g, '_')
-                  const translatedItemTitle = t(`inspections.sections.${categoryKey}.items.${itemKey}.title`)
-                  const translatedItemDesc = t(`inspections.sections.${categoryKey}.items.${itemKey}.description`)
-                  
+              name_translations: nameTrans, // Store the full object
+              description_translations: descTrans, // Store the full object
+              title: title, // Store the locale-specific title
+              description: description, // Store the locale-specific description (optional)
+              items: (category.inspection_item_templates || []).map((item: any): InspectionItemType => {
+                 // Default empty objects for item translations
+                 const itemNameTrans = item.name_translations || { en: '', ja: '' };
+                 const itemDescTrans = item.description_translations || { en: '', ja: '' };
+
+                 // Determine display title and description for item using ACTUAL locale
+                 const itemTitle = itemNameTrans[locale] || itemNameTrans['en'] || t('common.untitled');
+                 const itemDescription = itemDescTrans[locale] || itemDescTrans['en'] || undefined;
+
                   return {
                     id: item.id,
-                    title: translatedItemTitle || item.name,
-                    description: translatedItemDesc || item.description,
-                    requires_photo: item.requires_photo,
-                    requires_notes: item.requires_notes,
+                    name_translations: itemNameTrans, // Store the full object
+                    description_translations: itemDescTrans, // Store the full object
+                    title: itemTitle, // Store the locale-specific title
+                    description: itemDescription, // Store the locale-specific description (optional)
+                    // Cast boolean fields, providing default (false) if null
+                    requires_photo: item.requires_photo ?? false, 
+                    requires_notes: item.requires_notes ?? false,
                     status: null,
                     notes: '',
                     photos: []
-                  }
+                  };
                 })
-            }
-          })
+            };
+          });
 
           setSections(formattedSections)
           
           // If we have an inspectionId, load existing inspection items
           if (inspectionId) {
-            loadExistingInspectionItems(formattedSections);
+            loadExistingInspectionItems(formattedSections, locale);
           } else if (!activeSection && formattedSections.length > 0) {
             setActiveSection(formattedSections[0].id)
             if (formattedSections[0].items.length > 0) {
@@ -274,10 +308,10 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
     }
 
     loadInspectionTemplate()
-  }, [selectedType, t, inspectionId])
+  }, [selectedType, t, inspectionId, locale])
 
   // Load existing inspection items if we have an inspectionId
-  const loadExistingInspectionItems = async (formattedSections: InspectionSection[]) => {
+  const loadExistingInspectionItems = async (formattedSections: InspectionSection[], currentLocale: string) => {
     try {
       // Fetch existing inspection items
       const { data: existingItems, error } = await supabase
@@ -291,21 +325,29 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
       }
 
       if (!existingItems || existingItems.length === 0) {
+        console.log("No existing inspection items found.");
         return formattedSections
       }
 
-      // Define a type for items with photos
+      // Define a type for items with photos - ensure template_id is string (not null)
       type ItemWithPhotos = {
         id: string;
-        template_id: string;
+        // Assuming template_id will always be present on fetched items for an existing inspection
+        template_id: string; 
         status: 'pass' | 'fail' | null;
         notes: string | null;
         inspection_photos?: { id: string; photo_url: string }[];
       };
 
+      // Filter out items with null template_id before mapping
+      const validExistingItems = existingItems.filter(item => item.template_id !== null);
+
       // Initialize items with photos array
-      const itemsWithPhotos: ItemWithPhotos[] = existingItems.map(item => ({
+      const itemsWithPhotos: ItemWithPhotos[] = validExistingItems.map(item => ({
         ...item,
+        template_id: item.template_id!, // Use non-null assertion after filtering
+        // Explicitly cast status to the expected type
+        status: item.status as 'pass' | 'fail' | null,
         inspection_photos: []
       }));
 
@@ -371,24 +413,26 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
     const fetchCategories = async () => {
       const { data, error } = await supabase
         .from('inspection_categories')
-        .select('id, name')
+        .select('id, name_translations') // Fetch translations if needed here
 
       if (error) {
         console.error('Error fetching categories:', error)
         return
       }
 
-      // Create a mapping of category name to ID
-      const categoryMap = data.reduce((acc: Record<string, string>, cat) => {
-        acc[cat.name.toLowerCase()] = cat.id
-        return acc
-      }, {})
+      // Create a mapping if necessary, potentially using translations
+      // const categoryMap = data.reduce((acc: Record<string, string>, cat) => {
+      //   const nameTrans = cat.name_translations || { en: '', ja: '' };
+      //   const key = nameTrans[locale] || nameTrans['en'] || cat.id; // Use dynamic locale here too
+      //   acc[key] = cat.id
+      //   return acc
+      // }, {})
 
       methods.setValue('vehicle_id', vehicleId)
     }
 
     fetchCategories()
-  }, [vehicleId, methods])
+  }, [vehicleId, methods, locale]) // Update dependency array here too
 
   const handleItemStatus = (sectionId: string, itemId: string, status: 'pass' | 'fail') => {
     setSections(prevSections => 

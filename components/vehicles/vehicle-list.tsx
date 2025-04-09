@@ -44,7 +44,7 @@ interface VehicleListProps {
   totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 6
+const ITEMS_PER_PAGE = 9
 
 export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: VehicleListProps) {
   const router = useRouter()
@@ -75,6 +75,15 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
     return () => window.removeEventListener('resize', handleResize);
   }, [view]);
 
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    if (debouncedSearch || filter !== 'all') {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", "1");
+      router.push(`/vehicles?${params.toString()}`);
+    }
+  }, [debouncedSearch, filter, router, searchParams]);
+
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesFilter = filter === 'all' || vehicle.status === filter
     const matchesSearch = !debouncedSearch || 
@@ -94,6 +103,11 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
     params.set("page", page.toString())
     router.push(`/vehicles?${params.toString()}`)
   }
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    // Page reset will be handled by the useEffect above
+  };
 
   function getStatusVariant(status: string) {
     switch (status) {
@@ -125,7 +139,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             <div className="sm:hidden">
               <Select
                 value={filter}
-                onValueChange={setFilter}
+                onValueChange={handleFilterChange}
               >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder={t("common.filter")} />
@@ -141,25 +155,25 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             <div className="hidden sm:flex flex-wrap gap-2">
               <Button 
                 variant={filter === 'all' ? 'default' : 'outline'}
-                onClick={() => setFilter('all')}
+                onClick={() => handleFilterChange('all')}
               >
                 {t("common.all")}
               </Button>
               <Button 
                 variant={filter === 'active' ? 'default' : 'outline'}
-                onClick={() => setFilter('active')}
+                onClick={() => handleFilterChange('active')}
               >
                 {t("vehicles.status.active")}
               </Button>
               <Button 
                 variant={filter === 'maintenance' ? 'default' : 'outline'}
-                onClick={() => setFilter('maintenance')}
+                onClick={() => handleFilterChange('maintenance')}
               >
                 {t("vehicles.status.maintenance")}
               </Button>
               <Button 
                 variant={filter === 'inactive' ? 'default' : 'outline'}
-                onClick={() => setFilter('inactive')}
+                onClick={() => handleFilterChange('inactive')}
               >
                 {t("vehicles.status.inactive")}
               </Button>
@@ -313,26 +327,35 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                 <PaginationItem>
                   <PaginationPrevious 
                     href="#"
-                    onClick={() => handlePageChange(currentPage - 1)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(currentPage - 1);
+                    }}
                   />
                 </PaginationItem>
               )}
-              {[...Array(totalFilteredPages)].map((_, i) => (
+              {[...Array(totalPages)].map((_, i) => (
                 <PaginationItem key={i + 1}>
                   <PaginationLink
                     href="#"
-                    onClick={() => handlePageChange(i + 1)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(i + 1);
+                    }}
                     isActive={currentPage === i + 1}
                   >
                     {i + 1}
                   </PaginationLink>
                 </PaginationItem>
               ))}
-              {currentPage < totalFilteredPages && (
+              {currentPage < totalPages && (
                 <PaginationItem>
                   <PaginationNext
                     href="#"
-                    onClick={() => handlePageChange(currentPage + 1)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(currentPage + 1);
+                    }}
                   />
                 </PaginationItem>
               )}

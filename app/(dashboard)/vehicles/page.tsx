@@ -20,20 +20,32 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const ITEMS_PER_PAGE = 9
 
-export default async function VehiclesPage() {
+export default async function VehiclesPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
   const supabase = createServerComponentClient({ cookies })
   const dictionary = await getDictionary()
+  
+  // Get page from search params
+  const pageParam = searchParams.page ? Number(searchParams.page) : 1
+  const currentPage = !isNaN(pageParam) && pageParam > 0 ? pageParam : 1
   
   const { data: vehicles } = await supabase
     .from('vehicles')
     .select('*')
     .order('created_at', { ascending: false })
+    
+  // Calculate total pages
+  const totalItems = vehicles?.length || 0
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
   return (
     <VehiclesPageContent 
       vehicles={vehicles || []} 
-      currentPage={1} 
-      totalPages={1} 
+      currentPage={currentPage} 
+      totalPages={totalPages} 
     />
   )
 } 

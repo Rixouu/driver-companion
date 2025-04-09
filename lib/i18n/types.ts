@@ -38,9 +38,6 @@ export interface CommonTranslations {
   filter: string
   all: string
   noResults: string
-  menu: string
-  login: string
-  logout: string
   details: string
   actions: string
   viewDetails: string
@@ -51,12 +48,18 @@ export interface CommonTranslations {
   update: string
   create: string
   deleting: string
+  menu: string
+  login: string
+  logout: string
   darkMode: string
   inProgress: string
   upcoming: string
   recent: string
   total: string
   type: string
+  saveChanges?: string
+  confirmDelete?: string
+  untitled?: string
 }
 
 export interface DashboardTranslations {
@@ -269,6 +272,16 @@ export interface TranslationValues extends RecursiveStringRecord {
       mobile: string
       desktopSettingsHidden: string
       alwaysVisible: string
+    }
+    templates?: {
+      title: string
+      description: string
+    }
+    tabs?: {
+      profile: string
+      preferences: string
+      menu: string
+      templates: string
     }
   }
   vehicles: {
@@ -558,6 +571,23 @@ export interface TranslationValues extends RecursiveStringRecord {
     noInspections: string
     createInspection: string
     defaultType: string
+    actions: {
+      pass: string
+      fail: string
+      complete: string
+      markComplete: string
+      markInProgress: string
+      startInspection: string
+      cancel: string
+      edit: string
+      delete: string
+      addPhoto: string
+      addNotes: string
+      resume: string
+      scheduleRepair: string
+      needsRepair: string
+      scheduleRepairDescription: string
+    }
     status: {
       scheduled: string
       in_progress: string
@@ -576,299 +606,11 @@ export interface TranslationValues extends RecursiveStringRecord {
       }
     }
     sections: {
-      steering_system: {
+      [key: string]: {
         title: string
         description: string
         items: {
-          steering_wheel: {
-            title: string
-            description: string
-          }
-          power_steering: {
-            title: string
-            description: string
-          }
-          steering_column: {
-            title: string
-            description: string
-          }
-        }
-      }
-      brake_system: {
-        title: string
-        description: string
-        items: {
-          brake_pedal: {
-            title: string
-            description: string
-          }
-          brake_discs: {
-            title: string
-            description: string
-          }
-          brake_fluid: {
-            title: string
-            description: string
-          }
-        }
-      }
-      safety_equipment: {
-        title: string
-        description: string
-        items: {
-          seatbelt_operation: {
-            title: string
-            description: string
-          }
-          airbag_system: {
-            title: string
-            description: string
-          }
-          wiper_operation: {
-            title: string
-            description: string
-          }
-        }
-      }
-      electrical: {
-        title: string
-        description: string
-        items: {
-          battery_condition: {
-            title: string
-            description: string
-          }
-          alternator_output: {
-            title: string
-            description: string
-          }
-          starter_operation: {
-            title: string
-            description: string
-          }
-        }
-      }
-      suspension: {
-        title: string
-        description: string
-        items: {
-          shock_absorbers: {
-            title: string
-            description: string
-          }
-          springs: {
-            title: string
-            description: string
-          }
-          bushings: {
-            title: string
-            description: string
-          }
-          ball_joints: {
-            title: string
-            description: string
-          }
-        }
-      }
-      lighting: {
-        title: string
-        description: string
-        items: {
-          headlights: {
-            title: string
-            description: string
-          }
-          taillights: {
-            title: string
-            description: string
-          }
-          turn_indicators: {
-            title: string
-            description: string
-          }
-        }
-      }
-      tires: {
-        title: string
-        description: string
-        items: {
-          tread_depth: {
-            title: string
-            description: string
-          }
-          tire_pressure: {
-            title: string
-            description: string
-          }
-          tire_condition: {
-            title: string
-            description: string
-          }
-          wheel_alignment: {
-            title: string
-            description: string
-          }
-          wear_pattern: {
-            title: string
-            description: string
-          }
-        }
-      }
-      engine: {
-        title: string
-        description: string
-        items: {
-          oil_level: {
-            title: string
-            description: string
-          }
-          coolant_level: {
-            title: string
-            description: string
-          }
-          belts: {
-            title: string
-            description: string
-          }
-          drive_belts: {
-            title: string
-            description: string
-          }
-          hoses: {
-            title: string
-            description: string
-          }
-          fluid_leaks: {
-            title: string
-            description: string
-          }
-        }
-      }
-      transmission: {
-        title: string
-        description: string
-        items: {
-          transmission_fluid: {
-            title: string
-            description: string
-          }
-          shifting_operation: {
-            title: string
-            description: string
-          }
-          clutch_operation: {
-            title: string
-            description: string
-          }
-          leaks: {
-            title: string
-            description: string
-          }
-        }
-      }
-      scheduled_maintenance: {
-        title: string
-        description: string
-        items: {
-          oil_change: {
-            title: string
-            description: string
-          }
-          filter_replacement: {
-            title: string
-            description: string
-          }
-          fluid_levels: {
-            title: string
-            description: string
-          }
-        }
-      }
-      wear_items: {
-        title: string
-        description: string
-        items: {
-          brake_pads: {
-            title: string
-            description: string
-          }
-          tire_rotation: {
-            title: string
-            description: string
-          }
-          belt_condition: {
-            title: string
-            description: string
-          }
-        }
-      }
-      diagnostics: {
-        title: string
-        description: string
-        items: {
-          computer_scan: {
-            title: string
-            description: string
-          }
-          sensor_check: {
-            title: string
-            description: string
-          }
-          emissions_test: {
-            title: string
-            description: string
-          }
-        }
-      }
-      brake_safety: {
-        title: string
-        description: string
-        items: {
-          emergency_brake: {
-            title: string
-            description: string
-          }
-          brake_lines: {
-            title: string
-            description: string
-          }
-          abs_system: {
-            title: string
-            description: string
-          }
-        }
-      }
-      restraint_systems: {
-        title: string
-        description: string
-        items: {
-          seatbelt_condition: {
-            title: string
-            description: string
-          }
-          airbag_indicators: {
-            title: string
-            description: string
-          }
-          child_locks: {
-            title: string
-            description: string
-          }
-        }
-      }
-      visibility: {
-        title: string
-        description: string
-        items: {
-          windshield_condition: {
-            title: string
-            description: string
-          }
-          mirror_condition: {
-            title: string
-            description: string
-          }
-          window_operation: {
+          [key: string]: {
             title: string
             description: string
           }
@@ -876,73 +618,56 @@ export interface TranslationValues extends RecursiveStringRecord {
       }
     }
     templates: {
-      routine: {
+      title?: string
+      manageTitle: string
+      loadError: string
+      noSections: string
+      updateSuccess: string
+      updateError: string
+      addSection: string
+      newSectionTitle: string
+      newSectionDescription: string
+      sectionNameLabel: string
+      sectionNamePlaceholder: string
+      sectionDescriptionLabel: string
+      sectionDescriptionPlaceholder: string
+      addSectionSuccess: string
+      addSectionError: string
+      deleteSectionConfirm: string
+      deleteSectionSuccess: string
+      deleteSectionError: string
+      routine?: {
         title: string
         description: string
       }
-      safety: {
+      safety?: {
         title: string
         description: string
       }
-      maintenance: {
+      maintenance?: {
         title: string
         description: string
       }
+      addItem: string
+      newItemTitle: string
+      newItemDescription: string
+      itemNameLabel: string
+      itemNamePlaceholder: string
+      itemDescriptionLabel: string
+      itemDescriptionPlaceholder: string
+      requiresPhoto: string
+      requiresNotes: string
+      addItemSuccess: string
+      addItemError: string
+      deleteItemConfirm: string
+      deleteItemSuccess: string
+      deleteItemError: string
     }
     categories: {
-      steering_system: {
+      [key: string]: {
         name: string
         description: string
       }
-      brake_system: {
-        name: string
-        description: string
-      }
-      suspension_system: {
-        name: string
-        description: string
-      }
-      lighting_system: {
-        name: string
-        description: string
-      }
-      tire_system: {
-        name: string
-        description: string
-      }
-      engine_system: {
-        name: string
-        description: string
-      }
-      transmission_system: {
-        name: string
-        description: string
-      }
-      electrical_system: {
-        name: string
-        description: string
-      }
-      safety_equipment: {
-        name: string
-        description: string
-      }
-    }
-    actions: {
-      pass: string
-      fail: string
-      complete: string
-      markComplete: string
-      markInProgress: string
-      startInspection: string
-      cancel: string
-      edit: string
-      delete: string
-      addPhoto: string
-      addNotes: string
-      resume: string
-      scheduleRepair: string
-      needsRepair: string
-      scheduleRepairDescription: string
     }
     details: {
       title: string
@@ -1094,6 +819,7 @@ export interface TranslationValues extends RecursiveStringRecord {
       deleted: string
       error: string
     }
+    noData: string
   }
   mileage: {
     title: string

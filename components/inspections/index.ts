@@ -38,4 +38,5 @@ export { VehicleInspection } from './vehicle-inspection'
 export { VehicleForm } from './vehicle-form'
 
 // Modal components
-export { CameraModal } from './camera-modal' 
+export { CameraModal } from './camera-modal'
+export { InspectionTemplateManager } from './inspection-template-manager' 

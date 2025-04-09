@@ -113,7 +113,7 @@ export interface InspectionItemExtended extends InspectionItemTemplate {
 export interface InspectionItemTemplate {
   id: string
   name: string
-  description: string
+  description?: string
   requires_photo: boolean
   requires_notes: boolean
   order_number: number

@@ -3,10 +3,50 @@ import type { Database } from '@/types/supabase'
 import type { InspectionInsert } from "@/types"
 import { supabase } from "@/lib/supabase/client"
 import type { InspectionWithVehicle as ImportedInspection, InspectionFormData } from "@/types"
-import type { DbInspection } from "@/types"
+import type { DbInspection, DbVehicle } from "@/types"
+import type { InspectionType, InspectionCategory as BaseInspectionCategory, InspectionItemTemplate as BaseInspectionItemTemplate } from '@/types/inspections'
 
 type Inspection = Database['public']['Tables']['inspections']['Row']
 type InspectionUpdate = Database['public']['Tables']['inspections']['Update']
+
+// Add types for the new translation structure
+type TranslationObject = { [key: string]: string }
+// Define Row types based on the *expected* DB structure after migrations
+// These might differ from the auto-generated Database['public']['Tables'] types until they are updated
+type InspectionCategoryRow = {
+    id: string;
+    type: InspectionType;
+    order_number: number;
+    created_at: string;
+    updated_at: string;
+    name_translations: TranslationObject;
+    description_translations: TranslationObject | null;
+    inspection_item_templates?: InspectionItemTemplateRow[]; // Optional relation
+}
+type InspectionItemTemplateRow = {
+    id: string;
+    category_id: string;
+    order_number: number;
+    requires_photo: boolean;
+    requires_notes: boolean;
+    created_at: string;
+    updated_at: string;
+    name_translations: TranslationObject;
+    description_translations: TranslationObject | null;
+}
+
+// Define the expected return types including translations, extending base types if possible
+// These are what the service functions should return
+interface InspectionCategory extends BaseInspectionCategory {
+    name_translations: TranslationObject;
+    description_translations: TranslationObject; // Ensure non-null in return type via defaults
+    inspection_item_templates: InspectionItemTemplate[];
+}
+
+interface InspectionItemTemplate extends BaseInspectionItemTemplate {
+    name_translations: TranslationObject;
+    description_translations: TranslationObject; // Ensure non-null in return type via defaults
+}
 
 export async function getInspections(options?: {
   page?: number;
@@ -46,7 +86,7 @@ export async function getInspections(options?: {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return { inspections: data as DbInspection[], count }
+  return { inspections: data as unknown as DbInspection[], count }
 }
 
 export async function getInspectionById(id: string) {
@@ -70,7 +110,7 @@ export async function getInspectionById(id: string) {
     .single()
 
   if (error) throw error
-  return data as DbInspection
+  return data as unknown as DbInspection
 }
 
 export async function createInspection(inspection: Omit<DbInspection, 'id' | 'created_at' | 'updated_at'>) {
@@ -81,7 +121,7 @@ export async function createInspection(inspection: Omit<DbInspection, 'id' | 'cr
     .single()
 
   if (error) throw error
-  return data as DbInspection
+  return data as unknown as DbInspection
 }
 
 export async function updateInspectionStatus(id: string, status: Inspection['status']) {
@@ -146,7 +186,7 @@ export async function saveInspectionResults(inspectionId: string, results: Inspe
 
     // Save all results at once
     const { data: savedResults, error: resultsError } = await supabase
-      .from('inspection_results')
+      .from('inspection_results' as any)
       .insert(validResults.map(result => ({
         inspection_id: inspectionId,
         item_id: result.item_id,
@@ -162,7 +202,7 @@ export async function saveInspectionResults(inspectionId: string, results: Inspe
 
     // Save all photos
     const photosToSave = validResults.flatMap(result => {
-      const savedResult = savedResults.find(r => r.item_id === result.item_id)
+      const savedResult = (savedResults as any[])?.find(r => r.item_id === result.item_id)
       return result.photos?.map(photo => ({
         result_id: savedResult?.id,
         photo_url: photo
@@ -171,7 +211,7 @@ export async function saveInspectionResults(inspectionId: string, results: Inspe
 
     if (photosToSave.length > 0) {
       const { error: photosError } = await supabase
-        .from('inspection_photos')
+        .from('inspection_photos' as any)
         .insert(photosToSave)
 
       if (photosError) {
@@ -258,28 +298,65 @@ export async function updateInspection(id: string, inspection: Partial<Inspectio
   return data
 }
 
-export async function getInspectionTemplates(type: 'routine' | 'safety' | 'maintenance') {
-  const { data: categories, error } = await supabase
-    .from('inspection_categories')
+// Fetch templates with translation columns
+export async function getInspectionTemplates(type: InspectionType): Promise<InspectionCategory[]> {
+  const { data: categoriesData, error } = await supabase
+    .from('inspection_categories') // Use correct table name
     .select(`
       id,
-      name,
-      description,
+      type,
       order_number,
+      created_at,
+      updated_at,
+      name_translations,        
+      description_translations, 
       inspection_item_templates (
         id,
-        name,
-        description,
+        category_id,
+        order_number,
         requires_photo,
         requires_notes,
-        order_number
+        created_at,
+        updated_at,
+        name_translations,        
+        description_translations  
       )
     `)
     .eq('type', type)
-    .order('order_number');
+    .order('order_number')
+    .order('order_number', { referencedTable: 'inspection_item_templates', ascending: true }); // Order items within categories
 
-  if (error) throw error;
-  return categories;
+  if (error) {
+    console.error("Error fetching inspection templates:", error);
+    throw error;
+  }
+
+  // Cast the fetched data to our expected Row structure
+  const categories = categoriesData as unknown as InspectionCategoryRow[];
+
+  // Map to the final return type, providing defaults for translations and items
+  return categories.map((category): InspectionCategory => {
+    // Ensure translation objects exist and have default structure
+    const nameTrans = category.name_translations || { en: '', ja: '' };
+    const descTrans = category.description_translations || { en: '', ja: '' };
+
+    return {
+      ...(category as unknown as BaseInspectionCategory), // Cast to base type first
+      name_translations: nameTrans, 
+      description_translations: descTrans, 
+      inspection_item_templates: (category.inspection_item_templates || []).map((item): InspectionItemTemplate => {
+        // Ensure item translation objects exist
+        const itemNameTrans = item.name_translations || { en: '', ja: '' };
+        const itemDescTrans = item.description_translations || { en: '', ja: '' };
+
+        return {
+          ...(item as unknown as BaseInspectionItemTemplate), // Cast item to base type
+          name_translations: itemNameTrans, 
+          description_translations: itemDescTrans, 
+        };
+      }),
+    }
+  });
 }
 
 export async function saveInspectionPhoto(inspectionItemId: string, photoUrl: string) {
@@ -296,4 +373,283 @@ export async function saveInspectionPhoto(inspectionItemId: string, photoUrl: st
 
   if (error) throw error
   return data
+}
+
+/**
+ * Adds a new inspection category (section) with translations.
+ * @param type The type of inspection ('routine', 'safety', 'maintenance').
+ * @param nameTranslations An object containing name translations (e.g., { en: "Name", ja: "名前" }).
+ * @param descriptionTranslations Optional object for description translations.
+ * @returns The newly created inspection category with translations.
+ */
+export async function addInspectionSection(
+  type: InspectionType,
+  nameTranslations: TranslationObject,
+  descriptionTranslations?: TranslationObject
+): Promise<InspectionCategory> {
+  // 1. Find the next order_number for this type
+  const { data: existingSections, error: orderError } = await supabase
+    .from('inspection_categories') // Use correct table name
+    .select('order_number')
+    .eq('type', type)
+    .order('order_number', { ascending: false })
+    .limit(1)
+
+  if (orderError) {
+    console.error("Error fetching max order number for section:", orderError)
+    throw new Error("Could not determine order for new section.")
+  }
+
+  const nextOrderNumber = (existingSections?.[0]?.order_number ?? -1) + 1
+
+  // 2. Insert the new section with translations
+  const insertData: Omit<InspectionCategoryRow, 'id' | 'created_at' | 'updated_at' | 'inspection_item_templates'> = {
+      type,
+      name_translations: nameTranslations,
+      description_translations: descriptionTranslations || null, // Store null if undefined
+      order_number: nextOrderNumber,
+  }
+
+  const { data: insertedData, error } = await supabase
+    .from('inspection_categories') // Use correct table name
+    .insert(insertData as any)
+    .select(`
+      id, type, order_number, created_at, updated_at, name_translations, description_translations
+    `) // Select only category fields, items will be empty
+    .single()
+
+  if (error) {
+    console.error("Error adding inspection section:", error)
+    throw error
+  }
+    if (!insertedData) throw new Error("Failed to insert section or retrieve data.")
+
+  // Return the newly created section, ensuring types and defaults
+   const newSection = insertedData as unknown as InspectionCategoryRow;
+  return {
+    ...(newSection as unknown as BaseInspectionCategory), // Cast to base type
+    name_translations: newSection.name_translations || { en: '', ja: '' },
+    description_translations: newSection.description_translations || { en: '', ja: '' },
+    inspection_item_templates: [] // Initialize as empty array
+  } as InspectionCategory // Final cast to ensure conformity
+}
+
+/**
+ * Updates an existing inspection category (section) with new translations.
+ * @param sectionId The ID of the section to update.
+ * @param nameTranslations The updated name translations.
+ * @param descriptionTranslations The updated description translations (optional).
+ * @returns The updated inspection category.
+ */
+export async function updateInspectionSection(
+  sectionId: string,
+  nameTranslations: TranslationObject,
+  descriptionTranslations?: TranslationObject
+): Promise<InspectionCategory> {
+  // Prepare update payload, excluding potentially undefined description
+  const updatePayload: Partial<Pick<InspectionCategoryRow, 'name_translations' | 'description_translations' | 'updated_at'>> & { updated_at: string } = {
+      name_translations: nameTranslations,
+      updated_at: new Date().toISOString(),
+  };
+  if (descriptionTranslations !== undefined) {
+      updatePayload.description_translations = descriptionTranslations || null; // Handle empty string vs undefined
+  }
+
+  const { data: updatedData, error } = await supabase
+    .from('inspection_categories') // Use correct table name
+    .update(updatePayload)
+    .eq('id', sectionId)
+    .select(`
+      id, type, order_number, created_at, updated_at, name_translations, description_translations,
+      inspection_item_templates (
+         id, category_id, order_number, requires_photo, requires_notes, created_at, updated_at, name_translations, description_translations
+      )
+    `) // Fetch updated data with items
+    .single()
+
+  if (error) {
+    console.error("Error updating inspection section:", error)
+    throw error
+  }
+  if (!updatedData) throw new Error("Section not found after update.")
+
+   // Re-fetch items separately to ensure order? Or rely on the initial fetch? Let's assume the above select works for now.
+   // If ordering becomes an issue, fetch items separately and sort.
+   const updatedSection = updatedData as unknown as InspectionCategoryRow;
+
+  return {
+     ...(updatedSection as unknown as BaseInspectionCategory), // Cast to base
+     name_translations: updatedSection.name_translations || { en: '', ja: '' },
+     description_translations: updatedSection.description_translations || { en: '', ja: '' },
+     inspection_item_templates: (updatedSection.inspection_item_templates || []).map((item: InspectionItemTemplateRow): InspectionItemTemplate => ({ // Add explicit type for item
+        ...(item as unknown as BaseInspectionItemTemplate), // Cast item to base
+        name_translations: item.name_translations || { en: '', ja: '' },
+        description_translations: item.description_translations || { en: '', ja: '' },
+     }))
+  } as InspectionCategory // Final cast
+}
+
+/**
+ * Deletes an inspection category (section) and its associated items.
+ * @param sectionId The ID of the section to delete.
+ */
+export async function deleteInspectionSection(sectionId: string): Promise<void> {
+  // Supabase doesn't automatically cascade deletes via the API unless configured in DB.
+  // We might need to delete items first if there's a foreign key constraint without ON DELETE CASCADE.
+  // Assuming cascade delete is set up in the database or handled by triggers.
+  // If not, uncomment the item deletion part.
+
+  // 1. (Optional, if no cascade delete) Delete associated items
+  /*
+  const { error: itemDeleteError } = await supabase
+    .from('inspection_item_templates') // Use correct table name
+    .delete()
+    .eq('category_id', sectionId);
+
+  if (itemDeleteError) {
+    console.error("Error deleting items in section:", itemDeleteError);
+    throw new Error(`Failed to delete items for section ${sectionId}.`);
+  }
+  */
+
+  // 2. Delete the section itself
+  const { error } = await supabase
+    .from('inspection_categories') // Use correct table name
+    .delete()
+    .eq('id', sectionId)
+
+  if (error) {
+    console.error("Error deleting inspection section:", error)
+    // Consider more specific error handling (e.g., check for foreign key violations if cascade wasn't handled)
+    throw error
+  }
+}
+
+/**
+ * Adds a new inspection item template to a category with translations.
+ * @param categoryId The ID of the category to add the item to.
+ * @param nameTranslations An object containing name translations.
+ * @param requires_photo Whether the item requires a photo.
+ * @param requires_notes Whether the item requires notes.
+ * @param descriptionTranslations Optional object for description translations.
+ * @returns The newly created inspection item template.
+ */
+export async function addInspectionItem(
+  categoryId: string,
+  nameTranslations: TranslationObject,
+  requires_photo: boolean,
+  requires_notes: boolean,
+  descriptionTranslations?: TranslationObject
+): Promise<InspectionItemTemplate> {
+  // 1. Find the next order_number for this category
+  const { data: existingItems, error: orderError } = await supabase
+    .from('inspection_item_templates') // Use correct table name
+    .select('order_number')
+    .eq('category_id', categoryId)
+    .order('order_number', { ascending: false })
+    .limit(1)
+
+  if (orderError) {
+    console.error("Error fetching max order number for item:", orderError)
+    throw new Error("Could not determine order for new item.")
+  }
+
+  const nextOrderNumber = (existingItems?.[0]?.order_number ?? -1) + 1
+
+  // 2. Insert the new item
+  const insertData: Omit<InspectionItemTemplateRow, 'id' | 'created_at' | 'updated_at'> = {
+      category_id: categoryId,
+      name_translations: nameTranslations,
+      description_translations: descriptionTranslations || null,
+      requires_photo,
+      requires_notes,
+      order_number: nextOrderNumber,
+  }
+
+  const { data: insertedData, error } = await supabase
+    .from('inspection_item_templates') // Use correct table name
+    .insert(insertData as any)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("Error adding inspection item:", error)
+    throw error
+  }
+    if (!insertedData) throw new Error("Failed to insert item or retrieve data.")
+
+  // Return the newly created item with default translations if needed
+    const newItem = insertedData as unknown as InspectionItemTemplateRow;
+  return {
+     ...(newItem as unknown as BaseInspectionItemTemplate), // Cast to base
+     name_translations: newItem.name_translations || { en: '', ja: '' },
+     description_translations: newItem.description_translations || { en: '', ja: '' },
+  } as InspectionItemTemplate // Final cast
+}
+
+/**
+ * Updates an existing inspection item template.
+ * @param itemId The ID of the item to update.
+ * @param updates An object containing the fields to update (name_translations, description_translations, requires_photo, requires_notes).
+ * @returns The updated inspection item template.
+ */
+export async function updateInspectionItem(
+  itemId: string,
+  updates: Partial<Pick<InspectionItemTemplateRow, 'name_translations' | 'description_translations' | 'requires_photo' | 'requires_notes'>>
+): Promise<InspectionItemTemplate> {
+
+  // Ensure translations are structured correctly, providing defaults if necessary
+    // Prepare update payload, handling potential undefined/null description
+    const updateData: Partial<Pick<InspectionItemTemplateRow, 'name_translations' | 'description_translations' | 'requires_photo' | 'requires_notes' | 'updated_at'>> & { updated_at: string } = {
+        updated_at: new Date().toISOString(),
+    };
+    if (updates.name_translations !== undefined) {
+        updateData.name_translations = updates.name_translations || { en: '', ja: '' }; // Ensure object
+    }
+    if (updates.description_translations !== undefined) {
+        updateData.description_translations = updates.description_translations || null; // Allow null
+    }
+    if (updates.requires_photo !== undefined) {
+        updateData.requires_photo = updates.requires_photo;
+    }
+    if (updates.requires_notes !== undefined) {
+        updateData.requires_notes = updates.requires_notes;
+    }
+
+
+  const { data: updatedData, error } = await supabase
+    .from('inspection_item_templates') // Use correct table name
+    .update(updateData)
+    .eq('id', itemId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("Error updating inspection item:", error)
+    throw error
+  }
+   if (!updatedData) throw new Error("Item not found after update.")
+
+    const updatedItem = updatedData as unknown as InspectionItemTemplateRow;
+  return {
+      ...(updatedItem as unknown as BaseInspectionItemTemplate), // Cast to base
+      name_translations: updatedItem.name_translations || { en: '', ja: '' },
+      description_translations: updatedItem.description_translations || { en: '', ja: '' },
+  } as InspectionItemTemplate // Final cast
+}
+
+/**
+ * Deletes an inspection item template.
+ * @param itemId The ID of the item to delete.
+ */
+export async function deleteInspectionItem(itemId: string): Promise<void> {
+  const { error } = await supabase
+    .from('inspection_item_templates') // Use correct table name
+    .delete()
+    .eq('id', itemId)
+
+  if (error) {
+    console.error("Error deleting inspection item:", error)
+    throw error
+  }
 } 

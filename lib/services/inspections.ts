@@ -494,34 +494,56 @@ export async function updateInspectionSection(
  * @param sectionId The ID of the section to delete.
  */
 export async function deleteInspectionSection(sectionId: string): Promise<void> {
-  // Supabase doesn't automatically cascade deletes via the API unless configured in DB.
-  // We might need to delete items first if there's a foreign key constraint without ON DELETE CASCADE.
-  // Assuming cascade delete is set up in the database or handled by triggers.
-  // If not, uncomment the item deletion part.
+  // Get all item templates in this section
+  const { data: sectionItems, error: itemsError } = await supabase
+    .from('inspection_item_templates')
+    .select('id')
+    .eq('category_id', sectionId)
 
-  // 1. (Optional, if no cascade delete) Delete associated items
-  /*
+  if (itemsError) {
+    console.error("Error retrieving items in section:", itemsError)
+    throw new Error(`Failed to retrieve items for section ${sectionId}: ${itemsError.message}`)
+  }
+
+  // If there are items, check if any are used in inspections
+  if (sectionItems && sectionItems.length > 0) {
+    const itemIds = sectionItems.map(item => item.id)
+    
+    const { data: usedItems, error: usedItemsError } = await supabase
+      .from('inspection_items')
+      .select('template_id')
+      .in('template_id', itemIds)
+    
+    if (usedItemsError) {
+      console.error("Error checking used items:", usedItemsError)
+      throw new Error(`Failed to check if section items are in use: ${usedItemsError.message}`)
+    }
+    
+    if (usedItems && usedItems.length > 0) {
+      throw new Error(`Cannot delete section because ${usedItems.length} of its items are used in inspections. Please delete those inspection records first or contact an administrator.`)
+    }
+  }
+
+  // First explicitly delete all items in this section to ensure proper cascading
   const { error: itemDeleteError } = await supabase
-    .from('inspection_item_templates') // Use correct table name
+    .from('inspection_item_templates')
     .delete()
-    .eq('category_id', sectionId);
+    .eq('category_id', sectionId)
 
   if (itemDeleteError) {
-    console.error("Error deleting items in section:", itemDeleteError);
-    throw new Error(`Failed to delete items for section ${sectionId}.`);
+    console.error("Error deleting items in section:", itemDeleteError)
+    throw new Error(`Failed to delete items for section ${sectionId}: ${itemDeleteError.message}`)
   }
-  */
 
-  // 2. Delete the section itself
+  // Then delete the section itself
   const { error } = await supabase
-    .from('inspection_categories') // Use correct table name
+    .from('inspection_categories')
     .delete()
     .eq('id', sectionId)
 
   if (error) {
     console.error("Error deleting inspection section:", error)
-    // Consider more specific error handling (e.g., check for foreign key violations if cascade wasn't handled)
-    throw error
+    throw new Error(`Failed to delete section ${sectionId}: ${error.message}`)
   }
 }
 
@@ -641,15 +663,62 @@ export async function updateInspectionItem(
 /**
  * Deletes an inspection item template.
  * @param itemId The ID of the item to delete.
+ * @param force If true, will also delete any inspection items that depend on this template.
  */
-export async function deleteInspectionItem(itemId: string): Promise<void> {
+export async function deleteInspectionItem(itemId: string, force: boolean = false): Promise<void> {
+  // First check if the item has any associated inspection_items
+  const { data: dependentItems, error: checkDependentsError } = await supabase
+    .from('inspection_items')
+    .select('id')
+    .eq('template_id', itemId)
+
+  if (checkDependentsError) {
+    console.error("Error checking dependent items:", checkDependentsError)
+    throw new Error(`Unable to check for dependent items: ${checkDependentsError.message}`)
+  }
+
+  // If there are dependent inspection items, handle based on force parameter
+  if (dependentItems && dependentItems.length > 0) {
+    if (force) {
+      // Delete all dependent inspection items
+      const { error: deleteItemsError } = await supabase
+        .from('inspection_items')
+        .delete()
+        .eq('template_id', itemId)
+      
+      if (deleteItemsError) {
+        console.error("Error deleting dependent inspection items:", deleteItemsError)
+        throw new Error(`Failed to delete dependent items: ${deleteItemsError.message}`)
+      }
+    } else {
+      throw new Error(`Cannot delete template item that is used in ${dependentItems.length} inspections. Please delete those inspection records first or contact an administrator.`)
+    }
+  }
+
+  // Then check if the item exists to provide better error messages
+  const { data: existingItem, error: checkError } = await supabase
+    .from('inspection_item_templates')
+    .select('id')
+    .eq('id', itemId)
+    .single()
+
+  if (checkError) {
+    console.error("Error checking inspection item existence:", checkError)
+    throw new Error(`Item ${itemId} not found or cannot be accessed: ${checkError.message}`)
+  }
+
+  if (!existingItem) {
+    throw new Error(`Item ${itemId} not found`)
+  }
+
+  // Then delete the item
   const { error } = await supabase
-    .from('inspection_item_templates') // Use correct table name
+    .from('inspection_item_templates')
     .delete()
     .eq('id', itemId)
 
   if (error) {
     console.error("Error deleting inspection item:", error)
-    throw error
+    throw new Error(`Failed to delete item ${itemId}: ${error.message}`)
   }
 } 

@@ -11,13 +11,26 @@ if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseAnonKey
-)
+// Define the type for our Supabase client
+type SupabaseClientType = ReturnType<typeof createClient<Database>>
+
+// Use a singleton pattern to ensure only one client instance exists
+let supabaseInstance: SupabaseClientType | null = null
+
+export const supabase = (() => {
+  if (supabaseInstance) return supabaseInstance
+  
+  // Ensure URL and key are defined before creating client
+  supabaseInstance = createClient<Database>(
+    supabaseUrl as string,
+    supabaseAnonKey as string
+  )
+  
+  return supabaseInstance
+})()
 
 // Service client for admin operations
-let serviceClient: ReturnType<typeof createClient<Database>> | null = null
+let serviceClient: SupabaseClientType | null = null
 
 export function createServiceClient() {
   if (serviceClient) return serviceClient
@@ -29,7 +42,7 @@ export function createServiceClient() {
   }
 
   serviceClient = createClient<Database>(
-    supabaseUrl,
+    supabaseUrl as string,
     serviceRoleKey,
     {
       auth: {

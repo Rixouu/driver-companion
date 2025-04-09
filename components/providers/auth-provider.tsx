@@ -1,9 +1,9 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
 import { User } from "@supabase/supabase-js"
+import { supabase } from "@/lib/supabase/client"
 
 interface AuthContextType {
   user: User | null
@@ -19,7 +19,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const getUser = async () => {
@@ -38,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, router])
+  }, [router])
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

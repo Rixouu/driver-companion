@@ -5,21 +5,14 @@ export { supabase } from './client'
 export { createServiceClient } from './service-client'
 
 // Re-export admin functions
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/types/supabase'
+import { supabase } from './client'
 
-// Initialize the bucket
+// Initialize the bucket - reuse the existing client instance
 export async function initStorage() {
-  const { data: bucket } = await createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ).storage.getBucket('vehicles')
+  const { data: bucket } = await supabase.storage.getBucket('vehicles')
   
   if (!bucket) {
-    await createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ).storage.createBucket('vehicles', {
+    await supabase.storage.createBucket('vehicles', {
       public: true,
       fileSizeLimit: 1024 * 1024 * 2, // 2MB
       allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp']

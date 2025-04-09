@@ -131,6 +131,9 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
   const [editItemRequiresNotes, setEditItemRequiresNotes] = useState(false);
   const [isSavingEditedItem, setIsSavingEditedItem] = useState(false);
 
+  // Add new state for force delete checkbox
+  const [forceDeleteItem, setForceDeleteItem] = useState(false);
+
   // Effect to load initial template data
   useEffect(() => {
     async function loadTemplate() {
@@ -343,7 +346,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
 
   const handleDeleteSection = async (sectionId: string) => {
     // Optimistic UI update: Remove the section immediately
-    const originalSections = sections;
+    const originalSections = JSON.parse(JSON.stringify(sections)); // Deep copy for revert
     setSections(prevSections => prevSections.filter(section => section.id !== sectionId));
 
     try {
@@ -353,7 +356,14 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       console.error("Error deleting section:", err);
       // Revert UI on error
       setSections(originalSections);
-      toast({ title: t("common.error"), description: t("inspections.templates.deleteSectionError"), variant: "destructive" })
+      
+      // Show more detailed error message
+      const errorMessage = err instanceof Error ? err.message : t("inspections.templates.deleteSectionError");
+      toast({ 
+        title: t("common.error"), 
+        description: errorMessage, 
+        variant: "destructive" 
+      })
     }
   }
 
@@ -460,7 +470,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     if (!editingItem) return;
 
     if (!editItemNameEn.trim() && !editItemNameJa.trim()) {
-      toast({ title: t("common.error"), description: t("inspections.templates.itemNameRequired"), variant: "destructive" });
+      toast({ title: t("common.error"), description: t("inspections.templates.itemNameRequired", { defaultValue: "Please provide a name for the item in at least one language" }), variant: "destructive" });
       return;
     }
     setIsSavingEditedItem(true);
@@ -535,6 +545,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
      const sectionIndex = sections.findIndex(sec => sec.items.some(item => item.id === itemId));
      if (sectionIndex === -1) {
        console.error("Could not find section for item deletion");
+       toast({ title: t("common.error"), description: t("inspections.templates.itemNotFound"), variant: "destructive" });
        return;
      }
      const sectionId = sections[sectionIndex].id;
@@ -554,20 +565,28 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     );
 
     try {
-      await deleteInspectionItem(itemId);
-      toast({ title: t("common.success"), description: t("inspections.templates.deleteItemSuccess") })
+      await deleteInspectionItem(itemId, forceDeleteItem);
+      toast({ title: t("common.success"), description: t("inspections.templates.deleteItemSuccess") });
+      setForceDeleteItem(false); // Reset for next time
     } catch (err) {
       console.error("Error deleting item:", err);
       // Revert UI on error
       setSections(originalSections);
-      toast({ title: t("common.error"), description: t("inspections.templates.deleteItemError"), variant: "destructive" })
+      
+      // Show more detailed error message
+      const errorMessage = err instanceof Error ? err.message : t("inspections.templates.deleteItemError");
+      toast({ 
+        title: t("common.error"), 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
     }
   }
 
   // --- Render Logic ---
 
   if (isLoading) {
-    return <div>{t("common.loading")}</div>
+    return <div>{t("common.loading", { defaultValue: "Loading..." })}</div>
   }
 
   if (error) {
@@ -601,50 +620,50 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                  <div className="grid gap-4 py-4">
                    <div className="grid grid-cols-4 items-center gap-4">
                      <Label htmlFor="section-name-en" className="text-right">
-                       {t("inspections.templates.sectionNameLabel")} (EN)
+                       {t("inspections.templates.sectionNameLabel", { defaultValue: "Section Name" })} (EN)
                      </Label>
                      <Input 
                        id="section-name-en" 
                        value={newSectionNameEn} 
                        onChange={(e) => setNewSectionNameEn(e.target.value)} 
                        className="col-span-3" 
-                       placeholder={t("inspections.templates.sectionNamePlaceholder")} 
+                       placeholder={t("inspections.templates.sectionNamePlaceholder", { defaultValue: "Enter section name..." })} 
                      />
                    </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                      <Label htmlFor="section-name-ja" className="text-right">
-                       {t("inspections.templates.sectionNameLabel")} (JA)
+                       {t("inspections.templates.sectionNameLabel", { defaultValue: "セクション名" })} (JA)
                      </Label>
                      <Input 
                        id="section-name-ja" 
                        value={newSectionNameJa} 
                        onChange={(e) => setNewSectionNameJa(e.target.value)} 
                        className="col-span-3" 
-                       placeholder={t("inspections.templates.sectionNamePlaceholderJa")} 
+                       placeholder={t("inspections.templates.sectionNamePlaceholderJa", { defaultValue: "セクション名を入力..." })} 
                      />
                    </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                      <Label htmlFor="section-description-en" className="text-right">
-                       {t("inspections.templates.sectionDescriptionLabel")} (EN)
+                       {t("inspections.templates.sectionDescriptionLabel", { defaultValue: "Description" })} (EN)
                      </Label>
                      <Input 
                        id="section-description-en" 
                        value={newSectionDescEn} 
                        onChange={(e) => setNewSectionDescEn(e.target.value)} 
                        className="col-span-3" 
-                       placeholder={t("inspections.templates.sectionDescriptionPlaceholder")} 
+                       placeholder={t("inspections.templates.sectionDescriptionPlaceholder", { defaultValue: "Enter description (optional)..." })} 
                      />
                    </div>
                    <div className="grid grid-cols-4 items-center gap-4">
                      <Label htmlFor="section-description-ja" className="text-right">
-                       {t("inspections.templates.sectionDescriptionLabel")} (JA)
+                       {t("inspections.templates.sectionDescriptionLabel", { defaultValue: "説明" })} (JA)
                      </Label>
                      <Input 
                        id="section-description-ja" 
                        value={newSectionDescJa} 
                        onChange={(e) => setNewSectionDescJa(e.target.value)} 
                        className="col-span-3" 
-                       placeholder={t("inspections.templates.sectionDescriptionPlaceholderJa")} 
+                       placeholder={t("inspections.templates.sectionDescriptionPlaceholderJa", { defaultValue: "説明を入力（オプション）..." })} 
                      />
                    </div>
                  </div>
@@ -664,7 +683,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
         <CardContent>
           {sections.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">
-              {t("inspections.templates.noSections")}
+              {t("inspections.templates.noSections", { defaultValue: "No inspection sections found. Create one to get started." })}
             </p>
           ) : (
             <Accordion type="multiple" className="w-full space-y-4">
@@ -688,7 +707,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                {t('inspections.templates.deleteSectionConfirm', { name: section.title || 'Untitled Section' })}
+                                {t('inspections.templates.deleteSectionConfirm', { name: section.title || 'Untitled Section', defaultValue: "Are you sure you want to delete the section '{name}'? This action cannot be undone." })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -711,11 +730,11 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                               <div className="flex gap-4 pt-1">
                                  <div className="flex items-center space-x-2">
                                     <Checkbox id={`photo-${item.id}`} checked={item.requires_photo ?? false} disabled />
-                                    <Label htmlFor={`photo-${item.id}`} className="text-xs">{t('inspections.templates.requiresPhoto')}</Label>
+                                    <Label htmlFor={`photo-${item.id}`} className="text-xs">{t('inspections.templates.requiresPhoto', { defaultValue: "Requires Photo" })}</Label>
                                  </div>
                                  <div className="flex items-center space-x-2">
                                     <Checkbox id={`notes-${item.id}`} checked={item.requires_notes ?? false} disabled />
-                                    <Label htmlFor={`notes-${item.id}`} className="text-xs">{t('inspections.templates.requiresNotes')}</Label>
+                                    <Label htmlFor={`notes-${item.id}`} className="text-xs">{t('inspections.templates.requiresNotes', { defaultValue: "Requires Notes" })}</Label>
                                  </div>
                               </div>
                             </div>
@@ -733,11 +752,21 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      {t('inspections.templates.deleteItemConfirm', { name: item.title || 'Untitled Item' })}
+                                      {t('inspections.templates.deleteItemConfirm', { name: item.title || 'Untitled Item', defaultValue: "Are you sure you want to delete the item '{name}'? This action cannot be undone." })}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
+                                  <div className="flex items-center space-x-2 py-4">
+                                    <Checkbox 
+                                      id={`force-delete-${item.id}`}
+                                      checked={forceDeleteItem}
+                                      onCheckedChange={(checked) => setForceDeleteItem(checked === true)} 
+                                    />
+                                    <Label htmlFor={`force-delete-${item.id}`} className="text-sm text-destructive">
+                                      Force delete (will also delete any inspections using this item)
+                                    </Label>
+                                  </div>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                    <AlertDialogCancel onClick={() => setForceDeleteItem(false)}>{t('common.cancel')}</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => handleDeleteItem(item.id)} className="bg-destructive hover:bg-destructive/80">
                                       {t('common.delete')}
                                     </AlertDialogAction>
@@ -765,58 +794,58 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
          <DialogContent className="sm:max-w-[425px]">
            <DialogHeader>
-             <DialogTitle>{t("inspections.templates.newItemTitle")}</DialogTitle>
+             <DialogTitle>{t("inspections.templates.newItemTitle", { defaultValue: "Add New Item" })}</DialogTitle>
              <DialogDescription>
-               {t("inspections.templates.newItemDescription")}
+               {t("inspections.templates.newItemDescription", { defaultValue: "Add a new inspection item to this section." })}
              </DialogDescription>
            </DialogHeader>
            <div className="grid gap-4 py-4">
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="item-name-en" className="text-right">
-                 {t("inspections.templates.itemNameLabel")} (EN)
+                 {t("inspections.templates.itemNameLabel", { defaultValue: "Item Name" })} (EN)
                </Label>
                <Input 
                  id="item-name-en" 
                  value={newItemNameEn} 
                  onChange={(e) => setNewItemNameEn(e.target.value)} 
                  className="col-span-3" 
-                 placeholder={t("inspections.templates.itemNamePlaceholder")} 
+                 placeholder={t("inspections.templates.itemNamePlaceholder", { defaultValue: "Enter item name..." })} 
                />
              </div>
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="item-name-ja" className="text-right">
-                 {t("inspections.templates.itemNameLabel")} (JA)
+                 {t("inspections.templates.itemNameLabel", { defaultValue: "項目名" })} (JA)
                </Label>
                <Input 
                  id="item-name-ja" 
                  value={newItemNameJa} 
                  onChange={(e) => setNewItemNameJa(e.target.value)} 
                  className="col-span-3" 
-                 placeholder={t("inspections.templates.itemNamePlaceholderJa", { defaultValue: "項目名"})} 
+                 placeholder={t("inspections.templates.itemNamePlaceholderJa", { defaultValue: "項目名を入力..." })} 
                />
              </div>
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="item-description-en" className="text-right">
-                 {t("inspections.templates.itemDescriptionLabel")} (EN)
+                 {t("inspections.templates.itemDescriptionLabel", { defaultValue: "Description" })} (EN)
                </Label>
                <Input 
                  id="item-description-en" 
                  value={newItemDescEn} 
                  onChange={(e) => setNewItemDescEn(e.target.value)} 
                  className="col-span-3" 
-                 placeholder={t("inspections.templates.itemDescriptionPlaceholder")} 
+                 placeholder={t("inspections.templates.itemDescriptionPlaceholder", { defaultValue: "Enter description (optional)..." })} 
                />
              </div>
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="item-description-ja" className="text-right">
-                 {t("inspections.templates.itemDescriptionLabel")} (JA)
+                 {t("inspections.templates.itemDescriptionLabel", { defaultValue: "説明" })} (JA)
                </Label>
                <Input 
                  id="item-description-ja" 
                  value={newItemDescJa} 
                  onChange={(e) => setNewItemDescJa(e.target.value)} 
                  className="col-span-3" 
-                 placeholder={t("inspections.templates.itemDescriptionPlaceholderJa", { defaultValue: "項目の説明"})} 
+                 placeholder={t("inspections.templates.itemDescriptionPlaceholderJa", { defaultValue: "説明を入力（オプション）..." })} 
                />
              </div>
              <div className="flex items-center space-x-2">
@@ -825,7 +854,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                    checked={newItemRequiresPhoto}
                    onCheckedChange={(checked) => setNewItemRequiresPhoto(checked === true)} 
                 />
-                <Label htmlFor="item-requires-photo">{t('inspections.templates.requiresPhoto')}</Label>
+                <Label htmlFor="item-requires-photo">{t('inspections.templates.requiresPhoto', { defaultValue: "Requires Photo" })}</Label>
              </div>
              <div className="flex items-center space-x-2">
                 <Checkbox 
@@ -833,7 +862,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                    checked={newItemRequiresNotes}
                    onCheckedChange={(checked) => setNewItemRequiresNotes(checked === true)} 
                 />
-                <Label htmlFor="item-requires-notes">{t('inspections.templates.requiresNotes')}</Label>
+                <Label htmlFor="item-requires-notes">{t('inspections.templates.requiresNotes', { defaultValue: "Requires Notes" })}</Label>
              </div>
            </div>
            <DialogFooter>
@@ -852,9 +881,9 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       <Dialog open={isEditingSection} onOpenChange={setIsEditingSection}>
          <DialogContent className="sm:max-w-[425px]">
            <DialogHeader>
-             <DialogTitle>{t("inspections.templates.editSectionTitle")}</DialogTitle>
+             <DialogTitle>{t("inspections.templates.editSectionTitle", { defaultValue: "Edit Section" })}</DialogTitle>
              <DialogDescription>
-               {t("inspections.templates.editSectionDescription")}
+               {t("inspections.templates.editSectionDescription", { defaultValue: "Update the section details below." })}
              </DialogDescription>
            </DialogHeader>
            <div className="grid gap-4 py-4">
@@ -919,15 +948,15 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       <Dialog open={isEditingItem} onOpenChange={setIsEditingItem}>
          <DialogContent className="sm:max-w-[425px]">
            <DialogHeader>
-             <DialogTitle>{t("inspections.templates.editItemTitle")}</DialogTitle>
+             <DialogTitle>{t("inspections.templates.editItemTitle", { defaultValue: "Edit Item" })}</DialogTitle>
              <DialogDescription>
-                {t("inspections.templates.editItemDescription")}
+                {t("inspections.templates.editItemDescription", { defaultValue: "Update the item details below." })}
              </DialogDescription>
            </DialogHeader>
             <div className="grid gap-4 py-4">
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="edit-item-name-en" className="text-right">
-                 {t("inspections.templates.itemNameLabel")} (EN)
+                 {t("inspections.templates.itemNameLabel", { defaultValue: "Item Name" })} (EN)
                </Label>
                <Input 
                  id="edit-item-name-en" 
@@ -938,7 +967,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </div>
              <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="edit-item-name-ja" className="text-right">
-                 {t("inspections.templates.itemNameLabel")} (JA)
+                 {t("inspections.templates.itemNameLabel", { defaultValue: "項目名" })} (JA)
                </Label>
                <Input 
                  id="edit-item-name-ja" 
@@ -949,7 +978,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="edit-item-description-en" className="text-right">
-                 {t("inspections.templates.itemDescriptionLabel")} (EN)
+                 {t("inspections.templates.itemDescriptionLabel", { defaultValue: "Description" })} (EN)
                </Label>
                <Input 
                  id="edit-item-description-en" 
@@ -960,7 +989,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </div>
               <div className="grid grid-cols-4 items-center gap-4">
                <Label htmlFor="edit-item-description-ja" className="text-right">
-                 {t("inspections.templates.itemDescriptionLabel")} (JA)
+                 {t("inspections.templates.itemDescriptionLabel", { defaultValue: "説明" })} (JA)
                </Label>
                <Input 
                  id="edit-item-description-ja" 
@@ -975,7 +1004,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                    checked={editItemRequiresPhoto}
                    onCheckedChange={(checked) => setEditItemRequiresPhoto(checked === true)} 
                 />
-                <Label htmlFor="edit-item-requires-photo">{t('inspections.templates.requiresPhoto')}</Label>
+                <Label htmlFor="edit-item-requires-photo">{t('inspections.templates.requiresPhoto', { defaultValue: "Requires Photo" })}</Label>
              </div>
              <div className="flex items-center space-x-2">
                 <Checkbox 
@@ -983,7 +1012,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                    checked={editItemRequiresNotes}
                    onCheckedChange={(checked) => setEditItemRequiresNotes(checked === true)} 
                 />
-                <Label htmlFor="edit-item-requires-notes">{t('inspections.templates.requiresNotes')}</Label>
+                <Label htmlFor="edit-item-requires-notes">{t('inspections.templates.requiresNotes', { defaultValue: "Requires Notes" })}</Label>
              </div>
            </div>
            <DialogFooter>

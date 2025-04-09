@@ -1,13 +1,12 @@
 "use client"
 
 import { User } from "@supabase/supabase-js"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase/client"
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     const getUser = async () => {
@@ -25,7 +24,7 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [])
 
   return { user, loading }
 } 

@@ -3,7 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useEffect, useState } from "react"
 import { ClientThemeSelector } from "@/components/theme-selector"
 import { LanguageSelector } from "@/components/language-selector"
@@ -28,9 +27,44 @@ import {
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InspectionTemplateManager } from "@/components/inspections"
+import { useRouter } from "next/navigation"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+import { supabase } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function SettingsPage() {
-  const supabase = createClientComponentClient()
   const [session, setSession] = useState<Session | null>(null)
   const { t, language, setLanguage } = useI18n()
   const [menuSettings, setMenuSettings] = useState({
@@ -63,7 +97,7 @@ export default function SettingsPage() {
       }
     }
     getSession()
-  }, [supabase])
+  }, [])
 
   // Function to handle menu settings changes
   const handleMenuSettingChange = (key: keyof typeof menuSettings, platform: 'desktop' | 'mobile') => {

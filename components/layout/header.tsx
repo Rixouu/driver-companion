@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/s
 import { Menu, X, Gauge, Truck, ClipboardCheck, FileCheck, Settings, LogOut, Moon, Globe, BarChart, Bell } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useTheme } from "next-themes"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n/context"
@@ -22,7 +22,6 @@ export function Header() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
   const { theme, setTheme } = useTheme()
-  const supabase = createClientComponentClient()
   const router = useRouter()
   const { t, language, setLanguage } = useI18n()
 

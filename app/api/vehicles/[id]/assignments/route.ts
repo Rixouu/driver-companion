@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export async function GET(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: assignments } = await db
+    const supabase = createRouteHandlerClient({ cookies })
+    
+    const { data: assignments } = await supabase
       .from("vehicle_assignments")
       .select(`
         id,

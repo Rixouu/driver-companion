@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Create a Supabase client - using 'any' to avoid type errors with missing tables
+    const supabase = createRouteHandlerClient({ cookies })
     const { driverId } = await request.json()
 
     // Check if there's an existing active assignment
-    const { data: existingAssignment } = await db
+    const { data: existingAssignment } = await supabase
       .from("vehicle_assignments")
       .select("*")
       .eq("vehicle_id", params.id)
@@ -18,7 +21,7 @@ export async function POST(
 
     if (existingAssignment) {
       // Update existing assignment to inactive
-      await db
+      await supabase
         .from("vehicle_assignments")
         .update({ status: "inactive" })
         .eq("vehicle_id", params.id)
@@ -26,7 +29,7 @@ export async function POST(
     }
 
     // Create new assignment
-    const { data: newAssignment, error } = await db
+    const { data: newAssignment, error } = await supabase
       .from("vehicle_assignments")
       .insert({
         vehicle_id: params.id,

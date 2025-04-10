@@ -22,9 +22,9 @@ export async function GET(
   }
 
   try {
-    // Get all mileage logs for the vehicle
+    // Get all mileage entries for the vehicle
     const { data: logs, error } = await supabase
-      .from("mileage_logs")
+      .from("mileage_entries")
       .select(`
         *,
         vehicle:vehicles(*)
@@ -33,9 +33,9 @@ export async function GET(
       .order("date", { ascending: false })
 
     if (error) {
-      console.error("Error fetching mileage logs:", error)
+      console.error("Error fetching mileage entries:", error)
       return NextResponse.json(
-        { error: "Failed to fetch mileage logs" },
+        { error: "Failed to fetch mileage entries" },
         { status: 500 }
       )
     }

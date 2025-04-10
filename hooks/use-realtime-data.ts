@@ -10,8 +10,8 @@ type Table =
   | "inspection_items" 
   | "vehicles" 
   | "maintenance_tasks" 
-  | "fuel_logs" 
-  | "mileage_logs" 
+  | "fuel_entries" 
+  | "mileage_entries" 
   | "notifications"
 
 type RealtimeEvent = "INSERT" | "UPDATE" | "DELETE" | "*"

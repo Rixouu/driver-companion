@@ -22,9 +22,9 @@ export async function GET(
   }
 
   try {
-    // Get all fuel logs for the vehicle
+    // Get all fuel entries for the vehicle
     const { data: logs, error } = await supabase
-      .from("fuel_logs")
+      .from("fuel_entries")
       .select(`
         *,
         vehicle:vehicles(*)
@@ -33,9 +33,9 @@ export async function GET(
       .order("date", { ascending: false })
 
     if (error) {
-      console.error("Error fetching fuel logs:", error)
+      console.error("Error fetching fuel entries:", error)
       return NextResponse.json(
-        { error: "Failed to fetch fuel logs" },
+        { error: "Failed to fetch fuel entries" },
         { status: 500 }
       )
     }

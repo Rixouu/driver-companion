@@ -9,15 +9,15 @@ export async function GET(
     
     // Execute all queries concurrently for better performance
     const [fuelLogsResult, mileageLogsResult, maintenanceTasksResult, inspectionsResult] = await Promise.all([
-      // Get total fuel logs
+      // Get total fuel entries
       supabase
-        .from("fuel_logs")
+        .from("fuel_entries")
         .select("*", { count: "exact", head: true })
         .eq("vehicle_id", params.id),
       
-      // Get total mileage logs
+      // Get total mileage entries
       supabase
-        .from("mileage_logs")
+        .from("mileage_entries")
         .select("*", { count: "exact", head: true })
         .eq("vehicle_id", params.id),
       

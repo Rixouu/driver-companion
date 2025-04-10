@@ -76,7 +76,6 @@ export function DashboardContent({
   const [checklistCompleted, setChecklistCompleted] = useState(false)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0)
-  const [direction, setDirection] = useState(0)
   const [vehicleStats, setVehicleStats] = useState({
     fuelLevel: 75,
     mileage: 24350,
@@ -115,10 +114,9 @@ export function DashboardContent({
     // In a real app, you would save this to the database
   }
 
-  // Function to navigate to next vehicle
+  // Vehicle navigation functions
   const nextVehicle = () => {
     if (vehicles.length > 0) {
-      setDirection(1)
       setCurrentVehicleIndex((currentVehicleIndex + 1) % vehicles.length)
     }
   }
@@ -126,7 +124,6 @@ export function DashboardContent({
   // Function to navigate to previous vehicle
   const prevVehicle = () => {
     if (vehicles.length > 0) {
-      setDirection(-1)
       setCurrentVehicleIndex((currentVehicleIndex - 1 + vehicles.length) % vehicles.length)
     }
   }
@@ -202,25 +199,24 @@ export function DashboardContent({
                     <>
                       <button 
                         onClick={prevVehicle}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background p-2 rounded-full shadow-md"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
                         aria-label="Previous vehicle"
                       >
-                        <ArrowRight className="h-5 w-5 rotate-180" />
+                        <ChevronLeft className="h-5 w-5" />
                       </button>
                       <button 
                         onClick={nextVehicle}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-background p-2 rounded-full shadow-md"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
                         aria-label="Next vehicle"
                       >
-                        <ArrowRight className="h-5 w-5" />
+                        <ChevronRight className="h-5 w-5" />
                       </button>
                     </>
                   )}
                   
-                  <AnimatePresence mode="wait" initial={false} custom={direction}>
+                  <AnimatePresence mode="wait" initial={false}>
                     <motion.div
                       key={currentVehicleIndex}
-                      custom={direction}
                       variants={sliderVariants}
                       initial="enter"
                       animate="center"
@@ -450,41 +446,17 @@ export function DashboardContent({
           <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="upcoming" className="space-y-4">
+          <Tabs defaultValue="recent" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upcoming">
-                <Calendar className="mr-2 h-4 w-4" />
-                {t("common.status.upcoming")}
-              </TabsTrigger>
               <TabsTrigger value="recent">
                 <History className="mr-2 h-4 w-4" />
                 {t("common.status.recent")}
               </TabsTrigger>
+              <TabsTrigger value="upcoming">
+                <Calendar className="mr-2 h-4 w-4" />
+                {t("common.status.upcoming")}
+              </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="upcoming" className="space-y-4">
-              {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 ? (
-                <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
-              ) : (
-                <div className="space-y-4">
-                  {upcomingMaintenance.slice(0, 3).map((task) => (
-                    <MaintenanceTaskCard key={task.id} task={task} />
-                  ))}
-                  {upcomingInspections.slice(0, 3).map((inspection) => (
-                    <InspectionCard key={inspection.id} inspection={inspection} />
-                  ))}
-                </div>
-              )}
-              {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
-                <div className="flex justify-center mt-4">
-                  <Button variant="outline" asChild>
-                    <Link href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
-                      {t("dashboard.activityFeed.viewAll")}
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
 
             <TabsContent value="recent" className="space-y-4">
               {recentMaintenance.length === 0 && recentInspections.length === 0 ? (
@@ -503,6 +475,30 @@ export function DashboardContent({
                 <div className="flex justify-center mt-4">
                   <Button variant="outline" asChild>
                     <Link href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
+                      {t("dashboard.activityFeed.viewAll")}
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="upcoming" className="space-y-4">
+              {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 ? (
+                <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
+              ) : (
+                <div className="space-y-4">
+                  {upcomingMaintenance.slice(0, 3).map((task) => (
+                    <MaintenanceTaskCard key={task.id} task={task} />
+                  ))}
+                  {upcomingInspections.slice(0, 3).map((inspection) => (
+                    <InspectionCard key={inspection.id} inspection={inspection} />
+                  ))}
+                </div>
+              )}
+              {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
+                <div className="flex justify-center mt-4">
+                  <Button variant="outline" asChild>
+                    <Link href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
                       {t("dashboard.activityFeed.viewAll")}
                     </Link>
                   </Button>

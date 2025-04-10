@@ -27,11 +27,11 @@ export function VehiclePerformanceTable() {
           maintenance_tasks (
             cost
           ),
-          fuel_logs (
+          fuel_entries (
             fuel_amount,
             fuel_cost
           ),
-          mileage_logs (
+          mileage_entries (
             distance
           )
         `)
@@ -42,10 +42,10 @@ export function VehiclePerformanceTable() {
       }
 
       const performanceData = vehiclesData.map(vehicle => {
-        const totalDistance = vehicle.mileage_logs?.reduce((sum, log) => sum + (log.distance || 0), 0) || 0
-        const totalFuel = vehicle.fuel_logs?.reduce((sum, log) => sum + (log.fuel_amount || 0), 0) || 0
+        const totalDistance = vehicle.mileage_entries?.reduce((sum, log) => sum + (log.distance || 0), 0) || 0
+        const totalFuel = vehicle.fuel_entries?.reduce((sum, log) => sum + (log.fuel_amount || 0), 0) || 0
         const totalCost = (vehicle.maintenance_tasks?.reduce((sum, task) => sum + (task.cost || 0), 0) || 0) +
-          (vehicle.fuel_logs?.reduce((sum, log) => sum + (log.fuel_cost || 0), 0) || 0)
+          (vehicle.fuel_entries?.reduce((sum, log) => sum + (log.fuel_cost || 0), 0) || 0)
         
         const efficiency = totalFuel > 0 ? totalDistance / totalFuel : 0
         const costPerKm = totalDistance > 0 ? totalCost / totalDistance : 0

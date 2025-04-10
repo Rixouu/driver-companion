@@ -8,8 +8,8 @@ export enum RealtimeTable {
   INSPECTION_ITEMS = "inspection_items",
   VEHICLES = "vehicles",
   MAINTENANCE_TASKS = "maintenance_tasks",
-  FUEL_LOGS = "fuel_logs",
-  MILEAGE_LOGS = "mileage_logs",
+  FUEL_LOGS = "fuel_entries",
+  MILEAGE_LOGS = "mileage_entries",
   NOTIFICATIONS = "notifications",
 }
 

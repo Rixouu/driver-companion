@@ -123,29 +123,19 @@ export const staggerItem: Variants = {
 
 // Slider animations for direction-based transitions
 export const sliderVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 300 : -300,
-    opacity: 0.5,
-    scale: 0.95
+  enter: () => ({
+    opacity: 0
   }),
   center: {
-    x: 0,
     opacity: 1,
-    scale: 1,
     transition: {
-      x: { type: "spring", stiffness: 300, damping: 25 },
-      opacity: { duration: 0.3 },
-      scale: { duration: 0.3 }
+      opacity: { duration: 0.4, ease: "easeInOut" }
     }
   },
-  exit: (direction: number) => ({
-    x: direction < 0 ? 300 : -300,
-    opacity: 0.5,
-    scale: 0.95,
+  exit: () => ({
+    opacity: 0,
     transition: {
-      x: { type: "spring", stiffness: 300, damping: 25 },
-      opacity: { duration: 0.3 },
-      scale: { duration: 0.3 }
+      opacity: { duration: 0.3, ease: "easeOut" }
     }
   })
 };

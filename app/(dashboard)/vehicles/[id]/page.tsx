@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: VehiclePageProps): Promise<Me
 }
 
 export default async function VehiclePage({ params }: VehiclePageProps) {
-  const { t, dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   const { vehicles } = await getVehicles()
   const vehicle = vehicles.find(v => v.id === params.id)
 

@@ -1,15 +1,13 @@
-import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createAPIClient, withErrorHandling } from '@/lib/api/supabase-client'
 
 export async function GET(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const supabase = createRouteHandlerClient({ cookies })
+  return withErrorHandling(async () => {
+    const supabase = createAPIClient()
     
-    const { data: assignments } = await supabase
+    const { data: assignments, error } = await supabase
       .from("vehicle_assignments")
       .select(`
         id,
@@ -24,17 +22,16 @@ export async function GET(
       `)
       .eq("vehicle_id", params.id)
       .order("created_at", { ascending: false })
+    
+    if (error) throw error;
 
-    return NextResponse.json({
+    return {
       assignments: assignments?.map((assignment) => ({
         id: assignment.id,
         status: assignment.status,
         createdAt: assignment.created_at,
         driver: assignment.driver,
       })),
-    })
-  } catch (error) {
-    console.error("Error fetching vehicle assignments:", error)
-    return new NextResponse("Error fetching vehicle assignments", { status: 500 })
-  }
+    }
+  }, "Error fetching vehicle assignments")
 } 

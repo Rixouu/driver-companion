@@ -26,7 +26,7 @@ export default async function VehiclesPage({
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
   const supabase = createServerComponentClient({ cookies })
-  const dictionary = await getDictionary()
+  const { t } = await getDictionary()
   
   // Get page from search params
   const pageParam = searchParams.page ? Number(searchParams.page) : 1

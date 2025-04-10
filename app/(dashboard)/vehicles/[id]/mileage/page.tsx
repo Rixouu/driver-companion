@@ -4,7 +4,7 @@ import { MileageLogsList } from "@/components/mileage/mileage-logs-list"
 import { PageHeader } from "@/components/page-header"
 import { getMileageLogs } from "@/lib/services/mileage"
 import { getVehicle } from "@/lib/services/vehicles"
-import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getDictionary } from "@/lib/i18n/server"
 
 interface MileageLogsPageProps {
   params: {
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: MileageLogsPageProps) {
 
 export default async function MileageLogsPage({ params }: MileageLogsPageProps) {
   const { id } = params
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   const { vehicle } = await getVehicle(id)
   const { logs } = await getMileageLogs(id)
 
@@ -34,8 +34,8 @@ export default async function MileageLogsPage({ params }: MileageLogsPageProps) 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={dictionary.mileage.title}
-        description={dictionary.mileage.description}
+        title={t("mileage.title")}
+        description={t("mileage.description")}
       />
       <MileageLogsList logs={logs} vehicleId={id} />
     </div>

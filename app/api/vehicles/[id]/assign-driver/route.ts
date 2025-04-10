@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createAPIClient, withErrorHandling } from '@/lib/api/supabase-client'
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  try {
-    // Create a Supabase client - using 'any' to avoid type errors with missing tables
-    const supabase = createRouteHandlerClient({ cookies })
+  return withErrorHandling(async () => {
+    const supabase = createAPIClient()
     const { driverId } = await request.json()
 
     // Check if there's an existing active assignment
@@ -41,9 +39,6 @@ export async function POST(
 
     if (error) throw error
 
-    return NextResponse.json(newAssignment)
-  } catch (error) {
-    console.error("Error assigning driver:", error)
-    return new NextResponse("Error assigning driver", { status: 500 })
-  }
+    return newAssignment
+  }, "Error assigning driver to vehicle")
 } 

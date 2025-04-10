@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { FuelForm } from "@/components/fuel/fuel-form"
 import { PageHeader } from "@/components/page-header"
 import { getVehicle } from "@/lib/services/vehicles"
-import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getDictionary } from "@/lib/i18n/server"
 
 interface NewFuelLogPageProps {
   params: {
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: NewFuelLogPageProps) {
 
 export default async function NewFuelLogPage({ params }: NewFuelLogPageProps) {
   const { id } = params
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   const { vehicle } = await getVehicle(id)
 
   if (!vehicle) {
@@ -32,8 +32,8 @@ export default async function NewFuelLogPage({ params }: NewFuelLogPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={dictionary.fuel.new.title}
-        description={dictionary.fuel.new.description}
+        title={t("fuel.new.title")}
+        description={t("fuel.new.description")}
       />
       <FuelForm vehicleId={id} />
     </div>

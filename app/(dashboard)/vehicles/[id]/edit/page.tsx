@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: EditVehiclePageProps): Promis
 }
 
 export default async function EditVehiclePage({ params }: EditVehiclePageProps) {
-  const { t, dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   const { vehicles } = await getVehicles()
   const dbVehicle = vehicles.find(v => v.id === params.id)
 
@@ -52,14 +52,14 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
           >
             <Link href="/vehicles">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              {dictionary.common.backTo} {dictionary.vehicles.title}
+              {t("common.backTo")} {t("vehicles.title")}
             </Link>
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">
-            {dictionary.vehicles.edit.title}
+            {t("vehicles.edit.title")}
           </h1>
           <p className="text-muted-foreground">
-            {dictionary.vehicles.edit.description}
+            {t("vehicles.edit.description")}
           </p>
         </div>
       </div>

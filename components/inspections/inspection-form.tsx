@@ -30,6 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { InspectionTypeSelector } from "./inspection-type-selector"
+// Add imports for error handling
+import { withErrorHandling, handleError } from "@/lib/utils/error-handler"
+import { ErrorBoundary, ErrorMessage } from "@/components/ui/error-boundary"
+// Add imports for real-time updates
+import { useRealtimeRecord, useRealtimeCollection } from "@/hooks/use-realtime"
+import { useAsync, useSafeAsync } from "@/hooks/use-async"
 
 // Define translation object type
 type TranslationObject = { [key: string]: string }
@@ -160,39 +166,42 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
     },
   })
 
-  // Fetch vehicle data if vehicleId is provided
+  // Use useAsync for fetching vehicle data
+  const { execute: fetchVehicle, data: vehicleData } = useAsync<Vehicle | null>(
+    async () => {
+      if (!vehicleId) return null;
+      
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', vehicleId)
+        .single();
+        
+      if (error) throw error;
+      
+      return data as Vehicle;
+    },
+    false // Don't execute immediately
+  );
+
+  // Fetch vehicle when vehicleId changes
   useEffect(() => {
     if (vehicleId) {
-      const fetchVehicle = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('vehicles')
-            .select('*')
-            .eq('id', vehicleId)
-            .single();
-            
-          if (error) {
-            console.error('Error fetching vehicle:', error);
-            return;
-          }
-          
-          if (data) {
-            // Set the selected vehicle with the full vehicle object
-            setSelectedVehicle(data as Vehicle);
-          }
-        } catch (error) {
-          console.error('Error in fetchVehicle:', error);
-        }
-      };
-      
       fetchVehicle();
     }
-  }, [vehicleId]);
+  }, [vehicleId, fetchVehicle]);
+
+  // Update selectedVehicle when vehicleData changes
+  useEffect(() => {
+    if (vehicleData) {
+      setSelectedVehicle(vehicleData);
+    }
+  }, [vehicleData]);
 
   // Fetch inspection template on mount
   useEffect(() => {
     async function loadInspectionTemplate() {
-      try {
+      await withErrorHandling(async () => {
         // If we have an inspectionId, load the inspection data first
         if (inspectionId) {
           const { data: inspectionData, error: inspectionError } = await supabase
@@ -238,7 +247,6 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
           });
 
         if (categoriesError) {
-           console.error('Error fetching categories:', categoriesError); // Log the specific error
            throw categoriesError;
         }
 
@@ -297,14 +305,7 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
             }
           }
         }
-      } catch (error) {
-        console.error('Error loading inspection template:', error)
-        toast({
-          title: t('common.error'),
-          description: t('inspections.messages.error'),
-          variant: "destructive",
-        })
-      }
+      }, t('inspections.messages.errorLoadingTemplate'));
     }
 
     loadInspectionTemplate()
@@ -312,7 +313,7 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
 
   // Load existing inspection items if we have an inspectionId
   const loadExistingInspectionItems = async (formattedSections: InspectionSection[], currentLocale: string) => {
-    try {
+    return await withErrorHandling(async () => {
       // Fetch existing inspection items
       const { data: existingItems, error } = await supabase
         .from('inspection_items')
@@ -320,12 +321,10 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
         .eq('inspection_id', inspectionId)
 
       if (error) {
-        console.error('Error loading existing items:', error)
-        return formattedSections
+        throw error
       }
 
       if (!existingItems || existingItems.length === 0) {
-        console.log("No existing inspection items found.");
         return formattedSections
       }
 
@@ -358,7 +357,7 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
         .in('inspection_item_id', existingItems.map(item => item.id))
 
       if (photosError) {
-        console.error('Error loading photos:', photosError)
+        throw photosError
       } else if (photos) {
         // Attach photos to their respective items
         photos.forEach(photo => {
@@ -401,11 +400,19 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
         })
       })
       
+      // Set the sections with updated data
+      setSections(updatedSections)
+      
+      // If no active section was found, set to the first section
+      if (!foundActiveSection && updatedSections.length > 0) {
+        setActiveSection(updatedSections[0].id)
+        if (updatedSections[0].items.length > 0) {
+          setActiveItem(updatedSections[0].items[0].id)
+        }
+      }
+      
       return updatedSections
-    } catch (error) {
-      console.error('Error in loadExistingInspectionItems:', error)
-      return formattedSections
-    }
+    }, t('inspections.messages.errorLoadingItems'))
   }
 
   // Fetch categories on mount
@@ -582,232 +589,220 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
   }
 
   const handleNotesChange = async (sectionId: string, itemId: string, notes: string) => {
-    try {
-      // First update the local state
-      setSections(prevSections => 
-        prevSections.map(section => 
-          section.id === sectionId
-            ? {
-                ...section,
-                items: section.items.map(item =>
-                  item.id === itemId
-                    ? { ...item, notes }
-                    : item
-                )
-              }
-            : section
-        )
-      )
+    // Update local state first
+    const updatedSections = sections.map(section =>
+      section.id === sectionId
+        ? {
+            ...section,
+            items: section.items.map(item =>
+              item.id === itemId ? { ...item, notes } : item
+            ),
+          }
+        : section
+    )
+    setSections(updatedSections)
 
-      // Then update the database
+    // Then update the database
+    await withErrorHandling(async () => {
       const { error } = await supabase
         .from('inspection_items')
         .update({ notes })
         .eq('id', itemId)
 
       if (error) throw error
-    } catch (error) {
-      console.error('Error updating notes:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update notes",
-        variant: "destructive",
-      })
-    }
+    }, t('inspections.messages.errorUpdatingNotes'))
   }
 
   const handleSubmit = async () => {
-    try {
-      if (!selectedVehicle) {
-        toast({
-          title: t('inspections.messages.error'),
-          description: t('inspections.messages.selectVehicle'),
-          variant: "destructive",
-        })
-        return
-      }
-
-      if (!user?.id) {
-        toast({
-          title: t('inspections.messages.error'),
-          description: t('inspections.messages.loginRequired'),
-          variant: "destructive",
-        })
-        return
-      }
-
-      setIsSubmitting(true)
-
-      // Filter out items with null status
-      const itemsToSave = sections.flatMap(section =>
-        section.items
-          .filter(item => item.status !== null)
-          .map(item => ({
-            template_id: item.id,
-            status: item.status,
-            notes: item.notes || null,
-            photos: item.photos
-          }))
-      )
-
-      if (inspectionId) {
-        // Update existing inspection
-        const { error: updateError } = await supabase
-          .from('inspections')
-          .update({
-            status: 'completed',
-            notes: notes
-          })
-          .eq('id', inspectionId)
-
-        if (updateError) throw updateError
-
-        // Delete existing inspection items and their photos
-        const { data: existingItems, error: fetchError } = await supabase
-          .from('inspection_items')
-          .select('id')
-          .eq('inspection_id', inspectionId)
-
-        if (fetchError) throw fetchError
-
-        if (existingItems.length > 0) {
-          const existingItemIds = existingItems.map(item => item.id)
-
-          // Delete associated photos first
-          const { error: deletePhotosError } = await supabase
-            .from('inspection_photos')
-            .delete()
-            .in('inspection_item_id', existingItemIds)
-
-          if (deletePhotosError) throw deletePhotosError
-
-          // Then delete the items
-          const { error: deleteItemsError } = await supabase
-            .from('inspection_items')
-            .delete()
-            .in('id', existingItemIds)
-
-          if (deleteItemsError) throw deleteItemsError
-        }
-
-        // Insert new inspection items
-        const { data: newItems, error: insertItemsError } = await supabase
-          .from('inspection_items')
-          .insert(
-            itemsToSave.map(item => ({
-              inspection_id: inspectionId,
-              template_id: item.template_id,
-              status: item.status,
-              notes: item.notes
-            }))
-          )
-          .select()
-
-        if (insertItemsError) throw insertItemsError
-
-        // Insert photos for items that have them
-        const photosToInsert = []
-        for (let i = 0; i < itemsToSave.length; i++) {
-          const item = itemsToSave[i]
-          const newItem = newItems[i]
-          
-          if (item.photos && item.photos.length > 0) {
-            for (const photoUrl of item.photos) {
-              photosToInsert.push({
-                inspection_item_id: newItem.id,
-                photo_url: photoUrl
-              })
-            }
-          }
-        }
-
-        if (photosToInsert.length > 0) {
-          const { error: insertPhotosError } = await supabase
-            .from('inspection_photos')
-            .insert(photosToInsert)
-
-          if (insertPhotosError) throw insertPhotosError
-        }
-
-        toast({
-          title: t('inspections.messages.updateSuccess'),
-        })
-
-        router.push(`/inspections/${inspectionId}`)
-        router.refresh()
-      } else {
-        // Create new inspection
-        const { data: newInspection, error: createError } = await supabase
-          .from('inspections')
-          .insert({
-            vehicle_id: selectedVehicle.id,
-            type: selectedType,
-            status: 'completed',
-            date: new Date().toISOString(), // Set the date to current date for direct creation
-            notes: notes,
-            created_by: user.id
-          })
-          .select()
-          .single()
-
-        if (createError) throw createError
-
-        // Insert inspection items
-        const { data: newItems, error: insertItemsError } = await supabase
-          .from('inspection_items')
-          .insert(
-            itemsToSave.map(item => ({
-              inspection_id: newInspection.id,
-              template_id: item.template_id,
-              status: item.status,
-              notes: item.notes
-            }))
-          )
-          .select()
-
-        if (insertItemsError) throw insertItemsError
-
-        // Insert photos for items that have them
-        const photosToInsert = []
-        for (let i = 0; i < itemsToSave.length; i++) {
-          const item = itemsToSave[i]
-          const newItem = newItems[i]
-          
-          if (item.photos && item.photos.length > 0) {
-            for (const photoUrl of item.photos) {
-              photosToInsert.push({
-                inspection_item_id: newItem.id,
-                photo_url: photoUrl
-              })
-            }
-          }
-        }
-
-        if (photosToInsert.length > 0) {
-          const { error: insertPhotosError } = await supabase
-            .from('inspection_photos')
-            .insert(photosToInsert)
-
-          if (insertPhotosError) throw insertPhotosError
-        }
-
-        toast({
-          title: t('inspections.messages.createSuccess'),
-        })
-
-        router.push(`/inspections/${newInspection.id}`)
-        router.refresh()
-      }
-    } catch (error) {
-      console.error('Error submitting inspection:', error)
+    if (!selectedVehicle) {
       toast({
         title: t('inspections.messages.error'),
-        description: error instanceof Error ? error.message : String(error),
+        description: t('inspections.messages.selectVehicle'),
         variant: "destructive",
       })
-    } finally {
-      setIsSubmitting(false)
+      return
     }
+
+    if (!user?.id) {
+      toast({
+        title: t('inspections.messages.error'),
+        description: t('inspections.messages.loginRequired'),
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    await withErrorHandling(
+      async () => {
+        // Filter out items with null status
+        const itemsToSave = sections.flatMap(section =>
+          section.items
+            .filter(item => item.status !== null)
+            .map(item => ({
+              template_id: item.id,
+              status: item.status,
+              notes: item.notes || null,
+              photos: item.photos
+            }))
+        )
+
+        if (inspectionId) {
+          // Update existing inspection
+          const { error: updateError } = await supabase
+            .from('inspections')
+            .update({
+              status: 'completed',
+              notes: notes
+            })
+            .eq('id', inspectionId)
+
+          if (updateError) throw updateError
+
+          // Delete existing inspection items and their photos
+          const { data: existingItems, error: fetchError } = await supabase
+            .from('inspection_items')
+            .select('id')
+            .eq('inspection_id', inspectionId)
+
+          if (fetchError) throw fetchError
+
+          if (existingItems.length > 0) {
+            const existingItemIds = existingItems.map(item => item.id)
+
+            // Delete associated photos first
+            const { error: deletePhotosError } = await supabase
+              .from('inspection_photos')
+              .delete()
+              .in('inspection_item_id', existingItemIds)
+
+            if (deletePhotosError) throw deletePhotosError
+
+            // Then delete the items
+            const { error: deleteItemsError } = await supabase
+              .from('inspection_items')
+              .delete()
+              .in('id', existingItemIds)
+
+            if (deleteItemsError) throw deleteItemsError
+          }
+
+          // Insert new inspection items
+          const { data: newItems, error: insertItemsError } = await supabase
+            .from('inspection_items')
+            .insert(
+              itemsToSave.map(item => ({
+                inspection_id: inspectionId,
+                template_id: item.template_id,
+                status: item.status,
+                notes: item.notes
+              }))
+            )
+            .select()
+
+          if (insertItemsError) throw insertItemsError
+
+          // Insert photos for items that have them
+          const photosToInsert = []
+          for (let i = 0; i < itemsToSave.length; i++) {
+            const item = itemsToSave[i]
+            const newItem = newItems[i]
+            
+            if (item.photos && item.photos.length > 0) {
+              for (const photoUrl of item.photos) {
+                photosToInsert.push({
+                  inspection_item_id: newItem.id,
+                  photo_url: photoUrl
+                })
+              }
+            }
+          }
+
+          if (photosToInsert.length > 0) {
+            const { error: insertPhotosError } = await supabase
+              .from('inspection_photos')
+              .insert(photosToInsert)
+
+            if (insertPhotosError) throw insertPhotosError
+          }
+
+          toast({
+            title: t('inspections.messages.updateSuccess'),
+          })
+
+          router.push(`/inspections/${inspectionId}`)
+          router.refresh()
+        } else {
+          // Create new inspection
+          const { data: newInspection, error: createError } = await supabase
+            .from('inspections')
+            .insert({
+              vehicle_id: selectedVehicle.id,
+              type: selectedType,
+              status: 'completed',
+              date: new Date().toISOString(), // Set the date to current date for direct creation
+              notes: notes,
+              created_by: user.id
+            })
+            .select()
+            .single()
+
+          if (createError) throw createError
+
+          // Insert inspection items
+          const { data: newItems, error: insertItemsError } = await supabase
+            .from('inspection_items')
+            .insert(
+              itemsToSave.map(item => ({
+                inspection_id: newInspection.id,
+                template_id: item.template_id,
+                status: item.status,
+                notes: item.notes
+              }))
+            )
+            .select()
+
+          if (insertItemsError) throw insertItemsError
+
+          // Insert photos for items that have them
+          const photosToInsert = []
+          for (let i = 0; i < itemsToSave.length; i++) {
+            const item = itemsToSave[i]
+            const newItem = newItems[i]
+            
+            if (item.photos && item.photos.length > 0) {
+              for (const photoUrl of item.photos) {
+                photosToInsert.push({
+                  inspection_item_id: newItem.id,
+                  photo_url: photoUrl
+                })
+              }
+            }
+          }
+
+          if (photosToInsert.length > 0) {
+            const { error: insertPhotosError } = await supabase
+              .from('inspection_photos')
+              .insert(photosToInsert)
+
+            if (insertPhotosError) throw insertPhotosError
+          }
+
+          toast({
+            title: t('inspections.messages.createSuccess'),
+          })
+
+          router.push(`/inspections/${newInspection.id}`)
+          router.refresh()
+        }
+      },
+      inspectionId ? 
+        t('inspections.messages.errorUpdating') :
+        t('inspections.messages.errorCreating')
+    )
+    
+    setIsSubmitting(false)
   }
 
   const getSectionProgress = (section: InspectionSection) => {
@@ -953,190 +948,217 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
     }
   })
 
+  // Use real-time updates for inspection data when editing an existing inspection
+  const { data: realtimeInspection, error: inspectionError } = useRealtimeRecord<any>({
+    config: {
+      table: "inspections",
+      filter: inspectionId ? `id=eq.${inspectionId}` : undefined,
+    },
+    initialFetch: !!inspectionId,
+    onDataChange: (newData) => {
+      if (newData && newData.notes !== notes) {
+        setNotes(newData.notes || '');
+      }
+    }
+  });
+
+  // Show error message if there's an error fetching the inspection
+  useEffect(() => {
+    if (inspectionError) {
+      toast({
+        title: t('common.error'),
+        description: t('inspections.messages.errorLoadingInspection'),
+        variant: "destructive",
+      });
+    }
+  }, [inspectionError, t, toast]);
+
   return (
-    <div className="relative">
-      <FormProvider {...methods}>
-        <form onSubmit={onSubmit} className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('inspections.type.select')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InspectionTypeSelector
+    <ErrorBoundary>
+      <div className="space-y-8">
+        <FormProvider {...methods}>
+          <form onSubmit={onSubmit} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('inspections.type.select')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InspectionTypeSelector
+                  control={methods.control}
+                  onTypeChange={setSelectedType}
+                  defaultValue={type}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="p-4">
+              <h2 className="text-lg font-medium mb-4">{t('inspections.fields.vehicle')}</h2>
+              <FormField
                 control={methods.control}
-                onTypeChange={setSelectedType}
-                defaultValue={type}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="text-lg font-medium mb-4">{t('inspections.fields.vehicle')}</h2>
-            <FormField
-              control={methods.control}
-              name="vehicle_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <VehicleSelector
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value)
-                        handleVehicleChange(value)
-                      }}
-                      placeholder={t('inspections.fields.vehicleDescription')}
-                      disabled={!!vehicleId}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Card>
-
-          <div className="space-y-2">
-            <h2 className="text-lg font-medium">{t('inspections.details.inspectionProgress')}</h2>
-            <Progress value={getOverallProgress()} className="h-2" />
-            <p className="text-sm text-muted-foreground text-right">{getOverallProgress()}%</p>
-          </div>
-
-          <div className="space-y-4">
-            {sections.map((section) => (
-              <Card key={section.id} className={cn("p-4 transition-colors", activeSection === section.id ? "bg-card" : "bg-muted/50")}>
-                <button
-                  type="button"
-                  className="flex items-center justify-between w-full"
-                  onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
-                >
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-medium">{section.title}</h3>
-                    <div className="flex items-center gap-2">
-                      <Progress value={(section.items.filter(i => i.status).length / section.items.length) * 100} className="w-24 h-1" />
-                      <span className="text-sm text-muted-foreground">{getSectionProgress(section)}</span>
-                    </div>
-                  </div>
-                  {activeSection === section.id ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                </button>
-
-                {activeSection === section.id && (
-                  <div className="mt-4 space-y-4">
-                    {section.items.map((item, index) => (
-                      <div key={item.id} className={cn("space-y-4 rounded-lg p-4", activeItem === item.id ? "bg-muted" : "bg-transparent")}>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{item.title}</h4>
-                            {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant={item.status === 'pass' ? 'default' : 'outline'}
-                            className={cn("flex-1", item.status === 'pass' && "bg-green-500 hover:bg-green-600")}
-                            onClick={() => handleItemStatus(section.id, item.id, 'pass')}
-                          >
-                            <Check className="mr-2 h-4 w-4" />
-                            {t('inspections.actions.pass')}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={item.status === 'fail' ? 'destructive' : 'outline'}
-                            className="flex-1"
-                            onClick={() => handleItemStatus(section.id, item.id, 'fail')}
-                          >
-                            <X className="mr-2 h-4 w-4" />
-                            {t('inspections.actions.fail')}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              setCurrentPhotoItem({ sectionId: section.id, itemId: item.id })
-                              setIsCameraOpen(true)
-                            }}
-                            title={t('inspections.fields.photo')}
-                          >
-                            <Camera className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        {item.photos.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {item.photos.map((photo, index) => (
-                              <div key={index} className="relative group aspect-square">
-                                <img
-                                  src={photo}
-                                  alt={`${t('inspections.fields.photo')} ${index + 1}`}
-                                  className="rounded-lg object-cover w-full h-full"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    handlePhotoDelete(section.id, item.id, index);
-                                  }}
-                                  className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title={t('common.delete')}
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <Textarea
-                          placeholder={t('inspections.fields.notesPlaceholder')}
-                          value={item.notes}
-                          onChange={(e) => handleNotesChange(section.id, item.id, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                name="vehicle_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <VehicleSelector
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value)
+                          handleVehicleChange(value)
+                        }}
+                        placeholder={t('inspections.fields.vehicleDescription')}
+                        disabled={!!vehicleId}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
-              </Card>
-            ))}
-          </div>
+              />
+            </Card>
 
-          <Card className="p-4">
-            <h2 className="text-lg font-medium mb-4">{t('inspections.fields.notes')}</h2>
-            <Textarea
-              placeholder={t('inspections.fields.generalNotesPlaceholder')}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </Card>
+            <div className="space-y-2">
+              <h2 className="text-lg font-medium">{t('inspections.details.inspectionProgress')}</h2>
+              <Progress value={getOverallProgress()} className="h-2" />
+              <p className="text-sm text-muted-foreground text-right">{getOverallProgress()}%</p>
+            </div>
 
-          <div className="sticky bottom-0 bg-background p-4 border-t">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting || !selectedVehicle}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('common.saving')}
-                </>
-              ) : (
-                t('inspections.actions.complete')
-              )}
-            </Button>
-          </div>
-        </form>
-      </FormProvider>
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <Card key={section.id} className={cn("p-4 transition-colors", activeSection === section.id ? "bg-card" : "bg-muted/50")}>
+                  <button
+                    type="button"
+                    className="flex items-center justify-between w-full"
+                    onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
+                  >
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium">{section.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <Progress value={(section.items.filter(i => i.status).length / section.items.length) * 100} className="w-24 h-1" />
+                        <span className="text-sm text-muted-foreground">{getSectionProgress(section)}</span>
+                      </div>
+                    </div>
+                    {activeSection === section.id ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
 
-      <CameraModal
-        isOpen={isCameraOpen}
-        onClose={() => {
-          setIsCameraOpen(false)
-          setCurrentPhotoItem(null)
-        }}
-        onCapture={handlePhotoCapture}
-      />
-    </div>
+                  {activeSection === section.id && (
+                    <div className="mt-4 space-y-4">
+                      {section.items.map((item, index) => (
+                        <div key={item.id} className={cn("space-y-4 rounded-lg p-4", activeItem === item.id ? "bg-muted" : "bg-transparent")}>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{item.title}</h4>
+                              {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={item.status === 'pass' ? 'default' : 'outline'}
+                              className={cn("flex-1", item.status === 'pass' && "bg-green-500 hover:bg-green-600")}
+                              onClick={() => handleItemStatus(section.id, item.id, 'pass')}
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              {t('inspections.actions.pass')}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={item.status === 'fail' ? 'destructive' : 'outline'}
+                              className="flex-1"
+                              onClick={() => handleItemStatus(section.id, item.id, 'fail')}
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              {t('inspections.actions.fail')}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => {
+                                setCurrentPhotoItem({ sectionId: section.id, itemId: item.id })
+                                setIsCameraOpen(true)
+                              }}
+                              title={t('inspections.fields.photo')}
+                            >
+                              <Camera className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {item.photos.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2">
+                              {item.photos.map((photo, index) => (
+                                <div key={index} className="relative group aspect-square">
+                                  <img
+                                    src={photo}
+                                    alt={`${t('inspections.fields.photo')} ${index + 1}`}
+                                    className="rounded-lg object-cover w-full h-full"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handlePhotoDelete(section.id, item.id, index);
+                                    }}
+                                    className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title={t('common.delete')}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <Textarea
+                            placeholder={t('inspections.fields.notesPlaceholder')}
+                            value={item.notes}
+                            onChange={(e) => handleNotesChange(section.id, item.id, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+
+            <Card className="p-4">
+              <h2 className="text-lg font-medium mb-4">{t('inspections.fields.notes')}</h2>
+              <Textarea
+                placeholder={t('inspections.fields.generalNotesPlaceholder')}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </Card>
+
+            <div className="sticky bottom-0 bg-background p-4 border-t">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || !selectedVehicle}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('common.saving')}
+                  </>
+                ) : (
+                  t('inspections.actions.complete')
+                )}
+              </Button>
+            </div>
+          </form>
+        </FormProvider>
+
+        <CameraModal
+          isOpen={isCameraOpen}
+          onClose={() => {
+            setIsCameraOpen(false)
+            setCurrentPhotoItem(null)
+          }}
+          onCapture={handlePhotoCapture}
+        />
+      </div>
+    </ErrorBoundary>
   )
 } 

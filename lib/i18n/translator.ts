@@ -8,19 +8,42 @@ function getNestedValue(obj: any, path: string): string {
 }
 
 export function createTranslator(translations: Translations) {
-  return function t(key: TranslationKey, params?: TranslationParams): string {
-    // Get the translation string
-    const value = getNestedValue(translations, key)
+  /**
+   * Translate a string based on a key path
+   * @param key The key path (e.g. "common.cancel")
+   * @param params Optional parameters to replace in the string
+   * @returns The translated string
+   */
+  return function translate(key: string, params?: Record<string, string | undefined>): string {
+    // Split the key into parts
+    const keys = key.split(".")
     
-    // If no translation found, return the key
-    if (!value) return key
+    // Start with the translations object
+    let value: any = translations
     
-    // If no params, return the translation as is
-    if (!params) return value
+    // Navigate through the keys
+    for (const k of keys) {
+      if (value === undefined || value[k] === undefined) {
+        console.warn(`Translation key not found: ${key}`)
+        return key // Return the key if not found
+      }
+      value = value[k]
+    }
     
-    // Replace parameters in the translation string
-    return Object.entries(params).reduce((acc, [key, value]) => {
-      return acc.replace(new RegExp(`{${key}}`, 'g'), String(value))
-    }, value)
+    // Safety check: if value is an object, convert to a string representation
+    // to avoid React "Objects are not valid as React child" error
+    if (value !== undefined && typeof value === 'object' && value !== null) {
+      console.warn(`Translation key "${key}" returned an object instead of a string`);
+      return key; // Return the key itself as a fallback
+    }
+    
+    // Handle parameters
+    if (params && value !== undefined) {
+      return Object.entries(params).reduce((acc, [paramKey, paramVal]) => {
+        return acc.replace(new RegExp(`{${paramKey}}`, "g"), paramVal || "")
+      }, value)
+    }
+    
+    return value
   }
 } 

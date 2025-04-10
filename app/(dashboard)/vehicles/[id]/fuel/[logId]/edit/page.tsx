@@ -6,7 +6,7 @@ import { FuelForm } from "@/components/fuel/fuel-form"
 import { PageHeader } from "@/components/page-header"
 import { getFuelLog } from "@/lib/services/fuel"
 import { getVehicle } from "@/lib/services/vehicles"
-import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getDictionary } from "@/lib/i18n/server"
 import type { Database } from "@/types/supabase"
 
 interface EditFuelLogPageProps {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: EditFuelLogPageProps) {
 
 export default async function EditFuelLogPage({ params }: EditFuelLogPageProps) {
   const { id, logId } = params
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   
   try {
     console.log('Loading fuel log edit page with params:', { id, logId })
@@ -66,8 +66,8 @@ export default async function EditFuelLogPage({ params }: EditFuelLogPageProps) 
     return (
       <div className="space-y-8">
         <PageHeader
-          title={dictionary.fuel.edit.title}
-          description={dictionary.fuel.edit.description}
+          title={t("fuel.edit.title")}
+          description={t("fuel.edit.description")}
         />
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-2xl mx-auto">

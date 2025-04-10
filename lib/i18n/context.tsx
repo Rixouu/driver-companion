@@ -17,7 +17,7 @@ interface I18nContextType {
   language: Language
   locale: Language
   setLanguage: (lang: Language) => void
-  t: (key: string, params?: Record<string, string>) => string
+  t: (key: string, params?: Record<string, string | undefined>) => string
 }
 
 const I18nContext = createContext<I18nContextType | null>(null)
@@ -50,25 +50,58 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setCookie('NEXT_LOCALE', lang, { maxAge: 60 * 60 * 24 * 30 }) // 30 days
   }
 
-  const t = (key: string, params?: Record<string, string>) => {
+  const t = (key: string, params?: Record<string, string | undefined>) => {
     const keys = key.split(".")
     let value: any = languages[language]
-
+    let fallbackValue: any = languages["en"] // Use English as fallback
+    
+    // Try to find the translation in the current language
     for (const k of keys) {
-      if (value[k] === undefined) {
-        console.warn(`Translation key not found: ${key}`)
-        return key
+      if (value === undefined || value[k] === undefined) {
+        value = undefined
+        break
       }
       value = value[k]
     }
-
-    if (params) {
-      return Object.entries(params).reduce((acc, [key, val]) => {
-        return acc.replace(`{${key}}`, val)
-      }, value)
+    
+    // If not found, try to find in the fallback language (English)
+    if (value === undefined && language !== "en") {
+      for (const k of keys) {
+        if (fallbackValue === undefined || fallbackValue[k] === undefined) {
+          fallbackValue = undefined
+          break
+        }
+        fallbackValue = fallbackValue[k]
+      }
+    }
+    
+    // Use the found value, fallback, or default
+    let result = value !== undefined ? value : (fallbackValue !== undefined ? fallbackValue : undefined)
+    
+    // Safety check: if result is an object, convert to a string representation 
+    // to avoid React "Objects are not valid as React child" error
+    if (result !== undefined && typeof result === 'object' && result !== null) {
+      console.warn(`Translation key "${key}" returned an object instead of a string`);
+      return key; // Return the key itself as a fallback
+    }
+    
+    // If we have a default value in the parameters, use it when no translation found
+    if (result === undefined && params?.defaultValue) {
+      result = params.defaultValue
+    } else if (result === undefined) {
+      console.warn(`Translation key not found: ${key}`)
+      return key // Return key as last resort
     }
 
-    return value
+    // Replace parameters in the translation if provided
+    if (params && result !== undefined) {
+      return Object.entries(params).reduce((acc, [paramKey, paramVal]) => {
+        if (paramKey === 'defaultValue') return acc // Skip the defaultValue parameter
+        return acc.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), paramVal || '')
+      }, result)
+    }
+
+    return result
   }
 
   return (

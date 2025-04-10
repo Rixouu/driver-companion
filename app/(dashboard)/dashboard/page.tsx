@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   // Get translations
-  const { t, dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   
   // Fetch all necessary data for the dashboard
   const { vehicles } = await getVehicles()

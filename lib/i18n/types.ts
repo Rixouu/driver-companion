@@ -629,10 +629,10 @@ export interface TranslationValues extends RecursiveStringRecord {
       newSectionDescription: string
       sectionNameLabel: string
       sectionNamePlaceholder: string
-      sectionNamePlaceholderJa?: string
+      sectionNamePlaceholderJa: string
       sectionDescriptionLabel: string
       sectionDescriptionPlaceholder: string
-      sectionDescriptionPlaceholderJa?: string
+      sectionDescriptionPlaceholderJa: string
       addSectionSuccess: string
       addSectionError: string
       deleteSectionConfirm: string
@@ -655,10 +655,10 @@ export interface TranslationValues extends RecursiveStringRecord {
       newItemDescription: string
       itemNameLabel: string
       itemNamePlaceholder: string
-      itemNamePlaceholderJa?: string
+      itemNamePlaceholderJa: string
       itemDescriptionLabel: string
       itemDescriptionPlaceholder: string
-      itemDescriptionPlaceholderJa?: string
+      itemDescriptionPlaceholderJa: string
       requiresPhoto: string
       requiresNotes: string
       addItemSuccess: string
@@ -666,10 +666,10 @@ export interface TranslationValues extends RecursiveStringRecord {
       deleteItemConfirm: string
       deleteItemSuccess: string
       deleteItemError: string
-      editSectionTitle?: string
-      editSectionDescription?: string
-      editItemTitle?: string
-      editItemDescription?: string
+      editSectionTitle: string
+      editSectionDescription: string
+      editItemTitle: string
+      editItemDescription: string
     }
     categories: {
       [key: string]: {

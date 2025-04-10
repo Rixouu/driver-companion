@@ -6,7 +6,7 @@ import { MileageForm } from "@/components/mileage/mileage-form"
 import { PageHeader } from "@/components/page-header"
 import { getMileageLog } from "@/lib/services/mileage"
 import { getVehicle } from "@/lib/services/vehicles"
-import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getDictionary } from "@/lib/i18n/server"
 import type { Database } from "@/types/supabase"
 
 interface EditMileageLogPageProps {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: EditMileageLogPageProps) {
 
 export default async function EditMileageLogPage({ params }: EditMileageLogPageProps) {
   const { id, logId } = params
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   
   try {
     console.log('Loading mileage log edit page with params:', { id, logId })
@@ -66,8 +66,8 @@ export default async function EditMileageLogPage({ params }: EditMileageLogPageP
     return (
       <div className="space-y-8">
         <PageHeader
-          title={dictionary.mileage.edit.title}
-          description={dictionary.mileage.edit.description}
+          title={t("mileage.edit.title")}
+          description={t("mileage.edit.description")}
         />
         <div className="container mx-auto px-4 md:px-6">
           <div className="max-w-2xl mx-auto">

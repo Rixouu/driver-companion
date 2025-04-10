@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function NewVehiclePage() {
-  const { t, dictionary } = await getDictionary()
+  const { t } = await getDictionary()
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -28,14 +28,14 @@ export default async function NewVehiclePage() {
           >
             <Link href="/vehicles">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              {dictionary.common.backTo} {dictionary.vehicles.title}
+              {t("common.backTo")} {t("vehicles.title")}
             </Link>
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">
-            {dictionary.vehicles.newVehicle}
+            {t("vehicles.newVehicle")}
           </h1>
           <p className="text-muted-foreground">
-            {dictionary.vehicles.description}
+            {t("vehicles.description")}
           </p>
         </div>
       </div>

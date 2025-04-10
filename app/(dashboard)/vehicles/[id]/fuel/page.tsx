@@ -4,7 +4,7 @@ import { FuelLogsList } from "@/components/fuel/fuel-logs-list"
 import { PageHeader } from "@/components/page-header"
 import { getFuelLogs } from "@/lib/services/fuel"
 import { getVehicle } from "@/lib/services/vehicles"
-import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getDictionary } from "@/lib/i18n/server"
 
 interface FuelLogsPageProps {
   params: {
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: FuelLogsPageProps) {
 
 export default async function FuelLogsPage({ params }: FuelLogsPageProps) {
   const { id } = params
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
   const { vehicle } = await getVehicle(id)
   const { logs } = await getFuelLogs(id)
 
@@ -34,8 +34,8 @@ export default async function FuelLogsPage({ params }: FuelLogsPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={dictionary.fuel.title}
-        description={dictionary.fuel.description}
+        title={t("fuel.title")}
+        description={t("fuel.description")}
       />
       <FuelLogsList logs={logs} vehicleId={id} />
     </div>

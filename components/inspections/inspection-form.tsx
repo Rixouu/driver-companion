@@ -36,6 +36,7 @@ import { ErrorBoundary, ErrorMessage } from "@/components/ui/error-boundary"
 // Add imports for real-time updates
 import { useRealtimeRecord, useRealtimeCollection } from "@/hooks/use-realtime"
 import { useAsync, useSafeAsync } from "@/hooks/use-async"
+import { idFilter } from "@/lib/services/realtime"
 
 // Define translation object type
 type TranslationObject = { [key: string]: string }
@@ -952,26 +953,56 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
   const { data: realtimeInspection, error: inspectionError } = useRealtimeRecord<any>({
     config: {
       table: "inspections",
-      filter: inspectionId ? `id=eq.${inspectionId}` : undefined,
+      filter: inspectionId ? idFilter(inspectionId) : undefined,
     },
     initialFetch: !!inspectionId,
-    onDataChange: (newData) => {
+    onDataChange: (newData, oldData, event) => {
       if (newData && newData.notes !== notes) {
         setNotes(newData.notes || '');
       }
     }
   });
 
-  // Show error message if there's an error fetching the inspection
+  // Add realtime subscription for inspection items
+  const { items: realtimeItems, error: itemsError } = useRealtimeCollection<InspectionItemType>({
+    config: {
+      table: "inspection_items",
+      filter: inspectionId ? `inspection_id=eq.${inspectionId}` : undefined,
+    },
+    initialFetch: !!inspectionId,
+    onDataChange: (newData, oldData, event) => {
+      if (newData) {
+        // Update the local state when items change
+        setSections(prevSections => 
+          prevSections.map(section => ({
+            ...section,
+            items: section.items.map(item => {
+              const updatedItem = newData.id === item.id ? newData : null;
+              return updatedItem ? { ...item, ...updatedItem } : item;
+            })
+          }))
+        );
+      }
+    }
+  });
+
+  // Show error messages if there are any errors
   useEffect(() => {
-    if (inspectionError) {
+    if (inspectionError || itemsError) {
       toast({
         title: t('common.error'),
         description: t('inspections.messages.errorLoadingInspection'),
         variant: "destructive",
       });
     }
-  }, [inspectionError, t, toast]);
+  }, [inspectionError, itemsError, t, toast]);
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup will be handled by the useRealtime hooks
+    };
+  }, []);
 
   return (
     <ErrorBoundary>

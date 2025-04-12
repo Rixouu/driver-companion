@@ -16,22 +16,24 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import type { Inspection } from "@/types"
+import type { DbInspection, DbVehicle } from "@/types"
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer"
 import { saveAs } from "file-saver"
+import { useRealtimeRecord, useRealtimeCollection } from "@/hooks/use-realtime"
+import { idFilter } from "@/lib/services/realtime"
+import { useAuth } from "@/hooks/use-auth"
 
 // Add extended inspection type with inspection_items
-interface ExtendedInspection extends Inspection {
+interface ExtendedInspection extends DbInspection {
   inspection_items?: InspectionItem[];
-  vehicle_id: string;
-  vehicle?: {
+  vehicle?: DbVehicle;
+  inspector?: {
     id: string;
     name: string;
-    plate_number: string;
-    image_url?: string;
-    brand?: string;
-    model?: string;
+    email?: string;
   };
+  notes?: string;
+  created_by?: string;
 }
 
 interface InspectionPhoto {
@@ -41,8 +43,14 @@ interface InspectionPhoto {
 
 interface InspectionItemTemplate {
   id: string;
-  name: string;
-  description?: string;
+  name_translations: any; // This will handle the JSON type from the database
+  description_translations?: any;
+  category_id?: string | null;
+  order_number?: number | null;
+  requires_notes?: boolean | null;
+  requires_photo?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 interface InspectionItem {
@@ -68,6 +76,69 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   const [itemsWithTemplates, setItemsWithTemplates] = useState<InspectionItem[]>([])
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const { user } = useAuth()
+
+  // Add realtime subscription for inspection
+  const { data: realtimeInspection } = useRealtimeRecord<ExtendedInspection>({
+    config: {
+      table: "inspections",
+      filter: idFilter(inspection.id),
+    },
+    initialFetch: true,
+    onDataChange: (newData) => {
+      if (newData) {
+        setInspection(prev => ({
+          ...prev,
+          ...newData
+        }));
+      }
+    }
+  });
+
+  // Add realtime subscription for inspection items
+  const { items: realtimeItems } = useRealtimeCollection<InspectionItem>({
+    config: {
+      table: "inspection_items",
+      filter: `inspection_id=eq.${inspection.id}`,
+    },
+    initialFetch: true,
+    onDataChange: async (newData) => {
+      if (newData) {
+        try {
+          // Fetch the template for the updated item
+          const { data: template, error } = await supabase
+            .from('inspection_item_templates')
+            .select('*')
+            .eq('id', newData.template_id)
+            .single()
+
+          if (error) throw error
+
+          const updatedItem = {
+            ...newData,
+            template: template as InspectionItemTemplate
+          }
+
+          // Update the items in the inspection object with template data
+          setInspection(prev => ({
+            ...prev,
+            inspection_items: prev.inspection_items?.map(item => 
+              item.id === newData.id ? updatedItem : item
+            ) || []
+          }));
+
+          // Also update itemsWithTemplates state
+          setItemsWithTemplates(prev => 
+            prev.map(item =>
+              item.id === newData.id ? updatedItem : item
+            )
+          );
+        } catch (error) {
+          console.error('Error fetching template:', error)
+        }
+      }
+    }
+  });
 
   useEffect(() => {
     async function loadTemplates() {
@@ -76,17 +147,59 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
         if (inspection.vehicle?.id) {
           const { data: vehicleData, error: vehicleError } = await supabase
             .from('vehicles')
-        .select('*')
+            .select('*')
             .eq('id', inspection.vehicle.id)
-        .single()
+            .single()
 
           if (vehicleError) throw vehicleError
           
           // Update the vehicle information in the inspection object
-          setInspection({
-            ...inspection,
-            vehicle: vehicleData
-          })
+          setInspection(prev => ({
+            ...prev,
+            vehicle: vehicleData as DbVehicle
+          }))
+        }
+
+        // Set inspector information from created_by field
+        if (inspection.created_by) {
+          // Try to get the user information from Supabase auth
+          const { data: userData, error: userError } = await supabase.auth
+            .getUser(inspection.created_by)
+
+          if (!userError && userData?.user) {
+            setInspection(prev => ({
+              ...prev,
+              inspector: {
+                id: userData.user.id || inspection.created_by || '',
+                name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || t('common.notAssigned'),
+                email: userData.user.email
+              }
+            }))
+          } else {
+            // If we can't get the user data directly, use the current user if it matches
+            const isCurrentUserInspector = user?.id === inspection.created_by
+            
+            if (isCurrentUserInspector && user) {
+              setInspection(prev => ({
+                ...prev,
+                inspector: {
+                  id: user.id || inspection.created_by || '',
+                  name: user.user_metadata?.full_name || user.email?.split('@')[0] || t('common.notAssigned'),
+                  email: user.email
+                }
+              }))
+            } else {
+              // Fallback to a placeholder if we can't get the user data
+              setInspection(prev => ({
+                ...prev,
+                inspector: {
+                  id: inspection.created_by || '',
+                  name: t('common.notAssigned'),
+                  email: ''
+                }
+              }))
+            }
+          }
         }
 
         // For scheduled inspections, we might not have inspection items yet
@@ -96,7 +209,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           
           const { data: templates, error } = await supabase
             .from('inspection_item_templates')
-            .select('id, name, description')
+            .select('*')
             .in('id', templateIds)
 
           if (error) throw error
@@ -104,7 +217,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           // Fetch photos for each inspection item
           const { data: photos, error: photosError } = await supabase
             .from('inspection_photos')
-            .select('id, inspection_item_id, photo_url')
+            .select('*')
             .in('inspection_item_id', inspection.inspection_items.map(item => item.id))
 
           if (photosError) throw photosError
@@ -112,8 +225,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           // Attach template data and photos to each item
           const itemsWithData = inspection.inspection_items.map(item => ({
             ...item,
-            template: templates.find(t => t.id === item.template_id),
-            inspection_photos: photos ? photos.filter(photo => photo.inspection_item_id === item.id) : []
+            template: templates?.find(t => t.id === item.template_id) as InspectionItemTemplate | undefined,
+            inspection_photos: photos?.filter(photo => photo.inspection_item_id === item.id) || []
           }))
 
           setItemsWithTemplates(itemsWithData)
@@ -124,7 +237,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     }
 
     loadTemplates()
-  }, [inspection])
+  }, [inspection, user, inspection.created_by, t])
 
   async function handleStartInspection() {
     try {
@@ -158,9 +271,30 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     }
   }
 
+  // Helper function to get template name
+  function getTemplateName(template?: InspectionItemTemplate): string {
+    if (!template?.name_translations) return '';
+    
+    // Try to get the English name first
+    const translations = template.name_translations;
+    return translations.en || translations.ja || Object.values(translations)[0] || '';
+  }
+
+  // Helper function to get template description
+  function getTemplateDescription(template?: InspectionItemTemplate): string {
+    if (!template?.description_translations) return '';
+    
+    // Try to get the English description first
+    const translations = template.description_translations;
+    return translations.en || translations.ja || Object.values(translations)[0] || '';
+  }
+
   // Update the helper function to map template names to correct section and item keys
-  function getTranslationKeys(templateName: string | undefined): { section: string; item: string } {
-    if (!templateName) return { section: '', item: '' }
+  function getTranslationKeys(template?: InspectionItemTemplate): { section: string; item: string } {
+    if (!template) return { section: '', item: '' }
+    
+    // Get the template name
+    const templateName = getTemplateName(template)
     
     // Convert template name to lowercase and remove extra spaces
     const name = templateName.toLowerCase().trim()
@@ -235,20 +369,20 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     let title = '';
     if (failedItems.length === 1) {
       // If only one item failed, use its name as the title
-      title = `Repair ${failedItems[0].template?.name || 'Item'}`;
+      title = `Repair ${getTemplateName(failedItems[0].template)}`;
     } else if (failedItems.length <= 3) {
       // If 2-3 items failed, list them all
-      title = `Repair ${failedItems.map(item => item.template?.name).join(', ')}`;
+      title = `Repair ${failedItems.map(item => getTemplateName(item.template)).join(', ')}`;
     } else {
       // If more than 3 items failed, list the first two and indicate there are more
-      title = `Repair ${failedItems[0].template?.name}, ${failedItems[1].template?.name} and ${failedItems.length - 2} more items`;
+      title = `Repair ${getTemplateName(failedItems[0].template)}, ${getTemplateName(failedItems[1].template)} and ${failedItems.length - 2} more items`;
     }
     
     // Create a detailed description from the failed items
     let description = `Repairs needed based on inspection from ${dateFormat(new Date(inspection.date), 'PPP')}:\n\n`;
     
     failedItems.forEach((item, index) => {
-      const itemName = item.template?.name || 'Unknown item';
+      const itemName = getTemplateName(item.template) || 'Unknown item';
       description += `${index + 1}. ${itemName}`;
       
       if (item.notes) {
@@ -307,19 +441,21 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
         ['', '']  // Empty row as separator
       ];
       
-      // Add inspection information
+      // Add inspection information with inspector details
       const inspectionInfo = [
         ['Inspection Information', ''],
         ['Date', formatDate(inspection.date)],
         ['Type', inspection.type || 'N/A'],
         ['Status', inspection.status || 'N/A'],
+        ['Inspector Name', inspection.inspector?.name || 'N/A'],
+        ['Inspector Email', inspection.inspector?.email || 'N/A'],
         ['', '']  // Empty row as separator
       ];
       
       // Add inspection items
       const headers = ['Item', 'Status', 'Notes'];
       const rows = itemsWithTemplates.map(item => {
-        const templateName = item.template?.name || 'Unknown';
+        const templateName = getTemplateName(item.template) || 'Unknown';
         const status = item.status || 'pending';
         const notes = item.notes || '';
         return `"${templateName}","${status}","${notes}"`;
@@ -663,6 +799,18 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                 </p>
               </div>
             )}
+
+            {inspection.inspector && (
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-2">{t("inspections.fields.inspector") || "Inspector"}</h3>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{inspection.inspector.name}</p>
+                  {inspection.inspector.email && (
+                    <p className="text-sm text-muted-foreground">{inspection.inspector.email}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -718,21 +866,21 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                                 <div>
                                   <CardTitle className="text-base text-red-800 dark:text-red-300">
                                     {(() => {
-                                      const keys = getTranslationKeys(item.template?.name)
+                                      const keys = getTranslationKeys(item.template)
                                       const translatedTitle = keys.section && keys.item
                                         ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`) 
-                                        : item.template?.name
+                                        : getTemplateName(item.template)
                                       return translatedTitle || t('common.noResults')
                                     })()}
                                   </CardTitle>
-                                  {item.template?.description && (
+                                  {item.template?.description_translations && (
                                     <CardDescription className="text-red-700/80 dark:text-red-400/80">
                                       {(() => {
-                                        const keys = getTranslationKeys(item.template?.name)
+                                        const keys = getTranslationKeys(item.template)
                                         const translatedDescription = keys.section && keys.item
                                           ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`) 
-                                          : item.template?.description
-                                        return translatedDescription || item.template?.description || ''
+                                          : getTemplateDescription(item.template)
+                                        return translatedDescription || ''
                                       })()}
                                     </CardDescription>
                                   )}
@@ -884,21 +1032,21 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                             <div>
                               <CardTitle className="text-base text-green-800 dark:text-green-300">
                                 {(() => {
-                                  const keys = getTranslationKeys(item.template?.name)
+                                  const keys = getTranslationKeys(item.template)
                                       const translatedTitle = keys.section && keys.item
                                         ? t(`inspections.sections.${keys.section}.items.${keys.item}.title`)
-                                        : item.template?.name
+                                        : getTemplateName(item.template)
                                       return translatedTitle || t('common.noResults')
                                 })()}
                               </CardTitle>
-                              {item.template?.description && (
+                              {item.template?.description_translations && (
                                 <CardDescription className="text-green-700/80 dark:text-green-400/80">
                                   {(() => {
-                                    const keys = getTranslationKeys(item.template?.name)
+                                    const keys = getTranslationKeys(item.template)
                                         const translatedDescription = keys.section && keys.item
                                           ? t(`inspections.sections.${keys.section}.items.${keys.item}.description`)
-                                          : item.template?.description
-                                        return translatedDescription || item.template?.description || ''
+                                          : getTemplateDescription(item.template)
+                                        return translatedDescription || ''
                                   })()}
                                 </CardDescription>
                               )}

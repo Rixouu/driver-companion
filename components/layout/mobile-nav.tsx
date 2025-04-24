@@ -11,7 +11,8 @@ import {
   Wrench,
   ClipboardCheck,
   BarChart,
-  Settings
+  Settings,
+  User
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -21,6 +22,7 @@ export function MobileNav() {
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
+    drivers: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -38,7 +40,8 @@ export function MobileNav() {
   // Check if we're on a detail page to hide the navigation
   const isDetailPage = pathname.includes('/maintenance/') || 
                       pathname.includes('/inspections/') || 
-                      pathname.includes('/vehicles/');
+                      pathname.includes('/vehicles/') ||
+                      pathname.includes('/drivers/');
   
   if (isDetailPage) return null;
   
@@ -55,6 +58,12 @@ export function MobileNav() {
       href: "/vehicles",
       icon: Car,
       key: 'vehicles'
+    },
+    {
+      title: t("navigation.drivers"),
+      href: "/drivers",
+      icon: User,
+      key: 'drivers'
     },
     {
       title: t("navigation.maintenance"),

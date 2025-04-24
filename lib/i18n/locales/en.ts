@@ -35,6 +35,7 @@ export const en: Translations = {
     saving: "Saving...",
     update: "Update",
     create: "Create",
+    created: "Created",
     deleting: "Deleting...",
     menu: "Menu",
     login: "Login",
@@ -47,15 +48,146 @@ export const en: Translations = {
     type: "Type",
     saveChanges: "Save Changes",
     confirmDelete: "Confirm Deletion",
-    untitled: "Untitled"
+    untitled: "Untitled",
+    grid: "Grid",
+    list: "List",
+    submitting: "Submitting..."
   },
   navigation: {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
+    drivers: "Drivers",
     maintenance: "Maintenance",
     inspections: "Inspections",
     settings: "Settings",
     reporting: "Reporting"
+  },
+  drivers: {
+    title: "Drivers",
+    description: "Manage your drivers information",
+    search: "Search drivers...",
+    filters: {
+      status: "Status",
+      all: "All Drivers"
+    },
+    actions: {
+      addDriver: "Add Driver",
+      editDriver: "Edit Driver",
+      updateDriver: "Update Driver",
+      viewDetails: "View Details",
+      deleteDriver: "Delete Driver",
+      assignVehicle: "Assign Vehicle",
+      assignVehicleTo: "Assign Vehicle to {name}",
+      unassignVehicle: "Unassign Vehicle"
+    },
+    fields: {
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone Number",
+      licenseNumber: "License Number",
+      licenseExpiry: "License Expiry",
+      expires: "Expires",
+      status: "Status",
+      address: "Address",
+      emergencyContact: "Emergency Contact",
+      notes: "Notes"
+    },
+    placeholders: {
+      firstName: "Enter first name",
+      lastName: "Enter last name",
+      email: "Enter email address",
+      phone: "Enter phone number",
+      licenseNumber: "Enter license number",
+      licenseExpiry: "Select expiry date",
+      address: "Enter address",
+      emergencyContact: "Enter emergency contact",
+      notes: "Enter additional notes"
+    },
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+      on_leave: "On Leave"
+    },
+    driverDetails: "Driver Details",
+    editDriver: {
+      description: "Update driver information"
+    },
+    newDriver: {
+      description: "Enter information for the new driver"
+    },
+    unassignVehicle: {
+      confirmation: "Are you sure you want to unassign this vehicle from the driver?"
+    },
+    assignVehicle: {
+      description: "Select a vehicle to assign to this driver"
+    },
+    empty: {
+      title: "No Drivers Found",
+      description: "No drivers have been added yet. Add a new driver to get started.",
+      searchResults: "No drivers match your search criteria. Try modifying your search."
+    },
+    activity: {
+      empty: {
+        title: "No Activity Found",
+        description: "This driver has no recorded activity yet."
+      },
+      title: "Driver Activity"
+    },
+    activityHistory: {
+      title: "Activity History",
+      description: "View all activities for this driver",
+      empty: {
+        title: "No History Found",
+        description: "There is no activity history for this driver."
+      }
+    },
+    recentActivity: {
+      title: "Recent Activity",
+      description: "Latest activities for this driver",
+      empty: {
+        title: "No Recent Activity",
+        description: "This driver has no recent activity."
+      }
+    },
+    messages: {
+      createSuccess: "Driver created successfully",
+      createSuccessDescription: "A new driver has been added to the system",
+      updateSuccess: "Driver updated successfully",
+      updateSuccessDescription: "Driver information has been updated",
+      deleteSuccess: "Driver deleted successfully",
+      createError: "Error creating driver",
+      createErrorDescription: "Please try again",
+      updateError: "Error updating driver",
+      updateErrorDescription: "Please try again",
+      deleteError: "Error deleting driver",
+      loadError: "Error loading driver information",
+      loadErrorDescription: "Unable to retrieve details for this driver"
+    },
+    assignedVehicles: {
+      title: "Assigned Vehicles",
+      description: "Vehicles assigned to this driver",
+      count: "{count} vehicles",
+      noVehicles: "No vehicles assigned"
+    },
+    notFound: {
+      title: "Driver Not Found",
+      description: "The specified driver does not exist or has been deleted"
+    },
+    tabs: {
+      overview: "Overview",
+      activity: "Activity",
+      inspections: "Inspections"
+    },
+    vehicles: {
+      title: "Associated Vehicles",
+      description: "Vehicles assigned to this driver",
+      noVehicles: "No vehicles assigned to this driver"
+    },
+    inspections: {
+      title: "Driver Inspections",
+      description: "Inspections performed by this driver"
+    }
   },
   labels: {
     due: "Due {date}",
@@ -187,6 +319,8 @@ export const en: Translations = {
     details: "Vehicle Details",
     searchPlaceholder: "Search vehicles...",
     noVehicles: "No vehicles found",
+    noAvailable: "No available vehicles",
+    noAvailableDescription: "There are no vehicles available for selection.",
     status: {
       active: "Active",
       maintenance: "Maintenance",

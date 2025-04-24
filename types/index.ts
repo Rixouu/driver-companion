@@ -19,6 +19,26 @@ export type DbVehicle = {
   user_id: string
   maintenance_tasks?: DbMaintenanceTask[]
   inspections?: DbInspection[]
+  driver_id?: string
+}
+
+export type DbDriver = {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  license_number?: string
+  license_expiry?: string
+  status: 'active' | 'inactive' | 'on_leave'
+  profile_image_url?: string
+  address?: string
+  emergency_contact?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  user_id: string
+  assigned_vehicles?: DbVehicle[]
 }
 
 export type DbInspection = {
@@ -32,6 +52,7 @@ export type DbInspection = {
   updated_at: string
   user_id: string
   created_by?: string
+  driver_id?: string
 }
 
 export type DbMaintenanceTask = {
@@ -245,4 +266,47 @@ export interface TranslationValues extends RecursiveStringRecord {
       error: string
     }
   }
+}
+
+// Add this type to help with driver form data
+export type DriverFormData = {
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  license_number?: string
+  license_expiry?: string
+  status: 'active' | 'inactive' | 'on_leave'
+  profile_image_url?: string
+  address?: string
+  emergency_contact?: string
+  notes?: string
+}
+
+// Add Driver instance to the exports
+export interface Driver {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  license_number?: string
+  license_expiry?: string
+  status: 'active' | 'inactive' | 'on_leave'
+  profile_image_url?: string
+  address?: string
+  emergency_contact?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  user_id: string
+  full_name?: string
+  assigned_vehicles?: {
+    id: string
+    name: string
+    plate_number: string
+    image_url?: string
+    brand?: string
+    model?: string
+  }[]
 } 

@@ -9,280 +9,123 @@ export type TranslationKeys<T> = {
     : never
 }
 
-export type RecursiveStringRecord = {
-  [key: string]: string | RecursiveStringRecord | CommonTranslations | DashboardTranslations
-}
-
-export interface CommonTranslations {
-  status: {
-    inProgress: string
-    upcoming: string
-    recent: string
-    active: string
-    inactive: string
-    completed: string
-    scheduled: string
-    type: string
-  }
-  loading: string
-  error: string
-  success: string
-  cancel: string
-  save: string
-  edit: string
-  delete: string
-  view: string
-  back: string
-  next: string
-  search: string
-  filter: string
-  all: string
-  noResults: string
-  details: string
-  actions: string
-  viewDetails: string
-  addNew: string
-  backTo: string
-  backToList: string
-  saving: string
-  update: string
-  create: string
-  deleting: string
-  menu: string
-  login: string
-  logout: string
-  darkMode: string
-  inProgress: string
-  upcoming: string
-  recent: string
-  total: string
-  type: string
-  saveChanges?: string
-  confirmDelete?: string
-  untitled?: string
-}
-
-export interface DashboardTranslations {
+// Create a DriversTranslations interface for the drivers section
+export interface DriversTranslations {
   title: string
   description: string
-  quickActions: {
-    title: string
-    description: string
-    addVehicle: string
-    scheduleMaintenance: string
-    scheduleInspection: string
-    viewReports: string
+  search: string
+  filters: {
+    status: string
+    all: string
   }
-  activityFeed: {
-    title: string
-    description: string
-    noUpcoming: string
-    noRecent: string
-    viewAll: string
+  actions: {
+    addDriver: string
+    editDriver: string
+    updateDriver: string
+    viewDetails: string
+    deleteDriver: string
+    assignVehicle: string
+    assignVehicleTo: string
+    unassignVehicle: string
   }
-  dailyChecklist: {
-    title: string
-    description: string
-    completeChecklist: string
-    checkAllItems: string
-    upcomingReminders: string
-    completed: {
-      title: string
-      message: string
-      reset: string
-    }
-    items: {
-      checkTires: string
-      checkLights: string
-      checkFluids: string
-      checkBrakes: string
-      visualInspection: string
-    }
-  }
-  vehicleStats: {
-    title: string
-    description: string
-    fuelLevel: string
-    mileage: string
-    viewAllVehicles: string
-  }
-  maintenance: {
-    title: string
-    description: string
-  }
-  inspections: {
-    title: string
-    description: string
-  }
-  stats: {
-    totalVehicles: string
-    maintenanceTasks: string
-    inspections: string
-    activeVehicles: string
-  }
-  sections: {
-    maintenanceSchedule: {
-      title: string
-      noPending: string
-    }
-    inspectionSchedule: {
-      title: string
-      noPending: string
-    }
-    recentMaintenance: {
-      title: string
-      noCompleted: string
-    }
-    recentInspections: {
-      title: string
-      noCompleted: string
-    }
-  }
-}
-
-export interface TranslationValues extends RecursiveStringRecord {
-  common: CommonTranslations
-  dashboard: DashboardTranslations
-  auth: {
-    login: string
-    logout: string
+  fields: {
+    firstName: string
+    lastName: string
     email: string
-    password: string
-    forgotPassword: string
-    resetPassword: string
-    register: string
-    loginSuccess: string
-    loginError: string
-    logoutSuccess: string
+    phone: string
+    licenseNumber: string
+    licenseExpiry: string
+    expires: string
+    status: string
+    address: string
+    emergencyContact: string
+    notes: string
   }
-  labels: {
-    due: string
-    priority: {
-      high: string
-      medium: string
-      low: string
-    }
-    status: {
-      scheduled: string
-      inProgress: string
-    }
+  placeholders: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    licenseNumber: string
+    licenseExpiry: string
+    address: string
+    emergencyContact: string
+    notes: string
   }
-  navigation: {
-    dashboard: string
-    vehicles: string
-    maintenance: string
-    inspections: string
-    settings: string
-    reporting: string
+  status: {
+    active: string
+    inactive: string
+    on_leave: string
   }
-  notifications: {
-    title: string
-    empty: string
-    toggle: string
-    delete: string
-    deleteSuccess: string
-    deleteError: string
-    markAllAsRead: string
-    markAsRead: string
-    markAsReadSuccess: string
-    markAsReadError: string
-    upcoming: string
-    today: string
-    thisWeek: string
-    newNotifications: string
-    clickToView: string
-    unread: string
+  driverDetails: string
+  editDriver: {
+    description: string
   }
-  schedules: {
-    title: string
-    createSchedule: string
-    frequency: string
-    selectFrequency: string
-    frequencyDescription: string
-    intervalDays: string
-    intervalDaysPlaceholder: string
-    intervalDaysDescription: string
-    startDate: string
-    startDateDescription: string
-    endDate: string
-    endDatePlaceholder: string
-    endDateDescription: string
-    selectDate: string
-    frequencies: {
-      daily: string
-      weekly: string
-      biweekly: string
-      monthly: string
-      quarterly: string
-      biannually: string
-      annually: string
-      custom: string
-    }
-    maintenance: {
-      title: string
-      description: string
-      createSuccess: string
-      createError: string
-      updateSuccess: string
-      updateError: string
-      deleteSuccess: string
-      deleteError: string
-    }
-    inspection: {
-      title: string
-      description: string
-      createSuccess: string
-      createError: string
-      updateSuccess: string
-      updateError: string
-      deleteSuccess: string
-      deleteError: string
-    }
+  newDriver: {
+    description: string
   }
-  settings: {
+  unassignVehicle: {
+    confirmation: string
+  }
+  assignVehicle: {
+    description: string
+  }
+  empty: {
     title: string
     description: string
-    profile: {
-      title: string
-      description: string
-      name: string
-      email: string
-      emailDescription: string
-    }
-    preferences: {
-      title: string
-      description: string
-      theme: {
-        title: string
-        light: string
-        dark: string
-        system: string
-      }
-      language: {
-        title: string
-        en: string
-        ja: string
-      }
-    }
-    menu: {
-      title: string
-      description: string
-      menuItem: string
-      desktop: string
-      mobile: string
-      desktopSettingsHidden: string
-      alwaysVisible: string
-    }
-    templates?: {
+    searchResults: string
+  }
+  activity: {
+    empty: {
       title: string
       description: string
     }
-    tabs?: {
-      profile: string
-      preferences: string
-      menu: string
-      templates: string
+    title: string
+  }
+  activityHistory: {
+    title: string
+    description: string
+    empty: {
+      title: string
+      description: string
     }
+  }
+  recentActivity: {
+    title: string
+    description: string
+    empty: {
+      title: string
+      description: string
+    }
+  }
+  messages: {
+    createSuccess: string
+    createSuccessDescription: string
+    updateSuccess: string
+    updateSuccessDescription: string
+    deleteSuccess: string
+    createError: string
+    createErrorDescription: string
+    updateError: string
+    updateErrorDescription: string
+    deleteError: string
+    loadError: string
+    loadErrorDescription: string
+  }
+  assignedVehicles: {
+    title: string
+    description: string
+    count: string
+    noVehicles: string
+  }
+  notFound: {
+    title: string
+    description: string
+  }
+  tabs: {
+    overview: string
+    activity: string
+    inspections: string
   }
   vehicles: {
     title: string
@@ -292,6 +135,8 @@ export interface TranslationValues extends RecursiveStringRecord {
     editVehicle?: string
     searchPlaceholder: string
     noVehicles: string
+    noAvailable: string
+    noAvailableDescription: string
     status: {
       active: string
       maintenance: string
@@ -983,6 +828,4 @@ export interface TranslationValues extends RecursiveStringRecord {
     }
     noData: string
   }
-}
-
-export type Translations = TranslationValues 
+} 

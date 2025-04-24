@@ -1,13 +1,13 @@
-import type { Translations } from '../types'
+import type { TranslationValues } from '../types'
 
-export const ja: Translations = {
+export const ja: TranslationValues = {
   common: {
     status: {
       inProgress: "進行中",
-      upcoming: "今後",
+      upcoming: "近日",
       recent: "最近",
-      active: "稼働中",
-      inactive: "非稼働",
+      active: "有効",
+      inactive: "無効",
       completed: "完了",
       scheduled: "予定",
       type: "タイプ"
@@ -28,34 +28,168 @@ export const ja: Translations = {
     noResults: "結果が見つかりません",
     details: "詳細",
     actions: "アクション",
-    viewDetails: "詳細を表示",
+    viewDetails: "詳細を見る",
     addNew: "新規追加",
     backTo: "戻る",
     backToList: "一覧に戻る",
     saving: "保存中...",
     update: "更新",
     create: "作成",
+    created: "作成日",
     deleting: "削除中...",
     menu: "メニュー",
     login: "ログイン",
     logout: "ログアウト",
     darkMode: "ダークモード",
     inProgress: "進行中",
-    upcoming: "今後",
+    upcoming: "近日",
     recent: "最近",
     total: "合計",
     type: "タイプ",
     saveChanges: "変更を保存",
     confirmDelete: "削除の確認",
-    untitled: "無題"
+    untitled: "無題",
+    grid: "グリッド",
+    list: "リスト",
+    submitting: "送信中..."
   },
   navigation: {
     dashboard: "ダッシュボード",
     vehicles: "車両",
+    drivers: "ドライバー",
     maintenance: "メンテナンス",
     inspections: "点検",
     settings: "設定",
-    reporting: "レポート",
+    reporting: "レポート"
+  },
+  drivers: {
+    title: "ドライバー",
+    description: "ドライバー情報の管理",
+    search: "ドライバーを検索...",
+    filters: {
+      status: "ステータス",
+      all: "全てのドライバー"
+    },
+    actions: {
+      addDriver: "ドライバーを追加",
+      editDriver: "ドライバーを編集",
+      updateDriver: "ドライバーを更新",
+      viewDetails: "詳細を表示",
+      deleteDriver: "ドライバーを削除",
+      assignVehicle: "車両を割り当て",
+      assignVehicleTo: "{name}に車両を割り当て",
+      unassignVehicle: "車両の割り当てを解除"
+    },
+    fields: {
+      firstName: "名",
+      lastName: "姓",
+      email: "メールアドレス",
+      phone: "電話番号",
+      licenseNumber: "免許証番号",
+      licenseExpiry: "免許証期限",
+      expires: "期限",
+      status: "ステータス",
+      address: "住所",
+      emergencyContact: "緊急連絡先",
+      notes: "備考"
+    },
+    placeholders: {
+      firstName: "名を入力",
+      lastName: "姓を入力",
+      email: "メールアドレスを入力",
+      phone: "電話番号を入力",
+      licenseNumber: "免許証番号を入力",
+      licenseExpiry: "期限日を選択",
+      address: "住所を入力",
+      emergencyContact: "緊急連絡先を入力",
+      notes: "追加の備考を入力"
+    },
+    status: {
+      active: "有効",
+      inactive: "無効",
+      on_leave: "休暇中"
+    },
+    driverDetails: "ドライバー詳細",
+    editDriver: {
+      description: "ドライバー情報を更新する"
+    },
+    newDriver: {
+      description: "新しいドライバーの情報を入力してください"
+    },
+    unassignVehicle: {
+      confirmation: "この車両をドライバーから割り当て解除してもよろしいですか？"
+    },
+    assignVehicle: {
+      description: "このドライバーに割り当てる車両を選択してください"
+    },
+    empty: {
+      title: "ドライバーが見つかりません",
+      description: "まだドライバーが追加されていません。新しいドライバーを追加して始めましょう。",
+      searchResults: "検索条件に一致するドライバーがありません。検索条件を変更してみてください。"
+    },
+    messages: {
+      createSuccess: "ドライバーが正常に作成されました",
+      createSuccessDescription: "新しいドライバーがシステムに追加されました",
+      updateSuccess: "ドライバーが正常に更新されました",
+      updateSuccessDescription: "ドライバー情報が更新されました",
+      deleteSuccess: "ドライバーが正常に削除されました",
+      createError: "ドライバーの作成中にエラーが発生しました",
+      createErrorDescription: "もう一度お試しください",
+      updateError: "ドライバーの更新中にエラーが発生しました",
+      updateErrorDescription: "もう一度お試しください",
+      deleteError: "ドライバーの削除中にエラーが発生しました",
+      loadError: "ドライバー情報の読み込み中にエラーが発生しました",
+      loadErrorDescription: "このドライバーの詳細を取得できません"
+    },
+    assignedVehicles: {
+      title: "割り当て車両",
+      description: "このドライバーに割り当てられた車両",
+      count: "{count}台の車両",
+      noVehicles: "割り当てられた車両がありません"
+    },
+    recentActivity: {
+      title: "最近のアクティビティ",
+      description: "このドライバーの最近のアクティビティ",
+      empty: {
+        title: "最近のアクティビティがありません",
+        description: "このドライバーには最近のアクティビティがありません"
+      }
+    },
+    activityHistory: {
+      title: "アクティビティ履歴",
+      description: "ドライバーの活動記録",
+      empty: {
+        title: "履歴が見つかりません",
+        description: "このドライバーのアクティビティ履歴はありません"
+      }
+    },
+    activity: {
+      title: "ドライバーアクティビティ",
+      empty: {
+        title: "アクティビティが見つかりません",
+        description: "このドライバーには記録されたアクティビティがまだありません"
+      }
+    },
+    notFound: {
+      title: "ドライバーが見つかりません",
+      description: "指定されたドライバーは存在しないか、削除されました"
+    },
+    tabs: {
+      overview: "概要",
+      activity: "活動",
+      inspections: "点検"
+    },
+    vehicles: {
+      title: "関連車両",
+      description: "このドライバーに割り当てられた車両",
+      noVehicles: "このドライバーに割り当てられた車両はありません",
+      noAvailable: "利用可能な車両がありません",
+      noAvailableDescription: "選択可能な車両がありません。"
+    },
+    inspections: {
+      title: "ドライバー点検",
+      description: "このドライバーによって実施された点検"
+    }
   },
   labels: {
     due: "{date}まで",
@@ -123,6 +257,8 @@ export const ja: Translations = {
     details: "車両詳細",
     searchPlaceholder: "車両を検索...",
     noVehicles: "車両が見つかりません",
+    noAvailable: "利用可能な車両がありません",
+    noAvailableDescription: "選択可能な車両がありません。",
     status: {
       active: "稼働中",
       maintenance: "メンテナンス中",

@@ -12,6 +12,7 @@ export function MainNav() {
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
+    drivers: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -36,6 +37,11 @@ export function MainNav() {
       title: t("navigation.vehicles"),
       href: "/vehicles",
       key: "vehicles"
+    },
+    {
+      title: t("navigation.drivers"),
+      href: "/drivers",
+      key: "drivers"
     },
     {
       title: t("navigation.maintenance"),

@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
+    drivers: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -237,6 +238,7 @@ export default function SettingsPage() {
                         let IconComponent = Settings; // Default icon
                         if (key === 'dashboard') IconComponent = Gauge;
                         else if (key === 'vehicles') IconComponent = Truck;
+                        else if (key === 'drivers') IconComponent = User;
                         else if (key === 'maintenance') IconComponent = Wrench;
                         else if (key === 'inspections') IconComponent = ClipboardCheck;
                         else if (key === 'reporting') IconComponent = BarChart;

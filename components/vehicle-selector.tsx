@@ -17,6 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { supabase } from "@/lib/supabase/client"
+import { useI18n } from "@/lib/i18n/context"
 
 interface Vehicle {
   id: string
@@ -37,6 +38,7 @@ export function VehicleSelector({
   placeholder = "Select a vehicle",
   disabled = false
 }: VehicleSelectorProps) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -85,8 +87,8 @@ export function VehicleSelector({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder="Search vehicles..." />
-          <CommandEmpty>No vehicles found.</CommandEmpty>
+          <CommandInput placeholder={t("vehicles.searchPlaceholder")} />
+          <CommandEmpty>{t("vehicles.noVehicles")}</CommandEmpty>
           <CommandGroup>
             {vehicles.map((vehicle) => (
               <CommandItem

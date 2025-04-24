@@ -51,7 +51,8 @@ export const ja: TranslationValue = {
     untitled: "無題",
     grid: "グリッド",
     list: "リスト",
-    submitting: "送信中..."
+    submitting: "送信中...",
+    notAssigned: "未割り当て"
   },
   navigation: {
     dashboard: "ダッシュボード",

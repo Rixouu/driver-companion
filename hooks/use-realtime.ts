@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { 
   RealtimeTable, 
   RealtimeEvent, 
@@ -11,6 +11,19 @@ import {
 } from "@/lib/services/realtime"
 import { supabase } from "@/lib/supabase"
 import { withErrorHandling } from "@/lib/utils/error-handler"
+
+// Debounce helper
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function(...args: Parameters<T>) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 interface UseRealtimeOptions<T> {
   config: SubscriptionConfig
@@ -28,6 +41,17 @@ export function useRealtimeRecord<T extends Record<string, any>>(
   const [data, setData] = useState<T | null>(null)
   const [isLoading, setIsLoading] = useState(initialFetch)
   const [error, setError] = useState<Error | null>(null)
+
+  // Memoize the data change callback to avoid unnecessary re-renders
+  const handleDataChange = useCallback((newData: T, oldData: T | null, eventType: RealtimeEvent) => {
+    if (onDataChange) {
+      try {
+        onDataChange(newData, oldData, eventType);
+      } catch (err) {
+        console.error("Error in onDataChange callback:", err);
+      }
+    }
+  }, [onDataChange]);
 
   useEffect(() => {
     let isMounted = true
@@ -91,9 +115,7 @@ export function useRealtimeRecord<T extends Record<string, any>>(
         }
         
         // Call the optional callback
-        if (onDataChange) {
-          onDataChange(newData, oldData, eventType)
-        }
+        handleDataChange(newData, oldData, eventType);
       })
     }
 
@@ -107,7 +129,7 @@ export function useRealtimeRecord<T extends Record<string, any>>(
       isMounted = false
       unsubscribe()
     }
-  }, [config, initialFetch, onDataChange])
+  }, [config, initialFetch, handleDataChange])
 
   return { data, isLoading, error }
 }
@@ -124,8 +146,42 @@ export function useRealtimeCollection<T extends Record<string, any>>(
   const [items, setItems] = useState<T[]>([])
   const [isLoading, setIsLoading] = useState(initialFetch)
   const [error, setError] = useState<Error | null>(null)
+  const [authError, setAuthError] = useState<boolean>(false)
+  
+  // Store config in a ref to avoid dependency changes causing re-subscriptions
+  const configRef = useRef(config);
+  // Update ref when config changes
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
+  // Memoize callbacks to prevent unnecessary re-renders
+  const debouncedSetItems = useCallback(
+    debounce((updateFn: (current: T[]) => T[]) => {
+      setItems(updateFn);
+    }, 300),
+    []
+  );
+
+  const debouncedOnDataChange = useCallback(
+    onDataChange 
+    ? debounce((newData: T, oldData: T | null, event: RealtimeEvent) => {
+        if (onDataChange) {
+          try {
+            onDataChange(newData, oldData, event);
+          } catch (error) {
+            console.error("Error in onDataChange callback:", error);
+          }
+        }
+      }, 300)
+    : () => {}, // Provide a no-op function instead of undefined
+    [onDataChange]
+  );
 
   useEffect(() => {
+    // Don't attempt to fetch or subscribe if we already know auth has failed
+    if (authError) return () => {};
+    
     let isMounted = true
     let unsubscribe: () => void = () => {}
 
@@ -135,72 +191,137 @@ export function useRealtimeCollection<T extends Record<string, any>>(
       
       setIsLoading(true)
       
-      await withErrorHandling(async () => {
+      try {
         // Use a type assertion for the table name
-        const tableName = config.table as any
+        const tableName = configRef.current.table as any
         
-        // Build query
-        const { data: result, error: fetchError } = await supabase
-          .from(tableName)
-          .select("*")
+        try {
+          // Apply filter if provided
+          if (configRef.current.filter) {
+            // Handle different filter formats correctly
+            if (configRef.current.filter.includes('=eq.')) {
+              // Handle format 'column=eq.value'
+              const [column, opValue] = configRef.current.filter.split('=eq.')
+              if (column && opValue) {
+                const { data: filteredResult, error: filterError } = await supabase
+                  .from(tableName)
+                  .select("*")
+                  .eq(column, opValue)
+                  
+                if (filterError) {
+                  // Check for auth errors specifically
+                  if (filterError.code === '401' || 
+                      filterError.message?.includes('JWT') || 
+                      filterError.message?.includes('auth')) {
+                    console.error("Authentication error in useRealtimeCollection:", filterError)
+                    if (isMounted) setAuthError(true)
+                    return
+                  }
+                  throw filterError
+                }
+                if (isMounted && filteredResult) setItems(filteredResult as unknown as T[])
+              }
+            } else if (configRef.current.filter.includes('=')) {
+              // Handle format 'column=operator.value'
+              const [column, operatorValue] = configRef.current.filter.split("=")
+              if (operatorValue && operatorValue.includes('.')) {
+                const [operator, value] = operatorValue.split(".")
+                
+                // If filter is provided, apply it
+                if (column && operator && value) {
+                  const { data: filteredResult, error: filterError } = await supabase
+                    .from(tableName)
+                    .select("*")
+                    .filter(column, operator, value)
+                    
+                  if (filterError) {
+                    // Check for auth errors specifically
+                    if (filterError.code === '401' || 
+                        filterError.message?.includes('JWT') || 
+                        filterError.message?.includes('auth')) {
+                      console.error("Authentication error in useRealtimeCollection:", filterError)
+                      if (isMounted) setAuthError(true)
+                      return
+                    }
+                    throw filterError
+                  }
+                  if (isMounted && filteredResult) setItems(filteredResult as unknown as T[])
+                  return
+                }
+              }
+            }
+          }
           
-        // Apply filter if provided
-        if (config.filter) {
-          const [column, operatorValue] = config.filter.split("=")
-          const [operator, value] = operatorValue.split(".")
-          
-          // If filter is provided, apply it
-          if (column && operator && value) {
-            const { data: filteredResult, error: filterError } = await supabase
-              .from(tableName)
-              .select("*")
-              .filter(column, operator, value)
-              
-            if (filterError) throw filterError
-            if (isMounted && filteredResult) setItems(filteredResult as unknown as T[])
-            return
+          // Fallback to getting all records if filter parse fails or no filter provided
+          const { data: result, error: fetchError } = await supabase
+            .from(tableName)
+            .select("*")
+            
+          if (fetchError) {
+            // Check for auth errors specifically
+            if (fetchError.code === '401' || 
+                fetchError.message?.includes('JWT') || 
+                fetchError.message?.includes('auth')) {
+              console.error("Authentication error in useRealtimeCollection:", fetchError)
+              if (isMounted) setAuthError(true)
+              return
+            }
+            throw fetchError
+          }
+          if (isMounted && result) setItems(result as unknown as T[])
+        } catch (error) {
+          if (isMounted) {
+            setError(error instanceof Error ? error : new Error(String(error)))
           }
         }
-        
-        // If no filter was applied or no filtered results
-        if (fetchError) throw fetchError
-        if (isMounted && result) setItems(result as unknown as T[])
-      }, "Error fetching collection data")
-      
-      if (isMounted) setIsLoading(false)
+      } catch (err) {
+        console.error("Error fetching collection data:", err)
+        if (isMounted) {
+          setError(err instanceof Error ? err : new Error(String(err)))
+        }
+      } finally {
+        if (isMounted) setIsLoading(false)
+      }
     }
 
-    // Set up subscription to handle collection updates
-    unsubscribe = subscribeToCollection<T>(
-      config,
-      // Handle insert
-      (newRecord) => {
-        if (!isMounted) return
-        setItems(current => [...current, newRecord])
-        if (onDataChange) onDataChange(newRecord, null, "INSERT")
-      },
-      // Handle update
-      (newRecord, oldRecord) => {
-        if (!isMounted) return
-        setItems(current => 
-          current.map(item => 
-            item[idField] === newRecord[idField] ? newRecord : item
-          )
+    // Only set up subscription if we're not having auth errors
+    if (!authError) {
+      try {
+        // Set up subscription to handle collection updates
+        unsubscribe = subscribeToCollection<T>(
+          configRef.current,
+          // Handle insert
+          (newRecord) => {
+            if (!isMounted) return
+            debouncedSetItems(current => [...current, newRecord])
+            if (debouncedOnDataChange) debouncedOnDataChange(newRecord, null, "INSERT")
+          },
+          // Handle update
+          (newRecord, oldRecord) => {
+            if (!isMounted) return
+            debouncedSetItems(current => 
+              current.map(item => 
+                item[idField] === newRecord[idField] ? newRecord : item
+              )
+            )
+            if (debouncedOnDataChange) debouncedOnDataChange(newRecord, oldRecord, "UPDATE")
+          },
+          // Handle delete
+          (oldRecord) => {
+            if (!isMounted) return
+            debouncedSetItems(current => 
+              current.filter(item => item[idField] !== oldRecord[idField])
+            )
+            if (debouncedOnDataChange) debouncedOnDataChange(oldRecord, oldRecord, "DELETE")
+          }
         )
-        if (onDataChange) onDataChange(newRecord, oldRecord, "UPDATE")
-      },
-      // Handle delete
-      (oldRecord) => {
-        if (!isMounted) return
-        setItems(current => 
-          current.filter(item => item[idField] !== oldRecord[idField])
-        )
-        if (onDataChange) onDataChange(oldRecord, oldRecord, "DELETE")
+      } catch (error) {
+        console.error("Error setting up realtime subscription:", error)
       }
-    )
+    }
 
     // Initial data fetch
-    if (initialFetch) {
+    if (initialFetch && !authError) {
       fetchInitialData()
     }
 
@@ -209,9 +330,9 @@ export function useRealtimeCollection<T extends Record<string, any>>(
       isMounted = false
       unsubscribe()
     }
-  }, [config, initialFetch, onDataChange, idField])
+  }, [initialFetch, authError, debouncedSetItems, debouncedOnDataChange]);
 
-  return { items, isLoading, error }
+  return { items, isLoading, error, authError }
 }
 
 /**

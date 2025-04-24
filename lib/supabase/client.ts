@@ -4,15 +4,24 @@ import type { Database } from '@/types/supabase'
 // Create a single instance of the Supabase client using singleton pattern
 let clientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
+// Define a unique key for the client to ensure we're using the same storage key
+const STORAGE_KEY = 'vehicle-inspection-auth'
+
 export const supabase = (() => {
-  // Only create a new instance in browser environment
-  if (typeof window !== 'undefined') {
-    if (!clientInstance) {
-      clientInstance = createClientComponentClient<Database>()
-    }
-    return clientInstance
+  // Check if running in a browser environment
+  if (typeof window === 'undefined') {
+    // For server-side, create a new instance each time
+    return createClientComponentClient<Database>()
   }
   
-  // Return a new instance for server-side since it doesn't persist anyway
-  return createClientComponentClient<Database>()
+  // For client-side, create only one instance with consistent storage key
+  if (!clientInstance) {
+    clientInstance = createClientComponentClient<Database>({
+      cookieOptions: {
+        name: STORAGE_KEY
+      }
+    })
+  }
+  
+  return clientInstance
 })() 

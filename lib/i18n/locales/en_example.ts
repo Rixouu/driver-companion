@@ -354,6 +354,7 @@ export const en: TranslationValue = {
       maintenance: "Maintenance",
       inactive: "Inactive"
     },
+    noImage: "No Image",
     fields: {
       name: "Vehicle Name",
       nameDescription: "A friendly name to identify this vehicle",

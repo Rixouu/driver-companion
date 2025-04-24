@@ -4,11 +4,10 @@ export { supabase } from './client'
 // Re-export service client
 export { createServiceClient } from './service-client'
 
-// Re-export admin functions
-import { supabase } from './client'
-
-// Initialize the bucket - reuse the existing client instance
+// Initialize the bucket - use the already imported supabase client
 export async function initStorage() {
+  const { supabase } = await import('./client')
+  
   const { data: bucket } = await supabase.storage.getBucket('vehicles')
   
   if (!bucket) {

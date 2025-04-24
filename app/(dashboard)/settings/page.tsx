@@ -58,7 +58,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { supabase } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
@@ -80,24 +80,37 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function getSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      
-      // Load menu settings from local storage if available
-      const savedMenuSettings = localStorage.getItem('menuSettings')
-      if (savedMenuSettings) {
-        try {
-          const parsedSettings = JSON.parse(savedMenuSettings);
-          // Merge saved settings with default settings to avoid errors if new keys are added
-          setMenuSettings(prevSettings => ({ ...prevSettings, ...parsedSettings }));
-        } catch (error) {
-          console.error("Error parsing menu settings from localStorage:", error);
-          // Optionally reset to default or clear invalid storage
-          localStorage.removeItem('menuSettings');
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error("Error getting session:", error.message)
+          return
         }
+        
+        setSession(session)
+        
+        // Load menu settings from local storage if available
+        const savedMenuSettings = localStorage.getItem('menuSettings')
+        if (savedMenuSettings) {
+          try {
+            const parsedSettings = JSON.parse(savedMenuSettings);
+            // Merge saved settings with default settings to avoid errors if new keys are added
+            setMenuSettings(prevSettings => ({ ...prevSettings, ...parsedSettings }));
+          } catch (error) {
+            console.error("Error parsing menu settings from localStorage:", error);
+            // Optionally reset to default or clear invalid storage
+            localStorage.removeItem('menuSettings');
+          }
+        }
+      } catch (error) {
+        console.error("Unexpected error getting session:", error)
       }
     }
-    getSession()
+    
+    if (typeof window !== 'undefined') {
+      getSession()
+    }
   }, [])
 
   // Function to handle menu settings changes

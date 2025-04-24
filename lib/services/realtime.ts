@@ -42,6 +42,10 @@ export interface SubscriptionConfig {
   schema?: string
 }
 
+// Type for fixing TS issues with channel subscription
+type ChannelCallback = (payload: any) => void
+type SubscriptionCallback = (status: string) => void
+
 /**
  * Subscribe to realtime updates for a specific record
  */
@@ -52,38 +56,69 @@ export function subscribeToRecord<T extends Record<string, any>>(
   const { table, event = "*", filter, schema = "public" } = config
 
   try {
-    // Create a unique channel name
+    // Skip if running on server-side
+    if (typeof window === 'undefined') {
+      console.warn('Attempted to create realtime subscription on server');
+      return () => {};
+    }
+
+    // Create a unique channel name based on the table and filter
     const channelName = filter 
       ? `${table}:${filter.replace(/=|\.|\s/g, "_")}` 
-      : `${table}:all`
+      : `${table}:all`;
+      
+    // Adding a timestamp to make channel name unique 
+    // This prevents conflicts and leaked channels
+    const uniqueChannelName = `${channelName}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
     // Set up subscription
-    const channel = supabase.channel(channelName)
+    const channel = supabase.channel(uniqueChannelName);
     
-    const subscription: RealtimeChannel = channel
-      .on<RealtimePayload<T>>(
-        'postgres_changes',
+    // Use type assertion to avoid TypeScript errors with channel subscription
+    const subscription = channel
+      .on(
+        'postgres_changes' as any,
         {
           event,
           schema,
           table,
           filter,
         },
-        (payload) => {
-          callback({
-            new: payload.new as T,
-            old: payload.old as T | null,
-            eventType: payload.eventType as RealtimeEvent,
-          })
+        (payload: any) => {
+          try {
+            callback({
+              new: payload.new as T,
+              old: payload.old as T | null,
+              eventType: payload.eventType as RealtimeEvent,
+            })
+          } catch (error) {
+            console.error(`Error in realtime callback for ${table}:`, error);
+          }
         }
       )
-      .subscribe()
+      .subscribe((status: string) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error(`Channel error for ${uniqueChannelName}, stopping subscription`);
+        } else if (status === 'TIMED_OUT') {
+          console.error(`Channel timed out for ${uniqueChannelName}, stopping subscription`);
+        } else if (status === 'SUBSCRIBED') {
+          console.debug(`Successfully subscribed to channel ${uniqueChannelName}`);
+        }
+      });
 
     // Return unsubscribe function
     return () => {
-      subscription.unsubscribe()
+      try {
+        // Properly clean up subscription and channel
+        channel.unsubscribe();
+        // After unsubscribing, remove the channel from Supabase client
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error(`Error unsubscribing from channel ${uniqueChannelName}:`, error);
+      }
     }
   } catch (error) {
+    console.error(`Error creating realtime subscription for ${table}:`, error);
     handleError(error)
     return () => {}
   }
@@ -101,45 +136,76 @@ export function subscribeToCollection<T extends Record<string, any>>(
   const { table, event = "*", filter, schema = "public" } = config
 
   try {
-    // Create a unique channel name
+    // Skip if running on server-side
+    if (typeof window === 'undefined') {
+      console.warn('Attempted to create realtime subscription on server');
+      return () => {};
+    }
+
+    // Create a unique channel name with a timestamp to avoid conflicts
     const channelName = filter 
       ? `${table}_collection:${filter.replace(/=|\.|\s/g, "_")}` 
-      : `${table}_collection:all`
+      : `${table}_collection:all`;
+      
+    // Adding a timestamp to make channel name unique
+    // This prevents conflicts and leaked channels
+    const uniqueChannelName = `${channelName}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
     // Set up subscription
-    const channel = supabase.channel(channelName)
+    const channel = supabase.channel(uniqueChannelName);
     
-    const subscription: RealtimeChannel = channel
-      .on<RealtimePayload<T>>(
-        'postgres_changes',
+    // Use type assertion to avoid TypeScript errors with channel subscription
+    const subscription = channel
+      .on(
+        'postgres_changes' as any,
         {
           event,
           schema,
           table,
           filter,
         },
-        (payload) => {
-          const eventType = payload.eventType as RealtimeEvent
-          const newRecord = payload.new as T
-          const oldRecord = payload.old as T
+        (payload: any) => {
+          try {
+            const eventType = payload.eventType as RealtimeEvent
+            const newRecord = payload.new as T
+            const oldRecord = payload.old as T
 
-          // Call the appropriate callback based on the event type
-          if (eventType === "INSERT" && onInsert) {
-            onInsert(newRecord)
-          } else if (eventType === "UPDATE" && onUpdate) {
-            onUpdate(newRecord, oldRecord)
-          } else if (eventType === "DELETE" && onDelete) {
-            onDelete(oldRecord)
+            // Call the appropriate callback based on the event type
+            if (eventType === "INSERT" && onInsert) {
+              onInsert(newRecord)
+            } else if (eventType === "UPDATE" && onUpdate) {
+              onUpdate(newRecord, oldRecord)
+            } else if (eventType === "DELETE" && onDelete) {
+              onDelete(oldRecord)
+            }
+          } catch (error) {
+            console.error(`Error in realtime callback for ${table}:`, error);
           }
         }
       )
-      .subscribe()
+      .subscribe((status: string) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error(`Channel error for ${uniqueChannelName}, stopping subscription`);
+        } else if (status === 'TIMED_OUT') {
+          console.error(`Channel timed out for ${uniqueChannelName}, stopping subscription`);
+        } else if (status === 'SUBSCRIBED') {
+          console.debug(`Successfully subscribed to collection channel ${uniqueChannelName}`);
+        }
+      });
 
     // Return unsubscribe function
     return () => {
-      subscription.unsubscribe()
+      try {
+        // Properly clean up subscription and channel
+        channel.unsubscribe();
+        // After unsubscribing, remove the channel from Supabase client
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error(`Error unsubscribing from channel ${uniqueChannelName}:`, error);
+      }
     }
   } catch (error) {
+    console.error(`Error creating realtime subscription for ${table}:`, error);
     handleError(error)
     return () => {}
   }

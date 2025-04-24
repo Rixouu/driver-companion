@@ -1,10 +1,12 @@
 import { getSupabaseClient } from "@/lib/db/client"
 import type { Database } from '@/types/supabase'
 import type { InspectionInsert } from "@/types"
-import { supabase } from "@/lib/supabase/client"
 import type { InspectionWithVehicle as ImportedInspection, InspectionFormData } from "@/types"
 import type { DbInspection, DbVehicle } from "@/types"
 import type { InspectionType, InspectionCategory as BaseInspectionCategory, InspectionItemTemplate as BaseInspectionItemTemplate } from '@/types/inspections'
+
+// Use the client from getSupabaseClient consistently throughout the file
+const supabase = getSupabaseClient()
 
 type Inspection = Database['public']['Tables']['inspections']['Row']
 type InspectionUpdate = Database['public']['Tables']['inspections']['Update']

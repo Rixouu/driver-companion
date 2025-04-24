@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, AuthError } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 
 interface AuthContextType {
@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast()
 
   useEffect(() => {
+    let isAuthenticated = false;
+    
     const getUser = async () => {
       try {
         setLoading(true)
@@ -42,40 +44,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           console.error("Error fetching user:", error.message)
           setError(error.message)
+          isAuthenticated = false;
         } else {
           setUser(user)
           setError(null)
+          isAuthenticated = !!user;
         }
       } catch (err) {
         console.error("Unexpected error:", err)
         setError("An unexpected error occurred")
+        isAuthenticated = false;
       } finally {
         setLoading(false)
       }
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
+    // Only set up auth state change listener if we're in a browser environment
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    if (typeof window !== 'undefined') {
+      getUser();
       
-      if (event === 'SIGNED_IN') {
-        toast({
-          title: "Signed in successfully",
-          description: `Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`,
-        })
-      } else if (event === 'SIGNED_OUT') {
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully.",
-        })
-      }
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        // Only update user if we have a valid session or we're signing out
+        if (session?.user || event === 'SIGNED_OUT') {
+          setUser(session?.user ?? null)
+          
+          if (event === 'SIGNED_IN') {
+            toast({
+              title: "Signed in successfully",
+              description: `Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`,
+            })
+            isAuthenticated = true;
+          } else if (event === 'SIGNED_OUT') {
+            toast({
+              title: "Signed out",
+              description: "You have been signed out successfully.",
+            })
+            isAuthenticated = false;
+          }
+          
+          router.refresh()
+        }
+      });
       
-      router.refresh()
-    })
-
-    getUser()
+      subscription = data.subscription;
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [router, toast])
 

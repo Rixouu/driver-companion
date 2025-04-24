@@ -12,8 +12,8 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InspectionStatusBadge } from "./inspection-status-badge"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { DbInspection, DbVehicle } from "@/types"
@@ -73,201 +73,277 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   const { toast } = useToast()
   const [inspection, setInspection] = useState<ExtendedInspection>(initialInspection)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [itemsWithTemplates, setItemsWithTemplates] = useState<InspectionItem[]>([])
+  const [itemsWithTemplates, setItemsWithTemplates] = useState<InspectionItem[]>(
+    // Initialize with items that already have templates (from server)
+    initialInspection.inspection_items || []
+  )
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
+  // Use a stable reference for the inspection ID
+  const inspectionIdRef = useRef<string>(initialInspection.id)
+  const [templateMap, setTemplateMap] = useState<Record<string, InspectionItemTemplate>>({})
   const { user } = useAuth()
-
-  // Add realtime subscription for inspection
-  const { data: realtimeInspection } = useRealtimeRecord<ExtendedInspection>({
-    config: {
-      table: "inspections",
-      filter: idFilter(inspection.id),
-    },
-    initialFetch: true,
-    onDataChange: (newData) => {
-      if (newData) {
-        setInspection(prev => ({
-          ...prev,
-          ...newData
+  // Add a ref to track whether we've attempted to fetch the user
+  const userFetchAttemptedRef = useRef<boolean>(false)
+  // Use a ref to store the latest inspection data to avoid rendering loops
+  const latestInspectionRef = useRef<ExtendedInspection>(initialInspection)
+  
+  // Memoize the data change callback to prevent re-renders
+  const handleInspectionDataChange = useCallback((data: DbInspection) => {
+    try {
+      if (Array.isArray(data) && data.length > 0) {
+        // Store the latest data in ref without triggering re-render
+        latestInspectionRef.current = {
+          ...latestInspectionRef.current,
+          ...data[0]
+        };
+        
+        // Schedule a single update to reduce render cycles
+        setInspection(prevInspection => ({
+          ...prevInspection,
+          ...data[0]
         }));
       }
+    } catch (error) {
+      console.error("Error handling inspection data change:", error);
     }
-  });
-
-  // Add realtime subscription for inspection items
-  const { items: realtimeItems } = useRealtimeCollection<InspectionItem>({
-    config: {
-      table: "inspection_items",
-      filter: `inspection_id=eq.${inspection.id}`,
-    },
+  }, []);
+  
+  // Create a stable config object that won't change between renders
+  const realtimeConfig = useMemo(() => ({
+    table: "inspections" as const,
+    filter: `id=eq.${inspectionIdRef.current}`
+  }), []);
+  
+  // Use the realtime collection hook with memoized config and callback
+  const { items: realtimeInspections } = useRealtimeCollection<DbInspection>({
+    config: realtimeConfig,
     initialFetch: true,
-    onDataChange: async (newData) => {
-      if (newData) {
-        try {
-          // Fetch the template for the updated item
-          const { data: template, error } = await supabase
-            .from('inspection_item_templates')
-            .select('*')
-            .eq('id', newData.template_id)
-            .single()
-
-          if (error) throw error
-
-          const updatedItem = {
-            ...newData,
-            template: template as InspectionItemTemplate
-          }
-
-          // Update the items in the inspection object with template data
-          setInspection(prev => ({
-            ...prev,
-            inspection_items: prev.inspection_items?.map(item => 
-              item.id === newData.id ? updatedItem : item
-            ) || []
-          }));
-
-          // Also update itemsWithTemplates state
-          setItemsWithTemplates(prev => 
-            prev.map(item =>
-              item.id === newData.id ? updatedItem : item
-            )
-          );
-        } catch (error) {
-          console.error('Error fetching template:', error)
-        }
-      }
-    }
+    onDataChange: handleInspectionDataChange,
   });
-
+  
+  // Use a batched effect to handle inspection data updates
   useEffect(() => {
-    async function loadTemplates() {
-      try {
-        // First, get the vehicle details if needed
-        if (inspection.vehicle?.id) {
-          const { data: vehicleData, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('*')
-            .eq('id', inspection.vehicle.id)
-            .single()
+    // If we have realtime data, update the inspection once
+    if (realtimeInspections && realtimeInspections.length > 0) {
+      // Only update if really changed to avoid render loops
+      const updatedData = realtimeInspections[0];
+      setInspection(prevInspection => {
+        // Skip update if data is identical
+        if (JSON.stringify(prevInspection) === JSON.stringify({ ...prevInspection, ...updatedData })) {
+          return prevInspection;
+        }
+        return { ...prevInspection, ...updatedData };
+      });
+    }
+  // This dependency is stable since realtimeInspections is the result of the hook
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realtimeInspections]);
 
-          if (vehicleError) throw vehicleError
+  // Handle inspector data separately to avoid infinite loops
+  useEffect(() => {
+    // Skip if we've already attempted to fetch user info or there's no created_by
+    if (userFetchAttemptedRef.current || !inspection.created_by || !user) return;
+    
+    userFetchAttemptedRef.current = true;
+    
+    const isCurrentUserInspector = user.id === inspection.created_by;
+    
+    if (isCurrentUserInspector) {
+      // Current user is the inspector, use their details
+      setInspection(prev => ({
+        ...prev,
+        inspector: {
+          id: user.id || inspection.created_by || '',
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || t('common.notAssigned'),
+          email: user.email
+        }
+      }));
+    } else {
+      // Use a placeholder for the inspector
+      setInspection(prev => ({
+        ...prev,
+        inspector: {
+          id: inspection.created_by || '',
+          name: t('common.notAssigned'),
+          email: ''
+        }
+      }));
+    }
+  }, [inspection.created_by, user, t]);
+  
+  // Handle vehicle data updates only when needed
+  useEffect(() => {
+    // Only fetch additional vehicle data if it's incomplete
+    if (!inspection.vehicle?.brand || !inspection.vehicle?.model) return;
+    
+    let isMounted = true;
+    
+    async function loadVehicleDetails() {
+      try {
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', inspection.vehicle!.id)
+          .single();
           
-          // Update the vehicle information in the inspection object
+        if (vehicleError) {
+          if (vehicleError.code === 'PGRST116') {
+            console.error('Vehicle not found:', vehicleError);
+          } else if (vehicleError.code === '401' || vehicleError.message?.includes('JWT')) {
+            console.error('Authentication error when loading vehicle:', vehicleError);
+          } else {
+            throw vehicleError;
+          }
+          return;
+        }
+        
+        if (isMounted && vehicleData) {
           setInspection(prev => ({
             ...prev,
             vehicle: vehicleData as DbVehicle
-          }))
+          }));
         }
-
-        // Set inspector information from created_by field
-        if (inspection.created_by) {
-          // Try to get the user information from Supabase auth
-          const { data: userData, error: userError } = await supabase.auth
-            .getUser(inspection.created_by)
-
-          if (!userError && userData?.user) {
-            setInspection(prev => ({
-              ...prev,
-              inspector: {
-                id: userData.user.id || inspection.created_by || '',
-                name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || t('common.notAssigned'),
-                email: userData.user.email
-              }
-            }))
-          } else {
-            // If we can't get the user data directly, use the current user if it matches
-            const isCurrentUserInspector = user?.id === inspection.created_by
-            
-            if (isCurrentUserInspector && user) {
-              setInspection(prev => ({
-                ...prev,
-                inspector: {
-                  id: user.id || inspection.created_by || '',
-                  name: user.user_metadata?.full_name || user.email?.split('@')[0] || t('common.notAssigned'),
-                  email: user.email
-                }
-              }))
-            } else {
-              // Fallback to a placeholder if we can't get the user data
-              setInspection(prev => ({
-                ...prev,
-                inspector: {
-                  id: inspection.created_by || '',
-                  name: t('common.notAssigned'),
-                  email: ''
-                }
-              }))
-            }
-          }
+      } catch (error) {
+        console.error('Error loading vehicle details:', error);
+      }
+    }
+    
+    loadVehicleDetails();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [inspection.vehicle?.id]);
+  
+  // Only load templates and photos if they weren't provided by the server
+  useEffect(() => {
+    // Skip if we already have templates or there are no items
+    if (
+      !inspection?.inspection_items || 
+      inspection.inspection_items.length === 0 || 
+      itemsWithTemplates.length > 0
+    ) return;
+    
+    let isMounted = true;
+    setIsLoadingTemplates(true);
+    
+    async function loadTemplatesAndPhotos() {
+      try {
+        // Get template IDs from items
+        const templateIds = inspection?.inspection_items
+          ?.map(item => item.template_id)
+          .filter(Boolean);
+        
+        if (!templateIds || templateIds.length === 0) {
+          if (isMounted) setIsLoadingTemplates(false);
+          return;
         }
-
-        // For scheduled inspections, we might not have inspection items yet
-        if (inspection.inspection_items && inspection.inspection_items.length > 0) {
-          // Fetch all templates for the items
-          const templateIds = inspection.inspection_items.map(item => item.template_id)
+        
+        // Fetch templates
+        const { data: templates, error } = await supabase
+          .from('inspection_item_templates')
+          .select('*')
+          .in('id', templateIds);
           
-          const { data: templates, error } = await supabase
-            .from('inspection_item_templates')
-            .select('*')
-            .in('id', templateIds)
-
-          if (error) throw error
-
-          // Fetch photos for each inspection item
-          const { data: photos, error: photosError } = await supabase
+        if (error) {
+          if (error.code === '401' || error.message?.includes('JWT')) {
+            console.error('Authentication error when loading templates:', error);
+            if (isMounted) setIsLoadingTemplates(false);
+            return;
+          }
+          throw error;
+        }
+        
+        // Fetch photos
+        const itemIds = inspection?.inspection_items
+          ?.map(item => item.id)
+          .filter(Boolean);
+          
+        let photos: any[] = [];
+        if (itemIds && itemIds.length > 0) {
+          const { data: photosData, error: photosError } = await supabase
             .from('inspection_photos')
             .select('*')
-            .in('inspection_item_id', inspection.inspection_items.map(item => item.id))
-
-          if (photosError) throw photosError
-
-          // Attach template data and photos to each item
-          const itemsWithData = inspection.inspection_items.map(item => ({
+            .in('inspection_item_id', itemIds);
+            
+          if (photosError) {
+            console.error('Error fetching photos:', photosError);
+          } else {
+            photos = photosData || [];
+          }
+        }
+        
+        // Update items with templates and photos
+        if (isMounted && inspection?.inspection_items) {
+          const updatedItems = inspection.inspection_items.map(item => ({
             ...item,
             template: templates?.find(t => t.id === item.template_id) as InspectionItemTemplate | undefined,
             inspection_photos: photos?.filter(photo => photo.inspection_item_id === item.id) || []
-          }))
-
-          setItemsWithTemplates(itemsWithData)
+          }));
+          
+          setItemsWithTemplates(updatedItems);
         }
       } catch (error) {
-        console.error('Error loading data:', error)
+        console.error('Error loading templates and photos:', error);
+      } finally {
+        if (isMounted) setIsLoadingTemplates(false);
       }
     }
-
-    loadTemplates()
-  }, [inspection, user, inspection.created_by, t])
+    
+    loadTemplatesAndPhotos();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [inspection?.inspection_items]);
 
   async function handleStartInspection() {
+    if (!inspection || !inspection?.inspection_items) return;
     try {
-      setIsUpdating(true)
+      setIsUpdating(true);
       
-      const { error } = await supabase
+      // Create a new inspection status - using string type 'inspection_statuses' as it doesn't exist in the database schema typing
+      const { data, error } = await supabase
+        .from('inspection_statuses' as any)
+        .insert({
+          inspection_id: inspection.id,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+          inspector_id: user?.id || null
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      // Update the inspection with the inspector ID
+      const { error: updateError } = await supabase
         .from('inspections')
         .update({
-          status: 'in_progress',
-          started_at: new Date().toISOString()
+          inspector_id: user?.id,
+          status: 'in_progress' // Changed from inspection_status to status to match schema
         })
-        .eq('id', inspection.id)
-
-      if (error) throw error
+        .eq('id', inspection.id);
+        
+      if (updateError) throw updateError;
 
       toast({
         title: t('inspections.messages.updateSuccess'),
-      })
+      });
 
       // Redirect to the inspection form
-      router.push(`/inspections/${inspection.id}/perform`)
-      router.refresh()
+      router.push(`/inspections/${inspection.id}/perform`);
+      router.refresh();
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       toast({
         title: t('inspections.messages.error'),
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsUpdating(false)
+      setIsUpdating(false);
     }
   }
 

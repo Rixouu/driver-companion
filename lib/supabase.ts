@@ -1,5 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '@/types/supabase'
+import { supabase } from './supabase/client'
+import { createServiceClient } from './supabase/service-client'
+
+// Re-export the client and service client
+export { supabase, createServiceClient }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -9,50 +12,6 @@ if (!supabaseUrl) {
 }
 if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY')
-}
-
-// Define the type for our Supabase client
-type SupabaseClientType = ReturnType<typeof createClient<Database>>
-
-// Use a singleton pattern to ensure only one client instance exists
-let supabaseInstance: SupabaseClientType | null = null
-
-export const supabase = (() => {
-  if (supabaseInstance) return supabaseInstance
-  
-  // Ensure URL and key are defined before creating client
-  supabaseInstance = createClient<Database>(
-    supabaseUrl as string,
-    supabaseAnonKey as string
-  )
-  
-  return supabaseInstance
-})()
-
-// Service client for admin operations
-let serviceClient: SupabaseClientType | null = null
-
-export function createServiceClient() {
-  if (serviceClient) return serviceClient
-
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
-  if (!serviceRoleKey) {
-    throw new Error('Missing env.SUPABASE_SERVICE_ROLE_KEY')
-  }
-
-  serviceClient = createClient<Database>(
-    supabaseUrl as string,
-    serviceRoleKey,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  )
-
-  return serviceClient
 }
 
 // Initialize the bucket

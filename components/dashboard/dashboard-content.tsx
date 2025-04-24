@@ -231,6 +231,7 @@ export function DashboardContent({
                                 src={vehicles[currentVehicleIndex].image_url}
                                 alt={vehicles[currentVehicleIndex].name}
                                 fill
+                                priority
                                 className="object-cover"
                               />
                             ) : (

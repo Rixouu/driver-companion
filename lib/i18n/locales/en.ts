@@ -1,6 +1,6 @@
-import type { Translations } from '../types'
+import { TranslationValue } from "../types"
 
-export const en: Translations = {
+export const en: TranslationValue = {
   common: {
     status: {
       inProgress: "In Progress",
@@ -78,7 +78,10 @@ export const en: Translations = {
       deleteDriver: "Delete Driver",
       assignVehicle: "Assign Vehicle",
       assignVehicleTo: "Assign Vehicle to {name}",
-      unassignVehicle: "Unassign Vehicle"
+      assignMultipleVehicles: "Assign {count} Vehicles",
+      unassignVehicle: "Unassign Vehicle",
+      unassignMultipleVehicles: "Unassign {count} Vehicles",
+      manageVehiclesFor: "Manage Vehicles for {name}",
     },
     fields: {
       firstName: "First Name",
@@ -117,10 +120,19 @@ export const en: Translations = {
       description: "Enter information for the new driver"
     },
     unassignVehicle: {
-      confirmation: "Are you sure you want to unassign this vehicle from the driver?"
+      selectedVehicles: "Selected vehicles to unassign",
+      noVehicles: "No assigned vehicles",
+      noVehiclesDescription: "This driver doesn't have any vehicles assigned yet.",
+      confirm: "Unassign vehicle?",
+      confirmMultiple: "Unassign {count} vehicles?",
+      confirmDescription: "This will unassign the selected vehicle(s) from this driver. This action can be undone later if needed.",
     },
     assignVehicle: {
-      description: "Select a vehicle to assign to this driver"
+      description: "Choose one or more vehicles to assign to this driver.",
+      selectedVehicles: "Selected vehicles"
+    },
+    manageVehicles: {
+      description: "Assign new vehicles or unassign existing ones from this driver."
     },
     empty: {
       title: "No Drivers Found",
@@ -152,17 +164,30 @@ export const en: Translations = {
     },
     messages: {
       createSuccess: "Driver created successfully",
-      createSuccessDescription: "A new driver has been added to the system",
+      createSuccessDescription: "The driver has been created and is now available in the system.",
       updateSuccess: "Driver updated successfully",
-      updateSuccessDescription: "Driver information has been updated",
+      updateSuccessDescription: "The driver details have been updated.",
       deleteSuccess: "Driver deleted successfully",
       createError: "Error creating driver",
-      createErrorDescription: "Please try again",
+      createErrorDescription: "There was a problem creating the driver. Please try again.",
       updateError: "Error updating driver",
-      updateErrorDescription: "Please try again",
+      updateErrorDescription: "There was a problem updating the driver details. Please try again.",
       deleteError: "Error deleting driver",
-      loadError: "Error loading driver information",
-      loadErrorDescription: "Unable to retrieve details for this driver"
+      loadError: "Error loading driver",
+      loadErrorDescription: "Could not load driver details. Please try again.",
+      assignSuccess: "Vehicle assigned successfully",
+      assignSuccessDescription: "The vehicle has been assigned to this driver.",
+      multipleAssignSuccessDescription: "{count} vehicles have been assigned to this driver.",
+      assignError: "Error assigning vehicle",
+      assignErrorDescription: "There was a problem assigning the vehicle. Please try again.",
+      unassignSuccess: "Vehicle unassigned successfully",
+      unassignSuccessDescription: "The vehicle has been unassigned from this driver.",
+      multipleUnassignSuccessDescription: "{count} vehicles have been unassigned from this driver.",
+      unassignError: "Error unassigning vehicle",
+      unassignErrorDescription: "There was a problem unassigning the vehicle. Please try again.",
+      noVehicleSelected: "No vehicle selected",
+      noVehicleSelectedDescription: "Please select a vehicle to assign to this driver.",
+      noVehicleSelectedToUnassign: "Please select a vehicle to unassign from this driver.",
     },
     assignedVehicles: {
       title: "Assigned Vehicles",
@@ -177,7 +202,9 @@ export const en: Translations = {
     tabs: {
       overview: "Overview",
       activity: "Activity",
-      inspections: "Inspections"
+      inspections: "Inspections",
+      assignVehicles: "Assign New",
+      unassignVehicles: "Unassign Existing"
     },
     vehicles: {
       title: "Associated Vehicles",

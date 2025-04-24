@@ -413,6 +413,46 @@ export async function assignVehicleToDriver(driverId: string, vehicleId: string)
   }
 }
 
+// Assign multiple vehicles to a driver
+export async function assignMultipleVehiclesToDriver(driverId: string, vehicleIds: string[]) {
+  try {
+    // Create an array of vehicle assignments
+    const assignments = vehicleIds.map(vehicleId => ({
+      vehicle_id: vehicleId,
+      driver_id: driverId,
+      status: 'active',
+      start_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
+
+    // Insert all assignments
+    const { data, error: assignmentError } = await supabase
+      .from('vehicle_assignments')
+      .insert(assignments)
+      .select();
+
+    if (assignmentError) throw assignmentError;
+    
+    // Update inspections for all these vehicles
+    for (const vehicleId of vehicleIds) {
+      await supabase
+        .from('inspections')
+        .update({ 
+          driver_id: driverId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('vehicle_id', vehicleId)
+        .is('driver_id', null);
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error assigning multiple vehicles to driver:", error);
+    throw error;
+  }
+}
+
 // Unassign a vehicle from a driver
 export async function unassignVehicleFromDriver(vehicleId: string) {
   try {

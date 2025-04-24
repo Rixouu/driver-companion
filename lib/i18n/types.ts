@@ -26,7 +26,10 @@ export interface DriversTranslations {
     deleteDriver: string
     assignVehicle: string
     assignVehicleTo: string
+    assignMultipleVehicles: string
     unassignVehicle: string
+    unassignMultipleVehicles: string
+    manageVehiclesFor: string
   }
   fields: {
     firstName: string
@@ -65,10 +68,16 @@ export interface DriversTranslations {
     description: string
   }
   unassignVehicle: {
-    confirmation: string
+    selectedVehicles: string
+    noVehicles: string
+    noVehiclesDescription: string
+    confirm: string
+    confirmMultiple: string
+    confirmDescription: string
   }
   assignVehicle: {
     description: string
+    selectedVehicles: string
   }
   empty: {
     title: string
@@ -111,6 +120,19 @@ export interface DriversTranslations {
     deleteError: string
     loadError: string
     loadErrorDescription: string
+    assignSuccess: string
+    assignSuccessDescription: string
+    multipleAssignSuccessDescription: string
+    assignError: string
+    assignErrorDescription: string
+    unassignSuccess: string
+    unassignSuccessDescription: string
+    multipleUnassignSuccessDescription: string
+    unassignError: string
+    unassignErrorDescription: string
+    noVehicleSelected: string
+    noVehicleSelectedDescription: string
+    noVehicleSelectedToUnassign: string
   }
   assignedVehicles: {
     title: string
@@ -126,6 +148,8 @@ export interface DriversTranslations {
     overview: string
     activity: string
     inspections: string
+    assignVehicles: string
+    unassignVehicles: string
   }
   vehicles: {
     title: string
@@ -827,5 +851,8 @@ export interface DriversTranslations {
       }
     }
     noData: string
+  }
+  manageVehicles: {
+    description: string
   }
 } 

@@ -1,6 +1,6 @@
-import type { TranslationValues } from '../types'
+import { TranslationValue } from "../types";
 
-export const ja: TranslationValues = {
+export const ja: TranslationValue = {
   common: {
     status: {
       inProgress: "進行中",
@@ -78,7 +78,10 @@ export const ja: TranslationValues = {
       deleteDriver: "ドライバーを削除",
       assignVehicle: "車両を割り当て",
       assignVehicleTo: "{name}に車両を割り当て",
-      unassignVehicle: "車両の割り当てを解除"
+      assignMultipleVehicles: "{count}台の車両を割り当て",
+      unassignVehicle: "車両の割り当てを解除",
+      unassignMultipleVehicles: "{count}台の車両の割り当てを解除",
+      manageVehiclesFor: "{name}の車両を管理",
     },
     fields: {
       firstName: "名",
@@ -117,10 +120,19 @@ export const ja: TranslationValues = {
       description: "新しいドライバーの情報を入力してください"
     },
     unassignVehicle: {
-      confirmation: "この車両をドライバーから割り当て解除してもよろしいですか？"
+      selectedVehicles: "割り当て解除する選択された車両",
+      noVehicles: "割り当てられた車両がありません",
+      noVehiclesDescription: "このドライバーにはまだ車両が割り当てられていません。",
+      confirm: "車両の割り当てを解除しますか？",
+      confirmMultiple: "{count}台の車両の割り当てを解除しますか？",
+      confirmDescription: "選択した車両のこのドライバーへの割り当てが解除されます。この操作は後で元に戻すことができます。",
     },
     assignVehicle: {
-      description: "このドライバーに割り当てる車両を選択してください"
+      description: "このドライバーに割り当てる車両を1台以上選択してください。",
+      selectedVehicles: "選択された車両"
+    },
+    manageVehicles: {
+      description: "このドライバーに新しい車両を割り当てるか、既存の車両の割り当てを解除します。"
     },
     empty: {
       title: "ドライバーが見つかりません",
@@ -129,17 +141,30 @@ export const ja: TranslationValues = {
     },
     messages: {
       createSuccess: "ドライバーが正常に作成されました",
-      createSuccessDescription: "新しいドライバーがシステムに追加されました",
+      createSuccessDescription: "ドライバーが作成され、システムで利用可能になりました。",
       updateSuccess: "ドライバーが正常に更新されました",
-      updateSuccessDescription: "ドライバー情報が更新されました",
+      updateSuccessDescription: "ドライバーの詳細が更新されました。",
       deleteSuccess: "ドライバーが正常に削除されました",
       createError: "ドライバーの作成中にエラーが発生しました",
-      createErrorDescription: "もう一度お試しください",
+      createErrorDescription: "ドライバーの作成に問題がありました。もう一度お試しください。",
       updateError: "ドライバーの更新中にエラーが発生しました",
-      updateErrorDescription: "もう一度お試しください",
+      updateErrorDescription: "ドライバーの詳細の更新に問題がありました。もう一度お試しください。",
       deleteError: "ドライバーの削除中にエラーが発生しました",
-      loadError: "ドライバー情報の読み込み中にエラーが発生しました",
-      loadErrorDescription: "このドライバーの詳細を取得できません"
+      loadError: "ドライバーの読み込み中にエラーが発生しました",
+      loadErrorDescription: "ドライバーの詳細を読み込めませんでした。もう一度お試しください。",
+      assignSuccess: "車両が正常に割り当てられました",
+      assignSuccessDescription: "車両がこのドライバーに割り当てられました。",
+      multipleAssignSuccessDescription: "{count}台の車両がこのドライバーに割り当てられました。",
+      assignError: "車両の割り当て中にエラーが発生しました",
+      assignErrorDescription: "車両の割り当てに問題がありました。もう一度お試しください。",
+      unassignSuccess: "車両の割り当てが正常に解除されました",
+      unassignSuccessDescription: "車両の割り当てがこのドライバーから解除されました。",
+      multipleUnassignSuccessDescription: "{count}台の車両の割り当てがこのドライバーから解除されました。",
+      unassignError: "車両の割り当て解除中にエラーが発生しました",
+      unassignErrorDescription: "車両の割り当て解除に問題がありました。もう一度お試しください。",
+      noVehicleSelected: "車両が選択されていません",
+      noVehicleSelectedDescription: "このドライバーに割り当てる車両を選択してください。",
+      noVehicleSelectedToUnassign: "このドライバーから割り当てを解除する車両を選択してください。",
     },
     assignedVehicles: {
       title: "割り当て車両",
@@ -177,7 +202,9 @@ export const ja: TranslationValues = {
     tabs: {
       overview: "概要",
       activity: "活動",
-      inspections: "点検"
+      inspections: "点検",
+      assignVehicles: "車両を割り当て",
+      unassignVehicles: "車両の割り当てを解除"
     },
     vehicles: {
       title: "関連車両",

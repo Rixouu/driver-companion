@@ -297,6 +297,7 @@ export const en: TranslationValue = {
   settings: {
     title: "Settings",
     description: "Manage your account settings and preferences",
+    selectTab: "Select settings tab",
     profile: {
       title: "Profile",
       description: "Manage your profile information",
@@ -326,7 +327,16 @@ export const en: TranslationValue = {
       desktop: "Desktop",
       mobile: "Mobile",
       desktopSettingsHidden: "Desktop settings are only visible on larger screens.",
-      alwaysVisible: "Always visible"
+      alwaysVisible: "Always visible",
+      dashboard: "Dashboard",
+      vehicles: "Vehicles",
+      drivers: "Drivers",
+      bookings: "Bookings",
+      maintenance: "Maintenance",
+      inspections: "Inspections",
+      reporting: "Reporting",
+      settings: "Settings",
+      save: "Save Changes"
     },
     templates: {
       title: "Inspection Templates",
@@ -336,7 +346,8 @@ export const en: TranslationValue = {
       profile: "Profile",
       preferences: "Preferences",
       menu: "Menu",
-      templates: "Templates"
+      templates: "Templates",
+      account: "Account"
     }
   },
   vehicles: {
@@ -1175,6 +1186,18 @@ export const en: TranslationValue = {
       button: "Schedule Inspection",
       details: "Inspection Details",
       backToInspections: "Back to inspections"
+    },
+    selectTemplate: "Select template type",
+    type: {
+      routine: "Routine Inspection",
+      safety: "Safety Inspection",
+      maintenance: "Maintenance Inspection",
+      select: "Select Inspection Type",
+      description: {
+        routine: "Regular periodic inspection of vehicle components",
+        safety: "Comprehensive safety system evaluation",
+        maintenance: "Detailed mechanical system inspection"
+      }
     }
   },
   dashboard: {

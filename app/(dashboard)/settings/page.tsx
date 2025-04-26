@@ -68,6 +68,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function SettingsPage() {
   const [session, setSession] = useState<Session | null>(null)
   const { t, language, setLanguage } = useI18n()
+  const [activeTab, setActiveTab] = useState('account')
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
@@ -79,6 +80,13 @@ export default function SettingsPage() {
     settings: { desktop: true, mobile: true }
   })
   const [isSaving, setIsSaving] = useState(false)
+
+  // Define tab options for both mobile select and desktop tabs
+  const tabOptions = [
+    { value: 'account', label: t("settings.tabs.account") || "Account", icon: User },
+    { value: 'menu', label: t("settings.tabs.menu"), icon: LayoutList },
+    { value: 'templates', label: t("settings.tabs.templates"), icon: ClipboardCheck },
+  ]
 
   useEffect(() => {
     async function getSession() {
@@ -165,6 +173,11 @@ export default function SettingsPage() {
     }
   }
 
+  // Handle tab changes from both select dropdown and tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -174,126 +187,153 @@ export default function SettingsPage() {
             {t("settings.description") || "Manage your profile, preferences, and application settings"}
           </p>
         </div>
-        {/* Add global save button or individual save buttons per tab? */}
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-4">
-        <div className="relative">
-          <TabsList className="flex w-full overflow-x-auto scrollbar-hide py-2 no-scrollbar">
-            <TabsTrigger 
-              value="profile" 
-              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
-            >
-              <User className="mr-2 h-5 w-5" />
-              <span>{t("settings.tabs.profile")}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="preferences" 
-              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
-            >
-              <Palette className="mr-2 h-5 w-5" />
-              <span>{t("settings.tabs.preferences")}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="menu" 
-              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
-            >
-              <LayoutList className="mr-2 h-5 w-5" />
-              <span>{t("settings.tabs.menu")}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="templates" 
-              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
-            >
-              <ClipboardCheck className="mr-2 h-5 w-5" />
-              <span>{t("settings.tabs.templates")}</span>
-            </TabsTrigger>
-          </TabsList>
-          <style jsx global>{`
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-            }
-            .no-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-          `}</style>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+        {/* Mobile Select Dropdown */}
+        <div className="sm:hidden mb-4">
+          <Select value={activeTab} onValueChange={handleTabChange}>
+            <SelectTrigger className="w-full py-3">
+              <SelectValue placeholder={t("common.menu") || "Select settings tab"} />
+            </SelectTrigger>
+            <SelectContent>
+              {tabOptions.map(tab => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  <div className="flex items-center gap-2">
+                    <tab.icon className="h-4 w-4" />
+                    <span>{tab.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.profile.title")}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.profile.description")}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t("settings.profile.name")}</Label>
-                <Input 
-                  id="name" 
-                  value={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || ""} 
-                  disabled 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t("settings.profile.email")}</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={session?.user?.email || ""} 
-                  disabled 
-                />
-                <p className="text-sm text-muted-foreground">
-                  {t("settings.profile.emailDescription")}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Desktop TabsList - Hidden on mobile */}
+        <div className="hidden sm:block">
+          <TabsList className="grid grid-cols-3 h-auto">
+            {tabOptions.map(tab => (
+              <TabsTrigger 
+                key={tab.value}
+                value={tab.value} 
+                className="flex-1 h-12 data-[state=active]:bg-primary/10"
+              >
+                <tab.icon className="mr-2 h-5 w-5" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-        {/* Preferences Tab */}
-        <TabsContent value="preferences">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("settings.preferences.title")}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {t("settings.preferences.description")}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="theme">{t("settings.preferences.theme.title")}</Label>
-                <ClientThemeSelector />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("settings.preferences.language.title")}</Label>
-                <LanguageSelector />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Mobile Tab Title Indicator - Only shown when using the mobile select */}
+        {activeTab && (
+          <div className="sm:hidden py-2 px-3 mb-4 border rounded-md bg-muted/30">
+            {tabOptions.map(tab => {
+              if (tab.value === activeTab) {
+                const Icon = tab.icon;
+                return (
+                  <h3 key={tab.value} className="text-sm font-medium flex items-center">
+                    <Icon className="mr-2 h-4 w-4" />
+                    {tab.label}
+                  </h3>
+                );
+              }
+              return null;
+            })}
+          </div>
+        )}
+
+        {/* Account Tab (Combined Profile & Preferences) */}
+        <TabsContent value="account">
+          <div className="space-y-8">
+            <Card>
+              <CardHeader className="pb-6">
+                <CardTitle>{t("settings.profile.title")}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.profile.description")}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-8 px-8 sm:px-10 pb-8">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <Label htmlFor="name" className="text-base">
+                      {t("settings.profile.name")}
+                    </Label>
+                    <Input 
+                      id="name" 
+                      value={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || ""} 
+                      disabled 
+                      className="py-6"
+                    />
+                  </div>
+                  <div className="space-y-4 pt-2">
+                    <Label htmlFor="email" className="text-base">
+                      {t("settings.profile.email")}
+                    </Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={session?.user?.email || ""} 
+                      disabled 
+                      className="py-6"
+                    />
+                    <p className="text-sm text-muted-foreground pt-2">
+                      {t("settings.profile.emailDescription")}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-6">
+                <CardTitle>{t("settings.preferences.title")}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.preferences.description")}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-8 px-8 sm:px-10 pb-8">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <Label htmlFor="theme" className="text-base">
+                      {t("settings.preferences.theme.title")}
+                    </Label>
+                    <div className="pt-2">
+                      <ClientThemeSelector />
+                    </div>
+                  </div>
+                  <div className="space-y-4 pt-2">
+                    <Label className="text-base">
+                      {t("settings.preferences.language.title")}
+                    </Label>
+                    <div className="pt-2">
+                      <LanguageSelector />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Menu Customization Tab */}
         <TabsContent value="menu">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-6">
               <CardTitle>{t("settings.menu.title")}</CardTitle>
               <p className="text-sm text-muted-foreground">
                 {t("settings.menu.description")}
               </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
+            <CardContent className="px-8 sm:px-10 pb-8">
+              <div className="space-y-8">
                 <div className="overflow-hidden rounded-md border">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-muted/50">
-                        <th className="text-left p-3 font-medium">{t("settings.menu.menuItem")}</th>
-                        <th className="text-center p-3 font-medium hidden sm:table-cell">{t("settings.menu.desktop")}</th>
-                        <th className="text-center p-3 font-medium">{t("settings.menu.mobile")}</th>
+                        <th className="text-left p-4 font-medium">{t("settings.menu.menuItem")}</th>
+                        <th className="text-center p-4 font-medium hidden sm:table-cell">{t("settings.menu.desktop")}</th>
+                        <th className="text-center p-4 font-medium">{t("settings.menu.mobile")}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -311,17 +351,17 @@ export default function SettingsPage() {
 
                         return (
                           <tr key={key} className="hover:bg-muted/50">
-                            <td className="p-3 flex items-center gap-2">
-                              <IconComponent className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span>{t(`settings.menu.${key}`)}</span>
+                            <td className="p-4 flex items-center gap-3">
+                              <IconComponent className="h-5 w-5 text-primary flex-shrink-0" />
+                              <span className="text-base">{t(`settings.menu.${key}`)}</span>
                             </td>
-                            <td className="text-center p-3">
+                            <td className="text-center p-4">
                               <Switch
                                 checked={value.desktop}
                                 onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
                               />
                             </td>
-                            <td className="text-center p-3">
+                            <td className="text-center p-4">
                               <Switch
                                 checked={value.mobile}
                                 onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
@@ -333,7 +373,16 @@ export default function SettingsPage() {
                     </tbody>
                   </table>
                 </div>
-                <Button onClick={saveMenuSettings}>{t("settings.menu.save")}</Button>
+                <Button onClick={saveMenuSettings} disabled={isSaving} className="py-6 px-8 text-base">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                      {t("common.saving")}
+                    </>
+                  ) : (
+                    t("settings.menu.save")
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -342,14 +391,14 @@ export default function SettingsPage() {
         {/* Templates Tab */}
         <TabsContent value="templates">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-6">
               <CardTitle>{t("settings.templates.title")}</CardTitle>
               <p className="text-sm text-muted-foreground">
                 {t("settings.templates.description")}
               </p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="px-8 sm:px-10 pb-8">
+              <div className="space-y-6">
                 {/* Responsive Template Tabs - Works for both mobile and desktop */}
                 <Tabs defaultValue="routine" className="w-full">
                   {/* Mobile template selector */}
@@ -363,7 +412,7 @@ export default function SettingsPage() {
                       }
                     }}>
                       <SelectTrigger className="w-full py-3">
-                        <SelectValue placeholder={t("inspections.selectTemplate") || "Select template type"} />
+                        <SelectValue placeholder={t("common.type") || "Select template type"} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="routine">

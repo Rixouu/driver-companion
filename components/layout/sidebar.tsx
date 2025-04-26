@@ -76,25 +76,44 @@ export function Sidebar() {
     router.refresh()
   }
 
-  const allMenuItems = [
-    { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" },
-    { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" },
-    { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" },
-    { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" },
-    { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" },
-    { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" },
-    { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" },
-    { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" },
+  // Menu items with group structure
+  const menuGroups = [
+    {
+      id: 'dashboard',
+      items: [
+        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" }
+      ]
+    },
+    {
+      id: 'fleet',
+      label: 'Fleet',
+      items: [
+        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" },
+        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" }
+      ]
+    },
+    {
+      id: 'operations',
+      label: 'Operations',
+      items: [
+        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" },
+        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" },
+        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" }
+      ]
+    },
+    {
+      id: 'reporting',
+      items: [
+        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" }
+      ]
+    },
+    {
+      id: 'settings',
+      items: [
+        { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" }
+      ]
+    }
   ]
-  
-  // Filter items based on menu settings, but always include bookings
-  const menuItems = allMenuItems.filter(item => {
-    // Always show settings and bookings
-    if (item.key === 'settings' || item.key === 'bookings') return true;
-    
-    const setting = menuSettings[item.key as keyof typeof menuSettings];
-    return setting && setting.desktop;
-  })
 
   return (
     <div className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-black text-white">
@@ -111,29 +130,55 @@ export function Sidebar() {
             />
           </Link>
         </div>
-        <nav className="space-y-1 px-2">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        
+        <nav className="space-y-6 px-2 flex-1 overflow-y-auto">
+          {menuGroups.map((group) => {
+            // Filter items based on menu settings
+            const visibleItems = group.items.filter(item => {
+              if (item.key === 'settings' || item.key === 'bookings') return true;
+              const setting = menuSettings[item.key as keyof typeof menuSettings];
+              return setting && setting.desktop;
+            });
+            
+            // Skip empty groups
+            if (visibleItems.length === 0) return null;
             
             return (
-              <Link key={item.href} href={item.href} className="block">
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start",
-                    isActive 
-                      ? "bg-zinc-800 text-white" 
-                      : "text-gray-300 hover:bg-zinc-800 hover:text-white"
-                  )}
-                >
-                  <item.icon className="mr-2 h-5 w-5" />
-                  {item.label}
-                </Button>
-              </Link>
+              <div key={group.id} className="space-y-1">
+                {group.label && (
+                  <div className="px-3 mb-2">
+                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      {group.label}
+                    </h2>
+                  </div>
+                )}
+                
+                {visibleItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  
+                  return (
+                    <Link key={item.href} href={item.href} className="block">
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start",
+                          isActive 
+                            ? "bg-zinc-800 text-white" 
+                            : "text-gray-300 hover:bg-zinc-800 hover:text-white"
+                        )}
+                      >
+                        <item.icon className="mr-2 h-5 w-5" />
+                        {item.label}
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
-        <div className="px-2 mt-auto">
+        
+        <div className="px-2 mt-6">
           <Button 
             variant="ghost" 
             className="w-full justify-start text-red-400 hover:bg-zinc-800 hover:text-red-400"

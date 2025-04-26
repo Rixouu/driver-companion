@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dialog"
 import { useParams } from 'next/navigation'
 
+// Types
 interface RecentReport {
   id: string
   name: string
@@ -70,56 +71,53 @@ interface MaintenanceTask {
   title: string
 }
 
-// Exchange rate: 1 USD = approximately 150 JPY (as of 2023)
+// Type guard to check if an object matches MaintenanceTask structure
+function isMaintenanceTask(obj: any): obj is MaintenanceTask {
+  return (
+    obj &&
+    typeof obj === 'object' &&
+    'cost' in obj &&
+    'title' in obj &&
+    typeof obj.title === 'string'
+  );
+}
+
+// Exchange rate
 const USD_TO_JPY_RATE = 150;
 
 export default function ReportingPage() {
-  const { lang } = useParams()
-  const language = Array.isArray(lang) ? lang[0] : lang || 'en'
-  const { t: translate } = useI18n()
+  const { lang } = useParams();
+  const language = Array.isArray(lang) ? lang[0] : lang || 'en';
+  const { t } = useI18n();
   
-  // Enhanced translation function for reporting page
-  const t = (key: string): string => {
+  // Safer translation function that ensures string return values
+  const safeT = (key: string, params?: Record<string, string | undefined>): string => {
     try {
-      // Get direct translation, but handle non-string returns
-      const directTranslation = translate(key);
-      
-      // If it's a string, return it
-      if (typeof directTranslation === 'string') {
-        return directTranslation;
+      const result = t(key, params);
+      if (typeof result !== 'string') {
+        // If we're getting an object instead of a string, return a fallback
+        return typeof params?.defaultValue === 'string' ? params.defaultValue : key.split('.').pop() || key;
       }
-      
-      // Handle special cases for nested objects
-      if (key.startsWith('reporting.')) {
-        // The key exists in the translation files but returned a non-string value
-        // This means it's probably an object, so we need to resolve to a leaf node
-        return key; // Fallback to the key itself
-      }
-      
-      // Return the key as a fallback
-      return key;
+      return result;
     } catch (error) {
-      console.error(`Translation error for key "${key}":`, error);
-      return key;
+      console.warn(`Translation error for key: ${key}`, error);
+      return typeof params?.defaultValue === 'string' ? params.defaultValue : key.split('.').pop() || key;
     }
   };
-  
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [maintenanceCosts, setMaintenanceCosts] = useState<{
-    total: number
-    scheduled: number
-    unscheduled: number
-  }>({
+
+  // State
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [maintenanceCosts, setMaintenanceCosts] = useState({
     total: 0,
     scheduled: 0,
     unscheduled: 0
-  })
+  });
   const [costDistribution, setCostDistribution] = useState<Array<{
-    range: string
-    count: number
-    total: number
-  }>>([])
-  const [recentReports, setRecentReports] = useState<RecentReport[]>([])
+    range: string;
+    count: number;
+    total: number;
+  }>>([]);
+  const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [customReportOptions, setCustomReportOptions] = useState<CustomReportOptions>({
     name: "",
     reportType: "combined",
@@ -127,27 +125,29 @@ export default function ReportingPage() {
     includeMaintenance: true,
     includeFuel: true,
     includeCosts: true
-  })
-  const [isCustomReportDialogOpen, setIsCustomReportDialogOpen] = useState(false)
+  });
+  const [isCustomReportDialogOpen, setIsCustomReportDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const today = new Date()
+  // Default values
+  const today = new Date();
   const defaultDateRange = {
     from: addMonths(today, -1),
     to: today
-  } as const
-
-  // Initialize dateRange with default values
-  useEffect(() => {
-    if (!dateRange) {
-      setDateRange(defaultDateRange)
-    }
-  }, [dateRange])
+  } as const;
 
   // Get the currency symbol based on language
   const currencySymbol = language === 'ja' ? '¥' : '$';
 
+  // Initialize dateRange with default values
   useEffect(() => {
-    // Simulate fetching recent reports
+    if (!dateRange) {
+      setDateRange(defaultDateRange);
+    }
+  }, []);
+
+  // Fetch mock recent reports
+  useEffect(() => {
     const mockRecentReports = [
       {
         id: '1',
@@ -170,139 +170,168 @@ export default function ReportingPage() {
         date: format(addMonths(new Date(), -0.2), 'MMM d, yyyy'),
         downloadUrl: '#'
       }
-    ]
-    setRecentReports(mockRecentReports)
-  }, [])
+    ];
+    setRecentReports(mockRecentReports);
+  }, []);
 
+  // Fetch maintenance data
   useEffect(() => {
     async function fetchMaintenanceData() {
-      const { data: tasks, error } = await supabase
-        .from('maintenance_tasks')
-        .select('cost, title')
-        .gte('completed_date', dateRange?.from?.toISOString() || defaultDateRange.from.toISOString())
-        .lte('completed_date', dateRange?.to?.toISOString() || defaultDateRange.to.toISOString())
+      if (!dateRange?.from || !dateRange?.to) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('maintenance_tasks')
+          .select('cost, title')
+          .gte('completed_date', dateRange.from.toISOString())
+          .lte('completed_date', dateRange.to.toISOString());
 
-      if (error) {
-        console.error('Error fetching maintenance data:', error);
-        return;
-      }
+        if (error) {
+          console.error('Error fetching maintenance data:', error);
+          setMaintenanceCosts({ total: 0, scheduled: 0, unscheduled: 0 });
+          setCostDistribution([]);
+          return;
+        }
 
-      if (tasks) {
-        const costs = tasks.reduce((acc: { total: number; scheduled: number; unscheduled: number }, task: MaintenanceTask) => {
-          const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (task.cost || 0)
-          const isScheduled = task.title.toLowerCase().includes('scheduled') || 
-                            task.title.toLowerCase().includes('routine') ||
-                            task.title.toLowerCase().includes('planned')
+        // Process data only if it's a valid array
+        if (Array.isArray(data)) {
+          const validTasks = data.filter(isMaintenanceTask);
           
-          return {
-            total: acc.total + cost,
-            scheduled: acc.scheduled + (isScheduled ? cost : 0),
-            unscheduled: acc.unscheduled + (isScheduled ? 0 : cost)
-          }
-        }, { total: 0, scheduled: 0, unscheduled: 0 })
+          // Calculate costs
+          const costs = validTasks.reduce((acc, task) => {
+            const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (Number(task.cost) || 0);
+            const isScheduled = task.title.toLowerCase().includes('scheduled') || 
+                              task.title.toLowerCase().includes('routine') ||
+                              task.title.toLowerCase().includes('planned');
+            
+            return {
+              total: acc.total + cost,
+              scheduled: acc.scheduled + (isScheduled ? cost : 0),
+              unscheduled: acc.unscheduled + (isScheduled ? 0 : cost)
+            };
+          }, { total: 0, scheduled: 0, unscheduled: 0 });
 
-        // Apply currency conversion if language is Japanese
-        const conversionRate = language === 'ja' ? USD_TO_JPY_RATE : 1;
-        setMaintenanceCosts({
-          total: costs.total * conversionRate,
-          scheduled: costs.scheduled * conversionRate,
-          unscheduled: costs.unscheduled * conversionRate
-        })
+          // Apply currency conversion if needed
+          const conversionRate = language === 'ja' ? USD_TO_JPY_RATE : 1;
+          setMaintenanceCosts({
+            total: costs.total * conversionRate,
+            scheduled: costs.scheduled * conversionRate,
+            unscheduled: costs.unscheduled * conversionRate
+          });
 
-        // Calculate cost distribution
-        const ranges = [
-          { min: 0, max: 100, label: '$0-100' },
-          { min: 100, max: 500, label: '$100-500' },
-          { min: 500, max: 1000, label: '$500-1000' },
-          { min: 1000, max: 2000, label: '$1000-2000' },
-          { min: 2000, max: Infinity, label: '$2000+' }
-        ]
+          // Calculate cost distribution based on ranges
+          const ranges = language === 'ja' 
+            ? [
+                { min: 0, max: 15000, label: '¥0-15,000' },
+                { min: 15000, max: 75000, label: '¥15,000-75,000' },
+                { min: 75000, max: 150000, label: '¥75,000-150,000' },
+                { min: 150000, max: 300000, label: '¥150,000-300,000' },
+                { min: 300000, max: Infinity, label: '¥300,000+' }
+              ]
+            : [
+                { min: 0, max: 100, label: '$0-100' },
+                { min: 100, max: 500, label: '$100-500' },
+                { min: 500, max: 1000, label: '$500-1000' },
+                { min: 1000, max: 2000, label: '$1000-2000' },
+                { min: 2000, max: Infinity, label: '$2000+' }
+              ];
 
-        // If language is Japanese, adjust the ranges
-        const japaneseRanges = language === 'ja' ? [
-          { min: 0, max: 15000, label: '¥0-15,000' },
-          { min: 15000, max: 75000, label: '¥15,000-75,000' },
-          { min: 75000, max: 150000, label: '¥75,000-150,000' },
-          { min: 150000, max: 300000, label: '¥150,000-300,000' },
-          { min: 300000, max: Infinity, label: '¥300,000+' }
-        ] : ranges;
+          const distribution = ranges.map(range => {
+            const tasksInRange = validTasks.filter(task => {
+              const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (Number(task.cost) || 0);
+              const convertedCost = language === 'ja' ? cost * USD_TO_JPY_RATE : cost;
+              return convertedCost >= range.min && convertedCost < range.max;
+            });
 
-        const selectedRanges = language === 'ja' ? japaneseRanges : ranges;
+            const totalCost = tasksInRange.reduce((sum, task) => {
+              const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (Number(task.cost) || 0);
+              return sum + (cost * conversionRate);
+            }, 0);
 
-        const distribution = selectedRanges.map(range => {
-          const tasksInRange = tasks.filter((task: MaintenanceTask) => {
-            const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (task.cost || 0)
-            // For Japanese, convert the cost to JPY before comparing with ranges
-            const convertedCost = language === 'ja' ? cost * USD_TO_JPY_RATE : cost;
-            return convertedCost >= range.min && convertedCost < range.max
-          })
+            return {
+              range: range.label,
+              count: tasksInRange.length,
+              total: totalCost
+            };
+          }).filter(item => item.count > 0);
 
-          const totalCost = tasksInRange.reduce((sum: number, task: MaintenanceTask) => {
-            const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : (task.cost || 0)
-            // Apply currency conversion if language is Japanese
-            return sum + (cost * conversionRate)
-          }, 0)
-
-          return {
-            range: range.label,
-            count: tasksInRange.length,
-            total: totalCost
-          }
-        }).filter(item => item.count > 0)
-
-        setCostDistribution(distribution)
+          setCostDistribution(distribution);
+        } else {
+          setMaintenanceCosts({ total: 0, scheduled: 0, unscheduled: 0 });
+          setCostDistribution([]);
+        }
+      } catch (err) {
+        console.error('Error processing maintenance data:', err);
+        setMaintenanceCosts({ total: 0, scheduled: 0, unscheduled: 0 });
+        setCostDistribution([]);
+      } finally {
+        setIsLoading(false);
       }
     }
 
-    fetchMaintenanceData()
-  }, [dateRange, defaultDateRange.from, defaultDateRange.to, language])
+    fetchMaintenanceData();
+  }, [dateRange, language]);
 
-  const handleDownloadReport = async (reportType: string) => {
-    // Implementation for report download...
-  }
+  // Handlers
+  const handleDownloadReport = (reportType: string) => {
+    console.log(`Downloading report: ${reportType}`);
+    // Implementation for actual download would go here
+  };
 
   const handleDownloadRecentReport = (report: RecentReport) => {
-    // Implementation for recent report download...
-  }
+    console.log(`Downloading recent report: ${report.name}`);
+    // Implementation for actual download would go here
+  };
 
   const handleResetDateRange = () => {
     setDateRange({
       from: defaultDateRange.from,
       to: defaultDateRange.to
-    })
-  }
+    });
+  };
 
+  const handleCreateCustomReport = () => {
+    console.log('Creating custom report with options:', customReportOptions);
+    setIsCustomReportDialogOpen(false);
+  };
+
+  // UI helpers
   const getReportIcon = (type: string) => {
     switch (type) {
       case 'maintenance':
-        return <Wrench className="h-4 w-4" />
+        return <Wrench className="h-4 w-4" />;
       case 'fuel':
-        return <Fuel className="h-4 w-4" />
+        return <Fuel className="h-4 w-4" />;
       case 'cost':
-        return <BarChart3 className="h-4 w-4" />
+        return <BarChart3 className="h-4 w-4" />;
       default:
-        return <FileText className="h-4 w-4" />
+        return <FileText className="h-4 w-4" />;
     }
-  }
+  };
 
-  const handleCreateCustomReport = () => {
-    setIsCustomReportDialogOpen(false)
-  }
+  // Format numbers with the appropriate currency
+  const formatCurrency = (value: number) => {
+    return `${currencySymbol}${value.toLocaleString(language === 'ja' ? 'ja-JP' : 'en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t('reporting.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{safeT('reporting.title', { defaultValue: 'Reports & Analytics' })}</h1>
           <p className="text-muted-foreground">
-            {t('reporting.description') || "Analyze fleet performance and generate custom reports"}
+            {safeT('reporting.description', { defaultValue: 'View detailed reports and analytics for your vehicle fleet' })}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <DateRangePicker
             value={dateRange}
             onChange={setDateRange}
-            placeholder={t('reporting.selectDateRange')}
+            placeholder={safeT('common.selectDateRange', { defaultValue: 'Select date range' })}
           />
           <Button variant="outline" size="icon" onClick={handleResetDateRange}>
             <RotateCcw className="h-4 w-4" />
@@ -312,9 +341,9 @@ export default function ReportingPage() {
 
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid grid-cols-3 h-auto">
-          <TabsTrigger value="overview">{t('reporting.tabs.overview')}</TabsTrigger>
-          <TabsTrigger value="analytics">{t('reporting.tabs.analytics')}</TabsTrigger>
-          <TabsTrigger value="reports">{t('reporting.tabs.reports')}</TabsTrigger>
+          <TabsTrigger value="overview">{safeT('reporting.sections.overview', { defaultValue: 'Overview' })}</TabsTrigger>
+          <TabsTrigger value="analytics">{safeT('reporting.sections.analytics', { defaultValue: 'Analytics' })}</TabsTrigger>
+          <TabsTrigger value="reports">{safeT('reporting.sections.reports.title', { defaultValue: 'Reports' })}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -322,10 +351,10 @@ export default function ReportingPage() {
             <Card>
               <CardContent className="p-4 sm:p-6">
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">{t('reporting.sections.vehiclePerformance.distance')}</p>
+                  <p className="text-muted-foreground text-sm">{safeT('reporting.sections.vehiclePerformance.distance', { defaultValue: 'Distance (km)' })}</p>
                   <p className="text-xl sm:text-2xl font-bold">0 km</p>
                   <p className="text-xs sm:text-sm text-green-500">
-                    ↑ 0.0% {t('reporting.fromPreviousPeriod')}
+                    ↑ 0.0% {safeT('reporting.fromPreviousPeriod', { defaultValue: 'from previous period' })}
                   </p>
                 </div>
               </CardContent>
@@ -334,10 +363,10 @@ export default function ReportingPage() {
             <Card>
               <CardContent className="p-4 sm:p-6">
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">{t('reporting.sections.fuelConsumption.title')}</p>
+                  <p className="text-muted-foreground text-sm">{safeT('reporting.sections.fuelConsumption.title', { defaultValue: 'Fuel Consumption' })}</p>
                   <p className="text-xl sm:text-2xl font-bold">0 L</p>
                   <p className="text-xs sm:text-sm text-green-500">
-                    ↓ 0.0% {t('reporting.fromPreviousPeriod')}
+                    ↓ 0.0% {safeT('reporting.fromPreviousPeriod', { defaultValue: 'from previous period' })}
                   </p>
                 </div>
               </CardContent>
@@ -346,10 +375,10 @@ export default function ReportingPage() {
             <Card>
               <CardContent className="p-4 sm:p-6">
                 <div className="space-y-2">
-                  <p className="text-muted-foreground text-sm">{t('reporting.sections.vehiclePerformance.efficiency')}</p>
+                  <p className="text-muted-foreground text-sm">{safeT('reporting.sections.vehiclePerformance.efficiency', { defaultValue: 'Efficiency (km/L)' })}</p>
                   <p className="text-xl sm:text-2xl font-bold">0.0 km/L</p>
                   <p className="text-xs sm:text-sm text-green-500">
-                    ↑ 0.0% {t('reporting.fromPreviousPeriod')}
+                    ↑ 0.0% {safeT('reporting.fromPreviousPeriod', { defaultValue: 'from previous period' })}
                   </p>
                 </div>
               </CardContent>
@@ -358,15 +387,15 @@ export default function ReportingPage() {
           
           <Card>
             <CardHeader>
-              <CardTitle>{t('reporting.maintenanceCost')}</CardTitle>
+              <CardTitle>{safeT('reporting.sections.maintenanceMetrics.costOverTime', { defaultValue: 'Maintenance Cost' })}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col space-y-2">
-                <div className="text-2xl font-bold">{currencySymbol}0.00</div>
+                <div className="text-2xl font-bold">{formatCurrency(maintenanceCosts.total)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {t('reporting.scheduledMaintenanceColon')} {currencySymbol}0.00
+                  {safeT('reporting.sections.maintenanceMetrics.scheduledCost', { defaultValue: 'Scheduled Maintenance' })}: {formatCurrency(maintenanceCosts.scheduled)}
                   <br />
-                  {t('reporting.unscheduledMaintenanceColon')} {currencySymbol}0.00
+                  {safeT('reporting.sections.maintenanceMetrics.unscheduledCost', { defaultValue: 'Unscheduled Maintenance' })}: {formatCurrency(maintenanceCosts.unscheduled)}
                 </div>
               </div>
             </CardContent>
@@ -375,19 +404,33 @@ export default function ReportingPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.maintenanceFrequency')}</CardTitle>
+                <CardTitle>{safeT('reporting.sections.maintenanceFrequency.title', { defaultValue: 'Maintenance Frequency' })}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-center py-12 text-muted-foreground">{t('reporting.noDataAvailable')}</p>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
+                  </div>
+                ) : costDistribution.length > 0 ? (
+                  <MaintenanceFrequencyChart />
+                ) : (
+                  <p className="text-center py-12 text-muted-foreground">{safeT('reporting.noData', { defaultValue: 'No data available' })}</p>
+                )}
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.vehicleAvailability')}</CardTitle>
+                <CardTitle>{safeT('reporting.sections.vehicleAvailability.title', { defaultValue: 'Vehicle Availability' })}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-center py-12 text-muted-foreground">{t('reporting.noDataAvailable')}</p>
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
+                  </div>
+                ) : (
+                  <p className="text-center py-12 text-muted-foreground">{safeT('reporting.noData', { defaultValue: 'No data available' })}</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -397,19 +440,31 @@ export default function ReportingPage() {
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.fuelConsumption')}</CardTitle>
+                <CardTitle>{safeT('reporting.sections.fuelConsumption.title', { defaultValue: 'Fuel Consumption Trend' })}</CardTitle>
               </CardHeader>
               <CardContent>
-                <FuelConsumptionChart dateRange={dateRange || defaultDateRange} />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
+                  </div>
+                ) : (
+                  <FuelConsumptionChart dateRange={dateRange || defaultDateRange} />
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.monthlyMileage')}</CardTitle>
+                <CardTitle>{safeT('reporting.sections.monthlyMileage.title', { defaultValue: 'Monthly Mileage Trend' })}</CardTitle>
               </CardHeader>
               <CardContent>
-                <MonthlyMileageChart dateRange={dateRange || defaultDateRange} />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
+                  </div>
+                ) : (
+                  <MonthlyMileageChart dateRange={dateRange || defaultDateRange} />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -417,10 +472,16 @@ export default function ReportingPage() {
           <div className="grid md:grid-cols-1 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.vehiclePerformance')}</CardTitle>
+                <CardTitle>{safeT('reporting.sections.vehiclePerformance.title', { defaultValue: 'Vehicle Performance' })}</CardTitle>
               </CardHeader>
               <CardContent>
-                <VehiclePerformance dateRange={dateRange || defaultDateRange} />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
+                  </div>
+                ) : (
+                  <VehiclePerformance dateRange={dateRange || defaultDateRange} />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -430,36 +491,39 @@ export default function ReportingPage() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.maintenanceHistoryReport')}</CardTitle>
-                <CardDescription>{t('reporting.detailedMaintenanceRecords')}</CardDescription>
+                <CardTitle>{safeT('reporting.sections.reports.maintenance', { defaultValue: 'Maintenance History Report' })}</CardTitle>
+                <CardDescription>{safeT('reporting.sections.reports.maintenanceDescription', { defaultValue: 'Detailed maintenance records for each vehicle' })}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" onClick={() => handleDownloadReport('maintenance-history')}>
-                  <Download className="h-4 w-4 mr-2" /> {t('reporting.downloadCsv')}
+                  <Download className="h-4 w-4 mr-2" /> 
+                  {safeT('reporting.sections.reports.downloadCSV', { defaultValue: 'Download CSV' })}
                 </Button>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.fuelEfficiencyReport')}</CardTitle>
-                <CardDescription>{t('reporting.fuelConsumptionAnalysis')}</CardDescription>
+                <CardTitle>{safeT('reporting.sections.reports.fuel', { defaultValue: 'Fuel Efficiency Report' })}</CardTitle>
+                <CardDescription>{safeT('reporting.sections.reports.fuelDescription', { defaultValue: 'Fuel consumption and efficiency analysis' })}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" onClick={() => handleDownloadReport('fuel-efficiency')}>
-                  <Download className="h-4 w-4 mr-2" /> {t('reporting.downloadCsv')}
+                  <Download className="h-4 w-4 mr-2" /> 
+                  {safeT('reporting.sections.reports.downloadCSV', { defaultValue: 'Download CSV' })}
                 </Button>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>{t('reporting.costAnalysisReport')}</CardTitle>
-                <CardDescription>{t('reporting.detailedBreakdown')}</CardDescription>
+                <CardTitle>{safeT('reporting.sections.reports.cost', { defaultValue: 'Cost Analysis Report' })}</CardTitle>
+                <CardDescription>{safeT('reporting.sections.reports.costDescription', { defaultValue: 'Detailed breakdown of all vehicle-related costs' })}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="w-full" onClick={() => handleDownloadReport('cost-analysis')}>
-                  <Download className="h-4 w-4 mr-2" /> {t('reporting.downloadCsv')}
+                  <Download className="h-4 w-4 mr-2" /> 
+                  {safeT('reporting.sections.reports.downloadCSV', { defaultValue: 'Download CSV' })}
                 </Button>
               </CardContent>
             </Card>
@@ -468,54 +532,183 @@ export default function ReportingPage() {
           <Card className="bg-muted/40">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <CardTitle>{t('reporting.createCustomReport')}</CardTitle>
-                <CardDescription>{t('reporting.combineDataSources')}</CardDescription>
+                <CardTitle>{safeT('reporting.sections.reports.customReport', { defaultValue: 'Custom Report' })}</CardTitle>
+                <CardDescription>{safeT('reporting.sections.reports.customReportDescription', { defaultValue: 'Combine data from multiple sources into a single report' })}</CardDescription>
               </div>
               <Button onClick={() => setIsCustomReportDialogOpen(true)}>
-                {t('reporting.createReport')}
+                {safeT('reporting.sections.reports.generateReport', { defaultValue: 'Generate Report' })}
               </Button>
             </CardHeader>
           </Card>
           
           <Card>
             <CardHeader>
-              <CardTitle>{t('reporting.recentReports')}</CardTitle>
-              <CardDescription>{t('reporting.recentReportsDescription')}</CardDescription>
+              <CardTitle>{safeT('reporting.sections.reports.recentReports', { defaultValue: 'Recent Reports' })}</CardTitle>
+              <CardDescription>{safeT('common.recentActivity', { defaultValue: 'Your recently generated reports' })}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('reporting.reportName')}</TableHead>
-                    <TableHead>{t('reporting.reportType')}</TableHead>
-                    <TableHead>{t('reporting.date')}</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentReports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-medium">{report.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {getReportIcon(report.type)}
-                          <span className="ml-2">{t(`reporting.reportType.${report.type}`)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{report.date}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="icon" onClick={() => handleDownloadRecentReport(report)}>
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              {recentReports.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{safeT('reporting.sections.reports.reportName', { defaultValue: 'Report Name' })}</TableHead>
+                      <TableHead>{safeT('reporting.sections.reports.reportType', { defaultValue: 'Report Type' })}</TableHead>
+                      <TableHead>{safeT('common.date', { defaultValue: 'Date' })}</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recentReports.map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell className="font-medium">{report.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {getReportIcon(report.type)}
+                            <span className="ml-2">
+                              {report.type === 'maintenance' && safeT('reporting.sections.vehiclePerformance.maintenance', { defaultValue: 'Maintenance' })}
+                              {report.type === 'fuel' && safeT('reporting.sections.vehiclePerformance.fuel', { defaultValue: 'Fuel' })}
+                              {report.type === 'cost' && safeT('common.cost', { defaultValue: 'Cost' })}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{report.date}</TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="icon" onClick={() => handleDownloadRecentReport(report)}>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-muted-foreground">{safeT('common.noResults', { defaultValue: 'No reports found' })}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Custom Report Dialog */}
+      <Dialog open={isCustomReportDialogOpen} onOpenChange={setIsCustomReportDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {safeT('reporting.sections.reports.customReport', { defaultValue: 'Custom Report' })}
+            </DialogTitle>
+            <DialogDescription>
+              {safeT('reporting.sections.reports.customReportDescription', { defaultValue: 'Combine data from multiple sources into a single report' })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="report-name" className="col-span-4">
+                {safeT('reporting.sections.reports.reportName', { defaultValue: 'Report Name' })}
+              </Label>
+              <Input
+                id="report-name"
+                value={customReportOptions.name}
+                onChange={(e) => setCustomReportOptions({ ...customReportOptions, name: e.target.value })}
+                className="col-span-4"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="report-type" className="col-span-4">
+                {safeT('reporting.sections.reports.reportType', { defaultValue: 'Report Type' })}
+              </Label>
+              <Select
+                value={customReportOptions.reportType}
+                onValueChange={(value) => setCustomReportOptions({ ...customReportOptions, reportType: value })}
+              >
+                <SelectTrigger className="col-span-4">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="combined">Combined</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="fuel">Fuel</SelectItem>
+                  <SelectItem value="cost">Cost</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label className="mb-2">
+                {safeT('reporting.sections.reports.includeData', { defaultValue: 'Include Data' })}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vehicle-info"
+                  checked={customReportOptions.includeVehicles}
+                  onCheckedChange={(checked) => 
+                    setCustomReportOptions({ ...customReportOptions, includeVehicles: checked as boolean })
+                  }
+                />
+                <label
+                  htmlFor="vehicle-info"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {safeT('reporting.sections.reports.vehicleInformation', { defaultValue: 'Vehicle Information' })}
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="maintenance-data"
+                  checked={customReportOptions.includeMaintenance}
+                  onCheckedChange={(checked) => 
+                    setCustomReportOptions({ ...customReportOptions, includeMaintenance: checked as boolean })
+                  }
+                />
+                <label
+                  htmlFor="maintenance-data"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {safeT('reporting.sections.reports.maintenanceData', { defaultValue: 'Maintenance Data' })}
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fuel-data"
+                  checked={customReportOptions.includeFuel}
+                  onCheckedChange={(checked) => 
+                    setCustomReportOptions({ ...customReportOptions, includeFuel: checked as boolean })
+                  }
+                />
+                <label
+                  htmlFor="fuel-data"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {safeT('reporting.sections.reports.fuelData', { defaultValue: 'Fuel Data' })}
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="cost-analysis"
+                  checked={customReportOptions.includeCosts}
+                  onCheckedChange={(checked) => 
+                    setCustomReportOptions({ ...customReportOptions, includeCosts: checked as boolean })
+                  }
+                />
+                <label
+                  htmlFor="cost-analysis"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {safeT('reporting.sections.reports.costAnalysis', { defaultValue: 'Cost Analysis' })}
+                </label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCustomReportDialogOpen(false)}>
+              {safeT('reporting.sections.reports.cancel', { defaultValue: 'Cancel' })}
+            </Button>
+            <Button type="submit" onClick={handleCreateCustomReport}>
+              {safeT('reporting.sections.reports.generateReport', { defaultValue: 'Generate Report' })}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

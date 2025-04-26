@@ -16,21 +16,36 @@ import { format } from "date-fns"
 interface DateRangePickerProps {
   defaultDateRange?: DateRange
   onDateChange?: (date: DateRange | undefined) => void
+  value?: DateRange | undefined
+  onChange?: (date: DateRange | undefined) => void
+  placeholder?: string
   className?: string
 }
 
 export function DateRangePicker({
   defaultDateRange,
   onDateChange,
+  value,
+  onChange,
+  placeholder = "Pick a date range",
   className,
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(defaultDateRange)
+  const [date, setDate] = React.useState<DateRange | undefined>(value || defaultDateRange)
+
+  React.useEffect(() => {
+    if (value !== undefined && value !== date) {
+      setDate(value)
+    }
+  }, [value, date])
 
   React.useEffect(() => {
     if (onDateChange) {
       onDateChange(date)
     }
-  }, [date, onDateChange])
+    if (onChange) {
+      onChange(date)
+    }
+  }, [date, onDateChange, onChange])
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -55,7 +70,7 @@ export function DateRangePicker({
                 format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Pick a date range</span>
+              <span>{placeholder}</span>
             )}
           </Button>
         </PopoverTrigger>

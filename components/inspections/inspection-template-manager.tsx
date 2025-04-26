@@ -594,22 +594,25 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
-        <CardHeader>
-           {/* Maybe add description here? */}
-           {/* <CardDescription>{t("inspections.templates.managerDescription", { type })}</CardDescription> */}
-           <div className="flex justify-between items-center">
-             <CardTitle className="capitalize">{t("inspections.templates.manageTitle", { type })}</CardTitle>
+        <CardHeader className="pb-5">
+           <div className="flex flex-col gap-4">
+             <div className="space-y-1.5">
+               <CardTitle className="capitalize text-base font-normal">{t("inspections.templates.manageTitle", { type })}</CardTitle>
+               <CardDescription className="text-sm">
+                 {t("inspections.templates.managerDescription", { type, defaultValue: `Configure and customize your ${type} inspection templates. Add sections and items to streamline your inspection process.` })}
+               </CardDescription>
+             </div>
              {/* Dialog Trigger for Adding Section */}
              <Dialog open={isAddingSection} onOpenChange={setIsAddingSection}>
                <DialogTrigger asChild>
-                 <Button size="sm">
+                 <Button size="sm" className="w-full sm:w-auto">
                    <Plus className="mr-2 h-4 w-4" />
                    {t("inspections.templates.addSection")}
                  </Button>
                </DialogTrigger>
-               <DialogContent className="sm:max-w-[425px]">
+               <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
                  <DialogHeader>
                    <DialogTitle>{t("inspections.templates.newSectionTitle")}</DialogTitle>
                    <DialogDescription>
@@ -618,60 +621,60 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                  </DialogHeader>
                  {/* Update Dialog content for EN/JA inputs */}
                  <div className="grid gap-4 py-4">
-                   <div className="grid grid-cols-4 items-center gap-4">
-                     <Label htmlFor="section-name-en" className="text-right">
+                   <div className="grid grid-cols-12 items-center gap-2">
+                     <Label htmlFor="section-name-en" className="col-span-12 xs:col-span-4 xs:text-right">
                        {t("inspections.templates.sectionNameLabel", { defaultValue: "Section Name" })} (EN)
                      </Label>
                      <Input 
                        id="section-name-en" 
                        value={newSectionNameEn} 
                        onChange={(e) => setNewSectionNameEn(e.target.value)} 
-                       className="col-span-3" 
+                       className="col-span-12 xs:col-span-8" 
                        placeholder={t("inspections.templates.sectionNamePlaceholder", { defaultValue: "Enter section name..." })} 
                      />
                    </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                     <Label htmlFor="section-name-ja" className="text-right">
+                   <div className="grid grid-cols-12 items-center gap-2">
+                     <Label htmlFor="section-name-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                        {t("inspections.templates.sectionNameLabel", { defaultValue: "セクション名" })} (JA)
                      </Label>
                      <Input 
                        id="section-name-ja" 
                        value={newSectionNameJa} 
                        onChange={(e) => setNewSectionNameJa(e.target.value)} 
-                       className="col-span-3" 
+                       className="col-span-12 xs:col-span-8" 
                        placeholder={t("inspections.templates.sectionNamePlaceholderJa", { defaultValue: "セクション名を入力..." })} 
                      />
                    </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                     <Label htmlFor="section-description-en" className="text-right">
+                   <div className="grid grid-cols-12 items-center gap-2">
+                     <Label htmlFor="section-description-en" className="col-span-12 xs:col-span-4 xs:text-right">
                        {t("inspections.templates.sectionDescriptionLabel", { defaultValue: "Description" })} (EN)
                      </Label>
                      <Input 
                        id="section-description-en" 
                        value={newSectionDescEn} 
                        onChange={(e) => setNewSectionDescEn(e.target.value)} 
-                       className="col-span-3" 
+                       className="col-span-12 xs:col-span-8" 
                        placeholder={t("inspections.templates.sectionDescriptionPlaceholder", { defaultValue: "Enter description (optional)..." })} 
                      />
                    </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                     <Label htmlFor="section-description-ja" className="text-right">
+                   <div className="grid grid-cols-12 items-center gap-2">
+                     <Label htmlFor="section-description-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                        {t("inspections.templates.sectionDescriptionLabel", { defaultValue: "説明" })} (JA)
                      </Label>
                      <Input 
                        id="section-description-ja" 
                        value={newSectionDescJa} 
                        onChange={(e) => setNewSectionDescJa(e.target.value)} 
-                       className="col-span-3" 
+                       className="col-span-12 xs:col-span-8" 
                        placeholder={t("inspections.templates.sectionDescriptionPlaceholderJa", { defaultValue: "説明を入力（オプション）..." })} 
                      />
                    </div>
                  </div>
-                 <DialogFooter>
+                 <DialogFooter className="flex-col xs:flex-row gap-2">
                    <DialogClose asChild>
-                      <Button type="button" variant="outline">{t("common.cancel")}</Button>
+                      <Button type="button" variant="outline" className="w-full xs:w-auto">{t("common.cancel")}</Button>
                    </DialogClose>
-                   <Button type="button" onClick={handleAddSectionSubmit} disabled={isSavingSection}>
+                   <Button type="button" onClick={handleAddSectionSubmit} disabled={isSavingSection} className="w-full xs:w-auto">
                      {isSavingSection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
                      {isSavingSection ? t("common.saving") : t("common.save")}
                    </Button>
@@ -689,11 +692,11 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
             <Accordion type="multiple" className="w-full space-y-4">
               {sections.map((section, sectionIndex) => (
                 <AccordionItem value={section.id} key={section.id} className="border rounded-md px-4 bg-muted/30">
-                  <div className="flex justify-between items-center w-full py-3">
+                  <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center w-full py-2 gap-1">
                     <AccordionTrigger className="hover:no-underline flex-1 text-left p-0">
-                      <span className="font-medium text-lg">{section.title || t('common.untitled')}</span>
+                      <span className="font-medium">{section.title || t('common.untitled')}</span>
                     </AccordionTrigger>
-                    <div className="flex items-center gap-2 ml-4 shrink-0">
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
                       <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditSection(section.id); }} title={t('common.edit')}>
                          <Pencil className="h-4 w-4" />
                       </Button>
@@ -703,16 +706,16 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                               <Trash2 className="h-4 w-4" />
                             </Button>
                          </AlertDialogTrigger>
-                         <AlertDialogContent>
+                         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
                             <AlertDialogHeader>
                               <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
                               <AlertDialogDescription>
                                 {t('inspections.templates.deleteSectionConfirm', { name: section.title || 'Untitled Section', defaultValue: "Are you sure you want to delete the section '{name}'? This action cannot be undone." })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteSection(section.id)} className="bg-destructive hover:bg-destructive/80">
+                            <AlertDialogFooter className="flex-col xs:flex-row gap-2">
+                              <AlertDialogCancel className="w-full xs:w-auto">{t('common.cancel')}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteSection(section.id)} className="w-full xs:w-auto bg-destructive hover:bg-destructive/80">
                                 {t('common.delete')}
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -721,12 +724,16 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                     </div>
                   </div>
                   <AccordionContent className="pt-2 pb-2 border-t mt-0">
-                    <div className="space-y-4 pl-4">
+                    <div className="space-y-4 pl-2 xs:pl-4">
                       {section.items?.map((item, itemIndex) => (
-                         <div key={item.id} className="flex items-center justify-between p-3 border rounded-md bg-background">
-                            <div className="space-y-1 flex-grow mr-4">
-                              <p className="font-medium">{item.title || t('common.untitled')}</p>
-                              {item.description_translations[locale] && <p className="text-sm text-muted-foreground">{item.description_translations[locale]}</p>}
+                         <div key={item.id} className="flex flex-col xs:flex-row xs:items-center justify-between p-2 xs:p-3 border rounded-md bg-background">
+                            <div className="space-y-1 flex-grow mr-2 xs:mr-4 mb-2 xs:mb-0">
+                              <p className="font-medium text-sm xs:text-base">{item.title || t('common.untitled')}</p>
+                              {item.description_translations[locale] && 
+                                <p className="text-xs xs:text-sm text-muted-foreground">
+                                  {item.description_translations[locale]}
+                                </p>
+                              }
                               <div className="flex gap-4 pt-1">
                                  <div className="flex items-center space-x-2">
                                     <Checkbox id={`photo-${item.id}`} checked={item.requires_photo ?? false} disabled />
@@ -738,7 +745,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                                  </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 self-end xs:self-auto">
                                <Button variant="ghost" size="icon" onClick={() => { handleEditItem(section.id, item.id); }} title={t('common.edit')}>
                                  <Pencil className="h-4 w-4" />
                                </Button>
@@ -748,7 +755,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
+                                <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
                                     <AlertDialogDescription>
@@ -761,13 +768,13 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                                       checked={forceDeleteItem}
                                       onCheckedChange={(checked) => setForceDeleteItem(checked === true)} 
                                     />
-                                    <Label htmlFor={`force-delete-${item.id}`} className="text-sm text-destructive">
+                                    <Label htmlFor={`force-delete-${item.id}`} className="text-xs xs:text-sm text-destructive">
                                       Force delete (will also delete any inspections using this item)
                                     </Label>
                                   </div>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel onClick={() => setForceDeleteItem(false)}>{t('common.cancel')}</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteItem(item.id)} className="bg-destructive hover:bg-destructive/80">
+                                  <AlertDialogFooter className="flex-col xs:flex-row gap-2">
+                                    <AlertDialogCancel onClick={() => setForceDeleteItem(false)} className="w-full xs:w-auto">{t('common.cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteItem(item.id)} className="w-full xs:w-auto bg-destructive hover:bg-destructive/80">
                                       {t('common.delete')}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
@@ -792,7 +799,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
 
       {/* Add Item Dialog */}
       <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
-         <DialogContent className="sm:max-w-[425px]">
+         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
            <DialogHeader>
              <DialogTitle>{t("inspections.templates.newItemTitle", { defaultValue: "Add New Item" })}</DialogTitle>
              <DialogDescription>
@@ -800,51 +807,51 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </DialogDescription>
            </DialogHeader>
            <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="item-name-en" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="item-name-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemNameLabel", { defaultValue: "Item Name" })} (EN)
                </Label>
                <Input 
                  id="item-name-en" 
                  value={newItemNameEn} 
                  onChange={(e) => setNewItemNameEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                  placeholder={t("inspections.templates.itemNamePlaceholder", { defaultValue: "Enter item name..." })} 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="item-name-ja" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="item-name-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemNameLabel", { defaultValue: "項目名" })} (JA)
                </Label>
                <Input 
                  id="item-name-ja" 
                  value={newItemNameJa} 
                  onChange={(e) => setNewItemNameJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                  placeholder={t("inspections.templates.itemNamePlaceholderJa", { defaultValue: "項目名を入力..." })} 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="item-description-en" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="item-description-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemDescriptionLabel", { defaultValue: "Description" })} (EN)
                </Label>
                <Input 
                  id="item-description-en" 
                  value={newItemDescEn} 
                  onChange={(e) => setNewItemDescEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                  placeholder={t("inspections.templates.itemDescriptionPlaceholder", { defaultValue: "Enter description (optional)..." })} 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="item-description-ja" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="item-description-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemDescriptionLabel", { defaultValue: "説明" })} (JA)
                </Label>
                <Input 
                  id="item-description-ja" 
                  value={newItemDescJa} 
                  onChange={(e) => setNewItemDescJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                  placeholder={t("inspections.templates.itemDescriptionPlaceholderJa", { defaultValue: "説明を入力（オプション）..." })} 
                />
              </div>
@@ -865,11 +872,11 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                 <Label htmlFor="item-requires-notes">{t('inspections.templates.requiresNotes', { defaultValue: "Requires Notes" })}</Label>
              </div>
            </div>
-           <DialogFooter>
+           <DialogFooter className="flex-col xs:flex-row gap-2">
              <DialogClose asChild>
-               <Button type="button" variant="outline">{t("common.cancel")}</Button>
+               <Button type="button" variant="outline" className="w-full xs:w-auto">{t("common.cancel")}</Button>
              </DialogClose>
-             <Button type="button" onClick={handleAddItemSubmit} disabled={isSavingItem}>
+             <Button type="button" onClick={handleAddItemSubmit} disabled={isSavingItem} className="w-full xs:w-auto">
                {isSavingItem ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
                {isSavingItem ? t("common.saving") : t("common.save")}
              </Button>
@@ -879,7 +886,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
 
       {/* Edit Section Dialog */}
       <Dialog open={isEditingSection} onOpenChange={setIsEditingSection}>
-         <DialogContent className="sm:max-w-[425px]">
+         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
            <DialogHeader>
              <DialogTitle>{t("inspections.templates.editSectionTitle", { defaultValue: "Edit Section" })}</DialogTitle>
              <DialogDescription>
@@ -887,56 +894,56 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </DialogDescription>
            </DialogHeader>
            <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-section-name-en" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-section-name-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.sectionNameLabel")} (EN)
                </Label>
                <Input 
                  id="edit-section-name-en" 
                  value={editSectionNameEn} 
                  onChange={(e) => setEditSectionNameEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-section-name-ja" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-section-name-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.sectionNameLabel")} (JA)
                </Label>
                <Input 
                  id="edit-section-name-ja" 
                  value={editSectionNameJa} 
                  onChange={(e) => setEditSectionNameJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-section-description-en" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-section-description-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.sectionDescriptionLabel")} (EN)
                </Label>
                <Input 
                  id="edit-section-description-en" 
                  value={editSectionDescEn} 
                  onChange={(e) => setEditSectionDescEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-section-description-ja" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-section-description-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.sectionDescriptionLabel")} (JA)
                </Label>
                <Input 
                  id="edit-section-description-ja" 
                  value={editSectionDescJa} 
                  onChange={(e) => setEditSectionDescJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
            </div>
-           <DialogFooter>
+           <DialogFooter className="flex-col xs:flex-row gap-2">
              <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => setEditingSection(null)}>{t("common.cancel")}</Button>
+                <Button type="button" variant="outline" onClick={() => setEditingSection(null)} className="w-full xs:w-auto">{t("common.cancel")}</Button>
              </DialogClose>
-             <Button type="button" onClick={handleEditSectionSubmit} disabled={isSavingEditedSection}>
+             <Button type="button" onClick={handleEditSectionSubmit} disabled={isSavingEditedSection} className="w-full xs:w-auto">
                {isSavingEditedSection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
                {isSavingEditedSection ? t("common.saving") : t("common.save")}
              </Button>
@@ -946,7 +953,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       
       {/* Edit Item Dialog */}
       <Dialog open={isEditingItem} onOpenChange={setIsEditingItem}>
-         <DialogContent className="sm:max-w-[425px]">
+         <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
            <DialogHeader>
              <DialogTitle>{t("inspections.templates.editItemTitle", { defaultValue: "Edit Item" })}</DialogTitle>
              <DialogDescription>
@@ -954,48 +961,48 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
              </DialogDescription>
            </DialogHeader>
             <div className="grid gap-4 py-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-item-name-en" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-item-name-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemNameLabel", { defaultValue: "Item Name" })} (EN)
                </Label>
                <Input 
                  id="edit-item-name-en" 
                  value={editItemNameEn} 
                  onChange={(e) => setEditItemNameEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-item-name-ja" className="text-right">
+             <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-item-name-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemNameLabel", { defaultValue: "項目名" })} (JA)
                </Label>
                <Input 
                  id="edit-item-name-ja" 
                  value={editItemNameJa} 
                  onChange={(e) => setEditItemNameJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-item-description-en" className="text-right">
+              <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-item-description-en" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemDescriptionLabel", { defaultValue: "Description" })} (EN)
                </Label>
                <Input 
                  id="edit-item-description-en" 
                  value={editItemDescEn} 
                  onChange={(e) => setEditItemDescEn(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8" 
                />
              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="edit-item-description-ja" className="text-right">
+              <div className="grid grid-cols-12 items-center gap-2">
+               <Label htmlFor="edit-item-description-ja" className="col-span-12 xs:col-span-4 xs:text-right">
                  {t("inspections.templates.itemDescriptionLabel", { defaultValue: "説明" })} (JA)
                </Label>
                <Input 
                  id="edit-item-description-ja" 
                  value={editItemDescJa} 
                  onChange={(e) => setEditItemDescJa(e.target.value)} 
-                 className="col-span-3" 
+                 className="col-span-12 xs:col-span-8"
                />
              </div>
              <div className="flex items-center space-x-2">
@@ -1015,11 +1022,11 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                 <Label htmlFor="edit-item-requires-notes">{t('inspections.templates.requiresNotes', { defaultValue: "Requires Notes" })}</Label>
              </div>
            </div>
-           <DialogFooter>
+           <DialogFooter className="flex-col xs:flex-row gap-2">
              <DialogClose asChild>
-               <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>{t("common.cancel")}</Button>
+               <Button type="button" variant="outline" onClick={() => setEditingItem(null)} className="w-full xs:w-auto">{t("common.cancel")}</Button>
              </DialogClose>
-             <Button type="button" onClick={handleEditItemSubmit} disabled={isSavingEditedItem}>
+             <Button type="button" onClick={handleEditItemSubmit} disabled={isSavingEditedItem} className="w-full xs:w-auto">
                {isSavingEditedItem ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
                {isSavingEditedItem ? t("common.saving") : t("common.save")}
              </Button>

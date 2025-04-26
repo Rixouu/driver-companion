@@ -1,15 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { Image } from "@/components/shared/image"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
-import { MainNav } from "@/components/layout/main-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
-import { Menu, X, Gauge, Truck, ClipboardCheck, FileCheck, Settings, LogOut, Moon, Globe, BarChart, Bell } from "lucide-react"
+import { Gauge, LogOut, Moon, Globe, Bell } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useTheme } from "next-themes"
 import { supabase } from "@/lib/supabase/client"
@@ -35,40 +32,12 @@ export function Header() {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
-  // Function to get the current page title based on the pathname
-  const getPageTitle = (path: string, t: any) => {
-    if (path.startsWith('/dashboard')) return t('navigation.dashboard')
-    if (path.startsWith('/vehicles')) return t('navigation.vehicles')
-    if (path.startsWith('/maintenance')) return t('navigation.maintenance')
-    if (path.startsWith('/inspections')) return t('navigation.inspections')
-    if (path.startsWith('/reporting')) return t('navigation.reporting')
-    if (path.startsWith('/settings')) return t('navigation.settings')
-    return 'Driver'
-  }
-
   if (pathname.startsWith("/auth")) return null
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
-        <div className="flex h-14 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/img/driver-header-logo.png"
-                alt="Driver Logo"
-                width={140}
-                height={45}
-                priority
-                unoptimized
-              />
-            </Link>
-            {/* Hide MainNav on mobile, show on desktop */}
-            <div className="hidden md:flex">
-              <MainNav />
-            </div>
-          </div>
-          
+        <div className="flex h-14 items-center justify-end">
           <div className="flex items-center gap-4">
             {/* Show theme toggle and login only on desktop */}
             <div className="hidden md:flex items-center gap-4">

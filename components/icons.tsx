@@ -5,6 +5,9 @@ import {
   Car,
   MoreVertical,
   BoxSelect,
+  Calendar,
+  RefreshCw,
+  ChevronRight,
 } from "lucide-react"
 
 export const Icons = {
@@ -34,4 +37,7 @@ export const Icons = {
   maintenance: Wrench,
   empty: BoxSelect,
   more: MoreVertical,
+  calendar: Calendar,
+  arrowPath: RefreshCw,
+  chevronRight: ChevronRight,
 } 

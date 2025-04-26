@@ -15,6 +15,11 @@ export const navigation = [
     icon: "drivers",
   },
   {
+    title: "bookings",
+    href: "/bookings",
+    icon: "calendar",
+  },
+  {
     title: "inspections",
     href: "/inspections",
     icon: "inspections",

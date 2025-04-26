@@ -58,6 +58,7 @@ export const ja: TranslationValue = {
     dashboard: "ダッシュボード",
     vehicles: "車両",
     drivers: "ドライバー",
+    bookings: "予約",
     maintenance: "メンテナンス",
     inspections: "点検",
     settings: "設定",
@@ -1012,6 +1013,7 @@ export const ja: TranslationValue = {
     templates: {
       title: "点検テンプレート管理",
       manageTitle: "{type} テンプレートを管理",
+      managerDescription: "{type}点検テンプレートを設定・カスタマイズします。セクションやアイテムを追加して点検プロセスを効率化しましょう。",
       loadError: "{type} テンプレートデータの読み込みに失敗しました。",
       noSections: "このテンプレートにはまだセクションが定義されていません。",
       addSection: "セクションを追加",

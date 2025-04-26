@@ -1,7 +1,5 @@
 import { Work_Sans } from "next/font/google"
 import { Providers } from "@/components/providers"
-import { Header } from "@/components/layout/header"
-import { MobileNav } from "@/components/layout/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import "@/styles/globals.css"
 import { cn } from "@/lib/utils/styles"
@@ -38,17 +36,7 @@ export default async function RootLayout({
         >
           <I18nProvider>
             <Providers>
-              <div className="flex min-h-screen flex-col">
-                {!children?.toString().includes('LoginForm') && <Header />}
-                <main className="flex-1">
-                  {children?.toString().includes('LoginForm') ? (
-                    children
-                  ) : (
-                    <div className="container mx-auto px-4 pt-6 pb-20 md:pb-6">{children}</div>
-                  )}
-                </main>
-                {!children?.toString().includes('LoginForm') && <MobileNav />}
-              </div>
+              {children}
               <Toaster />
             </Providers>
           </I18nProvider>

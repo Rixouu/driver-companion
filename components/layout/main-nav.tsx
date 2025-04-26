@@ -13,6 +13,7 @@ export function MainNav() {
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
     drivers: { desktop: true, mobile: true },
+    bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -42,6 +43,11 @@ export function MainNav() {
       title: t("navigation.drivers"),
       href: "/drivers",
       key: "drivers"
+    },
+    {
+      title: t("navigation.bookings"),
+      href: "/bookings",
+      key: "bookings"
     },
     {
       title: t("navigation.maintenance"),

@@ -23,7 +23,8 @@ import {
   LayoutList,
   FileText,
   ShieldCheck,
-  Wrench as WrenchIcon // Alias Wrench to avoid naming conflict
+  Wrench as WrenchIcon, // Alias Wrench to avoid naming conflict
+  Calendar,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InspectionTemplateManager } from "@/components/inspections"
@@ -71,6 +72,7 @@ export default function SettingsPage() {
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
     drivers: { desktop: true, mobile: true },
+    bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -95,13 +97,35 @@ export default function SettingsPage() {
         if (savedMenuSettings) {
           try {
             const parsedSettings = JSON.parse(savedMenuSettings);
+            
+            // Ensure bookings menu is enabled
+            if (!parsedSettings.bookings) {
+              parsedSettings.bookings = { desktop: true, mobile: true };
+            }
+            
+            // Ensure existing bookings menu item is visible
+            if (parsedSettings.bookings && 
+                (!parsedSettings.bookings.desktop || !parsedSettings.bookings.mobile)) {
+              parsedSettings.bookings.desktop = true;
+              parsedSettings.bookings.mobile = true;
+            }
+            
             // Merge saved settings with default settings to avoid errors if new keys are added
-            setMenuSettings(prevSettings => ({ ...prevSettings, ...parsedSettings }));
+            const mergedSettings = { ...menuSettings, ...parsedSettings };
+            
+            // Update localStorage with fixed settings
+            localStorage.setItem('menuSettings', JSON.stringify(mergedSettings));
+            
+            // Update state
+            setMenuSettings(mergedSettings);
           } catch (error) {
             console.error("Error parsing menu settings from localStorage:", error);
-            // Optionally reset to default or clear invalid storage
-            localStorage.removeItem('menuSettings');
+            // Reset to default and update localStorage
+            localStorage.setItem('menuSettings', JSON.stringify(menuSettings));
           }
+        } else {
+          // If no settings exist yet, save the defaults
+          localStorage.setItem('menuSettings', JSON.stringify(menuSettings));
         }
       } catch (error) {
         console.error("Unexpected error getting session:", error)
@@ -143,30 +167,58 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
+          <p className="text-muted-foreground">
+            {t("settings.description") || "Manage your profile, preferences, and application settings"}
+          </p>
+        </div>
         {/* Add global save button or individual save buttons per tab? */}
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="profile">
-            <User className="mr-2 h-4 w-4" />
-            {t("settings.tabs.profile")}
-          </TabsTrigger>
-          <TabsTrigger value="preferences">
-            <Palette className="mr-2 h-4 w-4" />
-            {t("settings.tabs.preferences")}
-          </TabsTrigger>
-          <TabsTrigger value="menu">
-            <LayoutList className="mr-2 h-4 w-4" />
-            {t("settings.tabs.menu")}
-          </TabsTrigger>
-          <TabsTrigger value="templates">
-            <ClipboardCheck className="mr-2 h-4 w-4" />
-            {t("settings.tabs.templates")}
-          </TabsTrigger>
-        </TabsList>
+        <div className="relative">
+          <TabsList className="flex w-full overflow-x-auto scrollbar-hide py-2 no-scrollbar">
+            <TabsTrigger 
+              value="profile" 
+              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
+            >
+              <User className="mr-2 h-5 w-5" />
+              <span>{t("settings.tabs.profile")}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="preferences" 
+              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
+            >
+              <Palette className="mr-2 h-5 w-5" />
+              <span>{t("settings.tabs.preferences")}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="menu" 
+              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
+            >
+              <LayoutList className="mr-2 h-5 w-5" />
+              <span>{t("settings.tabs.menu")}</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="templates" 
+              className="flex-1 min-w-[120px] h-12 data-[state=active]:bg-primary/10"
+            >
+              <ClipboardCheck className="mr-2 h-5 w-5" />
+              <span>{t("settings.tabs.templates")}</span>
+            </TabsTrigger>
+          </TabsList>
+          <style jsx global>{`
+            .no-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+            .no-scrollbar {
+              -ms-overflow-style: none;
+              scrollbar-width: none;
+            }
+          `}</style>
+        </div>
 
         {/* Profile Tab */}
         <TabsContent value="profile">
@@ -252,6 +304,7 @@ export default function SettingsPage() {
                         if (key === 'dashboard') IconComponent = Gauge;
                         else if (key === 'vehicles') IconComponent = Truck;
                         else if (key === 'drivers') IconComponent = User;
+                        else if (key === 'bookings') IconComponent = Calendar;
                         else if (key === 'maintenance') IconComponent = Wrench;
                         else if (key === 'inspections') IconComponent = ClipboardCheck;
                         else if (key === 'reporting') IconComponent = BarChart;
@@ -260,27 +313,18 @@ export default function SettingsPage() {
                           <tr key={key} className="hover:bg-muted/50">
                             <td className="p-3 flex items-center gap-2">
                               <IconComponent className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span>{t(`navigation.${key as keyof typeof menuSettings}`)}</span>
-                              {key === 'settings' && (
-                                <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                  {t("settings.menu.alwaysVisible")}
-                                </span>
-                              )}
+                              <span>{t(`settings.menu.${key}`)}</span>
                             </td>
-                            <td className="p-3 text-center hidden sm:table-cell">
-                              <Switch 
-                                id={`menu-${key}-desktop`} 
+                            <td className="text-center p-3">
+                              <Switch
                                 checked={value.desktop}
-                                onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
-                                disabled={key === 'settings'}
+                                onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
                               />
                             </td>
-                            <td className="p-3 text-center">
-                              <Switch 
-                                id={`menu-${key}-mobile`} 
+                            <td className="text-center p-3">
+                              <Switch
                                 checked={value.mobile}
-                                onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
-                                disabled={key === 'settings'}
+                                onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
                               />
                             </td>
                           </tr>
@@ -289,71 +333,111 @@ export default function SettingsPage() {
                     </tbody>
                   </table>
                 </div>
-                
-                <div className="sm:hidden text-sm text-muted-foreground mb-4">
-                  <p>{t("settings.menu.desktopSettingsHidden")}</p>
-                </div>
-                
-                <Button 
-                  onClick={saveMenuSettings} 
-                  disabled={isSaving}
-                  className="w-full"
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t("common.saving")}
-                    </>
-                  ) : (
-                    <>{t("common.saveChanges")}</> // Use a more specific label
-                  )}
-                </Button>
+                <Button onClick={saveMenuSettings}>{t("settings.menu.save")}</Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Inspection Templates Tab */}
-        <TabsContent value="templates" className="space-y-4">
-           <Card>
+        {/* Templates Tab */}
+        <TabsContent value="templates">
+          <Card>
             <CardHeader>
-               <CardTitle>{t("settings.templates.title")}</CardTitle>
-               <p className="text-sm text-muted-foreground">
-                 {t("settings.templates.description")}
-               </p>
-             </CardHeader>
-             <CardContent>
-               <Tabs defaultValue="routine" className="space-y-4">
-                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="routine">
-                       <FileText className="mr-2 h-4 w-4" />
-                       {t("inspections.type.routine")}
+              <CardTitle>{t("settings.templates.title")}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t("settings.templates.description")}
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Responsive Template Tabs - Works for both mobile and desktop */}
+                <Tabs defaultValue="routine" className="w-full">
+                  {/* Mobile template selector */}
+                  <div className="sm:hidden mb-4">
+                    <Select defaultValue="routine" onValueChange={(value) => {
+                      // Set the tab value programmatically by finding the TabsList element
+                      const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
+                      if (tabsList) {
+                        const tab = tabsList.querySelector(`[data-value="${value}"]`) as HTMLElement;
+                        tab?.click();
+                      }
+                    }}>
+                      <SelectTrigger className="w-full py-3">
+                        <SelectValue placeholder={t("inspections.selectTemplate") || "Select template type"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="routine">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            <span>{t("inspections.type.routine")}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="safety">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4" />
+                            <span>{t("inspections.type.safety")}</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="maintenance">
+                          <div className="flex items-center gap-2">
+                            <WrenchIcon className="h-4 w-4" />
+                            <span>{t("inspections.type.maintenance")}</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* TabsList - Hidden on mobile, visible on desktop */}
+                  <TabsList className="hidden sm:flex w-full mb-4">
+                    <TabsTrigger value="routine" className="flex-1 py-3" data-value="routine">
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>{t("inspections.type.routine")}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="safety">
-                       <ShieldCheck className="mr-2 h-4 w-4" />
-                       {t("inspections.type.safety")}
+                    <TabsTrigger value="safety" className="flex-1 py-3" data-value="safety">
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      <span>{t("inspections.type.safety")}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="maintenance">
-                       <WrenchIcon className="mr-2 h-4 w-4" />
-                       {t("inspections.type.maintenance")}
+                    <TabsTrigger value="maintenance" className="flex-1 py-3" data-value="maintenance">
+                      <WrenchIcon className="mr-2 h-4 w-4" />
+                      <span>{t("inspections.type.maintenance")}</span>
                     </TabsTrigger>
-                 </TabsList>
-
-                 <TabsContent value="routine">
+                  </TabsList>
+                  
+                  {/* Tab contents - Used for both mobile and desktop */}
+                  <TabsContent value="routine" className="mt-0">
+                    <div className="sm:hidden py-2 px-3 mb-4 border rounded-md bg-muted/30">
+                      <h3 className="text-sm font-medium flex items-center">
+                        <FileText className="mr-2 h-4 w-4" />
+                        {t("inspections.type.routine")}
+                      </h3>
+                    </div>
                     <InspectionTemplateManager type="routine" />
-                 </TabsContent>
-                 <TabsContent value="safety">
+                  </TabsContent>
+                  <TabsContent value="safety" className="mt-0">
+                    <div className="sm:hidden py-2 px-3 mb-4 border rounded-md bg-muted/30">
+                      <h3 className="text-sm font-medium flex items-center">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        {t("inspections.type.safety")}
+                      </h3>
+                    </div>
                     <InspectionTemplateManager type="safety" />
-                 </TabsContent>
-                 <TabsContent value="maintenance">
+                  </TabsContent>
+                  <TabsContent value="maintenance" className="mt-0">
+                    <div className="sm:hidden py-2 px-3 mb-4 border rounded-md bg-muted/30">
+                      <h3 className="text-sm font-medium flex items-center">
+                        <WrenchIcon className="mr-2 h-4 w-4" />
+                        {t("inspections.type.maintenance")}
+                      </h3>
+                    </div>
                     <InspectionTemplateManager type="maintenance" />
-                 </TabsContent>
-               </Tabs>
-             </CardContent>
-           </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   )
-} 
+}

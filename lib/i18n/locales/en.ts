@@ -58,6 +58,7 @@ export const en: TranslationValue = {
     dashboard: "Dashboard",
     vehicles: "Vehicles",
     drivers: "Drivers",
+    bookings: "Bookings",
     maintenance: "Maintenance",
     inspections: "Inspections",
     settings: "Settings",
@@ -963,6 +964,7 @@ export const en: TranslationValue = {
     templates: {
       title: "Inspection Template Management",
       manageTitle: "Manage {type} Template",
+      managerDescription: "Configure and customize your {type} inspection templates. Add sections and items to streamline your inspection process.",
       loadError: "Failed to load {type} template data.",
       noSections: "No sections defined for this template yet.",
       addSection: "Add Section",

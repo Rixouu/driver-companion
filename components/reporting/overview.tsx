@@ -20,7 +20,7 @@ interface OverviewStats {
 }
 
 interface OverviewProps {
-  dateRange: DateRange
+  dateRange?: DateRange | undefined
 }
 
 export function Overview({ dateRange }: OverviewProps) {
@@ -36,10 +36,10 @@ export function Overview({ dateRange }: OverviewProps) {
 
   useEffect(() => {
     async function fetchOverviewStats() {
-      const currentStart = startOfMonth(dateRange.to || new Date()).toISOString()
-      const currentEnd = endOfMonth(dateRange.to || new Date()).toISOString()
-      const prevStart = startOfMonth(new Date(dateRange.from || new Date())).toISOString()
-      const prevEnd = endOfMonth(dateRange.from || new Date()).toISOString()
+      const currentStart = startOfMonth(dateRange?.to || new Date()).toISOString()
+      const currentEnd = endOfMonth(dateRange?.to || new Date()).toISOString()
+      const prevStart = startOfMonth(new Date(dateRange?.from || new Date())).toISOString()
+      const prevEnd = endOfMonth(dateRange?.from || new Date()).toISOString()
 
       try {
         // Fetch current month data

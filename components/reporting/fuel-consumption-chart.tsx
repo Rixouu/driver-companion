@@ -14,7 +14,7 @@ interface FuelData {
 }
 
 interface FuelConsumptionChartProps {
-  dateRange: DateRange
+  dateRange?: DateRange | undefined
 }
 
 export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
@@ -27,8 +27,8 @@ export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
         const { data: fuelEntries, error } = await supabase
           .from('fuel_entries')
           .select('date, fuel_amount, fuel_cost')
-          .gte('date', dateRange.from?.toISOString())
-          .lte('date', dateRange.to?.toISOString())
+          .gte('date', dateRange?.from?.toISOString())
+          .lte('date', dateRange?.to?.toISOString())
           .order('date')
 
         if (error) throw error
@@ -62,7 +62,7 @@ export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
       }
     }
 
-    if (dateRange.from && dateRange.to) {
+    if (dateRange?.from && dateRange?.to) {
       fetchFuelData()
     }
   }, [dateRange])

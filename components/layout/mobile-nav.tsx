@@ -12,7 +12,8 @@ import {
   ClipboardCheck,
   BarChart,
   Settings,
-  User
+  User,
+  Calendar
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -23,6 +24,7 @@ export function MobileNav() {
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
     drivers: { desktop: true, mobile: true },
+    bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
@@ -33,7 +35,33 @@ export function MobileNav() {
   useEffect(() => {
     const savedMenuSettings = localStorage.getItem('menuSettings')
     if (savedMenuSettings) {
-      setMenuSettings(JSON.parse(savedMenuSettings))
+      try {
+        const parsedSettings = JSON.parse(savedMenuSettings)
+        
+        // Ensure bookings menu is enabled
+        if (!parsedSettings.bookings) {
+          parsedSettings.bookings = { desktop: true, mobile: true }
+        }
+        
+        // Ensure existing bookings menu item is visible
+        if (parsedSettings.bookings && 
+            (!parsedSettings.bookings.desktop || !parsedSettings.bookings.mobile)) {
+          parsedSettings.bookings.desktop = true
+          parsedSettings.bookings.mobile = true
+        }
+        
+        // Update localStorage with fixed settings
+        localStorage.setItem('menuSettings', JSON.stringify(parsedSettings))
+        
+        // Update state
+        setMenuSettings(parsedSettings)
+      } catch (error) {
+        console.error("Error parsing menu settings:", error)
+        localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
+      }
+    } else {
+      // If no settings exist, save the defaults
+      localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
     }
   }, [])
   
@@ -41,7 +69,8 @@ export function MobileNav() {
   const isDetailPage = pathname.includes('/maintenance/') || 
                       pathname.includes('/inspections/') || 
                       pathname.includes('/vehicles/') ||
-                      pathname.includes('/drivers/');
+                      pathname.includes('/drivers/') ||
+                      pathname.includes('/bookings/');
   
   if (isDetailPage) return null;
   
@@ -64,6 +93,12 @@ export function MobileNav() {
       href: "/drivers",
       icon: User,
       key: 'drivers'
+    },
+    {
+      title: t("navigation.bookings"),
+      href: "/bookings",
+      icon: Calendar,
+      key: 'bookings'
     },
     {
       title: t("navigation.maintenance"),
@@ -93,8 +128,8 @@ export function MobileNav() {
   
   // Filter items based on menu settings - only show items visible on mobile
   const items = allItems.filter(item => {
-    // Always show settings on mobile
-    if (item.key === 'settings') return true;
+    // Always show settings and bookings on mobile
+    if (item.key === 'settings' || item.key === 'bookings') return true;
     
     const setting = menuSettings[item.key as keyof typeof menuSettings];
     return setting && setting.mobile;

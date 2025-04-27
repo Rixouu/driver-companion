@@ -4,12 +4,12 @@ export const ja: TranslationValue = {
   common: {
     status: {
       inProgress: "進行中",
-      upcoming: "近日",
+      upcoming: "近日中",
       recent: "最近",
-      active: "有効",
-      inactive: "無効",
+      active: "アクティブ",
+      inactive: "非アクティブ",
       completed: "完了",
-      scheduled: "予定",
+      scheduled: "予定済み",
       type: "タイプ"
     },
     loading: "読み込み中...",
@@ -28,21 +28,21 @@ export const ja: TranslationValue = {
     noResults: "結果が見つかりません",
     details: "詳細",
     actions: "アクション",
-    viewDetails: "詳細を見る",
+    viewDetails: "詳細を表示",
     addNew: "新規追加",
     backTo: "戻る",
     backToList: "一覧に戻る",
     saving: "保存中...",
     update: "更新",
     create: "作成",
-    created: "作成日",
+    created: "作成済み",
     deleting: "削除中...",
     menu: "メニュー",
     login: "ログイン",
     logout: "ログアウト",
     darkMode: "ダークモード",
     inProgress: "進行中",
-    upcoming: "近日",
+    upcoming: "近日中",
     recent: "最近",
     total: "合計",
     type: "タイプ",
@@ -52,7 +52,9 @@ export const ja: TranslationValue = {
     grid: "グリッド",
     list: "リスト",
     submitting: "送信中...",
-    notAssigned: "未割り当て"
+    notAssigned: "未割り当て",
+    noImage: "画像なし",
+    minutes: "分"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -568,19 +570,46 @@ export const ja: TranslationValue = {
   },
   inspections: {
     title: "点検",
-    description: "車両点検を管理する",
-    selectTemplate: "テンプレートタイプを選択",
-    type: {
-      routine: "定期点検",
-      safety: "安全点検",
-      maintenance: "メンテナンス点検",
-      select: "点検タイプを選択",
-      description: {
-        routine: "車両部品の定期的な点検",
-        safety: "包括的な安全システム評価",
-        maintenance: "詳細な機械系統の点検"
-      }
-    }
+    description: "車両点検の管理",
+    addInspection: "点検を追加",
+    newInspection: "新規点検",
+    editInspection: "点検を編集",
+    searchPlaceholder: "点検を検索...",
+    noInspections: "点検が見つかりません",
+    createInspection: "点検を作成",
+    defaultType: "定期点検",
+    steps: {
+      selectVehicle: "車両を選択",
+      selectType: "点検タイプを選択"
+    },
+    labels: {
+      progress: "点検の進捗",
+      estimatedTime: "推定残り時間",
+      model: "モデル",
+      photoNumber: "写真 {{number}}"
+    },
+    actions: {
+      pass: "合格",
+      fail: "不合格",
+      complete: "点検を完了",
+      markComplete: "完了としてマーク",
+      markInProgress: "点検を開始",
+      startInspection: "点検を開始",
+      cancel: "点検をキャンセル",
+      edit: "点検を編集",
+      delete: "点検を削除",
+      addPhoto: "写真を追加",
+      addNotes: "メモを追加",
+      resume: "点検を再開",
+      scheduleRepair: "修理を予定",
+      needsRepair: "修理が必要",
+      scheduleRepairDescription: "車両を最適な状態に保つため、不合格項目の修理メンテナンスタスクを予定します。",
+      takePhoto: "写真を撮る",
+      photos: "写真 ({{count}}枚)",
+      previousSection: "前のセクション",
+      nextSection: "次のセクション",
+      completeInspection: "点検を完了"
+    },
   },
   dashboard: {
     title: "ダッシュボード",

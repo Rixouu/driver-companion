@@ -52,7 +52,9 @@ export const en: TranslationValue = {
     grid: "Grid",
     list: "List",
     submitting: "Submitting...",
-    notAssigned: "Not Assigned"
+    notAssigned: "Not Assigned",
+    noImage: "No Image",
+    minutes: "min"
   },
   navigation: {
     dashboard: "Dashboard",
@@ -638,6 +640,16 @@ export const en: TranslationValue = {
     noInspections: "No inspections found",
     createInspection: "Create Inspection",
     defaultType: "Routine",
+    steps: {
+      selectVehicle: "Select Vehicle",
+      selectType: "Select Inspection Type"
+    },
+    labels: {
+      progress: "Inspection Progress",
+      estimatedTime: "Est. time remaining",
+      model: "Model",
+      photoNumber: "Photo {{number}}"
+    },
     actions: {
       pass: "Pass",
       fail: "Fail",
@@ -653,7 +665,12 @@ export const en: TranslationValue = {
       resume: "Resume Inspection",
       scheduleRepair: "Schedule Repair",
       needsRepair: "Repairs Needed",
-      scheduleRepairDescription: "Schedule maintenance tasks for the failed items to keep your vehicle in optimal condition."
+      scheduleRepairDescription: "Schedule maintenance tasks for the failed items to keep your vehicle in optimal condition.",
+      takePhoto: "Take Photo",
+      photos: "Photos ({{count}})",
+      previousSection: "Previous Section",
+      nextSection: "Next Section",
+      completeInspection: "Complete Inspection"
     },
     status: {
       scheduled: "Scheduled",

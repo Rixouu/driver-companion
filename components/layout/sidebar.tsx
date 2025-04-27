@@ -116,7 +116,7 @@ export function Sidebar() {
   ]
 
   return (
-    <div className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-black text-white">
+    <div className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]">
       <div className="flex h-full flex-col justify-between overflow-y-auto py-4">
         <div className="px-4 mb-6">
           <Link href="/" className="flex items-center">
@@ -147,7 +147,7 @@ export function Sidebar() {
               <div key={group.id} className="space-y-1">
                 {group.label && (
                   <div className="px-3 mb-2">
-                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <h2 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
                       {group.label}
                     </h2>
                   </div>
@@ -163,8 +163,8 @@ export function Sidebar() {
                         className={cn(
                           "w-full justify-start",
                           isActive 
-                            ? "bg-zinc-800 text-white" 
-                            : "text-gray-300 hover:bg-zinc-800 hover:text-white"
+                            ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]" 
+                            : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
                         )}
                       >
                         <item.icon className="mr-2 h-5 w-5" />
@@ -181,7 +181,7 @@ export function Sidebar() {
         <div className="px-2 mt-6">
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-red-400 hover:bg-zinc-800 hover:text-red-400"
+            className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-5 w-5" />

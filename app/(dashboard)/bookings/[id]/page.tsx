@@ -38,8 +38,13 @@ function BookingNotFound({ bookingId }: { bookingId: string }) {
 // Avatar component for client display
 function AvatarInitials({ name }: { name: string }) {
   const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
+    // Check if name is undefined, null, or empty
+    if (!name || typeof name !== 'string') {
+      return 'U'; // Return 'U' for unknown if no valid name
+    }
+    
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2 && parts[0] && parts[1]) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
@@ -276,6 +281,25 @@ export default async function BookingPage({ params }: { params: { id: string } }
               ) : (
                 <p className="text-muted-foreground">No route information available</p>
               )}
+              
+              {/* Add distance and duration */}
+              {(booking.distance || booking.duration) && (
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
+                  {booking.distance && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Distance</h3>
+                      <p className="mt-1">{booking.distance} km</p>
+                    </div>
+                  )}
+                  
+                  {booking.duration && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Duration</h3>
+                      <p className="mt-1">{booking.duration} min</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
         </div>
@@ -323,6 +347,61 @@ export default async function BookingPage({ params }: { params: { id: string } }
                   <p className="mt-1 flex items-center">
                     <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.customer_phone || '+66 98 765 4321'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+          
+          {/* Additional Information Section */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                <FileText className="mr-2 h-5 w-5" />
+                Additional Information
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Flight Number</h3>
+                  <p className="mt-1">
+                    {(() => {
+                      // Check if form element fields exist and is an array
+                      if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
+                        // Find flight number field
+                        const flightField = booking.meta.chbs_form_element_field.find(
+                          (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
+                        );
+                        if (flightField?.value) return flightField.value;
+                      }
+                      return booking.meta?.chbs_flight_number || 'Not provided';
+                    })()}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Terminal</h3>
+                  <p className="mt-1">
+                    {(() => {
+                      // Check if form element fields exist and is an array
+                      if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
+                        // Find terminal field
+                        const terminalField = booking.meta.chbs_form_element_field.find(
+                          (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
+                        );
+                        if (terminalField?.value) return terminalField.value;
+                      }
+                      return booking.meta?.chbs_terminal || 'Not provided';
+                    })()}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Comment</h3>
+                  <p className="mt-1 whitespace-pre-wrap">
+                    {booking.notes || booking.meta?.chbs_comment || 'No comments provided'}
                   </p>
                 </div>
               </div>

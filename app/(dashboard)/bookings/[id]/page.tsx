@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, X, Mail, Phone } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus } from 'lucide-react'
 import Image from 'next/image'
 import { useEffect, useRef } from 'react'
 import Script from 'next/script'
 import { PrintButton } from '@/components/bookings/print-button'
+import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
+import { ContactButtons } from '@/components/bookings/contact-buttons'
+import { BookingActions } from '@/components/bookings/booking-actions'
 
 export const metadata: Metadata = {
   title: 'Booking Details',
@@ -135,6 +138,8 @@ export default async function BookingPage({ params }: { params: { id: string } }
         <div className="flex gap-3 mt-4 md:mt-0">
           {getStatusBadge(booking.status)}
           <PrintButton />
+          
+          <DriverActionsDropdown booking={booking} />
         </div>
       </div>
       
@@ -257,6 +262,19 @@ export default async function BookingPage({ params }: { params: { id: string } }
                     </div>
                   </div>
                   
+                  {/* Add Navigate to Pickup button */}
+                  <div className="ml-9 mt-2">
+                    <a 
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.pickup_location || '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
+                    >
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Navigate to Pickup
+                    </a>
+                  </div>
+                  
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
@@ -267,6 +285,19 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       <h3 className="font-medium">Dropoff Location</h3>
                       <p className="text-muted-foreground mt-1">{booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}</p>
                     </div>
+                  </div>
+                  
+                  {/* Add Navigate to Drop-off button */}
+                  <div className="ml-9 mt-2">
+                    <a 
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.dropoff_location || '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
+                    >
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Navigate to Drop-off
+                    </a>
                   </div>
                   
                   {booking.pickup_location && booking.dropoff_location && (
@@ -280,6 +311,39 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
               ) : (
                 <p className="text-muted-foreground">No route information available</p>
+              )}
+              
+              {/* Add Weather Forecast Section */}
+              {booking.date && (
+                <div className="mt-6 pt-6 border-t">
+                  <h3 className="text-lg font-medium flex items-center mb-4">
+                    <CloudSun className="mr-2 h-5 w-5" />
+                    Weather Forecast for Trip Date
+                  </h3>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center mr-3">
+                        <span role="img" aria-label="sunny" className="text-xl">☀️</span>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">24°C</p>
+                        <p className="text-sm text-muted-foreground">Sunny</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking.pickup_location?.split(',')[0] || 'Location'}, {booking.pickup_location?.split(',').pop()?.trim() || 'Region'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground mt-2">
+                    * Weather forecast is an approximation and may change. Check before your trip.
+                  </p>
+                </div>
               )}
               
               {/* Add distance and duration */}
@@ -348,6 +412,8 @@ export default async function BookingPage({ params }: { params: { id: string } }
                     <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.customer_phone || '+66 98 765 4321'}
                   </p>
+                  
+                  <ContactButtons phoneNumber={booking.customer_phone || '+66 98 765 4321'} />
                 </div>
               </div>
             </div>
@@ -454,18 +520,14 @@ export default async function BookingPage({ params }: { params: { id: string } }
             </div>
           </Card>
           
-          {/* Additional Actions */}
-          <div className="space-y-3">
-            <Button className="w-full" variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Booking
-            </Button>
-            
-            <Button className="w-full" variant="destructive">
-              <X className="mr-2 h-4 w-4" />
-              Cancel Booking
-            </Button>
-          </div>
+          {/* Booking Actions */}
+          <BookingActions 
+            bookingId={(booking.id || booking.booking_id || params.id)}
+            status={booking.status || 'Pending'}
+            date={booking.date || '2023-04-30'}
+            time={booking.time || '06:30'}
+            booking={booking}
+          />
         </div>
       </div>
     </div>

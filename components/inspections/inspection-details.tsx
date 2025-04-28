@@ -612,7 +612,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                 className="gap-2"
             asChild
           >
-                <Link href={`/vehicles/${inspection.vehicle_id}`}>
+                <Link href={`/vehicles/${inspection.vehicle_id}`} legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
                   {t('common.backTo')}
             </Link>
@@ -657,7 +657,6 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           </div>
         </CardHeader>
       </Card>
-
       {/* Floating Action Button for Mobile */}
       {inspection.status === 'completed' && (
         <div className="fixed right-4 bottom-20 z-50 flex flex-col gap-2 md:hidden print-hide">
@@ -679,7 +678,6 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           </Button>
         </div>
       )}
-
       {/* Print Header - Only visible when printing */}
       <div className="hidden print:block print:mb-6">
         <h1 className="text-2xl font-bold mb-2">{t('inspections.details.printTitle')}</h1>
@@ -694,7 +692,6 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           </div>
         </div>
       </div>
-
       {/* Tabs Section */}
       <Tabs defaultValue="details" className="w-full">
         {/* Desktop Tabs */}
@@ -1201,7 +1198,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
         </div>
         </Tabs>
     </div>
-  )
+  );
 } 
 
 function getStatusVariant(status: string) {

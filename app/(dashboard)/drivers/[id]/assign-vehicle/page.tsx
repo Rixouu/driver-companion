@@ -178,13 +178,15 @@ export default function AssignVehiclePage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href={`/drivers/${id}`} className="flex items-center gap-2">
+            <Link
+              href={`/drivers/${id}`}
+              className="flex items-center gap-2"
+              legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.driverDetails")}
             </Link>
           </Button>
         </div>
-
         <Card>
           <CardHeader>
             <Skeleton className="h-8 w-64 mb-2" />
@@ -198,7 +200,7 @@ export default function AssignVehiclePage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!driver) {
@@ -206,38 +208,39 @@ export default function AssignVehiclePage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2">
+            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Link>
           </Button>
         </div>
-
         <Card>
           <CardContent className="p-8 text-center">
             <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
             <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
             <Button asChild>
-              <Link href="/drivers">{t("common.backTo")} {t("drivers.title")}</Link>
+              <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center mb-8">
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/drivers/${id}`} className="flex items-center gap-2">
+          <Link
+            href={`/drivers/${id}`}
+            className="flex items-center gap-2"
+            legacyBehavior>
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.driverDetails")}
           </Link>
         </Button>
       </div>
-
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4 mb-4">
@@ -299,7 +302,7 @@ export default function AssignVehiclePage() {
                   variant="outline"
                   asChild
                 >
-                  <Link href={`/drivers/${id}`}>
+                  <Link href={`/drivers/${id}`} legacyBehavior>
                     {t("common.cancel")}
                   </Link>
                 </Button>
@@ -385,7 +388,7 @@ export default function AssignVehiclePage() {
                       variant="outline"
                       asChild
                     >
-                      <Link href={`/drivers/${id}`}>
+                      <Link href={`/drivers/${id}`} legacyBehavior>
                         {t("common.cancel")}
                       </Link>
                     </Button>
@@ -423,7 +426,6 @@ export default function AssignVehiclePage() {
           </Tabs>
         </CardContent>
       </Card>
-      
       <AlertDialog open={confirmUnassignOpen} onOpenChange={setConfirmUnassignOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -448,5 +450,5 @@ export default function AssignVehiclePage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 } 

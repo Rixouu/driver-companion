@@ -18,7 +18,7 @@ export function DriverListItem({ driver }: DriverListItemProps) {
     <Link
       href={`/drivers/${driver.id}`}
       className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-    >
+      legacyBehavior>
       <div className="flex items-center gap-4">
         <Avatar className="h-10 w-10">
           <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
@@ -42,5 +42,5 @@ export function DriverListItem({ driver }: DriverListItemProps) {
         <ChevronRight className="h-4 w-4 text-muted-foreground" />
       </div>
     </Link>
-  )
+  );
 } 

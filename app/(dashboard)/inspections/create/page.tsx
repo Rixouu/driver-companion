@@ -45,7 +45,7 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
             className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href={backUrl} className="flex items-center gap-2">
+            <Link href={backUrl} className="flex items-center gap-2" legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">{backText}</span>
               <span className="sm:hidden">Back</span>
@@ -70,5 +70,5 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
         />
       </div>
     </div>
-  )
+  );
 } 

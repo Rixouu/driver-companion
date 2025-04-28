@@ -62,7 +62,10 @@ export default async function NewMaintenancePage({
           className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
           asChild
         >
-          <Link href={`/vehicles/${params.id}/maintenance`} className="flex items-center gap-2">
+          <Link
+            href={`/vehicles/${params.id}/maintenance`}
+            className="flex items-center gap-2"
+            legacyBehavior>
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back to maintenance</span>
             <span className="sm:hidden">Back</span>
@@ -75,5 +78,5 @@ export default async function NewMaintenancePage({
       </div>
       <MaintenanceForm initialData={initialData} />
     </div>
-  )
+  );
 } 

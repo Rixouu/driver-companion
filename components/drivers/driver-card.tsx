@@ -19,7 +19,7 @@ export function DriverCard({ driver }: DriverCardProps) {
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <Link href={`/drivers/${driver.id}`} className="block h-full">
+      <Link href={`/drivers/${driver.id}`} className="block h-full" legacyBehavior>
         <CardContent className="p-6">
           <div className="flex items-center gap-4 mb-4">
             <Avatar className="h-12 w-12">
@@ -68,5 +68,5 @@ export function DriverCard({ driver }: DriverCardProps) {
         </CardFooter>
       </Link>
     </Card>
-  )
+  );
 } 

@@ -22,13 +22,12 @@ export function BookingDetail({ booking }: BookingDetailProps) {
           description={`View details for booking #${booking.id}`}
         />
         <Button asChild variant="ghost">
-          <Link href="/bookings">
+          <Link href="/bookings" legacyBehavior>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Bookings
           </Link>
         </Button>
       </div>
-      
       <Suspense fallback={<BookingDetailSkeleton />}>
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
@@ -151,5 +150,5 @@ export function BookingDetail({ booking }: BookingDetailProps) {
         </div>
       </Suspense>
     </div>
-  )
+  );
 } 

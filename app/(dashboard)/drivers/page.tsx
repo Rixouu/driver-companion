@@ -125,13 +125,12 @@ export default function DriversPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/drivers/new" className="flex items-center">
+          <Link href="/drivers/new" className="flex items-center" legacyBehavior>
             <Plus className="mr-2 h-4 w-4" />
             {t("drivers.actions.addDriver")}
           </Link>
         </Button>
       </div>
-
       <div className="space-y-4">
         <div className="flex flex-col gap-4">
           <div className="relative">
@@ -214,7 +213,7 @@ export default function DriversPage() {
             }
             action={
               <Button asChild>
-                <Link href="/drivers/new">
+                <Link href="/drivers/new" legacyBehavior>
                   <Plus className="mr-2 h-4 w-4" />
                   {t("drivers.actions.addDriver")}
                 </Link>
@@ -304,5 +303,5 @@ export default function DriversPage() {
         )}
       </div>
     </div>
-  )
+  );
 } 

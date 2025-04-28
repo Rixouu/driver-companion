@@ -50,7 +50,7 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
             className="pl-0 text-muted-foreground"
             asChild
           >
-            <Link href="/vehicles">
+            <Link href="/vehicles" legacyBehavior>
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("common.backTo")} {t("vehicles.title")}
             </Link>
@@ -65,5 +65,5 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
       </div>
       <VehicleForm vehicle={vehicle} />
     </div>
-  )
+  );
 } 

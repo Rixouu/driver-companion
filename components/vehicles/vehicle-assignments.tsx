@@ -135,7 +135,7 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
           <CardDescription>{t("vehicles.assignments.description")}</CardDescription>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+          <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
             <UserPlus className="mr-2 h-4 w-4" />
             {t("vehicles.actions.assignDriver")}
           </Link>
@@ -152,7 +152,7 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
               {t("vehicles.assignments.noAssignmentsDesc")}
             </p>
             <Button className="mt-4" asChild>
-              <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+              <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t("vehicles.actions.assignDriver")}
               </Link>
@@ -227,5 +227,5 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 } 

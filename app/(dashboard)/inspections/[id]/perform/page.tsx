@@ -44,7 +44,10 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
             className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href={`/inspections/${params.id}`} className="flex items-center gap-2">
+            <Link
+              href={`/inspections/${params.id}`}
+              className="flex items-center gap-2"
+              legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to inspection details</span>
               <span className="sm:hidden">Back</span>
@@ -71,5 +74,5 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
         />
       </div>
     </div>
-  )
+  );
 } 

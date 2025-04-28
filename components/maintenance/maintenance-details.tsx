@@ -331,7 +331,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                 className="gap-2"
                 asChild
               >
-                <Link href="/maintenance">
+                <Link href="/maintenance" legacyBehavior>
                   <ArrowLeft className="h-4 w-4" />
                   {t('common.backToList')}
                 </Link>
@@ -344,7 +344,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   asChild
                   className="gap-2 sm:hidden"
                 >
-                  <Link href={`/maintenance/${task.id}/edit`}>
+                  <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
                   </Link>
@@ -360,7 +360,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   asChild
                   className="gap-2 hidden sm:inline-flex"
                 >
-                  <Link href={`/maintenance/${task.id}/edit`}>
+                  <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
                   </Link>
@@ -396,7 +396,6 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
           </div>
         </CardHeader>
       </Card>
-
       <div className="grid gap-6 md:grid-cols-2">
         {/* Vehicle Information Card */}
         <Card className="shadow-sm overflow-hidden">
@@ -643,7 +642,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
 function getStatusVariant(status: string) {

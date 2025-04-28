@@ -73,14 +73,13 @@ export default function DriverDetailsPage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2">
+            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Link>
           </Button>
           <Skeleton className="h-10 w-24" />
         </div>
-
         <div className="flex items-center gap-4">
           <Skeleton className="h-16 w-16 rounded-full" />
           <div>
@@ -88,11 +87,10 @@ export default function DriverDetailsPage() {
             <Skeleton className="h-5 w-32" />
           </div>
         </div>
-
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
-    )
+    );
   }
 
   if (!driver) {
@@ -100,7 +98,7 @@ export default function DriverDetailsPage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2">
+            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Link>
@@ -111,11 +109,11 @@ export default function DriverDetailsPage() {
           <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
           <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
           <Button asChild>
-            <Link href="/drivers">{t("common.backTo")} {t("drivers.title")}</Link>
+            <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   // Calculate driver since date
@@ -127,19 +125,21 @@ export default function DriverDetailsPage() {
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-8">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/drivers" className="flex items-center gap-2">
+          <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.title")}
           </Link>
         </Button>
         <Button size="sm" asChild>
-          <Link href={`/drivers/${id}/edit`} className="flex items-center gap-2">
+          <Link
+            href={`/drivers/${id}/edit`}
+            className="flex items-center gap-2"
+            legacyBehavior>
             <Edit className="h-4 w-4" />
             {t("drivers.actions.editDriver")}
           </Link>
         </Button>
       </div>
-
       <div className="flex flex-col lg:flex-row gap-8 mb-8">
         <div className="w-full lg:w-1/3 space-y-6">
           {/* Driver Info Card */}
@@ -331,5 +331,5 @@ export default function DriverDetailsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 } 

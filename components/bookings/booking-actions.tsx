@@ -69,7 +69,10 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
         <div>
           <h3 className="text-sm font-medium mb-3">{t('bookings.details.bookingActions.managementActions')}</h3>
           
-          <Link href={`/bookings/${bookingId}/edit`} className="block mb-3">
+          <Link
+            href={`/bookings/${bookingId}/edit`}
+            className="block mb-3"
+            legacyBehavior>
             <Button 
               variant="outline" 
               className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
@@ -79,7 +82,10 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
             </Button>
           </Link>
           
-          <Link href={`/bookings/${bookingId}/reschedule`} className="block">
+          <Link
+            href={`/bookings/${bookingId}/reschedule`}
+            className="block"
+            legacyBehavior>
             <Button 
               variant="outline" 
               className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-500 dark:hover:bg-blue-500/20 dark:border-blue-500/30"

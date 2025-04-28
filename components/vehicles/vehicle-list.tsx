@@ -182,7 +182,6 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
-
       {paginatedVehicles.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
           <p className="text-muted-foreground text-center">
@@ -195,7 +194,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedVehicles.map((vehicle) => (
                 <Card key={vehicle.id}>
-                  <Link href={`/vehicles/${vehicle.id}`}>
+                  <Link href={`/vehicles/${vehicle.id}`} legacyBehavior>
                     <div className="relative aspect-video w-full">
                       {vehicle.image_url ? (
                         <Image
@@ -364,5 +363,5 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
         </>
       )}
     </div>
-  )
+  );
 } 

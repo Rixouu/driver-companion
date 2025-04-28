@@ -99,14 +99,13 @@ export default function BookingDetailsContent({
   
   return (
     <div className="space-y-6">
-      <Link 
-        href="/bookings" 
+      <Link
+        href="/bookings"
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
-      >
+        legacyBehavior>
         <ArrowLeft className="w-4 h-4 mr-1" />
         {t('bookings.details.backToBookings')}
       </Link>
-      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id })}</h1>
@@ -122,7 +121,6 @@ export default function BookingDetailsContent({
           <DriverActionsDropdown booking={booking} />
         </div>
       </div>
-      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
@@ -486,7 +484,6 @@ export default function BookingDetailsContent({
           />
         </div>
       </div>
-      
       {/* After any existing booking details sections, add the inspections section */}
       {booking.vehicle?.id && (
         <div className="mb-8">
@@ -497,5 +494,5 @@ export default function BookingDetailsContent({
         </div>
       )}
     </div>
-  )
+  );
 } 

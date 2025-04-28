@@ -74,7 +74,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               className="gap-2"
               asChild
             >
-              <Link href="/vehicles">
+              <Link href="/vehicles" legacyBehavior>
                 <ArrowLeft className="h-4 w-4" />
                 {t('common.backToList')}
               </Link>
@@ -92,10 +92,8 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
           </div>
         </CardHeader>
       </Card>
-      
       {/* Vehicle Tabs */}
       <VehicleTabs vehicle={vehicle} />
-
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -119,5 +117,5 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 } 

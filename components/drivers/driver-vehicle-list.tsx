@@ -86,12 +86,12 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
           {t("drivers.assignedVehicles.empty.description")}
         </p>
         <Button asChild>
-          <Link href={`/drivers/${driverId}/assign-vehicle`}>
+          <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
             {t("drivers.actions.assignVehicle")}
           </Link>
         </Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -129,7 +129,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                     <Link
                       href={`/vehicles/${vehicle.id}`}
                       className="font-medium hover:underline"
-                    >
+                      legacyBehavior>
                       {vehicle.name}
                     </Link>
                   </div>
@@ -148,7 +148,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/vehicles/${vehicle.id}`}>
+                      <Link href={`/vehicles/${vehicle.id}`} legacyBehavior>
                         {t("vehicles.actions.viewDetails")}
                       </Link>
                     </DropdownMenuItem>
@@ -169,7 +169,6 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
           ))}
         </TableBody>
       </Table>
-
       <AlertDialog open={showUnassignDialog} onOpenChange={setShowUnassignDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -197,5 +196,5 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 } 

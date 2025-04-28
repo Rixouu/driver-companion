@@ -32,18 +32,17 @@ export function VehiclesPageContent({ vehicles, currentPage, totalPages }: Vehic
           </p>
         </div>
         <Button asChild className="sm:flex-shrink-0">
-          <Link href="/vehicles/new">
+          <Link href="/vehicles/new" legacyBehavior>
             <Plus className="mr-2 h-4 w-4" />
             {t("vehicles.addVehicle")}
           </Link>
         </Button>
       </div>
-
       <VehicleList
         vehicles={vehicles}
         currentPage={currentPage}
         totalPages={totalPages}
       />
     </div>
-  )
+  );
 } 

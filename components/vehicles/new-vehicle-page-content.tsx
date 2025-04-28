@@ -20,7 +20,7 @@ export function NewVehiclePageContent() {
               className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
               asChild
             >
-              <Link href="/vehicles" className="flex items-center gap-2">
+              <Link href="/vehicles" className="flex items-center gap-2" legacyBehavior>
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">{t('common.backTo').replace('{page}', t('navigation.vehicles'))}</span>
                 <span className="sm:hidden">{t('common.back')}</span>
@@ -41,5 +41,5 @@ export function NewVehiclePageContent() {
         <VehicleForm />
       </div>
     </div>
-  )
+  );
 } 

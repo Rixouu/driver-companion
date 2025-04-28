@@ -43,7 +43,10 @@ export function VehicleFuelLogs({ vehicleId }: VehicleFuelLogsProps) {
           <CardDescription>{t("fuel.description")}</CardDescription>
         </div>
         <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link href={`/vehicles/${vehicleId}/fuel/new`} className="flex items-center justify-center gap-2">
+          <Link
+            href={`/vehicles/${vehicleId}/fuel/new`}
+            className="flex items-center justify-center gap-2"
+            legacyBehavior>
             <Plus className="h-4 w-4" />
             <span>{t("fuel.new.title")}</span>
           </Link>
@@ -63,5 +66,5 @@ export function VehicleFuelLogs({ vehicleId }: VehicleFuelLogsProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 } 

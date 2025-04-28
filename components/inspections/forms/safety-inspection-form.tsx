@@ -209,7 +209,6 @@ export function SafetyInspectionForm({ onSectionComplete, onPhotoAdd, onNotesCha
           )}
         </Card>
       ))}
-
       <CameraModal
         isOpen={isCameraOpen}
         onClose={() => {
@@ -219,5 +218,5 @@ export function SafetyInspectionForm({ onSectionComplete, onPhotoAdd, onNotesCha
         onCapture={handlePhotoCapture}
       />
     </div>
-  )
+  );
 } 

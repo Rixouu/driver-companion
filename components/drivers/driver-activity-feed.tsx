@@ -156,11 +156,11 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
   return (
     <div className="space-y-4">
       {activities.map((activity) => (
-        <Link 
-          key={activity.id} 
+        <Link
+          key={activity.id}
           href={activity.link}
           className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors"
-        >
+          legacyBehavior>
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -199,5 +199,5 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         </Link>
       ))}
     </div>
-  )
+  );
 } 

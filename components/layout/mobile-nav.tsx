@@ -179,7 +179,7 @@ export function MobileNav() {
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
                 onClick={handleClick}
-              >
+                legacyBehavior>
                 <div className="flex flex-col items-center">
                   <Icon className="h-5 w-5" />
                   <span className="text-[10px] mt-1">{group.title}</span>
@@ -201,11 +201,10 @@ export function MobileNav() {
                   )}
                 </div>
               </Link>
-            )
+            );
           })}
         </div>
       </div>
-      
       {/* Sheet for displaying submenu items */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="h-auto max-h-[60vh] pt-4 pb-20 rounded-t-2xl">
@@ -234,7 +233,7 @@ export function MobileNav() {
                         ? "bg-primary/10 text-primary" 
                         : "bg-muted/50 text-foreground hover:bg-muted"
                     )}
-                  >
+                    legacyBehavior>
                     <item.icon className="h-6 w-6 mb-2" />
                     <span className="text-xs text-center">{item.title}</span>
                   </Link>
@@ -245,5 +244,5 @@ export function MobileNav() {
         </SheetContent>
       </Sheet>
     </>
-  )
+  );
 } 

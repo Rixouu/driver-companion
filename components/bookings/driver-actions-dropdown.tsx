@@ -61,7 +61,6 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
       >
         {t('bookings.details.driverActions.title')}
       </BookingButton>
-      
       <div className="absolute right-0 mt-2 w-72 z-50 rounded-md shadow-lg bg-black text-white border border-gray-700 hidden group-hover:block">
         <div className="p-2 border-b border-gray-700">
           <h3 className="text-lg font-medium py-1">{t('bookings.details.driverActions.tripManagement')}</h3>
@@ -97,10 +96,10 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
               {t('bookings.details.actions.sendArrivalNotification')}
             </button>
             
-            <Link 
-              href={`/bookings/${booking.id}/checklist`} 
+            <Link
+              href={`/bookings/${booking.id}/checklist`}
               className="flex items-center gap-3 hover:bg-gray-800 p-2 rounded-md"
-            >
+              legacyBehavior>
               <ClipboardCheck className="h-5 w-5" />
               {t('bookings.details.actions.tripChecklist')}
             </Link>

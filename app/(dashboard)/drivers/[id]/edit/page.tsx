@@ -73,13 +73,15 @@ export default function EditDriverPage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href={`/drivers/${id}`} className="flex items-center gap-2">
+            <Link
+              href={`/drivers/${id}`}
+              className="flex items-center gap-2"
+              legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.driverDetails")}
             </Link>
           </Button>
         </div>
-
         <Card>
           <CardHeader>
             <Skeleton className="h-8 w-64 mb-2" />
@@ -98,7 +100,7 @@ export default function EditDriverPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (!driver) {
@@ -106,37 +108,38 @@ export default function EditDriverPage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2">
+            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Link>
           </Button>
         </div>
-
         <Card>
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
             <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
             <Button asChild>
-              <Link href="/drivers">{t("common.backTo")} {t("drivers.title")}</Link>
+              <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center mb-8">
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/drivers/${id}`} className="flex items-center gap-2">
+          <Link
+            href={`/drivers/${id}`}
+            className="flex items-center gap-2"
+            legacyBehavior>
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.driverDetails")}
           </Link>
         </Button>
       </div>
-
       <Card>
         <CardHeader>
           <CardTitle>{t("drivers.actions.editDriver")}</CardTitle>
@@ -151,5 +154,5 @@ export default function EditDriverPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 } 

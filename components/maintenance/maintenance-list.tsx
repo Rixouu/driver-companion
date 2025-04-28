@@ -212,7 +212,6 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
-
       {paginatedTasks.length === 0 ? (
         <p className="text-center text-muted-foreground py-6">
           {t("maintenance.noTasks")}
@@ -223,7 +222,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedTasks.map((task) => (
                 <Card key={task.id}>
-                  <Link href={`/maintenance/${task.id}`}>
+                  <Link href={`/maintenance/${task.id}`} legacyBehavior>
                     <div className="relative aspect-video w-full">
                       {task.vehicle?.image_url ? (
                         <Image
@@ -272,7 +271,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                         </Badge>
                       </div>
                       <Button variant="secondary" className="w-full" asChild>
-                        <Link href={`/maintenance/${task.id}`}>
+                        <Link href={`/maintenance/${task.id}`} legacyBehavior>
                           {t("common.viewDetails")}
                         </Link>
                       </Button>
@@ -326,7 +325,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/maintenance/${task.id}`}>
+                            <Link href={`/maintenance/${task.id}`} legacyBehavior>
                               {t("common.viewDetails")}
                             </Link>
                           </Button>
@@ -413,7 +412,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
         </>
       )}
     </div>
-  )
+  );
 }
 
 function getStatusVariant(status: string) {

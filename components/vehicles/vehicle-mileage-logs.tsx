@@ -43,7 +43,10 @@ export function VehicleMileageLogs({ vehicleId }: VehicleMileageLogsProps) {
           <CardDescription>{t("mileage.description")}</CardDescription>
         </div>
         <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link href={`/vehicles/${vehicleId}/mileage/new`} className="flex items-center justify-center gap-2">
+          <Link
+            href={`/vehicles/${vehicleId}/mileage/new`}
+            className="flex items-center justify-center gap-2"
+            legacyBehavior>
             <Plus className="h-4 w-4" />
             <span>{t("mileage.new.title")}</span>
           </Link>
@@ -63,5 +66,5 @@ export function VehicleMileageLogs({ vehicleId }: VehicleMileageLogsProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 } 

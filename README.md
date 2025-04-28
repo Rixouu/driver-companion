@@ -1,6 +1,6 @@
 # Vehicle Fleet Management System
 
-A comprehensive web application for managing vehicle fleets, maintenance schedules, inspections, and reporting. Built with Next.js 14, TypeScript, Tailwind CSS, and Supabase.
+A comprehensive web application for managing vehicle fleets, maintenance schedules, inspections, and reporting. Built with Next.js 15, TypeScript, Tailwind CSS, and Supabase.
 
 ## 🚀 Core Features
 
@@ -38,6 +38,9 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Photo documentation for inspection items
 - Inspection history tracking
 - Mobile-friendly inspection forms
+- Multi-step inspection workflows
+- Pass/fail criteria with automated notifications
+- Digital signature capture
 
 ### Reporting System
 
@@ -50,18 +53,20 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Monthly mileage tracking
 - Custom report generation
 - Export options (CSV, PDF)
+- Scheduled report delivery
 
 ## 🛠 Tech Stack
 
 ### Frontend
 
-- Next.js 14 (App Router)
+- Next.js 15 (App Router)
 - TypeScript
 - Tailwind CSS
 - Shadcn UI / Radix UI
 - React Hook Form + Zod validation
 - Recharts for data visualization
 - Next-intl for internationalization (English/Japanese)
+- React Query for client-side data fetching
 
 ### Backend & Services
 
@@ -69,6 +74,7 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Supabase Auth
 - Next.js Server Components and Server Actions
 - Supabase Storage for image management
+- Edge functions for optimized API routes
 
 ## 📱 Mobile Responsiveness
 
@@ -77,6 +83,7 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Touch-friendly interfaces
 - Bottom navigation for mobile
 - Optimized forms and data entry
+- Progressive Web App (PWA) capabilities
 
 ## 🔐 Authentication & Authorization
 
@@ -84,6 +91,8 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Protected routes
 - Role-based access control
 - Secure session management
+- Two-factor authentication
+- SSO integration options
 
 ## 📊 Data Management
 
@@ -92,6 +101,7 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Server Actions for form submissions
 - Optimistic updates for better UX
 - Proper error handling and validation
+- Offline data capability with synchronization
 
 ## 🌐 Internationalization
 
@@ -99,6 +109,7 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Language switcher
 - Localized date and currency formatting
 - Translated UI elements and content
+- Right-to-left (RTL) support
 
 ## 🎨 UI/UX Features
 
@@ -110,6 +121,7 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 - Form validation
 - Responsive tables and card views
 - Mobile navigation
+- Accessibility compliance (WCAG 2.1)
 
 ## 📁 Project Structure
 
@@ -154,8 +166,8 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 18.17+ or 20.0+
+- npm or yarn or pnpm
 - Supabase account
 
 ### Installation
@@ -171,6 +183,8 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
    npm install
    # or
    yarn install
+   # or
+   pnpm install
    ```
 
 3. Set up environment variables
@@ -186,6 +200,8 @@ A comprehensive web application for managing vehicle fleets, maintenance schedul
    npm run dev
    # or
    yarn dev
+   # or
+   pnpm dev
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
@@ -197,6 +213,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Author
 
 - **Jonathan** - *Initial work* - [Rixouu](https://github.com/Rixouu)
+
+## Vehicle Inspection Features
+
+The system now includes an enhanced vehicle inspection module with the following features:
+
+1. Multi-step inspection workflows with conditional logic
+2. Photo evidence capture and annotation
+3. Digital signature collection for completed inspections
+4. PDF report generation for inspection records
+5. Automated notifications for failed inspection items
+6. Historical inspection data tracking and analysis
+
+### Setting Up Digital Inspections
+
+1. Configure inspection templates in the admin panel
+2. Assign inspections to vehicles or maintenance schedules
+3. Complete inspections via mobile devices with offline capability
+4. Review inspection results and take corrective actions
+5. Generate and share inspection reports with stakeholders
 
 ## Bookings Integration
 

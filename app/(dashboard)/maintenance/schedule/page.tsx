@@ -22,7 +22,7 @@ export default async function ScheduleMaintenancePage() {
             className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href="/maintenance" className="flex items-center gap-2" legacyBehavior>
+            <Link href="/maintenance" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to maintenance</span>
               <span className="sm:hidden">Back</span>

@@ -119,15 +119,17 @@ export function Sidebar() {
     <div className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]">
       <div className="flex h-full flex-col justify-between overflow-y-auto py-4">
         <div className="px-4 mb-6">
-          <Link href="/" className="flex items-center" legacyBehavior>
-            <Image
-              src="/img/driver-header-logo.png"
-              alt="Driver Logo"
-              width={140}
-              height={45}
-              priority
-              unoptimized
-            />
+          <Link href="/">
+            <span className="flex items-center">
+              <Image
+                src="/img/driver-header-logo.png"
+                alt="Driver Logo"
+                width={140}
+                height={45}
+                priority
+                unoptimized
+              />
+            </span>
           </Link>
         </div>
         
@@ -156,7 +158,7 @@ export function Sidebar() {
                   const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                   
                   return (
-                    <Link key={item.href} href={item.href} className="block" legacyBehavior>
+                    <Link key={item.href} href={item.href}>
                       <Button
                         variant="ghost"
                         className={cn(

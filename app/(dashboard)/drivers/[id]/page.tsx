@@ -72,12 +72,6 @@ export default function DriverDetailsPage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
-              <ArrowLeft className="h-4 w-4" />
-              {t("common.backTo")} {t("drivers.title")}
-            </Link>
-          </Button>
           <Skeleton className="h-10 w-24" />
         </div>
         <div className="flex items-center gap-4">
@@ -97,20 +91,22 @@ export default function DriverDetailsPage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
+          <Link href="/drivers">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
-            </Link>
-          </Button>
+            </Button>
+          </Link>
         </div>
         <div className="text-center py-12">
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
           <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
-          <Button asChild>
-            <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
-          </Button>
+          <Link href="/drivers">
+            <Button variant="ghost" size="sm">
+              {t("common.backTo")} {t("drivers.title")}
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -124,21 +120,18 @@ export default function DriverDetailsPage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-8">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
+        <Link href="/drivers">
+          <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.title")}
-          </Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link
-            href={`/drivers/${id}/edit`}
-            className="flex items-center gap-2"
-            legacyBehavior>
+          </Button>
+        </Link>
+        <Link href={`/drivers/${id}/edit`}>
+          <Button size="sm" className="flex items-center gap-2">
             <Edit className="h-4 w-4" />
             {t("drivers.actions.editDriver")}
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
       <div className="flex flex-col lg:flex-row gap-8 mb-8">
         <div className="w-full lg:w-1/3 space-y-6">

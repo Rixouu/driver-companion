@@ -5,6 +5,7 @@ import { StepBasedInspectionForm } from "@/components/inspections/step-based-ins
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { getDictionary } from "@/lib/i18n/server"
 
 export const metadata: Metadata = {
   title: "Create Inspection",
@@ -20,6 +21,7 @@ interface CreateInspectionPageProps {
 
 export default async function CreateInspectionPage({ searchParams }: CreateInspectionPageProps) {
   const supabase = createServerComponentClient({ cookies })
+  const { t } = await getDictionary()
   
   // Extract parameters from the URL search params
   const vehicleId = searchParams?.vehicleId || ""
@@ -39,18 +41,12 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
     <div className="space-y-6">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
-            asChild
-          >
-            <Link href={backUrl} className="flex items-center gap-2" legacyBehavior>
+          <Link href="/inspections">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{backText}</span>
-              <span className="sm:hidden">Back</span>
-            </Link>
-          </Button>
+              {t("common.backTo")} {t("inspections.title")}
+            </Button>
+          </Link>
 
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">

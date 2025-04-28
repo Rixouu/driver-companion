@@ -24,7 +24,7 @@ export function MaintenancePageContent({ tasks }: MaintenancePageContentProps) {
           </p>
         </div>
         <Button asChild>
-          <Link href="/maintenance/schedule" legacyBehavior>
+          <Link href="/maintenance/schedule">
             <Plus className="mr-2 h-4 w-4" />
             {t("maintenance.schedule.title")}
           </Link>

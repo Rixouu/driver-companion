@@ -17,6 +17,8 @@ import { BookingActions } from '@/components/bookings/booking-actions'
 import { PageHeader } from '@/components/ui/page-header'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
+import React from 'react'
+import { useParams } from 'next/navigation'
 
 function BookingNotFound({ bookingId }: { bookingId: string }) {
   const { t } = useI18n()
@@ -27,10 +29,10 @@ function BookingNotFound({ bookingId }: { bookingId: string }) {
         {t('bookings.details.notFoundDescription')}
       </p>
       <div className="mt-6">
-        <Link href="/bookings" legacyBehavior>
-          <Button>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('bookings.details.backToBookings')}
+        <Link href="/bookings">
+          <Button variant="ghost" size="sm" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            {t("common.backTo")} {t("bookings.title")}
           </Button>
         </Link>
       </div>
@@ -96,8 +98,10 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
 }
 
 // Convert to client component with loading state
-export default function BookingPage({ params }: { params: { id: string } }) {
+export default function BookingPage() {
   const { t } = useI18n()
+  const params = useParams()
+  const id = params.id as string
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -106,7 +110,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     async function fetchBookingData() {
       try {
         setLoading(true)
-        const result = await getBookingById(params.id)
+        const result = await getBookingById(id)
         
         if (result.booking) {
           setBooking(result.booking)
@@ -121,7 +125,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     }
 
     fetchBookingData()
-  }, [params.id])
+  }, [id])
   
   if (loading) {
     return (
@@ -142,12 +146,12 @@ export default function BookingPage({ params }: { params: { id: string } }) {
             title={t('bookings.details.notFound')}
             description={t('bookings.details.notFoundDescription')}
           />
-          <Button asChild variant="ghost">
-            <Link href="/bookings" legacyBehavior>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t('bookings.details.backToBookings')}
-            </Link>
-          </Button>
+          <Link href="/bookings">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              {t("common.backTo")} {t("bookings.title")}
+            </Button>
+          </Link>
         </div>
         <Card className="min-h-[300px] flex items-center justify-center">
           <div className="text-center">
@@ -182,13 +186,15 @@ export default function BookingPage({ params }: { params: { id: string } }) {
       <Link
         href="/bookings"
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
-        legacyBehavior>
-        <ArrowLeft className="w-4 h-4 mr-1" />
-        {t('bookings.details.backToBookings')}
+      >
+        <Button variant="ghost" size="sm" className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          {t("common.backTo")} {t("bookings.title")}
+        </Button>
       </Link>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id })}</h1>
+          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id || id })}</h1>
           <p className="text-muted-foreground">
             {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
           </p>
@@ -556,7 +562,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
           
           {/* Booking Actions */}
           <BookingActions 
-            bookingId={(booking.id || booking.booking_id || params.id)}
+            bookingId={(booking.id || booking.booking_id || id)}
             status={booking.status || 'Pending'}
             date={booking.date || '2023-04-30'}
             time={booking.time || '06:30'}

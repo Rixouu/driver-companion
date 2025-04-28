@@ -45,16 +45,15 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <Button
-            variant="link"
-            className="pl-0 text-muted-foreground"
-            asChild
-          >
-            <Link href="/vehicles" legacyBehavior>
+          <Link href="/vehicles">
+            <Button
+              variant="link"
+              className="pl-0 text-muted-foreground"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("common.backTo")} {t("vehicles.title")}
-            </Link>
-          </Button>
+            </Button>
+          </Link>
           <h1 className="text-3xl font-bold tracking-tight">
             {t("vehicles.edit.title")}
           </h1>

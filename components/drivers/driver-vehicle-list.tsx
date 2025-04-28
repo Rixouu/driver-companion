@@ -148,7 +148,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/vehicles/${vehicle.id}`} legacyBehavior>
+                      <Link href={`/vehicles/${vehicle.id}`}>
                         {t("vehicles.actions.viewDetails")}
                       </Link>
                     </DropdownMenuItem>

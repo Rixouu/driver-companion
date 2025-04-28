@@ -325,46 +325,35 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
         <CardHeader className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-                asChild
-              >
-                <Link href="/maintenance" legacyBehavior>
+              <Link href="/maintenance">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                >
                   <ArrowLeft className="h-4 w-4" />
                   {t('common.backToList')}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
               
               {task.status !== 'completed' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  asChild
-                  className="gap-2 sm:hidden"
-                >
-                  <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
+                <Link href={`/maintenance/${task.id}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-2 sm:hidden">
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               )}
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
               {task.status !== 'completed' && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  asChild
-                  className="gap-2 hidden sm:inline-flex"
-                >
-                  <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
+                <Link href={`/maintenance/${task.id}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-2 hidden sm:inline-flex">
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               )}
               
               {task.status === 'scheduled' && (

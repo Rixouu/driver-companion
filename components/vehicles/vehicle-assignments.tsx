@@ -134,12 +134,12 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
           <CardTitle>{t("vehicles.assignments.title")}</CardTitle>
           <CardDescription>{t("vehicles.assignments.description")}</CardDescription>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
+        <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+          <Button variant="outline" size="sm">
             <UserPlus className="mr-2 h-4 w-4" />
             {t("vehicles.actions.assignDriver")}
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         {assignments.length === 0 ? (
@@ -151,12 +151,12 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               {t("vehicles.assignments.noAssignmentsDesc")}
             </p>
-            <Button className="mt-4" asChild>
-              <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
+            <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+              <Button className="mt-4">
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t("vehicles.actions.assignDriver")}
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         ) : (
           <div className="space-y-4">

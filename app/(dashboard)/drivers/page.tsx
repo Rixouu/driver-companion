@@ -124,12 +124,12 @@ export default function DriversPage() {
             {t("drivers.description")}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/drivers/new" className="flex items-center" legacyBehavior>
+        <Link href="/drivers/new">
+          <Button className="flex items-center">
             <Plus className="mr-2 h-4 w-4" />
             {t("drivers.actions.addDriver")}
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
       <div className="space-y-4">
         <div className="flex flex-col gap-4">
@@ -212,12 +212,12 @@ export default function DriversPage() {
                 : t("drivers.empty.description")
             }
             action={
-              <Button asChild>
-                <Link href="/drivers/new" legacyBehavior>
+              <Link href="/drivers/new">
+                <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   {t("drivers.actions.addDriver")}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             }
           />
         ) : viewMode === "grid" ? (

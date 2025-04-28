@@ -102,7 +102,7 @@ export default function BookingDetailsContent({
       <Link
         href="/bookings"
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
-        legacyBehavior>
+      >
         <ArrowLeft className="w-4 h-4 mr-1" />
         {t('bookings.details.backToBookings')}
       </Link>

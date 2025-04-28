@@ -68,17 +68,16 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
       <Card className="shadow-sm print-hide">
         <CardHeader className="space-y-0 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              asChild
-            >
-              <Link href="/vehicles" legacyBehavior>
+            <Link href="/vehicles">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 {t('common.backToList')}
-              </Link>
-            </Button>
+              </Button>
+            </Link>
             
             <Button 
               variant="outline" 

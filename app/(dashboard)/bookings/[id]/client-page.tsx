@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { Booking } from '@/types/bookings'
 import { getBookingByIdFromDatabase } from '@/lib/api/bookings-service'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,27 +10,25 @@ import { AlertCircle } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import BookingDetailsContent from './booking-details-content'
 
-export default function BookingDetailsClientPage({ 
-  params 
-}: { 
-  params: { id: string } 
-}) {
+export default function BookingDetailsClientPage() {
+  const params = useParams()
+  const id = params.id as string
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchBooking() {
+    async function loadBooking() {
       try {
         setIsLoading(true)
-        const data = await getBookingByIdFromDatabase(params.id)
+        const { booking: loadedBooking, error } = await getBookingByIdFromDatabase(id)
         
-        if (!data) {
+        if (!loadedBooking) {
           setError('Booking not found')
           return
         }
         
-        setBooking(data)
+        setBooking(loadedBooking)
       } catch (err) {
         console.error('Error fetching booking:', err)
         setError('Failed to load booking details')
@@ -38,8 +37,8 @@ export default function BookingDetailsClientPage({
       }
     }
 
-    fetchBooking()
-  }, [params.id])
+    loadBooking()
+  }, [id])
 
   if (isLoading) {
     return (
@@ -79,5 +78,5 @@ export default function BookingDetailsClientPage({
     )
   }
 
-  return <BookingDetailsContent booking={booking} bookingId={params.id} />
+  return <BookingDetailsContent booking={booking} bookingId={id} />
 } 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Booking } from '@/types/bookings'
 import { rescheduleBookingAction } from '@/app/actions/bookings'
 import { getBookingById } from '@/lib/api/booking-client'
@@ -19,8 +19,10 @@ import { Label } from '@/components/ui/label'
 import { ArrowLeft, Calendar, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-export default function RescheduleBookingPage({ params }: { params: { id: string } }) {
+export default function RescheduleBookingPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -34,7 +36,7 @@ export default function RescheduleBookingPage({ params }: { params: { id: string
     async function loadBooking() {
       setIsLoading(true)
       try {
-        const { booking: loadedBooking, error } = await getBookingById(params.id)
+        const { booking: loadedBooking, error } = await getBookingById(id)
         
         if (error || !loadedBooking) {
           setError(error || 'Booking not found')
@@ -53,7 +55,7 @@ export default function RescheduleBookingPage({ params }: { params: { id: string
     }
     
     loadBooking()
-  }, [params.id])
+  }, [id])
 
   // Save changes
   const handleSave = async () => {
@@ -61,13 +63,13 @@ export default function RescheduleBookingPage({ params }: { params: { id: string
     setSaveResult(null)
     
     try {
-      const result = await rescheduleBookingAction(params.id, date, time)
+      const result = await rescheduleBookingAction(id, date, time)
       setSaveResult(result)
       
       if (result.success) {
         // Navigate back to booking details after a short delay
         setTimeout(() => {
-          router.push(`/bookings/${params.id}`)
+          router.push(`/bookings/${id}`)
         }, 1500)
       }
     } catch (err) {
@@ -116,7 +118,7 @@ export default function RescheduleBookingPage({ params }: { params: { id: string
         <CardHeader>
           <CardTitle>Reschedule Booking</CardTitle>
           <CardDescription>
-            Change the date and time for booking #{params.id}
+            Change the date and time for booking #{id}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

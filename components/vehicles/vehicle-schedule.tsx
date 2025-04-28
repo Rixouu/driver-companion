@@ -112,7 +112,7 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
             <Wrench className="h-5 w-5 text-primary" />
             {t('vehicles.schedule.maintenanceTitle')}
           </CardTitle>
-          <Link href={`/maintenance/schedule?vehicle_id=${vehicle.id}`} legacyBehavior>
+          <Link href={`/maintenance/schedule?vehicle_id=${vehicle.id}`}>
             <Button size="sm" variant="outline">
               {t('maintenance.schedule.title')}
             </Button>
@@ -162,7 +162,7 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
             <ClipboardCheck className="h-5 w-5 text-primary" />
             {t('vehicles.schedule.inspectionsTitle')}
           </CardTitle>
-          <Link href={`/vehicles/${vehicle.id}/inspections/schedule`} legacyBehavior>
+          <Link href={`/vehicles/${vehicle.id}/inspections/schedule`}>
             <Button size="sm" variant="outline">
               {t('vehicles.tabs.scheduleInspection')}
             </Button>

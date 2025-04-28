@@ -66,8 +66,8 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
                 <Link
                   href={`/vehicles/${inspection.vehicle.id}`}
                   className="hover:underline"
-                  legacyBehavior>
-                  {inspection.vehicle.name} ({inspection.vehicle.plate_number})
+                >
+                  <span>{inspection.vehicle.name} ({inspection.vehicle.plate_number})</span>
                 </Link>
               </div>
             </TableCell>
@@ -78,11 +78,11 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
               <InspectionStatusBadge status={inspection.status} />
             </TableCell>
             <TableCell className="text-right">
-              <Button size="sm" variant="ghost" asChild>
-                <Link href={`/inspections/${inspection.id}`} legacyBehavior>
+              <Link href={`/inspections/${inspection.id}`}>
+                <Button size="sm" variant="ghost">
                   {t("common.view")}
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </TableCell>
           </TableRow>
         ))}

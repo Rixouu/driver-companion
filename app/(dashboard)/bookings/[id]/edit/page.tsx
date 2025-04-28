@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Booking } from '@/types/bookings'
 import { updateBookingAction, getBookingById } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/button'
@@ -37,8 +37,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Script from 'next/script'
 
-export default function EditBookingPage({ params }: { params: { id: string } }) {
+export default function EditBookingPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -53,7 +55,7 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
     async function loadBooking() {
       setIsLoading(true)
       try {
-        const { booking: loadedBooking } = await getBookingById(params.id)
+        const { booking: loadedBooking } = await getBookingById(id)
         
         if (!loadedBooking) {
           setError('Booking not found')
@@ -107,7 +109,7 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
     }
     
     loadBooking()
-  }, [params.id])
+  }, [id])
   
   // Generate static map preview when locations change
   useEffect(() => {
@@ -212,13 +214,13 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
         meta: metaData  // Store additional fields in meta
       }
       
-      const result = await updateBookingAction(params.id, dataToUpdate)
+      const result = await updateBookingAction(id, dataToUpdate)
       setSaveResult(result)
       
       if (result.success) {
         // Navigate back to booking details after a short delay
         setTimeout(() => {
-          router.push(`/bookings/${params.id}`)
+          router.push(`/bookings/${id}`)
         }, 1500)
       }
     } catch (err) {
@@ -278,12 +280,12 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
       <div className="space-y-6 max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => router.push(`/bookings/${params.id}`)}>
+            <Button variant="outline" onClick={() => router.push(`/bookings/${id}`)}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Edit Booking #{params.id}</h1>
+              <h1 className="text-2xl font-bold">Edit Booking #{id}</h1>
               <p className="text-sm text-muted-foreground">
                 Last updated: {new Date(booking.updated_at || '').toLocaleDateString() || 'N/A'}
               </p>
@@ -724,7 +726,7 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
           <CardFooter className="flex justify-between px-6 pb-6">
             <Button 
               variant="outline" 
-              onClick={() => router.push(`/bookings/${params.id}`)}
+              onClick={() => router.push(`/bookings/${id}`)}
               className="gap-2"
             >
               <X className="h-4 w-4" />

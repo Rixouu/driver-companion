@@ -20,11 +20,13 @@ export interface Booking {
   time: string
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | string
   service_name: string
+  service_type?: string
   service_id?: string
   customer_id?: string
   customer_name?: string
   customer_email?: string
   customer_phone?: string
+  driver_id?: string
   
   // WordPress specific fields
   title?: string  // For WordPress format: "Booking XXXX"

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Edit, User, Key, Car, FileText, Clock } from "lucide-react"
+import { ArrowLeft, Edit, User, Key, Car, FileText, Clock, Calendar, MapPin, IdCard, Phone, Mail, MessageSquare } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,16 +14,22 @@ import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 import { DriverVehicles } from "@/components/drivers/driver-vehicles"
 import { DriverInspectionsList } from "@/components/drivers/driver-inspections-list"
 import { DriverActivityFeed } from "@/components/drivers/driver-activity-feed"
+import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-bookings"
+import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
+import { DriverAvailabilitySection } from "@/components/drivers/driver-availability-section"
 import { Skeleton } from "@/components/ui/skeleton"
 import { format as formatDate } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import type { Driver } from "@/types"
+import { useTheme } from "next-themes"
+import type { Driver as AppDriver } from "@/types"
+import type { Driver as DriverType } from "@/types/drivers"
 
 export default function DriverDetailsPage() {
   const { id } = useParams()
   const router = useRouter()
   const { t } = useI18n()
-  const [driver, setDriver] = useState<Driver | null>(null)
+  const { theme } = useTheme()
+  const [driver, setDriver] = useState<AppDriver | null>(null)
   const [inspections, setInspections] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -55,6 +61,12 @@ export default function DriverDetailsPage() {
       loadDriverData()
     }
   }, [id])
+
+  // Card styles based on theme - matching the Recent Activity block
+  const getCardClasses = () => {
+    // Use the standard Card component styling without custom background
+    return "";
+  }
 
   if (isLoading) {
     return (
@@ -106,6 +118,11 @@ export default function DriverDetailsPage() {
     )
   }
 
+  // Calculate driver since date
+  const driverSinceDate = driver.created_at ? 
+    `Driver since ${formatDate(new Date(driver.created_at), "MMMM yyyy")}` : 
+    "";
+
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-8">
@@ -124,116 +141,117 @@ export default function DriverDetailsPage() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 mb-8">
-        <div className="w-full lg:w-1/3">
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-4">
-              <Avatar className="h-16 w-16">
+        <div className="w-full lg:w-1/3 space-y-6">
+          {/* Driver Info Card */}
+          <Card className={getCardClasses()}>
+            <CardContent className="p-6 flex flex-col items-center">
+              <Avatar className="h-20 w-20 bg-[#FF7E00] mb-4 mt-2">
                 <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                <AvatarFallback className="text-lg">
+                <AvatarFallback className="text-lg text-white">
                   {driver.first_name?.[0]}{driver.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <CardTitle className="text-2xl">{driver.full_name}</CardTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <DriverStatusBadge status={driver.status} />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-md bg-primary/10 p-2">
-                    <User className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.email")}</p>
+              <h2 className="text-xl font-semibold mb-1">{driver.full_name}</h2>
+              <p className="text-sm text-muted-foreground mb-6">{t("drivers.since", { date: formatDate(new Date(driver.created_at), "MMMM yyyy") })}</p>
+              
+              <div className="w-full space-y-4">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm text-muted-foreground">{t("drivers.fields.email")}</p>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-gray-400" />
                     <p>{driver.email}</p>
                   </div>
                 </div>
-
+                
                 {driver.phone && (
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.phone")}</p>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm text-muted-foreground">{t("drivers.fields.phone")}</p>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-400" />
                       <p>{driver.phone}</p>
                     </div>
                   </div>
                 )}
-
-                {driver.license_number && (
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <Key className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.licenseNumber")}</p>
-                      <p>{driver.license_number}</p>
-                      {driver.license_expiry && (
-                        <p className="text-sm text-muted-foreground">
-                          {t("drivers.fields.expires")}: {formatDate(new Date(driver.license_expiry), "PPP")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {driver.address && (
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.address")}</p>
-                      <p className="whitespace-pre-wrap">{driver.address}</p>
-                    </div>
-                  </div>
-                )}
-
-                {driver.emergency_contact && (
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.emergencyContact")}</p>
-                      <p>{driver.emergency_contact}</p>
-                    </div>
-                  </div>
-                )}
-
-                {driver.notes && (
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-md bg-primary/10 p-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">{t("drivers.fields.notes")}</p>
-                      <p className="whitespace-pre-wrap">{driver.notes}</p>
-                    </div>
-                  </div>
-                )}
               </div>
-
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground flex items-center">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {t("common.created")}: {formatDate(new Date(driver.created_at), "PPP")}
-                </p>
+              
+              <div className="grid grid-cols-3 gap-2 w-full mt-5">
+                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800">
+                  <Phone className="h-4 w-4" /> {t("common.call")}
+                </Button>
+                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800">
+                  <Mail className="h-4 w-4" /> {t("common.text")}
+                </Button>
+                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800">
+                  <MessageSquare className="h-4 w-4" /> {t("common.line")}
+                </Button>
               </div>
             </CardContent>
           </Card>
+          
+          {/* Driver Details Card */}
+          <Card className={getCardClasses()}>
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold mb-4">{t("drivers.driverDetails")}</h3>
+              
+              {driver.license_number && (
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm text-muted-foreground">{t("drivers.fields.licenseNumber")}</p>
+                  <div className="flex items-center gap-2">
+                    <IdCard className="h-4 w-4 text-gray-400" />
+                    <p>{driver.license_number}</p>
+                  </div>
+                  {driver.license_expiry && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("drivers.fields.expires")}: {formatDate(new Date(driver.license_expiry), "MMMM do, yyyy")}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {driver.address && (
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm text-muted-foreground">{t("drivers.fields.address")}</p>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-1" />
+                    <p className="whitespace-pre-wrap">{driver.address}</p>
+                  </div>
+                </div>
+              )}
+              
+              {driver.emergency_contact && (
+                <div className="space-y-1 mb-4">
+                  <p className="text-sm text-muted-foreground">{t("drivers.fields.emergencyContact")}</p>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <p>{driver.emergency_contact}</p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">{t("drivers.fields.status")}</p>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <DriverStatusBadge status={driver.status} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Availability Section */}
+          <DriverAvailabilitySection driverId={driver.id} />
         </div>
 
         <div className="w-full lg:w-2/3">
           <Tabs defaultValue="overview">
-            <TabsList className="grid grid-cols-3 mb-8">
+            <TabsList className="grid grid-cols-4 mb-8">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 {t("drivers.tabs.overview")}
+              </TabsTrigger>
+              <TabsTrigger value="availability" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {t("drivers.tabs.availability")}
               </TabsTrigger>
               <TabsTrigger value="activity" className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -251,6 +269,11 @@ export default function DriverDetailsPage() {
                 assignedVehicles={driver.assigned_vehicles}
               />
 
+              <DriverUpcomingBookings 
+                driverId={driver.id}
+                limit={5}
+              />
+
               <Card>
                 <CardHeader>
                   <CardTitle>{t("drivers.recentActivity.title")}</CardTitle>
@@ -260,6 +283,21 @@ export default function DriverDetailsPage() {
                   <DriverActivityFeed driverId={driver.id} limit={5} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="availability" className="space-y-6">
+              {driver && (
+                <DriverAvailabilityManager 
+                  driver={{
+                    id: driver.id,
+                    name: driver.full_name || "",
+                    email: driver.email,
+                    phone: driver.phone,
+                    license_number: driver.license_number,
+                    status: driver.status
+                  }} 
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="activity">

@@ -114,6 +114,7 @@ interface InspectionFormProps {
   inspectionId: string
   type?: InspectionType
   vehicleId: string
+  bookingId?: string
 }
 
 interface InspectionCategory {
@@ -141,7 +142,7 @@ interface Vehicle {
 //   tires: '5e18c77d-b822-4ba5-b45c-482635bd46d'
 // }
 
-export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: InspectionFormProps) {
+export function InspectionForm({ inspectionId, type = 'routine', vehicleId, bookingId }: InspectionFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -615,195 +616,140 @@ export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: In
   }
 
   const handleSubmit = async () => {
-    if (!selectedVehicle) {
-      toast({
-        title: t('inspections.messages.error'),
-        description: t('inspections.messages.selectVehicle'),
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!user?.id) {
-      toast({
-        title: t('inspections.messages.error'),
-        description: t('inspections.messages.loginRequired'),
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSubmitting(true)
+    try {
+      // Verify that at least some inspection items have been completed
+      const completedItems = sections.flatMap(s => s.items).filter(item => item.status !== null)
+      
+      if (completedItems.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please complete at least one inspection item before submitting",
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+        return
+      }
 
-    await withErrorHandling(
-      async () => {
-        // Filter out items with null status
-        const itemsToSave = sections.flatMap(section =>
-          section.items
-            .filter(item => item.status !== null)
-            .map(item => ({
-              template_id: item.id,
-              status: item.status,
-              notes: item.notes || null,
-              photos: item.photos
-            }))
-        )
-
-        if (inspectionId) {
-          // Update existing inspection
-          const { error: updateError } = await supabase
-            .from('inspections')
-            .update({
-              status: 'completed',
-              notes: notes
-            })
-            .eq('id', inspectionId)
-
-          if (updateError) throw updateError
-
-          // Delete existing inspection items and their photos
-          const { data: existingItems, error: fetchError } = await supabase
-            .from('inspection_items')
-            .select('id')
-            .eq('inspection_id', inspectionId)
-
-          if (fetchError) throw fetchError
-
-          if (existingItems.length > 0) {
-            const existingItemIds = existingItems.map(item => item.id)
-
-            // Delete associated photos first
-            const { error: deletePhotosError } = await supabase
-              .from('inspection_photos')
-              .delete()
-              .in('inspection_item_id', existingItemIds)
-
-            if (deletePhotosError) throw deletePhotosError
-
-            // Then delete the items
-            const { error: deleteItemsError } = await supabase
-              .from('inspection_items')
-              .delete()
-              .in('id', existingItemIds)
-
-            if (deleteItemsError) throw deleteItemsError
-          }
-
-          // Insert new inspection items
-          const { data: newItems, error: insertItemsError } = await supabase
-            .from('inspection_items')
-            .insert(
-              itemsToSave.map(item => ({
-                inspection_id: inspectionId,
-                template_id: item.template_id,
-                status: item.status,
-                notes: item.notes
-              }))
-            )
-            .select()
-
-          if (insertItemsError) throw insertItemsError
-
-          // Insert photos for items that have them
-          const photosToInsert = []
-          for (let i = 0; i < itemsToSave.length; i++) {
-            const item = itemsToSave[i]
-            const newItem = newItems[i]
-            
-            if (item.photos && item.photos.length > 0) {
-              for (const photoUrl of item.photos) {
-                photosToInsert.push({
-                  inspection_item_id: newItem.id,
-                  photo_url: photoUrl
-                })
-              }
-            }
-          }
-
-          if (photosToInsert.length > 0) {
-            const { error: insertPhotosError } = await supabase
-              .from('inspection_photos')
-              .insert(photosToInsert)
-
-            if (insertPhotosError) throw insertPhotosError
-          }
-
-          toast({
-            title: t('inspections.messages.updateSuccess'),
+      // If this is a new inspection, create the inspection record
+      if (!inspectionId) {
+        const { data: newInspection, error: inspectionError } = await supabase
+          .from('inspections')
+          .insert({
+            vehicle_id: selectedVehicle?.id || vehicleId,
+            booking_id: bookingId || null,
+            status: 'completed',
+            type: selectedType,
+            date: new Date().toISOString(),
+            notes: notes,
+            created_by: user?.id,
+            inspector_id: user?.id
           })
+          .select()
+          .single()
 
-          router.push(`/inspections/${inspectionId}`)
-          router.refresh()
-        } else {
-          // Create new inspection
-          const { data: newInspection, error: createError } = await supabase
-            .from('inspections')
-            .insert({
-              vehicle_id: selectedVehicle.id,
-              type: selectedType,
-              status: 'completed',
-              date: new Date().toISOString(), // Set the date to current date for direct creation
-              notes: notes,
-              created_by: user.id
-            })
-            .select()
-            .single()
-
-          if (createError) throw createError
-
-          // Insert inspection items
-          const { data: newItems, error: insertItemsError } = await supabase
-            .from('inspection_items')
-            .insert(
-              itemsToSave.map(item => ({
-                inspection_id: newInspection.id,
-                template_id: item.template_id,
-                status: item.status,
-                notes: item.notes
-              }))
-            )
-            .select()
-
-          if (insertItemsError) throw insertItemsError
-
-          // Insert photos for items that have them
-          const photosToInsert = []
-          for (let i = 0; i < itemsToSave.length; i++) {
-            const item = itemsToSave[i]
-            const newItem = newItems[i]
-            
-            if (item.photos && item.photos.length > 0) {
-              for (const photoUrl of item.photos) {
-                photosToInsert.push({
-                  inspection_item_id: newItem.id,
-                  photo_url: photoUrl
-                })
-              }
-            }
-          }
-
-          if (photosToInsert.length > 0) {
-            const { error: insertPhotosError } = await supabase
-              .from('inspection_photos')
-              .insert(photosToInsert)
-
-            if (insertPhotosError) throw insertPhotosError
-          }
-
+        if (inspectionError) {
+          console.error('Failed to create inspection:', inspectionError)
           toast({
-            title: t('inspections.messages.createSuccess'),
+            title: "Error",
+            description: "Failed to create inspection record",
+            variant: "destructive",
           })
-
-          router.push(`/inspections/${newInspection.id}`)
-          router.refresh()
+          setIsSubmitting(false)
+          return
         }
-      },
-      inspectionId ? 
-        t('inspections.messages.errorUpdating') :
-        t('inspections.messages.errorCreating')
-    )
-    
-    setIsSubmitting(false)
+
+        // Set the new inspection ID
+        inspectionId = newInspection.id
+      } else {
+        // Update the existing inspection
+        const { error: updateError } = await supabase
+          .from('inspections')
+          .update({
+            status: 'completed',
+            notes: notes,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', inspectionId)
+
+        if (updateError) {
+          console.error('Failed to update inspection:', updateError)
+          toast({
+            title: "Error",
+            description: "Failed to update inspection record",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      // Filter out items with null status
+      const itemsToSave = sections.flatMap(section =>
+        section.items
+          .filter(item => item.status !== null)
+          .map(item => ({
+            template_id: item.id,
+            status: item.status,
+            notes: item.notes || null,
+            photos: item.photos
+          }))
+      )
+
+      // Insert new inspection items
+      const { data: newItems, error: insertItemsError } = await supabase
+        .from('inspection_items')
+        .insert(
+          itemsToSave.map(item => ({
+            inspection_id: inspectionId,
+            template_id: item.template_id,
+            status: item.status,
+            notes: item.notes
+          }))
+        )
+        .select()
+
+      if (insertItemsError) throw insertItemsError
+
+      // Insert photos for items that have them
+      const photosToInsert = []
+      for (let i = 0; i < itemsToSave.length; i++) {
+        const item = itemsToSave[i]
+        const newItem = newItems[i]
+        
+        if (item.photos && item.photos.length > 0) {
+          for (const photoUrl of item.photos) {
+            photosToInsert.push({
+              inspection_item_id: newItem.id,
+              photo_url: photoUrl
+            })
+          }
+        }
+      }
+
+      if (photosToInsert.length > 0) {
+        const { error: insertPhotosError } = await supabase
+          .from('inspection_photos')
+          .insert(photosToInsert)
+
+        if (insertPhotosError) throw insertPhotosError
+      }
+
+      toast({
+        title: t('inspections.messages.updateSuccess'),
+      })
+
+      router.push(`/inspections/${inspectionId}`)
+      router.refresh()
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: t('inspections.messages.error'),
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getSectionProgress = (section: InspectionSection) => {

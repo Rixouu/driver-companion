@@ -28,9 +28,10 @@ export type DbDriver = {
   last_name: string
   email: string
   phone?: string
+  line_id?: string
   license_number?: string
   license_expiry?: string
-  status: 'active' | 'inactive' | 'on_leave'
+  status: 'available' | 'unavailable' | 'leave' | 'training'
   profile_image_url?: string
   address?: string
   emergency_contact?: string
@@ -274,9 +275,10 @@ export type DriverFormData = {
   last_name: string
   email: string
   phone?: string
+  line_id?: string
   license_number?: string
   license_expiry?: string
-  status: 'active' | 'inactive' | 'on_leave'
+  status: 'available' | 'unavailable' | 'leave' | 'training'
   profile_image_url?: string
   address?: string
   emergency_contact?: string
@@ -290,9 +292,10 @@ export interface Driver {
   last_name: string
   email: string
   phone?: string
+  line_id?: string
   license_number?: string
   license_expiry?: string
-  status: 'active' | 'inactive' | 'on_leave'
+  status: 'available' | 'unavailable' | 'leave' | 'training'
   profile_image_url?: string
   address?: string
   emergency_contact?: string

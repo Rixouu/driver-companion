@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Car, Mail, Phone } from "lucide-react"
+import { Car, Mail, Phone, Calendar } from "lucide-react"
 import { DriverStatusBadge } from "./driver-status-badge"
+import { DriverAvailabilityBadge } from "./driver-availability-badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -29,7 +30,10 @@ export function DriverCard({ driver }: DriverCardProps) {
             </Avatar>
             <div>
               <h3 className="font-medium text-lg">{driver.full_name}</h3>
-              <DriverStatusBadge status={driver.status} />
+              <div className="flex items-center gap-2 mt-1">
+                <DriverStatusBadge status={driver.status} />
+                <DriverAvailabilityBadge driverId={driver.id} />
+              </div>
             </div>
           </div>
 

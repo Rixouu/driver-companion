@@ -723,4 +723,33 @@ export async function deleteInspectionItem(itemId: string, force: boolean = fals
     console.error("Error deleting inspection item:", error)
     throw new Error(`Failed to delete item ${itemId}: ${error.message}`)
   }
+}
+
+/**
+ * Get inspections associated with a specific booking
+ * @param bookingId - The ID of the booking
+ * @returns An array of inspections
+ */
+export async function getInspectionsByBookingId(bookingId: string) {
+  const { data, error } = await supabase
+    .from('inspections')
+    .select(`
+      *,
+      vehicle:vehicles (
+        id,
+        name,
+        plate_number,
+        brand,
+        model,
+        year,
+        status,
+        image_url,
+        vin
+      )
+    `)
+    .eq('booking_id', bookingId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as unknown as DbInspection[]
 } 

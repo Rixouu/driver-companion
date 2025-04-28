@@ -1,19 +1,25 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { Printer } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
+import { BookingButton } from './booking-button'
 
 export function PrintButton() {
+  const { t } = useI18n()
+  
   const handlePrint = () => {
     window.print();
   };
 
   return (
     <>
-      <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={handlePrint}>
-        <Printer className="h-4 w-4" />
-        Print Details
-      </Button>
+      <BookingButton
+        variant="default"
+        icon={<Printer className="h-5 w-5" />}
+        onClick={handlePrint}
+      >
+        {t('bookings.details.actions.printDetails')}
+      </BookingButton>
 
       <style jsx global>{`
         @media print {

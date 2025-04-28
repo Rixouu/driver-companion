@@ -92,6 +92,7 @@ export const ja: TranslationValue = {
       lastName: "姓",
       email: "メールアドレス",
       phone: "電話番号",
+      lineId: "LINE ID",
       licenseNumber: "免許証番号",
       licenseExpiry: "免許証期限",
       expires: "期限",
@@ -105,6 +106,7 @@ export const ja: TranslationValue = {
       lastName: "姓を入力",
       email: "メールアドレスを入力",
       phone: "電話番号を入力",
+      lineId: "LINE IDを入力",
       licenseNumber: "免許証番号を入力",
       licenseExpiry: "期限日を選択",
       address: "住所を入力",
@@ -114,7 +116,11 @@ export const ja: TranslationValue = {
     status: {
       active: "有効",
       inactive: "無効",
-      on_leave: "休暇中"
+      on_leave: "休暇中",
+      available: "利用可能",
+      unavailable: "利用不可",
+      leave: "休暇中",
+      training: "研修中"
     },
     driverDetails: "ドライバー詳細",
     editDriver: {
@@ -184,6 +190,12 @@ export const ja: TranslationValue = {
         description: "このドライバーには最近のアクティビティがありません"
       }
     },
+    upcomingBookings: {
+      title: "予定された予約",
+      description: "このドライバーの予定された予約",
+      empty: "予定された予約はありません",
+      booking: "予約"
+    },
     activityHistory: {
       title: "アクティビティ履歴",
       description: "ドライバーの活動記録",
@@ -207,6 +219,7 @@ export const ja: TranslationValue = {
       overview: "概要",
       activity: "活動",
       inspections: "点検",
+      availability: "稼働状況",
       assignVehicles: "車両を割り当て",
       unassignVehicles: "車両の割り当てを解除"
     },
@@ -220,6 +233,28 @@ export const ja: TranslationValue = {
     inspections: {
       title: "ドライバー点検",
       description: "このドライバーによって実施された点検"
+    },
+    since: "{date}からのドライバー",
+    availability: {
+      title: "稼働状況",
+      statusMessage: "このドライバーは現在{date}まで{status}で、予約に割り当てできません。",
+      availableMessage: "このドライバーは現在予約に割り当て可能です。",
+      upcomingSchedule: "今後のスケジュール",
+      returnsFromLeave: "休暇から復帰",
+      viewFullSchedule: "スケジュール全体を表示",
+      description: "このドライバーの稼働期間を管理します。利用可能、休暇中、研修中などの状態を設定します。",
+      calendarView: "カレンダー表示",
+      listView: "リスト表示",
+      calendar: "稼働状況カレンダー",
+      loading: "読み込み中...",
+      setAvailability: "稼働状況を設定",
+      setAvailabilityFor: "{date}の稼働状況を設定",
+      statuses: {
+        available: "利用可能",
+        unavailable: "利用不可", 
+        leave: "休暇中",
+        training: "研修中"
+      }
     }
   },
   labels: {
@@ -288,6 +323,18 @@ export const ja: TranslationValue = {
       menu: "メニュー",
       templates: "テンプレート",
       account: "アカウント"
+    },
+    selectTemplate: "テンプレートタイプを選択",
+    inspectionTypes: {
+      routine: "定期点検",
+      safety: "安全点検",
+      maintenance: "メンテナンス点検",
+      select: "点検タイプを選択",
+      description: {
+        routine: "車両コンポーネントの定期的な点検",
+        safety: "包括的な安全システム評価",
+        maintenance: "詳細な機械システム点検"
+      }
     }
   },
   vehicles: {
@@ -946,5 +993,166 @@ export const ja: TranslationValue = {
     loginSuccess: "ログインに成功しました",
     loginError: "ログインに失敗しました",
     logoutSuccess: "ログアウトに成功しました"
+  },
+  bookings: {
+    title: "予約",
+    description: "予約情報の管理",
+    search: {
+      text: "予約を検索...",
+      placeholder: "予約を検索..."
+    },
+    addBooking: "予約を追加",
+    newBooking: "新規予約",
+    editBooking: "予約を編集",
+    viewOptions: {
+      grid: "グリッド表示"
+    },
+    actions: {
+      sync: "予約を同期"
+    },
+    tableHeaders: {
+      bookingId: "予約ID",
+      dateTime: "日時",
+      service: "サービス",
+      customer: "顧客",
+      locations: "場所",
+      status: "ステータス",
+      actions: "アクション"
+    },
+    labels: {
+      from: "出発地",
+      to: "目的地"
+    },
+    status: {
+      publish: "公開済み",
+      pending: "保留中",
+      confirmed: "確認済み",
+      completed: "完了",
+      cancelled: "キャンセル済み"
+    },
+    filters: {
+      statusPlaceholder: "ステータスでフィルタリング",
+      all: "すべて",
+      pending: "保留中",
+      confirmed: "確認済み",
+      completed: "完了",
+      cancelled: "キャンセル済み"
+    },
+    details: {
+      title: "予約詳細",
+      notFound: "予約が見つかりません",
+      notFoundDescription: "お探しの予約が見つかりませんでした。",
+      backToBookings: "予約一覧に戻る",
+      createdOn: "作成日: {date}",
+      lastUpdated: "最終更新: {date}",
+      bookingNumber: "予約番号 #{id}",
+      sections: {
+        summary: "予約概要",
+        vehicle: "車両情報",
+        route: "ルート情報",
+        client: "顧客詳細",
+        additional: "追加情報",
+        payment: "支払いリンク"
+      },
+      fields: {
+        bookingId: "予約ID",
+        orderTotal: "注文合計",
+        pickupDate: "ピックアップ日",
+        paymentMethod: "支払い方法",
+        pickupTime: "ピックアップ時間",
+        paymentStatus: "支払い状況",
+        vehicle: "車両",
+        capacity: "定員",
+        vehicleId: "車両ID",
+        serviceType: "サービスタイプ",
+        pickupLocation: "ピックアップ場所",
+        dropoffLocation: "降車場所",
+        distance: "距離",
+        duration: "所要時間",
+        flightNumber: "フライト番号",
+        terminal: "ターミナル",
+        comment: "コメント",
+        email: "メール",
+        phone: "電話番号",
+        status: "ステータス",
+        paymentLink: "支払いリンク",
+        amount: "金額"
+      },
+      actions: {
+        navigateToPickup: "ピックアップ地点へ案内",
+        navigateToDropoff: "降車地点へ案内",
+        viewLargerMap: "より大きな地図で表示",
+        contactCustomer: "顧客に連絡",
+        call: "電話をかける",
+        sendMessage: "メッセージを送信",
+        openPaymentLink: "支払いリンクを開く",
+        edit: "編集",
+        reschedule: "日程変更",
+        cancel: "キャンセル",
+        print: "印刷",
+        viewInvoice: "請求書を表示",
+        changeStatus: "ステータスを変更",
+        addToCalendar: "Googleカレンダーに追加",
+        printDetails: "詳細を印刷",
+        copyClipboard: "クリップボードにコピー",
+        tripChecklist: "旅行チェックリスト",
+        sendArrivalNotification: "到着通知を送信",
+        shareWhatsApp: "WhatsAppで共有",
+        shareLine: "LINEで共有",
+        shareEmail: "メールで共有"
+      },
+      driverActions: {
+        title: "ドライバーアクション",
+        tripManagement: "旅行管理",
+        shareBooking: "予約を共有"
+      },
+      bookingActions: {
+        title: "予約アクション",
+        addToGoogleCalendar: "Googleカレンダーに追加",
+        managementActions: "管理アクション",
+        editBooking: "予約を編集",
+        rescheduleBooking: "予約を再スケジュール",
+        dangerZone: "危険ゾーン",
+        cancelBooking: "予約をキャンセル"
+      },
+      weather: {
+        title: "出発日の天気予報",
+        notAvailable: "天気予報は利用できません",
+        errorMessage: "天気予報の取得に失敗しました",
+        disclaimer: "※ 天気予報はWeatherAPI.comのデータを使用しています",
+        forecastUnavailable: "{date}の天気予報はありません"
+      },
+      placeholders: {
+        noRouteInfo: "ルート情報がありません",
+        noPaymentLink: "支払いリンクが利用できません",
+        notProvided: "未入力",
+        noComments: "コメントはありません"
+      },
+      customerSince: "{date}からの顧客",
+      status: {
+        confirmed: "確認済み",
+        pending: "保留中",
+        cancelled: "キャンセル済み",
+        completed: "完了"
+      }
+    },
+    edit: {
+      title: "予約 #{id} を編集",
+      description: "この予約の情報を更新する",
+      backToDetails: "詳細に戻る",
+      saveChanges: "変更を保存",
+      saving: "保存中...",
+      success: "成功",
+      error: "エラー",
+      successMessage: "予約が正常に更新されました",
+      errorMessage: "予約の更新中にエラーが発生しました"
+    },
+    messages: {
+      createSuccess: "予約が正常に作成されました",
+      updateSuccess: "予約が正常に更新されました",
+      deleteSuccess: "予約が正常に削除されました",
+      syncSuccess: "予約が正常に同期されました",
+      error: "エラーが発生しました"
+    }
   },
 } as const 

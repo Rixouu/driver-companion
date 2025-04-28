@@ -34,6 +34,174 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          created_at: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          date: string
+          distance: string | null
+          driver_id: string | null
+          dropoff_location: string | null
+          duration: string | null
+          id: string
+          meta: Json | null
+          notes: string | null
+          payment_link: string | null
+          payment_method: string | null
+          payment_status: string | null
+          pickup_location: string | null
+          price_amount: number | null
+          price_currency: string | null
+          price_formatted: string | null
+          service_id: string | null
+          service_name: string
+          status: string
+          synced_at: string | null
+          time: string
+          updated_at: string | null
+          vehicle_id: string | null
+          wp_id: string
+          wp_meta: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          date: string
+          distance?: string | null
+          driver_id?: string | null
+          dropoff_location?: string | null
+          duration?: string | null
+          id?: string
+          meta?: Json | null
+          notes?: string | null
+          payment_link?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          price_amount?: number | null
+          price_currency?: string | null
+          price_formatted?: string | null
+          service_id?: string | null
+          service_name: string
+          status?: string
+          synced_at?: string | null
+          time: string
+          updated_at?: string | null
+          vehicle_id?: string | null
+          wp_id: string
+          wp_meta?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          date?: string
+          distance?: string | null
+          driver_id?: string | null
+          dropoff_location?: string | null
+          duration?: string | null
+          id?: string
+          meta?: Json | null
+          notes?: string | null
+          payment_link?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          price_amount?: number | null
+          price_currency?: string | null
+          price_formatted?: string | null
+          service_id?: string | null
+          service_name?: string
+          status?: string
+          synced_at?: string | null
+          time?: string
+          updated_at?: string | null
+          vehicle_id?: string | null
+          wp_id?: string
+          wp_meta?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drivers: {
+        Row: {
+          address: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string
+          emergency_contact: string | null
+          first_name: string
+          id: string
+          last_name: string
+          license_expiry: string | null
+          license_number: string | null
+          notes: string | null
+          phone: string | null
+          profile_image_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email: string
+          emergency_contact?: string | null
+          first_name: string
+          id?: string
+          last_name: string
+          license_expiry?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string
+          emergency_contact?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          license_expiry?: string | null
+          license_number?: string | null
+          notes?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fuel_entries: {
         Row: {
           created_at: string | null
@@ -298,6 +466,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           date: string
+          driver_id: string | null
           due_date: string | null
           id: string
           inspector_id: string | null
@@ -314,6 +483,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date: string
+          driver_id?: string | null
           due_date?: string | null
           id?: string
           inspector_id?: string | null
@@ -330,6 +500,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date?: string
+          driver_id?: string | null
           due_date?: string | null
           id?: string
           inspector_id?: string | null
@@ -343,6 +514,13 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -468,54 +646,71 @@ export type Database = {
       }
       maintenance_tasks: {
         Row: {
-          id: string
-          vehicle_id: string
-          title: string
-          description: string | null
-          status: string
-          priority: string
-          due_date: string | null
           completed_date: string | null
+          cost: number | null
+          created_at: string
+          description: string | null
+          due_date: string
           estimated_duration: number | null
-          estimated_cost: number | null
-          actual_cost: number | null
-          user_id: string
-          created_at: string | null
-          updated_at: string | null
+          id: string
+          inspection_id: string | null
+          notes: string | null
+          priority: string | null
+          started_at: string
+          status: string
+          title: string
+          user_id: string | null
+          vehicle_id: string
         }
         Insert: {
-          id?: string
-          vehicle_id: string
-          title: string
-          description?: string | null
-          status: string
-          priority: string
-          due_date?: string | null
           completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          due_date: string
           estimated_duration?: number | null
-          estimated_cost?: number | null
-          actual_cost?: number | null
-          user_id: string
-          created_at?: string | null
-          updated_at?: string | null
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          priority?: string | null
+          started_at?: string
+          status?: string
+          title: string
+          user_id?: string | null
+          vehicle_id: string
         }
         Update: {
-          id?: string
-          vehicle_id?: string
-          title?: string
-          description?: string | null
-          status?: string
-          priority?: string
-          due_date?: string | null
           completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          description?: string | null
+          due_date?: string
           estimated_duration?: number | null
-          estimated_cost?: number | null
-          actual_cost?: number | null
-          user_id?: string
-          created_at?: string | null
-          updated_at?: string | null
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          priority?: string | null
+          started_at?: string
+          status?: string
+          title?: string
+          user_id?: string | null
+          vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "maintenance_tasks_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tasks_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maintenance_tasks_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -523,13 +718,6 @@ export type Database = {
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "maintenance_tasks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
         ]
       }
       mileage_entries: {
@@ -609,6 +797,57 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_assignments: {
+        Row: {
+          created_at: string | null
+          driver_id: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          start_date: string | null
+          status: string
+          updated_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          driver_id: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string | null
+          driver_id?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           brand: string
@@ -671,203 +910,6 @@ export type Database = {
           year?: string
         }
         Relationships: []
-      }
-      vehicle_assignments: {
-        Row: {
-          id: string
-          vehicle_id: string
-          driver_id: string
-          status: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          vehicle_id: string
-          driver_id: string
-          status: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          vehicle_id?: string
-          driver_id?: string
-          status?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vehicle_assignments_driver_id_fkey"
-            columns: ["driver_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      fuel_logs: {
-        Row: {
-          id: string
-          vehicle_id: string
-          date: string
-          fuel_amount: number
-          fuel_cost: number
-          odometer_reading: number
-          full_tank: boolean | null
-          user_id: string
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          vehicle_id: string
-          date: string
-          fuel_amount: number
-          fuel_cost: number
-          odometer_reading: number
-          full_tank?: boolean | null
-          user_id: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          vehicle_id?: string
-          date?: string
-          fuel_amount?: number
-          fuel_cost?: number
-          odometer_reading?: number
-          full_tank?: boolean | null
-          user_id?: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fuel_logs_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fuel_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      mileage_logs: {
-        Row: {
-          id: string
-          vehicle_id: string
-          date: string
-          start_odometer: number
-          end_odometer: number
-          distance: number
-          purpose: string | null
-          notes: string | null
-          user_id: string
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          vehicle_id: string
-          date: string
-          start_odometer: number
-          end_odometer: number
-          distance: number
-          purpose?: string | null
-          notes?: string | null
-          user_id: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          vehicle_id?: string
-          date?: string
-          start_odometer?: number
-          end_odometer?: number
-          distance?: number
-          purpose?: string | null
-          notes?: string | null
-          user_id?: string
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mileage_logs_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mileage_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      vehicle_statistics: {
-        Row: {
-          id: string
-          vehicle_id: string
-          total_distance: number | null
-          fuel_efficiency: number | null
-          maintenance_cost: number | null
-          total_fuel_cost: number | null
-          inspections_passed: number | null
-          inspections_failed: number | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          vehicle_id: string
-          total_distance?: number | null
-          fuel_efficiency?: number | null
-          maintenance_cost?: number | null
-          total_fuel_cost?: number | null
-          inspections_passed?: number | null
-          inspections_failed?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          vehicle_id?: string
-          total_distance?: number | null
-          fuel_efficiency?: number | null
-          maintenance_cost?: number | null
-          total_fuel_cost?: number | null
-          inspections_passed?: number | null
-          inspections_failed?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehicle_statistics_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: true
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          }
-        ]
       }
     }
     Views: {

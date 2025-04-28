@@ -11,14 +11,29 @@ export const metadata: Metadata = {
   description: "Create a new vehicle inspection",
 }
 
-export default async function CreateInspectionPage() {
+interface CreateInspectionPageProps {
+  searchParams?: {
+    vehicleId?: string
+    bookingId?: string
+  }
+}
+
+export default async function CreateInspectionPage({ searchParams }: CreateInspectionPageProps) {
   const supabase = createServerComponentClient({ cookies })
+  
+  // Extract parameters from the URL search params
+  const vehicleId = searchParams?.vehicleId || ""
+  const bookingId = searchParams?.bookingId || ""
   
   // Fetch vehicles for the form
   const { data: vehicles } = await supabase
     .from('vehicles')
     .select('*')
     .order('name')
+  
+  // Determine the back URL based on whether this was opened from a booking
+  const backUrl = bookingId ? `/bookings/${bookingId}` : "/inspections"
+  const backText = bookingId ? "Back to booking" : "Back to inspections"
   
   return (
     <div className="space-y-6">
@@ -30,9 +45,9 @@ export default async function CreateInspectionPage() {
             className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
             asChild
           >
-            <Link href="/inspections" className="flex items-center gap-2">
+            <Link href={backUrl} className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to inspections</span>
+              <span className="hidden sm:inline">{backText}</span>
               <span className="sm:hidden">Back</span>
             </Link>
           </Button>
@@ -49,7 +64,8 @@ export default async function CreateInspectionPage() {
 
         <StepBasedInspectionForm 
           inspectionId="" 
-          vehicleId="" 
+          vehicleId={vehicleId} 
+          bookingId={bookingId}
           vehicles={vehicles || []}
         />
       </div>

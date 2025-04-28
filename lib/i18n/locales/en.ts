@@ -28,10 +28,10 @@ export const en: TranslationValue = {
     noResults: "No results found",
     details: "Details",
     actions: "Actions",
-    viewDetails: "View Details",
-    addNew: "Add New",
+    viewDetails: "View details",
+    addNew: "Add new",
     backTo: "Back to",
-    backToList: "Back to List",
+    backToList: "Back to list",
     saving: "Saving...",
     update: "Update",
     create: "Create",
@@ -40,21 +40,27 @@ export const en: TranslationValue = {
     menu: "Menu",
     login: "Login",
     logout: "Logout",
-    darkMode: "Dark Mode",
-    inProgress: "In Progress",
+    darkMode: "Dark mode",
+    inProgress: "In progress",
     upcoming: "Upcoming",
     recent: "Recent",
     total: "Total",
     type: "Type",
-    saveChanges: "Save Changes",
-    confirmDelete: "Confirm Deletion",
+    saveChanges: "Save changes",
+    confirmDelete: "Confirm deletion",
     untitled: "Untitled",
     grid: "Grid",
     list: "List",
     submitting: "Submitting...",
-    notAssigned: "Not Assigned",
-    noImage: "No Image",
-    minutes: "min"
+    notAssigned: "Not assigned",
+    noImage: "No image",
+    minutes: "Minutes",
+    call: "Call",
+    text: "Text",
+    line: "LINE"
+  },
+  auth: {
+    logout: "Logout"
   },
   navigation: {
     dashboard: "Dashboard",
@@ -92,6 +98,7 @@ export const en: TranslationValue = {
       lastName: "Last Name",
       email: "Email",
       phone: "Phone Number",
+      lineId: "LINE ID",
       licenseNumber: "License Number",
       licenseExpiry: "License Expiry",
       expires: "Expires",
@@ -105,6 +112,7 @@ export const en: TranslationValue = {
       lastName: "Enter last name",
       email: "Enter email address",
       phone: "Enter phone number",
+      lineId: "Enter LINE ID",
       licenseNumber: "Enter license number",
       licenseExpiry: "Select expiry date",
       address: "Enter address",
@@ -114,7 +122,11 @@ export const en: TranslationValue = {
     status: {
       active: "Active",
       inactive: "Inactive",
-      on_leave: "On Leave"
+      on_leave: "On Leave",
+      available: "Available",
+      unavailable: "Unavailable",
+      leave: "On Leave",
+      training: "Training"
     },
     driverDetails: "Driver Details",
     editDriver: {
@@ -166,6 +178,12 @@ export const en: TranslationValue = {
         description: "This driver has no recent activity."
       }
     },
+    upcomingBookings: {
+      title: "Upcoming Bookings",
+      description: "Scheduled bookings for this driver",
+      empty: "No upcoming bookings",
+      booking: "Booking"
+    },
     messages: {
       createSuccess: "Driver created successfully",
       createSuccessDescription: "The driver has been created and is now available in the system.",
@@ -207,6 +225,7 @@ export const en: TranslationValue = {
       overview: "Overview",
       activity: "Activity",
       inspections: "Inspections",
+      availability: "Availability",
       assignVehicles: "Assign New",
       unassignVehicles: "Unassign Existing"
     },
@@ -218,6 +237,28 @@ export const en: TranslationValue = {
     inspections: {
       title: "Driver Inspections",
       description: "Inspections performed by this driver"
+    },
+    since: "Driver since {date}",
+    availability: {
+      title: "Availability",
+      statusMessage: "This driver is currently {status} until {date} and cannot be assigned to bookings.",
+      availableMessage: "This driver is currently available to be assigned to bookings.",
+      upcomingSchedule: "Upcoming Schedule",
+      returnsFromLeave: "Returns from leave",
+      viewFullSchedule: "View Full Schedule",
+      description: "Manage availability periods for this driver. Set when they are available, on leave, or in training.",
+      calendarView: "Calendar View",
+      listView: "List View",
+      calendar: "Availability Calendar",
+      loading: "Loading...",
+      setAvailability: "Set Availability",
+      setAvailabilityFor: "Set Availability for {date}",
+      statuses: {
+        available: "Available",
+        unavailable: "Unavailable", 
+        leave: "Leave",
+        training: "Training"
+      }
     }
   },
   labels: {
@@ -1205,7 +1246,7 @@ export const en: TranslationValue = {
       backToInspections: "Back to inspections"
     },
     selectTemplate: "Select template type",
-    type: {
+    inspectionTypes: {
       routine: "Routine Inspection",
       safety: "Safety Inspection",
       maintenance: "Maintenance Inspection",
@@ -1477,17 +1518,166 @@ export const en: TranslationValue = {
     },
     noData: "No data available for the selected filters"
   },
-  auth: {
-    login: "Login",
-    logout: "Logout",
-    email: "Email",
-    password: "Password",
-    forgotPassword: "Forgot Password",
-    resetPassword: "Reset Password",
-    register: "Register",
-    loginSuccess: "Login successful",
-    loginError: "Login failed",
-    logoutSuccess: "Logout successful"
+  bookings: {
+    title: "Bookings",
+    description: "Manage booking information",
+    search: {
+      text: "Search bookings...",
+      placeholder: "Search bookings..."
+    },
+    addBooking: "Add Booking",
+    newBooking: "New Booking",
+    editBooking: "Edit Booking",
+    viewOptions: {
+      grid: "Grid View"
+    },
+    actions: {
+      sync: "Sync Bookings"
+    },
+    tableHeaders: {
+      bookingId: "Booking ID",
+      dateTime: "Date & Time",
+      service: "Service",
+      customer: "Customer",
+      locations: "Locations",
+      status: "Status",
+      actions: "Actions"
+    },
+    labels: {
+      from: "From",
+      to: "To"
+    },
+    status: {
+      publish: "Published",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    },
+    filters: {
+      statusPlaceholder: "Filter by status",
+      all: "All",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    },
+    details: {
+      title: "Booking Details",
+      notFound: "Booking Not Found",
+      notFoundDescription: "The booking you're looking for could not be found.",
+      backToBookings: "Back to Bookings",
+      createdOn: "Created on: {date}",
+      lastUpdated: "Last updated: {date}",
+      bookingNumber: "Booking Number #{id}",
+      sections: {
+        summary: "Booking Summary",
+        vehicle: "Vehicle Information",
+        route: "Route Information",
+        client: "Client Details",
+        additional: "Additional Information",
+        payment: "Payment Link"
+      },
+      fields: {
+        bookingId: "Booking ID",
+        orderTotal: "Order Total",
+        pickupDate: "Pickup Date",
+        paymentMethod: "Payment Method",
+        pickupTime: "Pickup Time",
+        paymentStatus: "Payment Status",
+        vehicle: "Vehicle",
+        capacity: "Capacity",
+        vehicleId: "Vehicle ID",
+        serviceType: "Service Type",
+        pickupLocation: "Pickup Location",
+        dropoffLocation: "Dropoff Location",
+        distance: "Distance",
+        duration: "Duration",
+        flightNumber: "Flight Number",
+        terminal: "Terminal",
+        comment: "Comment",
+        email: "Email",
+        phone: "Phone",
+        status: "Status",
+        paymentLink: "Payment Link",
+        amount: "Amount"
+      },
+      actions: {
+        navigateToPickup: "Navigate to Pickup",
+        navigateToDropoff: "Navigate to Dropoff",
+        viewLargerMap: "View Larger Map",
+        contactCustomer: "Contact Customer",
+        call: "Call",
+        sendMessage: "Send Message",
+        openPaymentLink: "Open Payment Link",
+        edit: "Edit",
+        reschedule: "Reschedule",
+        cancel: "Cancel",
+        print: "Print",
+        viewInvoice: "View Invoice",
+        changeStatus: "Change Status",
+        addToCalendar: "Add to Google Calendar",
+        printDetails: "Print Details",
+        copyClipboard: "Copy to Clipboard",
+        tripChecklist: "Trip Checklist",
+        sendArrivalNotification: "Send Arrival Notification",
+        shareWhatsApp: "Share via WhatsApp",
+        shareLine: "Share via LINE",
+        shareEmail: "Share via Email"
+      },
+      driverActions: {
+        title: "Driver Actions",
+        tripManagement: "Trip Management",
+        shareBooking: "Share Booking"
+      },
+      bookingActions: {
+        title: "Booking Actions",
+        addToGoogleCalendar: "Add to Google Calendar",
+        managementActions: "Management Actions",
+        editBooking: "Edit Booking",
+        rescheduleBooking: "Reschedule Booking",
+        dangerZone: "DANGER ZONE",
+        cancelBooking: "Cancel Booking"
+      },
+      weather: {
+        title: "Weather Forecast for Departure Date",
+        notAvailable: "Weather forecast not available",
+        errorMessage: "Failed to fetch weather forecast",
+        disclaimer: "* Weather data powered by WeatherAPI.com",
+        forecastUnavailable: "No forecast available for {date}"
+      },
+      placeholders: {
+        noRouteInfo: "No route information available",
+        noPaymentLink: "No payment link available",
+        notProvided: "Not provided",
+        noComments: "No comments"
+      },
+      customerSince: "Customer since {date}",
+      status: {
+        confirmed: "Confirmed",
+        pending: "Pending",
+        cancelled: "Cancelled",
+        completed: "Completed"
+      }
+    },
+    edit: {
+      title: "Edit Booking #{id}",
+      description: "Update information for this booking",
+      backToDetails: "Back to Details",
+      saveChanges: "Save Changes",
+      saving: "Saving...",
+      success: "Success",
+      error: "Error",
+      successMessage: "Booking was updated successfully",
+      errorMessage: "An error occurred while updating the booking"
+    },
+    messages: {
+      createSuccess: "Booking created successfully",
+      updateSuccess: "Booking updated successfully",
+      deleteSuccess: "Booking deleted successfully",
+      syncSuccess: "Bookings synced successfully",
+      error: "An error occurred"
+    }
   }
 } as const
 

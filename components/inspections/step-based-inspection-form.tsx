@@ -71,10 +71,11 @@ type InspectionFormData = z.infer<typeof inspectionSchema>;
 interface StepBasedInspectionFormProps {
   inspectionId: string;
   vehicleId: string;
+  bookingId?: string;
   vehicles: Vehicle[];
 }
 
-export function StepBasedInspectionForm({ inspectionId, vehicleId, vehicles }: StepBasedInspectionFormProps) {
+export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, vehicles }: StepBasedInspectionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -353,82 +354,111 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, vehicles }: S
   
   // Submit the inspection
   const handleSubmit = async () => {
-    if (!selectedVehicle || !selectedType || !user) {
-      toast({
-        title: "Required information missing",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    // Filter items to save
-    const itemsToSave = sections.flatMap(section => 
-      section.items.map(item => ({
-        template_id: item.id,
-        status: item.status,
-        notes: item.notes,
-        photos: item.photos
-      }))
-    ).filter(item => item.status !== null);
-    
-    // Upload photos to storage and get URLs
-    for (const item of itemsToSave) {
-      const uploadedPhotoUrls = [];
-      
-      for (const photoUrl of item.photos) {
-        if (photoUrl.startsWith('blob:')) {
-          try {
-            const response = await fetch(photoUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            
-            // Upload to Supabase storage
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
-            const filePath = `${user.id}/${fileName}`;
-            
-            const { data, error } = await supabase.storage
-              .from('inspection-photos')
-              .upload(filePath, file);
-              
-            if (error) throw error;
-            
-            // Get public URL
-            const { data: urlData } = supabase.storage
-              .from('inspection-photos')
-              .getPublicUrl(filePath);
-              
-            uploadedPhotoUrls.push(urlData.publicUrl);
-          } catch (error) {
-            console.error('Error uploading photo:', error);
-          }
-        } else {
-          // Already uploaded photo
-          uploadedPhotoUrls.push(photoUrl);
-        }
-      }
-      
-      // Replace the blob URLs with the uploaded photo URLs
-      item.photos = uploadedPhotoUrls;
-    }
-    
+    if (isSubmitting) return;
+
     try {
-      // Create new inspection
-      const { data: newInspection, error: createError } = await supabase
+      setIsSubmitting(true);
+
+      // Validate that we have a vehicle and at least some completed items
+      if (!selectedVehicle) {
+        toast({
+          title: "Please select a vehicle",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if any sections have been completed
+      const hasCompletedItems = sections.some(section => 
+        section.items.some(item => item.status === 'pass' || item.status === 'fail')
+      );
+
+      if (!hasCompletedItems) {
+        toast({
+          title: "Please complete at least one inspection item",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create the inspection record first
+      const { data: newInspection, error: inspectionError } = await supabase
         .from('inspections')
         .insert({
           vehicle_id: selectedVehicle.id,
+          booking_id: bookingId || null,
           type: selectedType,
           status: 'completed',
           date: new Date().toISOString(),
           notes: notes,
-          created_by: user.id
+          created_by: user?.id,
+          inspector_id: user?.id,
         })
         .select()
         .single();
+
+      if (inspectionError) {
+        console.error('Error creating inspection:', inspectionError);
+        toast({
+          title: "Error creating inspection",
+          description: inspectionError.message,
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Filter items to save
+      const itemsToSave = sections.flatMap(section => 
+        section.items.map(item => ({
+          template_id: item.id,
+          status: item.status,
+          notes: item.notes,
+          photos: item.photos
+        }))
+      ).filter(item => item.status !== null);
+      
+      // Upload photos to storage and get URLs
+      for (const item of itemsToSave) {
+        const uploadedPhotoUrls = [];
         
-      if (createError) throw createError;
+        for (const photoUrl of item.photos) {
+          if (photoUrl.startsWith('blob:')) {
+            try {
+              const response = await fetch(photoUrl);
+              const blob = await response.blob();
+              const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+              
+              // Upload to Supabase storage
+              const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
+              const filePath = `${user.id}/${fileName}`;
+              
+              const { data, error } = await supabase.storage
+                .from('inspection-photos')
+                .upload(filePath, file);
+                
+              if (error) throw error;
+              
+              // Get public URL
+              const { data: urlData } = supabase.storage
+                .from('inspection-photos')
+                .getPublicUrl(filePath);
+                
+              uploadedPhotoUrls.push(urlData.publicUrl);
+            } catch (error) {
+              console.error('Error uploading photo:', error);
+            }
+          } else {
+            // Already uploaded photo
+            uploadedPhotoUrls.push(photoUrl);
+          }
+        }
+        
+        // Replace the blob URLs with the uploaded photo URLs
+        item.photos = uploadedPhotoUrls;
+      }
       
       // Insert inspection items
       const { data: newItems, error: insertItemsError } = await supabase

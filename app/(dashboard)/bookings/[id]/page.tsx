@@ -1,36 +1,37 @@
+'use client'
+
 import { Metadata } from 'next'
 import { getBookingById } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { PrintButton } from '@/components/bookings/print-button'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
 import { ContactButtons } from '@/components/bookings/contact-buttons'
 import { BookingActions } from '@/components/bookings/booking-actions'
-
-export const metadata: Metadata = {
-  title: 'Booking Details',
-  description: 'View booking details',
-}
+import { PageHeader } from '@/components/ui/page-header'
+import { WeatherForecast } from '@/components/bookings/weather-forecast'
+import { useI18n } from '@/lib/i18n/context'
 
 function BookingNotFound({ bookingId }: { bookingId: string }) {
+  const { t } = useI18n()
   return (
     <div className="border rounded-lg p-8 shadow">
-      <h1 className="text-2xl font-bold text-red-500 mb-4">Booking Not Found</h1>
+      <h1 className="text-2xl font-bold text-red-500 mb-4">{t('bookings.details.notFound')}</h1>
       <p className="text-muted-foreground mb-4">
-        We couldn't find booking #{bookingId}. It might have been deleted or the ID is incorrect.
+        {t('bookings.details.notFoundDescription')}
       </p>
       
       <div className="mt-6">
         <Link href="/bookings">
           <Button>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Bookings
+            {t('bookings.details.backToBookings')}
           </Button>
         </Link>
       </div>
@@ -95,27 +96,88 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
   );
 }
 
-export default async function BookingPage({ params }: { params: { id: string } }) {
-  const { booking } = await getBookingById(params.id);
+// Convert to client component with loading state
+export default function BookingPage({ params }: { params: { id: string } }) {
+  const { t } = useI18n()
+  const [booking, setBooking] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchBookingData() {
+      try {
+        setLoading(true)
+        const result = await getBookingById(params.id)
+        
+        if (result.booking) {
+          setBooking(result.booking)
+        } else {
+          setError('Booking not found')
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load booking')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBookingData()
+  }, [params.id])
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">{t('common.loading')}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <PageHeader
+            title={t('bookings.details.notFound')}
+            description={t('bookings.details.notFoundDescription')}
+          />
+          <Button asChild variant="ghost">
+            <Link href="/bookings">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('bookings.details.backToBookings')}
+            </Link>
+          </Button>
+        </div>
+        
+        <Card className="min-h-[300px] flex items-center justify-center">
+          <div className="text-center">
+            <FileX className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">{t('bookings.details.notFound')}</h3>
+            <p className="text-muted-foreground">
+              {t('bookings.details.notFoundDescription')}
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
   
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return <Badge className="bg-green-600 text-white">Confirmed</Badge>;
+        return <Badge className="bg-green-600 text-white">{t('bookings.details.status.confirmed')}</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white">Pending</Badge>;
+        return <Badge className="bg-yellow-600 text-white">{t('bookings.details.status.pending')}</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-600 text-white">Cancelled</Badge>;
+        return <Badge className="bg-red-600 text-white">{t('bookings.details.status.cancelled')}</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-600 text-white">Completed</Badge>;
+        return <Badge className="bg-blue-600 text-white">{t('bookings.details.status.completed')}</Badge>;
       default:
         return <Badge className="bg-gray-600 text-white">{status}</Badge>;
     }
   };
-  
-  if (!booking) {
-    return <BookingNotFound bookingId={params.id} />;
-  }
   
   return (
     <div className="space-y-6">
@@ -124,14 +186,14 @@ export default async function BookingPage({ params }: { params: { id: string } }
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
       >
         <ArrowLeft className="w-4 h-4 mr-1" />
-        Back to Bookings
+        {t('bookings.details.backToBookings')}
       </Link>
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Booking #{booking.id || booking.booking_id}</h1>
+          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id })}</h1>
           <p className="text-muted-foreground">
-            Created on {booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'}
+            {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
           </p>
         </div>
         
@@ -151,19 +213,19 @@ export default async function BookingPage({ params }: { params: { id: string } }
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <Calendar className="mr-2 h-5 w-5" />
-                Booking Summary
+                {t('bookings.details.sections.summary')}
               </h2>
             </div>
             
             <div className="p-6">
               <div className="grid grid-cols-2 gap-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Booking ID</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.bookingId')}</h3>
                   <p className="mt-1">#{booking.id || booking.booking_id || '25346'}</p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Order Total</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.orderTotal')}</h3>
                   <p className="mt-1 font-semibold">
                     {booking.price ? 
                       (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
@@ -173,7 +235,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Pickup Date</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupDate')}</h3>
                   <p className="mt-1 flex items-center">
                     <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.date || '2025-04-30'}
@@ -181,7 +243,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Payment Method</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentMethod')}</h3>
                   <p className="mt-1 flex items-center">
                     <CreditCard className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.payment_method || 'IPPS Payment'}
@@ -189,7 +251,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Pickup Time</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupTime')}</h3>
                   <p className="mt-1 flex items-center">
                     <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.time || '06:30'}
@@ -197,7 +259,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Payment Status</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentStatus')}</h3>
                   <p className="mt-1 text-yellow-500">
                     {booking.payment_status || 'Pending'}
                   </p>
@@ -208,29 +270,29 @@ export default async function BookingPage({ params }: { params: { id: string } }
               <div className="mt-8 pt-6 border-t">
                 <h2 className="text-lg font-semibold flex items-center mb-4">
                   <Truck className="mr-2 h-5 w-5" />
-                  Vehicle Information
+                  {t('bookings.details.sections.vehicle')}
                 </h2>
                 
                 <div className="grid grid-cols-2 gap-y-6">
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Vehicle</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
                     <p className="mt-1">
                       {booking.vehicle?.make ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin'}
                     </p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Capacity</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.capacity')}</h3>
                     <p className="mt-1">10 passengers</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Vehicle ID</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleId')}</h3>
                     <p className="mt-1">#{booking.vehicle?.id || '25139'}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Service Type</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
                     <p className="mt-1">Airport Transfer</p>
                   </div>
                 </div>
@@ -243,7 +305,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <MapPin className="mr-2 h-5 w-5" />
-                Route Information
+                {t('bookings.details.sections.route')}
               </h2>
             </div>
             
@@ -257,7 +319,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium">Pickup Location</h3>
+                      <h3 className="font-medium">{t('bookings.details.fields.pickupLocation')}</h3>
                       <p className="text-muted-foreground mt-1">{booking.pickup_location || 'Suvarnabhumi Airport, Bangkok'}</p>
                     </div>
                   </div>
@@ -271,7 +333,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
                     >
                       <Navigation className="mr-2 h-4 w-4" />
-                      Navigate to Pickup
+                      {t('bookings.details.actions.navigateToPickup')}
                     </a>
                   </div>
                   
@@ -282,7 +344,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium">Dropoff Location</h3>
+                      <h3 className="font-medium">{t('bookings.details.fields.dropoffLocation')}</h3>
                       <p className="text-muted-foreground mt-1">{booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}</p>
                     </div>
                   </div>
@@ -296,7 +358,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
                     >
                       <Navigation className="mr-2 h-4 w-4" />
-                      Navigate to Drop-off
+                      {t('bookings.details.actions.navigateToDropoff')}
                     </a>
                   </div>
                   
@@ -310,39 +372,16 @@ export default async function BookingPage({ params }: { params: { id: string } }
                   )}
                 </div>
               ) : (
-                <p className="text-muted-foreground">No route information available</p>
+                <p className="text-muted-foreground">{t('bookings.details.placeholders.noRouteInfo')}</p>
               )}
               
               {/* Add Weather Forecast Section */}
-              {booking.date && (
+              {booking.date && booking.pickup_location && (
                 <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-lg font-medium flex items-center mb-4">
-                    <CloudSun className="mr-2 h-5 w-5" />
-                    Weather Forecast for Trip Date
-                  </h3>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center mr-3">
-                        <span role="img" aria-label="sunny" className="text-xl">☀️</span>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">24°C</p>
-                        <p className="text-sm text-muted-foreground">Sunny</p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {booking.pickup_location?.split(',')[0] || 'Location'}, {booking.pickup_location?.split(',').pop()?.trim() || 'Region'}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground mt-2">
-                    * Weather forecast is an approximation and may change. Check before your trip.
-                  </p>
+                  <WeatherForecast 
+                    date={booking.date}
+                    location={booking.pickup_location}
+                  />
                 </div>
               )}
               
@@ -351,14 +390,14 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
                   {booking.distance && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Distance</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.distance')}</h3>
                       <p className="mt-1">{booking.distance} km</p>
                     </div>
                   )}
                   
                   {booking.duration && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Duration</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.duration')}</h3>
                       <p className="mt-1">{booking.duration} min</p>
                     </div>
                   )}
@@ -375,7 +414,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <User className="mr-2 h-5 w-5" />
-                Client Details
+                {t('bookings.details.sections.client')}
               </h2>
             </div>
             
@@ -386,20 +425,19 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 <div className="text-center sm:text-left">
                   <h3 className="font-medium text-lg">{booking.customer_name || 'Aroon Muangkaew'}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Customer since {
-                      // @ts-ignore - Property may not exist in the type definition but could be in the data
-                      booking.customer_since || 
-                      (booking.created_at ? 
-                        new Date(booking.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
-                        'January 2023')
-                    }
+                    {t('bookings.details.customerSince', {
+                      date: (booking as any).customer_since || 
+                        (booking.created_at ? 
+                          new Date(booking.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
+                          'January 2023')
+                    })}
                   </p>
                 </div>
               </div>
               
               <div className="space-y-4 mt-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.email')}</h3>
                   <p className="mt-1 flex items-center">
                     <Mail className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.customer_email || 'aroon.m@example.com'}
@@ -407,7 +445,7 @@ export default async function BookingPage({ params }: { params: { id: string } }
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.phone')}</h3>
                   <p className="mt-1 flex items-center">
                     <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.customer_phone || '+66 98 765 4321'}
@@ -424,14 +462,14 @@ export default async function BookingPage({ params }: { params: { id: string } }
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <FileText className="mr-2 h-5 w-5" />
-                Additional Information
+                {t('bookings.details.sections.additional')}
               </h2>
             </div>
             
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Flight Number</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.flightNumber')}</h3>
                   <p className="mt-1">
                     {(() => {
                       // Check if form element fields exist and is an array
@@ -442,13 +480,13 @@ export default async function BookingPage({ params }: { params: { id: string } }
                         );
                         if (flightField?.value) return flightField.value;
                       }
-                      return booking.meta?.chbs_flight_number || 'Not provided';
+                      return booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided');
                     })()}
                   </p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Terminal</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.terminal')}</h3>
                   <p className="mt-1">
                     {(() => {
                       // Check if form element fields exist and is an array
@@ -459,15 +497,15 @@ export default async function BookingPage({ params }: { params: { id: string } }
                         );
                         if (terminalField?.value) return terminalField.value;
                       }
-                      return booking.meta?.chbs_terminal || 'Not provided';
+                      return booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided');
                     })()}
                   </p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Comment</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.comment')}</h3>
                   <p className="mt-1 whitespace-pre-wrap">
-                    {booking.notes || booking.meta?.chbs_comment || 'No comments provided'}
+                    {booking.notes || booking.meta?.chbs_comment || t('bookings.details.placeholders.noComments')}
                   </p>
                 </div>
               </div>
@@ -479,19 +517,19 @@ export default async function BookingPage({ params }: { params: { id: string } }
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <CreditCard className="mr-2 h-5 w-5" />
-                Payment Link
+                {t('bookings.details.sections.payment')}
               </h2>
             </div>
             
             <div className="p-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
                   <p className="mt-1">{booking.payment_status || 'Pending'}</p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Payment Link</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
                   {booking.payment_link ? (
                     <a 
                       href={booking.payment_link} 
@@ -500,15 +538,15 @@ export default async function BookingPage({ params }: { params: { id: string } }
                       className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
                     >
                       <LinkIcon className="h-4 w-4 mr-1" />
-                      Open Payment Link
+                      {t('bookings.details.actions.openPaymentLink')}
                     </a>
                   ) : (
-                    <p className="mt-1 text-muted-foreground">No payment link available</p>
+                    <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
                   )}
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Amount</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
                   <p className="mt-1 font-semibold">
                     {booking.price ? 
                       (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 

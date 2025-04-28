@@ -197,3 +197,104 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Author
 
 - **Jonathan** - *Initial work* - [Rixouu](https://github.com/Rixouu)
+
+## Bookings Integration
+
+The system now supports syncing bookings from the WordPress API to a local Supabase database. This provides the following benefits:
+
+1. Faster loading and reduced dependency on the WordPress API
+2. Improved reliability when the WordPress site is slow or down
+3. Local analytics and reporting capabilities
+4. Backup of booking data
+
+### Setting Up Booking Sync
+
+1. Run the migration script to create the required tables:
+
+```bash
+# Make sure Supabase credentials are set
+export NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+export SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Run migrations
+node scripts/run-migrations.js
+```
+
+2. Use the "Sync Bookings" button on the Bookings page to pull data from WordPress to Supabase.
+
+### How It Works
+
+- The app will first attempt to fetch bookings from Supabase
+- If no bookings are found in Supabase, it falls back to the WordPress API
+- The "Sync Bookings" button manually triggers a full sync from WordPress to Supabase
+
+### Troubleshooting
+
+If you encounter issues with the booking sync:
+
+1. Make sure your WordPress API credentials are still valid
+2. Check Supabase connection and permissions
+3. Try a manual sync to see detailed error messages
+
+## WordPress Bookings Integration
+
+To properly fetch and display WordPress bookings instead of mock data, you need to set up the WordPress API connection correctly.
+
+### Configuration Steps
+
+1. Run the setup script to create a template `.env.local` file:
+
+```bash
+npm run setup-env
+```
+
+2. Edit the `.env.local` file with your WordPress API details:
+
+```
+NEXT_PUBLIC_WORDPRESS_API_URL=https://your-wordpress-site.com
+NEXT_PUBLIC_WORDPRESS_API_KEY=your-actual-api-key
+NEXT_PUBLIC_WORDPRESS_API_CUSTOM_PATH=wp-json/driver/v1/bookings
+```
+
+3. Run the WordPress API test tool to auto-detect the correct API path:
+
+```bash
+npm run test-wp-api
+```
+
+4. Restart your development server:
+
+```bash
+npm run dev
+```
+
+5. Go to the Bookings page and click the "Sync" button to sync WordPress bookings with your local database.
+
+### Troubleshooting 404 Errors
+
+If you're seeing "Failed to fetch bookings: 404" errors, follow these steps:
+
+1. Verify the correct URL with the testing tool:
+
+```bash
+npm run test-wp-api
+```
+
+2. Ensure you're using the correct path format in `.env.local`. The most common format is:
+
+```
+NEXT_PUBLIC_WORDPRESS_API_CUSTOM_PATH=wp-json/driver/v1/bookings
+```
+
+3. Check that your WordPress site has the Driver Companion plugin properly installed and activated.
+
+4. Verify that your WordPress API is publicly accessible and doesn't have any security measures blocking external requests.
+
+5. If you've identified the correct endpoint, manually edit your `.env.local` file with the working path.
+
+If you still see mock data, try the following additional troubleshooting steps:
+
+- Check your WordPress site is accessible and the API endpoint is correct
+- Ensure your API key has proper permissions
+- Check browser console for API errors
+- Try manually syncing via the "Sync" button on the Bookings page

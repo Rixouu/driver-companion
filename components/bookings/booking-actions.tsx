@@ -9,6 +9,7 @@ import {
   Trash2, 
   CalendarPlus
 } from "lucide-react"
+import { useI18n } from "@/lib/i18n/context"
 
 interface BookingActionsProps {
   bookingId: string;
@@ -19,6 +20,8 @@ interface BookingActionsProps {
 }
 
 export function BookingActions({ bookingId, status, date, time, booking }: BookingActionsProps) {
+  const { t } = useI18n()
+  
   const handleCancel = () => {
     // This would typically open a confirmation modal
     alert('This would cancel the booking. Add confirmation dialog here.');
@@ -41,7 +44,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
       <div className="border-b py-4 px-6">
         <h2 className="text-lg font-semibold flex items-center">
           <CalendarIcon className="mr-2 h-5 w-5" />
-          Booking Actions
+          {t('bookings.details.bookingActions.title')}
         </h2>
       </div>
       <CardContent className="p-6 space-y-4">
@@ -57,14 +60,14 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               className="w-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500/20 dark:border-green-500/30"
             >
               <CalendarPlus className="mr-2 h-5 w-5" />
-              Add to Google Calendar
+              {t('bookings.details.bookingActions.addToGoogleCalendar')}
             </Button>
           </a>
         </div>
 
         {/* Management Actions */}
         <div>
-          <h3 className="text-sm font-medium mb-3">Management Actions</h3>
+          <h3 className="text-sm font-medium mb-3">{t('bookings.details.bookingActions.managementActions')}</h3>
           
           <Link href={`/bookings/${bookingId}/edit`} className="block mb-3">
             <Button 
@@ -72,7 +75,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
             >
               <Edit className="mr-2 h-5 w-5" />
-              Edit Booking
+              {t('bookings.details.bookingActions.editBooking')}
             </Button>
           </Link>
           
@@ -82,7 +85,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-500 dark:hover:bg-blue-500/20 dark:border-blue-500/30"
             >
               <CalendarIcon className="mr-2 h-5 w-5" />
-              Reschedule Booking
+              {t('bookings.details.bookingActions.rescheduleBooking')}
             </Button>
           </Link>
         </div>
@@ -91,7 +94,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
         <div>
           <div className="relative flex items-center py-2 mb-3">
             <div className="flex-grow border-t"></div>
-            <span className="flex-shrink mx-4 text-muted-foreground text-sm">DANGER ZONE</span>
+            <span className="flex-shrink mx-4 text-muted-foreground text-sm">{t('bookings.details.bookingActions.dangerZone')}</span>
             <div className="flex-grow border-t"></div>
           </div>
 
@@ -101,7 +104,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
             onClick={handleCancel}
           >
             <Trash2 className="mr-2 h-5 w-5" />
-            Cancel Booking
+            {t('bookings.details.bookingActions.cancelBooking')}
           </Button>
         </div>
       </CardContent>

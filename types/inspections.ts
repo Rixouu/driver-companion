@@ -116,6 +116,7 @@ export interface DbInspection {
   id: string
   template_id: string
   vehicle_id: string
+  booking_id?: string
   status: InspectionStatusType
   inspector_id?: string
   completed_at?: string

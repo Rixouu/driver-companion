@@ -35,9 +35,10 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
       last_name: initialData?.last_name || "",
       email: initialData?.email || "",
       phone: initialData?.phone || "",
+      line_id: initialData?.line_id || "",
       license_number: initialData?.license_number || "",
       license_expiry: initialData?.license_expiry || "",
-      status: initialData?.status || "active",
+      status: initialData?.status || "available",
       address: initialData?.address || "",
       emergency_contact: initialData?.emergency_contact || "",
       notes: initialData?.notes || "",
@@ -102,6 +103,20 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
                 <FormLabel>{t("drivers.fields.phone")}</FormLabel>
                 <FormControl>
                   <Input placeholder={t("drivers.placeholders.phone")} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="line_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t("drivers.fields.lineId")}</FormLabel>
+                <FormControl>
+                  <Input placeholder={t("drivers.placeholders.lineId")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -229,16 +244,20 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
                   className="flex flex-col space-y-1"
                 >
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="active" id="active" />
-                    <Label htmlFor="active">{t("drivers.status.active")}</Label>
+                    <RadioGroupItem value="available" id="available" />
+                    <Label htmlFor="available">{t("drivers.status.available")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="inactive" id="inactive" />
-                    <Label htmlFor="inactive">{t("drivers.status.inactive")}</Label>
+                    <RadioGroupItem value="unavailable" id="unavailable" />
+                    <Label htmlFor="unavailable">{t("drivers.status.unavailable")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="on_leave" id="on_leave" />
-                    <Label htmlFor="on_leave">{t("drivers.status.on_leave")}</Label>
+                    <RadioGroupItem value="leave" id="leave" />
+                    <Label htmlFor="leave">{t("drivers.status.leave")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="training" id="training" />
+                    <Label htmlFor="training">{t("drivers.status.training")}</Label>
                   </div>
                 </RadioGroup>
               </FormControl>
@@ -248,11 +267,11 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
         />
 
         <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>
-          {isSubmitting
-            ? t("common.submitting")
-            : initialData
-            ? t("drivers.actions.updateDriver")
-            : t("drivers.actions.addDriver")}
+          {isSubmitting 
+            ? t("common.submitting") 
+            : initialData 
+              ? t("drivers.actions.updateDriver") 
+              : t("drivers.actions.addDriver")}
         </Button>
       </form>
     </Form>

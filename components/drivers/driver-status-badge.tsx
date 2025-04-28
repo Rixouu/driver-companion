@@ -11,21 +11,40 @@ export function DriverStatusBadge({ status }: DriverStatusBadgeProps) {
   const { t } = useI18n()
 
   const getVariant = () => {
-    switch (status) {
-      case "active":
+    switch (status?.toLowerCase()) {
+      case "available":
+      case "active": // For backward compatibility
         return "success"
-      case "inactive":
+      case "unavailable":
+      case "inactive": // For backward compatibility
         return "destructive"
-      case "on_leave":
+      case "leave":
+      case "on_leave": // For backward compatibility
         return "warning"
+      case "training":
+        return "info"
       default:
         return "secondary"
     }
   }
 
+  // Map old status values to new ones for translation
+  const getTranslationKey = () => {
+    switch (status?.toLowerCase()) {
+      case "active":
+        return "available"
+      case "inactive":
+        return "unavailable"
+      case "on_leave":
+        return "leave"
+      default:
+        return status
+    }
+  }
+
   return (
     <Badge variant={getVariant() as any}>
-      {t(`drivers.status.${status}`)}
+      {t(`drivers.status.${getTranslationKey()}`)}
     </Badge>
   )
 } 

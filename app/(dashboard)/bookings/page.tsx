@@ -1,18 +1,12 @@
 import { Suspense } from 'react'
-import { BookingsPageSkeleton } from '@/components/bookings/bookings-page-skeleton'
-import dynamic from 'next/dynamic'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-// Dynamically import the client component with no SSR to avoid hydration issues
-const BookingsClient = dynamic(
-  () => import('@/components/bookings/bookings-client').then(mod => mod.BookingsClient),
-  { ssr: false }
-)
+import { BookingsClient } from '@/components/bookings/bookings-client'
+import { BookingsPageSkeleton } from '@/components/bookings/bookings-page-skeleton'
 
 export const metadata = {
-  title: 'Bookings | Driver',
-  description: 'View and manage your vehicle bookings',
+  title: 'Bookings',
+  description: 'View and manage your bookings',
 }
 
 export default function BookingsPage() {
@@ -34,7 +28,7 @@ export default function BookingsPage() {
       </div>
       
       <Suspense fallback={<BookingsPageSkeleton />}>
-        <BookingsClient />
+        <BookingsClient hideTabNavigation />
       </Suspense>
     </div>
   )

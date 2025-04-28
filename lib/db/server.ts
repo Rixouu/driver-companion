@@ -4,7 +4,7 @@ import type { Database } from '@/types/supabase'
 import { siteConfig } from '@/lib/config'
 
 export async function getSession() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   
   const supabase = createServerComponentClient<Database>({ 
     cookies: () => cookieStore

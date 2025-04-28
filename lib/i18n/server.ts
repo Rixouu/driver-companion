@@ -10,7 +10,7 @@ const locales = {
 } as const
 
 export async function getDictionary() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en'
   
   // Get the translations for the current locale

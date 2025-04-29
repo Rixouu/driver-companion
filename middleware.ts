@@ -2,8 +2,6 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const runtime = 'nodejs' // Change runtime to nodejs instead of edge
-
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
   const res = NextResponse.next()

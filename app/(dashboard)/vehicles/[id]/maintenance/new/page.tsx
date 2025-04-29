@@ -64,12 +64,11 @@ export default async function NewMaintenancePage({
         >
           <Link
             href={`/vehicles/${params.id}/maintenance`}
-            className="flex items-center gap-2"
-            legacyBehavior>
+            className="flex items-center gap-2" ><span className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back to maintenance</span>
             <span className="sm:hidden">Back</span>
-          </Link>
+          </span></Link>
         </Button>
 
         <p className="text-muted-foreground">

@@ -44,12 +44,12 @@ export default function NewDriverPage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center mb-8">
-        <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
+        <Link href="/drivers" className="flex items-center gap-2" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.title")}
           </Button>
-        </Link>
+        </span></span></Link>
       </div>
       <Card>
         <CardHeader>

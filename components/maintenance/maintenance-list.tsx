@@ -222,7 +222,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedTasks.map((task) => (
                 <Card key={task.id}>
-                  <Link href={`/maintenance/${task.id}`} legacyBehavior>
+                  <Link href={`/maintenance/${task.id}`}><span className="flex items-center gap-2">
                     <div className="relative aspect-video w-full">
                       {task.vehicle?.image_url ? (
                         <Image
@@ -237,7 +237,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                         </div>
                       )}
                     </div>
-                  </Link>
+                  </span></Link>
                   <CardContent className="p-6">
                     <div className="flex flex-col space-y-4">
                       <div className="space-y-2">
@@ -270,11 +270,11 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                           {t(`maintenance.priority.${task.priority}`)}
                         </Badge>
                       </div>
-                      <Link href={`/maintenance/${task.id}`} legacyBehavior>
+                      <Link href={`/maintenance/${task.id}`}><span className="flex items-center gap-2">
                         <Button variant="secondary" className="w-full">
                           {t("common.viewDetails")}
                         </Button>
-                      </Link>
+                      </span></Link>
                     </div>
                   </CardContent>
                 </Card>
@@ -324,11 +324,11 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/maintenance/${task.id}`} legacyBehavior>
+                          <Link href={`/maintenance/${task.id}`}><span className="flex items-center gap-2">
                             <Button variant="ghost" size="sm">
                               {t("common.viewDetails")}
                             </Button>
-                          </Link>
+                          </span></Link>
                         </TableCell>
                       </TableRow>
                     ))}

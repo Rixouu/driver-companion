@@ -22,7 +22,7 @@ export function BookingDetail({ booking }: BookingDetailProps) {
           description={`View details for booking #${booking.id}`}
         />
         <Button asChild variant="ghost">
-          <Link href="/bookings" legacyBehavior>
+          <Link href="/bookings" >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Bookings
           </Link>

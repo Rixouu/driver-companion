@@ -14,17 +14,22 @@ import {
   Wrench, 
   User,
   Calendar,
-  BarChart
+  BarChart,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useI18n()
+  const [collapsed, setCollapsed] = useState(false)
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
@@ -68,12 +73,27 @@ export function Sidebar() {
       // If no settings exist, save the defaults
       localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
     }
+
+    // Load sidebar collapsed state
+    const savedCollapsedState = localStorage.getItem('sidebarCollapsed')
+    if (savedCollapsedState) {
+      setCollapsed(savedCollapsedState === 'true')
+    }
   }, [])
+  
+  // Save collapsed state to localStorage
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', String(collapsed))
+  }, [collapsed])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/auth/login')
     router.refresh()
+  }
+
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed)
   }
 
   // Menu items with group structure
@@ -116,79 +136,133 @@ export function Sidebar() {
   ]
 
   return (
-    <div className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]">
-      <div className="flex h-full flex-col justify-between overflow-y-auto py-4">
-        <div className="px-4 mb-6">
-          <Link href="/" legacyBehavior>
-            <span className="flex items-center">
+    <div className={cn(
+      "fixed left-0 top-0 h-screen bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] transition-width duration-300 ease-in-out",
+      collapsed ? "w-16" : "w-64"
+    )}>
+      <div className="flex h-full flex-col justify-between overflow-y-auto">
+        {/* Header with logo and collapse button aligned horizontally */}
+        <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--border))] h-14">
+          {!collapsed ? (
+            <div className="flex items-center">
               <Image
                 src="/img/driver-header-logo.png"
                 alt="Driver Logo"
-                width={140}
-                height={45}
+                width={120}
+                height={30}
                 priority
                 unoptimized
               />
-            </span>
-          </Link>
+            </div>
+          ) : (
+            <div></div>
+          )}
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 rounded-md hover:bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <PanelLeft className={cn("h-5 w-5", collapsed && "rotate-180")} />
+          </Button>
         </div>
         
-        <nav className="space-y-6 px-2 flex-1 overflow-y-auto">
-          {menuGroups.map((group) => {
-            // Filter items based on menu settings
-            const visibleItems = group.items.filter(item => {
-              if (item.key === 'settings' || item.key === 'bookings') return true;
-              const setting = menuSettings[item.key as keyof typeof menuSettings];
-              return setting && setting.desktop;
-            });
-            
-            // Skip empty groups
-            if (visibleItems.length === 0) return null;
-            
-            return (
-              <div key={group.id} className="space-y-1">
-                {group.label && (
-                  <div className="px-3 mb-2">
-                    <h2 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
-                      {group.label}
-                    </h2>
-                  </div>
-                )}
-                {visibleItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  
-                  return (
-                    <Link key={item.href} href={item.href} legacyBehavior>
+        {/* Main navigation */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          <TooltipProvider delayDuration={300}>
+            {menuGroups.map((group) => {
+              // Filter items based on menu settings
+              const visibleItems = group.items.filter(item => {
+                if (item.key === 'settings' || item.key === 'bookings') return true;
+                const setting = menuSettings[item.key as keyof typeof menuSettings];
+                return setting && setting.desktop;
+              });
+              
+              // Skip empty groups
+              if (visibleItems.length === 0) return null;
+              
+              return (
+                <div key={group.id} className="space-y-1 px-3 py-2">
+                  {group.label && !collapsed && (
+                    <div className="px-3 mb-2">
+                      <h2 className="text-xs font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider">
+                        {group.label}
+                      </h2>
+                    </div>
+                  )}
+                  {visibleItems.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    
+                    const menuItem = (
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start",
+                          "w-full font-medium",
+                          collapsed ? "justify-center px-2" : "justify-start",
                           isActive 
                             ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]" 
                             : "text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
                         )}
                       >
-                        <item.icon className="mr-2 h-5 w-5" />
-                        {item.label}
+                        <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
+                        {!collapsed && item.label}
                       </Button>
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })}
+                    );
+                    
+                    return collapsed ? (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>
+                          <Link href={item.href}>
+                            {menuItem}
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>{item.label}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Link key={item.href} href={item.href}>
+                        {menuItem}
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          
+            {/* Logout button */}
+            <div className="px-5 mt-6 mb-4">
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="w-full justify-center text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>{t("auth.logout")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-3 h-5 w-5" />
+                  {t("auth.logout")}
+                </Button>
+              )}
+            </div>
+          </TooltipProvider>
         </nav>
-        
-        <div className="px-2 mt-6">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
-            onClick={handleLogout}
-          >
-            <LogOut className="mr-2 h-5 w-5" />
-            {t("auth.logout")}
-          </Button>
-        </div>
       </div>
     </div>
   );

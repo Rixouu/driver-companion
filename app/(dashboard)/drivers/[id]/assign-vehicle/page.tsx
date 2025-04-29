@@ -180,11 +180,10 @@ export default function AssignVehiclePage() {
           <Button variant="ghost" size="sm" asChild>
             <Link
               href={`/drivers/${id}`}
-              className="flex items-center gap-2"
-              legacyBehavior>
+              className="flex items-center gap-2" ><span className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.driverDetails")}
-            </Link>
+            </span></Link>
           </Button>
         </div>
         <Card>
@@ -207,12 +206,12 @@ export default function AssignVehiclePage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
-          <Link href="/drivers" legacyBehavior>
+          <Link href="/drivers" ><span className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Button>
-          </Link>
+          </span></Link>
         </div>
         <Card>
           <CardContent className="p-8 text-center">
@@ -220,7 +219,7 @@ export default function AssignVehiclePage() {
             <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
             <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
             <Button asChild>
-              <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
+              <Link href="/drivers" ><span className="flex items-center gap-2"><span className="flex items-center gap-2"><span>{t("common.backTo")} {t("drivers.title")}</span></span></span></Link>
             </Button>
           </CardContent>
         </Card>
@@ -233,13 +232,12 @@ export default function AssignVehiclePage() {
       <div className="flex items-center mb-8">
         <Link
           href={`/drivers/${id}`}
-          className="flex items-center gap-2"
-          legacyBehavior>
+          className="flex items-center gap-2" ><span className="flex items-center gap-2">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.driverDetails")}
           </Button>
-        </Link>
+        </span></Link>
       </div>
       <Card>
         <CardHeader>
@@ -298,11 +296,11 @@ export default function AssignVehiclePage() {
               )}
               
               <div className="flex justify-end gap-4">
-                <Link href={`/drivers/${id}`} legacyBehavior>
+                <Link href={`/drivers/${id}`} ><span className="flex items-center gap-2">
                   <Button variant="outline">
                     {t("common.cancel")}
                   </Button>
-                </Link>
+                </span></Link>
                 <Button
                   onClick={handleAssign}
                   disabled={isSubmitting || selectedVehicleIds.length === 0}
@@ -381,11 +379,11 @@ export default function AssignVehiclePage() {
                   )}
                   
                   <div className="flex justify-end gap-4">
-                    <Link href={`/drivers/${id}`} legacyBehavior>
+                    <Link href={`/drivers/${id}`} ><span className="flex items-center gap-2">
                       <Button variant="outline">
                         {t("common.cancel")}
                       </Button>
-                    </Link>
+                    </span></Link>
                     <Button
                       variant="destructive"
                       onClick={() => setConfirmUnassignOpen(true)}

@@ -29,12 +29,12 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
           <CardTitle>{t("drivers.vehicles.title")}</CardTitle>
           <CardDescription>{t("drivers.vehicles.description")}</CardDescription>
         </div>
-        <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
+        <Link href={`/drivers/${driverId}/assign-vehicle`} ><span className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <Car className="mr-2 h-4 w-4" />
             {t("drivers.actions.assignVehicle")}
           </Button>
-        </Link>
+        </span></Link>
       </CardHeader>
       <CardContent>
         {assignedVehicles.length === 0 ? (
@@ -42,12 +42,12 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
             <p className="text-sm text-muted-foreground">
               {t("drivers.vehicles.noVehicles")}
             </p>
-            <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
+            <Link href={`/drivers/${driverId}/assign-vehicle`} ><span className="flex items-center gap-2">
               <Button className="mt-4">
                 <Car className="mr-2 h-4 w-4" />
                 {t("drivers.actions.assignVehicle")}
               </Button>
-            </Link>
+            </span></Link>
           </div>
         ) : (
           <div className="divide-y">
@@ -55,8 +55,7 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
               <Link
                 key={vehicle.id}
                 href={`/vehicles/${vehicle.id}`}
-                className="flex items-center py-3 px-1 space-x-4 hover:bg-muted/50 rounded-md -mx-1 transition-colors"
-                legacyBehavior>
+                className="flex items-center py-3 px-1 space-x-4 hover:bg-muted/50 rounded-md -mx-1 transition-colors" ><span className="flex items-center gap-2">
                 <span className="flex items-center w-full">
                   <div className="h-12 w-12 relative flex-shrink-0 rounded-md overflow-hidden bg-muted">
                     {vehicle.image_url ? (
@@ -86,7 +85,7 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </span>
-              </Link>
+              </span></Link>
             ))}
           </div>
         )}

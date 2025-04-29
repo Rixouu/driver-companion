@@ -75,11 +75,10 @@ export default function EditDriverPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link
               href={`/drivers/${id}`}
-              className="flex items-center gap-2"
-              legacyBehavior>
+              className="flex items-center gap-2" ><span className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.driverDetails")}
-            </Link>
+            </span></Link>
           </Button>
         </div>
         <Card>
@@ -108,7 +107,7 @@ export default function EditDriverPage() {
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/drivers" className="flex items-center gap-2" legacyBehavior>
+            <Link href="/drivers" className="flex items-center gap-2" >
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Link>
@@ -119,7 +118,7 @@ export default function EditDriverPage() {
             <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
             <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
             <Button asChild>
-              <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
+              <Link href="/drivers" ><span className="flex items-center gap-2"><span>{t("common.backTo")} {t("drivers.title")}</span></span></Link>
             </Button>
           </CardContent>
         </Card>
@@ -133,8 +132,7 @@ export default function EditDriverPage() {
         <Button variant="ghost" size="sm" asChild>
           <Link
             href={`/drivers/${id}`}
-            className="flex items-center gap-2"
-            legacyBehavior>
+            className="flex items-center gap-2" >
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.driverDetails")}
           </Link>

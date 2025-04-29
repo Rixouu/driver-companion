@@ -205,7 +205,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
                 
                 <div className="flex justify-end">
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/bookings/${booking.id}`} legacyBehavior>
+                    <Link href={`/bookings/${booking.id}`} >
                       {t('common.viewDetails')}
                     </Link>
                   </Button>

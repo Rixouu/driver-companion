@@ -159,8 +159,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         <Link
           key={activity.id}
           href={activity.link}
-          className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors"
-          legacyBehavior>
+          className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" ><span className="flex items-center gap-2">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -196,7 +195,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
               </div>
             </div>
           </div>
-        </Link>
+        </span></Link>
       ))}
     </div>
   );

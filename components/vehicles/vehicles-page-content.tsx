@@ -31,12 +31,12 @@ export function VehiclesPageContent({ vehicles, currentPage, totalPages }: Vehic
             {t("vehicles.description")}
           </p>
         </div>
-        <Link href="/vehicles/new" legacyBehavior>
+        <Link href="/vehicles/new" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
           <Button className="sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             {t("vehicles.addVehicle")}
           </Button>
-        </Link>
+        </span></span></Link>
       </div>
       <VehicleList
         vehicles={vehicles}

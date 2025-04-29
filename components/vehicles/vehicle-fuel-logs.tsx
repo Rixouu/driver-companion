@@ -45,11 +45,10 @@ export function VehicleFuelLogs({ vehicleId }: VehicleFuelLogsProps) {
         <Button asChild size="sm" className="w-full sm:w-auto">
           <Link
             href={`/vehicles/${vehicleId}/fuel/new`}
-            className="flex items-center justify-center gap-2"
-            legacyBehavior>
+            className="flex items-center justify-center gap-2" ><span className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             <span>{t("fuel.new.title")}</span>
-          </Link>
+          </span></Link>
         </Button>
       </CardHeader>
       <CardContent>

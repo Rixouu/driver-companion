@@ -29,12 +29,12 @@ function BookingNotFound({ bookingId }: { bookingId: string }) {
         {t('bookings.details.notFoundDescription')}
       </p>
       <div className="mt-6">
-        <Link href="/bookings" legacyBehavior>
+        <Link href="/bookings" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("bookings.title")}
           </Button>
-        </Link>
+        </span></span></Link>
       </div>
     </div>
   );
@@ -146,12 +146,12 @@ export default function BookingPage() {
             title={t('bookings.details.notFound')}
             description={t('bookings.details.notFoundDescription')}
           />
-          <Link href="/bookings" legacyBehavior>
+          <Link href="/bookings" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("bookings.title")}
             </Button>
-          </Link>
+          </span></span></Link>
         </div>
         <Card className="min-h-[300px] flex items-center justify-center">
           <div className="text-center">
@@ -185,13 +185,12 @@ export default function BookingPage() {
     <div className="space-y-6">
       <Link
         href="/bookings"
-        className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
-        legacyBehavior>
+        className="flex items-center text-blue-500 hover:text-blue-400 mb-6" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
         <Button variant="ghost" size="sm" className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           {t("common.backTo")} {t("bookings.title")}
         </Button>
-      </Link>
+      </span></span></Link>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id || id })}</h1>

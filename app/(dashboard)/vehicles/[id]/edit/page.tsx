@@ -45,7 +45,7 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <Link href="/vehicles" legacyBehavior>
+          <Link href="/vehicles" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
             <Button
               variant="link"
               className="pl-0 text-muted-foreground"
@@ -53,7 +53,7 @@ export default async function EditVehiclePage({ params }: EditVehiclePageProps) 
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("common.backTo")} {t("vehicles.title")}
             </Button>
-          </Link>
+          </span></span></Link>
           <h1 className="text-3xl font-bold tracking-tight">
             {t("vehicles.edit.title")}
           </h1>

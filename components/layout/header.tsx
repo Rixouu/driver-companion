@@ -35,8 +35,8 @@ export function Header() {
   if (pathname.startsWith("/auth")) return null
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-8 sm:px-10 md:px-12 max-w-[1600px]">
+    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-14">
+      <div className="px-8 sm:px-10 md:px-12 max-w-[1600px] ml-auto">
         <div className="flex h-14 items-center justify-end">
           <div className="flex items-center gap-4">
             {/* Show theme toggle and login only on desktop */}

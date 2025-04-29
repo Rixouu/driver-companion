@@ -91,8 +91,7 @@ export function MainNav() {
             pathname === item.href
               ? "text-foreground"
               : "text-muted-foreground"
-          )}
-          legacyBehavior>
+          )} >
           {item.title}
         </Link>
       ))}

@@ -178,8 +178,7 @@ export function MobileNav() {
                   "flex flex-col items-center justify-center w-full h-full relative",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
-                onClick={handleClick}
-                legacyBehavior>
+                onClick={handleClick} ><span className="flex items-center gap-2">
                 <span className="flex flex-col items-center">
                   <Icon className="h-5 w-5" />
                   <span className="text-[10px] mt-1">{group.title}</span>
@@ -200,7 +199,7 @@ export function MobileNav() {
                     </div>
                   )}
                 </span>
-              </Link>
+              </span></Link>
             );
           })}
         </div>
@@ -232,8 +231,7 @@ export function MobileNav() {
                       isActive 
                         ? "bg-primary/10 text-primary" 
                         : "bg-muted/50 text-foreground hover:bg-muted"
-                    )}
-                    legacyBehavior>
+                    )}>
                     <span className="flex flex-col items-center">
                       <item.icon className="h-6 w-6 mb-2" />
                       <span className="text-xs text-center">{item.title}</span>

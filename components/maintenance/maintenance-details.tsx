@@ -325,7 +325,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
         <CardHeader className="space-y-4 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
-              <Link href="/maintenance" legacyBehavior>
+              <Link href="/maintenance" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -334,26 +334,26 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   <ArrowLeft className="h-4 w-4" />
                   {t('common.backToList')}
                 </Button>
-              </Link>
+              </span></span></Link>
               
               {task.status !== 'completed' && (
-                <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
+                <Link href={`/maintenance/${task.id}/edit`} ><span className="flex items-center gap-2">
                   <Button variant="outline" size="sm" className="gap-2 sm:hidden">
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
                   </Button>
-                </Link>
+                </span></Link>
               )}
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
               {task.status !== 'completed' && (
-                <Link href={`/maintenance/${task.id}/edit`} legacyBehavior>
+                <Link href={`/maintenance/${task.id}/edit`} ><span className="flex items-center gap-2">
                   <Button variant="outline" size="sm" className="gap-2 hidden sm:inline-flex">
                     <Pencil className="h-4 w-4" />
                     {t("common.edit")}
                   </Button>
-                </Link>
+                </span></Link>
               )}
               
               {task.status === 'scheduled' && (

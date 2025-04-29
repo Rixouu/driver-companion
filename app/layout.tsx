@@ -23,11 +23,14 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body className={cn(
-        workSans.className,
-        workSans.variable,
-        "min-h-screen bg-[hsl(var(--background))]"
-      )}>
+      <body 
+        className={cn(
+          workSans.className,
+          workSans.variable,
+          "min-h-screen bg-[hsl(var(--background))]"
+        )}
+        suppressHydrationWarning
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

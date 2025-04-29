@@ -108,7 +108,7 @@ export function BookingInspections({ bookingId, vehicleId }: BookingInspectionsP
                   size="sm" 
                   asChild
                 >
-                  <Link href={`/inspections/${inspection.id}`} legacyBehavior>
+                  <Link href={`/inspections/${inspection.id}`} >
                     {t('common.view', 'View')}
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>

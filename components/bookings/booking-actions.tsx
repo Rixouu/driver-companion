@@ -71,8 +71,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
           
           <Link
             href={`/bookings/${bookingId}/edit`}
-            className="block mb-3"
-            legacyBehavior>
+            className="block mb-3" ><span className="flex items-center gap-2">
             <Button 
               variant="outline" 
               className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
@@ -80,12 +79,11 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               <Edit className="mr-2 h-5 w-5" />
               {t('bookings.details.bookingActions.editBooking')}
             </Button>
-          </Link>
+          </span></Link>
           
           <Link
             href={`/bookings/${bookingId}/reschedule`}
-            className="block"
-            legacyBehavior>
+            className="block" ><span className="flex items-center gap-2">
             <Button 
               variant="outline" 
               className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-500 dark:hover:bg-blue-500/20 dark:border-blue-500/30"
@@ -93,7 +91,7 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               <CalendarIcon className="mr-2 h-5 w-5" />
               {t('bookings.details.bookingActions.rescheduleBooking')}
             </Button>
-          </Link>
+          </span></Link>
         </div>
 
         {/* Danger Zone */}

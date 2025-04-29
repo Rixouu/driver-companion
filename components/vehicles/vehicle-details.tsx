@@ -68,7 +68,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
       <Card className="shadow-sm print-hide">
         <CardHeader className="space-y-0 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <Link href="/vehicles" legacyBehavior>
+            <Link href="/vehicles" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
@@ -77,7 +77,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
                 <ArrowLeft className="h-4 w-4" />
                 {t('common.backToList')}
               </Button>
-            </Link>
+            </span></span></Link>
             
             <Button 
               variant="outline" 

@@ -194,7 +194,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedVehicles.map((vehicle) => (
                 <Card key={vehicle.id}>
-                  <Link href={`/vehicles/${vehicle.id}`} legacyBehavior>
+                  <Link href={`/vehicles/${vehicle.id}`} ><span className="flex items-center gap-2">
                     <div className="relative aspect-video w-full">
                       {vehicle.image_url ? (
                         <Image
@@ -209,7 +209,7 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                         </div>
                       )}
                     </div>
-                  </Link>
+                  </span></Link>
                   <CardContent className="p-6">
                     <div className="flex flex-col space-y-4">
                       <div className="space-y-2">

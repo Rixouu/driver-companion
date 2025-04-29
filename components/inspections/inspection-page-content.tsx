@@ -57,7 +57,7 @@ export function InspectionPageContent() {
           </p>
         </div>
         <Button asChild className="sm:flex-shrink-0">
-          <Link href="/inspections/create" legacyBehavior>
+          <Link href="/inspections/create" >
             <Plus className="mr-2 h-4 w-4" />
             {t("inspections.createInspection")}
           </Link>

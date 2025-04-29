@@ -46,12 +46,11 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
           >
             <Link
               href={`/inspections/${params.id}`}
-              className="flex items-center gap-2"
-              legacyBehavior>
+              className="flex items-center gap-2" ><span className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to inspection details</span>
               <span className="sm:hidden">Back</span>
-            </Link>
+            </span></Link>
           </Button>
 
           <div className="space-y-1">

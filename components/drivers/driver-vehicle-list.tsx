@@ -86,7 +86,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
           {t("drivers.assignedVehicles.empty.description")}
         </p>
         <Button asChild>
-          <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
+          <Link href={`/drivers/${driverId}/assign-vehicle`} >
             {t("drivers.actions.assignVehicle")}
           </Link>
         </Button>
@@ -128,8 +128,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                   <div>
                     <Link
                       href={`/vehicles/${vehicle.id}`}
-                      className="font-medium hover:underline"
-                      legacyBehavior>
+                      className="font-medium hover:underline" >
                       {vehicle.name}
                     </Link>
                   </div>
@@ -148,7 +147,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link href={`/vehicles/${vehicle.id}`} legacyBehavior>
+                      <Link href={`/vehicles/${vehicle.id}`} >
                         {t("vehicles.actions.viewDetails")}
                       </Link>
                     </DropdownMenuItem>

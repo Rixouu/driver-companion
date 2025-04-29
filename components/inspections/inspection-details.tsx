@@ -613,9 +613,11 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             asChild
           >
                 <Link href={`/vehicles/${inspection.vehicle_id}`} legacyBehavior>
-              <ArrowLeft className="h-4 w-4" />
-                  {t('common.backTo')}
-            </Link>
+                  <div className="flex items-center">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    {t('common.backTo')}
+                  </div>
+                </Link>
           </Button>
           </div>
             <div className="flex items-center gap-2">

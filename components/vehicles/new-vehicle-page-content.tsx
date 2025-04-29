@@ -14,7 +14,7 @@ export function NewVehiclePageContent() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <Link href="/vehicles" className="flex items-center gap-2">
+            <Link href="/vehicles" className="flex items-center gap-2" legacyBehavior>
               <Button 
                 variant="ghost" 
                 size="sm" 

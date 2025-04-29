@@ -134,7 +134,7 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
           <CardTitle>{t("vehicles.assignments.title")}</CardTitle>
           <CardDescription>{t("vehicles.assignments.description")}</CardDescription>
         </div>
-        <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+        <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
           <Button variant="outline" size="sm">
             <UserPlus className="mr-2 h-4 w-4" />
             {t("vehicles.actions.assignDriver")}
@@ -151,7 +151,7 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               {t("vehicles.assignments.noAssignmentsDesc")}
             </p>
-            <Link href={`/vehicles/${vehicleId}/assign-driver`}>
+            <Link href={`/vehicles/${vehicleId}/assign-driver`} legacyBehavior>
               <Button className="mt-4">
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t("vehicles.actions.assignDriver")}

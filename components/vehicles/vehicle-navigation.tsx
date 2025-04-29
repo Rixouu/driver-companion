@@ -8,7 +8,7 @@ export function VehicleNavigation() {
 
   return (
     <div className="flex justify-between items-center">
-      <Link href="/vehicles">
+      <Link href="/vehicles" legacyBehavior>
         <Button variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" />
           {"buttons.backToVehicles"}

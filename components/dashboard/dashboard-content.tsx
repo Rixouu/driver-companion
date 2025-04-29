@@ -148,25 +148,25 @@ export function DashboardContent({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/vehicles/new" className="col-span-1">
+            <Link href="/vehicles/new" className="col-span-1" legacyBehavior>
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <Car className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.addVehicle")}</span>
               </Button>
             </Link>
-            <Link href="/maintenance/schedule" className="col-span-1">
+            <Link href="/maintenance/schedule" className="col-span-1" legacyBehavior>
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <Wrench className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.scheduleMaintenance")}</span>
               </Button>
             </Link>
-            <Link href="/inspections/create" className="col-span-1">
+            <Link href="/inspections/create" className="col-span-1" legacyBehavior>
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <ClipboardCheck className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.scheduleInspection")}</span>
               </Button>
             </Link>
-            <Link href="/reporting" className="col-span-1">
+            <Link href="/reporting" className="col-span-1" legacyBehavior>
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <BarChart3 className="h-6 w-6" />
                 <span className="text-center">{t("dashboard.quickActions.viewReports")}</span>
@@ -224,7 +224,7 @@ export function DashboardContent({
                       <Link
                         href={`/vehicles/${vehicles[currentVehicleIndex]?.id}`}
                         key={vehicles[currentVehicleIndex]?.id}
-                      >
+                        legacyBehavior>
                         <div className="rounded-lg border overflow-hidden hover:bg-accent transition-colors">
                           <div className="aspect-video relative bg-muted">
                             {vehicles[currentVehicleIndex]?.image_url ? (
@@ -383,7 +383,7 @@ export function DashboardContent({
                     </h4>
                     <div className="space-y-2">
                       {upcomingMaintenance.slice(0, 1).map((task) => (
-                        <Link key={task.id} href={`/maintenance/${task.id}`}>
+                        <Link key={task.id} href={`/maintenance/${task.id}`} legacyBehavior>
                           <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                             <div className="flex items-center gap-2">
                               <Wrench className="h-4 w-4 text-amber-600" />
@@ -396,7 +396,7 @@ export function DashboardContent({
                         </Link>
                       ))}
                       {upcomingInspections.slice(0, 1).map((inspection) => (
-                        <Link key={inspection.id} href={`/inspections/${inspection.id}`}>
+                        <Link key={inspection.id} href={`/inspections/${inspection.id}`} legacyBehavior>
                           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
                             <div className="flex items-center gap-2">
                               <ClipboardCheck className="h-4 w-4 text-blue-600" />
@@ -474,7 +474,9 @@ export function DashboardContent({
               )}
               {(recentMaintenance.length > 0 || recentInspections.length > 0) && (
                 <div className="flex justify-center mt-4">
-                  <Link href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
+                  <Link
+                    href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}
+                    legacyBehavior>
                     <Button variant="outline">
                       {t("dashboard.activityFeed.viewAll")}
                     </Button>
@@ -498,7 +500,9 @@ export function DashboardContent({
               )}
               {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
                 <div className="flex justify-center mt-4">
-                  <Link href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
+                  <Link
+                    href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}
+                    legacyBehavior>
                     <Button variant="outline">
                       {t("dashboard.activityFeed.viewAll")}
                     </Button>
@@ -528,7 +532,7 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
 function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
   const { t } = useI18n()
   return (
-    <Link href={`/maintenance/${task.id}`}>
+    <Link href={`/maintenance/${task.id}`} legacyBehavior>
       <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -550,7 +554,7 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
 function InspectionCard({ inspection }: { inspection: DbInspection }) {
   const { t } = useI18n()
   return (
-    <Link href={`/inspections/${inspection.id}`}>
+    <Link href={`/inspections/${inspection.id}`} legacyBehavior>
       <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
         <div className="space-y-1">
           <div className="flex items-center gap-2">

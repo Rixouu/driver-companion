@@ -29,7 +29,7 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
           <CardTitle>{t("drivers.vehicles.title")}</CardTitle>
           <CardDescription>{t("drivers.vehicles.description")}</CardDescription>
         </div>
-        <Link href={`/drivers/${driverId}/assign-vehicle`}>
+        <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
           <Button variant="outline" size="sm">
             <Car className="mr-2 h-4 w-4" />
             {t("drivers.actions.assignVehicle")}
@@ -42,7 +42,7 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
             <p className="text-sm text-muted-foreground">
               {t("drivers.vehicles.noVehicles")}
             </p>
-            <Link href={`/drivers/${driverId}/assign-vehicle`}>
+            <Link href={`/drivers/${driverId}/assign-vehicle`} legacyBehavior>
               <Button className="mt-4">
                 <Car className="mr-2 h-4 w-4" />
                 {t("drivers.actions.assignVehicle")}
@@ -56,7 +56,7 @@ export function DriverVehicles({ driverId, assignedVehicles = [] }: DriverVehicl
                 key={vehicle.id}
                 href={`/vehicles/${vehicle.id}`}
                 className="flex items-center py-3 px-1 space-x-4 hover:bg-muted/50 rounded-md -mx-1 transition-colors"
-              >
+                legacyBehavior>
                 <span className="flex items-center w-full">
                   <div className="h-12 w-12 relative flex-shrink-0 rounded-md overflow-hidden bg-muted">
                     {vehicle.image_url ? (

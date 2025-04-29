@@ -91,7 +91,7 @@ export default function DriverDetailsPage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
-          <Link href="/drivers">
+          <Link href="/drivers" legacyBehavior>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
@@ -102,7 +102,7 @@ export default function DriverDetailsPage() {
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
           <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
-          <Link href="/drivers">
+          <Link href="/drivers" legacyBehavior>
             <Button variant="ghost" size="sm">
               {t("common.backTo")} {t("drivers.title")}
             </Button>
@@ -120,13 +120,13 @@ export default function DriverDetailsPage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-8">
-        <Link href="/drivers">
+        <Link href="/drivers" legacyBehavior>
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.title")}
           </Button>
         </Link>
-        <Link href={`/drivers/${id}/edit`}>
+        <Link href={`/drivers/${id}/edit`} legacyBehavior>
           <Button size="sm" className="flex items-center gap-2">
             <Edit className="h-4 w-4" />
             {t("drivers.actions.editDriver")}

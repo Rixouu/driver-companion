@@ -179,7 +179,7 @@ export function MobileNav() {
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
                 onClick={handleClick}
-              >
+                legacyBehavior>
                 <span className="flex flex-col items-center">
                   <Icon className="h-5 w-5" />
                   <span className="text-[10px] mt-1">{group.title}</span>
@@ -233,7 +233,7 @@ export function MobileNav() {
                         ? "bg-primary/10 text-primary" 
                         : "bg-muted/50 text-foreground hover:bg-muted"
                     )}
-                  >
+                    legacyBehavior>
                     <span className="flex flex-col items-center">
                       <item.icon className="h-6 w-6 mb-2" />
                       <span className="text-xs text-center">{item.title}</span>

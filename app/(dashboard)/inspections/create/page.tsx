@@ -41,7 +41,7 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
     <div className="space-y-6">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
-          <Link href="/inspections">
+          <Link href="/inspections" legacyBehavior>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("inspections.title")}

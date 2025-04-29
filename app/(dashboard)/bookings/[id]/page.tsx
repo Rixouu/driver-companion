@@ -29,7 +29,7 @@ function BookingNotFound({ bookingId }: { bookingId: string }) {
         {t('bookings.details.notFoundDescription')}
       </p>
       <div className="mt-6">
-        <Link href="/bookings">
+        <Link href="/bookings" legacyBehavior>
           <Button variant="ghost" size="sm" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("bookings.title")}
@@ -146,7 +146,7 @@ export default function BookingPage() {
             title={t('bookings.details.notFound')}
             description={t('bookings.details.notFoundDescription')}
           />
-          <Link href="/bookings">
+          <Link href="/bookings" legacyBehavior>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("bookings.title")}
@@ -186,7 +186,7 @@ export default function BookingPage() {
       <Link
         href="/bookings"
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6"
-      >
+        legacyBehavior>
         <Button variant="ghost" size="sm" className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           {t("common.backTo")} {t("bookings.title")}

@@ -172,7 +172,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           </p>
         </div>
         <Button asChild>
-          <Link href="/inspections/create">
+          <Link href="/inspections/create" legacyBehavior>
             <Plus className="mr-2 h-4 w-4" />
             {t("inspections.createInspection")}
           </Link>
@@ -250,7 +250,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {paginatedInspections.map((inspection) => (
                   <Card key={inspection.id}>
-                    <Link href={`/inspections/${inspection.id}`}>
+                    <Link href={`/inspections/${inspection.id}`} legacyBehavior>
                       <div className="relative aspect-video w-full">
                         {inspection.vehicle?.image_url ? (
                           <Image

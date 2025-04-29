@@ -19,13 +19,13 @@ export function ActionButtons({ bookingId }: ActionButtonsProps) {
 
   return (
     <>
-      <Link href={`/bookings/${bookingId}/edit`}>
+      <Link href={`/bookings/${bookingId}/edit`} legacyBehavior>
         <Button className="w-full mt-4" variant="outline">
           <Edit className="mr-2 h-4 w-4" />
           {t('bookings.details.bookingActions.editBooking')}
         </Button>
       </Link>
-      <Link href={`/bookings/${bookingId}/reschedule`}>
+      <Link href={`/bookings/${bookingId}/reschedule`} legacyBehavior>
         <Button className="w-full mt-3" variant="outline">
           <Calendar className="mr-2 h-4 w-4" />
           {t('bookings.details.actions.reschedule')}

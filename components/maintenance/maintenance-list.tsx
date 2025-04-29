@@ -270,7 +270,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                           {t(`maintenance.priority.${task.priority}`)}
                         </Badge>
                       </div>
-                      <Link href={`/maintenance/${task.id}`}>
+                      <Link href={`/maintenance/${task.id}`} legacyBehavior>
                         <Button variant="secondary" className="w-full">
                           {t("common.viewDetails")}
                         </Button>
@@ -324,7 +324,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/maintenance/${task.id}`}>
+                          <Link href={`/maintenance/${task.id}`} legacyBehavior>
                             <Button variant="ghost" size="sm">
                               {t("common.viewDetails")}
                             </Button>

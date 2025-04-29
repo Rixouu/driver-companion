@@ -68,7 +68,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
       <Card className="shadow-sm print-hide">
         <CardHeader className="space-y-0 p-4 sm:p-6">
           <div className="flex items-center justify-between">
-            <Link href="/vehicles">
+            <Link href="/vehicles" legacyBehavior>
               <Button
                 variant="ghost"
                 size="sm"

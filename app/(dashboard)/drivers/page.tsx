@@ -124,7 +124,7 @@ export default function DriversPage() {
             {t("drivers.description")}
           </p>
         </div>
-        <Link href="/drivers/new">
+        <Link href="/drivers/new" legacyBehavior>
           <Button className="flex items-center">
             <Plus className="mr-2 h-4 w-4" />
             {t("drivers.actions.addDriver")}
@@ -212,7 +212,7 @@ export default function DriversPage() {
                 : t("drivers.empty.description")
             }
             action={
-              <Link href="/drivers/new">
+              <Link href="/drivers/new" legacyBehavior>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   {t("drivers.actions.addDriver")}

@@ -92,7 +92,7 @@ export function MainNav() {
               ? "text-foreground"
               : "text-muted-foreground"
           )}
-        >
+          legacyBehavior>
           {item.title}
         </Link>
       ))}

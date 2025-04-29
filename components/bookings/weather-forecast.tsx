@@ -73,18 +73,33 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         }
         
         const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(city)}&days=${days}&aqi=no&alerts=no`
-        const response = await fetch(url)
         
-        if (!response.ok) {
-          throw new Error(`Weather API error: ${response.statusText}`)
+        try {
+          const response = await fetch(url, { 
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            next: { revalidate: 3600 } // Cache for 1 hour
+          })
+          
+          if (!response.ok) {
+            throw new Error(`Weather API error: ${response.status} ${response.statusText}`)
+          }
+          
+          const data = await response.json()
+          setWeather(data)
+          setError(null)
+        } catch (fetchError) {
+          // Handle network errors separately
+          console.error('Network error fetching weather data:', fetchError)
+          setError('Network error when fetching weather data')
+          setWeather(null)
         }
-        
-        const data = await response.json()
-        setWeather(data)
-        setError(null)
       } catch (err) {
-        console.error('Error fetching weather data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch weather data')
+        console.error('Error in weather data processing:', err)
+        setError('Unable to process weather data')
+        setWeather(null)
       } finally {
         setLoading(false)
       }

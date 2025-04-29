@@ -31,7 +31,7 @@ export function VehiclesPageContent({ vehicles, currentPage, totalPages }: Vehic
             {t("vehicles.description")}
           </p>
         </div>
-        <Link href="/vehicles/new">
+        <Link href="/vehicles/new" legacyBehavior>
           <Button className="sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             {t("vehicles.addVehicle")}

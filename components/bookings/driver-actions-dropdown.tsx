@@ -99,7 +99,7 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
             <Link
               href={`/bookings/${booking.id}/checklist`}
               className="flex items-center gap-3 hover:bg-gray-800 p-2 rounded-md"
-            >
+              legacyBehavior>
               <ClipboardCheck className="h-5 w-5" />
               {t('bookings.details.actions.tripChecklist')}
             </Link>

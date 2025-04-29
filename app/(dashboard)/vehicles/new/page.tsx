@@ -26,7 +26,7 @@ export default async function NewVehiclePage() {
             className="pl-0 text-muted-foreground"
             asChild
           >
-            <Link href="/vehicles">
+            <Link href="/vehicles" legacyBehavior>
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t("common.backTo")} {t("vehicles.title")}
             </Link>

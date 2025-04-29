@@ -181,7 +181,7 @@ export default function AssignVehiclePage() {
             <Link
               href={`/drivers/${id}`}
               className="flex items-center gap-2"
-            >
+              legacyBehavior>
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.driverDetails")}
             </Link>
@@ -207,7 +207,7 @@ export default function AssignVehiclePage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center mb-8">
-          <Link href="/drivers">
+          <Link href="/drivers" legacyBehavior>
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
@@ -220,7 +220,7 @@ export default function AssignVehiclePage() {
             <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
             <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
             <Button asChild>
-              <Link href="/drivers">{t("common.backTo")} {t("drivers.title")}</Link>
+              <Link href="/drivers" legacyBehavior>{t("common.backTo")} {t("drivers.title")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -231,7 +231,10 @@ export default function AssignVehiclePage() {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center mb-8">
-        <Link href={`/drivers/${id}`} className="flex items-center gap-2">
+        <Link
+          href={`/drivers/${id}`}
+          className="flex items-center gap-2"
+          legacyBehavior>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4" />
             {t("common.backTo")} {t("drivers.driverDetails")}
@@ -295,7 +298,7 @@ export default function AssignVehiclePage() {
               )}
               
               <div className="flex justify-end gap-4">
-                <Link href={`/drivers/${id}`}>
+                <Link href={`/drivers/${id}`} legacyBehavior>
                   <Button variant="outline">
                     {t("common.cancel")}
                   </Button>
@@ -378,7 +381,7 @@ export default function AssignVehiclePage() {
                   )}
                   
                   <div className="flex justify-end gap-4">
-                    <Link href={`/drivers/${id}`}>
+                    <Link href={`/drivers/${id}`} legacyBehavior>
                       <Button variant="outline">
                         {t("common.cancel")}
                       </Button>

@@ -55,6 +55,12 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         // Extract city from location string (assuming format like "Tokyo, Japan")
         const city = location.split(',')[0].trim()
         
+        if (!city) {
+          setLoading(false)
+          setError('Invalid location format')
+          return
+        }
+        
         // Use WeatherAPI.com to fetch forecast
         const apiKey = '479908cdad0f407595e62612251302'
         const days = 10 // Maximum forecast days for free account
@@ -72,6 +78,13 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           return
         }
         
+        // Check if tripDate is a valid date
+        if (isNaN(tripDate.getTime())) {
+          setLoading(false)
+          setError('Invalid date format')
+          return
+        }
+        
         const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(city)}&days=${days}&aqi=no&alerts=no`
         
         try {
@@ -80,11 +93,22 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
             headers: {
               'Content-Type': 'application/json',
             },
-            next: { revalidate: 3600 } // Cache for 1 hour
+            cache: 'no-cache' // Disable Next.js cache to ensure fresh data
           })
           
           if (!response.ok) {
-            throw new Error(`Weather API error: ${response.status} ${response.statusText}`)
+            if (response.status === 400) {
+              console.error('Weather API 400 error - likely invalid location')
+              setError('Location not recognized by weather service')
+            } else if (response.status === 403) {
+              console.error('Weather API authentication error')
+              setError('Weather API authentication error')
+            } else {
+              throw new Error(`Weather API error: ${response.status}`)
+            }
+            setWeather(null)
+            setLoading(false)
+            return
           }
           
           const data = await response.json()

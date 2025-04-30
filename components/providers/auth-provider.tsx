@@ -34,71 +34,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast()
 
   useEffect(() => {
-    // Always ensure we have a valid Supabase client
     const supabase = getSupabaseClient()
-    let isAuthenticated = false;
+    let initialCheckDone = false; // Flag to track if initial check completed
     
+    // Call getUser once on initial load to attempt session fetch
     const getUser = async () => {
+      console.log("[AuthProvider] Attempting initial getUser()...");
       try {
-        setLoading(true)
         const { data, error } = await supabase.auth.getUser()
-        
-        if (error) {
-          console.error("Error fetching user:", error.message)
-          setError(error.message)
-          isAuthenticated = false;
-        } else {
-          setUser(data.user)
-          setError(null)
-          isAuthenticated = !!data.user;
+        console.log("[AuthProvider] getUser() result:", { data, error });
+
+        if (!initialCheckDone) { // Only update state based on initial getUser if listener hasn't fired yet
+             if (error) {
+                 console.error("[AuthProvider] Initial getUser() error:", error.message);
+                 // Don't set user to null here yet, wait for listener
+                 // setError(error.message); // Optionally set error state
+             } else {
+                 console.log("[AuthProvider] Initial getUser() success:", data.user);
+                 setUser(data.user);
+             }
+             // Don't set loading false here, let the listener handle it definitively
         }
       } catch (err) {
-        console.error("Unexpected error:", err)
-        setError("An unexpected error occurred")
-        isAuthenticated = false;
-      } finally {
-        setLoading(false)
-      }
+        console.error("[AuthProvider] Unexpected error in initial getUser():", err)
+        // setError("An unexpected error occurred"); // Optionally set error state
+      } 
     }
-
-    // Only set up auth state change listener if we're in a browser environment
-    let subscription: { unsubscribe: () => void } | null = null;
     
-    if (typeof window !== 'undefined') {
-      getUser();
-      
-      const { data } = supabase.auth.onAuthStateChange((event, session) => {
-        // Only update user if we have a valid session or we're signing out
-        if (session?.user || event === 'SIGNED_OUT') {
-          setUser(session?.user ?? null)
-          
-          if (event === 'SIGNED_IN') {
+    getUser(); // Call it immediately
+
+    // Listener handles subsequent changes and definitive initial state
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log("[AuthProvider] onAuthStateChange event:", event, "session:", session);
+        setUser(session?.user ?? null);
+        setError(null); // Clear previous errors on auth change
+        initialCheckDone = true; // Mark that the listener has given us the state
+        setLoading(false); // Set loading false once we get the definitive state from the listener
+
+        if (event === 'SIGNED_IN') {
             toast({
               title: "Signed in successfully",
               description: `Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`,
             })
-            isAuthenticated = true;
-          } else if (event === 'SIGNED_OUT') {
+            // router.refresh(); // Might not be needed if state update triggers re-render
+        } else if (event === 'SIGNED_OUT') {
             toast({
               title: "Signed out",
               description: "You have been signed out successfully.",
             })
-            isAuthenticated = false;
-          }
-          
-          router.refresh()
+             // Redirect to login on sign out
+             // router.push('/login'); // Or handle redirect elsewhere
         }
-      });
-      
-      subscription = data.subscription;
-    }
+    });
+
+    // Initial loading state - set true at the start
+    setLoading(true);
 
     return () => {
-      if (subscription) {
-        subscription.unsubscribe()
-      }
-    }
-  }, [router, toast])
+      authListener?.subscription.unsubscribe();
+    };
+  }, [router, toast]); // Keep dependencies
 
   const handleAuthError = (error: AuthError | Error | unknown): string => {
     if ((error as AuthError)?.message) {

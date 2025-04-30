@@ -18,7 +18,8 @@ import { PageHeader } from '@/components/ui/page-header'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
 import React from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import BookingAssignment from '@/components/bookings/booking-assignment'
 
 function BookingNotFound({ bookingId }: { bookingId: string }) {
   const { t } = useI18n()
@@ -101,6 +102,7 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
 export default function BookingPage() {
   const { t } = useI18n()
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -126,6 +128,26 @@ export default function BookingPage() {
 
     fetchBookingData()
   }, [id])
+
+  const handleAssignmentComplete = () => {
+    // Reload the booking data after assignment is completed
+    router.refresh();
+    fetchBookingData();
+  }
+
+  const fetchBookingData = async () => {
+    try {
+      const result = await getBookingById(id)
+      
+      if (result.booking) {
+        setBooking(result.booking)
+      } else {
+        setError('Booking not found')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load booking')
+    }
+  }
   
   if (loading) {
     return (
@@ -201,7 +223,7 @@ export default function BookingPage() {
         
         <div className="flex gap-3 mt-4 md:mt-0">
           {getStatusBadge(booking.status)}
-          <PrintButton />
+          <PrintButton booking={booking} />
           
           <DriverActionsDropdown booking={booking} />
         </div>
@@ -404,6 +426,23 @@ export default function BookingPage() {
                   )}
                 </div>
               )}
+            </div>
+          </Card>
+          
+          {/* Assignment Section */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                <Truck className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.assignment')}
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <BookingAssignment 
+                booking={booking} 
+                onAssignmentComplete={handleAssignmentComplete}
+              />
             </div>
           </Card>
         </div>

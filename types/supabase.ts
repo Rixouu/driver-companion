@@ -145,6 +145,108 @@ export type Database = {
           },
         ]
       }
+      dispatch_entries: {
+        Row: {
+          booking_id: string
+          created_at: string
+          driver_id: string | null
+          end_time: string | null
+          id: string
+          notes: string | null
+          start_time: string
+          status: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          driver_id?: string | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          driver_id?: string | null
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_entries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_availability: {
+        Row: {
+          created_at: string | null
+          driver_id: string
+          end_date: string
+          id: string
+          notes: string | null
+          start_date: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          driver_id: string
+          end_date: string
+          id?: string
+          notes?: string | null
+          start_date: string
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          driver_id?: string
+          end_date?: string
+          id?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drivers: {
         Row: {
           address: string | null
@@ -157,6 +259,7 @@ export type Database = {
           last_name: string
           license_expiry: string | null
           license_number: string | null
+          line_id: string | null
           notes: string | null
           phone: string | null
           profile_image_url: string | null
@@ -175,6 +278,7 @@ export type Database = {
           last_name: string
           license_expiry?: string | null
           license_number?: string | null
+          line_id?: string | null
           notes?: string | null
           phone?: string | null
           profile_image_url?: string | null
@@ -193,6 +297,7 @@ export type Database = {
           last_name?: string
           license_expiry?: string | null
           license_number?: string | null
+          line_id?: string | null
           notes?: string | null
           phone?: string | null
           profile_image_url?: string | null
@@ -463,6 +568,7 @@ export type Database = {
       }
       inspections: {
         Row: {
+          booking_id: string | null
           created_at: string
           created_by: string | null
           date: string
@@ -480,6 +586,7 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          booking_id?: string | null
           created_at?: string
           created_by?: string | null
           date: string
@@ -497,6 +604,7 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          booking_id?: string | null
           created_at?: string
           created_by?: string | null
           date?: string
@@ -514,6 +622,13 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "inspections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspections_driver_id_fkey"
             columns: ["driver_id"]

@@ -83,7 +83,8 @@ export const mapWordPressBookingToSupabase = (wpBooking: WordPressBooking): Omit
  */
 export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row']): Booking {
   return {
-    id: booking.wp_id, // Use original WordPress ID for consistency
+    id: booking.wp_id, // Keep wp_id mapped to id for potential legacy use/display
+    supabase_id: booking.id, // Map the actual Supabase UUID
     booking_id: booking.wp_id,
     date: booking.date,
     time: booking.time,

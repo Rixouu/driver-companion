@@ -17,7 +17,8 @@ import {
   BarChart,
   ChevronLeft,
   ChevronRight,
-  PanelLeft
+  PanelLeft,
+  Grid3x3
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -38,7 +39,8 @@ export function Sidebar() {
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
-    settings: { desktop: true, mobile: true }
+    settings: { desktop: true, mobile: true },
+    dispatch: { desktop: true, mobile: true }
   })
   
   // Load menu settings from local storage
@@ -48,17 +50,18 @@ export function Sidebar() {
       try {
         const parsedSettings = JSON.parse(savedMenuSettings)
         
-        // Ensure bookings menu is enabled
-        if (!parsedSettings.bookings) {
-          parsedSettings.bookings = { desktop: true, mobile: true }
-        }
-        
-        // Ensure existing bookings menu item is visible
-        if (parsedSettings.bookings && 
-            (!parsedSettings.bookings.desktop || !parsedSettings.bookings.mobile)) {
-          parsedSettings.bookings.desktop = true
-          parsedSettings.bookings.mobile = true
-        }
+        // Ensure specific items are always enabled if they exist in settings
+        const requiredItems = ['bookings', 'dispatch']; // Add 'dispatch' here
+        requiredItems.forEach(key => {
+          if (!parsedSettings[key]) {
+            // If the key doesn't exist, add it with default visible state
+            parsedSettings[key] = { desktop: true, mobile: true };
+          } else {
+            // If the key exists, ensure desktop and mobile are true
+            parsedSettings[key].desktop = true;
+            parsedSettings[key].mobile = true;
+          }
+        });
         
         // Update localStorage with fixed settings
         localStorage.setItem('menuSettings', JSON.stringify(parsedSettings))
@@ -117,6 +120,7 @@ export function Sidebar() {
       label: 'Operations',
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" },
+        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" },
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" },
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" }
       ]
@@ -231,38 +235,40 @@ export function Sidebar() {
                 </div>
               );
             })}
-          
-            {/* Logout button */}
-            <div className="px-5 mt-6 mb-4">
-              {collapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="w-full justify-center text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{t("auth.logout")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  {t("auth.logout")}
-                </Button>
-              )}
-            </div>
           </TooltipProvider>
         </nav>
+        
+        {/* Logout button - positioned at the bottom */}
+        <div className="px-3 pb-6 pt-2 border-t border-[hsl(var(--border))]">
+          <TooltipProvider delayDuration={300}>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="w-full justify-center text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{t("auth.logout")}</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                {t("auth.logout")}
+              </Button>
+            )}
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   );

@@ -21,9 +21,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useDebounce } from "@/hooks/use-debounce"
-import type { Driver } from "@/types"
+import type { Driver } from "@/types/drivers"
+import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 
 const ITEMS_PER_PAGE = 6
 
@@ -36,7 +42,9 @@ export default function DriversPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>(
+    searchParams?.get('status') || "all"
+  )
   const debouncedSearch = useDebounce(searchQuery, 500)
   
   // Get current page from URL query or default to 1
@@ -64,9 +72,11 @@ export default function DriversPage() {
   useEffect(() => {
     let result = [...drivers]
 
-    // Apply status filter
+    // Apply status filter using availability_status
     if (statusFilter !== "all") {
-      result = result.filter(driver => driver.status === statusFilter)
+      result = result.filter(driver => 
+         (driver.availability_status || driver.status || 'available') === statusFilter
+      )
     }
 
     // Apply search filter
@@ -74,9 +84,9 @@ export default function DriversPage() {
       const query = debouncedSearch.toLowerCase()
       result = result.filter(
         driver =>
-          driver.first_name.toLowerCase().includes(query) ||
-          driver.last_name.toLowerCase().includes(query) ||
-          driver.email.toLowerCase().includes(query) ||
+          driver.first_name?.toLowerCase().includes(query) ||
+          driver.last_name?.toLowerCase().includes(query) ||
+          driver.email?.toLowerCase().includes(query) ||
           driver.license_number?.toLowerCase().includes(query)
       )
     }
@@ -114,6 +124,19 @@ export default function DriversPage() {
     params.set("page", page.toString());
     router.push(`/drivers?${params.toString()}`);
   };
+  
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    
+    // Update URL to include status filter
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("status", status);
+    
+    // Reset to page 1 when filter changes
+    params.set("page", "1");
+    
+    router.push(`/drivers?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -124,16 +147,18 @@ export default function DriversPage() {
             {t("drivers.description")}
           </p>
         </div>
-        <Link href="/drivers/new" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
+        <Link href="/drivers/new">
           <Button className="flex items-center">
             <Plus className="mr-2 h-4 w-4" />
             {t("drivers.actions.addDriver")}
           </Button>
-        </span></span></Link>
+        </Link>
       </div>
+      
+      {/* Filter and search section */}
       <div className="space-y-4">
-        <div className="flex flex-col gap-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t("drivers.search")}
@@ -142,66 +167,77 @@ export default function DriversPage() {
               className="pl-9"
             />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex flex-wrap gap-2">
-              <div className="hidden sm:flex flex-wrap gap-2">
-                <Button 
-                  variant={statusFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('all')}
-                >
-                  {t("common.all")}
-                </Button>
-                <Button 
-                  variant={statusFilter === 'active' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('active')}
-                >
-                  {t("drivers.status.active")}
-                </Button>
-                <Button 
-                  variant={statusFilter === 'inactive' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('inactive')}
-                >
-                  {t("drivers.status.inactive")}
-                </Button>
-              </div>
-            </div>
-            <ViewToggle view={viewMode} onViewChange={setViewMode} />
+          
+          <div className="flex-1 flex justify-end">
+            <ViewToggle
+              view={viewMode}
+              onViewChange={(value) => setViewMode(value as "list" | "grid")}
+            />
           </div>
         </div>
-
+        
+        {/* Status filter buttons (using availability statuses) */}
+        <div className="flex overflow-x-auto pb-2">
+          <div className="flex space-x-2">
+            <Button 
+              variant={statusFilter === 'all' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => handleStatusFilterChange('all')}
+            >
+              {t("common.all")}
+            </Button>
+            <Button 
+              variant={statusFilter === 'available' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => handleStatusFilterChange('available')}
+            >
+              {t("drivers.availability.statuses.available")}
+            </Button>
+            <Button 
+              variant={statusFilter === 'unavailable' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => handleStatusFilterChange('unavailable')}
+            >
+              {t("drivers.availability.statuses.unavailable")}
+            </Button>
+            <Button 
+              variant={statusFilter === 'leave' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => handleStatusFilterChange('leave')}
+            >
+              {t("drivers.availability.statuses.leave")}
+            </Button>
+            <Button 
+              variant={statusFilter === 'training' ? 'default' : 'outline'} 
+              size="sm"
+              onClick={() => handleStatusFilterChange('training')}
+            >
+              {t("drivers.availability.statuses.training")}
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Driver list/grid */}
+      <div className="space-y-6">
         {isLoading ? (
-          viewMode === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-lg border p-4 space-y-4">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-4 w-28" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border divide-y">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="p-4">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-4 w-28" />
-                    </div>
-                    <Skeleton className="h-8 w-24" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
                 </div>
-              ))}
-            </div>
-          )
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filteredDrivers.length === 0 ? (
           <EmptyState
             icon={<div className="mx-auto h-10 w-10 text-muted-foreground">👤</div>}
@@ -212,12 +248,12 @@ export default function DriversPage() {
                 : t("drivers.empty.description")
             }
             action={
-              <Link href="/drivers/new" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
+              <Link href="/drivers/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   {t("drivers.actions.addDriver")}
                 </Button>
-              </span></span></Link>
+              </Link>
             }
           />
         ) : viewMode === "grid" ? (
@@ -227,10 +263,12 @@ export default function DriversPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border divide-y">
-            {paginatedDrivers.map(driver => (
-              <DriverListItem key={driver.id} driver={driver} />
-            ))}
+          <div className="border rounded-lg overflow-hidden">
+            <div className="divide-y">
+              {paginatedDrivers.map(driver => (
+                <DriverListItem key={driver.id} driver={driver} />
+              ))}
+            </div>
           </div>
         )}
         

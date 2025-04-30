@@ -6,12 +6,18 @@ import { cn } from "@/lib/utils/styles"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { getSession } from "@/lib/db/server"
 import { I18nProvider } from "@/lib/i18n/context"
+import type { Metadata } from "next"
 
 const workSans = Work_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-work-sans",
 })
+
+export const metadata: Metadata = {
+  title: "Vehicle Inspection",
+  description: "Vehicle inspection app",
+}
 
 export default async function RootLayout({
   children,

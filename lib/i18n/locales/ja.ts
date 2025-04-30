@@ -64,7 +64,8 @@ export const ja: TranslationValue = {
     maintenance: "メンテナンス",
     inspections: "点検",
     settings: "設定",
-    reporting: "レポート"
+    reporting: "レポート",
+    dispatch: "配車ボード"
   },
   drivers: {
     title: "ドライバー",
@@ -193,7 +194,11 @@ export const ja: TranslationValue = {
     upcomingBookings: {
       title: "予定された予約",
       description: "このドライバーの予定された予約",
-      empty: "予定された予約はありません",
+      empty: {
+        title: "予定された予約がありません",
+        description: "このドライバーには予定された予約がありません。",
+        message: "予定された予約はありません"
+      },
       booking: "予約"
     },
     activityHistory: {
@@ -231,8 +236,77 @@ export const ja: TranslationValue = {
       noAvailableDescription: "選択可能な車両がありません。"
     },
     inspections: {
-      title: "ドライバー点検",
-      description: "このドライバーによって実施された点検"
+      title: "点検",
+      description: "車両点検の管理",
+      addInspection: "点検を追加",
+      newInspection: "新規点検",
+      editInspection: "点検を編集",
+      searchPlaceholder: "点検を検索...",
+      noInspections: "点検が見つかりません",
+      createInspection: "点検を作成",
+      defaultType: "定期点検",
+      steps: {
+        selectVehicle: "車両を選択",
+        selectType: "点検タイプを選択"
+      },
+      labels: {
+        progress: "点検の進捗",
+        estimatedTime: "推定残り時間",
+        model: "モデル",
+        photoNumber: "写真 {{number}}"
+      },
+      actions: {
+        pass: "合格",
+        fail: "不合格",
+        complete: "点検を完了",
+        markComplete: "完了としてマーク",
+        markInProgress: "点検を開始",
+        startInspection: "点検を開始",
+        cancel: "点検をキャンセル",
+        edit: "点検を編集",
+        delete: "点検を削除",
+        addPhoto: "写真を追加",
+        addNotes: "メモを追加",
+        resume: "点検を再開",
+        scheduleRepair: "修理を予定",
+        needsRepair: "修理が必要",
+        scheduleRepairDescription: "車両を最適な状態に保つため、不合格項目の修理メンテナンスタスクを予定します。",
+        takePhoto: "写真を撮る",
+        photos: "写真 ({{count}}枚)",
+        previousSection: "前のセクション",
+        nextSection: "次のセクション",
+        completeInspection: "点検を完了"
+      },
+      tabs: {
+        list: "リスト",
+        stats: "統計"
+      },
+      groupBy: "グループ化",
+      groupByVehicle: "車両別",
+      groupByDate: "日付別",
+      noGrouping: "グループ化なし",
+      allVehicles: "すべての車両",
+      resultsCount: "{count}件の結果",
+      noVehicle: "車両未割り当て",
+      selectVehiclePrompt: "表示する車両を選択してください",
+      dateGroup: {
+        today: "今日",
+        yesterday: "昨日",
+        thisWeek: "今週",
+        thisMonth: "今月",
+        upcoming: "今後",
+        older: "過去",
+        unknown: "不明な日付"
+      },
+      stats: {
+        totalInspections: "総点検数",
+        completed: "完了済み",
+        scheduled: "予定済み",
+        byVehicle: "車両別点検数",
+        byType: "タイプ別点検数",
+        count: "{count} 件の点検",
+        vehicleCount: "{count} 台の車両"
+      }
     },
     since: "{date}からのドライバー",
     availability: {
@@ -255,7 +329,34 @@ export const ja: TranslationValue = {
         leave: "休暇中",
         training: "研修中"
       }
-    }
+    },
+    details: {
+      title: "点検詳細",
+      description: "点検に関する詳細情報",
+      noItems: "点検項目が見つかりません",
+      empty: {
+        title: "点検詳細なし",
+        description: "この点検には詳細情報がありません。"
+      },
+      tabs: {
+        details: "詳細",
+        failed: "不合格",
+        passed: "合格"
+      },
+      sections: {
+        vehicle: "車両情報",
+        inspection: "点検情報",
+        summary: "概要",
+        items: "点検項目",
+        failed: "不合格項目",
+        passed: "合格項目"
+      },
+      actions: {
+        print: "レポート印刷",
+        export: "レポートエクスポート",
+        exportResult: "結果をエクスポート"
+      },
+    },
   },
   labels: {
     due: "{date}まで",
@@ -475,7 +576,8 @@ export const ja: TranslationValue = {
       model: "モデルを入力",
       year: "製造年を入力",
       vin: "車両識別番号を入力"
-    }
+    },
+    allVehicles: "すべての車両"
   },
   maintenance: {
     title: "メンテナンス",
@@ -657,6 +759,36 @@ export const ja: TranslationValue = {
       nextSection: "次のセクション",
       completeInspection: "点検を完了"
     },
+    tabs: {
+      list: "リスト",
+      stats: "統計"
+    },
+    groupBy: "グループ化",
+    groupByVehicle: "車両別",
+    groupByDate: "日付別",
+    noGrouping: "グループ化なし",
+    allVehicles: "すべての車両",
+    resultsCount: "{count}件の結果",
+    noVehicle: "車両未割り当て",
+    selectVehiclePrompt: "表示する車両を選択してください",
+    dateGroup: {
+      today: "今日",
+      yesterday: "昨日",
+      thisWeek: "今週",
+      thisMonth: "今月",
+      upcoming: "今後",
+      older: "過去",
+      unknown: "不明な日付"
+    },
+    stats: {
+      totalInspections: "総点検数",
+      completed: "完了済み",
+      scheduled: "予定済み",
+      byVehicle: "車両別点検数",
+      byType: "タイプ別点検数",
+      count: "{count} 件の点検",
+      vehicleCount: "{count} 台の車両"
+    }
   },
   dashboard: {
     title: "ダッシュボード",
@@ -1038,6 +1170,22 @@ export const ja: TranslationValue = {
       completed: "完了",
       cancelled: "キャンセル済み"
     },
+    assignment: {
+      title: "ドライバーと車両の割り当て",
+      driver: "ドライバー",
+      vehicle: "車両",
+      selectDriver: "ドライバーを選択",
+      selectVehicle: "車両を選択",
+      driverDetails: "ドライバー詳細",
+      vehicleDetails: "車両詳細",
+      noDriversAvailable: "この予約時間に利用可能なドライバーがいません",
+      noVehiclesAvailable: "利用可能な車両がありません",
+      assignSuccess: "割り当てが正常に完了しました",
+      assignFailed: "予約の割り当てに失敗しました",
+      summary: "この予約にドライバーと車両を割り当てます",
+      bookingDetails: "予約詳細",
+      confirmAssignment: "割り当てを確定"
+    },
     details: {
       title: "予約詳細",
       notFound: "予約が見つかりません",
@@ -1052,7 +1200,8 @@ export const ja: TranslationValue = {
         route: "ルート情報",
         client: "顧客詳細",
         additional: "追加情報",
-        payment: "支払いリンク"
+        payment: "支払いリンク",
+        assignment: "ドライバーと車両の割り当て"
       },
       fields: {
         bookingId: "予約ID",
@@ -1099,42 +1248,9 @@ export const ja: TranslationValue = {
         sendArrivalNotification: "到着通知を送信",
         shareWhatsApp: "WhatsAppで共有",
         shareLine: "LINEで共有",
-        shareEmail: "メールで共有"
+        shareEmail: "メールで共有",
+        exportPdf: "PDFをエクスポート"
       },
-      driverActions: {
-        title: "ドライバーアクション",
-        tripManagement: "旅行管理",
-        shareBooking: "予約を共有"
-      },
-      bookingActions: {
-        title: "予約アクション",
-        addToGoogleCalendar: "Googleカレンダーに追加",
-        managementActions: "管理アクション",
-        editBooking: "予約を編集",
-        rescheduleBooking: "予約を再スケジュール",
-        dangerZone: "危険ゾーン",
-        cancelBooking: "予約をキャンセル"
-      },
-      weather: {
-        title: "出発日の天気予報",
-        notAvailable: "天気予報は利用できません",
-        errorMessage: "天気予報の取得に失敗しました",
-        disclaimer: "※ 天気予報はWeatherAPI.comのデータを使用しています",
-        forecastUnavailable: "{date}の天気予報はありません"
-      },
-      placeholders: {
-        noRouteInfo: "ルート情報がありません",
-        noPaymentLink: "支払いリンクが利用できません",
-        notProvided: "未入力",
-        noComments: "コメントはありません"
-      },
-      customerSince: "{date}からの顧客",
-      status: {
-        confirmed: "確認済み",
-        pending: "保留中",
-        cancelled: "キャンセル済み",
-        completed: "完了"
-      }
     },
     edit: {
       title: "予約 #{id} を編集",
@@ -1153,6 +1269,110 @@ export const ja: TranslationValue = {
       deleteSuccess: "予約が正常に削除されました",
       syncSuccess: "予約が正常に同期されました",
       error: "エラーが発生しました"
+    }
+  },
+  dispatch: {
+    title: "配車ボード",
+    description: "予約のドライバーと車両の割り当てを管理",
+    search: "配車エントリーを検索...",
+    filters: {
+      status: "ステータス",
+      date: "日付",
+      driver: "ドライバー",
+      vehicle: "車両",
+      all: "すべてのエントリー"
+    },
+    actions: {
+      assignDriver: "ドライバーを割り当て",
+      assignVehicle: "車両を割り当て",
+      updateStatus: "ステータスを更新",
+      addNote: "メモを追加",
+      viewDetails: "詳細を表示",
+      createEntry: "エントリーを作成",
+      editEntry: "エントリーを編集",
+      deleteEntry: "エントリーを削除",
+      assignDriverTo: "予約#{id}にドライバーを割り当て",
+      assignVehicleTo: "予約#{id}に車両を割り当て"
+    },
+    status: {
+      pending: "保留中",
+      assigned: "割り当て済み",
+      in_transit: "移動中",
+      completed: "完了",
+      cancelled: "キャンセル"
+    },
+    fields: {
+      booking: "予約",
+      driver: "ドライバー",
+      vehicle: "車両",
+      status: "ステータス",
+      startTime: "開始時間",
+      endTime: "終了時間",
+      duration: "所要時間",
+      notes: "メモ",
+      createdAt: "作成日時",
+      updatedAt: "更新日時"
+    },
+    placeholders: {
+      selectDriver: "ドライバーを選択",
+      selectVehicle: "車両を選択",
+      selectStatus: "ステータスを選択",
+      enterNotes: "この配車に関するメモを入力",
+      startTime: "開始時間を選択",
+      endTime: "終了時間を選択"
+    },
+    messages: {
+      createSuccess: "配車エントリーが正常に作成されました",
+      updateSuccess: "配車エントリーが正常に更新されました",
+      deleteSuccess: "配車エントリーが正常に削除されました",
+      createError: "配車エントリーの作成中にエラーが発生しました",
+      updateError: "配車エントリーの更新中にエラーが発生しました",
+      deleteError: "配車エントリーの削除中にエラーが発生しました",
+      driverAssigned: "ドライバーが正常に割り当てられました",
+      vehicleAssigned: "車両が正常に割り当てられました",
+      statusUpdated: "ステータスが正常に更新されました",
+      notesAdded: "メモが正常に追加されました"
+    },
+    empty: {
+      title: "配車エントリーが見つかりません",
+      description: "選択されたフィルターに一致する配車エントリーはありません。",
+      searchResults: "検索条件に一致する配車エントリーはありません。検索条件を変更してください。"
+    },
+    calendar: {
+      view: "カレンダー表示",
+      title: "配車カレンダー",
+      today: "今日",
+      month: "月",
+      week: "週",
+      day: "日",
+      list: "リスト"
+    },
+    board: {
+      view: "ボード表示",
+      title: "配車ボード",
+      pending: "保留中",
+      assigned: "割り当て済み",
+      inTransit: "移動中",
+      completed: "完了",
+      cancelled: "キャンセル",
+      addEntry: "エントリーを追加"
+    },
+    details: {
+      title: "配車詳細",
+      bookingDetails: "予約詳細",
+      driverDetails: "ドライバー詳細",
+      vehicleDetails: "車両詳細",
+      statusHistory: "ステータス履歴",
+      notes: "配車メモ"
+    },
+    timelineView: {
+      title: "配車タイムライン",
+      scale: "スケール",
+      hour: "時間",
+      day: "日",
+      week: "週",
+      zoomIn: "拡大",
+      zoomOut: "縮小"
     }
   },
 } as const 

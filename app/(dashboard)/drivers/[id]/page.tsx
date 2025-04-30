@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getDriverById, getDriverInspections } from "@/lib/services/drivers"
+import { getDriverAvailability, isDriverAvailable } from "@/lib/services/driver-availability"
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 import { DriverVehicles } from "@/components/drivers/driver-vehicles"
 import { DriverInspectionsList } from "@/components/drivers/driver-inspections-list"
@@ -18,7 +19,7 @@ import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-boo
 import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
 import { DriverAvailabilitySection } from "@/components/drivers/driver-availability-section"
 import { Skeleton } from "@/components/ui/skeleton"
-import { format as formatDate } from "date-fns"
+import { format as formatDate, parseISO } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
 import type { Driver as AppDriver } from "@/types"
@@ -31,36 +32,64 @@ export default function DriverDetailsPage() {
   const { theme } = useTheme()
   const [driver, setDriver] = useState<AppDriver | null>(null)
   const [inspections, setInspections] = useState<any[]>([])
+  const [currentAvailabilityStatus, setCurrentAvailabilityStatus] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
-    async function loadDriverData() {
+    async function loadDriverDataAndAvailability() {
       try {
         setIsLoading(true)
         const driverData = await getDriverById(id as string)
+        setDriver(driverData)
         
+        // Fetch current availability status
+        const today = formatDate(new Date(), "yyyy-MM-dd");
+        const availabilityRecords = await getDriverAvailability(id as string);
+        const currentRecord = availabilityRecords.find(
+          (record) => record.start_date <= today && record.end_date >= today
+        );
+        setCurrentAvailabilityStatus(currentRecord?.status || 'available'); // Default to available
+
         // Try to get inspections but handle the case where driver_id column doesn't exist
         try {
           const inspectionsData = await getDriverInspections(id as string)
           setInspections(inspectionsData)
         } catch (inspectionError) {
           console.error("Error loading driver inspections:", inspectionError)
-          // Set empty inspections array if there's an error
           setInspections([])
         }
-        
-        setDriver(driverData)
       } catch (error) {
         console.error("Error loading driver data:", error)
+        setDriver(null)
+        setCurrentAvailabilityStatus(null)
       } finally {
         setIsLoading(false)
       }
     }
 
     if (id) {
-      loadDriverData()
+      loadDriverDataAndAvailability()
     }
   }, [id])
+
+  // Function to reload data, passed to DriverVehicles
+  const refreshDriverData = async () => {
+     try {
+        setIsLoading(true)
+        const driverData = await getDriverById(id as string)
+        setDriver(driverData)
+      } catch (error) {
+        console.error("Error refreshing driver data:", error)
+        setDriver(null)
+      } finally {
+        setIsLoading(false)
+      }
+  }
+
+  const handleViewFullSchedule = () => {
+    setActiveTab("availability")
+  }
 
   // Card styles based on theme - matching the Recent Activity block
   const getCardClasses = () => {
@@ -91,20 +120,22 @@ export default function DriverDetailsPage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
-          <Link href="/drivers" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
+          <Link href="/drivers" ><span className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               {t("common.backTo")} {t("drivers.title")}
             </Button>
-          </span></span></Link>
+          </span></Link>
         </div>
         <div className="text-center py-12">
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
           <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
-          <Link href="/drivers" ><span className="flex items-center gap-2"><span className="flex items-center gap-2"><span className="flex items-center">Button variant="ghost" size="sm">
+          <Link href="/drivers" passHref>
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
               {t("common.backTo")} {t("drivers.title")}
-             </span></span></span></Link>
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -223,18 +254,25 @@ export default function DriverDetailsPage() {
                 <p className="text-sm text-muted-foreground">{t("drivers.fields.status")}</p>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
-                  <DriverStatusBadge status={driver.status} />
+                  <DriverStatusBadge status={currentAvailabilityStatus || driver.status} />
                 </div>
               </div>
             </CardContent>
           </Card>
           
-          {/* Availability Section */}
-          <DriverAvailabilitySection driverId={driver.id} />
+          {/* Availability Section - Pass the handler */}
+          <DriverAvailabilitySection 
+            driverId={driver.id} 
+            onViewFullSchedule={handleViewFullSchedule} 
+          />
         </div>
 
         <div className="w-full lg:w-2/3">
-          <Tabs defaultValue="overview">
+          <Tabs 
+            defaultValue="overview" 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+          >
             <TabsList className="grid grid-cols-4 mb-8">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
@@ -254,26 +292,14 @@ export default function DriverDetailsPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="mt-6 space-y-6">
               <DriverVehicles 
-                driverId={driver.id}
-                assignedVehicles={driver.assigned_vehicles}
+                driverId={driver.id} 
+                assignedVehicles={driver.assigned_vehicles} 
+                onUnassignSuccess={refreshDriverData}
               />
-
-              <DriverUpcomingBookings 
-                driverId={driver.id}
-                limit={5}
-              />
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("drivers.recentActivity.title")}</CardTitle>
-                  <CardDescription>{t("drivers.recentActivity.description")}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <DriverActivityFeed driverId={driver.id} limit={5} />
-                </CardContent>
-              </Card>
+              <DriverUpcomingBookings driverId={driver.id} />
+              <DriverActivityFeed driverId={driver.id} />
             </TabsContent>
 
             <TabsContent value="availability" className="space-y-6">
@@ -281,11 +307,11 @@ export default function DriverDetailsPage() {
                 <DriverAvailabilityManager 
                   driver={{
                     id: driver.id,
-                    name: driver.full_name || "",
+                    name: driver.full_name || `${driver.first_name} ${driver.last_name}`,
                     email: driver.email,
                     phone: driver.phone,
                     license_number: driver.license_number,
-                    status: driver.status
+                    status: driver.availability_status || driver.status || 'available' 
                   }} 
                 />
               )}

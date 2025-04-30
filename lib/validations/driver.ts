@@ -8,7 +8,6 @@ export const driverSchema = z.object({
   line_id: z.string().optional(),
   license_number: z.string().optional(),
   license_expiry: z.string().optional(),
-  status: z.enum(["available", "unavailable", "leave", "training"]).default("available"),
   profile_image_url: z.string().optional(),
   address: z.string().optional(),
   emergency_contact: z.string().optional(),

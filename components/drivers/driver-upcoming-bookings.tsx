@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Clock, MapPin, User, Car } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Car, CalendarOff } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -29,8 +29,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
         setIsLoading(true)
         const { bookings: upcomingBookings, error: bookingsError } = await getDriverBookings(driverId, {
           limit,
-          upcoming: true,
-          status: 'confirmed' // Only show confirmed bookings
+          upcoming: true
         })
         
         if (bookingsError) {
@@ -113,8 +112,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
           {t('drivers.upcomingBookings.title', { defaultValue: 'Upcoming Bookings' })}
         </CardTitle>
         <CardDescription>
@@ -122,90 +120,105 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {bookings.length > 0 ? (
+        {isLoading ? (
+           <div className="space-y-4">
+             {[...Array(2)].map((_, i) => (
+               <div key={i} className="border rounded-lg p-4">
+                 <div className="flex justify-between items-start mb-3">
+                   <Skeleton className="h-6 w-32" />
+                   <Skeleton className="h-5 w-24" />
+                 </div>
+                 <div className="space-y-2">
+                   <Skeleton className="h-4 w-full" />
+                   <Skeleton className="h-4 w-3/4" />
+                 </div>
+               </div>
+             ))}
+           </div>
+        ) : error ? (
+          <div className="text-destructive p-4">
+            {error}
+          </div>
+        ) : bookings.length > 0 ? (
           <div className="space-y-4">
             {bookings.map((booking) => (
-              <div key={booking.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
+              <div key={booking.supabase_id || booking.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
                   <div className="font-semibold">
                     {t('drivers.upcomingBookings.booking', { defaultValue: 'Booking' })} #{booking.id}
                   </div>
                   {renderBookingStatus(booking.status)}
                 </div>
                 
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4">
+                  <div className="space-y-2">
                     <div>
-                      <div>
+                      <p className="text-xs text-muted-foreground">{t('bookings.details.fields.pickupDate')} & {t('bookings.details.fields.pickupTime')}</p>
+                      <p className="text-foreground">
                         {booking.date && booking.time && 
                           format(new Date(`${booking.date}T${booking.time}`), 'PPP • p')}
-                      </div>
-                      {booking.duration && (
-                        <div className="text-sm text-muted-foreground">
-                          {booking.duration} {t('common.minutes')}
-                        </div>
-                      )}
+                        {booking.duration && <span className="text-muted-foreground text-xs ml-1">({booking.duration} {t('common.minutes')})</span>}
+                      </p>
                     </div>
+                    {booking.customer_name && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('bookings.details.sections.client')}</p>
+                        <p className="text-foreground flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground" /> 
+                          {booking.customer_name}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
-                  {booking.service_name && (
-                    <div className="flex items-start gap-2">
-                      <Car className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="space-y-2">
+                     {booking.vehicle && (
+                       <div>
+                        <p className="text-xs text-muted-foreground">{t('bookings.details.sections.vehicle')}</p>
+                        <p className="text-foreground flex items-center gap-1">
+                           <Car className="h-3 w-3 text-muted-foreground" /> 
+                           {booking.vehicle.make} {booking.vehicle.model}
+                         </p>
+                       </div>
+                    )}
+                    {booking.service_name && (
                       <div>
-                        {booking.service_name}
-                        {booking.service_type && (
-                          <div className="text-sm text-muted-foreground">
-                            {booking.service_type}
-                          </div>
-                        )}
+                        <p className="text-xs text-muted-foreground">{t('bookings.details.fields.serviceType')}</p>
+                        <p className="text-foreground">{booking.service_type || booking.service_name}</p>
                       </div>
-                    </div>
-                  )}
-                  
-                  {booking.customer_name && (
-                    <div className="flex items-start gap-2">
-                      <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        {booking.customer_name}
-                        {booking.customer_email && (
-                          <div className="text-sm text-muted-foreground">
-                            {booking.customer_email}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {(booking.pickup_location || booking.dropoff_location) && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        {booking.pickup_location && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                              {t('bookings.labels.from')}
-                            </span>
-                            <span className="text-sm">{booking.pickup_location}</span>
-                          </div>
-                        )}
-                        
-                        {booking.dropoff_location && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
-                              {t('bookings.labels.to')}
-                            </span>
-                            <span className="text-sm">{booking.dropoff_location}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-                
-                <div className="flex justify-end">
+                 
+                {(booking.pickup_location || booking.dropoff_location) && (
+                  <div className="text-sm border-t pt-3 mt-3">
+                     <div className="flex items-start gap-2">
+                       <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                       <div className="space-y-1">
+                         {booking.pickup_location && (
+                           <div className="flex items-center gap-1">
+                             <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                               {t('bookings.labels.from')}
+                             </span>
+                             <span className="text-xs">{booking.pickup_location}</span>
+                           </div>
+                         )}
+                         {booking.dropoff_location && (
+                           <div className="flex items-center gap-1">
+                             <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+                               {t('bookings.labels.to')}
+                             </span>
+                             <span className="text-xs">{booking.dropoff_location}</span>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                  </div>
+                 )}
+
+                <div className="flex justify-end mt-3">
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/bookings/${booking.id}`} >
+                    <Link href={`/bookings/${booking.supabase_id || booking.id}`} >
                       {t('common.viewDetails')}
                     </Link>
                   </Button>
@@ -214,9 +227,18 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
             ))}
           </div>
         ) : (
-          <div className="text-center py-6 text-muted-foreground">
-            {t('drivers.upcomingBookings.empty', { defaultValue: 'No upcoming bookings' })}
-          </div>
+          <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/30 rounded-lg min-h-[150px]">
+             <CalendarOff className="h-10 w-10 text-muted-foreground mb-3" />
+             <h3 className="text-lg font-medium mb-1">{t('drivers.upcomingBookings.empty.title', { defaultValue: 'No Upcoming Bookings' })}</h3>
+             <p className="text-muted-foreground mb-4">
+               {t('drivers.upcomingBookings.empty.description', { defaultValue: 'This driver has no upcoming bookings scheduled.' })}
+             </p>
+             <Button variant="outline" size="sm" asChild>
+                <Link href="/bookings" >
+                   {t('navigation.bookings')}
+                 </Link>
+             </Button>
+           </div>
         )}
       </CardContent>
     </Card>

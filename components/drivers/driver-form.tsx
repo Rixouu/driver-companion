@@ -231,41 +231,6 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>{t("drivers.fields.status")}</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="available" id="available" />
-                    <Label htmlFor="available">{t("drivers.status.available")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="unavailable" id="unavailable" />
-                    <Label htmlFor="unavailable">{t("drivers.status.unavailable")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="leave" id="leave" />
-                    <Label htmlFor="leave">{t("drivers.status.leave")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="training" id="training" />
-                    <Label htmlFor="training">{t("drivers.status.training")}</Label>
-                  </div>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>
           {isSubmitting 
             ? t("common.submitting") 

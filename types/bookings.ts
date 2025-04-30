@@ -15,6 +15,7 @@ export interface Customer {
 
 export interface Booking {
   id: string
+  supabase_id: string
   booking_id?: string
   date: string
   time: string
@@ -31,6 +32,7 @@ export interface Booking {
   // WordPress specific fields
   title?: string  // For WordPress format: "Booking XXXX"
   meta?: Record<string, any> // Raw WordPress meta data
+  wp_id?: string // WordPress ID
   
   // Additional fields from WordPress
   customer?: Customer

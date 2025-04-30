@@ -1,20 +1,20 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/supabase'
 
-// Create a single instance of the Supabase client using singleton pattern
+// Singleton implementation for the Supabase client to ensure we only create one instance
+// that's used consistently throughout the application
 let clientInstance: ReturnType<typeof createClientComponentClient<Database>> | null = null
 
 // Define a unique key for the client to ensure we're using the same storage key
 const STORAGE_KEY = 'vehicle-inspection-auth'
 
-export const supabase = (() => {
-  // Check if running in a browser environment
+export const getSupabaseClient = () => {
+  // In server components, we need to create a new instance each time
   if (typeof window === 'undefined') {
-    // For server-side, create a new instance each time
     return createClientComponentClient<Database>()
   }
   
-  // For client-side, create only one instance with consistent storage key
+  // For client components, reuse the same instance
   if (!clientInstance) {
     clientInstance = createClientComponentClient<Database>({
       cookieOptions: {
@@ -24,4 +24,7 @@ export const supabase = (() => {
   }
   
   return clientInstance
-})() 
+}
+
+// Export a singleton instance for direct imports
+export const supabase = getSupabaseClient() 

@@ -10,15 +10,20 @@ export interface FuelEntry {
 export interface Vehicle {
   id: string
   created_at: string
-  updated_at: string
-  make: string
-  model: string
-  year: number
-  license_plate: string
-  vin: string
+  updated_at?: string
+  make?: string
+  model?: string
+  year?: number | string
+  license_plate?: string
+  vin?: string
   image_url?: string
-  status: 'active' | 'maintenance' | 'retired'
+  status?: 'active' | 'maintenance' | 'retired' | string
   last_inspection?: string
+  name?: string
+  plate_number?: string
+  brand?: string
+  mileage?: number | null
+  last_inspection_date?: string | null
 }
 
 export interface Driver {

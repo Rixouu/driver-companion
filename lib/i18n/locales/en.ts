@@ -57,7 +57,8 @@ export const en: TranslationValue = {
     minutes: "Minutes",
     call: "Call",
     text: "Text",
-    line: "LINE"
+    line: "LINE",
+    exporting: "Exporting..."
   },
   auth: {
     logout: "Logout"
@@ -70,7 +71,8 @@ export const en: TranslationValue = {
     maintenance: "Maintenance",
     inspections: "Inspections",
     settings: "Settings",
-    reporting: "Reporting"
+    reporting: "Reporting",
+    dispatch: "Dispatch Board"
   },
   drivers: {
     title: "Drivers",
@@ -181,7 +183,11 @@ export const en: TranslationValue = {
     upcomingBookings: {
       title: "Upcoming Bookings",
       description: "Scheduled bookings for this driver",
-      empty: "No upcoming bookings",
+      empty: {
+        title: "No Upcoming Bookings",
+        description: "This driver has no upcoming bookings scheduled.",
+        message: "No upcoming bookings"
+      },
       booking: "Booking"
     },
     messages: {
@@ -232,11 +238,16 @@ export const en: TranslationValue = {
     vehicles: {
       title: "Associated Vehicles",
       description: "Vehicles assigned to this driver",
-      noVehicles: "No vehicles assigned to this driver"
+      noVehicles: "No vehicles assigned to this driver",
+      allVehicles: "All Vehicles"
     },
     inspections: {
       title: "Driver Inspections",
-      description: "Inspections performed by this driver"
+      description: "Inspections performed by this driver",
+      empty: {
+        title: "No inspections found",
+        description: "This driver hasn't performed any inspections yet."
+      }
     },
     since: "Driver since {date}",
     availability: {
@@ -531,7 +542,8 @@ export const en: TranslationValue = {
       noTasks: "No tasks in progress",
       noMaintenanceTasks: "No maintenance tasks in progress",
       noInspections: "No inspections in progress"
-    }
+    },
+    allVehicles: "All Vehicles"
   },
   maintenance: {
     title: "Maintenance",
@@ -1192,7 +1204,8 @@ export const en: TranslationValue = {
         delete: "Delete Inspection",
         print: "Print Report",
         export: "Export Results",
-        share: "Share Results"
+        share: "Share Results",
+        exportResult: "Export Result"
       },
       tabs: {
         details: "Inspection Details",
@@ -1256,6 +1269,36 @@ export const en: TranslationValue = {
         safety: "Comprehensive safety system evaluation",
         maintenance: "Detailed mechanical system inspection"
       }
+    },
+    tabs: {
+      list: "List",
+      stats: "Stats"
+    },
+    groupBy: "Group By",
+    groupByVehicle: "Vehicle",
+    groupByDate: "Date",
+    noGrouping: "No Grouping",
+    allVehicles: "All Vehicles",
+    resultsCount: "{count} results",
+    noVehicle: "No Vehicle Assigned",
+    selectVehiclePrompt: "Select a vehicle to view inspections",
+    dateGroup: {
+      today: "Today",
+      yesterday: "Yesterday",
+      thisWeek: "This Week",
+      thisMonth: "This Month",
+      upcoming: "Upcoming",
+      older: "Older",
+      unknown: "Unknown Date"
+    },
+    stats: {
+      totalInspections: "Total Inspections",
+      completed: "Completed",
+      scheduled: "Scheduled",
+      byVehicle: "Inspections by Vehicle",
+      byType: "Inspections by Type",
+      count: "{count} Inspection(s)",
+      vehicleCount: "{count} Vehicle(s)"
     }
   },
   dashboard: {
@@ -1529,7 +1572,8 @@ export const en: TranslationValue = {
     newBooking: "New Booking",
     editBooking: "Edit Booking",
     viewOptions: {
-      grid: "Grid View"
+      grid: "Grid View",
+      list: "List View"
     },
     actions: {
       sync: "Sync Bookings"
@@ -1545,7 +1589,11 @@ export const en: TranslationValue = {
     },
     labels: {
       from: "From",
-      to: "To"
+      to: "To",
+      bookingId: "Booking ID",
+      at: "at",
+      km: "km",
+      min: "min"
     },
     status: {
       publish: "Published",
@@ -1562,6 +1610,22 @@ export const en: TranslationValue = {
       completed: "Completed",
       cancelled: "Cancelled"
     },
+    assignment: {
+      title: "Driver & Vehicle Assignment",
+      summary: "Assign a driver and vehicle to this booking",
+      bookingDetails: "Booking Details",
+      confirmAssignment: "Confirm Assignment",
+      driver: "Driver",
+      vehicle: "Vehicle",
+      selectDriver: "Select driver",
+      selectVehicle: "Select vehicle",
+      driverDetails: "Driver Details",
+      vehicleDetails: "Vehicle Details",
+      noDriversAvailable: "No drivers available for this booking time",
+      noVehiclesAvailable: "No vehicles available",
+      assignSuccess: "Assignment completed successfully",
+      assignFailed: "Failed to complete assignment"
+    },
     details: {
       title: "Booking Details",
       notFound: "Booking Not Found",
@@ -1576,7 +1640,8 @@ export const en: TranslationValue = {
         route: "Route Information",
         client: "Client Details",
         additional: "Additional Information",
-        payment: "Payment Link"
+        payment: "Payment Link",
+        assignment: "Driver & Vehicle Assignment"
       },
       fields: {
         bookingId: "Booking ID",
@@ -1623,7 +1688,8 @@ export const en: TranslationValue = {
         sendArrivalNotification: "Send Arrival Notification",
         shareWhatsApp: "Share via WhatsApp",
         shareLine: "Share via LINE",
-        shareEmail: "Share via Email"
+        shareEmail: "Share via Email",
+        exportPdf: "Export PDF"
       },
       driverActions: {
         title: "Driver Actions",
@@ -1677,6 +1743,110 @@ export const en: TranslationValue = {
       deleteSuccess: "Booking deleted successfully",
       syncSuccess: "Bookings synced successfully",
       error: "An error occurred"
+    }
+  },
+  dispatch: {
+    title: "Dispatch Board",
+    description: "Manage driver and vehicle assignments for bookings",
+    search: "Search dispatch entries...",
+    filters: {
+      status: "Status",
+      date: "Date",
+      driver: "Driver",
+      vehicle: "Vehicle",
+      all: "All Entries"
+    },
+    actions: {
+      assignDriver: "Assign Driver",
+      assignVehicle: "Assign Vehicle",
+      updateStatus: "Update Status",
+      addNote: "Add Note",
+      viewDetails: "View Details",
+      createEntry: "Create Entry",
+      editEntry: "Edit Entry",
+      deleteEntry: "Delete Entry",
+      assignDriverTo: "Assign Driver to Booking #{id}",
+      assignVehicleTo: "Assign Vehicle to Booking #{id}"
+    },
+    status: {
+      pending: "Pending",
+      assigned: "Assigned",
+      in_transit: "In Transit",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    },
+    fields: {
+      booking: "Booking",
+      driver: "Driver",
+      vehicle: "Vehicle",
+      status: "Status",
+      startTime: "Start Time",
+      endTime: "End Time",
+      duration: "Duration",
+      notes: "Notes",
+      createdAt: "Created At",
+      updatedAt: "Updated At"
+    },
+    placeholders: {
+      selectDriver: "Select a driver",
+      selectVehicle: "Select a vehicle",
+      selectStatus: "Select a status",
+      enterNotes: "Enter notes about this dispatch",
+      startTime: "Select start time",
+      endTime: "Select end time"
+    },
+    messages: {
+      createSuccess: "Dispatch entry created successfully",
+      updateSuccess: "Dispatch entry updated successfully",
+      deleteSuccess: "Dispatch entry deleted successfully",
+      createError: "Error creating dispatch entry",
+      updateError: "Error updating dispatch entry",
+      deleteError: "Error deleting dispatch entry",
+      driverAssigned: "Driver assigned successfully",
+      vehicleAssigned: "Vehicle assigned successfully",
+      statusUpdated: "Status updated successfully",
+      notesAdded: "Notes added successfully"
+    },
+    empty: {
+      title: "No Dispatch Entries Found",
+      description: "There are no dispatch entries for the selected filters.",
+      searchResults: "No dispatch entries match your search criteria. Try modifying your search."
+    },
+    calendar: {
+      view: "Calendar View",
+      title: "Dispatch Calendar",
+      today: "Today",
+      month: "Month",
+      week: "Week",
+      day: "Day",
+      list: "List"
+    },
+    board: {
+      view: "Board View",
+      title: "Dispatch Board",
+      pending: "Pending",
+      assigned: "Assigned",
+      inTransit: "In Transit",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      addEntry: "Add Entry"
+    },
+    details: {
+      title: "Dispatch Details",
+      bookingDetails: "Booking Details",
+      driverDetails: "Driver Details",
+      vehicleDetails: "Vehicle Details",
+      statusHistory: "Status History",
+      notes: "Dispatch Notes"
+    },
+    timelineView: {
+      title: "Dispatch Timeline",
+      scale: "Scale",
+      hour: "Hour",
+      day: "Day",
+      week: "Week",
+      zoomIn: "Zoom In",
+      zoomOut: "Zoom Out"
     }
   }
 } as const

@@ -1,5 +1,9 @@
-// Re-export client
-export { supabase } from './client'
+// Re-export the Supabase client and getSupabaseClient function from client.ts
+// This file exists for backward compatibility with existing imports
+
+import { supabase, getSupabaseClient } from './client'
+
+export { supabase, getSupabaseClient }
 
 // Re-export service client
 export { createServiceClient } from './service-client'

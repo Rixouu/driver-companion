@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase/client"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Activity {
   id: string
@@ -141,62 +142,63 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
     )
   }
 
-  if (activities.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/30 rounded-lg">
-        <Clock className="h-10 w-10 text-muted-foreground mb-3" />
-        <h3 className="text-lg font-medium mb-1">{t("drivers.activity.empty.title")}</h3>
-        <p className="text-muted-foreground">
-          {t("drivers.activity.empty.description")}
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      {activities.map((activity) => (
-        <Link
-          key={activity.id}
-          href={activity.link}
-          className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" ><span className="flex items-center gap-2">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                {activity.type === "inspection" && (
-                  <FileText className="h-5 w-5 text-primary" />
-                )}
-                {activity.type === "maintenance" && (
-                  <Wrench className="h-5 w-5 text-primary" />
-                )}
-                {activity.type === "vehicle_assignment" && (
-                  <Car className="h-5 w-5 text-primary" />
-                )}
-              </div>
-            </div>
-            
-            <div className="flex-1">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="font-medium text-foreground">{activity.title}</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {activity.description}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-sm text-muted-foreground">
-                    {formatDate(activity.date)}
-                  </span>
-                  <div className="mt-2 flex items-center text-xs text-primary font-medium">
-                    <span>{t("common.view")}</span>
-                    <ExternalLink className="ml-1 h-3 w-3" />
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">{t("drivers.recentActivity.title")}</CardTitle>
+        <CardDescription>{t("drivers.recentActivity.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {activities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/30 rounded-lg min-h-[150px]">
+             <Clock className="h-10 w-10 text-muted-foreground mb-3" />
+             <h3 className="text-lg font-medium mb-1">{t("drivers.activity.empty.title")}</h3>
+             <p className="text-muted-foreground">
+               {t("drivers.activity.empty.description")}
+             </p>
+           </div>
+        ) : (
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <Link
+                key={activity.id}
+                href={activity.link}
+                className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" 
+              >
+                <div className="flex items-start gap-3 justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        {activity.type === "inspection" && (
+                          <FileText className="h-5 w-5 text-primary" />
+                        )}
+                        {activity.type === "maintenance" && (
+                          <Wrench className="h-5 w-5 text-primary" />
+                        )}
+                        {activity.type === "vehicle_assignment" && (
+                          <Car className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-foreground">{activity.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {activity.description}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end flex-shrink-0 ml-4">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatDate(activity.date)}
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </Link>
+            ))}
           </div>
-        </span></Link>
-      ))}
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

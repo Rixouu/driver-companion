@@ -22,6 +22,8 @@ import { saveAs } from "file-saver"
 import { useRealtimeRecord, useRealtimeCollection } from "@/hooks/use-realtime"
 import { idFilter } from "@/lib/services/realtime"
 import { useAuth } from "@/hooks/use-auth"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import html2pdf from "html2pdf.js"
 
 // Add extended inspection type with inspection_items
 interface ExtendedInspection extends DbInspection {
@@ -563,6 +565,359 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     }
   };
 
+  // Function to handle exporting the report as PDF
+  const handleExportPDF = () => {
+    try {
+      setIsExporting(true);
+      
+      // Format date for filename
+      const formattedDate = inspection.date ? 
+        new Date(inspection.date).toISOString().split('T')[0] : 
+        new Date().toISOString().split('T')[0];
+      
+      // Create a more descriptive filename with vehicle name and date
+      const vehicleName = inspection.vehicle?.name || 'vehicle';
+      const sanitizedVehicleName = vehicleName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const filename = `${sanitizedVehicleName}-inspection-${formattedDate}.pdf`;
+      
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        toast({
+          title: "Error",
+          description: "PDF export is only available in browser environment",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create a new element to format as a PDF
+      const pdfContainer = document.createElement('div');
+      pdfContainer.className = 'pdf-export-container';
+      pdfContainer.style.fontFamily = 'Arial, sans-serif';
+      pdfContainer.style.color = '#333';
+      pdfContainer.style.backgroundColor = '#fff';
+      pdfContainer.style.padding = '20px';
+      pdfContainer.style.width = '210mm'; // A4 width
+      pdfContainer.style.height = 'auto';
+      pdfContainer.style.margin = '0';
+      
+      // Add company logo
+      const logoContainer = document.createElement('div');
+      logoContainer.style.textAlign = 'center';
+      logoContainer.style.marginBottom = '20px';
+      
+      const logo = document.createElement('img');
+      logo.src = '/driver-header-logo.png'; // Use user provided logo path
+      logo.alt = 'Driver Logo';
+      logo.style.height = '60px';
+      
+      logoContainer.appendChild(logo);
+      pdfContainer.appendChild(logoContainer);
+      
+      // Add company info
+      const companyInfo = document.createElement('p');
+      companyInfo.textContent = 'Driver • japandriver.com';
+      companyInfo.style.textAlign = 'center';
+      companyInfo.style.fontSize = '14px';
+      companyInfo.style.color = '#64748b';
+      companyInfo.style.marginBottom = '20px';
+      
+      pdfContainer.appendChild(companyInfo);
+      
+      // Add inspection header
+      const header = document.createElement('div');
+      header.style.borderBottom = '2px solid #3b82f6';
+      header.style.paddingBottom = '15px';
+      header.style.marginBottom = '20px';
+      header.style.backgroundColor = '#f8fafc';
+      header.style.padding = '15px';
+      header.style.borderRadius = '6px';
+      
+      const inspectionTitle = document.createElement('h1');
+      inspectionTitle.textContent = t('inspections.details.title', { id: inspection?.id || 'N/A' }) || 
+        `Vehicle Inspection #${inspection?.id || 'N/A'}`;
+      inspectionTitle.style.fontSize = '22px';
+      inspectionTitle.style.fontWeight = 'bold';
+      inspectionTitle.style.marginBottom = '5px';
+      inspectionTitle.style.color = '#1e3a8a';
+      
+      const inspectionDate = document.createElement('p');
+      inspectionDate.textContent = formatDate(inspection.date);
+      inspectionDate.style.color = '#64748b';
+      inspectionDate.style.margin = '5px 0';
+      
+      const statusBadge = document.createElement('div');
+      statusBadge.textContent = inspection?.status || 'Pending';
+      statusBadge.style.display = 'inline-block';
+      statusBadge.style.padding = '4px 8px';
+      statusBadge.style.borderRadius = '4px';
+      
+      // Set badge color based on status
+      if (inspection?.status?.toLowerCase() === 'completed') {
+        statusBadge.style.backgroundColor = '#dcfce7';
+        statusBadge.style.color = '#166534';
+      } else if (inspection?.status?.toLowerCase() === 'failed') {
+        statusBadge.style.backgroundColor = '#fee2e2';
+        statusBadge.style.color = '#b91c1c';
+      } else {
+        statusBadge.style.backgroundColor = '#fef9c3';
+        statusBadge.style.color = '#854d0e';
+      }
+      
+      statusBadge.style.fontWeight = 'bold';
+      statusBadge.style.fontSize = '14px';
+      statusBadge.style.marginTop = '10px';
+      
+      header.appendChild(inspectionTitle);
+      header.appendChild(inspectionDate);
+      header.appendChild(statusBadge);
+      pdfContainer.appendChild(header);
+      
+      // Function to create a section
+      const createSection = (title: string, items: Array<{label: string, value: string}>) => {
+        const section = document.createElement('div');
+        section.style.marginBottom = '25px';
+        section.style.backgroundColor = '#f8fafc';
+        section.style.padding = '15px';
+        section.style.borderRadius = '6px';
+        section.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        
+        const sectionTitle = document.createElement('h2');
+        sectionTitle.textContent = title;
+        sectionTitle.style.fontSize = '18px';
+        sectionTitle.style.borderBottom = '1px solid #e2e8f0';
+        sectionTitle.style.paddingBottom = '8px';
+        sectionTitle.style.marginBottom = '12px';
+        sectionTitle.style.color = '#1e40af';
+        
+        section.appendChild(sectionTitle);
+        
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+        grid.style.gap = '15px';
+        
+        items.forEach(item => {
+          const itemContainer = document.createElement('div');
+          
+          const label = document.createElement('p');
+          label.textContent = item.label;
+          label.style.fontSize = '12px';
+          label.style.color = '#64748b';
+          label.style.margin = '0 0 3px 0';
+          
+          const value = document.createElement('p');
+          value.textContent = item.value || 'N/A';
+          value.style.fontSize = '14px';
+          value.style.margin = '0';
+          value.style.fontWeight = '500';
+          value.style.color = '#334155';
+          
+          itemContainer.appendChild(label);
+          itemContainer.appendChild(value);
+          grid.appendChild(itemContainer);
+        });
+        
+        section.appendChild(grid);
+        return section;
+      };
+      
+      // Vehicle section
+      const vehicleSection = createSection(t('inspections.details.sections.vehicle') || 'Vehicle Information', [
+        { label: t('vehicles.fields.name') || 'Name', value: inspection.vehicle?.name || 'N/A' },
+        { label: t('vehicles.fields.plateNumber') || 'Plate Number', value: inspection.vehicle?.plate_number || 'N/A' },
+        { label: t('vehicles.fields.brand') || 'Brand', value: inspection.vehicle?.brand || 'N/A' },
+        { label: t('vehicles.fields.model') || 'Model', value: inspection.vehicle?.model || 'N/A' }
+      ]);
+      
+      // Inspection summary section
+      const inspectionSection = createSection(t('inspections.details.sections.inspection') || 'Inspection Information', [
+        { label: t('inspections.fields.date') || 'Date', value: formatDate(inspection.date) },
+        { label: t('inspections.fields.type') || 'Type', value: inspection.type || 'N/A' },
+        { label: t('inspections.fields.status') || 'Status', value: inspection.status || 'N/A' },
+        { label: t('inspections.fields.inspector') || 'Inspector Name', value: inspection.inspector?.name || 'N/A' },
+        { label: t('inspections.fields.inspectorEmail') || 'Inspector Email', value: inspection.inspector?.email || 'N/A' }
+      ]);
+      
+      // Add summary stats
+      const statsSection = createSection(t('inspections.details.sections.summary') || 'Summary', [
+        { label: t('inspections.details.results.passCount', { count: String(passedItems) }) || 'Passed Items', value: `${passedItems} / ${totalItems}` },
+        { label: t('inspections.details.results.failCount', { count: String(failedItems) }) || 'Failed Items', value: `${failedItems} / ${totalItems}` },
+        { label: t('inspections.details.results.notesCount', { count: String(itemsWithNotes) }) || 'Items With Notes', value: `${itemsWithNotes}` },
+        { label: t('inspections.details.results.photoCount', { count: String(totalPhotos) }) || 'Photos Count', value: `${totalPhotos}` }
+      ]);
+      
+      const detailsContainer = document.createElement('div');
+      detailsContainer.style.marginBottom = '20px';
+      
+      detailsContainer.appendChild(vehicleSection);
+      detailsContainer.appendChild(inspectionSection);
+      detailsContainer.appendChild(statsSection);
+      
+      pdfContainer.appendChild(detailsContainer);
+      
+      // Add inspection items table
+      const itemsContainer = document.createElement('div');
+      itemsContainer.style.marginBottom = '25px';
+      
+      const itemsTitle = document.createElement('h2');
+      itemsTitle.textContent = t('inspections.details.sections.items') || 'Inspection Items';
+      itemsTitle.style.fontSize = '18px';
+      itemsTitle.style.borderBottom = '1px solid #e2e8f0';
+      itemsTitle.style.paddingBottom = '8px';
+      itemsTitle.style.marginBottom = '12px';
+      itemsTitle.style.color = '#1e40af';
+      
+      itemsContainer.appendChild(itemsTitle);
+      
+      // Create table
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      table.style.marginBottom = '20px';
+      
+      // Table header
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      
+      ['Item', 'Status', 'Notes'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        th.style.backgroundColor = '#f8fafc';
+        th.style.padding = '8px 12px';
+        th.style.textAlign = 'left';
+        th.style.fontSize = '14px';
+        th.style.fontWeight = 'bold';
+        th.style.color = '#475569';
+        th.style.border = '1px solid #e2e8f0';
+        headerRow.appendChild(th);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // Table body
+      const tbody = document.createElement('tbody');
+      
+      // Add rows for each inspection item
+      itemsWithTemplates.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+        
+        // Item name cell
+        const nameCell = document.createElement('td');
+        nameCell.textContent = getTemplateName(item.template) || 'Unknown';
+        nameCell.style.padding = '8px 12px';
+        nameCell.style.border = '1px solid #e2e8f0';
+        nameCell.style.fontSize = '14px';
+        
+        // Status cell
+        const statusCell = document.createElement('td');
+        const statusText = item.status || 'pending';
+        statusCell.textContent = statusText.charAt(0).toUpperCase() + statusText.slice(1);
+        statusCell.style.padding = '8px 12px';
+        statusCell.style.border = '1px solid #e2e8f0';
+        statusCell.style.fontSize = '14px';
+        
+        // Set text color based on status
+        if (statusText === 'pass') {
+          statusCell.style.color = '#166534';
+        } else if (statusText === 'fail') {
+          statusCell.style.color = '#b91c1c';
+        } else {
+          statusCell.style.color = '#854d0e';
+        }
+        
+        // Notes cell
+        const notesCell = document.createElement('td');
+        notesCell.textContent = item.notes || '-';
+        notesCell.style.padding = '8px 12px';
+        notesCell.style.border = '1px solid #e2e8f0';
+        notesCell.style.fontSize = '14px';
+        
+        row.appendChild(nameCell);
+        row.appendChild(statusCell);
+        row.appendChild(notesCell);
+        
+        tbody.appendChild(row);
+      });
+      
+      table.appendChild(tbody);
+      itemsContainer.appendChild(table);
+      
+      pdfContainer.appendChild(itemsContainer);
+      
+      // Add footer
+      const footer = document.createElement('div');
+      footer.style.borderTop = '1px solid #e2e8f0';
+      footer.style.paddingTop = '15px';
+      footer.style.textAlign = 'center';
+      footer.style.marginTop = '30px';
+      
+      const footerCompanyInfo = document.createElement('p');
+      footerCompanyInfo.textContent = 'Driver • japandriver.com';
+      footerCompanyInfo.style.fontSize = '12px';
+      footerCompanyInfo.style.color = '#64748b';
+      footerCompanyInfo.style.margin = '0';
+      
+      footer.appendChild(footerCompanyInfo);
+      pdfContainer.appendChild(footer);
+      
+      // Temporarily append to the document to allow html2pdf to process it
+      document.body.appendChild(pdfContainer);
+      
+      // Configure html2pdf options
+      const options = {
+        margin: [10, 10, 10, 10], // Reduced margins to help fit on one page
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // Generate the PDF
+      html2pdf()
+        .set(options)
+        .from(pdfContainer)
+        .save()
+        .then(() => {
+          // Clean up
+          if (document.body.contains(pdfContainer)) {
+            document.body.removeChild(pdfContainer);
+          }
+          
+          toast({
+            title: t('inspections.messages.exportSuccess'),
+          });
+          
+          setIsExporting(false);
+        })
+        .catch((error: any) => {
+          console.error('Error exporting PDF:', error);
+          
+          // Clean up
+          if (document.body.contains(pdfContainer)) {
+            document.body.removeChild(pdfContainer);
+          }
+          
+          toast({
+            title: t('inspections.messages.exportError'),
+            variant: "destructive",
+          });
+          
+          setIsExporting(false);
+        });
+      
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: t('inspections.messages.exportError'),
+        variant: "destructive",
+      });
+      setIsExporting(false);
+    }
+  };
+
   // Function to navigate to a specific tab
   const navigateToTab = (tabValue: string) => {
     // Find the tab element and click it
@@ -633,26 +988,29 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
           )}
               {inspection.status === 'completed' && (
                 <div className="flex gap-2">
-            <Button
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2 hidden sm:flex"
-                    onClick={handlePrintReport}
-                    disabled={isExporting}
-                  >
-                    <Printer className="h-4 w-4" />
-                    {t('inspections.details.actions.print')}
-            </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2 hidden sm:flex"
-                    onClick={handleExportReport}
-                    disabled={isExporting}
-                  >
-                    <Download className="h-4 w-4" />
-                    {t('inspections.details.actions.export')}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2 hidden sm:flex"
+                        disabled={isExporting}
+                      >
+                        <Download className="h-4 w-4" />
+                        {t('inspections.details.actions.exportResult')}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleExportPDF}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        PDF
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleExportReport}>
+                        <Download className="h-4 w-4 mr-2" />
+                        CSV
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
           )}
         </div>
@@ -662,22 +1020,27 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       {/* Floating Action Button for Mobile */}
       {inspection.status === 'completed' && (
         <div className="fixed right-4 bottom-20 z-50 flex flex-col gap-2 md:hidden print-hide">
-          <Button
-            size="icon"
-            className="rounded-full shadow-lg"
-            onClick={handlePrintReport}
-            disabled={isExporting}
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            className="rounded-full shadow-lg"
-            onClick={handleExportReport}
-            disabled={isExporting}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                className="rounded-full shadow-lg"
+                disabled={isExporting}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="h-4 w-4 mr-2" />
+                PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportReport}>
+                <Download className="h-4 w-4 mr-2" />
+                CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
       {/* Print Header - Only visible when printing */}

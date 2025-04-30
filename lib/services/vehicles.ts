@@ -1,8 +1,7 @@
 import { supabase } from '@/lib/db/client'
 import type { Database } from '@/types/supabase'
-import type { DbVehicle } from "@/types"
 
-type Vehicle = Database['public']['Tables']['vehicles']['Row']
+type VehicleRow = Database['public']['Tables']['vehicles']['Row']
 type VehicleInsert = Database['public']['Tables']['vehicles']['Insert']
 type VehicleUpdate = Database['public']['Tables']['vehicles']['Update']
 
@@ -31,10 +30,10 @@ export async function getVehicles(options?: {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return { vehicles: data as DbVehicle[], count }
+  return { vehicles: data as VehicleRow[], count }
 }
 
-export async function getVehicleById(id: string) {
+export async function getVehicleById(id: string): Promise<VehicleRow> {
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
@@ -42,10 +41,10 @@ export async function getVehicleById(id: string) {
     .single()
 
   if (error) throw error
-  return data as DbVehicle
+  return data as VehicleRow
 }
 
-export async function createVehicle(vehicle: Omit<DbVehicle, 'id' | 'created_at' | 'updated_at'>) {
+export async function createVehicle(vehicle: Omit<VehicleRow, 'id' | 'created_at' | 'updated_at'>): Promise<VehicleRow> {
   const { data, error } = await supabase
     .from('vehicles')
     .insert(vehicle)
@@ -53,10 +52,10 @@ export async function createVehicle(vehicle: Omit<DbVehicle, 'id' | 'created_at'
     .single()
 
   if (error) throw error
-  return data as DbVehicle
+  return data as VehicleRow
 }
 
-export async function updateVehicle(id: string, vehicle: Partial<DbVehicle>) {
+export async function updateVehicle(id: string, vehicle: Partial<VehicleRow>): Promise<VehicleRow> {
   const { data, error } = await supabase
     .from('vehicles')
     .update(vehicle)
@@ -65,7 +64,7 @@ export async function updateVehicle(id: string, vehicle: Partial<DbVehicle>) {
     .single()
 
   if (error) throw error
-  return data as DbVehicle
+  return data as VehicleRow
 }
 
 export async function deleteVehicle(id: string) {

@@ -36,6 +36,10 @@ import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Script from 'next/script'
+import { getDrivers } from '@/lib/services/drivers'
+import { getVehicles } from '@/lib/services/vehicles'
+import type { Driver } from '@/types/drivers'
+import type { Vehicle } from '@/types/vehicles'
 
 export default function EditBookingPage() {
   const router = useRouter()
@@ -45,70 +49,89 @@ export default function EditBookingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Partial<Booking & { flight_number?: string; terminal?: string }>>({})
+  const [formData, setFormData] = useState<Partial<Booking & { 
+    flight_number?: string; 
+    terminal?: string; 
+    driver_id?: string | null; 
+    vehicle_id?: string | null; 
+  }>>({})
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('general')
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
+  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
 
-  // Fetch booking data
+  // Fetch booking data AND driver/vehicle lists
   useEffect(() => {
-    async function loadBooking() {
+    async function loadBookingAndLists() {
       setIsLoading(true)
       try {
+        // Fetch Booking
         const { booking: loadedBooking } = await getBookingById(id)
-        
         if (!loadedBooking) {
           setError('Booking not found')
           setBooking(null)
-        } else {
-          setBooking(loadedBooking)
-          
-          // Extract flight number from meta data if available
-          let flightNumber = '';
-          let terminal = '';
-          
-          if (loadedBooking.meta?.chbs_form_element_field && Array.isArray(loadedBooking.meta.chbs_form_element_field)) {
-            const flightField = loadedBooking.meta.chbs_form_element_field.find(
-              (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
-            );
-            if (flightField?.value) flightNumber = flightField.value;
-            
-            const terminalField = loadedBooking.meta.chbs_form_element_field.find(
-              (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
-            );
-            if (terminalField?.value) terminal = terminalField.value;
-          }
-          
-          flightNumber = flightNumber || loadedBooking.meta?.chbs_flight_number || '';
-          terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
-          
-          // Initialize form data
-          setFormData({
-            service_name: loadedBooking.service_name,
-            service_type: loadedBooking.service_type || loadedBooking.meta?.chbs_service_type || '',
-            date: loadedBooking.date,
-            time: loadedBooking.time,
-            status: loadedBooking.status,
-            customer_name: loadedBooking.customer_name,
-            customer_email: loadedBooking.customer_email,
-            customer_phone: loadedBooking.customer_phone,
-            pickup_location: loadedBooking.pickup_location,
-            dropoff_location: loadedBooking.dropoff_location,
-            distance: loadedBooking.distance?.toString() || '',
-            duration: loadedBooking.duration?.toString() || '',
-            notes: loadedBooking.notes,
-            flight_number: flightNumber,
-            terminal: terminal
-          })
+          return; // Stop if booking not found
         }
+        setBooking(loadedBooking)
+        
+        // Extract flight number from meta data if available
+        let flightNumber = '';
+        let terminal = '';
+        
+        if (loadedBooking.meta?.chbs_form_element_field && Array.isArray(loadedBooking.meta.chbs_form_element_field)) {
+          const flightField = loadedBooking.meta.chbs_form_element_field.find(
+            (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
+          );
+          if (flightField?.value) flightNumber = flightField.value;
+          
+          const terminalField = loadedBooking.meta.chbs_form_element_field.find(
+            (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
+          );
+          if (terminalField?.value) terminal = terminalField.value;
+        }
+        
+        flightNumber = flightNumber || loadedBooking.meta?.chbs_flight_number || '';
+        terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
+        
+        // Initialize form data including driver/vehicle IDs
+        setFormData({
+          service_name: loadedBooking.service_name,
+          service_type: loadedBooking.service_type || loadedBooking.meta?.chbs_service_type || '',
+          date: loadedBooking.date,
+          time: loadedBooking.time,
+          status: loadedBooking.status,
+          customer_name: loadedBooking.customer_name,
+          customer_email: loadedBooking.customer_email,
+          customer_phone: loadedBooking.customer_phone,
+          pickup_location: loadedBooking.pickup_location,
+          dropoff_location: loadedBooking.dropoff_location,
+          distance: loadedBooking.distance?.toString() || '',
+          duration: loadedBooking.duration?.toString() || '',
+          notes: loadedBooking.notes,
+          driver_id: loadedBooking.driver_id,
+          vehicle_id: loadedBooking.vehicle?.id || null,
+          flight_number: flightNumber,
+          terminal: terminal
+        })
+
+        // Fetch Drivers
+        const drivers = await getDrivers(); 
+        setAvailableDrivers(drivers);
+
+        // Fetch Vehicles
+        const vehiclesResult = await getVehicles(); 
+        // Extract the vehicles array from the result
+        setAvailableVehicles(vehiclesResult.vehicles || []);
+
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load booking')
+        setError(err instanceof Error ? err.message : 'Failed to load data')
       } finally {
         setIsLoading(false)
       }
     }
     
-    loadBooking()
+    loadBookingAndLists()
   }, [id])
   
   // Generate static map preview when locations change
@@ -133,9 +156,11 @@ export default function EditBookingPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
   
-  // Handle select changes
+  // Handle select changes (now includes driver/vehicle)
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
+    // Use null for the "None" option
+    const actualValue = value === "none" ? null : value;
+    setFormData(prev => ({ ...prev, [name]: actualValue }))
   }
   
   // Handle Google Places Autocomplete changes
@@ -186,10 +211,17 @@ export default function EditBookingPage() {
     setSaveResult(null)
     
     try {
-      // Extract fields for meta storage
-      const { flight_number, terminal, service_type, ...validFields } = formData
+      // Extract specific fields and handle potential nulls for IDs
+      const { 
+        flight_number, 
+        terminal, 
+        service_type, 
+        driver_id, // Get driver_id
+        vehicle_id, // Get vehicle_id
+        ...validFields 
+      } = formData
       
-      // Create meta object to store additional fields that don't exist as columns
+      // Create meta object
       const metaData = { 
         ...(booking?.meta || {}), 
         chbs_flight_number: flight_number,
@@ -197,7 +229,7 @@ export default function EditBookingPage() {
         chbs_service_type: service_type
       }
       
-      // Only include fields that exist in the database
+      // Prepare data for update, including driver/vehicle IDs
       const dataToUpdate = {
         service_name: validFields.service_name,
         date: validFields.date,
@@ -211,7 +243,9 @@ export default function EditBookingPage() {
         distance: validFields.distance,
         duration: validFields.duration,
         notes: validFields.notes,
-        meta: metaData  // Store additional fields in meta
+        meta: metaData,
+        driver_id: driver_id, // Include driver_id (can be null)
+        vehicle_id: vehicle_id // Include vehicle_id (can be null)
       }
       
       const result = await updateBookingAction(id, dataToUpdate)
@@ -423,6 +457,50 @@ export default function EditBookingPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Driver Select */}
+                <div className="space-y-2">
+                  <Label htmlFor="driver_id">Driver</Label>
+                  <Select 
+                    name="driver_id" 
+                    value={formData.driver_id || "none"} 
+                    onValueChange={(value) => handleSelectChange('driver_id', value)}
+                  >
+                    <SelectTrigger id="driver_id">
+                      <SelectValue placeholder="Select driver" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Unassigned)</SelectItem>
+                      {availableDrivers.map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id}>
+                          {driver.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Vehicle Select */}
+                <div className="space-y-2">
+                  <Label htmlFor="vehicle_id">Vehicle</Label>
+                  <Select 
+                    name="vehicle_id" 
+                    value={formData.vehicle_id || "none"} 
+                    onValueChange={(value) => handleSelectChange('vehicle_id', value)}
+                  >
+                    <SelectTrigger id="vehicle_id">
+                      <SelectValue placeholder="Select vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None (Unassigned)</SelectItem>
+                      {availableVehicles.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </TabsContent>
               

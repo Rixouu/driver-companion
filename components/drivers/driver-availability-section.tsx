@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format, parseISO, addDays } from "date-fns";
-import { Clock, CalendarIcon } from "lucide-react";
+import { Clock, Calendar, CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getDriverAvailability } from "@/lib/services/driver-availability";
@@ -11,15 +11,14 @@ import type { DriverAvailability as DriverAvailabilityType } from "@/types/drive
 
 interface DriverAvailabilitySectionProps {
   driverId: string;
+  onViewFullSchedule?: () => void;
 }
 
-export function DriverAvailabilitySection({ driverId }: DriverAvailabilitySectionProps) {
+export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: DriverAvailabilitySectionProps) {
   const { t } = useI18n();
   const [currentStatus, setCurrentStatus] = useState<string | null>(null);
   const [currentStatusMessage, setCurrentStatusMessage] = useState<string>("");
-  const [upcomingChanges, setUpcomingChanges] = useState<
-    { date: string; status: string }[]
-  >([]);
+  const [upcomingRecords, setUpcomingRecords] = useState<DriverAvailabilityType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -64,15 +63,8 @@ export function DriverAvailabilitySection({ driverId }: DriverAvailabilitySectio
               return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
             });
 
-          // Take up to 3 upcoming changes
-          const upcomingStatusChanges = futureAvailability.slice(0, 3).map((record) => {
-            return {
-              date: record.start_date,
-              status: record.status
-            };
-          });
-
-          setUpcomingChanges(upcomingStatusChanges);
+          // Store up to 3 upcoming records
+          setUpcomingRecords(futureAvailability.slice(0, 3));
         } else {
           // Default values if no availability records found
           setCurrentStatus("available");
@@ -92,23 +84,36 @@ export function DriverAvailabilitySection({ driverId }: DriverAvailabilitySectio
 
   // Helper to get proper label for status
   function getStatusLabel(status: string): string {
-    return t(`drivers.status.${status}`) || "Unknown";
+    // Use availability statuses keys for translation
+    return t(`drivers.availability.statuses.${status.toLowerCase()}`) || status;
   }
 
   // Helper to get status badge class
   function getStatusBadgeClass(status: string): string {
-    switch (status) {
+    switch (status.toLowerCase()) { // Ensure lowercase comparison
       case "available":
-        return "bg-green-100 text-green-800";
+        // Use Shadcn Badge variants for consistency
+        return "success";
       case "unavailable":
-        return "bg-red-100 text-red-800";
+        return "destructive";
       case "leave":
-        return "bg-amber-100 text-amber-800";
+        return "warning";
       case "training":
-        return "bg-blue-100 text-blue-800";
+        return "info";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "secondary";
     }
+  }
+
+  // Helper to format date range
+  function formatDateRange(startDate: string, endDate: string): string {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    // Basic formatting, can be enhanced for same month/year etc.
+    if (startDate === endDate) {
+        return format(start, "MMMM d, yyyy");
+    }
+    return `${format(start, "MMMM d")} - ${format(end, "d, yyyy")}`;
   }
 
   if (isLoading) {
@@ -128,28 +133,36 @@ export function DriverAvailabilitySection({ driverId }: DriverAvailabilitySectio
   return (
     <Card>
       <CardContent className="p-6">
-        <h3 className="text-xl font-bold mb-3">{t("drivers.availability.title")}</h3>
-        <div className="mb-4">
-          <div className="mb-2">
-            <Badge className={getStatusBadgeClass(currentStatus || "available")}>
-              {getStatusLabel(currentStatus || "available")}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">{currentStatusMessage}</p>
+        <h3 className="text-xl font-bold mb-4">{t("drivers.availability.title")}</h3>
+        
+        {/* Current Status Section */}
+        <div className="mb-6 p-4 border rounded-lg bg-muted/20">
+          <h4 className="text-sm font-medium mb-2">Current Status</h4> 
+          <div className="flex items-center justify-between mb-2">
+             <Badge variant={getStatusBadgeClass(currentStatus || "available") as any}>
+               {getStatusLabel(currentStatus || "available")}
+             </Badge>
+           </div>
+           <p className="text-sm text-muted-foreground">{currentStatusMessage}</p>
         </div>
 
-        {upcomingChanges.length > 0 && (
+        {/* Upcoming Schedule Section */}
+        {upcomingRecords.length > 0 && (
           <div>
             <h4 className="text-sm font-medium mb-2">{t("drivers.availability.upcomingSchedule")}</h4>
-            <div className="space-y-3">
-              {upcomingChanges.map((change, index) => (
-                <div key={index} className="flex items-center justify-between">
+            <div className="space-y-2">
+              {upcomingRecords.map((record) => (
+                <div key={record.id} className="flex items-center justify-between p-3 border rounded-md">
                   <div className="flex items-center">
                     <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{format(parseISO(change.date), "MMMM d, yyyy")}</span>
+                    {/* Display formatted date range */}
+                    <span className="text-sm">{formatDateRange(record.start_date, record.end_date)}</span>
                   </div>
-                  <Badge className={getStatusBadgeClass(change.status)}>
-                    {change.status === "leave" ? t("drivers.availability.returnsFromLeave") : getStatusLabel(change.status)}
+                  {/* Use consistent badge styling */}
+                  <Badge variant={getStatusBadgeClass(record.status) as any}>
+                    {record.status === "leave" 
+                      ? t("drivers.availability.returnsFromLeave") 
+                      : getStatusLabel(record.status)}
                   </Badge>
                 </div>
               ))}
@@ -157,6 +170,7 @@ export function DriverAvailabilitySection({ driverId }: DriverAvailabilitySectio
             <div className="mt-4">
               <button 
                 className="w-full py-2 text-center border rounded-md hover:bg-accent transition-colors text-sm font-medium flex items-center justify-center"
+                onClick={onViewFullSchedule}
               >
                 <Clock className="h-4 w-4 mr-1" />
                 {t("drivers.availability.viewFullSchedule")}

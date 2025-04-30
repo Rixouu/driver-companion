@@ -62,7 +62,8 @@ export function DriverAvailabilityBadge({
   }, [driverId, date])
 
   if (isLoading) {
-    return <Badge variant="outline" className="animate-pulse">Checking...</Badge>
+    // Return null while loading instead of showing "Checking..."
+    return null;
   }
 
   const badgeContent = getBadgeContent(status)

@@ -52,10 +52,38 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
       try {
         setLoading(true)
         
-        // Extract city from location string (assuming format like "Tokyo, Japan")
-        const city = location.split(',')[0].trim()
+        // Improved location parsing - extract city and check if it's valid
+        let locationQuery = ''
         
-        if (!city) {
+        // First check if it contains coordinates
+        const coordsRegex = /(-?\d+\.\d+),\s*(-?\d+\.\d+)/
+        const coordsMatch = location.match(coordsRegex)
+        
+        if (coordsMatch) {
+          // If we have coordinates, use them directly
+          locationQuery = `${coordsMatch[1]},${coordsMatch[2]}`
+        } else {
+          // Otherwise try to extract a valid city name
+          // Remove any numeric or special characters that might cause API issues
+          const cleanLocation = location.replace(/[^a-zA-Z\s,]/g, '').trim()
+          const parts = cleanLocation.split(',')
+          
+          if (parts.length > 0 && parts[0].trim()) {
+            // Use the first part as the city
+            locationQuery = parts[0].trim()
+            
+            // Add country/region as a second parameter if available
+            if (parts.length > 1 && parts[1].trim()) {
+              locationQuery += `,${parts[1].trim()}`
+            }
+          } else {
+            setLoading(false)
+            setError('Invalid location format')
+            return
+          }
+        }
+        
+        if (!locationQuery) {
           setLoading(false)
           setError('Invalid location format')
           return
@@ -85,7 +113,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           return
         }
         
-        const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(city)}&days=${days}&aqi=no&alerts=no`
+        const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(locationQuery)}&days=${days}&aqi=no&alerts=no`
         
         try {
           const response = await fetch(url, { 
@@ -98,11 +126,11 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           
           if (!response.ok) {
             if (response.status === 400) {
-              console.error('Weather API 400 error - likely invalid location')
-              setError('Location not recognized by weather service')
+              console.error('Weather API 400 error - failed to parse location: ', locationQuery)
+              setError(t('bookings.details.weather.notAvailable'))
             } else if (response.status === 403) {
               console.error('Weather API authentication error')
-              setError('Weather API authentication error')
+              setError(t('bookings.details.weather.errorMessage'))
             } else {
               throw new Error(`Weather API error: ${response.status}`)
             }
@@ -117,12 +145,12 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         } catch (fetchError) {
           // Handle network errors separately
           console.error('Network error fetching weather data:', fetchError)
-          setError('Network error when fetching weather data')
+          setError(t('bookings.details.weather.errorMessage'))
           setWeather(null)
         }
       } catch (err) {
         console.error('Error in weather data processing:', err)
-        setError('Unable to process weather data')
+        setError(t('bookings.details.weather.errorMessage'))
         setWeather(null)
       } finally {
         setLoading(false)
@@ -130,7 +158,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
     }
     
     fetchWeatherData()
-  }, [date, location])
+  }, [date, location, t])
   
   // Get forecast for the specific date
   const getForecastForDate = () => {

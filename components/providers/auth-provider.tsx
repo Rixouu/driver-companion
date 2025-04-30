@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, AuthError } from "@supabase/supabase-js"
-import { supabase } from "@/lib/supabase"
+import { supabase, getSupabaseClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
 interface AuthContextType {
@@ -34,21 +34,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast()
 
   useEffect(() => {
+    // Always ensure we have a valid Supabase client
+    const supabase = getSupabaseClient()
     let isAuthenticated = false;
     
     const getUser = async () => {
       try {
         setLoading(true)
-        const { data: { user }, error } = await supabase.auth.getUser()
+        const { data, error } = await supabase.auth.getUser()
         
         if (error) {
           console.error("Error fetching user:", error.message)
           setError(error.message)
           isAuthenticated = false;
         } else {
-          setUser(user)
+          setUser(data.user)
           setError(null)
-          isAuthenticated = !!user;
+          isAuthenticated = !!data.user;
         }
       } catch (err) {
         console.error("Unexpected error:", err)
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
+    const supabase = getSupabaseClient()
     try {
       setLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -131,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
+    const supabase = getSupabaseClient()
     try {
       setLoading(true)
       const { data, error } = await supabase.auth.signUp({
@@ -155,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    const supabase = getSupabaseClient()
     try {
       setLoading(true)
       await supabase.auth.signOut()
@@ -168,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const resetPassword = async (email: string) => {
+    const supabase = getSupabaseClient()
     try {
       setLoading(true)
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -1,99 +1,98 @@
 import { supabase } from "@/lib/supabase/client"
-import type { Driver, DbDriver, DriverFormData } from "@/types"
+import type { Driver, DriverAvailabilityStatus } from "@/types/drivers"
+import { format } from 'date-fns'
+import { getDriverAvailability } from './driver-availability'
 
 // Get all drivers
-export async function getDrivers() {
+export async function getDrivers(): Promise<Driver[]> {
   try {
-    // First attempt to get drivers with deleted_at filter
-    try {
-      const { data, error } = await (supabase as any)
-        .from('drivers')
-        .select(`
-          *,
-          assigned_vehicles:vehicle_assignments!driver_id(
-            vehicle:vehicle_id(
-              id,
-              name,
-              plate_number,
-              image_url,
-              brand,
-              model
-            ),
-            status
-          )
-        `)
-        .is('deleted_at', null)
-        .order('last_name', { ascending: true })
+    const today = format(new Date(), "yyyy-MM-dd");
 
-      if (!error) {
-        // Success with deleted_at filter
-        if (!data) return []
-        
-        // Add full_name property and format assigned_vehicles
-        const driversWithFullName = (data as any[]).map(driver => ({
-          ...driver,
-          full_name: `${driver.first_name} ${driver.last_name}`,
-          assigned_vehicles: (driver.assigned_vehicles || [])
-            .filter((assignment: { status: string; vehicle: any }) => 
-              assignment.status === 'active' && assignment.vehicle)
-            .map((assignment: { vehicle: any }) => assignment.vehicle)
-        }))
-        
-        return driversWithFullName as unknown as Driver[]
-      }
-      
-      // If error is related to deleted_at column, fall back to simpler query
-      console.log("First query attempt error:", JSON.stringify(error))
-    } catch (firstAttemptError) {
-      console.log("First attempt exception:", firstAttemptError)
-    }
-    
-    // Fallback query without deleted_at filter if first attempt failed
-    const { data, error } = await (supabase as any)
+    // Base query selecting necessary fields (added missing fields)
+    let query = supabase
       .from('drivers')
       .select(`
-        *,
-        assigned_vehicles:vehicle_assignments!driver_id(
-          vehicle:vehicle_id(
-            id,
-            name,
-            plate_number,
-            image_url,
-            brand,
-            model
-          ),
-          status
-        )
+        id, first_name, last_name, email, phone, 
+        line_id, license_number, license_expiry, profile_image_url, 
+        address, emergency_contact, notes, user_id, 
+        created_at, updated_at, deleted_at
       `)
-      .order('last_name', { ascending: true })
+      .order('last_name', { ascending: true });
 
-    if (error) {
-      console.error('Error in fallback drivers query:', JSON.stringify(error))
-      throw error
+    // Try applying the deleted_at filter
+    try {
+      const { error: filterCheckError } = await supabase
+        .from('drivers')
+        .select('id')
+        .is('deleted_at', null)
+        .limit(1); // Just check if the filter works
+
+      if (!filterCheckError) {
+        query = query.is('deleted_at', null);
+        console.log("Applying deleted_at filter");
+      } else if (filterCheckError.code === '42703') {
+        console.warn("'deleted_at' column not found, fetching all drivers.");
+      } else {
+        throw filterCheckError; // Rethrow other filter check errors
+      }
+    } catch (err) {
+       console.error("Error checking 'deleted_at' filter:", err);
+       // Proceed without filter if check fails
     }
+
+    // Execute the final query
+    const { data: driversData, error: driversError } = await query;
+
+    if (driversError) throw driversError;
+    if (!driversData) return [];
+
+    // Fetch availability for all drivers concurrently
+    const availabilityPromises = driversData.map(driver => 
+        getDriverAvailability(driver.id)
+          .then(availabilityRecords => {
+            const currentRecord = availabilityRecords.find(
+              record => record.start_date <= today && record.end_date >= today
+            );
+            return currentRecord?.status || 'available'; // Default to available
+          })
+          .catch(err => {
+             console.error(`Failed to fetch availability for driver ${driver.id}:`, err);
+             return 'available'; // Default on error
+          })
+    );
     
-    if (!data) return []
-    
-    // Add full_name property and format assigned_vehicles
-    const driversWithFullName = (data as any[]).map(driver => ({
-      ...driver,
+    const availabilityStatuses = await Promise.all(availabilityPromises);
+
+    // Combine driver data with availability status
+    const driversWithDetails: Driver[] = driversData.map((driver, index) => ({
+      // Explicitly map fields to match the Driver type
+      id: driver.id,
+      first_name: driver.first_name,
+      last_name: driver.last_name,
       full_name: `${driver.first_name} ${driver.last_name}`,
-      assigned_vehicles: (driver.assigned_vehicles || [])
-        .filter((assignment: { status: string; vehicle: any }) => 
-          assignment.status === 'active' && assignment.vehicle)
-        .map((assignment: { vehicle: any }) => assignment.vehicle)
-    }))
-    
-    return driversWithFullName as unknown as Driver[]
+      email: driver.email || '', // Provide default empty string if email is null/undefined
+      phone: driver.phone || undefined,
+      status: (availabilityStatuses[index] || 'available') as DriverAvailabilityStatus,
+      profile_image_url: driver.profile_image_url || undefined,
+      created_at: driver.created_at || new Date().toISOString(),
+      deleted_at: driver.deleted_at,
+      availability_status: availabilityStatuses[index] as DriverAvailabilityStatus,
+      license_number: driver.license_number || undefined,
+      license_expiry: driver.license_expiry || undefined,
+      line_id: driver.line_id || undefined,
+      address: driver.address || undefined,
+      emergency_contact: driver.emergency_contact || undefined,
+      notes: driver.notes || undefined,
+      user_id: driver.user_id || undefined,
+      assigned_vehicles: [], 
+      updated_at: driver.updated_at || undefined,
+    }));
+
+    return driversWithDetails;
+
   } catch (error) {
-    console.error('Detailed error fetching drivers:', error)
-    if (error instanceof Error) {
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-    } else {
-      console.error('Unknown error type:', typeof error)
-    }
-    throw error
+    console.error('Detailed error fetching drivers:', error);
+    throw error;
   }
 }
 
@@ -113,7 +112,8 @@ export async function getDriverById(id: string) {
               plate_number,
               image_url,
               brand,
-              model
+              model,
+              status
             ),
             status
           )
@@ -157,7 +157,8 @@ export async function getDriverById(id: string) {
             plate_number,
             image_url,
             brand,
-            model
+            model,
+            status
           ),
           status
         )
@@ -192,7 +193,7 @@ export async function getDriverById(id: string) {
 }
 
 // Create a new driver
-export async function createDriver(driver: DriverFormData) {
+export async function createDriver(driver: Partial<Driver>) {
   try {
     // Get current user ID
     const { data: userData, error: userError } = await supabase.auth.getUser()
@@ -244,7 +245,7 @@ export async function createDriver(driver: DriverFormData) {
 }
 
 // Update an existing driver
-export async function updateDriver(id: string, driver: Partial<DriverFormData>) {
+export async function updateDriver(id: string, driver: Partial<Driver>) {
   try {
     // First attempt with deleted_at filter
     try {

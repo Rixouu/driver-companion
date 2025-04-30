@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Clock, CreditCard, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, Mail, Phone, Navigation, FileX, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, CreditCard, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, Mail, Phone, Navigation, FileX, ShieldAlert, ShieldCheck, CloudSun } from 'lucide-react'
 import Script from 'next/script'
 import { PrintButton } from '@/components/bookings/print-button'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
@@ -15,6 +15,11 @@ import { useI18n } from '@/lib/i18n/context'
 import { Booking } from '@/types/bookings'
 import { PageHeader } from '@/components/ui/page-header'
 import { BookingInspections } from "@/components/bookings/booking-inspections"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import BookingAssignment from '@/components/bookings/booking-assignment'
+import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { Database } from '@/types/supabase'
 
 // Avatar component for client display
 function AvatarInitials({ name }: { name: string }) {
@@ -81,8 +86,45 @@ export default function BookingDetailsContent({
   bookingId: string;
 }) {
   const { t } = useI18n()
+  const [activeTab, setActiveTab] = useState('details')
+  const [dispatchStatus, setDispatchStatus] = useState<string | null>(null)
+  const supabase = createClientComponentClient<Database>()
+  
+  // Fetch dispatch status on component mount
+  useEffect(() => {
+    async function fetchDispatchStatus() {
+      const { data, error } = await supabase
+        .from('dispatch_entries')
+        .select('status')
+        .eq('booking_id', booking.id || booking.booking_id || bookingId)
+        .single()
+      
+      if (!error && data) {
+        setDispatchStatus(data.status)
+      }
+    }
+    
+    fetchDispatchStatus()
+  }, [booking, bookingId, supabase])
   
   const getStatusBadge = (status: string) => {
+    // First check dispatch status
+    if (dispatchStatus) {
+      switch (dispatchStatus.toLowerCase()) {
+        case 'assigned':
+          return <Badge className="bg-green-600 text-white">{t('dispatch.status.assigned')}</Badge>;
+        case 'in_transit':
+          return <Badge className="bg-blue-600 text-white">{t('dispatch.status.in_transit')}</Badge>;
+        case 'completed':
+          return <Badge className="bg-purple-600 text-white">{t('dispatch.status.completed')}</Badge>;
+        case 'cancelled':
+          return <Badge className="bg-red-600 text-white">{t('dispatch.status.cancelled')}</Badge>;
+        case 'pending':
+          return <Badge className="bg-yellow-600 text-white">{t('dispatch.status.pending')}</Badge>;
+      }
+    }
+    
+    // Fall back to booking status
     switch (status.toLowerCase()) {
       case 'confirmed':
         return <Badge className="bg-green-600 text-white">{t('bookings.details.status.confirmed')}</Badge>;
@@ -97,8 +139,27 @@ export default function BookingDetailsContent({
     }
   };
   
+  const handleAssignmentComplete = () => {
+    // Refetch dispatch status after assignment is complete
+    const fetchDispatchStatus = async () => {
+      const { data, error } = await supabase
+        .from('dispatch_entries')
+        .select('status')
+        .eq('booking_id', booking.id || booking.booking_id || bookingId)
+        .single()
+      
+      if (!error && data) {
+        setDispatchStatus(data.status)
+      }
+    }
+    
+    fetchDispatchStatus()
+    // Switch back to details tab
+    setActiveTab('details')
+  }
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="booking-details-content">
       <Link
         href="/bookings"
         className="flex items-center text-blue-500 hover:text-blue-400 mb-6" >
@@ -113,16 +174,28 @@ export default function BookingDetailsContent({
           </p>
         </div>
         
-        <div className="flex gap-3 mt-4 md:mt-0">
+        <div className="flex gap-3 mt-4 md:mt-0 items-center">
           {getStatusBadge(booking.status)}
-          <PrintButton />
-          
+          <PrintButton booking={booking} />
           <DriverActionsDropdown booking={booking} />
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+      
+      {/* Assignment Card - Always visible at the top */}
+      <Card className="mb-6">
+        <div className="p-6">
+          <BookingAssignment booking={booking} onAssignmentComplete={handleAssignmentComplete} />
+        </div>
+      </Card>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4 w-full">
+          <TabsTrigger value="details">{t('bookings.details.sections.summary')}</TabsTrigger>
+          <TabsTrigger value="route">{t('bookings.details.sections.route')}</TabsTrigger>
+          <TabsTrigger value="client">{t('bookings.details.sections.client')}</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="details" className="space-y-6">
           {/* Booking Summary Section with Vehicle Information */}
           <Card>
             <div className="border-b py-4 px-6">
@@ -212,9 +285,62 @@ export default function BookingDetailsContent({
                   </div>
                 </div>
               </div>
+              
+              {/* Payment Information Section */}
+              <div className="mt-8 pt-6 border-t">
+                <h2 className="text-lg font-semibold flex items-center mb-4">
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  {t('bookings.details.sections.payment')}
+                </h2>
+                
+                <div className="grid grid-cols-2 gap-y-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
+                    <p className="mt-1">{booking.payment_status || 'Pending'}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
+                    <p className="mt-1 font-semibold">
+                      {booking.price ? 
+                        (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
+                        'THB 8,200'
+                      }
+                    </p>
+                  </div>
+                  
+                  <div className="col-span-2">
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
+                    {booking.payment_link ? (
+                      <a 
+                        href={booking.payment_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
+                      >
+                        <LinkIcon className="h-4 w-4 mr-1" />
+                        {t('bookings.details.actions.openPaymentLink')}
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
           
+          {/* Booking Actions */}
+          <BookingActions 
+            bookingId={(booking.id || booking.booking_id || bookingId)}
+            status={booking.status || 'Pending'}
+            date={booking.date || '2023-04-30'}
+            time={booking.time || '06:30'}
+            booking={booking}
+          />
+        </TabsContent>
+        
+        <TabsContent value="route" className="space-y-6">
           {/* Route Information Section */}
           <Card>
             <div className="border-b py-4 px-6">
@@ -290,16 +416,6 @@ export default function BookingDetailsContent({
                 <p className="text-muted-foreground">{t('bookings.details.placeholders.noRouteInfo')}</p>
               )}
               
-              {/* Add Weather Forecast Section */}
-              {booking.date && booking.pickup_location && (
-                <div className="mt-6 pt-6 border-t">
-                  <WeatherForecast 
-                    date={booking.date}
-                    location={booking.pickup_location}
-                  />
-                </div>
-              )}
-              
               {/* Add distance and duration */}
               {(booking.distance || booking.duration) && (
                 <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
@@ -320,10 +436,27 @@ export default function BookingDetailsContent({
               )}
             </div>
           </Card>
-        </div>
+          
+          {/* Weather Forecast Card */}
+          {booking.date && booking.pickup_location && (
+            <Card>
+              <div className="border-b py-4 px-6">
+                <h2 className="text-lg font-semibold flex items-center">
+                  <CloudSun className="mr-2 h-5 w-5" />
+                  {t('bookings.details.weather.title')}
+                </h2>
+              </div>
+              <div className="p-6">
+                <WeatherForecast 
+                  date={booking.date}
+                  location={booking.pickup_location}
+                />
+              </div>
+            </Card>
+          )}
+        </TabsContent>
         
-        {/* Right Column: Client Details, Payment Link, etc. */}
-        <div className="space-y-6">
+        <TabsContent value="client" className="space-y-6">
           {/* Client Details Section */}
           <Card>
             <div className="border-b py-4 px-6">
@@ -426,63 +559,9 @@ export default function BookingDetailsContent({
               </div>
             </div>
           </Card>
-          
-          {/* Payment Link Section - Added */}
-          <Card>
-            <div className="border-b py-4 px-6">
-              <h2 className="text-lg font-semibold flex items-center">
-                <CreditCard className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.payment')}
-              </h2>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
-                  <p className="mt-1">{booking.payment_status || 'Pending'}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
-                  {booking.payment_link ? (
-                    <a 
-                      href={booking.payment_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
-                    >
-                      <LinkIcon className="h-4 w-4 mr-1" />
-                      {t('bookings.details.actions.openPaymentLink')}
-                    </a>
-                  ) : (
-                    <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
-                  <p className="mt-1 font-semibold">
-                    {booking.price ? 
-                      (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-                      'THB 8,200'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-          
-          {/* Booking Actions */}
-          <BookingActions 
-            bookingId={(booking.id || booking.booking_id || bookingId)}
-            status={booking.status || 'Pending'}
-            date={booking.date || '2023-04-30'}
-            time={booking.time || '06:30'}
-            booking={booking}
-          />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
+      
       {/* After any existing booking details sections, add the inspections section */}
       {booking.vehicle?.id && (
         <div className="mb-8">

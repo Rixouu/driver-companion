@@ -13,7 +13,6 @@ const nextConfig = {
   experimental: {
     webpackBuildWorker: true,
   },
-  swcMinify: true
 }
 
 module.exports = nextConfig 

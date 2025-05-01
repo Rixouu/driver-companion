@@ -224,7 +224,7 @@ export function DashboardContent({
       {/* Main Dashboard Content - Two Column Layout */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Vehicle Stats - LEFT SIDE */}
-        <Card>
+        <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Car className="h-5 w-5 text-primary" />
@@ -340,7 +340,7 @@ export function DashboardContent({
         </Card>
 
         {/* Upcoming Bookings - RIGHT SIDE */}
-        <Card>
+        <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />

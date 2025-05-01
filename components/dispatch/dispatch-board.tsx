@@ -9,7 +9,11 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -27,9 +31,14 @@ import {
   FilterIcon,
   SearchIcon,
   XIcon,
-  LayoutIcon
+  LayoutIcon,
+  LayoutGrid,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { sentenceCase } from "change-case";
 import { cn } from "@/lib/utils/styles";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
@@ -114,6 +123,7 @@ export default function DispatchBoard() {
   const [filters, setFilters] = useState<DispatchFilter>({});
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
   // Load dispatch entries and related data
   useEffect(() => {
@@ -135,8 +145,8 @@ export default function DispatchBoard() {
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('bookings')
           .select('*')
-          .in('status', ['publish', 'pending', 'confirmed'])
-          .is('driver_id', null); // Only bookings without assigned drivers
+          .in('status', ['publish', 'pending', 'confirmed', 'completed', 'cancelled'])
+          .or('driver_id.is.null,status.in.(completed,cancelled)'); // Include bookings without assigned drivers AND completed/cancelled bookings
 
         if (bookingsError) throw bookingsError;
 
@@ -184,10 +194,52 @@ export default function DispatchBoard() {
         const availableVehiclesFiltered = filterAvailableVehicles(mappedVehicles, vehicleAssignments || []);
         setAvailableVehicles(availableVehiclesFiltered);
 
-        // Create dispatch entries from unassigned bookings
-        const entries = createDispatchEntriesFromBookings(mappedBookings, dispatchData || []);
-        setDispatchEntries(entries);
+        // Process and combine the data
+        const mappedEntries = dispatchData?.map(entry => ({
+          ...entry,
+          booking: entry.booking
+        })) || [];
         
+        const dispatchEntries = createDispatchEntriesFromBookings(mappedBookings, mappedEntries);
+        
+        // Ensure that entries for completed and cancelled bookings are created in the database
+        const completedOrCancelledBookings = mappedBookings.filter(
+          booking => (booking.status === 'completed' || booking.status === 'cancelled') &&
+                    !mappedEntries.some(entry => entry.booking_id === booking.id)
+        );
+        
+        if (completedOrCancelledBookings.length > 0) {
+          const newEntries = completedOrCancelledBookings.map(booking => {
+            const bookingDate = parseISO(booking.date);
+            const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
+            const durationMinutes = parseInt(String(booking.duration || "60"));
+            const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
+            
+            return {
+              booking_id: booking.id,
+              driver_id: booking.driver_id,
+              vehicle_id: booking.vehicle?.id,
+              status: booking.status,
+              notes: booking.notes,
+              start_time: startTime,
+              end_time: endTimeDate.toISOString()
+            };
+          });
+          
+          // Insert the new entries into the database
+          const { error: insertError } = await supabase
+            .from('dispatch_entries')
+            .insert(newEntries);
+            
+          if (insertError) {
+            console.error('Error creating dispatch entries:', insertError);
+          }
+        }
+        
+        // Set state with the data
+        setDispatchEntries(dispatchEntries);
+        setAvailableDrivers(mappedDrivers);
+        setAvailableVehicles(mappedVehicles);
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading dispatch data:", error);
@@ -274,6 +326,10 @@ export default function DispatchBoard() {
       // Check if there's already an entry for this booking
       const existingEntry = existingEntriesMap.get(booking.id);
       if (existingEntry) {
+        // Always ensure the status is synced with the booking status
+        if (booking.status === 'completed' || booking.status === 'cancelled') {
+          existingEntry.status = booking.status;
+        }
         return {
           ...existingEntry,
           booking: booking
@@ -289,12 +345,22 @@ export default function DispatchBoard() {
       const durationMinutes = parseInt(String(booking.duration || "60"));
       const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
       
+      // Map booking status to dispatch status
+      let dispatchStatus: DispatchStatus = "pending";
+      if (booking.status === 'completed') {
+        dispatchStatus = "completed";
+      } else if (booking.status === 'cancelled') {
+        dispatchStatus = "cancelled";
+      } else if (booking.status === 'confirmed') {
+        dispatchStatus = "pending";
+      }
+      
       return {
         id: crypto.randomUUID(),
         booking_id: booking.id,
-        driver_id: null,
-        vehicle_id: null,
-        status: "pending" as DispatchStatus,
+        driver_id: booking.driver_id || null,
+        vehicle_id: (booking.vehicle?.id || null) as string | null,
+        status: dispatchStatus,
         notes: booking.notes,
         start_time: startTime,
         end_time: endTimeDate.toISOString(),
@@ -472,104 +538,118 @@ export default function DispatchBoard() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex-1 flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="h-full flex flex-col">
+      <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+          <div className="relative w-full sm:w-auto">
+            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder={t("dispatch.search")}
+              type="search"
+              placeholder="Search dispatch entries..."
+              className="w-full pl-8 sm:w-[250px]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
             />
           </div>
-          <Select
-            value={filters.status || "all"}
-            onValueChange={(value) => handleStatusFilterChange(value === "all" ? undefined : value as DispatchStatus)}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder={t("dispatch.filters.status")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("dispatch.filters.all")}</SelectItem>
-              <SelectItem value="pending">{t("dispatch.status.pending")}</SelectItem>
-              <SelectItem value="assigned">{t("dispatch.status.assigned")}</SelectItem>
-              <SelectItem value="in_transit">{t("dispatch.status.in_transit")}</SelectItem>
-              <SelectItem value="completed">{t("dispatch.status.completed")}</SelectItem>
-              <SelectItem value="cancelled">{t("dispatch.status.cancelled")}</SelectItem>
-            </SelectContent>
-          </Select>
-          {hasFilters && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={clearFilters}
-              className="h-10 w-10"
-            >
-              <XIcon className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-        <div className="flex gap-2 justify-end">
-          <div className="hidden md:flex border rounded-md p-1">
-            <Button
-              variant={view === "board" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 px-3"
-              onClick={() => setView("board")}
-            >
-              <Grid3X3Icon className="h-4 w-4 mr-2" />
-              {t("dispatch.board.view")}
-            </Button>
-            <Button
-              variant={view === "calendar" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 px-3"
-              onClick={() => setView("calendar")}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              {t("dispatch.calendar.view")}
-            </Button>
-          </div>
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <LayoutIcon className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setView("board")}>
-                  <Grid3X3Icon className="h-4 w-4 mr-2" />
-                  {t("dispatch.board.view")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setView("calendar")}>
-                  <Calendar className="h-4 w-4 mr-2" />
-                  {t("dispatch.calendar.view")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                {filters.status ? sentenceCase(filters.status) : 'All Entries'}
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={filters.status || 'all'} onValueChange={(value) => handleStatusFilterChange(value === 'all' ? undefined : value as DispatchStatus)}>
+                <DropdownMenuRadioItem value="all">All Entries</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="pending">Pending</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="assigned">Assigned</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="in_transit">In Transit</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="completed">Completed</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="cancelled">Cancelled</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-
-      {filteredEntries.length === 0 ? (
-        <EmptyState
-          icon={<CalendarIcon className="h-12 w-12" />}
-          title={hasFilters ? t("dispatch.empty.searchResults") : t("dispatch.empty.title")}
-          description={hasFilters ? t("dispatch.empty.searchResults") : t("dispatch.empty.description")}
-          action={
-            hasFilters ? (
-              <Button onClick={clearFilters}>
-                Clear Filters
-              </Button>
-            ) : null
-          }
-        />
+      
+      <div className="mb-4 border rounded-md p-2 bg-card flex items-center justify-between">
+        <div>
+          <button
+            className="p-2 rounded-md hover:bg-accent"
+            onClick={() => {
+              setCurrentDate((prev) => {
+                const newDate = new Date(prev);
+                newDate.setDate(prev.getDate() - 1);
+                return newDate;
+              });
+            }}
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            className="p-2 rounded-md hover:bg-accent"
+            onClick={() => {
+              setCurrentDate(new Date());
+            }}
+          >
+            Today
+          </button>
+          <button
+            className="p-2 rounded-md hover:bg-accent"
+            onClick={() => {
+              setCurrentDate((prev) => {
+                const newDate = new Date(prev);
+                newDate.setDate(prev.getDate() + 1);
+                return newDate;
+              });
+            }}
+            aria-label="Next day"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <span className="ml-2 font-semibold text-sm">{format(currentDate, 'MMMM yyyy')}</span>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant={view === "board" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("board")}
+            className="flex items-center"
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Board
+          </Button>
+          <Button
+            variant={view === "calendar" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView("calendar")}
+            className="flex items-center"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Calendar
+          </Button>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
       ) : (
-        <Tabs defaultValue="board" value={view} onValueChange={(value) => setView(value as "board" | "calendar")}>
-          <TabsContent value="board" className="mt-0">
+        <Tabs 
+          value={view} 
+          onValueChange={(value) => setView(value as "board" | "calendar")} 
+          className="flex-1 flex flex-col"
+        >
+          <TabsContent 
+            value="board" 
+            className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
+          >
             <DispatchBoardView 
               entries={filteredEntries} 
               onAssignDriver={handleAssignDriver}
@@ -578,8 +658,15 @@ export default function DispatchBoard() {
               availableVehicles={availableVehicles}
             />
           </TabsContent>
-          <TabsContent value="calendar" className="mt-0">
-            <DispatchCalendarView entries={filteredEntries} />
+          <TabsContent 
+            value="calendar" 
+            className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
+          >
+            <DispatchCalendarView 
+              entries={filteredEntries} 
+              currentDate={currentDate} 
+              setCurrentDate={setCurrentDate} 
+            />
           </TabsContent>
         </Tabs>
       )}

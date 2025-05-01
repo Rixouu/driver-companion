@@ -29,7 +29,10 @@ import {
   Sparkles,
   ThumbsUp,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MapPin,
+  User,
+  Timer
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
@@ -37,6 +40,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { fadeIn, sliderVariants, withDelay } from "@/lib/utils/animations"
+import { getBookings } from "@/app/actions/bookings"
+import { Booking } from "@/types/bookings"
 
 interface DashboardContentProps {
   stats: {
@@ -81,6 +86,11 @@ export function DashboardContent({
     mileage: 24350,
     weeklyChange: 125
   })
+  
+  // State for upcoming bookings
+  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
+  const [isLoadingBookings, setIsLoadingBookings] = useState(true)
+  const [bookingsError, setBookingsError] = useState<string | null>(null)
 
   // Generate random stats for each vehicle when changing
   useEffect(() => {
@@ -94,6 +104,42 @@ export function DashboardContent({
       })
     }
   }, [currentVehicleIndex, vehicles.length])
+
+  // Fetch bookings with pending and assigned statuses
+  useEffect(() => {
+    async function fetchUpcomingBookings() {
+      try {
+        setIsLoadingBookings(true)
+        const { bookings } = await getBookings({
+          limit: 10,
+          page: 1
+        }, false)
+        
+        // Filter for pending and confirmed bookings
+        const filteredBookings = bookings.filter(
+          booking => booking.status === 'pending' || booking.status === 'confirmed'
+        )
+        
+        // Sort by date (most recent first)
+        filteredBookings.sort((a, b) => {
+          const dateA = new Date(`${a.date} ${a.time || '00:00'}`)
+          const dateB = new Date(`${b.date} ${b.time || '00:00'}`)
+          return dateA.getTime() - dateB.getTime() // Ascending order (upcoming first)
+        })
+        
+        setUpcomingBookings(filteredBookings.slice(0, 3)) // Limit to 3 bookings
+        setBookingsError(null)
+      } catch (error) {
+        console.error('Error fetching bookings:', error)
+        setBookingsError('Failed to load upcoming bookings')
+        setUpcomingBookings([])
+      } finally {
+        setIsLoadingBookings(false)
+      }
+    }
+    
+    fetchUpcomingBookings()
+  }, [])
 
   // Format mileage with commas
   const formatMileage = (value: number) => {
@@ -293,143 +339,44 @@ export function DashboardContent({
           </CardContent>
         </Card>
 
-        {/* Daily Checklist - RIGHT SIDE */}
+        {/* Upcoming Bookings - RIGHT SIDE */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
-              <CheckSquare className="h-5 w-5 text-primary" />
-              {t("dashboard.dailyChecklist.title")}
+              <Calendar className="h-5 w-5 text-primary" />
+              {t("dashboard.upcomingBookings.title")}
             </CardTitle>
-            <CardDescription>{t("dashboard.dailyChecklist.description")}</CardDescription>
+            <CardDescription>{t("dashboard.upcomingBookings.description")}</CardDescription>
           </CardHeader>
           <CardContent>
-            {checklistCompleted ? (
-              <div className="text-center py-8 space-y-4">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                  <ThumbsUp className="h-8 w-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-xl font-semibold">{t("dashboard.dailyChecklist.completed.title")}</h3>
-                <p className="text-muted-foreground">{t("dashboard.dailyChecklist.completed.message")}</p>
-                <div className="pt-4">
-                  <Button variant="outline" onClick={() => setChecklistCompleted(false)}>
-                    <RotateCw className="mr-2 h-4 w-4" />
-                    {t("dashboard.dailyChecklist.completed.reset")}
-                  </Button>
-                </div>
+            {isLoadingBookings ? (
+              <div className="flex justify-center items-center py-6">
+                <RotateCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">{t("common.loading")}</span>
               </div>
+            ) : bookingsError ? (
+              <div className="text-center py-6">
+                <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">{bookingsError}</p>
+              </div>
+            ) : upcomingBookings.length === 0 ? (
+              <EmptyState 
+                icon={Calendar} 
+                message={t("dashboard.upcomingBookings.empty.message")} 
+              />
             ) : (
               <div className="space-y-4">
-                {/* Checklist Items - with increased spacing */}
-                <div className="space-y-5">
-                  <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox 
-                      id="check-1" 
-                      checked={checkedItems["check-1"]} 
-                      onCheckedChange={() => handleCheckboxChange("check-1")}
-                    />
-                    <label htmlFor="check-1" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {t("dashboard.dailyChecklist.items.checkTires")}
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox 
-                      id="check-2" 
-                      checked={checkedItems["check-2"]} 
-                      onCheckedChange={() => handleCheckboxChange("check-2")}
-                    />
-                    <label htmlFor="check-2" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {t("dashboard.dailyChecklist.items.checkLights")}
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox 
-                      id="check-3" 
-                      checked={checkedItems["check-3"]} 
-                      onCheckedChange={() => handleCheckboxChange("check-3")}
-                    />
-                    <label htmlFor="check-3" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {t("dashboard.dailyChecklist.items.checkFluids")}
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox 
-                      id="check-4" 
-                      checked={checkedItems["check-4"]} 
-                      onCheckedChange={() => handleCheckboxChange("check-4")}
-                    />
-                    <label htmlFor="check-4" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {t("dashboard.dailyChecklist.items.checkBrakes")}
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded-md">
-                    <Checkbox 
-                      id="check-5" 
-                      checked={checkedItems["check-5"]} 
-                      onCheckedChange={() => handleCheckboxChange("check-5")}
-                    />
-                    <label htmlFor="check-5" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {t("dashboard.dailyChecklist.items.visualInspection")}
-                    </label>
-                  </div>
-                </div>
-                
-                {/* Upcoming Maintenance Reminders */}
-                {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      {t("dashboard.dailyChecklist.upcomingReminders")}
-                    </h4>
-                    <div className="space-y-2">
-                      {upcomingMaintenance.slice(0, 1).map((task) => (
-                        <Link key={task.id} href={`/maintenance/${task.id}`}>
-                          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md text-sm hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <Wrench className="h-4 w-4 text-amber-600" />
-                              <span className="font-medium">{task.title}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {task.vehicle?.name} • {t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                      {upcomingInspections.slice(0, 1).map((inspection) => (
-                        <Link key={inspection.id} href={`/inspections/${inspection.id}`}>
-                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                            <div className="flex items-center gap-2">
-                              <ClipboardCheck className="h-4 w-4 text-blue-600" />
-                              <span className="font-medium">{inspection.type || t('inspections.defaultType')}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {inspection.vehicle?.name} • {t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {upcomingBookings.slice(0, 3).map((booking) => (
+                  <BookingCard key={booking.id} booking={booking} />
+                ))}
                 
                 <div className="pt-2">
-                  <Button 
-                    variant={allItemsChecked ? "default" : "outline"} 
-                    className="w-full"
-                    disabled={!allItemsChecked}
-                    onClick={handleCompleteChecklist}
-                  >
-                    {allItemsChecked ? (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        {t("dashboard.dailyChecklist.completeChecklist")}
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        {t("dashboard.dailyChecklist.checkAllItems")}
-                      </>
-                    )}
-                  </Button>
+                  <Link href="/bookings">
+                    <Button variant="outline" className="w-full">
+                      {t("dashboard.upcomingBookings.viewAll")}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             )}
@@ -550,13 +497,28 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
 
 function InspectionCard({ inspection }: { inspection: DbInspection }) {
   const { t } = useI18n()
+  
+  // Get full inspection type name
+  const getFullTypeName = (type: string) => {
+    switch(type?.toLowerCase()) {
+      case 'routine':
+        return t('inspections.type.routine')
+      case 'safety':
+        return t('inspections.type.safety')
+      case 'maintenance':
+        return t('inspections.type.maintenance')
+      default:
+        return t('inspections.defaultType')
+    }
+  }
+  
   return (
     <Link href={`/inspections/${inspection.id}`}>
       <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-primary" />
-            <p className="font-medium">{inspection.type || t('inspections.defaultType')}</p>
+            <p className="font-medium">{getFullTypeName(inspection.type)}</p>
           </div>
           <p className="text-sm text-muted-foreground">
             {inspection.vehicle?.name} • {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
@@ -568,4 +530,65 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
       </div>
     </Link>
   );
+}
+
+function BookingCard({ booking }: { booking: Booking }) {
+  const { t } = useI18n()
+  
+  return (
+    <Link 
+      href={`/bookings/${booking.id}`}
+      className="block"
+    >
+      <div className="p-3 border rounded-md hover:border-primary transition-colors">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <span className="font-medium block">
+                {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
+              </span>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{formatDate(booking.date)} • {booking.time || '00:00'}</span>
+              </div>
+            </div>
+          </div>
+          <Badge 
+            variant={booking.status === 'pending' ? 'outline' : 'secondary'} 
+            className={`ml-2 ${
+              booking.status === 'pending' 
+                ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
+                : booking.status === 'confirmed' 
+                  ? 'bg-green-100 text-green-800 border-green-200'
+                  : ''
+            }`}
+          >
+            {t(`bookings.status.${booking.status}`)}
+          </Badge>
+        </div>
+        
+        <div className="flex flex-col space-y-1 pl-10">
+          {booking.pickup_location && (
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm truncate max-w-[200px]">
+                {booking.pickup_location}
+              </span>
+            </div>
+          )}
+          {booking.service_name && (
+            <div className="flex items-center gap-2 text-sm">
+              <Car className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm truncate max-w-[200px]">
+                {booking.service_name}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
 } 

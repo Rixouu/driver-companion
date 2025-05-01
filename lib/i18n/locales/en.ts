@@ -1317,7 +1317,7 @@ export const en: TranslationValue = {
       description: "Recent and upcoming activities",
       noUpcoming: "No upcoming activities",
       noRecent: "No recent activities",
-      viewAll: "View All"
+      viewAll: "View all"
     },
     dailyChecklist: {
       title: "Daily Checklist",
@@ -1327,23 +1327,33 @@ export const en: TranslationValue = {
       upcomingReminders: "Upcoming Reminders",
       completed: {
         title: "Checklist Completed!",
-        message: "Great job! You've completed all the daily checks. See you tomorrow!",
+        message: "Great job! You've completed all your daily checks. See you tomorrow!",
         reset: "Reset Checklist"
       },
       items: {
         checkTires: "Check tire pressure and condition",
-        checkLights: "Verify all lights are working",
+        checkLights: "Verify all lights are functioning",
         checkFluids: "Check oil and coolant levels",
         checkBrakes: "Test brakes and parking brake",
         visualInspection: "Perform visual inspection"
       }
     },
+    upcomingBookings: {
+      title: "Upcoming Bookings",
+      description: "Bookings pending review and assignment",
+      viewAll: "View All Bookings",
+      empty: {
+        title: "No Upcoming Bookings",
+        description: "There are no bookings pending review or assignment.",
+        message: "No upcoming bookings"
+      }
+    },
     vehicleStats: {
       title: "Vehicle Overview",
-      description: "Quick stats for your vehicles",
+      description: "Quick stats about your vehicles",
       fuelLevel: "Fuel Level",
       mileage: "Mileage",
-      viewAllVehicles: "View All Vehicles"
+      viewAllVehicles: "View all vehicles"
     },
     maintenance: {
       title: "Maintenance",
@@ -1610,6 +1620,20 @@ export const en: TranslationValue = {
       completed: "Completed",
       cancelled: "Cancelled"
     },
+    upcomingBookings: {
+      title: "Upcoming Bookings",
+      description: "Bookings pending review and assignments",
+      empty: {
+        title: "No Upcoming Bookings",
+        description: "There are no bookings pending review or assignment."
+      }
+    },
+    empty: {
+      title: "No Bookings Found",
+      description: "There are no bookings in the system yet."
+    },
+    unnamed: "Unnamed Customer",
+    viewAll: "View All Bookings",
     assignment: {
       title: "Driver & Vehicle Assignment",
       summary: "Assign a driver and vehicle to this booking",

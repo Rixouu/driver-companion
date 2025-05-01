@@ -827,6 +827,16 @@ export const ja: TranslationValue = {
         visualInspection: "目視検査を実施"
       }
     },
+    upcomingBookings: {
+      title: "今後の予約",
+      description: "レビューと割り当て待ちの予約",
+      viewAll: "すべての予約を表示",
+      empty: {
+        title: "今後の予約はありません",
+        description: "レビューまたは割り当て待ちの予約はありません。",
+        message: "今後の予約はありません"
+      }
+    },
     vehicleStats: {
       title: "車両概要",
       description: "車両の簡単な統計",
@@ -1375,4 +1385,15 @@ export const ja: TranslationValue = {
       zoomOut: "縮小"
     }
   },
+  type: {
+    select: "点検タイプを選択",
+    routine: "定期点検",
+    safety: "安全点検",
+    maintenance: "メンテナンス点検",
+    description: {
+      routine: "車両システムの総合点検",
+      safety: "安全システムの重要点検",
+      maintenance: "定期メンテナンス確認"
+    }
+  }
 } as const 

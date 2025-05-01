@@ -539,14 +539,14 @@ export default function DispatchBoard() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-4 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
-          <div className="relative w-full sm:w-auto">
+      <div className="mb-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="relative">
             <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search dispatch entries..."
-              className="w-full pl-8 sm:w-[250px]"
+              className="w-[250px] pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -554,7 +554,7 @@ export default function DispatchBoard() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-auto">
+              <Button variant="outline">
                 {filters.status ? sentenceCase(filters.status) : 'All Entries'}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
@@ -572,46 +572,6 @@ export default function DispatchBoard() {
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-      
-      <div className="mb-4 border rounded-md p-2 bg-card flex items-center justify-between">
-        <div>
-          <button
-            className="p-2 rounded-md hover:bg-accent"
-            onClick={() => {
-              setCurrentDate((prev) => {
-                const newDate = new Date(prev);
-                newDate.setDate(prev.getDate() - 1);
-                return newDate;
-              });
-            }}
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            className="p-2 rounded-md hover:bg-accent"
-            onClick={() => {
-              setCurrentDate(new Date());
-            }}
-          >
-            Today
-          </button>
-          <button
-            className="p-2 rounded-md hover:bg-accent"
-            onClick={() => {
-              setCurrentDate((prev) => {
-                const newDate = new Date(prev);
-                newDate.setDate(prev.getDate() + 1);
-                return newDate;
-              });
-            }}
-            aria-label="Next day"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-          <span className="ml-2 font-semibold text-sm">{format(currentDate, 'MMMM yyyy')}</span>
         </div>
         
         <div className="flex gap-2">

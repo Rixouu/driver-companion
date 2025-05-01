@@ -16,7 +16,7 @@ export default async function DispatchPage() {
   const { t } = await getDictionary();
   
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto px-1 py-3 space-y-3">
       <PageHeader
         title={t("dispatch.title")}
         description={t("dispatch.description")}

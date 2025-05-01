@@ -1586,7 +1586,8 @@ export const en: TranslationValue = {
       list: "List View"
     },
     actions: {
-      sync: "Sync Bookings"
+      sync: "Sync Bookings",
+      refresh: "Refresh"
     },
     tableHeaders: {
       bookingId: "Booking ID",
@@ -1618,7 +1619,9 @@ export const en: TranslationValue = {
       pending: "Pending",
       confirmed: "Confirmed",
       completed: "Completed",
-      cancelled: "Cancelled"
+      cancelled: "Cancelled",
+      advancedFilters: "Advanced Filters",
+      clearFilters: "Clear Filters"
     },
     upcomingBookings: {
       title: "Upcoming Bookings",
@@ -1767,6 +1770,18 @@ export const en: TranslationValue = {
       deleteSuccess: "Booking deleted successfully",
       syncSuccess: "Bookings synced successfully",
       error: "An error occurred"
+    },
+    sync: {
+      title: "Sync Bookings",
+      description: "Synchronize bookings from external systems",
+      connectionIssue: "There may be connection issues with the external booking system.",
+      success: "Bookings synchronized successfully",
+      failed: "Sync failed",
+      syncing: "Synchronizing...",
+      syncButton: "Sync Bookings",
+      retrying: "Retrying...",
+      retryButton: "Retry Connection",
+      successWithCount: "Successfully synced {count} bookings ({created} created, {updated} updated)"
     }
   },
   dispatch: {

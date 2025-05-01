@@ -786,6 +786,11 @@ export async function syncBookings(): Promise<{
 export async function syncBookingsAction(): Promise<{
   success: boolean;
   message: string;
+  stats?: {
+    total: number;
+    created: number;
+    updated: number;
+  };
 }> {
   try {
     // Trigger the sync process
@@ -793,7 +798,8 @@ export async function syncBookingsAction(): Promise<{
     
     return {
       success: result.success,
-      message: result.message
+      message: result.message,
+      stats: result.stats // Pass along the stats for use with translations
     };
   } catch (error) {
     return {

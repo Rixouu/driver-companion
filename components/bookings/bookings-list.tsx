@@ -40,7 +40,8 @@ import {
   User,
   MapPin,
   Timer,
-  Car
+  Car,
+  X
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 // Import confirmation dialog
@@ -59,6 +60,7 @@ import {
 import { StatusFilter, BookingStatus } from './status-filter'
 import { useI18n } from '@/lib/i18n/context'
 import { ContactButtons } from './contact-buttons'
+import { startOfDay, endOfDay } from 'date-fns'
 
 interface BookingsListProps {
   limit?: number
@@ -66,16 +68,36 @@ interface BookingsListProps {
   view?: "list" | "grid"
   currentPage?: number
   onPageChange?: (page: number) => void
+  dateRange?: { from?: Date; to?: Date }
+  status?: string
 }
 
 const ITEMS_PER_PAGE = 10
+
+// Function to generate consistent status badge styling
+function getStatusBadgeClasses(status: string): string {
+  switch (status) {
+    case 'confirmed':
+      return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/60 dark:text-green-200 dark:border-green-800';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/60 dark:text-yellow-200 dark:border-yellow-800';
+    case 'cancelled':
+      return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/60 dark:text-red-200 dark:border-red-800';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/60 dark:text-blue-200 dark:border-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/60 dark:text-gray-200 dark:border-gray-800';
+  }
+}
 
 export function BookingsList({ 
   limit = 10, 
   search = '', 
   view: initialView = 'list',
   currentPage = 1,
-  onPageChange = () => {}
+  onPageChange = () => {},
+  dateRange,
+  status: externalStatus
 }: BookingsListProps) {
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -85,7 +107,9 @@ export function BookingsList({
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<BookingStatus>(
-    (searchParams.get('status') as BookingStatus) || 'all'
+    externalStatus as BookingStatus || 
+    (searchParams.get('status') as BookingStatus) || 
+    'all'
   )
   const [showConfigHelper, setShowConfigHelper] = useState(false)
   const [view, setView] = useState(initialView)
@@ -98,6 +122,11 @@ export function BookingsList({
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
   const { t } = useI18n()
+
+  // Update view when initialView changes
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
 
   // Function to view booking details
   const handleViewBooking = (bookingId: string | number) => {
@@ -216,24 +245,81 @@ export function BookingsList({
     loadBookings()
   }, [status])
 
-  // Filter bookings by search term
+  // Update internal status when externalStatus changes
+  useEffect(() => {
+    if (externalStatus) {
+      setStatus(externalStatus as BookingStatus);
+    }
+  }, [externalStatus]);
+
+  // Filter bookings by search term and date range
   const filteredBookings = bookings.filter(booking => {
-    if (!search) return true
+    // Status filter - applied first to avoid unnecessary checks
+    if (status !== 'all') {
+      // The booking status might be from WordPress (publish, etc.) or our system (confirmed, cancelled, etc.)
+      const bookingStatus = booking.status?.toLowerCase();
+      const statusFilter = status.toLowerCase();
+      
+      // Handle WordPress status mapping
+      if (statusFilter === 'confirmed') {
+        // Only match confirmed status explicitly, not "publish"/"published"
+        return bookingStatus === 'confirmed';
+      } else if (statusFilter === 'cancelled') {
+        // Match both our "cancelled" status and WordPress "trash"/"draft" statuses
+        return bookingStatus === 'cancelled' || 
+               bookingStatus === 'canceled' || 
+               bookingStatus === 'trash' || 
+               bookingStatus === 'draft';
+      } else {
+        // For other statuses, just do direct matching
+        return bookingStatus === statusFilter;
+      }
+    }
     
-    const searchLower = search.toLowerCase()
-    const matchesServiceName = booking.service_name?.toLowerCase().includes(searchLower)
-    const matchesId = booking.id.toString().toLowerCase().includes(searchLower)
-    const matchesVehicle = booking.vehicle?.make?.toLowerCase().includes(searchLower) || 
-                           booking.vehicle?.model?.toLowerCase().includes(searchLower) ||
-                           booking.vehicle?.year?.toString().toLowerCase().includes(searchLower)
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase()
+      const matchesServiceName = booking.service_name?.toLowerCase().includes(searchLower)
+      const matchesId = booking.id.toString().toLowerCase().includes(searchLower)
+      const matchesCustomer = booking.customer_name?.toLowerCase().includes(searchLower)
+      const matchesVehicle = booking.vehicle?.make?.toLowerCase().includes(searchLower) || 
+                            booking.vehicle?.model?.toLowerCase().includes(searchLower) ||
+                            booking.vehicle?.year?.toString().toLowerCase().includes(searchLower)
+      
+      if (!matchesServiceName && !matchesId && !matchesCustomer && !matchesVehicle) {
+        return false
+      }
+    }
     
-    return matchesServiceName || matchesId || matchesVehicle
+    // Date range filter
+    if (dateRange && dateRange.from) {
+      const bookingDate = new Date(booking.date)
+      const fromDate = startOfDay(dateRange.from) // Start of day for from date
+      
+      if (fromDate && bookingDate < fromDate) {
+        return false
+      }
+      
+      if (dateRange.to) {
+        const toDate = endOfDay(dateRange.to) // End of day for to date
+        if (bookingDate > toDate) {
+          return false
+        }
+      }
+    }
+    
+    return true
   })
   
   // Calculate pagination
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const paginatedBookings = filteredBookings.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   const calculatedTotalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE) || 1
+
+  // After the component loads bookings, immediately checking the view state
+  useEffect(() => {
+    console.log("Current view state:", view)
+  }, [view, bookings])
 
   if (isLoading) {
     return (
@@ -330,12 +416,16 @@ export function BookingsList({
   if (filteredBookings.length === 0) {
     return (
       <EmptyState
+        icon={<Icons.empty className="h-6 w-6" />}
         title={t('bookings.empty.title')}
         description={t('bookings.empty.description')}
         action={
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            <Icons.arrowPath className="h-4 w-4 mr-2" />
-            {t('bookings.actions.refresh')}
+          <Button variant="outline" onClick={() => {
+            // Reset to default status
+            handleStatusChange('all');
+          }}>
+            <X className="h-4 w-4 mr-2" />
+            {t('bookings.filters.clearFilters')}
           </Button>
         }
       />
@@ -344,39 +434,6 @@ export function BookingsList({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <StatusFilter
-            value={status}
-            onChange={handleStatusChange}
-          />
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1"
-            onClick={syncBookingsFromWordPress}
-            disabled={isSyncing}
-          >
-            {isSyncing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            <span className="hidden sm:inline">{t('bookings.actions.sync')}</span>
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setView(view === 'list' ? 'grid' : 'list')}
-          >
-            {view === 'list' ? <Grid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-            <span className="ml-2 hidden sm:inline">
-              {view === 'list' ? t('bookings.viewOptions.grid') : t('bookings.viewOptions.list')}
-            </span>
-          </Button>
-        </div>
-      </div>
-
       {/* Show sync result message if any */}
       {syncResult && (
         <Alert variant={syncResult.success ? "default" : "destructive"} className="mb-4">
@@ -386,52 +443,45 @@ export function BookingsList({
       )}
 
       {view === 'grid' ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {paginatedBookings.map((booking) => (
             <Card 
               key={booking.id} 
-              className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer overflow-hidden"
+              className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
               onClick={() => handleViewBooking(booking.id)}
             >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {t('bookings.labels.bookingId')}: {booking.id}
-                      {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
-                        booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                        <p className="mt-0.5">{booking.service_name}</p>
-                      )}
-                    </CardDescription>
-                  </div>
-                  <Badge 
-                    className={
-                      booking.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
-                      booking.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-                    }
-                  >
-                    {t(`bookings.status.${booking.status}`)}
-                  </Badge>
+              <CardHeader className="pb-0 relative">
+                <Badge 
+                  className={`absolute right-6 top-6 px-3 py-1.5 font-medium ${getStatusBadgeClasses(booking.status)}`}
+                >
+                  {t(`bookings.status.${booking.status}`)}
+                </Badge>
+                <div className="space-y-1">
+                  <CardTitle className="text-lg font-semibold line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</CardTitle>
+                  <CardDescription className="flex items-center">
+                    <span className="font-medium text-primary mr-1">#</span>{booking.id}
+                    {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
+                      booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{booking.service_name}</p>
+                    )}
+                  </CardDescription>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                    <Icons.calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
+              <CardContent className="pt-4">
+                <div className="space-y-4">
+                  <div className="flex items-center text-foreground/80 gap-2">
+                    <Icons.calendar className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
                   </div>
                   
                   {/* Customer information */}
                   {booking.customer_name && (
-                    <div className="flex items-start text-gray-600 dark:text-gray-400">
-                      <User className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2">
+                      <User className="h-4 w-4 text-primary mt-0.5" />
                       <div className="flex flex-col">
-                        <span>{booking.customer_name}</span>
+                        <span className="font-medium">{booking.customer_name}</span>
                         {booking.customer_email && (
-                          <span className="text-xs text-muted-foreground">{booking.customer_email}</span>
+                          <span className="text-xs text-muted-foreground truncate max-w-[200px]">{booking.customer_email}</span>
                         )}
                         {booking.customer_phone && (
                           <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
@@ -442,19 +492,19 @@ export function BookingsList({
                   
                   {/* Location information */}
                   {(booking.pickup_location || booking.dropoff_location) && (
-                    <div className="flex items-start text-gray-600 dark:text-gray-400">
-                      <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-primary mt-0.5" />
                       <div className="flex flex-col">
                         {booking.pickup_location && (
-                          <div className="flex items-start">
-                            <span className="text-xs font-medium mr-1">{t('bookings.labels.from')}:</span> 
-                            <span className="text-xs">{booking.pickup_location}</span>
+                          <div className="flex flex-col">
+                            <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
+                            <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
                           </div>
                         )}
                         {booking.dropoff_location && (
-                          <div className="flex items-start mt-1">
-                            <span className="text-xs font-medium mr-1">{t('bookings.labels.to')}:</span> 
-                            <span className="text-xs">{booking.dropoff_location}</span>
+                          <div className="flex flex-col mt-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
+                            <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
                           </div>
                         )}
                       </div>
@@ -462,9 +512,9 @@ export function BookingsList({
                   )}
                   
                   {booking.vehicle && (
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Car className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span>
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4 text-primary" />
+                      <span className="font-medium">
                         {booking.vehicle.make} {booking.vehicle.model} {booking.vehicle.year ? `(${booking.vehicle.year})` : ''}
                       </span>
                     </div>
@@ -472,99 +522,103 @@ export function BookingsList({
                   
                   {/* Distance and duration if available */}
                   {(booking.distance || booking.duration) && (
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Timer className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <div className="flex flex-wrap gap-x-3">
+                    <div className="flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-primary" />
+                      <div className="flex gap-x-3">
                         {booking.distance && (
-                          <span className="text-xs">{booking.distance} {t('bookings.labels.km')}</span>
+                          <span className="text-sm">{booking.distance} {t('bookings.labels.km')}</span>
                         )}
                         {booking.duration && (
-                          <span className="text-xs">{booking.duration} {t('bookings.labels.min')}</span>
+                          <span className="text-sm">{booking.duration} {t('bookings.labels.min')}</span>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="pt-0 pb-3 px-6 flex justify-end gap-2">
+              <CardFooter className="pt-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-1 border-t">
                 <Button 
                   variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
+                  className="h-8"
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/bookings/${booking.id}/edit`);
                   }}
                 >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">{t('bookings.details.actions.edit')}</span>
+                  <Edit className="h-4 w-4 mr-1" />
+                  <span>{t('common.edit')}</span>
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8"
+                  size="sm"
+                  className="h-8"
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/bookings/${booking.id}/reschedule`);
                   }}
                 >
-                  <Icons.calendar className="h-4 w-4" />
-                  <span className="sr-only">{t('bookings.details.actions.reschedule')}</span>
+                  <Icons.calendar className="h-4 w-4 mr-1" />
+                  <span>{t('bookings.details.actions.reschedule')}</span>
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="icon"
-                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-500 dark:hover:text-red-400 dark:hover:bg-red-900/20"
+                  size="sm"
+                  className="h-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCancelBooking(booking.id.toString());
                   }}
                 >
-                  <Trash className="h-4 w-4" />
-                  <span className="sr-only">{t('bookings.details.actions.cancel')}</span>
+                  <Trash className="h-4 w-4 mr-1" />
+                  <span>{t('common.cancel')}</span>
                 </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-md border overflow-hidden shadow-sm">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>{t('bookings.tableHeaders.bookingId')}</TableHead>
-                <TableHead>{t('bookings.tableHeaders.dateTime')}</TableHead>
+                <TableHead className="w-[100px]">{t('bookings.tableHeaders.bookingId')}</TableHead>
+                <TableHead className="w-[140px]">{t('bookings.tableHeaders.dateTime')}</TableHead>
                 <TableHead>{t('bookings.tableHeaders.service')}</TableHead>
                 <TableHead>{t('bookings.tableHeaders.customer')}</TableHead>
                 <TableHead>{t('bookings.tableHeaders.locations')}</TableHead>
-                <TableHead>{t('bookings.tableHeaders.status')}</TableHead>
-                <TableHead className="text-right">{t('bookings.tableHeaders.actions')}</TableHead>
+                <TableHead className="w-[120px]">{t('bookings.tableHeaders.status')}</TableHead>
+                <TableHead className="text-right w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedBookings.map((booking) => (
-                <TableRow key={booking.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleViewBooking(booking.id)}>
-                  <TableCell className="font-medium">{booking.id}</TableCell>
+                <TableRow 
+                  key={booking.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                  onClick={() => handleViewBooking(booking.id)}
+                >
+                  <TableCell className="font-medium text-primary">#{booking.id}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{formatDate(booking.date)}</span>
+                      <span className="font-medium">{formatDate(booking.date)}</span>
                       <span className="text-xs text-muted-foreground">{booking.time}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</span>
+                      <span className="font-medium line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</span>
                       {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
                         booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                        <span className="text-xs text-muted-foreground">{booking.service_name}</span>
+                        <span className="text-xs text-muted-foreground line-clamp-1">{booking.service_name}</span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span>{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</span>
+                      <span className="font-medium">{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</span>
                       {booking.customer_email && (
-                        <span className="text-xs text-muted-foreground">{booking.customer_email}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">{booking.customer_email}</span>
                       )}
                       {booking.customer_phone && (
                         <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
@@ -572,36 +626,33 @@ export function BookingsList({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col space-y-1.5">
                       {booking.pickup_location && (
-                        <span className="text-xs">
-                          <span className="font-medium">{t('bookings.labels.from')}:</span> {booking.pickup_location}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span>
+                          <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
+                        </div>
                       )}
                       {booking.dropoff_location && (
-                        <span className="text-xs mt-1">
-                          <span className="font-medium">{t('bookings.labels.to')}:</span> {booking.dropoff_location}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span>
+                          <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
+                        </div>
                       )}
                       {!booking.pickup_location && !booking.dropoff_location && (
-                        <span className="text-xs text-muted-foreground">{t('bookings.defaultLabels.noLocationData')}</span>
+                        <span className="text-xs text-muted-foreground italic">{t('bookings.defaultLabels.noLocationData')}</span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      className={
-                        booking.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                        booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
-                        booking.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-                      }
+                      className={`px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
                     >
                       {t(`bookings.status.${booking.status}`)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button 
                         variant="ghost" 
                         size="icon"
@@ -629,7 +680,7 @@ export function BookingsList({
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 dark:text-red-500 dark:hover:text-red-400 dark:hover:bg-red-900/20"
+                        className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCancelBooking(booking.id.toString());

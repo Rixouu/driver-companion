@@ -1147,10 +1147,12 @@ export const ja: TranslationValue = {
     newBooking: "新規予約",
     editBooking: "予約を編集",
     viewOptions: {
-      grid: "グリッド表示"
+      grid: "グリッド表示",
+      list: "リスト表示"
     },
     actions: {
-      sync: "予約を同期"
+      sync: "予約を同期",
+      refresh: "更新"
     },
     tableHeaders: {
       bookingId: "予約ID",
@@ -1178,7 +1180,13 @@ export const ja: TranslationValue = {
       pending: "保留中",
       confirmed: "確認済み",
       completed: "完了",
-      cancelled: "キャンセル済み"
+      cancelled: "キャンセル済み",
+      advancedFilters: "詳細フィルター",
+      clearFilters: "フィルターをクリア"
+    },
+    empty: {
+      title: "予約が見つかりません",
+      description: "システムにはまだ予約がありません。"
     },
     assignment: {
       title: "ドライバーと車両の割り当て",
@@ -1279,6 +1287,18 @@ export const ja: TranslationValue = {
       deleteSuccess: "予約が正常に削除されました",
       syncSuccess: "予約が正常に同期されました",
       error: "エラーが発生しました"
+    },
+    sync: {
+      title: "予約の同期",
+      description: "外部システムから予約を同期する",
+      connectionIssue: "外部予約システムとの接続に問題がある可能性があります。",
+      success: "予約が正常に同期されました",
+      failed: "同期に失敗しました",
+      syncing: "同期中...",
+      syncButton: "予約を同期",
+      retrying: "再試行中...",
+      retryButton: "接続を再試行",
+      successWithCount: "{count}件の予約を同期しました（{created}件作成、{updated}件更新）"
     }
   },
   dispatch: {

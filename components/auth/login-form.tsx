@@ -6,10 +6,13 @@ import { Image } from "@/components/shared/image"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
 import { supabase } from "@/lib/supabase/client"
+import { clearAuthState } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -18,6 +21,14 @@ export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = React.useState(false)
+  const [isRecovering, setIsRecovering] = React.useState(false)
+  const { toast } = useToast()
+
+  // Check for error parameter
+  const errorParam = searchParams.get("error")
+  const [error, setError] = React.useState<string | null>(
+    errorParam === "no_code" ? "Authentication failed. Please try again." : null
+  )
 
   const redirectTo = searchParams.get("redirectTo") || "/dashboard"
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -25,18 +36,35 @@ export function LoginForm() {
   async function handleGoogleLogin() {
     try {
       setIsLoading(true)
+      setError(null)
       
-      // Get the callback URL based on environment
-      const callbackUrl = new URL(
-        '/auth/callback', 
-        process.env.NODE_ENV === 'development' 
-          ? 'http://localhost:3000' 
-          : process.env.NEXT_PUBLIC_SITE_URL
-      )
+      // Get the default callback URL for the current environment
+      let callbackUrl: URL
       
-      // Add the current origin and redirect path as parameters
-      callbackUrl.searchParams.set('origin', window.location.origin)
-      callbackUrl.searchParams.set('redirect_to', redirectTo)
+      try {
+        // Determine base URL - first try environment variable
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                       (process.env.NODE_ENV === 'development' 
+                          ? 'http://localhost:3000' 
+                          : currentOrigin) // fallback to current origin
+        
+        if (!baseUrl) {
+          throw new Error('Could not determine site URL')
+        }
+        
+        callbackUrl = new URL('/auth/callback', baseUrl)
+        
+        // Add the current origin and redirect path as parameters
+        callbackUrl.searchParams.set('origin', currentOrigin)
+        callbackUrl.searchParams.set('redirect_to', redirectTo)
+      } catch (urlError) {
+        console.error('Error creating callback URL:', urlError)
+        // Fallback to absolute URL for the current origin
+        callbackUrl = new URL(`${currentOrigin}/auth/callback`)
+        callbackUrl.searchParams.set('redirect_to', redirectTo)
+      }
+      
+      console.log('Auth callback URL:', callbackUrl.toString())
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -51,9 +79,32 @@ export function LoginForm() {
 
       if (error) throw error
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Login error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Recovery function for persistent auth issues
+  async function handleRecovery() {
+    try {
+      setIsRecovering(true)
+      // Clear all auth state
+      await clearAuthState()
+      
+      toast({
+        title: "Recovery complete",
+        description: "Authentication state has been cleared. Please try signing in again.",
+      })
+      
+      // Reload the page to ensure a fresh state
+      window.location.reload()
+    } catch (error) {
+      console.error('Recovery error:', error)
+      setError('Recovery failed. Please try again or contact support.')
+    } finally {
+      setIsRecovering(false)
     }
   }
 
@@ -81,10 +132,15 @@ export function LoginForm() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {error && (
+                  <div className="mb-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   type="button"
-                  disabled={isLoading}
+                  disabled={isLoading || isRecovering}
                   onClick={handleGoogleLogin}
                   className="w-full"
                 >
@@ -96,6 +152,27 @@ export function LoginForm() {
                   Continue with Google
                 </Button>
               </CardContent>
+              <CardFooter className="flex flex-col items-center justify-center text-sm text-muted-foreground">
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Having trouble signing in?
+                </p>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-xs h-auto p-0 mt-1"
+                  disabled={isRecovering || isLoading}
+                  onClick={handleRecovery}
+                >
+                  {isRecovering ? (
+                    <>
+                      <Icons.spinner className="mr-1 h-3 w-3 animate-spin" />
+                      Fixing...
+                    </>
+                  ) : (
+                    "Fix authentication issues"
+                  )}
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         </div>

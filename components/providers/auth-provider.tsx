@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { User, AuthError } from "@supabase/supabase-js"
-import { supabase, getSupabaseClient } from "@/lib/supabase/client"
+import { supabase, getSupabaseClient, clearAuthState } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
 interface AuthContextType {
@@ -14,6 +14,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
+  clearAuthAndRedirect: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,41 +25,63 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => ({ success: false }),
   signOut: async () => {},
   resetPassword: async () => ({ success: false }),
+  clearAuthAndRedirect: async () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [authInitialized, setAuthInitialized] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
     const supabase = getSupabaseClient()
     let initialCheckDone = false; // Flag to track if initial check completed
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
     
     // Call getUser once on initial load to attempt session fetch
     const getUser = async () => {
       console.log("[AuthProvider] Attempting initial getUser()...");
       try {
         const { data, error } = await supabase.auth.getUser()
-        console.log("[AuthProvider] getUser() result:", { data, error });
+        console.log("[AuthProvider] getUser() result:", data);
 
         if (!initialCheckDone) { // Only update state based on initial getUser if listener hasn't fired yet
              if (error) {
                  console.error("[AuthProvider] Initial getUser() error:", error.message);
                  // Don't set user to null here yet, wait for listener
-                 // setError(error.message); // Optionally set error state
-             } else {
+                 setError(error.message);
+                 
+                 // If we get "Auth session missing" specifically, we may need to recover
+                 if (error.message.includes("Auth session missing") && retryCount < MAX_RETRIES) {
+                   console.log(`[AuthProvider] Attempting recovery (${retryCount + 1}/${MAX_RETRIES})...`);
+                   retryCount++;
+                   // Try to refresh the session
+                   const { error: refreshError } = await supabase.auth.refreshSession();
+                   if (refreshError) {
+                     console.error("[AuthProvider] Session refresh failed:", refreshError);
+                   } else {
+                     console.log("[AuthProvider] Session refresh successful");
+                     // Retry getUser
+                     setTimeout(getUser, 500);
+                     return;
+                   }
+                 }
+             } else if (data.user) {
                  console.log("[AuthProvider] Initial getUser() success:", data.user);
                  setUser(data.user);
+                 setError(null);
              }
-             // Don't set loading false here, let the listener handle it definitively
         }
       } catch (err) {
         console.error("[AuthProvider] Unexpected error in initial getUser():", err)
-        // setError("An unexpected error occurred"); // Optionally set error state
-      } 
+        setError("An unexpected authentication error occurred");
+      } finally {
+        setAuthInitialized(true);
+      }
     }
     
     getUser(); // Call it immediately
@@ -70,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null); // Clear previous errors on auth change
         initialCheckDone = true; // Mark that the listener has given us the state
         setLoading(false); // Set loading false once we get the definitive state from the listener
+        setAuthInitialized(true);
 
         if (event === 'SIGNED_IN') {
             toast({
@@ -83,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               description: "You have been signed out successfully.",
             })
              // Redirect to login on sign out
-             // router.push('/login'); // Or handle redirect elsewhere
+             router.push('/auth/login');
         }
     });
 
@@ -101,6 +125,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     return "An unexpected authentication error occurred"
   }
+
+  const clearAuthAndRedirect = async () => {
+    await clearAuthState();
+    router.push('/auth/login');
+    router.refresh();
+  };
 
   const signIn = async (email: string, password: string) => {
     const supabase = getSupabaseClient()
@@ -194,6 +224,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Display an error message if there are auth initialization issues
+  useEffect(() => {
+    if (authInitialized && error && error.includes("Auth session missing")) {
+      toast({
+        title: "Authentication error",
+        description: "Please sign in again to continue.",
+        variant: "destructive",
+      });
+    }
+  }, [authInitialized, error, toast]);
+
   return (
     <AuthContext.Provider 
       value={{ 
@@ -204,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        clearAuthAndRedirect,
       }}
     >
       {children}

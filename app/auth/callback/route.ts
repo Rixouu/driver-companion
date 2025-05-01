@@ -7,36 +7,42 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   
-  console.log(`[Auth Callback] NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`[Auth Callback] VERCEL_URL: ${process.env.VERCEL_URL}`);
-  console.log(`[Auth Callback] SITE_URL: ${process.env.SITE_URL}`);
-  console.log(`[Auth Callback] NEXT_PUBLIC_SITE_URL: ${process.env.NEXT_PUBLIC_SITE_URL}`);
-  console.log(`[Auth Callback] Request URL Origin: ${requestUrl.origin}`);
-
-  // Determine origin: Use VERCEL_URL in production, ensure HTTPS
-  let origin: string;
-  if (process.env.NODE_ENV === 'production' && process.env.VERCEL_URL) {
-    // Ensure VERCEL_URL starts with https:// for production
-    origin = process.env.VERCEL_URL.startsWith('http') 
-               ? process.env.VERCEL_URL 
-               : `https://${process.env.VERCEL_URL}`;
-  } else if (process.env.NODE_ENV !== 'production'){
-    origin = 'http://localhost:3000'; // Keep localhost for development
+  // Log environment variables and request details
+  console.log(`[Auth Callback] Request URL: ${request.url}`);
+  console.log(`[Auth Callback] Request Origin: ${requestUrl.origin}`);
+  
+  // Try to get origin from the request parameters first (set by the login form)
+  let origin = requestUrl.searchParams.get('origin');
+  
+  // Fallback chain for determining origin
+  if (!origin) {
+    // Use the most reliable source first
+    if (typeof process.env.NEXT_PUBLIC_SITE_URL === 'string' && process.env.NEXT_PUBLIC_SITE_URL.startsWith('http')) {
+      origin = process.env.NEXT_PUBLIC_SITE_URL;
+      console.log(`[Auth Callback] Using NEXT_PUBLIC_SITE_URL: ${origin}`);
+    }
+    // Then try VERCEL_URL if in production
+    else if (process.env.NODE_ENV === 'production' && process.env.VERCEL_URL) {
+      origin = process.env.VERCEL_URL.startsWith('http') 
+                 ? process.env.VERCEL_URL 
+                 : `https://${process.env.VERCEL_URL}`;
+      console.log(`[Auth Callback] Using VERCEL_URL: ${origin}`);
+    }
+    // Fallback to request origin as the last resort
+    else {
+      origin = requestUrl.origin;
+      console.log(`[Auth Callback] Using request origin: ${origin}`);
+    }
   } else {
-      // Fallback if VERCEL_URL is somehow missing in production
-      console.warn("[Auth Callback] VERCEL_URL not found in production, falling back to request origin.")
-      origin = requestUrl.origin; 
+    console.log(`[Auth Callback] Using origin from request params: ${origin}`);
   }
-  console.log(`[Auth Callback] Determined Origin (Initial): ${origin}`);
-
-  // Ensure origin is a valid URL before proceeding (redundant check mostly, but safe)
+  
+  // Validate the origin is a proper URL
   try {
-    new URL(origin); 
-    console.log(`[Auth Callback] Determined Origin (Validated): ${origin}`);
+    new URL(origin);
   } catch (error) {
-    console.error(`[Auth Callback] Invalid origin determined even after VERCEL_URL check: ${origin}. Falling back to request URL origin.`);
-    origin = requestUrl.origin; // Fallback just in case
-    console.log(`[Auth Callback] Determined Origin (Final Fallback): ${origin}`);
+    console.error(`[Auth Callback] Invalid origin: ${origin}, falling back to request origin`);
+    origin = requestUrl.origin;
   }
 
   const redirectTo = requestUrl.searchParams.get('redirect_to') || '/dashboard'
@@ -44,34 +50,40 @@ export async function GET(request: Request) {
 
   if (code) {
     console.log("[Auth Callback] Code found, attempting exchange...");
-    const cookieStore = cookies() // Get cookie store instance
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore }) // Pass function reference
+    const cookieStore = cookies()
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    
     try {
       await supabase.auth.exchangeCodeForSession(code)
       console.log("[Auth Callback] Code exchange successful.");
     } catch (error) {
       console.error("[Auth Callback] Error exchanging code for session:", error);
-      // Redirect to an error page or login page if exchange fails
-      const errorUrl = new URL("/auth/error", origin); // Example error route
-      errorUrl.searchParams.set("message", "Authentication failed. Please try again.");
-      console.log(`[Auth Callback] Redirecting to error page: ${errorUrl.toString()}`);
-      return NextResponse.redirect(errorUrl.toString());
+      // Redirect to an error page with details
+      return NextResponse.redirect(new URL(`/auth/error?message=${encodeURIComponent('Authentication failed. Please try again.')}`, origin));
     }
   } else {
     console.log("[Auth Callback] No code found in request.");
+    return NextResponse.redirect(new URL('/auth/login?error=no_code', origin));
   }
 
-  // Construct the final URL using the validated origin
-  console.log(`[Auth Callback] Constructing final redirect URL with redirectTo: ${redirectTo} and origin: ${origin}`);
+  // Handle final redirect
   try {
-    const finalRedirectUrl = new URL(redirectTo, origin);
+    // Create the final redirect URL
+    let finalRedirectUrl: URL;
+    
+    // Check if redirect path is already a full URL (starts with http)
+    if (redirectTo.startsWith('http')) {
+      finalRedirectUrl = new URL(redirectTo);
+    } else {
+      // Otherwise, combine with origin
+      finalRedirectUrl = new URL(redirectTo, origin);
+    }
+    
     console.log(`[Auth Callback] Final Redirect URL: ${finalRedirectUrl.toString()}`);
-    return NextResponse.redirect(finalRedirectUrl.toString())
+    return NextResponse.redirect(finalRedirectUrl.toString());
   } catch (error) {
-     console.error(`[Auth Callback] Error constructing final redirect URL with redirectTo: ${redirectTo} and origin: ${origin}`, error);
-     // Fallback redirect if construction fails (e.g., to dashboard)
-     const fallbackUrl = new URL("/dashboard", origin);
-     console.log(`[Auth Callback] Redirecting to fallback URL: ${fallbackUrl.toString()}`);
-     return NextResponse.redirect(fallbackUrl.toString());
+    console.error(`[Auth Callback] Error constructing redirect URL:`, error);
+    // Fallback to dashboard
+    return NextResponse.redirect(new URL('/dashboard', origin));
   }
 } 

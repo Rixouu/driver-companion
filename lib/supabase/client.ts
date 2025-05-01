@@ -12,52 +12,107 @@ const STORAGE_KEY = 'vehicle-inspection-auth'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl) {
-  console.error("Missing environment variable: NEXT_PUBLIC_SUPABASE_URL");
-  // throw new Error("Missing environment variable: NEXT_PUBLIC_SUPABASE_URL"); // Optional: Throw error during build/dev
+// Log environment variable state on client initialization
+if (typeof window !== 'undefined') {
+  if (!supabaseUrl) {
+    console.error("Missing environment variable: NEXT_PUBLIC_SUPABASE_URL");
+  }
+  if (!supabaseAnonKey) {
+    console.error("Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  }
 }
-if (!supabaseAnonKey) {
-  console.error("Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  // throw new Error("Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY"); // Optional: Throw error
+
+// Helper to validate URL
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 export const getSupabaseClient = () => {
-  // In server components, we need to create a new instance each time (should ideally use server helpers, but this ensures config)
+  // In server components, we need to create a new instance each time
   if (typeof window === 'undefined') {
-    // NOTE: Using createClientComponentClient on the server is NOT recommended.
-    // You should use createServerComponentClient or createRouteHandlerClient.
-    // However, for debugging config, we ensure vars are passed here too.
     if (!supabaseUrl || !supabaseAnonKey) {
-         console.error("[getSupabaseClient - Server Context] Missing Supabase env vars!");
-         // Return a dummy or throw? For now, log and continue
-         return createClientComponentClient<Database>(); // Will likely fail later
+      console.error("[getSupabaseClient - Server Context] Missing Supabase env vars!");
+      
+      // Return a client with default values, which will attempt to use automatic env detection
+      // This might still work if the environment has variables set but our process doesn't see them
+      return createClientComponentClient<Database>();
     }
-    return createClientComponentClient<Database>(
-        { supabaseUrl, supabaseKey: supabaseAnonKey } // Explicitly pass config
-    );
+    
+    // Validate URL to avoid URL constructor errors
+    if (!isValidUrl(supabaseUrl)) {
+      console.error(`[getSupabaseClient - Server Context] Invalid Supabase URL: ${supabaseUrl}`);
+      return createClientComponentClient<Database>();
+    }
+    
+    // Return a properly configured client
+    return createClientComponentClient<Database>({
+      supabaseUrl,
+      supabaseKey: supabaseAnonKey,
+    });
   }
   
   // For client components, reuse the same instance
   if (!clientInstance) {
     console.log("[getSupabaseClient - Client Context] Creating new client instance.");
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("[getSupabaseClient - Client Context] Missing Supabase env vars! Cannot create client.");
-      // Handle this case - maybe return null or throw? For now, log.
-      // Returning a default client will likely cause errors later.
-      // Consider a state management solution to handle this configuration error.
-       return createClientComponentClient<Database>(); // Fallback, will likely fail later
-    }
-    clientInstance = createClientComponentClient<Database>({
-      supabaseUrl: supabaseUrl,         // Explicitly pass URL
-      supabaseKey: supabaseAnonKey,     // Explicitly pass Key
-      cookieOptions: {
-        name: STORAGE_KEY
+    
+    try {
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error("[getSupabaseClient - Client Context] Missing Supabase env vars! Cannot create client.");
+        // Create with default options, letting the SDK try to auto-detect values
+        clientInstance = createClientComponentClient<Database>({
+          cookieOptions: {
+            name: STORAGE_KEY
+          }
+        });
+      } else {
+        // Create with explicit configuration
+        clientInstance = createClientComponentClient<Database>({
+          supabaseUrl,
+          supabaseKey: supabaseAnonKey,
+          cookieOptions: {
+            name: STORAGE_KEY,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/'
+          }
+        });
       }
-    })
+    } catch (error) {
+      console.error("[getSupabaseClient] Error creating client:", error);
+      // Last resort fallback
+      clientInstance = createClientComponentClient<Database>();
+    }
   }
   
-  return clientInstance
+  return clientInstance;
 }
 
-// Export a singleton instance for direct imports (will now use explicit config)
-export const supabase = getSupabaseClient() 
+// Export a singleton instance for direct imports
+export const supabase = getSupabaseClient()
+
+// Helper function to clear auth state in case of persistent issues
+export const clearAuthState = async () => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const client = getSupabaseClient();
+    await client.auth.signOut({ scope: 'local' });
+    
+    // Clear cookies and storage
+    document.cookie.split(';').forEach(c => {
+      document.cookie = c.replace(/^ +/, '').replace(/=.*/, `=;expires=${new Date().toUTCString()};path=/`);
+    });
+    
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    console.log("[Supabase] Auth state cleared");
+  } catch (error) {
+    console.error("[Supabase] Error clearing auth state:", error);
+  }
+} 

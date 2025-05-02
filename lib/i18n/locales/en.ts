@@ -80,7 +80,14 @@ export const en: TranslationValue = {
     search: "Search drivers...",
     filters: {
       status: "Status",
-      all: "All Drivers"
+      all: "All Drivers",
+      searchPlaceholder: "Search vehicles or plate numbers",
+      brand: "Filter by Brand",
+      model: "Filter by Model",
+      allBrands: "All Brands",
+      allModels: "All Models",
+      noResults: "No results found",
+      clearFilters: "Clear Filters"
     },
     actions: {
       addDriver: "Add Driver",
@@ -309,6 +316,11 @@ export const en: TranslationValue = {
       title: "Assigned Vehicles",
       description: "Vehicles assigned to this driver",
       noVehicles: "No vehicles assigned to this driver"
+    },
+    pagination: {
+      showing: "Showing {start}-{end} of {total} vehicles",
+      page: "Page {page}",
+      of: "of {total}"
     }
   },
   vehicles: {

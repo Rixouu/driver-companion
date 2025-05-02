@@ -73,7 +73,14 @@ export const ja: TranslationValue = {
     search: "ドライバーを検索...",
     filters: {
       status: "ステータス",
-      all: "全てのドライバー"
+      all: "全てのドライバー",
+      searchPlaceholder: "車両またはナンバープレートを検索",
+      brand: "メーカーでフィルター",
+      model: "モデルでフィルター",
+      allBrands: "全メーカー",
+      allModels: "全モデル",
+      noResults: "結果が見つかりません",
+      clearFilters: "フィルターをクリア"
     },
     actions: {
       addDriver: "ドライバーを追加",
@@ -783,6 +790,11 @@ export const ja: TranslationValue = {
       byType: "タイプ別点検数",
       count: "{count} 件の点検",
       vehicleCount: "{count} 台の車両"
+    },
+    pagination: {
+      showing: "{total}台中{start}-{end}台を表示",
+      page: "ページ {page}",
+      of: "/ {total}"
     }
   },
   dashboard: {

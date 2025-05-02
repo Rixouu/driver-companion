@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { useToast } from "@/hooks/use-toast"
-import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react"
+import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,6 +22,9 @@ import { useI18n } from "@/lib/i18n/context"
 import type { InspectionType } from "@/types/inspections"
 import { getInspectionTemplates } from "@/lib/services/inspections"
 import Image from "next/image"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Type to capture translation field structure from inspection service
 type TranslationObject = { [key: string]: string };
@@ -104,6 +107,73 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Estimated time
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(10); // in minutes
   const [startTime, setStartTime] = useState<Date | null>(null);
+  
+  // Vehicle selection filtering and pagination
+  const [searchQuery, setSearchQuery] = useState("");
+  const [brandFilter, setBrandFilter] = useState<string>("all");
+  const [modelFilter, setModelFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const vehiclesPerPage = 10;
+  
+  // Extract unique brands and models from vehicles for filters
+  const brands = useMemo(() => {
+    const uniqueBrands = new Set<string>();
+    vehicles.forEach(vehicle => {
+      if (vehicle.brand) uniqueBrands.add(vehicle.brand);
+    });
+    return Array.from(uniqueBrands).sort();
+  }, [vehicles]);
+  
+  // Get unique models based on selected brand
+  const models = useMemo(() => {
+    const uniqueModels = new Set<string>();
+    vehicles.forEach(vehicle => {
+      if ((brandFilter === "all" || vehicle.brand === brandFilter) && vehicle.model) {
+        uniqueModels.add(vehicle.model);
+      }
+    });
+    return Array.from(uniqueModels).sort();
+  }, [vehicles, brandFilter]);
+  
+  // Filter and paginate vehicles
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter(vehicle => {
+      // Apply search filter
+      const matchesSearch = searchQuery.trim() === "" || 
+        vehicle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // Apply brand filter
+      const matchesBrand = brandFilter === "all" || vehicle.brand === brandFilter;
+      
+      // Apply model filter
+      const matchesModel = modelFilter === "all" || vehicle.model === modelFilter;
+      
+      return matchesSearch && matchesBrand && matchesModel;
+    });
+  }, [vehicles, searchQuery, brandFilter, modelFilter]);
+  
+  // Get paginated vehicles
+  const paginatedVehicles = useMemo(() => {
+    const startIndex = (currentPage - 1) * vehiclesPerPage;
+    const endIndex = startIndex + vehiclesPerPage;
+    return filteredVehicles.slice(startIndex, endIndex);
+  }, [filteredVehicles, currentPage, vehiclesPerPage]);
+  
+  // Reset filters
+  const resetFilters = () => {
+    setSearchQuery("");
+    setBrandFilter("all");
+    setModelFilter("all");
+    setCurrentPage(1);
+  };
+  
+  // Update current page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, brandFilter, modelFilter]);
   
   const methods = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -518,52 +588,195 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Render vehicle selection step
   const renderVehicleSelection = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <h2 className="text-xl font-semibold">{t('inspections.steps.selectVehicle')}</h2>
       
-      <div className="grid grid-cols-1 gap-6">
-        {vehicles.map(vehicle => (
-          <Card 
-            key={vehicle.id} 
-            className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
-            onClick={() => handleVehicleSelect(vehicle)}
-          >
-            <CardContent className="p-6 flex items-center gap-6">
-              {vehicle.image_url ? (
-                <div className="w-20 h-20 overflow-hidden rounded-md">
-                  <Image 
-                    src={vehicle.image_url} 
-                    alt={vehicle.name}
-                    width={80}
-                    height={80}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ) : (
-                <div className="w-20 h-20 bg-muted flex items-center justify-center rounded-md">
-                  <span className="text-muted-foreground">{t('common.noImage')}</span>
-                </div>
-              )}
-              
-              <div>
-                <h3 className="font-medium text-lg">{vehicle.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{vehicle.plate_number}</p>
-                {vehicle.brand && vehicle.model && (
-                  <p className="text-xs text-muted-foreground mt-1">{vehicle.year} {vehicle.brand} {vehicle.model}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Search and filters */}
+      <div className="bg-muted/30 p-4 rounded-lg space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search input */}
+          <div className="flex-1 relative">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('drivers.filters.searchPlaceholder')}
+              className="pl-9 w-full"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {searchQuery && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
+                onClick={() => setSearchQuery("")}
+              >
+                <XCircle className="h-4 w-4" />
+                <span className="sr-only">Clear search</span>
+              </Button>
+            )}
+          </div>
+          
+          {/* Brand filter */}
+          <div className="w-full sm:w-48">
+            <Select value={brandFilter} onValueChange={setBrandFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('drivers.filters.brand')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
+                {brands.map(brand => (
+                  <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Model filter - only show if brand is selected */}
+          {brandFilter !== "all" && (
+            <div className="w-full sm:w-48">
+              <Select value={modelFilter} onValueChange={setModelFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('drivers.filters.model')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('drivers.filters.allModels')}</SelectItem>
+                  {models.map(model => (
+                    <SelectItem key={model} value={model}>{model}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {/* Clear filters button - only show if any filter is applied */}
+          {(searchQuery || brandFilter !== "all" || modelFilter !== "all") && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="sm:self-end" 
+              onClick={resetFilters}
+            >
+              {t('drivers.filters.clearFilters')}
+            </Button>
+          )}
+        </div>
+        
+        {/* Showing results info */}
+        <div className="text-sm text-muted-foreground">
+          {t('drivers.pagination.showing', {
+            start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
+            end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
+            total: String(filteredVehicles.length)
+          })}
+        </div>
       </div>
       
-      {selectedVehicle && (
-        <div className="flex justify-end mt-8">
+      {/* Vehicle list */}
+      {filteredVehicles.length === 0 ? (
+        <div className="text-center py-8 border rounded-lg">
+          <Filter className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+          <h3 className="text-lg font-medium mb-1">
+            {t('drivers.filters.noResults')}
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
+            {t('vehicles.noVehicles')}
+          </p>
+          <Button variant="outline" onClick={resetFilters}>
+            {t('drivers.filters.clearFilters')}
+          </Button>
+        </div>
+      ) : (
+        <ScrollArea className="max-h-[60vh]">
+          <div className="grid grid-cols-1 gap-4">
+            {paginatedVehicles.map(vehicle => (
+              <Card 
+                key={vehicle.id} 
+                className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
+                onClick={() => handleVehicleSelect(vehicle)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Vehicle thumbnail with 16:9 aspect ratio */}
+                    <div className="sm:w-48 w-full">
+                      <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
+                        {vehicle.image_url ? (
+                          <Image 
+                            src={vehicle.image_url} 
+                            alt={vehicle.name}
+                            fill
+                            sizes="(max-width: 768px) 100%, 192px"
+                            className="object-cover"
+                            priority={currentPage === 1}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <span className="text-muted-foreground">{t('common.noImage')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Vehicle details */}
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h3 className="font-medium text-lg">{vehicle.name}</h3>
+                      <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
+                      {vehicle.brand && vehicle.model && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {vehicle.year && <span>{vehicle.year} </span>}
+                          <span>{vehicle.brand} </span>
+                          <span>{vehicle.model}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+      
+      {/* Pagination controls */}
+      {filteredVehicles.length > vehiclesPerPage && (
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            {t('drivers.pagination.page', { page: String(currentPage) })} {t('drivers.pagination.of', { total: String(Math.ceil(filteredVehicles.length / vehiclesPerPage)) })}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredVehicles.length / vehiclesPerPage)))}
+              disabled={currentPage >= Math.ceil(filteredVehicles.length / vehiclesPerPage)}
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Navigation buttons */}
+      <div className="flex justify-between mt-6">
+        <Button variant="outline" onClick={() => router.push('/inspections')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
+        </Button>
+        
+        {selectedVehicle && (
           <Button onClick={() => setCurrentStepIndex(0)}>
             {t('common.next')} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
   
@@ -723,28 +936,33 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       <Card className="my-6">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
+            {/* Vehicle thumbnail with 16:9 aspect ratio */}
             {selectedVehicle.image_url ? (
-              <div className="w-full sm:w-40 mb-4 sm:mb-0">
-                <div className="relative w-full aspect-[16/9]">
+              <div className="w-full sm:w-48">
+                <div className="relative aspect-[16/9] w-full rounded-md overflow-hidden">
                   <Image 
                     src={selectedVehicle.image_url} 
                     alt={selectedVehicle.name}
                     fill
-                    sizes="(max-width: 640px) 100vw, 160px"
+                    sizes="(max-width: 640px) 100vw, 192px"
+                    className="object-cover"
                     priority
-                    className="object-cover rounded-md"
                   />
                 </div>
               </div>
             ) : (
-              <div className="w-full sm:w-40 h-24 bg-muted flex items-center justify-center rounded-md mb-4 sm:mb-0">
+              <div className="w-full sm:w-48 bg-muted flex items-center justify-center rounded-md" style={{ aspectRatio: '16/9' }}>
                 <span className="text-muted-foreground">{t('common.noImage')}</span>
               </div>
             )}
             
             <div className="flex-1">
-              <h3 className="text-xl font-bold">{selectedVehicle.brand} {selectedVehicle.model}</h3>
-              <p className="text-muted-foreground">{selectedVehicle.year} {t('inspections.labels.model')}</p>
+              <h3 className="text-xl font-bold">
+                {selectedVehicle.brand} {selectedVehicle.model}
+              </h3>
+              <p className="text-muted-foreground">
+                {selectedVehicle.year} {t('inspections.labels.model')}
+              </p>
               
               <div className="mt-3 space-y-2">
                 {/* Section info with progress */}

@@ -236,9 +236,160 @@ export const en: TranslationValue = {
       unassignVehicles: "Unassign Existing"
     },
     vehicles: {
-      title: "Associated Vehicles",
-      description: "Vehicles assigned to this driver",
-      noVehicles: "No vehicles assigned to this driver",
+      title: "Vehicles",
+      description: "Manage your fleet of vehicles",
+      addVehicle: "Add Vehicle",
+      newVehicle: "New Vehicle",
+      editVehicle: "Edit Vehicle",
+      details: "Vehicle Details",
+      searchPlaceholder: "Search vehicles...",
+      noVehicles: "No vehicles found",
+      noAvailable: "No available vehicles",
+      noAvailableDescription: "There are no vehicles available for selection.",
+      status: {
+        active: "Active",
+        maintenance: "Maintenance",
+        inactive: "Inactive"
+      },
+      filters: {
+        search: "Search vehicles",
+        searchPlaceholder: "Search by name or plate number",
+        brand: "Filter by brand",
+        model: "Filter by model",
+        allBrands: "All brands",
+        allModels: "All models",
+        noResults: "No vehicles matched your search",
+        clearFilters: "Clear filters"
+      },
+      pagination: {
+        showing: "Showing {start}-{end} of {total} vehicles",
+        loadMore: "Load more",
+        page: "Page {page}",
+        of: "of {total}"
+      },
+      fields: {
+        name: "Vehicle Name",
+        nameDescription: "A friendly name to identify this vehicle",
+        namePlaceholder: "e.g., Family SUV",
+        plateNumber: "License Plate",
+        brand: "Brand",
+        brandDescription: "The manufacturer of the vehicle",
+        brandPlaceholder: "e.g., Toyota",
+        model: "Model",
+        modelPlaceholder: "e.g., Camry",
+        year: "Year",
+        yearPlaceholder: "e.g., 2024",
+        vin: "VIN",
+        vinDescription: "17-character vehicle identification number",
+        status: "Status",
+        statusDescription: "Current operational status of the vehicle",
+        image: "Vehicle Image",
+        imageDescription: "PNG, JPG or WEBP (MAX. 800x400px)",
+        modelDescription: "The model name of the vehicle",
+        yearDescription: "The manufacturing year",
+        plateNumberDescription: "Vehicle registration number",
+        plateNumberPlaceholder: "e.g., ABC-1234",
+        statusPlaceholder: "Select vehicle status",
+        statusActive: "Active",
+        statusInactive: "Inactive",
+        statusMaintenance: "In Maintenance",
+        uploadImage: "Upload Image",
+        formCompletion: "Form Completion",
+        formCompletionDescription: "Progress of required fields",
+        vinPlaceholder: "Enter 17-character VIN",
+        uploadImageButton: "Upload Image",
+        uploadImageDragText: "Drag and drop an image here, or click to select",
+        uploadImageSizeLimit: "Maximum file size: 5MB"
+      },
+      placeholders: {
+        name: "Enter vehicle name",
+        plateNumber: "Enter license plate number",
+        brand: "Enter vehicle brand",
+        model: "Enter vehicle model",
+        year: "Enter manufacturing year",
+        vin: "Enter vehicle identification number"
+      },
+      form: {
+        basicInfo: "Basic Information",
+        additionalInfo: "Additional Information"
+      },
+      tabs: {
+        info: "Information",
+        schedule: "Scheduled",
+        inProgress: "In Progress",
+        history: "History",
+        costs: "Costs",
+        reminders: "Reminders",
+        scheduleEmpty: "No scheduled tasks",
+        historyEmpty: "No history available",
+        costsEmpty: "No cost records",
+        remindersEmpty: "No reminders set",
+        upcomingMaintenance: "Upcoming Maintenance",
+        scheduledInspections: "Scheduled Inspections",
+        addMaintenanceTask: "Add Task",
+        scheduleInspection: "Schedule Inspection",
+        maintenanceHistory: "Maintenance History",
+        inspectionHistory: "Inspection History",
+        completedOn: "Completed on {date}",
+        totalCosts: "Total Costs",
+        maintenanceCosts: "Maintenance Costs",
+        fuelCosts: "Fuel Costs",
+        otherCosts: "Other Costs",
+        addReminder: "Add Reminder",
+        noReminders: "No reminders set for this vehicle"
+      },
+      messages: {
+        createSuccess: "Vehicle created successfully",
+        updateSuccess: "Vehicle updated successfully",
+        deleteSuccess: "Vehicle deleted successfully",
+        error: "An error occurred",
+        deleteError: "Cannot delete vehicle",
+        hasAssociatedRecords: "This vehicle has associated inspections or maintenance tasks and cannot be deleted",
+        imageUploadError: "Failed to upload image"
+      },
+      addNewTitle: "Add New Vehicle",
+      addNewDescription: "Add a new vehicle to the fleet",
+      vehicleInformation: "Vehicle Information",
+      vehicleDetails: "Vehicle Details",
+      vehicleStatus: "Vehicle Status",
+      edit: {
+        title: "Edit Vehicle",
+        description: "Update vehicle information"
+      },
+      delete: {
+        title: "Delete Vehicle",
+        description: "This action cannot be undone. This will permanently delete the vehicle and remove it from our servers."
+      },
+      schedule: {
+        title: "Upcoming Tasks",
+        maintenanceTitle: "Scheduled Maintenance",
+        inspectionsTitle: "Scheduled Inspections",
+        noUpcoming: "No upcoming tasks scheduled",
+        noMaintenanceTasks: "No maintenance tasks scheduled",
+        noInspections: "No inspections scheduled"
+      },
+      history: {
+        title: "Vehicle History",
+        maintenanceTitle: "Completed Maintenance",
+        inspectionTitle: "Completed Inspections",
+        noRecords: "No history records found",
+        noMaintenanceRecords: "No completed maintenance records",
+        noInspectionRecords: "No completed inspection records",
+        inspection: "Inspection",
+        maintenance: "Maintenance"
+      },
+      deleteDialog: {
+        title: "Delete Vehicle",
+        description: "This action cannot be undone. This will permanently delete the vehicle and remove it from our servers."
+      },
+      inProgress: {
+        title: "In Progress Tasks",
+        maintenanceTitle: "Maintenance In Progress",
+        inspectionsTitle: "Inspections In Progress",
+        noTasks: "No tasks in progress",
+        noMaintenanceTasks: "No maintenance tasks in progress",
+        noInspections: "No inspections in progress"
+      },
       allVehicles: "All Vehicles"
     },
     inspections: {
@@ -270,155 +421,22 @@ export const en: TranslationValue = {
         leave: "Leave",
         training: "Training"
       }
-    }
-  },
-  labels: {
-    due: "Due {date}",
-    priority: {
-      high: "High",
-      medium: "Medium",
-      low: "Low"
     },
-    status: {
-      scheduled: "Scheduled",
-      inProgress: "In Progress"
-    }
-  },
-  notifications: {
-    title: "Notifications",
-    empty: "No notifications",
-    toggle: "Toggle notifications",
-    delete: "Delete notification",
-    deleteSuccess: "Notification deleted",
-    deleteError: "Failed to delete notification",
-    markAllAsRead: "Mark all as read",
-    markAsRead: "Mark as read",
-    markAsReadSuccess: "Marked as read",
-    markAsReadError: "Failed to mark as read",
-    upcoming: "Upcoming",
-    today: "Today",
-    thisWeek: "This Week",
-    newNotifications: "{count} new notifications",
-    clickToView: "Click to view",
-    unread: "{count} unread"
-  },
-  schedules: {
-    title: "Schedules",
-    createSchedule: "Create Schedule",
-    frequency: "Frequency",
-    selectFrequency: "Select frequency",
-    frequencyDescription: "How often this task should be performed",
-    intervalDays: "Interval (days)",
-    intervalDaysPlaceholder: "Enter number of days",
-    intervalDaysDescription: "Number of days between each occurrence",
-    startDate: "Start Date",
-    startDateDescription: "When to start generating tasks",
-    endDate: "End Date (Optional)",
-    endDatePlaceholder: "No end date",
-    endDateDescription: "When to stop generating tasks",
-    selectDate: "Select a date",
-    frequencies: {
-      daily: "Daily",
-      weekly: "Weekly",
-      biweekly: "Bi-weekly",
-      monthly: "Monthly",
-      quarterly: "Quarterly",
-      biannually: "Bi-annually",
-      annually: "Annually",
-      custom: "Custom"
+    filters: {
+      search: "Search vehicles",
+      searchPlaceholder: "Search by name or plate number",
+      brand: "Filter by brand",
+      model: "Filter by model",
+      allBrands: "All brands",
+      allModels: "All models",
+      noResults: "No vehicles matched your search",
+      clearFilters: "Clear filters"
     },
-    maintenance: {
-      title: "Schedule Recurring Maintenance",
-      description: "Set up a recurring maintenance task that will be automatically scheduled at the specified frequency",
-      createSuccess: "Maintenance schedule created successfully",
-      createError: "Failed to create maintenance schedule",
-      updateSuccess: "Maintenance schedule updated successfully",
-      updateError: "Failed to update maintenance schedule",
-      deleteSuccess: "Maintenance schedule deleted successfully",
-      deleteError: "Failed to delete maintenance schedule"
-    },
-    inspection: {
-      title: "Schedule Recurring Inspection",
-      description: "Set up a recurring inspection that will be automatically scheduled at the specified frequency",
-      createSuccess: "Inspection schedule created successfully",
-      createError: "Failed to create inspection schedule",
-      updateSuccess: "Inspection schedule updated successfully",
-      updateError: "Failed to update inspection schedule",
-      deleteSuccess: "Inspection schedule deleted successfully",
-      deleteError: "Failed to delete inspection schedule"
-    }
-  },
-  settings: {
-    title: "Settings",
-    description: "Manage your account settings and preferences",
-    selectTab: "Select settings tab",
-    profile: {
-      title: "Profile",
-      description: "Manage your profile information",
-      name: "Name",
-      email: "Email",
-      emailDescription: "Your email address is used for login and notifications."
-    },
-    preferences: {
-      title: "Preferences",
-      description: "Customize your application experience",
-      theme: {
-        title: "Theme",
-        light: "Light",
-        dark: "Dark",
-        system: "System"
-      },
-      language: {
-        title: "Language",
-        en: "English",
-        ja: "Japanese"
-      }
-    },
-    menu: {
-      title: "Menu Settings",
-      description: "Customize which menu items are visible in the navigation",
-      menuItem: "Menu Item",
-      desktop: "Desktop",
-      mobile: "Mobile",
-      desktopSettingsHidden: "Desktop settings are only visible on larger screens.",
-      alwaysVisible: "Always visible",
-      dashboard: "Dashboard",
-      vehicles: "Vehicles",
-      drivers: "Drivers",
-      bookings: "Bookings",
-      maintenance: "Maintenance",
-      inspections: "Inspections",
-      reporting: "Reporting",
-      settings: "Settings",
-      save: "Save Changes"
-    },
-    templates: {
-      title: "Inspection Templates",
-      description: "Manage the structure of your inspection forms (sections and items)."
-    },
-    tabs: {
-      profile: "Profile",
-      preferences: "Preferences",
-      menu: "Menu",
-      templates: "Templates",
-      account: "Account"
-    }
-  },
-  vehicles: {
-    title: "Vehicles",
-    description: "Manage your fleet of vehicles",
-    addVehicle: "Add Vehicle",
-    newVehicle: "New Vehicle",
-    editVehicle: "Edit Vehicle",
-    details: "Vehicle Details",
-    searchPlaceholder: "Search vehicles...",
-    noVehicles: "No vehicles found",
-    noAvailable: "No available vehicles",
-    noAvailableDescription: "There are no vehicles available for selection.",
-    status: {
-      active: "Active",
-      maintenance: "Maintenance",
-      inactive: "Inactive"
+    pagination: {
+      showing: "Showing {start}-{end} of {total} vehicles",
+      loadMore: "Load more",
+      page: "Page {page}",
+      of: "of {total}"
     },
     fields: {
       name: "Vehicle Name",

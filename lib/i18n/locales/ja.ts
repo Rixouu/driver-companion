@@ -454,6 +454,22 @@ export const ja: TranslationValue = {
       maintenance: "メンテナンス中",
       inactive: "非稼働"
     },
+    filters: {
+      search: "車両を検索",
+      searchPlaceholder: "名前またはナンバープレートで検索",
+      brand: "メーカーでフィルター",
+      model: "モデルでフィルター",
+      allBrands: "全メーカー",
+      allModels: "全モデル",
+      noResults: "検索条件に一致する車両はありません",
+      clearFilters: "フィルターをクリア"
+    },
+    pagination: {
+      showing: "{total}台中{start}-{end}台を表示",
+      loadMore: "もっと読み込む",
+      page: "ページ {page}",
+      of: "/ {total}"
+    },
     fields: {
       name: "車両名",
       nameDescription: "この車両を識別するための名前",

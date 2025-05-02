@@ -1635,6 +1635,7 @@ export const en: TranslationValue = {
         vehicleBrand: "Vehicle Brand",
         vehicleModel: "Vehicle Model",
         serviceType: "Service Type",
+        serviceName: "Service Name",
         pickupLocation: "Pickup Location",
         dropoffLocation: "Dropoff Location",
         distance: "Distance",
@@ -1647,7 +1648,9 @@ export const en: TranslationValue = {
         status: "Status",
         paymentLink: "Payment Link",
         amount: "Amount",
-        name: "Name"
+        name: "Name",
+        customerName: "Customer Name",
+        driver: "Driver"
       },
       actions: {
         navigateToPickup: "Navigate to Pickup",
@@ -1673,7 +1676,10 @@ export const en: TranslationValue = {
         shareEmail: "Share via Email",
         exportPdf: "Export PDF",
         generateInvoice: "Generate Invoice",
-        emailInvoice: "Email Invoice"
+        emailInvoice: "Email Invoice",
+        emailCustomer: "Email Customer",
+        callCustomer: "Call Customer",
+        textCustomer: "Text Customer"
       },
       driverActions: {
         title: "Driver Actions",
@@ -1709,7 +1715,17 @@ export const en: TranslationValue = {
         pending: "Pending",
         cancelled: "Cancelled",
         completed: "Completed"
-      }
+      },
+      quickCustomerActions: "Quick Customer Actions",
+      tooltips: {
+        emailTo: "Send email to",
+        callTo: "Call to",
+        textTo: "Send text to"
+      },
+      flightInformation: "Flight Information",
+      notesAndInstructions: "Notes & Instructions",
+      googleMapsApiKeyMissing: "Google Maps API Key Missing",
+      googleMapsApiKeyMissingDescription: "The Google Maps API key is not configured. Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables. Manual address entry will still work."
     },
     edit: {
       title: "Edit Booking #{id}",
@@ -1740,7 +1756,9 @@ export const en: TranslationValue = {
       retrying: "Retrying...",
       retryButton: "Retry Connection",
       successWithCount: "Successfully synced {count} bookings ({created} created, {updated} updated)"
-    }
+    },
+    calculateRoute: "Calculate Route Distance & Duration",
+    autoCalculateAvailable: "Auto-calculate available"
   },
   dispatch: {
     title: "Dispatch Board",

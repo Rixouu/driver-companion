@@ -3,6 +3,9 @@ import DispatchBoard from "@/components/dispatch/dispatch-board";
 import { PageHeader } from "@/components/page-header";
 import { getDictionary } from "@/lib/i18n/server";
 
+// Force dynamic rendering to handle cookies
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
   const { t } = await getDictionary();

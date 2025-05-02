@@ -22,6 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+// Force dynamic rendering to handle cookies
+export const dynamic = 'force-dynamic'
+
 export default async function NewVehiclePage() {
   const { t } = await getDictionary()
 

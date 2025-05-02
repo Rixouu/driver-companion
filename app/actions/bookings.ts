@@ -1052,6 +1052,7 @@ export async function updateBookingAction(
         .single();
       
       if (wpQueryError) {
+        console.error('Error finding booking by WordPress ID:', wpQueryError.message);
         return {
           success: false,
           message: `Booking not found with WordPress ID: ${id}`

@@ -8,6 +8,8 @@ import { ArrowLeft } from "lucide-react"
 import { InspectionScheduleForm } from "@/components/inspections/inspection-schedule-form"
 import { getDictionary } from "@/lib/i18n/server"
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
   const { t } = await getDictionary()

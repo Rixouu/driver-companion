@@ -181,7 +181,7 @@ export default function BookingDetailsContent({
         </div>
       </div>
       
-      {/* Assignment Card - Always visible at the top */}
+      {/* Assignment Card - Now containing Booking Details inside */}
       <Card className="mb-6">
         <div className="p-6">
           <BookingAssignment booking={booking} onAssignmentComplete={handleAssignmentComplete} />
@@ -190,30 +190,30 @@ export default function BookingDetailsContent({
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 w-full">
-          <TabsTrigger value="details">{t('bookings.details.sections.summary')}</TabsTrigger>
+          <TabsTrigger value="details">{t('bookings.details.sections.additionalInfo') || 'Additional Info'}</TabsTrigger>
           <TabsTrigger value="route">{t('bookings.details.sections.route')}</TabsTrigger>
           <TabsTrigger value="client">{t('bookings.details.sections.client')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="details" className="space-y-6">
-          {/* Booking Summary Section with Vehicle Information */}
+          {/* Payment Information Section */}
           <Card>
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
-                <Calendar className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.summary')}
+                <CreditCard className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.payment')}
               </h2>
             </div>
             
             <div className="p-6">
               <div className="grid grid-cols-2 gap-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.bookingId')}</h3>
-                  <p className="mt-1">#{booking.id || booking.booking_id || '25346'}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
+                  <p className="mt-1">{booking.payment_status || 'Pending'}</p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.orderTotal')}</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
                   <p className="mt-1 font-semibold">
                     {booking.price ? 
                       (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
@@ -222,350 +222,209 @@ export default function BookingDetailsContent({
                   </p>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupDate')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.date || '2025-04-30'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentMethod')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <CreditCard className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.payment_method || 'IPPS Payment'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupTime')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.time || '06:30'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentStatus')}</h3>
-                  <p className="mt-1 text-yellow-500">
-                    {booking.payment_status || 'Pending'}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Vehicle Information Section */}
-              <div className="mt-8 pt-6 border-t">
-                <h2 className="text-lg font-semibold flex items-center mb-4">
-                  <Truck className="mr-2 h-5 w-5" />
-                  {t('bookings.details.sections.vehicle')}
-                </h2>
-                
-                <div className="grid grid-cols-2 gap-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
-                    <p className="mt-1">
-                      {booking.vehicle?.make ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin'}
+                <div className="col-span-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
+                  {booking.payment_link ? (
+                    <a 
+                      href={booking.payment_link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
+                    >
+                      <LinkIcon className="h-4 w-4 mr-1" />
+                      {t('bookings.details.actions.openPaymentLink')}
+                    </a>
+                  ) : (
+                    <p className="text-muted-foreground mt-1">
+                      {t('bookings.details.noPaymentLink')}
                     </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.capacity')}</h3>
-                    <p className="mt-1">10 passengers</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
-                    <p className="mt-1">Airport Transfer</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Payment Information Section */}
-              <div className="mt-8 pt-6 border-t">
-                <h2 className="text-lg font-semibold flex items-center mb-4">
-                  <CreditCard className="mr-2 h-5 w-5" />
-                  {t('bookings.details.sections.payment')}
-                </h2>
-                
-                <div className="grid grid-cols-2 gap-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
-                    <p className="mt-1">{booking.payment_status || 'Pending'}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
-                    <p className="mt-1 font-semibold">
-                      {booking.price ? 
-                        (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-                        'THB 8,200'
-                      }
-                    </p>
-                  </div>
-                  
-                  <div className="col-span-2">
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
-                    {booking.payment_link ? (
-                      <a 
-                        href={booking.payment_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
-                      >
-                        <LinkIcon className="h-4 w-4 mr-1" />
-                        {t('bookings.details.actions.openPaymentLink')}
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           </Card>
           
-          {/* Booking Actions */}
-          <BookingActions 
-            bookingId={(booking.id || booking.booking_id || bookingId)}
-            status={booking.status || 'Pending'}
-            date={booking.date || '2023-04-30'}
-            time={booking.time || '06:30'}
-            booking={booking}
-          />
-        </TabsContent>
-        
-        <TabsContent value="route" className="space-y-6">
-          {/* Route Information Section */}
+          {/* Vehicle Information Section */}
           <Card>
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
-                <MapPin className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.route')}
+                <Truck className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.vehicle')}
               </h2>
             </div>
             
             <div className="p-6">
-              {booking.pickup_location || booking.dropoff_location ? (
-                <div className="space-y-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">A</span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{t('bookings.details.fields.pickupLocation')}</h3>
-                      <p className="text-muted-foreground mt-1">{booking.pickup_location || 'Suvarnabhumi Airport, Bangkok'}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Add Navigate to Pickup button */}
-                  <div className="ml-9 mt-2">
-                    <a 
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.pickup_location || '')}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
-                    >
-                      <Navigation className="mr-2 h-4 w-4" />
-                      {t('bookings.details.actions.navigateToPickup')}
-                    </a>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">B</span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium">{t('bookings.details.fields.dropoffLocation')}</h3>
-                      <p className="text-muted-foreground mt-1">{booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Add Navigate to Drop-off button */}
-                  <div className="ml-9 mt-2">
-                    <a 
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.dropoff_location || '')}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
-                    >
-                      <Navigation className="mr-2 h-4 w-4" />
-                      {t('bookings.details.actions.navigateToDropoff')}
-                    </a>
-                  </div>
-                  
-                  {booking.pickup_location && booking.dropoff_location && (
-                    <div className="mt-6">
-                      <GoogleMap
-                        pickupLocation={booking.pickup_location}
-                        dropoffLocation={booking.dropoff_location}
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">{t('bookings.details.placeholders.noRouteInfo')}</p>
-              )}
-              
-              {/* Add distance and duration */}
-              {(booking.distance || booking.duration) && (
-                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
-                  {booking.distance && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.distance')}</h3>
-                      <p className="mt-1">{booking.distance} km</p>
-                    </div>
-                  )}
-                  
-                  {booking.duration && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.duration')}</h3>
-                      <p className="mt-1">{booking.duration} min</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-          
-          {/* Weather Forecast Card */}
-          {booking.date && booking.pickup_location && (
-            <Card>
-              <div className="border-b py-4 px-6">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <CloudSun className="mr-2 h-5 w-5" />
-                  {t('bookings.details.weather.title')}
-                </h2>
-              </div>
-              <div className="p-6">
-                <WeatherForecast 
-                  date={booking.date}
-                  location={booking.pickup_location}
-                />
-              </div>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="client" className="space-y-6">
-          {/* Client Details Section */}
-          <Card>
-            <div className="border-b py-4 px-6">
-              <h2 className="text-lg font-semibold flex items-center">
-                <User className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.client')}
-              </h2>
-            </div>
-            
-            <div className="p-6">
-              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 mb-4">
-                <AvatarInitials name={booking.customer_name || 'Aroon Muangkaew'} />
-                
-                <div className="text-center sm:text-left">
-                  <h3 className="font-medium text-lg">{booking.customer_name || 'Aroon Muangkaew'}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('bookings.details.customerSince', {
-                      date: (booking as any).customer_since || 
-                        (booking.created_at ? 
-                          new Date(booking.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
-                          'January 2023')
-                    })}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-y-6">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.email')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Mail className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.customer_email || 'aroon.m@example.com'}
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
+                  <p className="mt-1">
+                    {booking.vehicle?.make ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin'}
                   </p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.phone')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.customer_phone || '+66 98 765 4321'}
-                  </p>
-                  
-                  <ContactButtons phoneNumber={booking.customer_phone || '+66 98 765 4321'} />
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.capacity')}</h3>
+                  <p className="mt-1">10 passengers</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
+                  <p className="mt-1">Airport Transfer</p>
                 </div>
               </div>
             </div>
           </Card>
           
-          {/* Additional Information Section */}
+          {/* Notes Section */}
           <Card>
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
                 <FileText className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.additional')}
+                {t('bookings.details.sections.notes')}
               </h2>
             </div>
             
             <div className="p-6">
-              <div className="space-y-4">
+              <p className="text-sm">
+                {booking.notes || t('bookings.details.noNotes')}
+              </p>
+            </div>
+          </Card>
+          
+          {/* Weather Forecast Section */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                <CloudSun className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.weather')}
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <WeatherForecast 
+                date={booking.date || ""} 
+                location={booking.pickup_location || ""}
+              />
+            </div>
+          </Card>
+          
+          {/* Inspections Section */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                {(booking as any).inspections && (booking as any).inspections.length > 0 
+                  ? <ShieldCheck className="mr-2 h-5 w-5 text-green-500" /> 
+                  : <ShieldAlert className="mr-2 h-5 w-5 text-amber-500" />
+                }
+                {t('bookings.details.sections.inspections')}
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <BookingInspections 
+                bookingId={booking.id || booking.booking_id || bookingId} 
+                vehicleId={booking.vehicle?.id || ""}
+              />
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="route" className="space-y-6">
+          {/* Route Information */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                <Navigation className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.routeInfo')}
+              </h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.flightNumber')}</h3>
-                  <p className="mt-1">
-                    {(() => {
-                      // Check if form element fields exist and is an array
-                      if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                        // Find flight number field
-                        const flightField = booking.meta.chbs_form_element_field.find(
-                          (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
-                        );
-                        if (flightField?.value) return flightField.value;
-                      }
-                      return booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided');
-                    })()}
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupLocation')}</h3>
+                  <p className="mt-1 flex items-center">
+                    <MapPin className="mr-1 h-4 w-4 text-muted-foreground" />
+                    {booking.pickup_location}
                   </p>
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.terminal')}</h3>
-                  <p className="mt-1">
-                    {(() => {
-                      // Check if form element fields exist and is an array
-                      if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                        // Find terminal field
-                        const terminalField = booking.meta.chbs_form_element_field.find(
-                          (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
-                        );
-                        if (terminalField?.value) return terminalField.value;
-                      }
-                      return booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided');
-                    })()}
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.dropoffLocation')}</h3>
+                  <p className="mt-1 flex items-center">
+                    <MapPin className="mr-1 h-4 w-4 text-muted-foreground" />
+                    {booking.dropoff_location}
                   </p>
                 </div>
+              </div>
+              
+              {booking.pickup_location && booking.dropoff_location && (
+                <GoogleMap 
+                  pickupLocation={booking.pickup_location}
+                  dropoffLocation={booking.dropoff_location}
+                />
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="client" className="space-y-6">
+          {/* Client Information */}
+          <Card>
+            <div className="border-b py-4 px-6">
+              <h2 className="text-lg font-semibold flex items-center">
+                <User className="mr-2 h-5 w-5" />
+                {t('bookings.details.sections.clientInfo')}
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="md:w-1/4 flex justify-center">
+                  {(booking.customer as any)?.avatar ? (
+                    <img 
+                      src={(booking.customer as any).avatar} 
+                      alt={booking.customer?.name || 'Client'} 
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <AvatarInitials name={booking.customer?.name || booking.customer_name || 'Unknown'} />
+                  )}
+                </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.comment')}</h3>
-                  <p className="mt-1 whitespace-pre-wrap">
-                    {booking.notes || booking.meta?.chbs_comment || t('bookings.details.placeholders.noComments')}
-                  </p>
+                <div className="md:w-3/4 space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">{booking.customer?.name || booking.customer_name || 'Unknown'}</h3>
+                    <p className="text-muted-foreground">
+                      {(booking.customer as any)?.company || (booking as any).customer_company || t('bookings.details.individualBooking')}
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(booking.customer?.email || booking.customer_email) && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.customer?.email || booking.customer_email}</span>
+                      </div>
+                    )}
+                    
+                    {(booking.customer?.phone || booking.customer_phone) && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{booking.customer?.phone || booking.customer_phone}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <ContactButtons 
+                    phoneNumber={booking.customer?.phone || booking.customer_phone || ""}
+                  />
                 </div>
               </div>
             </div>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      {/* After any existing booking details sections, add the inspections section */}
-      {booking.vehicle?.id && (
-        <div className="mb-8">
-          <BookingInspections 
-            bookingId={booking.id || booking.booking_id || bookingId} 
-            vehicleId={booking.vehicle.id} 
-          />
-        </div>
-      )}
     </div>
   );
 } 

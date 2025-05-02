@@ -9,6 +9,8 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
 
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const { dictionary } = await getDictionary()

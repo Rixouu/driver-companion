@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
@@ -32,6 +32,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 // Use any type to avoid type conflicts
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 
+export const dynamic = 'force-dynamic';
 const ITEMS_PER_PAGE = 6
 
 export default function DriversPage() {
@@ -64,7 +65,37 @@ export default function DriversPage() {
     return statuses;
   }, [t]);
 
+  // Use a ref to track if we've already updated the URL to avoid loops
+  const urlUpdateRef = React.useRef(false);
+  
+  // Load stored view preference on component mount
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedView = localStorage.getItem('driverViewMode');
+      if (storedView === 'list' || storedView === 'grid') {
+        setViewMode(storedView);
+      }
+    }
+    
+    // Add CSS to improve touch interaction for mobile devices
+    const style = document.createElement('style');
+    style.textContent = `
+      @media (max-width: 640px) {
+        .driver-grid-view {
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Only load drivers once when the component mounts
     async function loadDrivers() {
       try {
         setIsLoading(true)
@@ -79,7 +110,7 @@ export default function DriversPage() {
     }
 
     loadDrivers()
-  }, [])
+  }, []) // Empty dependency array to only run once
 
   useEffect(() => {
     let result = [...drivers]
@@ -110,15 +141,16 @@ export default function DriversPage() {
   useEffect(() => {
     // Check if we're on mobile
     const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
-    if (isMobile) {
-      setViewMode("list");
+    if (isMobile && viewMode === "grid") {
+      setViewMode("list"); // Default to list on initial mobile load
     }
     
     // Add resize listener to change view when resizing between mobile and desktop
     const handleResize = () => {
       const isMobileNow = window.innerWidth < 640;
       if (isMobileNow && viewMode === "grid") {
-        setViewMode("list");
+        // Don't force list view on mobile resize anymore
+        // This allows users to select grid view on mobile if they want
       }
     };
     
@@ -132,26 +164,46 @@ export default function DriversPage() {
   const paginatedDrivers = filteredDrivers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
+    // Prevent re-rendering loop by checking if we're already on the desired page
+    if (page === currentPage) return;
+    
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", page.toString());
-    router.push(`/drivers?${params.toString()}`);
+    
+    // Use router.replace instead of push to avoid adding to history stack
+    router.replace(`/drivers?${params.toString()}`, { scroll: false });
   };
   
   const handleStatusFilterChange = (status: string) => {
+    // Prevent re-rendering loop by checking if status is already set
+    if (status === statusFilter) return;
+    
     setStatusFilter(status);
     
-    // Update URL to include status filter
     const params = new URLSearchParams(searchParams.toString());
     params.set("status", status);
     
     // Reset to page 1 when filter changes
     params.set("page", "1");
     
-    router.push(`/drivers?${params.toString()}`);
+    // Use router.replace instead of push
+    router.replace(`/drivers?${params.toString()}`, { scroll: false });
   };
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+  };
+
+  const handleViewChange = (value: "list" | "grid") => {
+    // Always allow view mode change regardless of device
+    setViewMode(value);
+    
+    // Store view preference in localStorage for persistence
+    try {
+      localStorage.setItem('driverViewMode', value);
+    } catch (e) {
+      console.error('Could not save view preference:', e);
+    }
   };
 
   return (
@@ -187,10 +239,12 @@ export default function DriversPage() {
         />
         
         <div className="flex items-center justify-end">
+          <div className="touch-manipulation">
             <ViewToggle
               view={viewMode}
-              onViewChange={(value) => setViewMode(value as "list" | "grid")}
+              onViewChange={handleViewChange}
             />
+          </div>
         </div>
       </div>
       
@@ -233,7 +287,7 @@ export default function DriversPage() {
             }
           />
         ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 driver-grid-view">
             {paginatedDrivers.map(driver => (
               <DriverCard key={driver.id} driver={driver} />
             ))}

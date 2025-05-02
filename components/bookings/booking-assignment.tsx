@@ -36,9 +36,18 @@ async function fetchAssignmentDetails(supabase: any, driverId: string | null, ve
   }
   if (vehicleId) {
     const { data: vehicleData } = await supabase.from('vehicles').select('name, brand, model').eq('id', vehicleId).single();
-    if (vehicleData) vehicleName = vehicleData.name || `${vehicleData.brand} ${vehicleData.model}`;
+    if (vehicleData) {
+      // Only set vehicleName if we have actual data to display
+      if (vehicleData.name || (vehicleData.brand && vehicleData.model)) {
+        vehicleName = vehicleData.name || `${vehicleData.brand} ${vehicleData.model}`;
+      }
+    }
   }
-  return { driverName, vehicleName };
+  
+  return { 
+    driverName: driverName || null, 
+    vehicleName: vehicleName || null 
+  };
 }
 
 export default function BookingAssignment({ booking, onAssignmentComplete }: BookingAssignmentProps) {
@@ -50,6 +59,8 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
   const [isEditing, setIsEditing] = useState(!(booking.driver_id && booking.vehicle?.id));
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
+  const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
+  const [isOriginalVehicleAvailable, setIsOriginalVehicleAvailable] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClientComponentClient<Database>();
@@ -73,6 +84,13 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
         if (driversError) throw driversError;
 
+        // Fetch ALL vehicles to check if the original vehicle exists
+        const { data: allVehiclesData, error: allVehiclesError } = await supabase
+          .from('vehicles')
+          .select('*');
+
+        if (allVehiclesError) throw allVehiclesError;
+
         // Fetch vehicles that are available (not in maintenance)
         const { data: vehiclesData, error: vehiclesError } = await supabase
           .from('vehicles')
@@ -80,6 +98,36 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
           .eq('status', 'active');
 
         if (vehiclesError) throw vehiclesError;
+
+        // Check if the booking has an original vehicle
+        let bookingVehicleId = booking.vehicle?.id;
+        
+        if (bookingVehicleId) {
+          // Find the original vehicle in all vehicles
+          const originalVehicleData = allVehiclesData?.find(v => v.id === bookingVehicleId);
+          
+          if (originalVehicleData) {
+            const mappedOriginalVehicle = {
+              id: originalVehicleData.id,
+              created_at: originalVehicleData.created_at,
+              updated_at: originalVehicleData.updated_at,
+              make: originalVehicleData.brand || "",
+              model: originalVehicleData.model || "",
+              year: parseInt(originalVehicleData.year) || new Date().getFullYear(),
+              license_plate: originalVehicleData.plate_number || "",
+              vin: originalVehicleData.vin || "",
+              image_url: originalVehicleData.image_url || undefined,
+              status: originalVehicleData.status as 'active' | 'maintenance' | 'retired',
+              last_inspection: originalVehicleData.last_inspection || undefined
+            } as Vehicle;
+            
+            setOriginalVehicle(mappedOriginalVehicle);
+            
+            // Check if the original vehicle is currently available
+            const isAvailable = vehiclesData?.some(v => v.id === bookingVehicleId);
+            setIsOriginalVehicleAvailable(!!isAvailable);
+          }
+        }
 
         // Fetch driver availability records
         const { data: availabilityData, error: availabilityError } = await supabase
@@ -199,6 +247,10 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
             setIsEditing(false);
           }
         });
+    } else {
+      // Explicitly set names to null when no assignments exist
+      setCurrentDriverName(null);
+      setCurrentVehicleName(null);
     }
   }, [supabase, booking.driver_id, booking.vehicle?.id]);
 
@@ -251,16 +303,14 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
       const durationMinutes = parseInt(String(booking.duration || "60"));
       const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
-
-      // Set status to pending if either driver or vehicle is unassigned
-      const dispatchStatus = selectedDriverId && selectedVehicleId ? 'assigned' : 'pending';
+      
+      // Prepare dispatch update
       const dispatchUpdate = {
         driver_id: selectedDriverId,
         vehicle_id: selectedVehicleId,
-        status: dispatchStatus,
+        status: selectedDriverId && selectedVehicleId ? 'assigned' : 'pending',
         start_time: startTime,
         end_time: endTimeDate.toISOString(),
-        notes: booking.notes,
         updated_at: new Date().toISOString(),
       };
 
@@ -304,8 +354,6 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
   const handleEditClick = () => {
     setIsEditing(true);
-    // Reset selections to current assignment if user cancels edit later?
-    // Or just let them select new ones. Simpler: just allow re-selection.
     setSelectedDriverId(booking.driver_id || null);
     setSelectedVehicleId(booking.vehicle?.id || null);
   };
@@ -319,130 +367,184 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
   };
 
   return (
-    <div className="space-y-6">
-      {/* Remove this duplicate title section */}
-      {/* 
-      <h2 className="text-xl font-semibold">
-        {t('bookings.assignment.title')}
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        {t('bookings.assignment.summary')}
-      </p> 
-      */}
-
+    <div>
+      
       {isLoading ? (
         <div className="flex items-center justify-center p-8">
-          {/* Existing loading spinner code */}
+          <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
         </div>
       ) : (
-        <div className="bg-card rounded-lg shadow border">
-          {/* Remove this h3 title and its container div */}
-          {/* 
-          <div className="p-4 border-b">
-            <h3 className="text-lg font-semibold text-foreground">{t('bookings.assignment.title')}</h3>
-          </div> 
-          */}
-
-          <div className="p-4 space-y-6">
-            {/* Booking Summary */}
-            <div className="border rounded-md">
-              <div className="px-4 py-3 border-b">
-                <h4 className="text-sm font-medium text-foreground">{t('bookings.assignment.bookingDetails')}</h4>
+        <div className="space-y-6">
+          {/* Booking Details Section */}
+          <div className="border rounded-md overflow-hidden">
+            <div className="px-4 py-3 bg-text-muted border-b">
+              <h3 className="text-base font-medium">Booking Details</h3>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">Pickup Date</div>
+                  <div className="font-medium">{booking.date}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Pickup Time</div>
+                  <div className="font-medium">{booking.time}</div>
+                </div>
               </div>
-              <div className="px-4 py-3 grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="block text-xs text-muted-foreground mb-1">{t('bookings.details.fields.pickupDate')}</span>
-                  <span className="text-foreground">{booking.date}</span>
-                </div>
-                <div>
-                  <span className="block text-xs text-muted-foreground mb-1">{t('bookings.details.fields.pickupTime')}</span>
-                  <span className="text-foreground">{booking.time}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="block text-xs text-muted-foreground mb-1">{t('bookings.details.fields.pickupLocation')}</span>
-                  <span className="text-foreground">{booking.pickup_location}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="block text-xs text-muted-foreground mb-1">{t('bookings.details.fields.dropoffLocation')}</span>
-                  <span className="text-foreground">{booking.dropoff_location}</span>
-                </div>
+              <div className="mb-4">
+                <div className="text-sm text-muted-foreground">Pickup Location</div>
+                <div className="font-medium">{booking.pickup_location}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Dropoff Location</div>
+                <div className="font-medium">{booking.dropoff_location}</div>
               </div>
             </div>
+          </div>
 
-            {isEditing ? (
-              // EDITING MODE: Show Select dropdowns
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Driver Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="driver-select">{t("bookings.assignment.driver")}</Label>
-                  <Select 
-                    value={selectedDriverId ?? "none"}
-                    onValueChange={(value) => setSelectedDriverId(value === "none" ? null : value)}
-                  >
-                    <SelectTrigger id="driver-select">
-                      <SelectValue placeholder={t("bookings.assignment.selectDriver")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {availableDrivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id}>
-                          {driver.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Driver Column */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <UserIcon className="h-5 w-5" />
+                <h3 className="text-base font-medium">Driver</h3>
+              </div>
+              
+              {/* Driver Display - More robust check */}
+              {isEditing ? (
+                <Select 
+                  value={selectedDriverId ?? "none"}
+                  onValueChange={(value) => setSelectedDriverId(value === "none" ? null : value)}
+                >
+                  <SelectTrigger id="driver-select" className="w-full">
+                    <SelectValue placeholder="Not assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not assigned</SelectItem>
+                    {availableDrivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.id}>
+                        {driver.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="p-2 border rounded-md">
+                  <p className="text-foreground">
+                    {currentDriverName ? currentDriverName : "Not assigned"}
+                  </p>
                 </div>
-
-                {/* Vehicle Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="vehicle-select">{t("bookings.assignment.vehicle")}</Label>
-                  <Select 
-                    value={selectedVehicleId ?? "none"}
-                    onValueChange={(value) => setSelectedVehicleId(value === "none" ? null : value)}
-                  >
-                    <SelectTrigger id="vehicle-select">
-                      <SelectValue placeholder={t("bookings.assignment.selectVehicle")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {availableVehicles.map((vehicle) => (
+              )}
+              
+              {/* Driver Details */}
+              <div className="mt-3 p-3 bg-muted/30 border border-border rounded-md">
+                <p className="text-sm font-medium text-muted-foreground">Driver Details</p>
+                {selectedDriverId && getDriverById(selectedDriverId) && (
+                  <div className="mt-2 grid gap-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Name:</span>
+                      <span className="text-sm">{getDriverById(selectedDriverId)?.full_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Phone:</span>
+                      <span className="text-sm">{getDriverById(selectedDriverId)?.phone || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Email:</span>
+                      <span className="text-sm">{getDriverById(selectedDriverId)?.email || "—"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Vehicle Column */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <CarIcon className="h-5 w-5" />
+                <h3 className="text-base font-medium">Vehicle</h3>
+              </div>
+              
+              {/* Vehicle Display - Now showing original vehicle when possible */}
+              {isEditing ? (
+                <Select 
+                  value={selectedVehicleId ?? "none"}
+                  onValueChange={(value) => setSelectedVehicleId(value === "none" ? null : value)}
+                >
+                  <SelectTrigger id="vehicle-select" className="w-full">
+                    <SelectValue placeholder="Not assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not assigned</SelectItem>
+                    
+                    {/* Show original vehicle first if it exists */}
+                    {originalVehicle && (
+                      <SelectItem 
+                        key={originalVehicle.id} 
+                        value={originalVehicle.id}
+                        disabled={!isOriginalVehicleAvailable}
+                      >
+                        {originalVehicle.make} {originalVehicle.model} ({originalVehicle.license_plate})
+                        {!isOriginalVehicleAvailable && " - Not Available"}
+                      </SelectItem>
+                    )}
+                    
+                    {/* Show separator if we're displaying both original and alternatives */}
+                    {originalVehicle && !isOriginalVehicleAvailable && availableVehicles.length > 0 && (
+                      <SelectItem value="separator" disabled>
+                        Alternative Vehicles
+                      </SelectItem>
+                    )}
+                    
+                    {/* Show available alternatives only if different from original vehicle */}
+                    {availableVehicles
+                      .filter(vehicle => !originalVehicle || vehicle.id !== originalVehicle.id)
+                      .map((vehicle) => (
                         <SelectItem key={vehicle.id} value={vehicle.id}>
                           {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="p-2 border rounded-md">
+                  <p className="text-foreground">
+                    {currentVehicleName ? currentVehicleName : "Not assigned"}
+                  </p>
                 </div>
+              )}
+              
+              {/* Vehicle Details */}
+              <div className="mt-3 p-3 bg-muted/30 border border-border rounded-md">
+                <p className="text-sm font-medium text-muted-foreground">Vehicle Details</p>
+                {selectedVehicleId && getVehicleById(selectedVehicleId) && (
+                  <div className="mt-2 grid gap-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">License Plate:</span>
+                      <span className="text-sm">{getVehicleById(selectedVehicleId)?.license_plate || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Vehicle Brand:</span>
+                      <span className="text-sm">{getVehicleById(selectedVehicleId)?.make || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Vehicle Model:</span>
+                      <span className="text-sm">{getVehicleById(selectedVehicleId)?.model || "—"}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              // DISPLAY MODE: Show assigned details
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label className="flex items-center gap-2 mb-2 text-sm font-medium text-foreground">
-                    <UserIcon className="h-4 w-4 text-muted-foreground" />
-                    {t('bookings.assignment.driver')}
-                  </label>
-                  <p className="text-foreground">{currentDriverName || t('common.notAssigned')}</p>
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 mb-2 text-sm font-medium text-foreground">
-                    <CarIcon className="h-4 w-4 text-muted-foreground" />
-                    {t('bookings.assignment.vehicle')}
-                  </label>
-                  <p className="text-foreground">{currentVehicleName || t('common.notAssigned')}</p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
-
-          <div className="p-4 border-t flex justify-end">
+          
+          <div className="flex justify-end border-t pt-4 mt-4">
             {isEditing ? (
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSubmitting}>
-                  {t("common.cancel")}
+                  Cancel
                 </Button>
                 <Button onClick={handleAssign} disabled={isSubmitting}>
-                  {isSubmitting ? t("common.saving") : t("bookings.assignment.confirmAssignment")}
+                  {isSubmitting ? "Saving..." : "Confirm Assignment"}
                 </Button>
               </div>
             ) : (
@@ -452,7 +554,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
                 className="w-full md:w-auto"
               >
                 <Edit className="mr-2 h-4 w-4" />
-                {t('common.edit')}
+                Edit
               </Button>
             )}
           </div>

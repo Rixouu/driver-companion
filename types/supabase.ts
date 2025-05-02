@@ -58,13 +58,20 @@ export type Database = {
           price_formatted: string | null
           service_id: string | null
           service_name: string
+          service_type: string | null
           status: string
           synced_at: string | null
           time: string
           updated_at: string | null
+          updated_by: string | null
+          vehicle_capacity: number | null
           vehicle_id: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: string | null
           wp_id: string
           wp_meta: Json | null
+          wp_vehicle_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -89,13 +96,20 @@ export type Database = {
           price_formatted?: string | null
           service_id?: string | null
           service_name: string
+          service_type?: string | null
           status?: string
           synced_at?: string | null
           time: string
           updated_at?: string | null
+          updated_by?: string | null
+          vehicle_capacity?: number | null
           vehicle_id?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
           wp_id: string
           wp_meta?: Json | null
+          wp_vehicle_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -120,13 +134,20 @@ export type Database = {
           price_formatted?: string | null
           service_id?: string | null
           service_name?: string
+          service_type?: string | null
           status?: string
           synced_at?: string | null
           time?: string
           updated_at?: string | null
+          updated_by?: string | null
+          vehicle_capacity?: number | null
           vehicle_id?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: string | null
           wp_id?: string
           wp_meta?: Json | null
+          wp_vehicle_id?: string | null
         }
         Relationships: [
           {

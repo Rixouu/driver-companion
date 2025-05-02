@@ -19,7 +19,42 @@ import {
   Clipboard
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
+
+// Define interfaces for menu items
+interface MenuGroup {
+  id: string;
+  title: string;
+  icon: React.ElementType;
+  href?: string;
+  hasSubmenu?: boolean;
+}
+
+interface MenuItem {
+  id: string;
+  title: string;
+  icon: React.ElementType;
+  href: string;
+}
+
+// Type-safe wrapper for Link href
+function SafeLink({ href, className, children, onClick }: {
+  href: string;
+  className?: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <Link 
+      href={href as any}
+      className={className}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -96,7 +131,7 @@ export function MobileNav() {
   if (isDetailPage) return null;
   
   // Main menu groups
-  const mainGroups = [
+  const mainGroups: MenuGroup[] = [
     {
       id: 'dashboard',
       title: 'Dashboard',
@@ -107,13 +142,15 @@ export function MobileNav() {
       id: 'fleet',
       title: 'Fleet',
       icon: Car,
-      hasSubmenu: true
+      hasSubmenu: true,
+      href: '#'
     },
     {
       id: 'operations',
       title: 'Operations',
       icon: Clipboard,
-      hasSubmenu: true
+      hasSubmenu: true,
+      href: '#'
     },
     {
       id: 'reporting',
@@ -130,7 +167,7 @@ export function MobileNav() {
   ]
   
   // Submenu items for the groups with submenus
-  const submenuItems = {
+  const submenuItems: Record<string, MenuItem[]> = {
     fleet: [
       { id: 'vehicles', title: t("navigation.vehicles"), icon: Car, href: '/vehicles' },
       { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' }
@@ -159,7 +196,7 @@ export function MobileNav() {
             const Icon = group.icon;
             
             // For items with submenus, open the sheet when clicked if active
-            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            const handleClick = (e: React.MouseEvent<HTMLElement>) => {
               if (group.hasSubmenu) {
                 if (isActive) {
                   e.preventDefault();
@@ -171,42 +208,67 @@ export function MobileNav() {
             };
             
             return (
-              <Link
+              <div
                 key={group.id}
-                href={group.href || '#'}
                 className={cn(
-                  "flex flex-col items-center justify-center w-full h-full relative",
+                  "flex flex-col items-center justify-center w-full h-full relative cursor-pointer",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
-                onClick={handleClick} ><span className="flex items-center gap-2">
-                <span className="flex flex-col items-center">
-                  <Icon className="h-5 w-5" />
-                  <span className="text-[10px] mt-1">{group.title}</span>
-                  
-                  {/* Indicator dot for active tab */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeDot"
-                      className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  
-                  {/* Up arrow for items with submenus when active */}
-                  {group.hasSubmenu && isActive && (
-                    <div className="absolute -top-1.5 right-1/2 transform translate-x-4">
-                      <ChevronUp className="h-3 w-3 text-primary" />
+                onClick={handleClick}
+              >
+                {!group.hasSubmenu && group.href ? (
+                  <SafeLink href={group.href} className="flex flex-col items-center">
+                    <div className="relative">
+                      <Icon className="h-5 w-5" />
                     </div>
-                  )}
-                </span>
-              </span></Link>
+                    <span className="text-[10px] mt-1">{group.title}</span>
+                  </SafeLink>
+                ) : (
+                  <span className="flex flex-col items-center">
+                    <div className="relative">
+                      <Icon className="h-5 w-5" />
+                      {/* More prominent submenu indicator */}
+                      {group.hasSubmenu && (
+                        <div className={cn(
+                          "absolute -top-1 -right-1.5 w-2 h-2 rounded-full",
+                          isActive ? "bg-primary" : "bg-muted-foreground/50"
+                        )} />
+                      )}
+                    </div>
+                    <span className="text-[10px] mt-1">{group.title}</span>
+                  </span>
+                )}
+                
+                {/* Indicator dot for active tab */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeDot"
+                    className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                
+                {/* Show a more visible indicator for active items with submenus */}
+                {group.hasSubmenu && isActive && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground rounded-full p-0.5">
+                    <ChevronUp className="h-3 w-3" />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
       </div>
+      
       {/* Sheet for displaying submenu items */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="h-auto max-h-[60vh] pt-4 pb-20 rounded-t-2xl">
+          <SheetTitle className="sr-only">
+            {activeGroup === 'fleet' ? 'Fleet Management' : 'Operations'}
+          </SheetTitle>
+          <SheetDescription className="sr-only">
+            Select from available {activeGroup === 'fleet' ? 'fleet management' : 'operations'} options
+          </SheetDescription>
           <div className="space-y-4">
             <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-1 bg-muted-foreground/20 rounded-full" />
@@ -222,21 +284,24 @@ export function MobileNav() {
                 const isActive = pathname.startsWith(item.href);
                 
                 return (
-                  <Link
+                  <div
                     key={item.id}
-                    href={item.href}
-                    onClick={() => setSheetOpen(false)}
                     className={cn(
                       "flex flex-col items-center justify-center p-3 rounded-lg transition-colors",
                       isActive 
                         ? "bg-primary/10 text-primary" 
                         : "bg-muted/50 text-foreground hover:bg-muted"
-                    )}>
-                    <span className="flex flex-col items-center">
+                    )}
+                  >
+                    <SafeLink 
+                      href={item.href} 
+                      className="flex flex-col items-center" 
+                      onClick={() => setSheetOpen(false)}
+                    >
                       <item.icon className="h-6 w-6 mb-2" />
                       <span className="text-xs text-center">{item.title}</span>
-                    </span>
-                  </Link>
+                    </SafeLink>
+                  </div>
                 );
               })}
             </div>

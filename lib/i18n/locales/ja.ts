@@ -1273,8 +1273,19 @@ export const ja: TranslationValue = {
         status: "ステータス",
         paymentLink: "支払いリンク",
         amount: "金額",
-        name: "名前"
+        name: "名前",
+        serviceName: "サービス名",
+        customerName: "顧客名",
+        driver: "ドライバー"
       },
+      quickCustomerActions: "クイック顧客アクション",
+      tooltips: {
+        emailTo: "メール送信先",
+        callTo: "通話先",
+        textTo: "テキスト送信先"
+      },
+      flightInformation: "フライト情報",
+      notesAndInstructions: "備考と指示",
       actions: {
         navigateToPickup: "ピックアップ地点へ案内",
         navigateToDropoff: "降車地点へ案内",
@@ -1299,7 +1310,10 @@ export const ja: TranslationValue = {
         shareEmail: "メールで共有",
         exportPdf: "PDFをエクスポート",
         generateInvoice: "請求書を作成",
-        emailInvoice: "請求書をメールで送信"
+        emailInvoice: "請求書をメールで送信",
+        emailCustomer: "顧客にメール",
+        callCustomer: "顧客に電話",
+        textCustomer: "顧客にメッセージ"
       },
       weather: {
         title: "出発日の天気予報",
@@ -1364,6 +1378,13 @@ export const ja: TranslationValue = {
       retrying: "再試行中...",
       retryButton: "接続を再試行",
       successWithCount: "{count}件の予約を同期しました（{created}件作成、{updated}件更新）"
+    },
+    calculateRoute: "ルート距離と時間を計算",
+    autoCalculateAvailable: "自動計算可能",
+    placeholders: {
+      enterPickupAddress: "出発地を入力してください",
+      enterDropoffAddress: "目的地を入力してください",
+      enterBothLocations: "ルートを表示するには、出発地と目的地の両方を入力してください"
     }
   },
   dispatch: {
@@ -1480,5 +1501,7 @@ export const ja: TranslationValue = {
       safety: "安全システムの重要点検",
       maintenance: "定期メンテナンス確認"
     }
-  }
+  },
+  googleMapsApiKeyMissing: "Google Maps APIキーが設定されていません",
+  googleMapsApiKeyMissingDescription: "Google Maps APIキーが設定されていません。環境変数にNEXT_PUBLIC_GOOGLE_MAPS_API_KEYを追加してください。手動での住所入力は引き続き機能します。"
 } as const 

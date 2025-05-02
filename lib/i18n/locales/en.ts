@@ -701,7 +701,8 @@ export const en: TranslationValue = {
       progress: "Inspection Progress",
       estimatedTime: "Est. time remaining",
       model: "Model",
-      photoNumber: "Photo {{number}}"
+      photoNumber: "Photo {{number}}",
+      currentSection: "Current Section"
     },
     actions: {
       pass: "Pass",

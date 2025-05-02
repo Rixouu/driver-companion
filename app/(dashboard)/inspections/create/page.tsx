@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
+import { PageHeader } from "@/components/page-header"
 
 export const metadata: Metadata = {
   title: "Create Inspection",
@@ -35,36 +36,27 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
   
   // Determine the back URL based on whether this was opened from a booking
   const backUrl = bookingId ? `/bookings/${bookingId}` : "/inspections"
-  const backText = bookingId ? "Back to booking" : "Back to inspections"
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <Link href="/inspections" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {t("common.backTo")} {t("inspections.title")}
-            </Button>
-          </span></span></Link>
+      <PageHeader
+        title="Create New Inspection"
+        description="Create a new inspection by filling out the form below"
+      >
+        <Link href="/inspections">
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            {t("common.backTo")} {t("inspections.title")}
+          </Button>
+        </Link>
+      </PageHeader>
 
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Create New Inspection
-            </h1>
-            <p className="text-muted-foreground">
-              Create a new inspection by filling out the form below
-            </p>
-          </div>
-        </div>
-
-        <StepBasedInspectionForm 
-          inspectionId="" 
-          vehicleId={vehicleId} 
-          bookingId={bookingId}
-          vehicles={vehicles || []}
-        />
-      </div>
+      <StepBasedInspectionForm 
+        inspectionId="" 
+        vehicleId={vehicleId} 
+        bookingId={bookingId}
+        vehicles={vehicles || []}
+      />
     </div>
   );
 } 

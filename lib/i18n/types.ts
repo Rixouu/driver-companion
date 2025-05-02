@@ -440,6 +440,17 @@ export interface DriversTranslations {
     noInspections: string
     createInspection: string
     defaultType: string
+    steps: {
+      selectVehicle: string
+      selectType: string
+    }
+    labels: {
+      progress: string
+      estimatedTime: string
+      model: string
+      photoNumber: string
+      currentSection: string
+    }
     actions: {
       pass: string
       fail: string

@@ -1,6 +1,22 @@
-import { supabase, createServiceClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase"
 import type { FuelLog } from "@/types"
 import type { Database } from '@/types/supabase'
+
+// Dynamically import the service client only when needed (server-side)
+async function getServiceClient() {
+  try {
+    // This will only work on the server side
+    if (typeof window === 'undefined') {
+      const { createServiceClient } = await import("@/lib/supabase/service-client")
+      return createServiceClient()
+    }
+    console.error('Service client can only be used on the server side')
+    return null
+  } catch (error) {
+    console.error('Failed to import service client:', error)
+    return null
+  }
+}
 
 export async function getFuelLogs(vehicleId?: string) {
   try {
@@ -55,8 +71,14 @@ export async function getFuelLog(id: string, userId?: string) {
       .single()
 
     if (fuelError) {
-      // If RLS blocks access, try with service client
-      const { data: adminFuelLog, error: adminError } = await createServiceClient()
+      // If RLS blocks access, try with service client if we're on the server
+      const serviceClient = await getServiceClient()
+      
+      if (!serviceClient) {
+        return { log: null }
+      }
+      
+      const { data: adminFuelLog, error: adminError } = await serviceClient
         .from('fuel_entries')
         .select(`
           *,
@@ -88,7 +110,7 @@ export async function getFuelLog(id: string, userId?: string) {
       }
 
       // Check if user owns either the vehicle or the fuel log
-      if (adminFuelLog.user_id !== userId && adminFuelLog.vehicle.user_id !== userId) {
+      if (adminFuelLog.user_id !== userId && (!adminFuelLog.vehicle || adminFuelLog.vehicle.user_id !== userId)) {
         console.error('User does not have access to this fuel log or vehicle')
         return { log: null }
       }

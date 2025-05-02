@@ -599,10 +599,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     
     return (
       <div className="space-y-8">
-        <div>
+        <div className="bg-muted/30 p-4 rounded-lg">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">{currentSection.title}</h2>
-            <span className="text-muted-foreground">{currentSectionIndex + 1}/{sections.length}</span>
+            <span className="bg-muted px-3 py-1 rounded-full text-sm font-medium">{currentSectionIndex + 1}/{sections.length}</span>
           </div>
           {currentSection.description && (
             <p className="text-muted-foreground">{currentSection.description}</p>
@@ -614,7 +614,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           {currentSection.items.map(item => (
             <Card key={item.id} className="border">
               <CardContent className="p-6 space-y-5">
-                <div>
+                <div className="bg-muted/20 p-3 rounded-md">
                   <h3 className="font-medium text-lg">{item.title}</h3>
                   {item.description && (
                     <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
@@ -691,12 +691,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             onClick={currentSectionIndex === 0 ? () => setCurrentStepIndex(0) : handlePreviousSection}
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> 
-            {currentSectionIndex === 0 ? t('common.back') : t('inspections.actions.previousSection')}
+            {currentSectionIndex === 0 ? t('common.back') : `${t('inspections.actions.previousSection')} (${currentSectionIndex}/${sections.length})`}
           </Button>
           
           {currentSectionIndex < sections.length - 1 ? (
             <Button onClick={handleNextSection}>
-              {t('inspections.actions.nextSection')} <ArrowRight className="ml-2 h-4 w-4" />
+              {`${t('inspections.actions.nextSection')} (${currentSectionIndex + 2}/${sections.length})`} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
             <Button 
@@ -717,23 +717,27 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     if (!selectedVehicle) return null;
     
     const progress = getOverallProgress();
+    const currentSection = sections[currentSectionIndex] || { title: '' };
     
     return (
-      <Card className="mb-6">
+      <Card className="my-6">
         <CardContent className="p-4">
-          <div className="flex gap-4 items-center mb-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             {selectedVehicle.image_url ? (
-              <div className="w-32 h-24 rounded overflow-hidden">
-                <Image 
-                  src={selectedVehicle.image_url} 
-                  alt={selectedVehicle.name}
-                  width={128}
-                  height={96}
-                  className="object-cover w-full h-full"
-                />
+              <div className="w-full sm:w-40 mb-4 sm:mb-0">
+                <div className="relative w-full aspect-[16/9]">
+                  <Image 
+                    src={selectedVehicle.image_url} 
+                    alt={selectedVehicle.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 160px"
+                    priority
+                    className="object-cover rounded-md"
+                  />
+                </div>
               </div>
             ) : (
-              <div className="w-32 h-24 bg-muted flex items-center justify-center rounded">
+              <div className="w-full sm:w-40 h-24 bg-muted flex items-center justify-center rounded-md mb-4 sm:mb-0">
                 <span className="text-muted-foreground">{t('common.noImage')}</span>
               </div>
             )}
@@ -742,25 +746,39 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               <h3 className="text-xl font-bold">{selectedVehicle.brand} {selectedVehicle.model}</h3>
               <p className="text-muted-foreground">{selectedVehicle.year} {t('inspections.labels.model')}</p>
               
-              <div className="flex gap-2 mt-2">
-                <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
-                <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
-                <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
-                <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
-                <div className="w-12 h-2 bg-blue-500 rounded-full"></div>
+              <div className="mt-3 space-y-2">
+                {/* Section info with progress */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    {t('inspections.labels.currentSection')}: {currentSection.title}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {progress}% - {currentSectionIndex + 1}/{sections.length}
+                  </p>
+                </div>
+                
+                {/* Section indicators */}
+                <div className="flex gap-1 h-2.5">
+                  {sections.map((section, index) => (
+                    <div 
+                      key={section.id} 
+                      className={`h-2.5 rounded-full flex-1 ${
+                        index < currentSectionIndex 
+                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                          : index === currentSectionIndex 
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                            : 'bg-muted'
+                      }`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Estimated time */}
+                <p className="text-xs text-right text-muted-foreground">
+                  {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
+                </p>
               </div>
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <h4>{t('inspections.labels.progress')}</h4>
-              <span>{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-            <p className="text-sm text-muted-foreground text-right">
-              {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
-            </p>
           </div>
         </CardContent>
       </Card>

@@ -7,9 +7,9 @@ import { ArrowLeft } from "lucide-react"
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const { dictionary } = await getDictionary()
-    
-    return {
+  const { dictionary } = await getDictionary()
+  
+  return {
       title: dictionary?.vehicles?.newVehicle || "New Vehicle",
       description: dictionary?.vehicles?.description || "Add a new vehicle to your fleet",
     }

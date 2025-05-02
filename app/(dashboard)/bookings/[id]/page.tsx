@@ -224,7 +224,6 @@ export default function BookingPage() {
         <div className="flex gap-3 mt-4 md:mt-0">
           {getStatusBadge(booking.status)}
           <PrintButton booking={booking} />
-          
           <DriverActionsDropdown booking={booking} />
         </div>
       </div>
@@ -307,11 +306,6 @@ export default function BookingPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.capacity')}</h3>
                     <p className="mt-1">10 passengers</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleId')}</h3>
-                    <p className="mt-1">#{booking.vehicle?.id || '25139'}</p>
                   </div>
                   
                   <div>

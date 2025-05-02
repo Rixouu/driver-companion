@@ -18,13 +18,155 @@ function getDurationFromMeta(meta: Record<string, any> | null): string | null {
 }
 
 /**
+ * Process and format WordPress booking dates
+ * WordPress stores dates in DD-MM-YYYY format, but we need YYYY-MM-DD
+ */
+function formatWordPressDate(wpDate: string | undefined): string {
+  if (!wpDate) return '';
+  
+  // Check if already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}/.test(wpDate)) {
+    return wpDate.split(' ')[0]; // Extract date part if datetime
+  }
+  
+  // Handle DD-MM-YYYY format
+  const parts = wpDate.split('-');
+  if (parts.length === 3) {
+    // Rearrange from DD-MM-YYYY to YYYY-MM-DD
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  
+  return wpDate;
+}
+
+/**
+ * Extracts vehicle information from WordPress meta data
+ */
+function extractVehicleInfo(wpMeta: Record<string, any>): {
+  vehicle_id?: string | null;
+  make?: string | null;
+  model?: string | null;
+  capacity?: number | null;
+} {
+  // Initialize with empty values
+  const result = {
+    vehicle_id: null as string | null,
+    make: null as string | null,
+    model: null as string | null,
+    capacity: null as number | null
+  };
+
+  // Extract vehicle ID
+  if (wpMeta.chbs_vehicle_id) {
+    result.vehicle_id = String(wpMeta.chbs_vehicle_id);
+  }
+
+  // Extract vehicle name and parse it to get make and model
+  if (wpMeta.chbs_vehicle_name) {
+    const vehicleName = String(wpMeta.chbs_vehicle_name);
+    
+    // Common vehicle makes that might appear in the name
+    const commonMakes = [
+      'Toyota', 'Honda', 'Nissan', 'Lexus', 'Mercedes', 'BMW', 
+      'Audi', 'Ford', 'Hyundai', 'Mazda', 'Mitsubishi'
+    ];
+    
+    // Try to extract the make from the vehicle name
+    const foundMake = commonMakes.find(make => vehicleName.includes(make));
+    if (foundMake) {
+      result.make = foundMake;
+      // Model is everything after the make
+      result.model = vehicleName.replace(foundMake, '').trim();
+    } else {
+      // If make not found, use first word as make and rest as model
+      const parts = vehicleName.split(' ');
+      if (parts.length > 0) {
+        result.make = parts[0];
+        result.model = parts.slice(1).join(' ');
+      }
+    }
+  }
+  
+  // Try to extract capacity information
+  if (wpMeta.chbs_vehicle_passenger_count) {
+    const passengerCount = parseInt(String(wpMeta.chbs_vehicle_passenger_count), 10);
+    if (!isNaN(passengerCount)) {
+      result.capacity = passengerCount;
+    }
+  } else {
+    // Fallback: Try to infer capacity from name and known vehicle models
+    const vehicleName = String(wpMeta.chbs_vehicle_name || '').toLowerCase();
+    
+    // Define common model capacity mappings
+    const capacityMapping: Record<string, number> = {
+      'hiace grand cabin': 10,
+      'hiace': 8,
+      'alphard': 6,
+      'alphard executive': 4,
+      'alphard executive lounge': 4,
+      'alphard z-class': 6,
+      'camry': 4,
+      'prius': 4,
+      'crown': 4,
+      'century': 4
+    };
+    
+    // Try to find matching model for capacity
+    for (const [model, capacity] of Object.entries(capacityMapping)) {
+      if (vehicleName.includes(model.toLowerCase())) {
+        result.capacity = capacity;
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Maps a WordPress booking to a Supabase booking structure
  */
-export const mapWordPressBookingToSupabase = (wpBooking: WordPressBooking): Omit<SupabaseBooking, 'id'> => {
+export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBooking, 'id'> => {
   const meta = wpBooking.meta;
   const wpMeta = meta || {};
 
-  // Extract service type from WordPress meta
+  // Process date properly from WordPress format
+  let bookingDate = '';
+  
+  // First try the date field from the booking object
+  if (wpBooking.date) {
+    bookingDate = formatWordPressDate(wpBooking.date);
+  } 
+  // Then try the pickup_date from meta
+  else if (wpMeta.chbs_pickup_date) {
+    bookingDate = formatWordPressDate(wpMeta.chbs_pickup_date);
+  }
+  
+  // Extract booking time from various possible sources
+  let bookingTime = wpBooking.time || wpMeta.chbs_pickup_time || '00:00';
+  
+  // Clean up time format if needed (remove AM/PM, etc.)
+  if (bookingTime.includes('AM') || bookingTime.includes('PM')) {
+    // Convert 12-hour format to 24-hour
+    const timeParts = bookingTime.split(' ');
+    const timeValue = timeParts[0];
+    const ampm = timeParts[1];
+    
+    if (timeValue && timeValue.includes(':')) {
+      const [hours, minutes] = timeValue.split(':');
+      let hoursNum = parseInt(hours, 10);
+      
+      if (ampm === 'PM' && hoursNum < 12) {
+        hoursNum += 12;
+      } else if (ampm === 'AM' && hoursNum === 12) {
+        hoursNum = 0;
+      }
+      
+      bookingTime = `${hoursNum.toString().padStart(2, '0')}:${minutes}`;
+    }
+  }
+
+  // Extract service type information and store in service_name (since service_type column doesn't exist)
   let serviceType = wpMeta.chbs_service_type || null;
   
   // Try to determine service type from route name or details
@@ -39,6 +181,21 @@ export const mapWordPressBookingToSupabase = (wpBooking: WordPressBooking): Omit
     serviceType = String(wpMeta.chbs_route_service_type);
   }
   
+  // Check service_type_id which often contains the service type
+  if (!serviceType && wpMeta.chbs_service_type_id) {
+    // Common mapping for service type IDs
+    const serviceTypeMap: Record<string, string> = {
+      '1': 'Airport Transfer',
+      '2': 'Hourly Hire',
+      '3': 'Point to Point'
+    };
+    
+    const typeId = String(wpMeta.chbs_service_type_id);
+    if (serviceTypeMap[typeId]) {
+      serviceType = serviceTypeMap[typeId];
+    }
+  }
+  
   // Fallback check for airport transfers in booking details
   if (!serviceType && wpMeta.chbs_booking_detail) {
     const bookingDetail = typeof wpMeta.chbs_booking_detail === 'string' 
@@ -50,38 +207,236 @@ export const mapWordPressBookingToSupabase = (wpBooking: WordPressBooking): Omit
     }
   }
 
-  return {
-    wp_id: wpBooking.id,
-    service_name: wpMeta.chbs_vehicle_name || 'Vehicle Service',
-    service_type: serviceType,
-    date: wpBooking.date,
-    time: wpBooking.time || '00:00',
+  // Check for airport pickup/dropoff locations
+  if (!serviceType && wpMeta.chbs_coordinate) {
+    const coordinates = Array.isArray(wpMeta.chbs_coordinate) ? wpMeta.chbs_coordinate : [];
+    
+    for (const coordinate of coordinates) {
+      const address = coordinate.address || '';
+      if (typeof address === 'string' && 
+          (address.toLowerCase().includes('airport') || 
+           address.toLowerCase().includes('haneda') || 
+           address.toLowerCase().includes('narita'))) {
+        serviceType = 'Airport Transfer';
+        break;
+      }
+    }
+  }
+
+  // Combine service type into service name if available
+  const serviceName = serviceType 
+    ? `${wpMeta.chbs_vehicle_name || 'Vehicle Service'} (${serviceType})` 
+    : wpMeta.chbs_vehicle_name || 'Vehicle Service';
+    
+  // Extract price information from meta data
+  let priceAmount: number | null = null;
+  let priceCurrency: string | null = wpMeta.chbs_currency_id || null;
+  
+  // First check if price is directly in the booking object
+  if (wpBooking.price && typeof wpBooking.price.amount !== 'undefined') {
+    priceAmount = parseFloat(String(wpBooking.price.amount));
+    priceCurrency = wpBooking.price.currency || priceCurrency;
+  } 
+  // If not, try to extract from meta data based on calculation method and price type
+  else {
+    // Based on calculation method, determine which price field to use
+    const calculationMethod = wpMeta.chbs_calculation_method;
+    const priceType = wpMeta.chbs_price_type;
+    
+    if (priceType === '2' || priceType === 2) { // Fixed price
+      const fixedValue = wpMeta.chbs_price_fixed_value;
+      if (fixedValue) {
+        priceAmount = parseFloat(String(fixedValue));
+      }
+    } else if (calculationMethod === '1' || calculationMethod === 1) { // Hourly
+      const hourValue = wpMeta.chbs_price_hour_value;
+      if (hourValue) {
+        priceAmount = parseFloat(String(hourValue));
+      }
+    } else {
+      // Try to find any price field with a value
+      const possiblePriceFields = [
+        'chbs_price_fixed_value',
+        'chbs_price_hour_value', 
+        'chbs_price_distance_value',
+        'chbs_price_initial_value'
+      ];
+      
+      for (const field of possiblePriceFields) {
+        if (wpMeta[field] && parseFloat(String(wpMeta[field])) > 0) {
+          priceAmount = parseFloat(String(wpMeta[field]));
+          break;
+        }
+      }
+    }
+  }
+  
+  // Format price for display
+  let priceFormatted: string | null = null;
+  if (priceAmount !== null && priceCurrency) {
+    priceFormatted = `${priceCurrency} ${priceAmount.toLocaleString()}`;
+  }
+  
+  // Extract payment link - check both standard and IPPS fields
+  const paymentLink = wpBooking.payment_link || 
+                      wpBooking.ipps_payment_link || 
+                      wpMeta.chbs_ipps_payment_url || 
+                      wpMeta.ipps_payment_link || 
+                      null;
+                      
+  // Get customer full name
+  const firstName = wpMeta.chbs_client_contact_detail_first_name || '';
+  const lastName = wpMeta.chbs_client_contact_detail_last_name || '';
+  const customerName = (firstName + ' ' + lastName).trim() || null;
+
+  // Extract vehicle information
+  const vehicleInfo = extractVehicleInfo(wpMeta);
+
+  // Create the base booking data
+  const bookingData: Omit<SupabaseBooking, 'id'> = {
+    wp_id: String(wpBooking.id),
+    service_name: serviceName,
+    date: bookingDate || '',
+    time: bookingTime,
     duration: getDurationFromMeta(meta) || null,
     status: wpBooking.status || 'pending',
-    customer_name: wpMeta.chbs_client_contact_detail_first_name || null,
+    customer_name: customerName,
     customer_email: wpMeta.chbs_client_contact_detail_email_address || null,
     customer_phone: wpMeta.chbs_client_contact_detail_phone_number || null,
     distance: wpMeta.chbs_distance?.toString() || null,
-    price_amount: wpBooking.price?.amount || null,
-    price_currency: wpBooking.price?.currency || null,
-    price_formatted: wpBooking.price?.formatted || null,
+    price_amount: priceAmount,
+    price_currency: priceCurrency,
+    price_formatted: priceFormatted,
     payment_status: wpBooking.payment_status || null,
-    payment_method: wpBooking.payment_method || null,
-    payment_link: wpBooking.payment_link || wpBooking.ipps_payment_link || null,
+    payment_method: wpBooking.payment_method || wpMeta.chbs_payment_name || null,
+    payment_link: paymentLink,
     notes: wpMeta.chbs_comment || null,
     pickup_location: wpMeta.chbs_coordinate && Array.isArray(wpMeta.chbs_coordinate) && wpMeta.chbs_coordinate.length > 0 && wpMeta.chbs_coordinate[0].address || null,
     dropoff_location: wpMeta.chbs_coordinate && Array.isArray(wpMeta.chbs_coordinate) && wpMeta.chbs_coordinate.length > 1 && wpMeta.chbs_coordinate[1].address || null,
-    wp_meta: wpMeta as Json,
+    
+    // Add vehicle information - store raw WordPress vehicle ID in wp_vehicle_id instead of vehicle_id
+    // to avoid UUID type conflicts
+    wp_vehicle_id: vehicleInfo.vehicle_id || null,
+    vehicle_make: vehicleInfo.make || null,
+    vehicle_model: vehicleInfo.model || null,
+    
+    // Cast meta data to Json type to avoid type errors
+    wp_meta: wpMeta as unknown as Json,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     synced_at: new Date().toISOString(),
   };
+  
+  return bookingData;
 }
 
 /**
  * Maps a Supabase booking to the Booking type
  */
 export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row']): Booking {
+  // Extract vehicle information
+  let vehicleInfo: {
+    id?: string;
+    make?: string;
+    model?: string;
+    year?: string;
+    registration?: string;
+    capacity?: number;
+  } = {};
+  
+  // Process vehicle data from various sources
+  
+  // 1. First check if vehicle_id exists
+  if (booking.vehicle_id) {
+    vehicleInfo.id = booking.vehicle_id;
+  }
+  
+  // 2. Try to extract vehicle data from wp_meta
+  if (booking.wp_meta && typeof booking.wp_meta === 'object') {
+    const meta = booking.wp_meta as Record<string, any>;
+    
+    // Extract vehicle ID from meta if not already set
+    if (!vehicleInfo.id && meta.chbs_vehicle_id) {
+      vehicleInfo.id = String(meta.chbs_vehicle_id);
+    }
+    
+    // Extract vehicle name and parse for make/model
+    if (meta.chbs_vehicle_name) {
+      const vehicleName = String(meta.chbs_vehicle_name);
+      
+      // Common vehicle makes
+      const commonMakes = [
+        'Toyota', 'Honda', 'Nissan', 'Lexus', 'Mercedes', 'BMW', 
+        'Audi', 'Ford', 'Hyundai', 'Mazda', 'Mitsubishi'
+      ];
+      
+      // Try to extract the make from the vehicle name
+      const foundMake = commonMakes.find(make => vehicleName.includes(make));
+      if (foundMake) {
+        vehicleInfo.make = foundMake;
+        vehicleInfo.model = vehicleName.replace(foundMake, '').trim();
+      } else {
+        // If make not found, use first word as make and rest as model
+        const parts = vehicleName.split(' ');
+        if (parts.length > 0) {
+          vehicleInfo.make = parts[0];
+          vehicleInfo.model = parts.slice(1).join(' ');
+        }
+      }
+    }
+    
+    // Extract capacity
+    if (meta.chbs_vehicle_passenger_count) {
+      const passengerCount = parseInt(String(meta.chbs_vehicle_passenger_count), 10);
+      if (!isNaN(passengerCount)) {
+        vehicleInfo.capacity = passengerCount;
+      }
+    } else {
+      // Try to infer capacity from vehicle name
+      const vehicleName = String(meta.chbs_vehicle_name || '').toLowerCase();
+      
+      // Capacity mappings
+      const capacityMapping: Record<string, number> = {
+        'hiace grand cabin': 10,
+        'hiace': 8,
+        'alphard': 6,
+        'alphard executive': 4,
+        'alphard executive lounge': 4,
+        'alphard z-class': 6,
+        'camry': 4,
+        'prius': 4,
+        'crown': 4,
+        'century': 4
+      };
+      
+      // Find matching model for capacity
+      for (const [model, capacity] of Object.entries(capacityMapping)) {
+        if (vehicleName.includes(model.toLowerCase())) {
+          vehicleInfo.capacity = capacity;
+          break;
+        }
+      }
+    }
+  }
+  
+  // 3. If we didn't extract any vehicle info and have a service_name, try to get make/model from it
+  if (!vehicleInfo.make && booking.service_name) {
+    const serviceName = booking.service_name;
+    const commonMakes = ['Toyota', 'Honda', 'Nissan', 'Lexus', 'Mercedes', 'BMW'];
+    
+    for (const make of commonMakes) {
+      if (serviceName.includes(make)) {
+        vehicleInfo.make = make;
+        // Extract model (everything between make and first parenthesis or end of string)
+        const modelMatch = serviceName.replace(make, '').trim().match(/^(.*?)(\s*\(|$)/);
+        if (modelMatch && modelMatch[1]) {
+          vehicleInfo.model = modelMatch[1].trim();
+        }
+        break;
+      }
+    }
+  }
+
   return {
     id: booking.wp_id, // Keep wp_id mapped to id for potential legacy use/display
     supabase_id: booking.id, // Map the actual Supabase UUID
@@ -97,11 +452,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     customer_phone: booking.customer_phone || undefined,
     driver_id: booking.driver_id || undefined,
     
-    // Set vehicle when vehicle_id is available
-    ...(booking.vehicle_id && {
-      vehicle: {
-        id: booking.vehicle_id,
-      },
+    // Enhanced vehicle information
+    ...(Object.keys(vehicleInfo).length > 0 && {
+      vehicle: vehicleInfo
     }),
     
     // Set price when price_amount is available
@@ -140,21 +493,38 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
   updated: boolean;
   booking_id?: string;
   error?: string;
+  debug_info?: Record<string, any>;
 }> {
   try {
+    // Ensure WordPress ID exists
+    const wpId = String(wpBooking.id || wpBooking.booking_id || '');
+    if (!wpId) {
+      console.error('Cannot sync booking without an ID:', wpBooking);
+      return { 
+        created: false, 
+        updated: false, 
+        error: 'Booking is missing ID', 
+        debug_info: {
+          booking_data: { ...wpBooking },
+          reason: 'missing_id'
+        }
+      };
+    }
+    
     // First, check if this booking already exists in Supabase
     const { data: existingBooking, error: queryError } = await supabase
       .from('bookings')
       .select('*')
-      .eq('wp_id', String(wpBooking.id || wpBooking.booking_id || ''))
+      .eq('wp_id', wpId)
       .single();
     
     if (queryError && queryError.code !== 'PGRST116') { // PGRST116 is "Did not find a single row"
+      console.error(`Database error checking for booking ${wpId}:`, queryError);
       throw queryError;
     }
     
     // Map the WordPress booking to Supabase structure
-    const bookingData = mapWordPressBookingToSupabase(wpBooking);
+    const bookingData = mapWordPressBookingToSupabase(wpBooking as any);
     
     // Add timestamps
     const now = new Date().toISOString();
@@ -169,13 +539,24 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
       const { data, error: updateError } = await supabase
         .from('bookings')
         .update(bookingData)
-        .eq('wp_id', String(wpBooking.id || wpBooking.booking_id || ''))
+        .eq('wp_id', wpId)
         .select('id')
         .single();
       
       if (updateError) {
         console.error('Error updating booking:', updateError);
-        return { updated: false, created: false, error: updateError.message };
+        console.error('Booking data causing update error:', JSON.stringify(bookingData, null, 2));
+        return { 
+          updated: false, 
+          created: false, 
+          error: `Update error: ${updateError.message}`,
+          debug_info: {
+            booking_data: { ...bookingData },
+            error_details: updateError,
+            operation: 'update',
+            booking_wp_id: wpId
+          }
+        };
       }
       
       return { 
@@ -184,6 +565,30 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
         booking_id: data?.id
       };
     } else {
+      // Create new booking - add more verbose logging
+      console.log(`Creating new booking from WordPress ID: ${wpId}`);
+      
+      // Additional validation check for required fields
+      if (!bookingData.date) {
+        console.error('Cannot create booking: missing required date field');
+        return {
+          updated: false,
+          created: false,
+          error: 'Missing required date field', 
+          debug_info: {
+            booking_data: { ...bookingData },
+            reason: 'missing_required_field',
+            missing_field: 'date'
+          }
+        };
+      }
+      
+      if (!bookingData.time) {
+        // Set a default time if missing
+        console.warn(`Booking ${wpId} missing time field, defaulting to 00:00`);
+        bookingData.time = '00:00';
+      }
+      
       // Create new booking
       const { data, error: insertError } = await supabase
         .from('bookings')
@@ -192,11 +597,23 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
         .single();
       
       if (insertError) {
-        console.error('Error inserting booking:', insertError);
-        console.error('Booking data:', JSON.stringify(bookingData, null, 2));
-        return { updated: false, created: false, error: insertError.message };
+        console.error(`Error inserting booking ${wpId}:`, insertError);
+        console.error('Booking data causing insert error:', JSON.stringify(bookingData, null, 2));
+        
+        return { 
+          updated: false, 
+          created: false, 
+          error: `Insert error: ${insertError.message}`, 
+          debug_info: {
+            booking_data: { ...bookingData },
+            error_details: insertError,
+            operation: 'insert',
+            booking_wp_id: wpId
+          }
+        };
       }
       
+      console.log(`Successfully created booking ${wpId} with Supabase ID ${data?.id}`);
       return { 
         updated: false, 
         created: true,
@@ -204,11 +621,17 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
       };
     }
   } catch (error) {
-    console.error('Error syncing booking:', error);
+    console.error('Unhandled error syncing booking:', error);
+    
     return { 
       updated: false, 
       created: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      debug_info: {
+        error_type: error instanceof Error ? error.constructor.name : typeof error,
+        error_message: error instanceof Error ? error.message : String(error),
+        stack_trace: error instanceof Error ? error.stack : undefined
+      }
     };
   }
 }
@@ -221,6 +644,11 @@ export async function syncBookingsFromWordPress(): Promise<{
   created: number;
   updated: number;
   error?: string;
+  errors?: Array<{
+    booking_id: string;
+    error: string;
+  }>;
+  debug_info?: Record<string, any>;
 }> {
   try {
     // Create service client for admin-level database operations
@@ -239,7 +667,11 @@ export async function syncBookingsFromWordPress(): Promise<{
         total: 0, 
         created: 0, 
         updated: 0, 
-        error: `WordPress API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`
+        error: `WordPress API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`,
+        debug_info: {
+          error_type: apiError instanceof Error ? apiError.constructor.name : typeof apiError,
+          error_details: apiError instanceof Error ? apiError.message : String(apiError)
+        }
       };
     }
     
@@ -285,6 +717,7 @@ export async function syncBookingsFromWordPress(): Promise<{
     let created = 0
     let updated = 0
     let errors = 0
+    const errorDetails: Array<{ booking_id: string; error: string }> = []
     
     // Sync each booking
     const syncResults = await Promise.all(validBookings.map(async (wpBooking) => {
@@ -294,12 +727,20 @@ export async function syncBookingsFromWordPress(): Promise<{
         if (result.error) {
           console.error(`Error syncing booking ${wpBooking.id}:`, result.error);
           errors++;
+          errorDetails.push({
+            booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
+            error: result.error
+          });
         }
         
         return result
       } catch (syncError) {
         console.error(`Error processing booking ${wpBooking.id}:`, syncError);
         errors++;
+        errorDetails.push({
+          booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
+          error: syncError instanceof Error ? syncError.message : String(syncError)
+        });
         return {
           created: false,
           updated: false,
@@ -316,18 +757,33 @@ export async function syncBookingsFromWordPress(): Promise<{
     
     console.log(`Sync completed: ${created} created, ${updated} updated, ${errors} errors`);
     
-    return {
+    // Prepare return value
+    const returnValue = {
       total: validBookings.length,
       created,
       updated,
     }
+    
+    // Add error details if there were errors
+    if (errors > 0) {
+      return {
+        ...returnValue,
+        errors: errorDetails
+      }
+    }
+    
+    return returnValue;
   } catch (error) {
     console.error('Error syncing bookings:', error)
     return {
       total: 0,
       created: 0,
       updated: 0,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      debug_info: {
+        error_type: error instanceof Error ? error.constructor.name : typeof error,
+        error_stack: error instanceof Error ? error.stack : undefined
+      }
     }
   }
 }
@@ -494,7 +950,6 @@ export interface SupabaseBooking {
   driver_id?: string | null;
   service_name: string;
   service_id?: string | null;
-  service_type?: string | null;
   date: string;
   time: string;
   duration?: string | null;
@@ -512,6 +967,11 @@ export interface SupabaseBooking {
   notes?: string | null;
   pickup_location?: string | null;
   dropoff_location?: string | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  vehicle_capacity?: number | null;
+  vehicle_year?: string | null;
+  wp_vehicle_id?: string | null;
   wp_meta?: Json | null;
   created_at?: string | null;
   updated_at?: string | null;

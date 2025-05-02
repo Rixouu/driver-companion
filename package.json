@@ -12,7 +12,13 @@
     "start": "next start",
     "lint": "next lint",
     "setup-env": "node scripts/create-env.js",
-    "test-wp-api": "node scripts/test-wordpress-api.js"
+    "test-wp-api": "node scripts/test-wordpress-api.js",
+    "migrate:add-service-type": "node db/migrations/add-service-type-to-bookings.js",
+    "migrate:add-vehicle-fields": "node db/migrations/add-vehicle-fields-to-bookings.js",
+    "sync:bookings": "node scripts/run-sync.js",
+    "add-vehicle-fields": "node db/migrations/add-vehicle-fields-to-bookings.js",
+    "fix-db-schema": "echo 'Run this SQL in Supabase SQL Editor: ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_make TEXT; ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_model TEXT; ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_capacity INTEGER; ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_year TEXT; ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_type TEXT;'",
+    "fix-vehicle-id": "echo 'Run this SQL in Supabase SQL Editor: ALTER TABLE bookings ADD COLUMN IF NOT EXISTS wp_vehicle_id TEXT; UPDATE bookings SET vehicle_id = NULL WHERE vehicle_id IS NOT NULL AND NOT (vehicle_id ~ \\''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\\'');'"
   },
   "dependencies": {
     "@auth/core": "^0.22.0",
@@ -71,7 +77,7 @@
     "cmdk": "1.0.4",
     "cookies-next": "^4.1.1",
     "date-fns": "^3.6.0",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.5.0",
     "embla-carousel-react": "8.5.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.4.10",
@@ -98,6 +104,7 @@
     "react-leaflet": "4.2.1",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.0",
+    "resend": "^4.5.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",

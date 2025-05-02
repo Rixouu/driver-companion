@@ -333,3 +333,111 @@ If you still see mock data, try the following additional troubleshooting steps:
 - Ensure your API key has proper permissions
 - Check browser console for API errors
 - Try manually syncing via the "Sync" button on the Bookings page
+
+## Booking Synchronization
+
+The application synchronizes bookings from WordPress to Supabase to ensure data consistency. This synchronization is handled in several ways:
+
+### Manual Sync
+From the Bookings page, you can manually trigger a sync by clicking the "Sync Bookings" button. This is useful for immediate updates.
+
+### Automated Scheduled Sync
+The application now includes an automatic hourly sync via a Vercel Cron Job:
+
+1. The sync runs every hour via the `/api/bookings/sync` endpoint
+2. Set the `API_SYNC_SECRET_KEY` environment variable to secure the endpoint
+3. The endpoint can be called manually at `/sync-bookings` or `/api/bookings/sync?key=your_api_key`
+
+### Configuring the Sync
+To set up the automatic sync:
+
+1. Add `API_SYNC_SECRET_KEY=your_secure_random_key` to your environment variables
+2. Deploy the application to Vercel to enable the cron job
+3. To change the sync frequency, modify the `schedule` value in `vercel.json` using standard cron syntax (default is hourly: `0 * * * *`)
+
+### Troubleshooting Sync Issues
+If sync is not working as expected:
+
+1. Check the logs for detailed error messages
+2. Verify WordPress API connectivity
+3. Ensure all required environment variables are set up correctly
+4. The sync endpoint will now provide detailed error information when issues occur
+
+### Common Sync Errors
+
+#### Missing service_type Column
+If you encounter this error: `Could not find the 'service_type' column of 'bookings' in the schema cache`, you need to add the missing column to your database schema:
+
+1. Run the migration script to add the missing column:
+   ```bash
+   npm run migrate:add-service-type
+   ```
+
+2. If you don't have direct database access, ask your database administrator to run:
+   ```sql
+   ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_type TEXT;
+   ```
+
+3. Alternatively, the application has been updated to work without this column by storing the service type information within the service_name field.
+
+#### Price and Payment Data Issues
+The application now correctly extracts and maps price information from various WordPress booking formats:
+
+1. It checks multiple price fields in the WordPress booking data
+2. It correctly identifies the price based on calculation method (hourly, fixed, etc.)
+3. It properly formats the price with the correct currency
+4. Payment links are extracted from all known fields (wp_meta.chbs_ipps_payment_url, wp_meta.ipps_payment_link, etc.)
+
+You can manually run a booking sync with detailed debug information:
+```bash
+npm run sync:bookings
+```
+
+This will sync all bookings and show detailed information about what was processed.
+
+#### Vehicle Information
+The sync process now extracts detailed vehicle information:
+
+1. Makes and models are properly extracted from vehicle names
+2. Vehicle capacity is determined based on known vehicle models
+3. Vehicle IDs are properly linked for future queries
+
+To add support for vehicle data in your database schema, run:
+```bash
+npm run migrate:add-vehicle-fields
+```
+
+This will add the following columns to your bookings table:
+- `vehicle_make`: The vehicle manufacturer (e.g., Toyota, Honda)
+- `vehicle_model`: The specific model (e.g., Hiace Grand Cabin, Alphard)
+- `vehicle_capacity`: Number of passengers the vehicle can accommodate
+- `vehicle_year`: Model year if available
+
+## Troubleshooting
+
+### Missing Database Columns
+
+If you encounter errors like `Could not find the 'vehicle_capacity' column of 'bookings' in the schema cache` during booking synchronization, you need to add the missing columns to your database.
+
+Run the following SQL in your Supabase SQL Editor:
+
+```sql
+-- Add vehicle-related columns to the bookings table
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_make TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_model TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_capacity INTEGER;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS vehicle_year TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_type TEXT;
+```
+
+Or use our helper script to display the SQL command:
+
+```bash
+npm run fix-db-schema
+```
+
+Then run the sync process again:
+
+```bash
+npm run sync:bookings
+```

@@ -187,10 +187,10 @@ export default function DriversPage() {
         />
         
         <div className="flex items-center justify-end">
-          <ViewToggle
-            view={viewMode}
-            onViewChange={(value) => setViewMode(value as "list" | "grid")}
-          />
+            <ViewToggle
+              view={viewMode}
+              onViewChange={(value) => setViewMode(value as "list" | "grid")}
+            />
         </div>
       </div>
       

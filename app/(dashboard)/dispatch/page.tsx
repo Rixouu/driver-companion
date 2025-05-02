@@ -5,9 +5,9 @@ import { getDictionary } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const { t } = await getDictionary();
-    
-    return {
+  const { t } = await getDictionary();
+  
+  return {
       title: t("dispatch.title") || "Dispatch Board",
       description: t("dispatch.description") || "Manage driver and vehicle assignments for bookings",
     };
@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: "Dispatch Board",
       description: "Manage driver and vehicle assignments for bookings",
-    };
+  };
   }
 }
 

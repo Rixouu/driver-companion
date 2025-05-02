@@ -269,7 +269,7 @@ export const en: TranslationValue = {
       listView: {
         title: "List View",
         noRecords: "No availability records found. Click the button above to add one.",
-        loading: "Loading...",
+      loading: "Loading...",
         addAvailability: "Add Availability",
         editAvailability: "Edit Availability",
         deleteConfirmTitle: "Are you sure?",
@@ -1169,7 +1169,10 @@ export const en: TranslationValue = {
       photos: "Photos",
       photoDescription: "Photo evidence of inspection",
       inspector: "Inspector",
-      inspectorDescription: "Person performing the inspection"
+      inspectorDescription: "Person performing the inspection",
+      vehicleBrand: "Vehicle Brand",
+      vehicleModel: "Vehicle Model",
+      serviceType: "Service Type"
     },
     messages: {
       error: "Error",
@@ -1620,6 +1623,8 @@ export const en: TranslationValue = {
         vehicle: "Vehicle",
         capacity: "Capacity",
         vehicleId: "Vehicle ID",
+        vehicleBrand: "Vehicle Brand",
+        vehicleModel: "Vehicle Model",
         serviceType: "Service Type",
         pickupLocation: "Pickup Location",
         dropoffLocation: "Dropoff Location",
@@ -1632,7 +1637,8 @@ export const en: TranslationValue = {
         phone: "Phone",
         status: "Status",
         paymentLink: "Payment Link",
-        amount: "Amount"
+        amount: "Amount",
+        name: "Name"
       },
       actions: {
         navigateToPickup: "Navigate to Pickup",
@@ -1656,7 +1662,9 @@ export const en: TranslationValue = {
         shareWhatsApp: "Share via WhatsApp",
         shareLine: "Share via LINE",
         shareEmail: "Share via Email",
-        exportPdf: "Export PDF"
+        exportPdf: "Export PDF",
+        generateInvoice: "Generate Invoice",
+        emailInvoice: "Email Invoice"
       },
       driverActions: {
         title: "Driver Actions",

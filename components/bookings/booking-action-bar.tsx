@@ -21,7 +21,7 @@ export function BookingActionBar({ booking, onPublish }: BookingActionBarProps) 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <PublishButton bookingId={booking.id} onPublish={onPublish} />
-      <PrintButton />
+      <PrintButton booking={booking} />
       <DriverActionsDropdown booking={booking} />
     </div>
   )

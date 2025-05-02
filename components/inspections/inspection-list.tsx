@@ -397,8 +397,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   }
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", page.toString())
+       const params = new URLSearchParams(searchParams.toString())
+       params.set("page", page.toString())
     router.push(`/inspections?${params.toString()}`)
   }
 
@@ -807,7 +807,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Add filter controls
   const filterControls = () => {
-    return (
+  return (
       <div className="flex flex-col gap-4">
         <SearchFilterBar 
           onSearchChange={handleSearchChange}
@@ -848,17 +848,17 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                 className="text-xs sm:text-sm"
               >
                 {t('inspections.status.completed')}
-              </Button>
-            </div>
-            
+        </Button>
+      </div>
+
             {/* Date Range Picker - Always visible in the filter bar */}
             {groupingMode === 'date' && (
               <div className="ml-2">
                 <DateRangePicker
                   date={dateRange}
                   onDateChange={setDateRange}
-                />
-              </div>
+              />
+            </div>
             )}
           </div>
 
@@ -866,24 +866,24 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             <span className="text-sm text-white whitespace-nowrap">
               {t('inspections.groupBy')}:
             </span>
-            <Select
-              value={groupingMode}
+              <Select
+                value={groupingMode}
               onValueChange={(value: GroupingMode) => setGroupingMode(value)}
-            >
+              >
               <SelectTrigger className="h-8 w-[140px] text-xs sm:text-sm">
                 <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+                </SelectTrigger>
+                <SelectContent>
                 <SelectItem value="none">{t('inspections.groupByOptions.none')}</SelectItem>
                 <SelectItem value="date">{t('inspections.gro')}</SelectItem>
                 <SelectItem value="vehicle">{t('inspections.groupByOptions.vehicle')}</SelectItem>
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
 
             <ViewToggle view={view} onViewChange={setView} />
-          </div>
-        </div>
-      </div>
+              </div>
+            </div>
+            </div>
     )
   }
 
@@ -895,14 +895,14 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           <p className="text-muted-foreground">
             {t("inspections.description")}
           </p>
-        </div>
+          </div>
         <Button asChild size="sm">
           <Link href="/inspections/create">
              <Plus className="mr-2 h-4 w-4" />
              {t("inspections.createInspection")}
            </Link>
         </Button>
-      </div>
+        </div>
 
       <div className="space-y-4">
         {filterControls()}

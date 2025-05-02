@@ -41,6 +41,8 @@ export interface Booking {
   
   // Vehicle details
   vehicle?: Vehicle
+  vehicle_make?: string   // Direct vehicle make information
+  vehicle_model?: string  // Direct vehicle model information
   
   // Service details
   service?: {

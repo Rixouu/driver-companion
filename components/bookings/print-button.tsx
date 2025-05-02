@@ -55,7 +55,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       logoContainer.style.marginBottom = '20px'
       
       const logo = document.createElement('img')
-      logo.src = '/driver-header-logo.png' // Use user provided logo path
+      logo.src = '/img/driver-header-logo.png' // Update path to match sidebar logo path
       logo.alt = 'Driver Logo'
       logo.style.height = '60px'
       

@@ -275,11 +275,6 @@ export default function BookingDetailsContent({
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleId')}</h3>
-                    <p className="mt-1">#{booking.vehicle?.id || '25139'}</p>
-                  </div>
-                  
-                  <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
                     <p className="mt-1">Airport Transfer</p>
                   </div>

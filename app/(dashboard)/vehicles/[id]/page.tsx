@@ -15,11 +15,11 @@ interface VehiclePageProps {
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
   try {
-    const { dictionary } = await getDictionary()
-    const { vehicles } = await getVehicles()
-    const vehicle = vehicles.find(v => v.id === params.id)
-    
-    return {
+  const { dictionary } = await getDictionary()
+  const { vehicles } = await getVehicles()
+  const vehicle = vehicles.find(v => v.id === params.id)
+  
+  return {
       title: vehicle ? `${vehicle.name} - ${dictionary?.vehicles?.title || "Vehicles"}` : (dictionary?.vehicles?.title || "Vehicle Details"),
       description: dictionary?.vehicles?.description || "View vehicle details",
     }

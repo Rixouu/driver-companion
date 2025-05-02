@@ -10,8 +10,8 @@ import { getDictionary } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const { t } = await getDictionary()
-    return {
+  const { t } = await getDictionary()
+  return {
       title: t("inspections.schedule.title") || "Schedule Inspection",
       description: t("inspections.schedule.description") || "Schedule a new inspection by selecting a vehicle and date",
     }

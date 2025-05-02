@@ -7,9 +7,12 @@ import {
   Edit, 
   Calendar as CalendarIcon, 
   Trash2, 
-  CalendarPlus
+  CalendarPlus,
+  FileText
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
+import { PrintButton } from "./print-button"
+import { InvoiceButton } from "./invoice-button"
 
 interface BookingActionsProps {
   bookingId: string;
@@ -63,6 +66,19 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
               {t('bookings.details.bookingActions.addToGoogleCalendar')}
             </Button>
           </a>
+        </div>
+
+        {/* Document Actions */}
+        <div>
+          <h3 className="text-sm font-medium mb-3">Documents</h3>
+          
+          <div className="mb-3">
+            <PrintButton booking={booking} />
+          </div>
+          
+          <div className="mb-3">
+            <InvoiceButton booking={booking} />
+          </div>
         </div>
 
         {/* Management Actions */}

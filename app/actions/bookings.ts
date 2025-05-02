@@ -744,6 +744,10 @@ export async function syncBookings(): Promise<{
     created: number;
     updated: number;
   };
+  errors?: Array<{
+    booking_id: string;
+    error: string;
+  }>;
 }> {
   try {
     console.log("Starting booking sync from WordPress to database...");
@@ -759,6 +763,32 @@ export async function syncBookings(): Promise<{
         success: false,
         message: `Failed to sync bookings: ${result.error}`
       }
+    }
+    
+    // Handle errors array from individual sync failures
+    if (result.errors && result.errors.length > 0) {
+      console.log(`Sync completed with ${result.errors.length} errors`);
+      
+      // If there were some successes despite errors, return partial success
+      if (result.created > 0 || result.updated > 0) {
+        return {
+          success: true,
+          message: `Partially synced ${result.total} bookings (${result.created} created, ${result.updated} updated) with ${result.errors.length} errors`,
+          stats: {
+            total: result.total,
+            created: result.created,
+            updated: result.updated
+          },
+          errors: result.errors
+        };
+      }
+      
+      // If no successes at all, return failure
+      return {
+        success: false,
+        message: `Sync failed with ${result.errors.length} errors`,
+        errors: result.errors
+      };
     }
     
     return {

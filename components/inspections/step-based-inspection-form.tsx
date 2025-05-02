@@ -689,50 +689,50 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         <ScrollArea className="max-h-[60vh]">
           <div className="grid grid-cols-1 gap-4">
             {paginatedVehicles.map(vehicle => (
-              <Card 
-                key={vehicle.id} 
-                className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
-                onClick={() => handleVehicleSelect(vehicle)}
-              >
+          <Card 
+            key={vehicle.id} 
+            className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
+            onClick={() => handleVehicleSelect(vehicle)}
+          >
                 <CardContent className="p-4">
                   <div className="flex flex-row gap-4 items-center">
                     {/* Vehicle thumbnail with 16:9 aspect ratio */}
                     <div className="w-24 sm:w-48 shrink-0 flex items-center">
                       <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
-                        {vehicle.image_url ? (
-                          <Image 
-                            src={vehicle.image_url} 
-                            alt={vehicle.name}
+              {vehicle.image_url ? (
+                  <Image 
+                    src={vehicle.image_url} 
+                    alt={vehicle.name}
                             fill
                             sizes="(max-width: 768px) 96px, 192px"
                             className="object-cover"
                             priority={currentPage === 1}
-                          />
-                        ) : (
+                  />
+              ) : (
                           <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <span className="text-muted-foreground">{t('common.noImage')}</span>
-                          </div>
-                        )}
+                  <span className="text-muted-foreground">{t('common.noImage')}</span>
+                </div>
+              )}
                       </div>
                     </div>
-                    
+              
                     {/* Vehicle details */}
                     <div className="flex-1 flex flex-col justify-center">
-                      <h3 className="font-medium text-lg">{vehicle.name}</h3>
+                <h3 className="font-medium text-lg">{vehicle.name}</h3>
                       <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
-                      {vehicle.brand && vehicle.model && (
+                {vehicle.brand && vehicle.model && (
                         <p className="text-sm text-muted-foreground mt-1">
                           {vehicle.year && <span>{vehicle.year} </span>}
                           <span>{vehicle.brand} </span>
                           <span>{vehicle.model}</span>
                         </p>
-                      )}
+                )}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
         </ScrollArea>
       )}
       
@@ -770,12 +770,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         <Button variant="outline" onClick={() => router.push('/inspections')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> {t('inspections.title')}
         </Button>
-        
-        {selectedVehicle && (
+      
+      {selectedVehicle && (
           <Button onClick={() => setCurrentStepIndex(0)}>
             {t('common.next')} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-        )}
+      )}
       </div>
     </div>
   );
@@ -942,14 +942,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             {selectedVehicle.image_url ? (
               <div className="w-full flex items-center mb-4">
                 <div className="relative aspect-[16/9] w-full rounded-md overflow-hidden">
-                  <Image 
-                    src={selectedVehicle.image_url} 
-                    alt={selectedVehicle.name}
+                <Image 
+                  src={selectedVehicle.image_url} 
+                  alt={selectedVehicle.name}
                     fill
                     sizes="(max-width: 640px) 100vw, 100vw"
                     className="object-cover"
                     priority
-                  />
+                />
                 </div>
               </div>
             ) : (
@@ -970,38 +970,38 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               </p>
               
               {currentStepIndex !== 0 && (
-                <div className="mt-3 space-y-2">
-                  {/* Section info with progress */}
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      {t('inspections.labels.currentSection')}: {currentSection.title}
-                    </p>
-                    <p className="text-sm font-medium">
-                      {progress}% - {currentSectionIndex + 1}/{sections.length}
-                    </p>
-                  </div>
-                  
-                  {/* Section indicators */}
-                  <div className="flex gap-1 h-2.5">
-                    {sections.map((section, index) => (
-                      <div 
-                        key={section.id} 
-                        className={`h-2.5 rounded-full flex-1 ${
-                          index < currentSectionIndex 
-                            ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                            : index === currentSectionIndex 
-                              ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                              : 'bg-muted'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Estimated time */}
-                  <p className="text-xs text-right text-muted-foreground">
-                    {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
+              <div className="mt-3 space-y-2">
+                {/* Section info with progress */}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    {t('inspections.labels.currentSection')}: {currentSection.title}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {progress}% - {currentSectionIndex + 1}/{sections.length}
                   </p>
                 </div>
+                
+                {/* Section indicators */}
+                <div className="flex gap-1 h-2.5">
+                  {sections.map((section, index) => (
+                    <div 
+                      key={section.id} 
+                      className={`h-2.5 rounded-full flex-1 ${
+                        index < currentSectionIndex 
+                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                          : index === currentSectionIndex 
+                            ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                            : 'bg-muted'
+                      }`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Estimated time */}
+                <p className="text-xs text-right text-muted-foreground">
+                  {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
+                </p>
+              </div>
               )}
             </div>
           </div>

@@ -1259,7 +1259,8 @@ export const ja: TranslationValue = {
         phone: "電話番号",
         status: "ステータス",
         paymentLink: "支払いリンク",
-        amount: "金額"
+        amount: "金額",
+        name: "名前"
       },
       actions: {
         navigateToPickup: "ピックアップ地点へ案内",
@@ -1283,7 +1284,9 @@ export const ja: TranslationValue = {
         shareWhatsApp: "WhatsAppで共有",
         shareLine: "LINEで共有",
         shareEmail: "メールで共有",
-        exportPdf: "PDFをエクスポート"
+        exportPdf: "PDFをエクスポート",
+        generateInvoice: "請求書を作成",
+        emailInvoice: "請求書をメールで送信"
       },
     },
     edit: {

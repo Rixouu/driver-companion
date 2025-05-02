@@ -11,25 +11,81 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+
+// Invoice translations for different languages
+const invoiceTranslations = {
+  en: {
+    invoice: 'INVOICE',
+    invoiceNumber: 'Invoice #:',
+    invoiceDate: 'Invoice Date:',
+    bookingRef: 'Booking Ref:',
+    dueDate: 'Due Date:',
+    companyName: 'Japan Driver Co., Ltd.',
+    companyAddress1: '123 Tokyo Street, Shibuya-ku',
+    companyAddress2: 'Tokyo, Japan 123-4567',
+    companyEmail: 'info@japandriver.com',
+    companyWebsite: 'www.japandriver.com',
+    billTo: 'BILL TO:',
+    serviceDetails: 'SERVICE DETAILS:',
+    serviceDescription: 'Service Description',
+    date: 'Date',
+    quantity: 'Quantity',
+    price: 'Price',
+    subtotal: 'Subtotal:',
+    tax: 'Tax (7%):',
+    total: 'TOTAL:',
+    thanksMessage: 'Thank you for your business!',
+    contactMessage: 'If you have any questions about this invoice, please contact us at billing@japandriver.com',
+    companyFooter: 'Japan Driver Co., Ltd. • www.japandriver.com',
+    transportationService: 'Transportation Service'
+  },
+  ja: {
+    invoice: '請求書',
+    invoiceNumber: '請求書番号:',
+    invoiceDate: '請求書発行日:',
+    bookingRef: '予約番号:',
+    dueDate: 'お支払期限:',
+    companyName: 'ジャパンドライバー株式会社',
+    companyAddress1: '〒123-4567 東京都渋谷区',
+    companyAddress2: '東京ストリート123',
+    companyEmail: 'info@japandriver.com',
+    companyWebsite: 'www.japandriver.com',
+    billTo: '請求先:',
+    serviceDetails: 'サービス詳細:',
+    serviceDescription: 'サービス内容',
+    date: '日付',
+    quantity: '数量',
+    price: '価格',
+    subtotal: '小計:',
+    tax: '消費税 (7%):',
+    total: '合計:',
+    thanksMessage: 'ご利用いただきありがとうございます。',
+    contactMessage: 'この請求書に関するお問い合わせは billing@japandriver.com までご連絡ください。',
+    companyFooter: 'ジャパンドライバー株式会社 • www.japandriver.com',
+    transportationService: '送迎サービス'
+  }
+};
 
 interface InvoiceButtonProps {
   booking?: any;
 }
 
 export function InvoiceButton({ booking }: InvoiceButtonProps) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const [isGenerating, setIsGenerating] = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [emailAddress, setEmailAddress] = useState('')
   const [includeBookingDetails, setIncludeBookingDetails] = useState(true)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
+  const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja')
   
   const formatCurrency = (amount: number, currency: string = 'THB') => {
     if (!amount) return `${currency} 0.00`;
     return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const generateInvoice = async (email: boolean = false): Promise<Blob | null> => {
+  const generateInvoice = async (email: boolean = false, invoiceLanguage: 'en' | 'ja' = 'en'): Promise<Blob | null> => {
     if (!booking) {
       toast({
         title: "Error",
@@ -51,6 +107,9 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
         });
         return null;
       }
+      
+      // Get translations for the selected language
+      const invoiceT = invoiceTranslations[invoiceLanguage];
       
       // Create a new element to format as an invoice PDF
       const pdfContainer = document.createElement('div')
@@ -94,26 +153,26 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       invoiceDetails.style.maxWidth = '50%'
       
       const invoiceTitle = document.createElement('h1')
-      invoiceTitle.textContent = 'INVOICE'
+      invoiceTitle.textContent = invoiceT.invoice
       invoiceTitle.style.color = '#333'
       invoiceTitle.style.margin = '0 0 15px 0'
       invoiceTitle.style.fontSize = '24px'
       invoiceTitle.style.fontWeight = 'bold'
       
       const invoiceNumber = document.createElement('p')
-      invoiceNumber.textContent = `Invoice #: INV-${booking?.id || booking?.booking_id || 'N/A'}`
+      invoiceNumber.textContent = `${invoiceT.invoiceNumber} INV-${booking?.id || booking?.booking_id || 'N/A'}`
       invoiceNumber.style.margin = '0 0 5px 0'
       invoiceNumber.style.fontWeight = 'normal'
       invoiceNumber.style.fontSize = '13px'
       
       const today = new Date()
       const invoiceDate = document.createElement('p')
-      invoiceDate.textContent = `Invoice Date: ${today.toLocaleDateString()}`
+      invoiceDate.textContent = `${invoiceT.invoiceDate} ${today.toLocaleDateString(invoiceLanguage === 'ja' ? 'ja-JP' : 'en-US')}`
       invoiceDate.style.margin = '0 0 5px 0'
       invoiceDate.style.fontSize = '13px'
       
       const bookingRef = document.createElement('p')
-      bookingRef.textContent = `Booking Ref: #${booking?.id || booking?.booking_id || 'N/A'}`
+      bookingRef.textContent = `${invoiceT.bookingRef} #${booking?.id || booking?.booking_id || 'N/A'}`
       bookingRef.style.margin = '0 0 5px 0'
       bookingRef.style.fontSize = '13px'
       
@@ -121,7 +180,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       // Due date is 15 days from today
       const due = new Date(today)
       due.setDate(due.getDate() + 15)
-      dueDate.textContent = `Due Date: ${due.toLocaleDateString()}`
+      dueDate.textContent = `${invoiceT.dueDate} ${due.toLocaleDateString(invoiceLanguage === 'ja' ? 'ja-JP' : 'en-US')}`
       dueDate.style.margin = '0'
       dueDate.style.fontWeight = 'normal'
       dueDate.style.fontSize = '13px'
@@ -139,28 +198,28 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       companyInfo.style.textAlign = 'right'
       
       const companyName = document.createElement('h2')
-      companyName.textContent = 'Japan Driver Co., Ltd.'
+      companyName.textContent = invoiceT.companyName
       companyName.style.margin = '0 0 5px 0'
       companyName.style.color = '#333'
       companyName.style.fontSize = '16px'
       
       const companyAddress = document.createElement('p')
-      companyAddress.textContent = '123 Tokyo Street, Shibuya-ku'
+      companyAddress.textContent = invoiceT.companyAddress1
       companyAddress.style.margin = '0 0 2px 0'
       companyAddress.style.fontSize = '13px'
       
       const companyCity = document.createElement('p')
-      companyCity.textContent = 'Tokyo, Japan 123-4567'
+      companyCity.textContent = invoiceT.companyAddress2
       companyCity.style.margin = '0 0 2px 0'
       companyCity.style.fontSize = '13px'
       
       const companyEmail = document.createElement('p')
-      companyEmail.textContent = 'info@japandriver.com'
+      companyEmail.textContent = invoiceT.companyEmail
       companyEmail.style.margin = '0 0 2px 0'
       companyEmail.style.fontSize = '13px'
       
       const companyWebsite = document.createElement('p')
-      companyWebsite.textContent = 'www.japandriver.com'
+      companyWebsite.textContent = invoiceT.companyWebsite
       companyWebsite.style.margin = '0'
       companyWebsite.style.fontSize = '13px'
       
@@ -181,25 +240,25 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       customerSection.style.width = '100%'
       
       const billToTitle = document.createElement('h3')
-      billToTitle.textContent = 'BILL TO:'
+      billToTitle.textContent = invoiceT.billTo
       billToTitle.style.margin = '0 0 8px 0'
       billToTitle.style.color = '#333'
       billToTitle.style.fontSize = '14px'
       billToTitle.style.fontWeight = 'bold'
       
       const customerName = document.createElement('p')
-      customerName.textContent = booking?.customer_name || 'N/A'
+      customerName.textContent = booking?.customer_name || (invoiceLanguage === 'ja' ? 'お客様' : 'N/A')
       customerName.style.margin = '0 0 3px 0'
       customerName.style.fontWeight = 'bold'
       customerName.style.fontSize = '13px'
       
       const customerEmail = document.createElement('p')
-      customerEmail.textContent = booking?.customer_email || 'N/A'
+      customerEmail.textContent = booking?.customer_email || (invoiceLanguage === 'ja' ? '記載なし' : 'N/A')
       customerEmail.style.margin = '0 0 3px 0'
       customerEmail.style.fontSize = '13px'
       
       const customerPhone = document.createElement('p')
-      customerPhone.textContent = booking?.customer_phone || 'N/A'
+      customerPhone.textContent = booking?.customer_phone || (invoiceLanguage === 'ja' ? '記載なし' : 'N/A')
       customerPhone.style.margin = '0'
       customerPhone.style.fontSize = '13px'
       
@@ -215,7 +274,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       serviceSection.style.width = '100%'
       
       const serviceTitle = document.createElement('h3')
-      serviceTitle.textContent = 'SERVICE DETAILS:'
+      serviceTitle.textContent = invoiceT.serviceDetails
       serviceTitle.style.margin = '0 0 10px 0'
       serviceTitle.style.color = '#333'
       serviceTitle.style.fontSize = '14px'
@@ -235,7 +294,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       
       // Column widths as percentages
       const columnWidths = ['45%', '15%', '15%', '25%'];
-      const headers = ['Service Description', 'Date', 'Quantity', 'Price'];
+      const headers = [invoiceT.serviceDescription, invoiceT.date, invoiceT.quantity, invoiceT.price];
       
       headers.forEach((headerText, index) => {
         const th = document.createElement('th')
@@ -258,14 +317,15 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       const serviceRow = document.createElement('tr')
       
       const serviceDescription = document.createElement('td')
-      serviceDescription.textContent = booking?.service_name || 'Transportation Service'
+      serviceDescription.textContent = booking?.service_name || invoiceT.transportationService
       serviceDescription.style.padding = '10px'
       serviceDescription.style.borderBottom = '1px solid #e2e8f0'
       serviceDescription.style.fontSize = '13px'
       serviceDescription.style.width = columnWidths[0]
       
       const serviceDate = document.createElement('td')
-      serviceDate.textContent = booking?.date || 'N/A'
+      const bookingDate = booking?.date || 'N/A'
+      serviceDate.textContent = bookingDate
       serviceDate.style.padding = '10px'
       serviceDate.style.borderBottom = '1px solid #e2e8f0'
       serviceDate.style.fontSize = '13px'
@@ -321,7 +381,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       const subtotalRow = document.createElement('tr')
       
       const subtotalLabel = document.createElement('td')
-      subtotalLabel.textContent = 'Subtotal:'
+      subtotalLabel.textContent = invoiceT.subtotal
       subtotalLabel.style.padding = '5px 15px 5px 0'
       subtotalLabel.style.textAlign = 'right'
       subtotalLabel.style.fontWeight = 'normal'
@@ -346,7 +406,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       const taxRow = document.createElement('tr')
       
       const taxLabel = document.createElement('td')
-      taxLabel.textContent = 'Tax (7%):'
+      taxLabel.textContent = invoiceT.tax
       taxLabel.style.padding = '5px 15px 5px 0'
       taxLabel.style.textAlign = 'right'
       taxLabel.style.fontWeight = 'normal'
@@ -367,7 +427,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       totalRow.style.backgroundColor = '#f3f3f3'
       
       const totalLabel = document.createElement('td')
-      totalLabel.textContent = 'TOTAL:'
+      totalLabel.textContent = invoiceT.total
       totalLabel.style.padding = '8px 15px 8px 0'
       totalLabel.style.textAlign = 'right'
       totalLabel.style.fontWeight = 'bold'
@@ -399,7 +459,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       footer.style.width = '100%'
       
       const thanksMessage = document.createElement('p')
-      thanksMessage.textContent = 'Thank you for your business!'
+      thanksMessage.textContent = invoiceT.thanksMessage
       thanksMessage.style.margin = '0 0 10px 0'
       thanksMessage.style.fontSize = '14px'
       thanksMessage.style.fontWeight = 'bold'
@@ -407,13 +467,13 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       thanksMessage.style.textAlign = 'center'
       
       const footerText = document.createElement('p')
-      footerText.textContent = 'If you have any questions about this invoice, please contact us at billing@japandriver.com'
+      footerText.textContent = invoiceT.contactMessage
       footerText.style.margin = '0 0 5px 0'
       footerText.style.fontSize = '13px'
       footerText.style.textAlign = 'center'
       
       const companyFooter = document.createElement('p')
-      companyFooter.textContent = 'Japan Driver Co., Ltd. • www.japandriver.com'
+      companyFooter.textContent = invoiceT.companyFooter
       companyFooter.style.margin = '10px 0 0 0'
       companyFooter.style.fontSize = '13px'
       companyFooter.style.color = '#666'
@@ -515,13 +575,15 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
   }
 
   const handleGenerateInvoice = async () => {
-    await generateInvoice(false);
+    await generateInvoice(false, language as 'en' | 'ja');
   }
   
   const handleEmailDialogOpen = () => {
     if (booking?.customer_email) {
       setEmailAddress(booking.customer_email);
     }
+    // Set default email language to current UI language
+    setEmailLanguage(language as 'en' | 'ja');
     setEmailDialogOpen(true);
   }
   
@@ -538,8 +600,8 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
     setIsGenerating(true);
     
     try {
-      // Generate the PDF and get the blob
-      const pdfBlob = await generateInvoice(true);
+      // Generate the PDF and get the blob with the selected language
+      const pdfBlob = await generateInvoice(true, emailLanguage);
       
       if (!pdfBlob) {
         throw new Error('Failed to generate invoice PDF');
@@ -550,6 +612,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       formData.append('email', emailAddress);
       formData.append('booking_id', booking.id || booking.booking_id || '');
       formData.append('include_details', includeBookingDetails.toString());
+      formData.append('language', emailLanguage); // Add language parameter for email
       formData.append('invoice_pdf', pdfBlob, `invoice-${booking.id || booking.booking_id || 'booking'}.pdf`);
       
       try {
@@ -612,7 +675,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
         >
           {isGenerating ? 
             (t('common.exporting') || 'Generating...') : 
-            ('Generate Invoice')
+            (t('bookings.actions.generateInvoice') || 'Generate Invoice')
           }
         </BookingButton>
         
@@ -622,23 +685,23 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
           onClick={handleEmailDialogOpen}
           disabled={isGenerating || !booking}
         >
-          {'Email Invoice'}
+          {t('bookings.actions.emailInvoice') || 'Email Invoice'}
         </BookingButton>
       </div>
       
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Email Invoice</DialogTitle>
+            <DialogTitle>{t('bookings.actions.emailInvoice') || 'Email Invoice'}</DialogTitle>
             <DialogDescription>
-              Send the invoice as a PDF attachment to the customer's email address.
+              {t('bookings.invoice.emailDescription') || 'Send the invoice as a PDF attachment to the customer\'s email address.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">
-                Email
+                {t('common.email') || 'Email'}
               </Label>
               <Input
                 id="email"
@@ -648,6 +711,26 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
                 placeholder="customer@example.com"
                 className="col-span-3"
               />
+            </div>
+            
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right mt-2">
+                {t('settings.preferences.language.title') || 'Language'}
+              </Label>
+              <RadioGroup 
+                value={emailLanguage} 
+                onValueChange={(value) => setEmailLanguage(value as 'en' | 'ja')}
+                className="col-span-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="en" id="lang-en" />
+                  <Label htmlFor="lang-en">{t('settings.preferences.language.en') || 'English'}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="ja" id="lang-ja" />
+                  <Label htmlFor="lang-ja">{t('settings.preferences.language.ja') || '日本語'}</Label>
+                </div>
+              </RadioGroup>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
@@ -662,19 +745,21 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
                   htmlFor="include-details"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Include booking details
+                  {t('bookings.invoice.includeDetails') || 'Include booking details'}
                 </label>
               </div>
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+              {t('common.cancel') || 'Cancel'}
+            </Button>
             <Button 
               onClick={handleSendEmail} 
               disabled={isGenerating || !emailAddress}
             >
-              {isGenerating ? 'Sending...' : 'Send Email'}
+              {isGenerating ? (t('common.sending') || 'Sending...') : (t('common.send') || 'Send Email')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3,6 +3,92 @@ import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { mapSupabaseBookingToBooking } from '@/lib/api/bookings-service'
 
+// Email translations for different languages
+const translations = {
+  en: {
+    subject: 'Receipt from Japan Driver',
+    greeting: 'Hello',
+    thankYou: 'Thank you for choosing Japan Driver. Please find your receipt details below. We\'ve attached a detailed invoice to this email for your records.',
+    serviceType: 'SERVICE TYPE',
+    vehicle: 'VEHICLE',
+    pickupDate: 'PICKUP DATE',
+    pickupTime: 'PICKUP TIME',
+    route: 'ROUTE',
+    pickup: 'Pickup',
+    dropoff: 'Drop-off',
+    estimatedDuration: 'Estimated duration',
+    minutes: 'minutes',
+    paymentSummary: 'Payment Summary',
+    viewBookingDetails: 'View Booking Details',
+    questions: 'If you have any questions about this receipt, please contact us at',
+    company: 'Japan Driver Co., Ltd.',
+    emailText: `Receipt from Japan Driver
+Receipt #{bookingId}
+
+AMOUNT PAID: {formattedAmount}
+DATE PAID: {formattedDate}
+
+Thank you for your business! Your invoice is attached.
+
+SERVICE TYPE: {serviceType}
+VEHICLE: {vehicleInfo}
+PICKUP DATE: {bookingDate}
+PICKUP TIME: {pickupTimeFormatted}
+
+ROUTE:
+Pickup: {pickupLocation}
+Drop-off: {dropoffLocation}
+
+PAYMENT SUMMARY: {formattedAmount}
+
+If you have any questions about this receipt, please contact us at booking@japandriver.com.
+
+Japan Driver Co., Ltd.
+japandriver.com`
+  },
+  ja: {
+    subject: 'ジャパンドライバーからの領収書',
+    greeting: 'こんにちは',
+    thankYou: 'ジャパンドライバーをご利用いただきありがとうございます。以下に領収書の詳細がございます。詳細な請求書をこのメールに添付しております。',
+    serviceType: 'サービスタイプ',
+    vehicle: '車両',
+    pickupDate: '送迎日',
+    pickupTime: '送迎時間',
+    route: '経路',
+    pickup: '出発地',
+    dropoff: '目的地',
+    estimatedDuration: '予想所要時間',
+    minutes: '分',
+    paymentSummary: '支払い概要',
+    viewBookingDetails: '予約詳細を見る',
+    questions: 'この領収書に関するご質問は、以下までお問い合わせください',
+    company: 'ジャパンドライバー株式会社',
+    emailText: `ジャパンドライバーからの領収書
+領収書番号：{bookingId}
+
+お支払い金額：{formattedAmount}
+支払日：{formattedDate}
+
+ご利用いただきありがとうございます。請求書を添付しております。
+
+サービスタイプ：{serviceType}
+車両：{vehicleInfo}
+送迎日：{bookingDate}
+送迎時間：{pickupTimeFormatted}
+
+経路：
+出発地：{pickupLocation}
+目的地：{dropoffLocation}
+
+支払い概要：{formattedAmount}
+
+この領収書に関するご質問は booking@japandriver.com までお問い合わせください。
+
+ジャパンドライバー株式会社
+japandriver.com`
+  }
+}
+
 export async function POST(request: Request) {
   // Create a formdata object
   const formData = await request.formData()
@@ -11,6 +97,7 @@ export async function POST(request: Request) {
   const email = formData.get('email') as string
   const bookingId = formData.get('booking_id') as string
   const includeDetails = formData.get('include_details') === 'true'
+  const language = (formData.get('language') as string) || 'en' // Default to English if not specified
   
   // Get the PDF file from the form data
   const pdfFile = formData.get('invoice_pdf') as File
@@ -18,6 +105,10 @@ export async function POST(request: Request) {
   if (!email || !pdfFile) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+  
+  // Use only supported languages, default to English for unsupported ones
+  const lang = language === 'ja' ? 'ja' : 'en'
+  const t = translations[lang]
   
   try {
     // Get the real booking data from the database
@@ -64,71 +155,64 @@ export async function POST(request: Request) {
     
     // Format price with currency
     const formattedAmount = booking.price?.formatted || 
-      new Intl.NumberFormat('ja-JP', {
+      new Intl.NumberFormat(lang === 'ja' ? 'ja-JP' : 'en-US', {
         style: 'currency',
         currency: booking.price?.currency || 'JPY'
       }).format(booking.price?.amount || 0)
     
-    // Format date for display
-    const bookingDate = booking.date || new Date().toLocaleDateString('en-US', {
+    // Format date for display in selected language
+    const bookingDate = booking.date || new Date().toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    })
+    
+    // Format current date in selected language
+    const formattedDate = new Date().toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', {
       month: 'long',
       day: 'numeric',
       year: 'numeric'
     })
     
     // Get customer name with fallback
-    const customerName = booking.customer_name || 'Customer'
+    const customerName = booking.customer_name || (lang === 'ja' ? 'お客様' : 'Customer')
     
     // Create localized time strings
     const pickupTimeFormatted = booking.time || '06:30 am'
     
     // Extract service info with fallbacks
-    const serviceType = booking.service_name || 'Transportation Service'
+    const serviceType = booking.service_name || (lang === 'ja' ? '送迎サービス' : 'Transportation Service')
     const vehicleInfo = booking.vehicle ? 
       `${booking.vehicle.make || ''} ${booking.vehicle.model || ''}`.trim() : 
-      'Toyota Hiace Grand Cabin'
+      (lang === 'ja' ? 'トヨタ ハイエース グランドキャビン' : 'Toyota Hiace Grand Cabin')
     
     // Payment link - using booking ID to construct the URL
     const paymentLink = booking.payment_link || `${appUrl}/bookings/${bookingId}/payment`
+    
+    // Create the email text with placeholders replaced
+    const emailText = t.emailText
+      .replace('{bookingId}', bookingId)
+      .replace(/{formattedAmount}/g, formattedAmount)
+      .replace('{formattedDate}', formattedDate)
+      .replace('{serviceType}', serviceType)
+      .replace('{vehicleInfo}', vehicleInfo)
+      .replace('{bookingDate}', bookingDate)
+      .replace('{pickupTimeFormatted}', pickupTimeFormatted)
+      .replace('{pickupLocation}', booking.pickup_location || (lang === 'ja' ? '記載なし' : 'N/A'))
+      .replace('{dropoffLocation}', booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A'))
     
     // Send the email using Resend API
     const { data, error } = await resend.emails.send({
       from: `Japan Driver <booking@${emailDomain}>`,
       to: [email],
-      subject: `Receipt from Japan Driver - #${bookingId}`,
-      text: `Receipt from Japan Driver
-Receipt #${bookingId}
-
-AMOUNT PAID: ${formattedAmount}
-DATE PAID: ${new Date().toLocaleDateString('en-US', {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric'
-})}
-
-Thank you for your business! Your invoice is attached.
-
-SERVICE TYPE: ${serviceType}
-VEHICLE: ${vehicleInfo}
-PICKUP DATE: ${bookingDate}
-PICKUP TIME: ${pickupTimeFormatted}
-
-ROUTE:
-Pickup: ${booking.pickup_location || 'N/A'}
-Drop-off: ${booking.dropoff_location || 'N/A'}
-
-PAYMENT SUMMARY: ${formattedAmount}
-
-If you have any questions about this receipt, please contact us at booking@japandriver.com.
-
-Japan Driver Co., Ltd.
-japandriver.com`,
+      subject: `${t.subject} - #${bookingId}`,
+      text: emailText,
       html: `<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Receipt from Japan Driver</title>
+  <title>${t.subject}</title>
   <style>
     body, table, td, a {
       -webkit-text-size-adjust:100%;
@@ -188,9 +272,9 @@ japandriver.com`,
                     ">
                       <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="display:block;">
                     </div>
-                    <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">Receipt from Japan Driver</h1>
+                    <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">${t.subject}</h1>
                     <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                      Receipt #${bookingId}
+                      ${lang === 'ja' ? '領収書番号' : 'Receipt'} #${bookingId}
                     </p>
                   </td>
                 </tr>
@@ -202,8 +286,8 @@ japandriver.com`,
           <tr>
             <td>
               <p class="greeting">
-                Hello ${customerName},<br><br>
-                Thank you for choosing Japan Driver. Please find your receipt details below. We've attached a detailed invoice to this email for your records.
+                ${t.greeting} ${customerName},<br><br>
+                ${t.thankYou}
               </p>
             </td>
           </tr>
@@ -215,7 +299,7 @@ japandriver.com`,
                      style="background:#F8FAFC; border-radius:8px;">
                 <tr>
                   <td style="width:30%; padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">SERVICE TYPE</span>
+                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.serviceType}</span>
                   </td>
                   <td style="padding:16px 0;">
                     <span style="font-size:14px; color:#32325D;">${serviceType}</span>
@@ -223,7 +307,7 @@ japandriver.com`,
                 </tr>
                 <tr>
                   <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">VEHICLE</span>
+                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.vehicle}</span>
                   </td>
                   <td style="padding:16px 0;">
                     <span style="font-size:14px; color:#32325D;">${vehicleInfo}</span>
@@ -231,7 +315,7 @@ japandriver.com`,
                 </tr>
                 <tr>
                   <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">PICKUP DATE</span>
+                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.pickupDate}</span>
                   </td>
                   <td style="padding:16px 0;">
                     <span style="font-size:14px; color:#32325D;">${bookingDate}</span>
@@ -239,7 +323,7 @@ japandriver.com`,
                 </tr>
                 <tr>
                   <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">PICKUP TIME</span>
+                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.pickupTime}</span>
                   </td>
                   <td style="padding:16px 0;">
                     <span style="font-size:14px; color:#32325D;">${pickupTimeFormatted}</span>
@@ -252,7 +336,7 @@ japandriver.com`,
           <!-- ROUTE TIMELINE -->
           <tr>
             <td style="padding:0 24px 24px; color:#32325D;">
-              <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif;">ROUTE</h3>
+              <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif;">${t.route}</h3>
               <table width="100%" role="presentation">
                 <tr>
                   <td class="timeline" width="24" valign="top" style="padding-right:12px;">
@@ -263,10 +347,10 @@ japandriver.com`,
                     </table>
                   </td>
                   <td valign="top" style="font-size:14px; line-height:1.4; font-family: Work Sans, sans-serif;">
-                    <p style="margin:0 0 8px;"><strong>Pickup:</strong> ${booking.pickup_location || 'N/A'}<br>
-                      <small style="color:#8898AA;">${booking.time || 'N/A'}</small></p>
-                    <p style="margin:0;"><strong>Drop-off:</strong> ${booking.dropoff_location || 'N/A'}<br>
-                      <small style="color:#8898AA;">${booking.duration ? `Estimated duration: ${booking.duration} minutes` : 'N/A'}</small></p>
+                    <p style="margin:0 0 8px;"><strong>${t.pickup}:</strong> ${booking.pickup_location || (lang === 'ja' ? '記載なし' : 'N/A')}<br>
+                      <small style="color:#8898AA;">${booking.time || (lang === 'ja' ? '時間の記載なし' : 'N/A')}</small></p>
+                    <p style="margin:0;"><strong>${t.dropoff}:</strong> ${booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A')}<br>
+                      <small style="color:#8898AA;">${booking.duration ? `${t.estimatedDuration}: ${booking.duration} ${t.minutes}` : (lang === 'ja' ? '所要時間の記載なし' : 'N/A')}</small></p>
                   </td>
                 </tr>
               </table>
@@ -280,7 +364,7 @@ japandriver.com`,
                      style="background:#F8FAFC; border-radius:8px;">
                 <tr>
                   <td style="padding:16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    Payment Summary
+                    ${t.paymentSummary}
                   </td>
                   <td style="padding:16px; font-size:16px; color:#32325D; font-weight:bold; text-align:right; font-family: Work Sans, sans-serif;">
                     ${formattedAmount}
@@ -297,7 +381,7 @@ japandriver.com`,
                  style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
                         text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
                         font-size:16px; font-weight:600;">
-                View Booking Details
+                ${t.viewBookingDetails}
               </a>
             </td>
           </tr>
@@ -306,12 +390,12 @@ japandriver.com`,
           <tr>
             <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
               <p style="margin:0 0 8px;">
-                If you have any questions about this receipt, please contact us at<br>
+                ${t.questions}<br>
                 <a href="mailto:booking@japandriver.com" style="color:#E03E2D; text-decoration:none;">
                   booking@japandriver.com
                 </a>
               </p>
-              <p style="margin:0 0 4px;">Japan Driver Co., Ltd.</p>
+              <p style="margin:0 0 4px;">${t.company}</p>
               <p style="margin:0;">
                 <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
                   japandriver.com

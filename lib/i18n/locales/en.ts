@@ -58,7 +58,10 @@ export const en: TranslationValue = {
     call: "Call",
     text: "Text",
     line: "LINE",
-    exporting: "Exporting..."
+    exporting: "Exporting...",
+    email: "Email",
+    send: "Send Email",
+    sending: "Sending..."
   },
   auth: {
     logout: "Logout"
@@ -1530,7 +1533,13 @@ export const en: TranslationValue = {
     },
     actions: {
       sync: "Sync Bookings",
-      refresh: "Refresh"
+      refresh: "Refresh",
+      generateInvoice: "Generate Invoice",
+      emailInvoice: "Email Invoice"
+    },
+    invoice: {
+      emailDescription: "Send the invoice as a PDF attachment to the customer's email address.",
+      includeDetails: "Include booking details"
     },
     tableHeaders: {
       bookingId: "Booking ID",
@@ -1669,7 +1678,8 @@ export const en: TranslationValue = {
       driverActions: {
         title: "Driver Actions",
         tripManagement: "Trip Management",
-        shareBooking: "Share Booking"
+        shareBooking: "Share Booking",
+        addToGoogleCalendar: "Add to Google Calendar"
       },
       bookingActions: {
         title: "Booking Actions",
@@ -1682,7 +1692,7 @@ export const en: TranslationValue = {
       },
       weather: {
         title: "Weather Forecast for Departure Date",
-        notAvailable: "Weather forecast not available",
+        notAvailable: "No forecast available for {date}",
         errorMessage: "Failed to fetch weather forecast",
         disclaimer: "* Weather data powered by WeatherAPI.com",
         forecastUnavailable: "No forecast available for {date}"
@@ -1851,6 +1861,34 @@ export const en: TranslationValue = {
     endDatePlaceholder: "No end date",
     endDateDescription: "When to stop generating tasks",
     selectDate: "Select Date"
+  },
+  settings: {
+    title: "Settings",
+    description: "Manage account settings and preferences",
+    selectTab: "Select settings tab",
+    profile: {
+      title: "Profile",
+      description: "Manage your profile information",
+      name: "Name",
+      email: "Email",
+      emailDescription: "Your email is used for login and notifications."
+    },
+    preferences: {
+      title: "Preferences",
+      description: "Customize your application experience",
+      theme: {
+        title: "Theme",
+        light: "Light",
+        dark: "Dark",
+        system: "System"
+      },
+      language: {
+        title: "Language",
+        en: "English",
+        ja: "日本語"
+      }
+    },
+    // ... rest of settings section ...
   }
 } as const
 

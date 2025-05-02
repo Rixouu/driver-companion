@@ -54,7 +54,14 @@ export const ja: TranslationValue = {
     submitting: "送信中...",
     notAssigned: "未割り当て",
     noImage: "画像なし",
-    minutes: "分"
+    minutes: "分",
+    call: "電話",
+    text: "メッセージ",
+    line: "LINE",
+    exporting: "エクスポート中...",
+    email: "メールアドレス",
+    send: "メール送信",
+    sending: "送信中..."
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -1168,7 +1175,13 @@ export const ja: TranslationValue = {
     },
     actions: {
       sync: "予約を同期",
-      refresh: "更新"
+      refresh: "更新",
+      generateInvoice: "請求書を生成",
+      emailInvoice: "請求書をメールで送信"
+    },
+    invoice: {
+      emailDescription: "請求書をPDF添付ファイルとして顧客のメールアドレスに送信します。",
+      includeDetails: "予約詳細を含める"
     },
     tableHeaders: {
       bookingId: "予約ID",
@@ -1288,6 +1301,39 @@ export const ja: TranslationValue = {
         generateInvoice: "請求書を作成",
         emailInvoice: "請求書をメールで送信"
       },
+      weather: {
+        title: "出発日の天気予報",
+        notAvailable: "{date}の予報はありません",
+        errorMessage: "天気予報の取得に失敗しました",
+        disclaimer: "* 天気データはWeatherAPI.comによって提供されています",
+        forecastUnavailable: "{date}の予報はありません"
+      },
+      bookingActions: {
+        title: "予約アクション",
+        addToGoogleCalendar: "Googleカレンダーに追加",
+        managementActions: "管理アクション",
+        editBooking: "予約を編集",
+        rescheduleBooking: "予約日時を変更",
+        dangerZone: "危険ゾーン",
+        cancelBooking: "予約をキャンセル"
+      },
+      driverActions: {
+        title: "ドライバーアクション",
+        tripManagement: "配車管理",
+        shareBooking: "予約を共有",
+        addToGoogleCalendar: "Googleカレンダーに追加"
+      },
+      documents: {
+        title: "書類"
+      },
+      customerSince: "{date}からの顧客",
+      noDriversAvailable: "この予約時間に利用可能なドライバーがいません",
+      noVehiclesAvailable: "利用可能な車両がありません",
+      assignSuccess: "割り当てが正常に完了しました",
+      assignFailed: "予約の割り当てに失敗しました",
+      summary: "この予約にドライバーと車両を割り当てます",
+      bookingDetails: "予約詳細",
+      confirmAssignment: "割り当てを確定"
     },
     edit: {
       title: "予約 #{id} を編集",

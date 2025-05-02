@@ -215,7 +215,7 @@ export const en: TranslationValue = {
       unassignErrorDescription: "There was a problem unassigning the vehicle. Please try again.",
       noVehicleSelected: "No vehicle selected",
       noVehicleSelectedDescription: "Please select a vehicle to assign to this driver.",
-      noVehicleSelectedToUnassign: "Please select a vehicle to unassign from this driver.",
+      noVehicleSelectedToUnassign: "Please select a vehicle to unassign from this driver."
     },
     assignedVehicles: {
       title: "Assigned Vehicles",
@@ -235,193 +235,90 @@ export const en: TranslationValue = {
       assignVehicles: "Assign New",
       unassignVehicles: "Unassign Existing"
     },
-    vehicles: {
-      title: "Vehicles",
-      description: "Manage your fleet of vehicles",
-      addVehicle: "Add Vehicle",
-      newVehicle: "New Vehicle",
-      editVehicle: "Edit Vehicle",
-      details: "Vehicle Details",
-      searchPlaceholder: "Search vehicles...",
-      noVehicles: "No vehicles found",
-      noAvailable: "No available vehicles",
-      noAvailableDescription: "There are no vehicles available for selection.",
-      status: {
-        active: "Active",
-        maintenance: "Maintenance",
-        inactive: "Inactive"
-      },
-      filters: {
-        search: "Search vehicles",
-        searchPlaceholder: "Search by name or plate number",
-        brand: "Filter by brand",
-        model: "Filter by model",
-        allBrands: "All brands",
-        allModels: "All models",
-        noResults: "No vehicles matched your search",
-        clearFilters: "Clear filters"
-      },
-      pagination: {
-        showing: "Showing {start}-{end} of {total} vehicles",
-        loadMore: "Load more",
-        page: "Page {page}",
-        of: "of {total}"
-      },
-      fields: {
-        name: "Vehicle Name",
-        nameDescription: "A friendly name to identify this vehicle",
-        namePlaceholder: "e.g., Family SUV",
-        plateNumber: "License Plate",
-        brand: "Brand",
-        brandDescription: "The manufacturer of the vehicle",
-        brandPlaceholder: "e.g., Toyota",
-        model: "Model",
-        modelPlaceholder: "e.g., Camry",
-        year: "Year",
-        yearPlaceholder: "e.g., 2024",
-        vin: "VIN",
-        vinDescription: "17-character vehicle identification number",
-        status: "Status",
-        statusDescription: "Current operational status of the vehicle",
-        image: "Vehicle Image",
-        imageDescription: "PNG, JPG or WEBP (MAX. 800x400px)",
-        modelDescription: "The model name of the vehicle",
-        yearDescription: "The manufacturing year",
-        plateNumberDescription: "Vehicle registration number",
-        plateNumberPlaceholder: "e.g., ABC-1234",
-        statusPlaceholder: "Select vehicle status",
-        statusActive: "Active",
-        statusInactive: "Inactive",
-        statusMaintenance: "In Maintenance",
-        uploadImage: "Upload Image",
-        formCompletion: "Form Completion",
-        formCompletionDescription: "Progress of required fields",
-        vinPlaceholder: "Enter 17-character VIN",
-        uploadImageButton: "Upload Image",
-        uploadImageDragText: "Drag and drop an image here, or click to select",
-        uploadImageSizeLimit: "Maximum file size: 5MB"
-      },
-      placeholders: {
-        name: "Enter vehicle name",
-        plateNumber: "Enter license plate number",
-        brand: "Enter vehicle brand",
-        model: "Enter vehicle model",
-        year: "Enter manufacturing year",
-        vin: "Enter vehicle identification number"
-      },
-      form: {
-        basicInfo: "Basic Information",
-        additionalInfo: "Additional Information"
-      },
-      tabs: {
-        info: "Information",
-        schedule: "Scheduled",
-        inProgress: "In Progress",
-        history: "History",
-        costs: "Costs",
-        reminders: "Reminders",
-        scheduleEmpty: "No scheduled tasks",
-        historyEmpty: "No history available",
-        costsEmpty: "No cost records",
-        remindersEmpty: "No reminders set",
-        upcomingMaintenance: "Upcoming Maintenance",
-        scheduledInspections: "Scheduled Inspections",
-        addMaintenanceTask: "Add Task",
-        scheduleInspection: "Schedule Inspection",
-        maintenanceHistory: "Maintenance History",
-        inspectionHistory: "Inspection History",
-        completedOn: "Completed on {date}",
-        totalCosts: "Total Costs",
-        maintenanceCosts: "Maintenance Costs",
-        fuelCosts: "Fuel Costs",
-        otherCosts: "Other Costs",
-        addReminder: "Add Reminder",
-        noReminders: "No reminders set for this vehicle"
-      },
-      messages: {
-        createSuccess: "Vehicle created successfully",
-        updateSuccess: "Vehicle updated successfully",
-        deleteSuccess: "Vehicle deleted successfully",
-        error: "An error occurred",
-        deleteError: "Cannot delete vehicle",
-        hasAssociatedRecords: "This vehicle has associated inspections or maintenance tasks and cannot be deleted",
-        imageUploadError: "Failed to upload image"
-      },
-      addNewTitle: "Add New Vehicle",
-      addNewDescription: "Add a new vehicle to the fleet",
-      vehicleInformation: "Vehicle Information",
-      vehicleDetails: "Vehicle Details",
-      vehicleStatus: "Vehicle Status",
-      edit: {
-        title: "Edit Vehicle",
-        description: "Update vehicle information"
-      },
-      delete: {
-        title: "Delete Vehicle",
-        description: "This action cannot be undone. This will permanently delete the vehicle and remove it from our servers."
-      },
-      schedule: {
-        title: "Upcoming Tasks",
-        maintenanceTitle: "Scheduled Maintenance",
-        inspectionsTitle: "Scheduled Inspections",
-        noUpcoming: "No upcoming tasks scheduled",
-        noMaintenanceTasks: "No maintenance tasks scheduled",
-        noInspections: "No inspections scheduled"
-      },
-      history: {
-        title: "Vehicle History",
-        maintenanceTitle: "Completed Maintenance",
-        inspectionTitle: "Completed Inspections",
-        noRecords: "No history records found",
-        noMaintenanceRecords: "No completed maintenance records",
-        noInspectionRecords: "No completed inspection records",
-        inspection: "Inspection",
-        maintenance: "Maintenance"
-      },
-      deleteDialog: {
-        title: "Delete Vehicle",
-        description: "This action cannot be undone. This will permanently delete the vehicle and remove it from our servers."
-      },
-      inProgress: {
-        title: "In Progress Tasks",
-        maintenanceTitle: "Maintenance In Progress",
-        inspectionsTitle: "Inspections In Progress",
-        noTasks: "No tasks in progress",
-        noMaintenanceTasks: "No maintenance tasks in progress",
-        noInspections: "No inspections in progress"
-      },
-      allVehicles: "All Vehicles"
-    },
     inspections: {
       title: "Driver Inspections",
-      description: "Inspections performed by this driver",
+      description: "View inspection history for this driver",
+      noInspections: "No inspections found",
+      viewInspection: "View Inspection",
       empty: {
-        title: "No inspections found",
-        description: "This driver hasn't performed any inspections yet."
-      }
+        title: "No Inspections Found",
+        description: "This driver has no inspection records yet."
+      },
+      inspectionDate: "Inspection Date",
+      inspectionType: "Inspection Type",
+      status: "Status"
     },
     since: "Driver since {date}",
     availability: {
-      title: "Availability",
-      statusMessage: "This driver is currently {status} until {date} and cannot be assigned to bookings.",
-      availableMessage: "This driver is currently available to be assigned to bookings.",
+      title: "Driver Availability",
+      description: "Manage availability periods for this driver. Set when they are available, on leave, or in training.",
+      setStatus: "Set Status",
+      statusLabel: "Availability Status",
+      selectStatus: "Select status",
+      addAvailability: "Add Availability Period",
+      editAvailability: "Edit Availability Period",
+      deleteAvailability: "Delete Availability Period",
+      calendarView: "Calendar View",
+      listView: {
+        title: "List View",
+        noRecords: "No availability records found. Click the button above to add one.",
+        loading: "Loading...",
+        addAvailability: "Add Availability",
+        editAvailability: "Edit Availability",
+        deleteConfirmTitle: "Are you sure?",
+        deleteConfirmMessage: "This action cannot be undone. This will permanently delete the availability record.",
+        deleteSuccess: "Availability deleted",
+        deleteSuccessMessage: "Driver availability has been deleted successfully",
+        deleteError: "Failed to delete driver availability",
+        loadError: "Failed to load driver availability"
+      },
+      noAvailabilityRecords: "No availability records",
+      availabilityRecords: "Availability Records",
+      calendar: "Availability Calendar",
+      dateRange: "Date Range",
+      startDate: "Start Date",
+      endDate: "End Date",
+      status: "Status",
+      currentStatus: "Current Status",
+      notes: "Notes",
+      actions: "Actions",
+      notesPlaceholder: "Add any comments about this availability period",
+      statusActive: "Active",
+      statusInactive: "Inactive",
+      statusMessage: "This driver is currently {status} until {date}, and cannot be assigned to bookings.",
+      availableMessage: "This driver is currently available for booking assignments.",
       upcomingSchedule: "Upcoming Schedule",
       returnsFromLeave: "Returns from leave",
       viewFullSchedule: "View Full Schedule",
-      description: "Manage availability periods for this driver. Set when they are available, on leave, or in training.",
-      calendarView: "Calendar View",
-      listView: "List View",
-      calendar: "Availability Calendar",
-      loading: "Loading...",
-      setAvailability: "Set Availability",
-      setAvailabilityFor: "Set Availability for {date}",
       statuses: {
         available: "Available",
         unavailable: "Unavailable", 
-        leave: "Leave",
+        leave: "On Leave",
         training: "Training"
+      },
+      messages: {
+        createSuccess: "Availability period created successfully",
+        updateSuccess: "Availability period updated successfully",
+        deleteSuccess: "Availability period deleted successfully",
+        createError: "Failed to create availability period",
+        updateError: "Failed to update availability period",
+        deleteError: "Failed to delete availability period"
       }
     },
+    vehicles: {
+      title: "Assigned Vehicles",
+      description: "Vehicles assigned to this driver",
+      noVehicles: "No vehicles assigned to this driver"
+    }
+  },
+  vehicles: {
+    title: "Vehicles",
+    description: "Manage your vehicle fleet",
+    addVehicle: "Add Vehicle",
+    newVehicle: "New Vehicle",
+    editVehicle: "Edit Vehicle",
+    searchPlaceholder: "Search vehicles...",
+    noVehicles: "No vehicles found",
     filters: {
       search: "Search vehicles",
       searchPlaceholder: "Search by name or plate number",
@@ -470,7 +367,8 @@ export const en: TranslationValue = {
       vinPlaceholder: "Enter 17-character VIN",
       uploadImageButton: "Upload Image",
       uploadImageDragText: "Drag and drop an image here, or click to select",
-      uploadImageSizeLimit: "Maximum file size: 5MB"
+      uploadImageSizeLimit: "Maximum file size: 5MB",
+      type: "Vehicle Type"
     },
     placeholders: {
       name: "Enter vehicle name",
@@ -561,7 +459,12 @@ export const en: TranslationValue = {
       noMaintenanceTasks: "No maintenance tasks in progress",
       noInspections: "No inspections in progress"
     },
-    allVehicles: "All Vehicles"
+    allVehicles: "All Vehicles",
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+      maintenance: "In Maintenance"
+    }
   },
   maintenance: {
     title: "Maintenance",

@@ -167,9 +167,9 @@ export default function DriverDetailsPage() {
           {/* Driver Info Card */}
           <Card className={getCardClasses()}>
             <CardContent className="p-6 flex flex-col items-center">
-              <Avatar className="h-20 w-20 bg-[#FF7E00] mb-4 mt-2">
+              <Avatar className="h-20 w-20 bg-primary mb-4 mt-2">
                 <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                <AvatarFallback className="text-lg text-white">
+                <AvatarFallback className="text-lg font-bold text-white">
                   {driver.first_name?.[0]}{driver.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>

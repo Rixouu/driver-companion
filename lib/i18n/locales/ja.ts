@@ -222,11 +222,11 @@ export const ja: TranslationValue = {
     },
     tabs: {
       overview: "概要",
-      activity: "活動",
-      inspections: "点検",
+      activity: "活動履歴",
+      inspections: "点検履歴",
       availability: "稼働状況",
-      assignVehicles: "車両を割り当て",
-      unassignVehicles: "車両の割り当てを解除"
+      assignVehicles: "新規割り当て",
+      unassignVehicles: "割り当て解除"
     },
     vehicles: {
       title: "関連車両",
@@ -236,77 +236,17 @@ export const ja: TranslationValue = {
       noAvailableDescription: "選択可能な車両がありません。"
     },
     inspections: {
-      title: "点検",
-      description: "車両点検の管理",
-      addInspection: "点検を追加",
-      newInspection: "新規点検",
-      editInspection: "点検を編集",
-      searchPlaceholder: "点検を検索...",
-      noInspections: "点検が見つかりません",
-      createInspection: "点検を作成",
-      defaultType: "定期点検",
-      steps: {
-        selectVehicle: "車両を選択",
-        selectType: "点検タイプを選択"
+      title: "ドライバー点検",
+      description: "このドライバーの点検履歴を表示",
+      noInspections: "点検記録が見つかりません",
+      viewInspection: "点検を表示",
+      empty: {
+        title: "点検記録なし",
+        description: "このドライバーにはまだ点検記録がありません。"
       },
-      labels: {
-        progress: "点検の進捗",
-        estimatedTime: "推定残り時間",
-        model: "モデル",
-        photoNumber: "写真 {{number}}"
-      },
-      actions: {
-        pass: "合格",
-        fail: "不合格",
-        complete: "点検を完了",
-        markComplete: "完了としてマーク",
-        markInProgress: "点検を開始",
-        startInspection: "点検を開始",
-        cancel: "点検をキャンセル",
-        edit: "点検を編集",
-        delete: "点検を削除",
-        addPhoto: "写真を追加",
-        addNotes: "メモを追加",
-        resume: "点検を再開",
-        scheduleRepair: "修理を予定",
-        needsRepair: "修理が必要",
-        scheduleRepairDescription: "車両を最適な状態に保つため、不合格項目の修理メンテナンスタスクを予定します。",
-        takePhoto: "写真を撮る",
-        photos: "写真 ({{count}}枚)",
-        previousSection: "前のセクション",
-        nextSection: "次のセクション",
-        completeInspection: "点検を完了"
-      },
-      tabs: {
-        list: "リスト",
-        stats: "統計"
-      },
-      groupBy: "グループ化",
-      groupByVehicle: "車両別",
-      groupByDate: "日付別",
-      noGrouping: "グループ化なし",
-      allVehicles: "すべての車両",
-      resultsCount: "{count}件の結果",
-      noVehicle: "車両未割り当て",
-      selectVehiclePrompt: "表示する車両を選択してください",
-      dateGroup: {
-        today: "今日",
-        yesterday: "昨日",
-        thisWeek: "今週",
-        thisMonth: "今月",
-        upcoming: "今後",
-        older: "過去",
-        unknown: "不明な日付"
-      },
-      stats: {
-        totalInspections: "総点検数",
-        completed: "完了済み",
-        scheduled: "予定済み",
-        byVehicle: "車両別点検数",
-        byType: "タイプ別点検数",
-        count: "{count} 件の点検",
-        vehicleCount: "{count} 台の車両"
-      }
+      inspectionDate: "点検日",
+      inspectionType: "点検タイプ",
+      status: "状態"
     },
     since: "{date}からのドライバー",
     availability: {
@@ -318,16 +258,54 @@ export const ja: TranslationValue = {
       viewFullSchedule: "スケジュール全体を表示",
       description: "このドライバーの稼働期間を管理します。利用可能、休暇中、研修中などの状態を設定します。",
       calendarView: "カレンダー表示",
-      listView: "リスト表示",
+      listView: {
+        title: "リスト表示",
+        noRecords: "稼働状況記録がありません。上のボタンをクリックして追加してください。",
+        loading: "読み込み中...",
+        addAvailability: "稼働状況を追加",
+        editAvailability: "稼働状況を編集",
+        deleteConfirmTitle: "よろしいですか？",
+        deleteConfirmMessage: "この操作は元に戻せません。稼働状況記録は完全に削除されます。",
+        deleteSuccess: "稼働状況削除済み",
+        deleteSuccessMessage: "ドライバーの稼働状況が正常に削除されました",
+        deleteError: "ドライバーの稼働状況削除に失敗しました",
+        loadError: "ドライバーの稼働状況読み込みに失敗しました"
+      },
       calendar: "稼働状況カレンダー",
       loading: "読み込み中...",
       setAvailability: "稼働状況を設定",
       setAvailabilityFor: "{date}の稼働状況を設定",
+      noAvailabilityRecords: "利用可能期間の記録がありません",
+      availabilityRecords: "稼働状況記録",
+      setStatus: "ステータスを設定",
+      statusLabel: "稼働状況",
+      selectStatus: "ステータスを選択",
+      addAvailability: "稼働期間を追加",
+      editAvailability: "稼働期間を編集",
+      deleteAvailability: "稼働期間を削除",
+      dateRange: "期間",
+      startDate: "開始日",
+      endDate: "終了日",
+      status: "ステータス",
+      currentStatus: "現在のステータス",
+      notes: "メモ",
+      actions: "アクション",
+      notesPlaceholder: "この稼働期間に関するコメントを追加",
+      statusActive: "有効",
+      statusInactive: "無効",
       statuses: {
         available: "利用可能",
         unavailable: "利用不可", 
         leave: "休暇中",
         training: "研修中"
+      },
+      messages: {
+        createSuccess: "稼働期間が正常に作成されました",
+        updateSuccess: "稼働期間が正常に更新されました",
+        deleteSuccess: "稼働期間が正常に削除されました",
+        createError: "稼働期間の作成に失敗しました",
+        updateError: "稼働期間の更新に失敗しました",
+        deleteError: "稼働期間の削除に失敗しました"
       }
     },
     details: {
@@ -503,6 +481,7 @@ export const ja: TranslationValue = {
       uploadImageButton: "画像をアップロード",
       uploadImageDragText: "ここに画像をドラッグ＆ドロップするか、クリックして選択",
       uploadImageSizeLimit: "最大ファイルサイズ：5MB",
+      type: "車両タイプ"
     },
     form: {
       basicInfo: "基本情報",
@@ -1431,21 +1410,5 @@ export const ja: TranslationValue = {
       safety: "安全システムの重要点検",
       maintenance: "定期メンテナンス確認"
     }
-  },
-  schedules: {
-    title: "スケジュール",
-    createSchedule: "スケジュール作成",
-    frequency: "頻度",
-    selectFrequency: "頻度を選択",
-    frequencyDescription: "このタスクを実行する頻度",
-    intervalDays: "間隔（日）",
-    intervalDaysPlaceholder: "日数を入力",
-    intervalDaysDescription: "各発生の間の日数",
-    startDate: "開始日",
-    startDateDescription: "タスク生成を開始する日",
-    endDate: "終了日（任意）",
-    endDatePlaceholder: "終了日なし",
-    endDateDescription: "タスク生成を停止する日",
-    selectDate: "日付を選択"
   }
 } as const 

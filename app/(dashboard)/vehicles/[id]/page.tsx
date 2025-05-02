@@ -14,13 +14,21 @@ interface VehiclePageProps {
 }
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
-  const { dictionary } = await getDictionary()
-  const { vehicles } = await getVehicles()
-  const vehicle = vehicles.find(v => v.id === params.id)
-  
-  return {
-    title: vehicle ? `${vehicle.name} - ${dictionary.vehicles.title}` : dictionary.vehicles.title,
-    description: dictionary.vehicles.description,
+  try {
+    const { dictionary } = await getDictionary()
+    const { vehicles } = await getVehicles()
+    const vehicle = vehicles.find(v => v.id === params.id)
+    
+    return {
+      title: vehicle ? `${vehicle.name} - ${dictionary?.vehicles?.title || "Vehicles"}` : (dictionary?.vehicles?.title || "Vehicle Details"),
+      description: dictionary?.vehicles?.description || "View vehicle details",
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error)
+    return {
+      title: "Vehicle Details",
+      description: "View vehicle details",
+    }
   }
 }
 

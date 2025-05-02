@@ -49,10 +49,10 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("inspections.fields.date")}</TableHead>
+          <TableHead>{t("drivers.inspections.inspectionDate")}</TableHead>
           <TableHead>{t("vehicles.vehicleInformation")}</TableHead>
-          <TableHead>{t("inspections.fields.type")}</TableHead>
-          <TableHead>{t("inspections.fields.status")}</TableHead>
+          <TableHead>{t("drivers.inspections.inspectionType")}</TableHead>
+          <TableHead>{t("drivers.inspections.status")}</TableHead>
           <TableHead className="text-right">{t("common.actions")}</TableHead>
         </TableRow>
       </TableHeader>

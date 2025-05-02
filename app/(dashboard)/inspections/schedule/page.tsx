@@ -9,10 +9,18 @@ import { InspectionScheduleForm } from "@/components/inspections/inspection-sche
 import { getDictionary } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getDictionary()
-  return {
-    title: t("inspections.schedule.title"),
-    description: t("inspections.schedule.description"),
+  try {
+    const { t } = await getDictionary()
+    return {
+      title: t("inspections.schedule.title") || "Schedule Inspection",
+      description: t("inspections.schedule.description") || "Schedule a new inspection by selecting a vehicle and date",
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error)
+    return {
+      title: "Schedule Inspection",
+      description: "Schedule a new inspection by selecting a vehicle and date",
+    }
   }
 }
 

@@ -6,11 +6,19 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { dictionary } = await getDictionary()
-  
-  return {
-    title: dictionary.vehicles.newVehicle,
-    description: dictionary.vehicles.description,
+  try {
+    const { dictionary } = await getDictionary()
+    
+    return {
+      title: dictionary?.vehicles?.newVehicle || "New Vehicle",
+      description: dictionary?.vehicles?.description || "Add a new vehicle to your fleet",
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error)
+    return {
+      title: "New Vehicle",
+      description: "Add a new vehicle to your fleet",
+    }
   }
 }
 

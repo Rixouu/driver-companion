@@ -137,7 +137,7 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
         
         {/* Current Status Section */}
         <div className="mb-6 p-4 border rounded-lg bg-muted/20">
-          <h4 className="text-sm font-medium mb-2">Current Status</h4> 
+          <h4 className="text-sm font-medium mb-2">{t("drivers.availability.currentStatus")}</h4> 
           <div className="flex items-center justify-between mb-2">
              <Badge variant={getStatusBadgeClass(currentStatus || "available") as any}>
                {getStatusLabel(currentStatus || "available")}

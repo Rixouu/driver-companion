@@ -36,7 +36,7 @@ export function DriverAvailabilityManager({ driver }: DriverAvailabilityManagerP
           </TabsTrigger>
           <TabsTrigger value="list" className="flex items-center">
             <ListChecks className="mr-2 h-4 w-4" />
-            {t("drivers.availability.listView", { defaultValue: "List View" })}
+            {t("drivers.availability.listView.title", { defaultValue: "List View" })}
           </TabsTrigger>
         </TabsList>
         

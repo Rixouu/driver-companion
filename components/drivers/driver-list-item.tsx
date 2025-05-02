@@ -41,7 +41,7 @@ export function DriverListItem({ driver }: DriverListItemProps) {
       <div className="flex items-center gap-4 flex-grow">
         <Avatar className="h-12 w-12 border-2 border-primary/10">
           <AvatarImage src={currentDriver.profile_image_url || ""} alt={currentDriver.full_name || ""} />
-          <AvatarFallback className="text-base bg-primary/10 text-primary-foreground">
+          <AvatarFallback className="text-base font-bold bg-primary text-primary-foreground">
             {currentDriver.first_name?.[0]}{currentDriver.last_name?.[0]}
           </AvatarFallback>
         </Avatar>

@@ -10,11 +10,19 @@ import { Plus } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { dictionary } = await getDictionary()
-  
-  return {
-    title: dictionary.vehicles.title,
-    description: dictionary.vehicles.description,
+  try {
+    const { dictionary } = await getDictionary()
+    
+    return {
+      title: dictionary?.vehicles?.title || "Vehicles",
+      description: dictionary?.vehicles?.description || "Manage your fleet of vehicles",
+    }
+  } catch (error) {
+    console.error("Error generating metadata:", error)
+    return {
+      title: "Vehicles",
+      description: "Manage your fleet of vehicles",
+    }
   }
 }
 

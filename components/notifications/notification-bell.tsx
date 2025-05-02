@@ -135,7 +135,7 @@ export function NotificationBell() {
               </Badge>
             </>
           )}
-          <span className="sr-only">{t('notifications.toggle')}</span>
+          <span className="sr-only">Toggle notifications</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 md:w-96" align="end">

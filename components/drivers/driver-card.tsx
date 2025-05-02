@@ -61,7 +61,7 @@ export function DriverCard({ driver }: DriverCardProps) {
             <div className="flex items-center justify-between mb-4">
               <Avatar className="h-16 w-16 border-2 border-primary/10">
                 <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                <AvatarFallback className="text-lg bg-primary/10 text-primary-foreground">
+                <AvatarFallback className="text-lg font-bold bg-primary text-primary-foreground">
                   {driver.first_name?.[0]}{driver.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
@@ -79,47 +79,32 @@ export function DriverCard({ driver }: DriverCardProps) {
               )} */}
             </div>
 
-            <div className="space-y-3 mb-4">
-              {driver.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="truncate">{driver.email}</span>
-                </div>
-              )}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="truncate">{driver.email}</span>
+              </div>
+              
               {driver.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>{driver.phone}</span>
                 </div>
               )}
-              {/* Commented out: Location - field not currently fetched */}
-              {/* {driver.location && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="truncate">{driver.location}</span>
-                </div>
-              )} */}
-              {/* Commented out: Assigned Vehicles - field not currently fetched */}
-              {/* {driver.assigned_vehicles && driver.assigned_vehicles.length > 0 && (
-                <div className="flex items-start gap-2 text-sm">
-                  <Car className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-muted-foreground">{t("drivers.assignedVehicles.count", { count: String(driver.assigned_vehicles.length) })}</p>
-                    <p className="truncate">{driver.assigned_vehicles.map(v => v.name).join(", ")}</p>
-                  </div>
-                </div>
-              )} */}
               
-              {/* Commented out: Upcoming Booking - field not currently fetched */}
-              {/* {driver.upcoming_booking && (
-                <div className="flex items-start gap-2 text-sm mt-2 pt-2 border-t">
-                  <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-muted-foreground">{t("drivers.upcomingBooking")}</p>
-                    <p className="truncate">{new Date(driver.upcoming_booking.date).toLocaleDateString()}, {driver.upcoming_booking.time}</p>
-                  </div>
+              {driver.license_number && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="flex items-center gap-1">
+                    <span>{driver.license_number}</span>
+                    {driver.license_expiry && (
+                      <Badge variant="outline" className="text-xs ml-1">
+                        {t("drivers.fields.expires")}: {new Date(driver.license_expiry).toLocaleDateString()}
+                      </Badge>
+                    )}
+                  </span>
                 </div>
-              )} */}
+              )}
             </div>
           </CardContent>
           

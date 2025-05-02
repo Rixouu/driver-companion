@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
+import { useI18n } from "@/lib/i18n/context"
 
 import { DriverAvailabilityForm } from "./driver-availability-form"
 import { getDriverAvailability, deleteDriverAvailability } from "@/lib/services/driver-availability"
@@ -46,6 +47,8 @@ import type { DriverAvailability, Driver } from "@/types/drivers"
 
 // Helper to get status badge
 const StatusBadge = ({ status }: { status: string }) => {
+  const { t } = useI18n();
+  
   const getBadgeStyle = () => {
     switch (status) {
       case "available":
@@ -63,7 +66,7 @@ const StatusBadge = ({ status }: { status: string }) => {
   
   return (
     <Badge className={cn(getBadgeStyle())}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {t(`drivers.availability.statuses.${status}`)}
     </Badge>
   );
 };
@@ -74,6 +77,7 @@ interface DriverAvailabilityListProps {
 
 export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) {
   const { toast } = useToast()
+  const { t } = useI18n()
   const [availabilityRecords, setAvailabilityRecords] = useState<DriverAvailability[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -93,7 +97,7 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
       console.error("Error fetching driver availability:", error)
       toast({
         title: "Error",
-        description: "Failed to load driver availability",
+        description: t("drivers.availability.listView.loadError"),
         variant: "destructive",
       })
     } finally {
@@ -130,15 +134,15 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
     try {
       await deleteDriverAvailability(recordToDelete)
       toast({
-        title: "Availability deleted",
-        description: "Driver availability has been deleted successfully",
+        title: t("drivers.availability.listView.deleteSuccess"),
+        description: t("drivers.availability.listView.deleteSuccessMessage"),
       })
       fetchAvailability()
     } catch (error) {
       console.error("Error deleting availability:", error)
       toast({
         title: "Error",
-        description: "Failed to delete driver availability",
+        description: t("drivers.availability.listView.deleteError"),
         variant: "destructive",
       })
     } finally {
@@ -162,28 +166,28 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>Availability Records</CardTitle>
+        <CardTitle>{t("drivers.availability.availabilityRecords")}</CardTitle>
         <Button onClick={handleAdd} size="sm">
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Availability
+          {t("drivers.availability.listView.addAvailability")}
         </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8">Loading...</div>
+          <div className="flex justify-center py-8">{t("drivers.availability.listView.loading")}</div>
         ) : availabilityRecords.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No availability records found. Click the button above to add one.
+            {t("drivers.availability.listView.noRecords")}
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Status</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("drivers.availability.status")}</TableHead>
+                <TableHead>{t("drivers.availability.startDate")}</TableHead>
+                <TableHead>{t("drivers.availability.endDate")}</TableHead>
+                <TableHead>{t("drivers.availability.notes")}</TableHead>
+                <TableHead className="text-right">{t("drivers.availability.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -227,7 +231,9 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {selectedRecord ? "Edit Availability" : "Add Availability"}
+              {selectedRecord 
+                ? t("drivers.availability.listView.editAvailability") 
+                : t("drivers.availability.listView.addAvailability")}
             </DialogTitle>
           </DialogHeader>
           <DriverAvailabilityForm
@@ -243,15 +249,16 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t("drivers.availability.listView.deleteConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              availability record.
+              {t("drivers.availability.listView.deleteConfirmMessage")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t("drivers.availability.deleteAvailability")}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

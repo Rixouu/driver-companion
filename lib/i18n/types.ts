@@ -36,6 +36,7 @@ export interface DriversTranslations {
     lastName: string
     email: string
     phone: string
+    lineId: string
     licenseNumber: string
     licenseExpiry: string
     expires: string
@@ -49,6 +50,7 @@ export interface DriversTranslations {
     lastName: string
     email: string
     phone: string
+    lineId: string
     licenseNumber: string
     licenseExpiry: string
     address: string
@@ -59,6 +61,10 @@ export interface DriversTranslations {
     active: string
     inactive: string
     on_leave: string
+    available: string
+    unavailable: string
+    leave: string
+    training: string
   }
   driverDetails: string
   editDriver: {
@@ -66,6 +72,14 @@ export interface DriversTranslations {
   }
   newDriver: {
     description: string
+  }
+  tabs: {
+    overview: string
+    activity: string
+    inspections: string
+    availability: string
+    assignVehicles: string
+    unassignVehicles: string
   }
   unassignVehicle: {
     selectedVehicles: string
@@ -143,13 +157,6 @@ export interface DriversTranslations {
   notFound: {
     title: string
     description: string
-  }
-  tabs: {
-    overview: string
-    activity: string
-    inspections: string
-    assignVehicles: string
-    unassignVehicles: string
   }
   vehicles: {
     title: string
@@ -863,6 +870,46 @@ export interface DriversTranslations {
     }
     noData: string
   }
+  manageVehicles: {
+    description: string
+  }
+}
+
+export interface NotificationsTranslations {
+  title: string
+  empty: string
+  toggle: string
+  delete: string
+  deleteSuccess: string
+  deleteError: string
+  markAllAsRead: string
+  markAsRead: string
+  markAsReadSuccess: string
+  markAsReadError: string
+  upcoming: string
+  today: string
+  thisWeek: string
+  newNotifications: string
+  clickToView: string
+  unread: string
+}
+
+export interface TranslationSchema {
+  common: TranslationValue
+  navigation: TranslationValue
+  dashboard: TranslationValue
+  settings: TranslationValue
+  auth: TranslationValue
+  drivers: DriversTranslations
+  vehicles: TranslationValue
+  maintenance: TranslationValue
+  inspections: TranslationValue
+  fuel: TranslationValue
+  mileage: TranslationValue
+  reporting: TranslationValue
+  bookings: TranslationValue
+  dispatch: TranslationValue
+  notifications: NotificationsTranslations
   manageVehicles: {
     description: string
   }

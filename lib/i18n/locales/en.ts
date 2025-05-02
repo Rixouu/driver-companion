@@ -1906,6 +1906,22 @@ export const en: TranslationValue = {
       zoomIn: "Zoom In",
       zoomOut: "Zoom Out"
     }
+  },
+  schedules: {
+    title: "Schedule",
+    createSchedule: "Create Schedule",
+    frequency: "Frequency",
+    selectFrequency: "Select Frequency",
+    frequencyDescription: "How often this task should be performed",
+    intervalDays: "Interval (Days)",
+    intervalDaysPlaceholder: "Enter number of days",
+    intervalDaysDescription: "Number of days between each occurrence",
+    startDate: "Start Date",
+    startDateDescription: "When to start generating tasks",
+    endDate: "End Date (Optional)",
+    endDatePlaceholder: "No end date",
+    endDateDescription: "When to stop generating tasks",
+    selectDate: "Select Date"
   }
 } as const
 

@@ -7,10 +7,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const vehicleId = params.id
+  const vehicleId = await params.id
 
-  // Initialize Supabase client
-  const supabase = createRouteHandlerClient<Database>({ cookies })
+  // Initialize Supabase client with awaited cookies
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
 
   // Verify authentication
   const { data: { session } } = await supabase.auth.getSession()

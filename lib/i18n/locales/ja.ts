@@ -1431,5 +1431,21 @@ export const ja: TranslationValue = {
       safety: "安全システムの重要点検",
       maintenance: "定期メンテナンス確認"
     }
+  },
+  schedules: {
+    title: "スケジュール",
+    createSchedule: "スケジュール作成",
+    frequency: "頻度",
+    selectFrequency: "頻度を選択",
+    frequencyDescription: "このタスクを実行する頻度",
+    intervalDays: "間隔（日）",
+    intervalDaysPlaceholder: "日数を入力",
+    intervalDaysDescription: "各発生の間の日数",
+    startDate: "開始日",
+    startDateDescription: "タスク生成を開始する日",
+    endDate: "終了日（任意）",
+    endDatePlaceholder: "終了日なし",
+    endDateDescription: "タスク生成を停止する日",
+    selectDate: "日付を選択"
   }
 } as const 

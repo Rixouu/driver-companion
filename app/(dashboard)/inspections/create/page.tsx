@@ -42,14 +42,7 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
       <PageHeader
         title="Create New Inspection"
         description="Create a new inspection by filling out the form below"
-      >
-        <Link href="/inspections">
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.backTo")} {t("inspections.title")}
-          </Button>
-        </Link>
-      </PageHeader>
+      />
 
       <StepBasedInspectionForm 
         inspectionId="" 

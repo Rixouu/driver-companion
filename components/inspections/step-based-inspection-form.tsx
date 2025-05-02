@@ -695,16 +695,16 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                 onClick={() => handleVehicleSelect(vehicle)}
               >
                 <CardContent className="p-4">
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-row gap-4 items-center">
                     {/* Vehicle thumbnail with 16:9 aspect ratio */}
-                    <div className="sm:w-48 w-full">
+                    <div className="w-24 sm:w-48 shrink-0 flex items-center">
                       <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
                         {vehicle.image_url ? (
                           <Image 
                             src={vehicle.image_url} 
                             alt={vehicle.name}
                             fill
-                            sizes="(max-width: 768px) 100%, 192px"
+                            sizes="(max-width: 768px) 96px, 192px"
                             className="object-cover"
                             priority={currentPage === 1}
                           />
@@ -768,7 +768,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       {/* Navigation buttons */}
       <div className="flex justify-between mt-6">
         <Button variant="outline" onClick={() => router.push('/inspections')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('inspections.title')}
         </Button>
         
         {selectedVehicle && (
@@ -794,7 +794,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       </FormProvider>
       
       <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={() => setCurrentStepIndex(-1)}>
+        <Button variant="outline" onClick={() => {
+          setCurrentStepIndex(-1);
+        }}>
           <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
         </Button>
         <Button onClick={handleStartInspection}>
@@ -935,23 +937,23 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     return (
       <Card className="my-6">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col">
             {/* Vehicle thumbnail with 16:9 aspect ratio */}
             {selectedVehicle.image_url ? (
-              <div className="w-full sm:w-48">
+              <div className="w-full flex items-center mb-4">
                 <div className="relative aspect-[16/9] w-full rounded-md overflow-hidden">
                   <Image 
                     src={selectedVehicle.image_url} 
                     alt={selectedVehicle.name}
                     fill
-                    sizes="(max-width: 640px) 100vw, 192px"
+                    sizes="(max-width: 640px) 100vw, 100vw"
                     className="object-cover"
                     priority
                   />
                 </div>
               </div>
             ) : (
-              <div className="w-full sm:w-48 bg-muted flex items-center justify-center rounded-md" style={{ aspectRatio: '16/9' }}>
+              <div className="w-full bg-muted flex items-center justify-center rounded-md mb-4" style={{ aspectRatio: '16/9' }}>
                 <span className="text-muted-foreground">{t('common.noImage')}</span>
               </div>
             )}
@@ -963,39 +965,44 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               <p className="text-muted-foreground">
                 {selectedVehicle.year} {t('inspections.labels.model')}
               </p>
+              <p className="text-muted-foreground mt-1">
+                {selectedVehicle.plate_number}
+              </p>
               
-              <div className="mt-3 space-y-2">
-                {/* Section info with progress */}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    {t('inspections.labels.currentSection')}: {currentSection.title}
-                  </p>
-                  <p className="text-sm font-medium">
-                    {progress}% - {currentSectionIndex + 1}/{sections.length}
+              {currentStepIndex !== 0 && (
+                <div className="mt-3 space-y-2">
+                  {/* Section info with progress */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">
+                      {t('inspections.labels.currentSection')}: {currentSection.title}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {progress}% - {currentSectionIndex + 1}/{sections.length}
+                    </p>
+                  </div>
+                  
+                  {/* Section indicators */}
+                  <div className="flex gap-1 h-2.5">
+                    {sections.map((section, index) => (
+                      <div 
+                        key={section.id} 
+                        className={`h-2.5 rounded-full flex-1 ${
+                          index < currentSectionIndex 
+                            ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                            : index === currentSectionIndex 
+                              ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                              : 'bg-muted'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Estimated time */}
+                  <p className="text-xs text-right text-muted-foreground">
+                    {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
                   </p>
                 </div>
-                
-                {/* Section indicators */}
-                <div className="flex gap-1 h-2.5">
-                  {sections.map((section, index) => (
-                    <div 
-                      key={section.id} 
-                      className={`h-2.5 rounded-full flex-1 ${
-                        index < currentSectionIndex 
-                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                          : index === currentSectionIndex 
-                            ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                            : 'bg-muted'
-                      }`}
-                    />
-                  ))}
-                </div>
-                
-                {/* Estimated time */}
-                <p className="text-xs text-right text-muted-foreground">
-                  {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
-                </p>
-              </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -1006,10 +1013,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   return (
     <div className="space-y-8">
       {/* Vehicle thumbnail when selected */}
-      {selectedVehicle && renderVehicleThumbnail()}
+      {selectedVehicle && currentStepIndex !== -1 && renderVehicleThumbnail()}
       
       {/* Main content based on step */}
-      {currentStepIndex === -1 && !selectedVehicle && renderVehicleSelection()}
+      {currentStepIndex === -1 && renderVehicleSelection()}
       {currentStepIndex === 0 && renderTypeSelection()}
       {currentStepIndex === 1 && renderSectionItems()}
       

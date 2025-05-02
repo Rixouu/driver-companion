@@ -1,10 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -39,6 +37,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { SearchFilterBar } from "@/components/ui/search-filter-bar"
+import { EmptyState } from "@/components/empty-state"
+import { Wrench } from "lucide-react"
 
 interface MaintenanceListProps {
   tasks: MaintenanceTask[]
@@ -58,6 +59,27 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
   const debouncedSearch = useDebounce(search, 500)
   const { t, language } = useI18n()
   const [tasksWithVehicles, setTasksWithVehicles] = useState(tasks)
+  const [brandFilter, setBrandFilter] = useState("all")
+  const [modelFilter, setModelFilter] = useState("all")
+
+  // Extract unique brands and models for filters
+  const brands = useMemo(() => {
+    const uniqueBrands = Array.from(new Set(
+      vehicles.filter(v => v.brand).map(v => v.brand as string)
+    )).map(brand => ({ value: brand, label: brand }))
+    return uniqueBrands
+  }, [vehicles])
+  
+  // Get models based on selected brand
+  const models = useMemo(() => {
+    if (brandFilter === "all") return []
+    
+    return Array.from(new Set(
+      vehicles
+        .filter(v => v.model && v.brand === brandFilter)
+        .map(v => v.model as string)
+    )).map(model => ({ value: model, label: model }))
+  }, [vehicles, brandFilter])
 
   useEffect(() => {
     async function loadVehicleData() {
@@ -76,7 +98,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
               return {
                 ...task,
                 vehicle: vehicleData
-              }
+              } as MaintenanceTask
             }
             return task
           })
@@ -99,7 +121,13 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
     const matchesSearch = !debouncedSearch || 
       task.title.toLowerCase().includes(debouncedSearch.toLowerCase())
     
-    return matchesFilter && matchesSearch
+    const matchesBrandFilter = brandFilter === 'all' || 
+      (task.vehicle && 'brand' in task.vehicle && task.vehicle.brand === brandFilter)
+    
+    const matchesModelFilter = modelFilter === 'all' || 
+      (task.vehicle && 'model' in task.vehicle && task.vehicle.model === modelFilter)
+    
+    return matchesFilter && matchesSearch && matchesBrandFilter && matchesModelFilter
   })
 
   // Calculate pagination
@@ -117,6 +145,19 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
     const params = new URLSearchParams(searchParams.toString())
     params.set("page", page.toString())
     router.push(`/maintenance?${params.toString()}`)
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+  }
+
+  const handleBrandFilterChange = (value: string) => {
+    setBrandFilter(value);
+    setModelFilter("all");
+  }
+
+  const handleModelFilterChange = (value: string) => {
+    setModelFilter(value);
   }
 
   // Function to check if a task is recurring based on notes
@@ -155,15 +196,21 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("maintenance.searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchFilterBar 
+          onSearchChange={handleSearchChange}
+          onBrandFilterChange={handleBrandFilterChange}
+          onModelFilterChange={handleModelFilterChange}
+          searchPlaceholder={t("maintenance.searchPlaceholder")}
+          brandOptions={brands}
+          modelOptions={models}
+          totalItems={filteredTasks.length}
+          startIndex={Math.min(startIndex + 1, filteredTasks.length)}
+          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredTasks.length)}
+          showBrandFilter={true}
+          showModelFilter={models.length > 0}
+          selectedBrand={brandFilter}
+          selectedModel={modelFilter}
+        />
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">
             <div className="sm:hidden">
@@ -213,9 +260,11 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
         </div>
       </div>
       {paginatedTasks.length === 0 ? (
-        <p className="text-center text-muted-foreground py-6">
-          {t("maintenance.noTasks")}
-        </p>
+        <EmptyState
+          icon={<Wrench className="h-6 w-6" />}
+          title={t("maintenance.noTasksTitle")}
+          description={t("maintenance.noTasks")}
+        />
       ) : (
         <>
           {view === "grid" ? (

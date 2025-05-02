@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Plus, Calendar, Clipboard, Car, BarChart3, Filter, ListFilter, X } from "lucide-react"
+import { Plus, Search, Calendar, Clipboard, Car, BarChart3, Filter, ListFilter, X } from "lucide-react"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -69,6 +69,7 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import type { DateRange } from "react-day-picker"
+import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 
 interface InspectionListProps {
   inspections: Inspection[]
@@ -151,6 +152,27 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const { t, language } = useI18n()
   const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
   const isMobile = useMediaQuery("(max-width: 640px)")
+  const [brandFilter, setBrandFilter] = useState("all")
+  const [modelFilter, setModelFilter] = useState("all")
+
+  // Extract unique brands and models for filters
+  const brands = useMemo(() => {
+    const uniqueBrands = Array.from(new Set(
+      vehicles.filter(v => v.brand).map(v => v.brand as string)
+    )).map(brand => ({ value: brand, label: brand }))
+    return uniqueBrands
+  }, [vehicles])
+  
+  // Get models based on selected brand
+  const models = useMemo(() => {
+    if (brandFilter === "all") return []
+    
+    return Array.from(new Set(
+      vehicles
+        .filter(v => v.model && v.brand === brandFilter)
+        .map(v => v.model as string)
+    )).map(model => ({ value: model, label: model }))
+  }, [vehicles, brandFilter])
 
   // Set default view based on screen size
   useEffect(() => {
@@ -206,6 +228,15 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
          
       const matchesVehicleFilter = !filterVehicleId || inspection.vehicle_id === filterVehicleId
       
+      // Brand and Model Filters
+      const matchesBrandFilter = brandFilter === 'all' || 
+        (inspection.vehicle && 'brand' in inspection.vehicle && 
+          inspection.vehicle.brand === brandFilter)
+      
+      const matchesModelFilter = modelFilter === 'all' || 
+        (inspection.vehicle && 'model' in inspection.vehicle && 
+          inspection.vehicle.model === modelFilter)
+      
       // Date Range Filter Logic
       let matchesDateRange = true;
       if (groupingMode === 'date' && dateRange?.from) {
@@ -219,9 +250,20 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           }
       }
       
-      return matchesStatusFilter && matchesSearch && matchesVehicleFilter && matchesDateRange
+      return matchesStatusFilter && matchesSearch && matchesVehicleFilter && 
+             matchesBrandFilter && matchesModelFilter && matchesDateRange
     })
-  }, [inspectionsWithVehicles, filter, debouncedSearch, filterVehicleId, groupingMode, dateRange])
+  }, [inspectionsWithVehicles, filter, debouncedSearch, filterVehicleId, 
+      brandFilter, modelFilter, groupingMode, dateRange])
+
+  // Calculate pagination for non-grouped view
+  const currentItems = useMemo(() => {
+    if (groupingMode !== 'none') return []
+    
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    return filteredInspections.slice(startIndex, endIndex)
+  }, [filteredInspections, currentPage, groupingMode])
 
   // Adjust pagination logic - only applies when grouping is 'none'
   const paginatedInspections = useMemo(() => {
@@ -355,14 +397,23 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   }
 
   const handlePageChange = (page: number) => {
-    if (groupingMode === 'none') {
-       const params = new URLSearchParams(searchParams.toString())
-       params.set("page", page.toString())
-       router.push(`/inspections?${params.toString()}`, { scroll: false })
-     } else {
-        // If grouping, just update state, maybe scroll to top?
-        // For now, pagination controls are hidden when grouping, so this shouldn't be called.
-     }
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", page.toString())
+    router.push(`/inspections?${params.toString()}`)
+  }
+
+  // Add handlers for brand and model filters
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+  }
+
+  const handleBrandFilterChange = (value: string) => {
+    setBrandFilter(value)
+    setModelFilter("all")
+  }
+
+  const handleModelFilterChange = (value: string) => {
+    setModelFilter(value)
   }
 
   // Function to determine Badge variant based on status
@@ -754,6 +805,88 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     </div>
   )}
 
+  // Add filter controls
+  const filterControls = () => {
+    return (
+      <div className="flex flex-col gap-4">
+        <SearchFilterBar 
+          onSearchChange={handleSearchChange}
+          onBrandFilterChange={handleBrandFilterChange}
+          onModelFilterChange={handleModelFilterChange}
+          searchPlaceholder={t("inspections.searchPlaceholder")}
+          brandOptions={brands}
+          modelOptions={models}
+          totalItems={filteredInspections.length}
+          startIndex={groupingMode === 'none' ? Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredInspections.length) : 1}
+          endIndex={groupingMode === 'none' ? Math.min(currentPage * ITEMS_PER_PAGE, filteredInspections.length) : filteredInspections.length}
+          selectedBrand={brandFilter}
+          selectedModel={modelFilter}
+        />
+        <div className="flex items-center justify-between bg-black p-2 rounded-md">
+          <div className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+              <Button
+                size="sm"
+                variant={filter === 'all' ? 'default' : 'outline'}
+                onClick={() => setFilter('all')}
+                className="text-xs sm:text-sm"
+              >
+                {t('common.all')}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === 'pending' ? 'default' : 'outline'}
+                onClick={() => setFilter('pending')}
+                className="text-xs sm:text-sm"
+              >
+                {t('inspections.status.pending')}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === 'completed' ? 'default' : 'outline'}
+                onClick={() => setFilter('completed')}
+                className="text-xs sm:text-sm"
+              >
+                {t('inspections.status.completed')}
+              </Button>
+            </div>
+            
+            {/* Date Range Picker - Always visible in the filter bar */}
+            {groupingMode === 'date' && (
+              <div className="ml-2">
+                <DateRangePicker
+                  date={dateRange}
+                  onDateChange={setDateRange}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-white whitespace-nowrap">
+              {t('inspections.groupBy')}:
+            </span>
+            <Select
+              value={groupingMode}
+              onValueChange={(value: GroupingMode) => setGroupingMode(value)}
+            >
+              <SelectTrigger className="h-8 w-[140px] text-xs sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t('inspections.groupByOptions.none')}</SelectItem>
+                <SelectItem value="date">{t('inspections.gro')}</SelectItem>
+                <SelectItem value="vehicle">{t('inspections.groupByOptions.vehicle')}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <ViewToggle view={view} onViewChange={setView} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -772,104 +905,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-x-4">
-            <div className="relative col-span-1 sm:col-span-3">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder={t("inspections.searchPlaceholder")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-center justify-between">
-            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 w-full sm:w-auto">
-              <Select
-                value={filterVehicleId || 'all-vehicles'}
-                onValueChange={(val) => {
-                  setFilterVehicleId(val === 'all-vehicles' ? null : val);
-                  handlePageChange(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[250px] h-9">
-                  <div className="flex items-center gap-2">
-                    <Car className="h-4 w-4" />
-                    <SelectValue placeholder={t("vehicles.title")} />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-vehicles">{t("vehicles.allVehicles")}</SelectItem>
-                  {vehicles.map(vehicle => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.name} {vehicle.plate_number ? `(${vehicle.plate_number})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={groupingMode}
-                onValueChange={(val) => {
-                  const newMode = val as GroupingMode;
-                  setGroupingMode(newMode);
-                  handlePageChange(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[180px] h-9">
-                  <div className="flex items-center gap-2">
-                    <ListFilter className="h-4 w-4" />
-                    <SelectValue placeholder={t("inspections.groupBy")} />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {t("inspections.groupByDate")}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="vehicle">
-                    <div className="flex items-center gap-2">
-                      <Car className="h-4 w-4" />
-                      {t("inspections.groupByVehicle")}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="none">{t("inspections.noGrouping")}</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-1 w-full sm:w-auto">
-                <DateRangePicker
-                  date={dateRange}
-                  onDateChange={(range) => {
-                    setDateRange(range);
-                    handlePageChange(1);
-                  }}
-                />
-                {dateRange?.from && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 flex-shrink-0"
-                    onClick={() => {
-                      setDateRange(undefined);
-                      handlePageChange(1);
-                    }}
-                    aria-label={t("Clear date range")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 justify-start sm:justify-end w-full sm:w-auto">
-              <span className="text-sm text-muted-foreground whitespace-nowrap flex-shrink-0">
-                {t("inspections.resultsCount", { count: String(filteredInspections.length) })}
-              </span>
-              <ViewToggle view={view} onViewChange={setView} />
-            </div>
-          </div>
-        </div>
+        {filterControls()}
 
         {renderInspectionsContent()}
       </div>

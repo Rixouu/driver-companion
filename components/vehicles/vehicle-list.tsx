@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Table,
@@ -13,8 +13,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
 import { DbVehicle } from "@/types"
@@ -37,6 +35,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 
 interface VehicleListProps {
   vehicles: DbVehicle[]
@@ -54,6 +53,24 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
   const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
   const { t } = useI18n()
+
+  // Extract unique brands and models for filters
+  const brands = Array.from(new Set(vehicles.filter(v => v.brand).map(v => v.brand as string)))
+    .map(brand => ({ value: brand, label: brand }))
+  
+  const [brandFilter, setBrandFilter] = useState("all")
+  const [modelFilter, setModelFilter] = useState("all")
+  
+  // Get models based on selected brand
+  const models = useMemo(() => {
+    if (brandFilter === "all") return []
+    
+    return Array.from(new Set(
+      vehicles
+        .filter(v => v.model && v.brand === brandFilter)
+        .map(v => v.model as string)
+    )).map(model => ({ value: model, label: model }))
+  }, [vehicles, brandFilter])
 
   // Set default view based on screen size
   useEffect(() => {
@@ -85,12 +102,14 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
   }, [debouncedSearch, filter, router, searchParams]);
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesFilter = filter === 'all' || vehicle.status === filter
+    const matchesStatusFilter = filter === 'all' || vehicle.status === filter
+    const matchesBrandFilter = brandFilter === 'all' || vehicle.brand === brandFilter
+    const matchesModelFilter = modelFilter === 'all' || vehicle.model === modelFilter
     const matchesSearch = !debouncedSearch || 
       vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())
     
-    return matchesFilter && matchesSearch
+    return matchesStatusFilter && matchesBrandFilter && matchesModelFilter && matchesSearch
   })
 
   // Calculate pagination
@@ -104,10 +123,23 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
     router.push(`/vehicles?${params.toString()}`)
   }
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+  }
+
   const handleFilterChange = (newFilter: string) => {
     setFilter(newFilter);
     // Page reset will be handled by the useEffect above
   };
+
+  const handleBrandFilterChange = (value: string) => {
+    setBrandFilter(value)
+    setModelFilter("all")
+  }
+
+  const handleModelFilterChange = (value: string) => {
+    setModelFilter(value)
+  }
 
   function getStatusVariant(status: string) {
     switch (status) {
@@ -125,15 +157,20 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("vehicles.searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchFilterBar 
+          onSearchChange={handleSearchChange}
+          onBrandFilterChange={handleBrandFilterChange}
+          onModelFilterChange={handleModelFilterChange}
+          searchPlaceholder={t("vehicles.searchPlaceholder")}
+          brandOptions={brands}
+          modelOptions={models}
+          totalItems={filteredVehicles.length}
+          startIndex={Math.min(startIndex + 1, filteredVehicles.length)}
+          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredVehicles.length)}
+          selectedBrand={brandFilter}
+          selectedModel={modelFilter}
+        />
+        
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">
             <div className="sm:hidden">

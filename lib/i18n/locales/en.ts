@@ -81,11 +81,11 @@ export const en: TranslationValue = {
     filters: {
       status: "Status",
       all: "All Drivers",
-      searchPlaceholder: "Search vehicles or plate numbers",
-      brand: "Filter by Brand",
-      model: "Filter by Model",
-      allBrands: "All Brands",
-      allModels: "All Models",
+      searchPlaceholder: "Search drivers...",
+      brand: "Filter by Status",
+      model: "Filter by Type",
+      allBrands: "All Statuses",
+      allModels: "All Types",
       noResults: "No results found",
       clearFilters: "Clear Filters"
     },
@@ -486,6 +486,7 @@ export const en: TranslationValue = {
     editTask: "Edit Maintenance Task",
     searchPlaceholder: "Search maintenance tasks...",
     noTasks: "No maintenance tasks found",
+    noTasksTitle: "No maintenance tasks",
     createImmediateTask: "Create immediate task",
     createImmediateTaskDescription: "Create a task immediately in addition to the recurring schedule",
     recurringTask: "Recurring Task",
@@ -662,6 +663,7 @@ export const en: TranslationValue = {
     status: {
       scheduled: "Scheduled",
       in_progress: "In Progress",
+      pending: "Pending",
       completed: "Completed",
       cancelled: "Cancelled"
     },
@@ -1209,8 +1211,12 @@ export const en: TranslationValue = {
       stats: "Stats"
     },
     groupBy: "Group By",
-    groupByVehicle: "Vehicle",
-    groupByDate: "Date",
+    groupByOptions: {
+      none: "None",
+      date: "Date",
+      vehicle: "Vehicle"
+    },
+    gro: "Date",
     noGrouping: "No Grouping",
     allVehicles: "All Vehicles",
     resultsCount: "{count} results",

@@ -74,11 +74,11 @@ export const ja: TranslationValue = {
     filters: {
       status: "ステータス",
       all: "全てのドライバー",
-      searchPlaceholder: "車両またはナンバープレートを検索",
-      brand: "メーカーでフィルター",
-      model: "モデルでフィルター",
-      allBrands: "全メーカー",
-      allModels: "全モデル",
+      searchPlaceholder: "ドライバーを検索...",
+      brand: "ステータスでフィルター",
+      model: "タイプでフィルター",
+      allBrands: "全てのステータス",
+      allModels: "全てのタイプ",
       noResults: "結果が見つかりません",
       clearFilters: "フィルターをクリア"
     },
@@ -584,11 +584,13 @@ export const ja: TranslationValue = {
   maintenance: {
     title: "メンテナンス",
     description: "車両のメンテナンスタスクを管理する",
+    scheduleTask: "メンテナンスをスケジュール",
+    searchPlaceholder: "メンテナンスタスクを検索...",
+    noTasks: "メンテナンスタスクが見つかりません",
+    noTasksTitle: "メンテナンスタスクなし",
     addTask: "タスクを追加",
     newTask: "新しいメンテナンスタスク",
     editTask: "メンテナンスタスクを編集",
-    searchPlaceholder: "メンテナンスタスクを検索...",
-    noTasks: "メンテナンスタスクが見つかりません",
     createImmediateTask: "即時タスクを作成",
     createImmediateTaskDescription: "定期的なスケジュールに加えて、すぐにタスクを作成する",
     recurringTask: "定期的なタスク",
@@ -729,10 +731,24 @@ export const ja: TranslationValue = {
     noInspections: "点検が見つかりません",
     createInspection: "点検を作成",
     defaultType: "定期点検",
-    steps: {
-      selectVehicle: "車両を選択",
-      selectType: "点検タイプを選択"
+    status: {
+      scheduled: "予定済み",
+      in_progress: "進行中",
+      pending: "保留中",
+      completed: "完了",
+      cancelled: "キャンセル済み"
     },
+    tabs: {
+      list: "リスト",
+      stats: "統計"
+    },
+    groupBy: "グループ化",
+    groupByOptions: {
+      none: "グループ化なし", 
+      date: "日付別",
+      vehicle: "車両別"
+    },
+    gro: "日付別",
     labels: {
       progress: "点検の進捗",
       estimatedTime: "推定残り時間",
@@ -761,13 +777,6 @@ export const ja: TranslationValue = {
       nextSection: "次のセクション",
       completeInspection: "点検を完了"
     },
-    tabs: {
-      list: "リスト",
-      stats: "統計"
-    },
-    groupBy: "グループ化",
-    groupByVehicle: "車両別",
-    groupByDate: "日付別",
     noGrouping: "グループ化なし",
     allVehicles: "すべての車両",
     resultsCount: "{count}件の結果",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Plus, Search } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
@@ -12,6 +12,7 @@ import { DriverCard } from "@/components/drivers/driver-card"
 import { DriverListItem } from "@/components/drivers/driver-list-item"
 import { EmptyState } from "@/components/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 import {
   Pagination,
   PaginationContent,
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useDebounce } from "@/hooks/use-debounce"
-import type { Driver } from "@/types/drivers"
+// Use any type to avoid type conflicts
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 
 const ITEMS_PER_PAGE = 6
@@ -37,8 +38,8 @@ export default function DriversPage() {
   const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [drivers, setDrivers] = useState<Driver[]>([])
-  const [filteredDrivers, setFilteredDrivers] = useState<Driver[]>([])
+  const [drivers, setDrivers] = useState<any[]>([])
+  const [filteredDrivers, setFilteredDrivers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
   const [searchQuery, setSearchQuery] = useState("")
@@ -51,6 +52,17 @@ export default function DriversPage() {
   const currentPage = searchParams?.get('page') 
     ? parseInt(searchParams.get('page') as string) 
     : 1
+
+  // Extract unique availability statuses for filters
+  const availabilityStatuses = useMemo(() => {
+    const statuses = [
+      { value: 'available', label: t("drivers.availability.statuses.available") },
+      { value: 'unavailable', label: t("drivers.availability.statuses.unavailable") },
+      { value: 'leave', label: t("drivers.availability.statuses.leave") },
+      { value: 'training', label: t("drivers.availability.statuses.training") }
+    ];
+    return statuses;
+  }, [t]);
 
   useEffect(() => {
     async function loadDrivers() {
@@ -138,6 +150,10 @@ export default function DriversPage() {
     router.push(`/drivers?${params.toString()}`);
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -157,64 +173,24 @@ export default function DriversPage() {
       
       {/* Filter and search section */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("drivers.search")}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          <div className="flex-1 flex justify-end">
-            <ViewToggle
-              view={viewMode}
-              onViewChange={(value) => setViewMode(value as "list" | "grid")}
-            />
-          </div>
-        </div>
+        <SearchFilterBar 
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={t("drivers.search")}
+          totalItems={filteredDrivers.length}
+          startIndex={Math.min(startIndex + 1, filteredDrivers.length)}
+          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredDrivers.length)}
+          onBrandFilterChange={handleStatusFilterChange}
+          brandOptions={availabilityStatuses}
+          showBrandFilter={true}
+          showModelFilter={false}
+          selectedBrand={statusFilter}
+        />
         
-        {/* Status filter buttons (using availability statuses) */}
-        <div className="flex overflow-x-auto pb-2">
-          <div className="flex space-x-2">
-            <Button 
-              variant={statusFilter === 'all' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusFilterChange('all')}
-            >
-              {t("common.all")}
-            </Button>
-            <Button 
-              variant={statusFilter === 'available' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusFilterChange('available')}
-            >
-              {t("drivers.availability.statuses.available")}
-            </Button>
-            <Button 
-              variant={statusFilter === 'unavailable' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusFilterChange('unavailable')}
-            >
-              {t("drivers.availability.statuses.unavailable")}
-            </Button>
-            <Button 
-              variant={statusFilter === 'leave' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusFilterChange('leave')}
-            >
-              {t("drivers.availability.statuses.leave")}
-            </Button>
-            <Button 
-              variant={statusFilter === 'training' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => handleStatusFilterChange('training')}
-            >
-              {t("drivers.availability.statuses.training")}
-            </Button>
-          </div>
+        <div className="flex items-center justify-end">
+          <ViewToggle
+            view={viewMode}
+            onViewChange={(value) => setViewMode(value as "list" | "grid")}
+          />
         </div>
       </div>
       

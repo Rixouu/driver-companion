@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     
     // Get the public URL for the Driver logo
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'
-    const logoUrl = `${appUrl}/img/driver-mini-logo.png`
+    const logoUrl = `${appUrl}/img/driver-invoice-logo.png`
     
     // Format price with currency
     const formattedAmount = booking.price?.formatted || 

@@ -174,55 +174,59 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8">{t("drivers.availability.listView.loading")}</div>
+          <div className="flex justify-center py-8 text-muted-foreground">{t("drivers.availability.listView.loading")}</div>
         ) : availabilityRecords.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {t("drivers.availability.listView.noRecords")}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("drivers.availability.status")}</TableHead>
-                <TableHead>{t("drivers.availability.startDate")}</TableHead>
-                <TableHead>{t("drivers.availability.endDate")}</TableHead>
-                <TableHead>{t("drivers.availability.notes")}</TableHead>
-                <TableHead className="text-right">{t("drivers.availability.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {availabilityRecords.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell>
-                    <StatusBadge status={record.status} />
-                  </TableCell>
-                  <TableCell>{format(parseISO(record.start_date), "PPP")}</TableCell>
-                  <TableCell>{format(parseISO(record.end_date), "PPP")}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {record.notes || "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(record)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(record.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">{t("drivers.availability.status")}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t("drivers.availability.startDate")}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t("drivers.availability.endDate")}</TableHead>
+                  <TableHead className="whitespace-nowrap hidden md:table-cell">{t("drivers.availability.notes")}</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">{t("drivers.availability.actions")}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {availabilityRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="px-2 py-3 sm:px-4 sm:py-4">
+                      <StatusBadge status={record.status} />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-xs sm:text-sm px-2 py-3 sm:px-4 sm:py-4">{format(parseISO(record.start_date), "PP")}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs sm:text-sm px-2 py-3 sm:px-4 sm:py-4">{format(parseISO(record.end_date), "PP")}</TableCell>
+                    <TableCell className="hidden md:table-cell max-w-xs truncate text-xs sm:text-sm px-2 py-3 sm:px-4 sm:py-4">
+                      {record.notes || "—"}
+                    </TableCell>
+                    <TableCell className="text-right px-2 py-3 sm:px-4 sm:py-4">
+                      <div className="flex justify-end items-center space-x-1 sm:space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          onClick={() => handleEdit(record)}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive/90"
+                          onClick={() => handleDelete(record.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
       

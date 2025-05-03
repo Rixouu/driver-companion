@@ -82,25 +82,25 @@ export function DriverVehicles({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
         <div>
           <CardTitle className="text-lg font-semibold">{t("drivers.vehicles.title")}</CardTitle>
           <CardDescription>{t("drivers.vehicles.description")}</CardDescription>
         </div>
-        <Link href={`/drivers/${driverId}/assign-vehicle`} ><span className="flex items-center gap-2">
+        <Link href={`/drivers/${driverId}/assign-vehicle`} passHref>
           <Button variant="outline" size="sm">
             <Car className="mr-2 h-4 w-4" />
             {t("drivers.actions.assignVehicle")}
           </Button>
-        </span></Link>
+        </Link>
       </CardHeader>
       <CardContent className="pt-4">
         {assignedVehicles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/30 rounded-lg min-h-[150px]">
+          <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-muted/30 rounded-lg min-h-[150px]">
              <p className="text-sm text-muted-foreground mb-4">
                {t("drivers.vehicles.noVehicles")}
              </p>
-             <Link href={`/drivers/${driverId}/assign-vehicle`} >
+             <Link href={`/drivers/${driverId}/assign-vehicle`} passHref>
                <Button className="mt-2">
                  <Car className="mr-2 h-4 w-4" />
                  {t("drivers.actions.assignVehicle")}
@@ -110,15 +110,15 @@ export function DriverVehicles({
         ) : (
           <div className="space-y-4">
             {assignedVehicles.map((vehicle) => (
-              <div key={vehicle.id} className="flex items-center p-3 border rounded-lg gap-4">
-                <div className="w-24 h-auto flex-shrink-0">
+              <div key={vehicle.id} className="flex flex-col sm:flex-row items-start sm:items-center p-3 sm:p-4 border rounded-lg gap-4">
+                <div className="w-full sm:w-24 h-auto flex-shrink-0">
                   <div className="aspect-video relative rounded-md overflow-hidden bg-muted">
                     {vehicle.image_url ? (
                       <Image
                         src={vehicle.image_url}
                         alt={vehicle.name}
                         fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 30vw, 150px" // Adjusted sizes for mobile
                         className="object-cover"
                       />
                     ) : (
@@ -128,17 +128,15 @@ export function DriverVehicles({
                     )}
                   </div>
                 </div>
-                <div className="flex-1 flex flex-col justify-between h-full">
-                  <div>
-                    <div className="flex justify-between items-start mb-1">
-                      <h4 className="font-medium text-md">{vehicle.name}</h4>
-                      {getStatusBadge(vehicle.status)}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {t('vehicles.fields.plateNumber')}: {vehicle.plate_number}
-                    </p>
+                <div className="flex-1 flex flex-col justify-between h-full mt-2 sm:mt-0 w-full">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-1">
+                    <h4 className="font-medium text-md mb-1 sm:mb-0 truncate">{vehicle.name}</h4>
+                    {getStatusBadge(vehicle.status)}
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
+                  <p className="text-sm text-muted-foreground mb-2 sm:mb-0">
+                    {t('vehicles.fields.plateNumber')}: {vehicle.plate_number}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2 sm:mt-auto self-start sm:self-end">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/vehicles/${vehicle.id}`} className="flex items-center gap-1">
                         <Eye className="h-3 w-3"/> {t('common.view')}

@@ -539,14 +539,14 @@ export default function DispatchBoard() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="mb-4 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-auto">
             <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search dispatch entries..."
-              className="w-[250px] pl-8"
+              className="w-full sm:w-[250px] pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -554,7 +554,7 @@ export default function DispatchBoard() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="w-full sm:w-auto">
                 {filters.status ? sentenceCase(filters.status) : 'All Entries'}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
@@ -574,12 +574,12 @@ export default function DispatchBoard() {
           </DropdownMenu>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             variant={view === "board" ? "default" : "outline"}
             size="sm"
             onClick={() => setView("board")}
-            className="flex items-center"
+            className="flex items-center flex-1 sm:flex-auto justify-center"
           >
             <LayoutGrid className="h-4 w-4 mr-2" />
             Board
@@ -588,7 +588,7 @@ export default function DispatchBoard() {
             variant={view === "calendar" ? "default" : "outline"}
             size="sm"
             onClick={() => setView("calendar")}
-            className="flex items-center"
+            className="flex items-center flex-1 sm:flex-auto justify-center"
           >
             <Calendar className="h-4 w-4 mr-2" />
             Calendar

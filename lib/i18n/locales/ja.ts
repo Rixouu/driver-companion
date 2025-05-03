@@ -268,6 +268,7 @@ export const ja: TranslationValue = {
       statusMessage: "このドライバーは現在{date}まで{status}で、予約に割り当てできません。",
       availableMessage: "このドライバーは現在予約に割り当て可能です。",
       upcomingSchedule: "今後のスケジュール",
+      noUpcomingSchedule: "今後のスケジュール変更はありません。",
       returnsFromLeave: "休暇から復帰",
       viewFullSchedule: "スケジュール全体を表示",
       description: "このドライバーの稼働期間を管理します。利用可能、休暇中、研修中などの状態を設定します。",

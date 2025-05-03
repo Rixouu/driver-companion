@@ -42,6 +42,12 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
             
             if (currentAvailability.status === "available") {
               setCurrentStatusMessage(t("drivers.availability.availableMessage"));
+            } else if (currentAvailability.status === "leave") {
+              setCurrentStatusMessage(
+                t("drivers.availability.returnMessage", {
+                  date: format(endDate, "MMMM d, yyyy")
+                })
+              );
             } else {
               setCurrentStatusMessage(
                 t("drivers.availability.statusMessage", {
@@ -56,7 +62,7 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
             setCurrentStatusMessage(t("drivers.availability.availableMessage"));
           }
 
-          // Find upcoming status changes (future availability periods sorted by start date)
+          // Find upcoming status changes - future availability periods sorted by start date
           const futureAvailability = availabilityRecords
             .filter((record) => record.start_date > today)
             .sort((a, b) => {
@@ -132,7 +138,7 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
 
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <h3 className="text-xl font-bold mb-4">{t("drivers.availability.title")}</h3>
         
         {/* Current Status Section */}
@@ -147,37 +153,37 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
         </div>
 
         {/* Upcoming Schedule Section */}
-        {upcomingRecords.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-2">{t("drivers.availability.upcomingSchedule")}</h4>
+        <div>
+          <h4 className="text-sm font-medium mb-2">{t("drivers.availability.upcomingSchedule")}</h4>
+          {upcomingRecords.length > 0 ? (
             <div className="space-y-2">
               {upcomingRecords.map((record) => (
-                <div key={record.id} className="flex items-center justify-between p-3 border rounded-md">
+                <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md gap-2">
                   <div className="flex items-center">
-                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {/* Display formatted date range */}
+                    <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
                     <span className="text-sm">{formatDateRange(record.start_date, record.end_date)}</span>
                   </div>
-                  {/* Use consistent badge styling */}
-                  <Badge variant={getStatusBadgeClass(record.status) as any}>
-                    {record.status === "leave" 
-                      ? t("drivers.availability.returnsFromLeave") 
-                      : getStatusLabel(record.status)}
+                  <Badge variant={getStatusBadgeClass(record.status) as any} className="self-start sm:self-auto">
+                    {getStatusLabel(record.status)}
                   </Badge>
                 </div>
               ))}
             </div>
-            <div className="mt-4">
-              <button 
-                className="w-full py-2 text-center border rounded-md hover:bg-accent transition-colors text-sm font-medium flex items-center justify-center"
-                onClick={onViewFullSchedule}
-              >
-                <Clock className="h-4 w-4 mr-1" />
-                {t("drivers.availability.viewFullSchedule")}
-              </button>
+          ) : (
+            <div className="text-center py-4 border rounded-md text-muted-foreground">
+              <p className="text-sm">{t("drivers.availability.noUpcomingSchedule")}</p>
             </div>
+          )}
+          <div className="mt-4">
+            <button 
+              className="w-full py-2 text-center border rounded-md hover:bg-accent transition-colors text-sm font-medium flex items-center justify-center"
+              onClick={onViewFullSchedule}
+            >
+              <Clock className="h-4 w-4 mr-1" />
+              {t("drivers.availability.viewFullSchedule")}
+            </button>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

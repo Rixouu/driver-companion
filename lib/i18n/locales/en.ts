@@ -298,6 +298,7 @@ export const en: TranslationValue = {
       statusMessage: "This driver is currently {status} until {date}, and cannot be assigned to bookings.",
       availableMessage: "This driver is currently available for booking assignments.",
       upcomingSchedule: "Upcoming Schedule",
+      noUpcomingSchedule: "No upcoming schedule changes.",
       returnsFromLeave: "Returns from leave",
       viewFullSchedule: "View Full Schedule",
       statuses: {

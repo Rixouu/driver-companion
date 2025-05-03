@@ -117,64 +117,80 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
   
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>{t("drivers.availability.calendar")}</CardTitle>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" onClick={prevMonth}>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2">
+        <CardTitle className="text-lg sm:text-xl">{t("drivers.availability.calendar")}</CardTitle>
+        <div className="flex items-center space-x-2 self-end sm:self-center">
+          <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 sm:h-9 sm:w-9">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="font-medium">
+          <div className="font-medium text-sm sm:text-base whitespace-nowrap">
             {format(currentMonth, "MMMM yyyy")}
           </div>
-          <Button variant="outline" size="icon" onClick={nextMonth}>
+          <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8 sm:h-9 sm:w-9">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8">{t("drivers.availability.loading")}</div>
+          <div className="flex justify-center py-8 text-muted-foreground">{t("drivers.availability.loading")}</div>
         ) : (
           <>
-            <div className="grid grid-cols-7 gap-1 text-center text-sm mb-2">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <div key={day} className="font-medium py-1">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-medium text-muted-foreground mb-2">
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                <div key={index} className="py-1">
                   {day}
                 </div>
               ))}
             </div>
+            {/* Calendar Grid */}
             <div className="grid grid-cols-7 gap-1">
               {daysInMonth.map((day, i) => {
                 const availability = getAvailabilityForDate(day)
+                const isToday = isSameDay(day, new Date())
+                
                 return (
                   <div
                     key={i}
                     className={cn(
-                      "h-20 p-1 border rounded-md transition-colors",
-                      !isSameMonth(day, currentMonth) && "opacity-50 bg-gray-50",
-                      "relative"
+                      "min-h-[60px] sm:min-h-[80px] p-1 border rounded-md transition-colors relative flex flex-col",
+                      !isSameMonth(day, currentMonth) && "opacity-50 bg-muted/30",
+                      isToday && "border-primary",
+                      "hover:bg-accent/50"
                     )}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-center mb-1">
                       <div
                         className={cn(
-                          "text-sm font-medium",
-                          isSameDay(day, new Date()) && "text-white bg-primary rounded-full w-6 h-6 flex items-center justify-center"
+                          "text-[10px] sm:text-xs font-medium flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full",
+                          isToday && "bg-primary text-primary-foreground",
+                          !isSameMonth(day, currentMonth) && "text-muted-foreground"
                         )}
                       >
                         {format(day, "d")}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => handleAddAvailability(day)}
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 sm:h-6 sm:w-6"
+                            onClick={() => handleAddAvailability(day)}
+                          >
+                            <PlusCircle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                          </Button>
+                        </DialogTrigger>
+                      </Dialog>
                     </div>
                     {availability && (
-                      <Badge className={cn("mt-1 inline-flex", getStatusColor(availability.status))}>
+                      <Badge 
+                        variant="outline"
+                        className={cn(
+                          "mt-auto text-[9px] sm:text-[10px] px-1 py-0.5 h-auto leading-tight justify-center truncate", 
+                          getStatusColor(availability.status)
+                        )}
+                      >
                         {t(`drivers.availability.statuses.${availability.status}`)}
                       </Badge>
                     )}
@@ -182,11 +198,12 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                 )
               })}
             </div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Badge className={getStatusColor("available")}>{t("drivers.availability.statuses.available")}</Badge>
-              <Badge className={getStatusColor("unavailable")}>{t("drivers.availability.statuses.unavailable")}</Badge>
-              <Badge className={getStatusColor("leave")}>{t("drivers.availability.statuses.leave")}</Badge>
-              <Badge className={getStatusColor("training")}>{t("drivers.availability.statuses.training")}</Badge>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("available"))}>{t("drivers.availability.statuses.available")}</Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("unavailable"))}>{t("drivers.availability.statuses.unavailable")}</Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("leave"))}>{t("drivers.availability.statuses.leave")}</Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("training"))}>{t("drivers.availability.statuses.training")}</Badge>
             </div>
           </>
         )}

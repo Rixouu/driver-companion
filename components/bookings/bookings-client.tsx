@@ -89,6 +89,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null)
   const syncResultTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   
   // Auto-dismiss sync result message after 5 seconds
   useEffect(() => {
@@ -123,8 +124,19 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   }
   
   const handleViewChange = (newView: "list" | "grid") => {
-    setView(newView)
-    updateUrlWithFilters(filter, dateRange, newView)
+    // Don't allow grid view on mobile devices
+    if (isMobile && newView === "grid") {
+      console.log("Grid view blocked on mobile");
+      return;
+    }
+    
+    console.log(`Changing view to ${newView}`);
+    setView(newView);
+    
+    // Update URL with the new view
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", newView);
+    router.push(`/bookings?${params.toString()}`);
   }
   
   // Function to update URL with all filters
@@ -214,53 +226,58 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
     }
   }
   
-  // Set default view based on screen size
+  // Set default view based on screen size and handle resize
   useEffect(() => {
-    // Check if we're on mobile
-    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
-    if (isMobile && view === "grid") {
-      handleViewChange("list")
-    }
-    
-    // Add resize listener to change view when resizing between mobile and desktop
-    const handleResize = () => {
-      const isMobileNow = window.innerWidth < 640;
-      if (isMobileNow && view === "grid") {
-        handleViewChange("list")
+    const checkIfMobile = () => {
+      const width = window.innerWidth;
+      const mobileBreakpoint = 640; // sm breakpoint in Tailwind
+      const wasMobile = isMobile;
+      setIsMobile(width < mobileBreakpoint);
+      
+      // Only force list view when screen size changes from desktop to mobile
+      if (!wasMobile && width < mobileBreakpoint && view === "grid") {
+        setView("list");
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("view", "list");
+        router.push(`/bookings?${params.toString()}`);
       }
     };
     
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [view]);
+    // Initial check
+    checkIfMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, [view, router, searchParams, isMobile]);
 
   // Generate status filter button class based on active status
   const getStatusButtonClass = (buttonStatus: string) => {
     if (filter === buttonStatus) {
       switch (buttonStatus) {
         case 'confirmed':
-          return 'bg-green-600 hover:bg-green-700 text-white font-medium';
+          return 'bg-green-600 hover:bg-green-700 border-green-600 text-white font-medium';
         case 'pending':
-          return 'bg-yellow-600 hover:bg-yellow-700 text-white font-medium';
+          return 'bg-yellow-600 hover:bg-yellow-700 border-yellow-600 text-white font-medium';
         case 'cancelled':
-          return 'bg-red-600 hover:bg-red-700 text-white font-medium';
+          return 'bg-red-600 hover:bg-red-700 border-red-600 text-white font-medium';
         case 'completed':
-          return 'bg-blue-600 hover:bg-blue-700 text-white font-medium';
+          return 'bg-blue-600 hover:bg-blue-700 border-blue-600 text-white font-medium';
         default:
-          return 'text-primary-foreground font-medium';
+          return 'bg-primary text-primary-foreground font-medium';
       }
     } else {
       switch (buttonStatus) {
         case 'confirmed':
-          return 'border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/30';
+          return 'border-green-500 text-green-500 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-950/30';
         case 'pending':
-          return 'border-yellow-200 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-800 dark:text-yellow-400 dark:hover:bg-yellow-950/30';
+          return 'border-yellow-500 text-yellow-500 hover:bg-yellow-50 dark:border-yellow-500 dark:text-yellow-400 dark:hover:bg-yellow-950/30';
         case 'cancelled':
-          return 'border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30';
+          return 'border-red-500 text-red-500 hover:bg-red-50 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-950/30';
         case 'completed':
-          return 'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30';
+          return 'border-blue-500 text-blue-500 hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-950/30';
         default:
-          return 'text-muted-foreground';
+          return 'border-gray-200 text-foreground dark:border-gray-700';
       }
     }
   };
@@ -306,7 +323,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                   </Button>
                 </div>
                 
-                {/* View Toggle */}
+                {/* View Toggle Button */}
                 <div className="flex items-center bg-muted border rounded-md p-1 h-9">
                   <Button 
                     variant={view === 'list' ? 'default' : 'ghost'} 
@@ -321,7 +338,9 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                     variant={view === 'grid' ? 'default' : 'ghost'} 
                     size="sm"
                     onClick={() => handleViewChange('grid')}
-                    className={`rounded-sm flex-1 h-7 px-2 ${view === 'grid' ? 'font-medium' : 'text-muted-foreground'}`}
+                    className={`rounded-sm flex-1 h-7 px-2 ${view === 'grid' ? 'font-medium' : 'text-muted-foreground'} ${isMobile ? 'cursor-not-allowed opacity-50' : ''}`}
+                    disabled={isMobile}
+                    title={isMobile ? t('bookings.viewOptions.gridDisabledOnMobile') : ""}
                   >
                     <LayoutGrid className="h-4 w-4" />
                     <span className="sr-only">{t('bookings.viewOptions.grid')}</span>
@@ -373,47 +392,96 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
             
             {/* Status Filter Pills - Only show when not in advanced filters mode */}
             {!showFilters && (
-              <div className="flex flex-wrap gap-2 pt-3 border-t overflow-x-auto pb-1 w-full">
-                <Button 
-                  variant={filter === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleFilterChange('all')}
-                  className={getStatusButtonClass('all')}
-                >
-                  {t('bookings.filters.all')}
-                </Button>
-                <Button 
-                  variant={filter === 'confirmed' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleFilterChange('confirmed')}
-                  className={getStatusButtonClass('confirmed')}
-                >
-                  {t('bookings.filters.confirmed')}
-                </Button>
-                <Button 
-                  variant={filter === 'pending' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleFilterChange('pending')}
-                  className={getStatusButtonClass('pending')}
-                >
-                  {t('bookings.filters.pending')}
-                </Button>
-                <Button 
-                  variant={filter === 'cancelled' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleFilterChange('cancelled')}
-                  className={getStatusButtonClass('cancelled')}
-                >
-                  {t('bookings.filters.cancelled')}
-                </Button>
-                <Button 
-                  variant={filter === 'completed' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleFilterChange('completed')}
-                  className={getStatusButtonClass('completed')}
-                >
-                  {t('bookings.filters.completed')}
-                </Button>
+              <div className="pt-3 border-t w-full">
+                {isMobile ? (
+                  // Mobile status filter layout - Full width buttons like in the screenshot
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('all')}
+                      className={`${getStatusButtonClass('all')} w-full h-12 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.all')}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('confirmed')}
+                      className={`${getStatusButtonClass('confirmed')} w-full h-12 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.confirmed')}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('pending')}
+                      className={`${getStatusButtonClass('pending')} w-full h-12 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.pending')}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('cancelled')}
+                      className={`${getStatusButtonClass('cancelled')} w-full h-12 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.cancelled')}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleFilterChange('completed')}
+                      className={`${getStatusButtonClass('completed')} w-full h-12 col-span-2 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.completed')}
+                    </Button>
+                  </div>
+                ) : (
+                  // Desktop status filter layout
+                  <div className="flex flex-wrap gap-2">
+                    <Button 
+                      variant={filter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('all')}
+                      className={`${getStatusButtonClass('all')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.all')}
+                    </Button>
+                    <Button 
+                      variant={filter === 'confirmed' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('confirmed')}
+                      className={`${getStatusButtonClass('confirmed')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.confirmed')}
+                    </Button>
+                    <Button 
+                      variant={filter === 'pending' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('pending')}
+                      className={`${getStatusButtonClass('pending')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.pending')}
+                    </Button>
+                    <Button 
+                      variant={filter === 'cancelled' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('cancelled')}
+                      className={`${getStatusButtonClass('cancelled')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.cancelled')}
+                    </Button>
+                    <Button 
+                      variant={filter === 'completed' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('completed')}
+                      className={`${getStatusButtonClass('completed')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.completed')}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

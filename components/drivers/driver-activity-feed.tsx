@@ -150,10 +150,10 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-8 bg-muted/30 rounded-lg min-h-[150px]">
+          <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-muted/30 rounded-lg min-h-[150px]">
              <Clock className="h-10 w-10 text-muted-foreground mb-3" />
              <h3 className="text-lg font-medium mb-1">{t("drivers.activity.empty.title")}</h3>
-             <p className="text-muted-foreground">
+             <p className="text-muted-foreground text-sm">
                {t("drivers.activity.empty.description")}
              </p>
            </div>
@@ -162,34 +162,34 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
             {activities.map((activity) => (
               <Link
                 key={activity.id}
-                href={activity.link}
-                className="block p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" 
+                href={activity.link} passHref
+                className="block p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" 
               >
                 <div className="flex items-start gap-3 justify-between">
-                  <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         {activity.type === "inspection" && (
-                          <FileText className="h-5 w-5 text-primary" />
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         )}
                         {activity.type === "maintenance" && (
-                          <Wrench className="h-5 w-5 text-primary" />
+                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         )}
                         {activity.type === "vehicle_assignment" && (
-                          <Car className="h-5 w-5 text-primary" />
+                          <Car className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         )}
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-foreground">{activity.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{activity.title}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">
                         {activity.description}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex flex-col items-end flex-shrink-0 ml-4">
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  <div className="flex flex-col items-end flex-shrink-0 ml-2 sm:ml-4">
+                    <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                       {formatDate(activity.date)}
                     </span>
                   </div>

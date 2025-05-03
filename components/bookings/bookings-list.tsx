@@ -122,10 +122,12 @@ export function BookingsList({
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
   const { t } = useI18n()
+  const [isMobile, setIsMobile] = useState(false)
 
   // Update view when initialView changes
   useEffect(() => {
     setView(initialView);
+    console.log("View updated from props:", initialView);
   }, [initialView]);
 
   // Function to view booking details
@@ -316,10 +318,27 @@ export function BookingsList({
   const paginatedBookings = filteredBookings.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   const calculatedTotalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE) || 1
 
-  // After the component loads bookings, immediately checking the view state
+  // After the component loads bookings or view changes, log the current view state
   useEffect(() => {
-    console.log("Current view state:", view)
-  }, [view, bookings])
+    console.log("Current view state in BookingsList:", view);
+  }, [view, bookings]);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const isMobileNow = window.innerWidth < 640;
+      setIsMobile(isMobileNow);
+      
+      // Force list view on mobile
+      if (isMobileNow && view === 'grid') {
+        setView('list');
+      }
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, [view]);
 
   if (isLoading) {
     return (
@@ -442,266 +461,381 @@ export function BookingsList({
         </Alert>
       )}
 
-      {view === 'grid' ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {paginatedBookings.map((booking) => (
-            <Card 
-              key={booking.id} 
-              className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
-              onClick={() => handleViewBooking(booking.id)}
-            >
-              <CardHeader className="pb-0 relative">
-                <Badge 
-                  className={`absolute right-6 top-6 px-3 py-1.5 font-medium ${getStatusBadgeClasses(booking.status)}`}
-                >
-                  {t(`bookings.status.${booking.status}`)}
-                </Badge>
-                <div className="space-y-1">
-                  <CardTitle className="text-lg font-semibold line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</CardTitle>
-                  <CardDescription className="flex items-center">
-                    <span className="font-medium text-primary mr-1">#</span>{booking.id}
-                    {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
-                      booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                      <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{booking.service_name}</p>
-                    )}
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-4">
-                  <div className="flex items-center text-foreground/80 gap-2">
-                    <Icons.calendar className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
-                  </div>
-                  
-                  {/* Customer information */}
-                  {booking.customer_name && (
-                    <div className="flex items-start gap-2">
-                      <User className="h-4 w-4 text-primary mt-0.5" />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{booking.customer_name}</span>
-                        {booking.customer_email && (
-                          <span className="text-xs text-muted-foreground truncate max-w-[200px]">{booking.customer_email}</span>
-                        )}
-                        {booking.customer_phone && (
-                          <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Location information */}
-                  {(booking.pickup_location || booking.dropoff_location) && (
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                      <div className="flex flex-col">
-                        {booking.pickup_location && (
-                          <div className="flex flex-col">
-                            <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
-                            <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
-                          </div>
-                        )}
-                        {booking.dropoff_location && (
-                          <div className="flex flex-col mt-1.5">
-                            <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
-                            <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {booking.vehicle && (
-                    <div className="flex items-center gap-2">
-                      <Car className="h-4 w-4 text-primary" />
-                      <span className="font-medium">
-                        {booking.vehicle.make} {booking.vehicle.model} {booking.vehicle.year ? `(${booking.vehicle.year})` : ''}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Distance and duration if available */}
-                  {(booking.distance || booking.duration) && (
-                    <div className="flex items-center gap-2">
-                      <Timer className="h-4 w-4 text-primary" />
-                      <div className="flex gap-x-3">
-                        {booking.distance && (
-                          <span className="text-sm">{booking.distance} {t('bookings.labels.km')}</span>
-                        )}
-                        {booking.duration && (
-                          <span className="text-sm">{booking.duration} {t('bookings.labels.min')}</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="pt-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-1 border-t">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/bookings/${booking.id}/edit`);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  <span>{t('common.edit')}</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-8"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/bookings/${booking.id}/reschedule`);
-                  }}
-                >
-                  <Icons.calendar className="h-4 w-4 mr-1" />
-                  <span>{t('bookings.details.actions.reschedule')}</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="h-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCancelBooking(booking.id.toString());
-                  }}
-                >
-                  <Trash className="h-4 w-4 mr-1" />
-                  <span>{t('common.cancel')}</span>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-md border overflow-hidden shadow-sm">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[100px]">{t('bookings.tableHeaders.bookingId')}</TableHead>
-                <TableHead className="w-[140px]">{t('bookings.tableHeaders.dateTime')}</TableHead>
-                <TableHead>{t('bookings.tableHeaders.service')}</TableHead>
-                <TableHead>{t('bookings.tableHeaders.customer')}</TableHead>
-                <TableHead>{t('bookings.tableHeaders.locations')}</TableHead>
-                <TableHead className="w-[120px]">{t('bookings.tableHeaders.status')}</TableHead>
-                <TableHead className="text-right w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      {/* Render view based on the current view state and mobile detection */}
+      {(() => {
+        // Force list view on mobile
+        const effectiveView = isMobile ? "list" : view;
+        console.log(`Rendering with effectiveView: ${effectiveView}, isMobile: ${isMobile}`);
+        
+        if (effectiveView === 'grid') {
+          return (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Grid view content */}
               {paginatedBookings.map((booking) => (
-                <TableRow 
+                <Card 
                   key={booking.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                  className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
                   onClick={() => handleViewBooking(booking.id)}
                 >
-                  <TableCell className="font-medium text-primary">#{booking.id}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{formatDate(booking.date)}</span>
-                      <span className="text-xs text-muted-foreground">{booking.time}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</span>
-                      {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
-                        booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                        <span className="text-xs text-muted-foreground line-clamp-1">{booking.service_name}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</span>
-                      {booking.customer_email && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">{booking.customer_email}</span>
-                      )}
-                      {booking.customer_phone && (
-                        <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col space-y-1.5">
-                      {booking.pickup_location && (
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span>
-                          <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
-                        </div>
-                      )}
-                      {booking.dropoff_location && (
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span>
-                          <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
-                        </div>
-                      )}
-                      {!booking.pickup_location && !booking.dropoff_location && (
-                        <span className="text-xs text-muted-foreground italic">{t('bookings.defaultLabels.noLocationData')}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
+                  {/* Card content for grid view */}
+                  <CardHeader className="pb-0 relative">
                     <Badge 
-                      className={`px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
+                      className={`absolute right-6 top-6 px-3 py-1.5 font-medium ${getStatusBadgeClasses(booking.status)}`}
                     >
                       {t(`bookings.status.${booking.status}`)}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/bookings/${booking.id}/edit`);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">{t('bookings.details.actions.edit')}</span>
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/bookings/${booking.id}/reschedule`);
-                        }}
-                      >
-                        <Icons.calendar className="h-4 w-4" />
-                        <span className="sr-only">{t('bookings.details.actions.reschedule')}</span>
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelBooking(booking.id.toString());
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                        <span className="sr-only">{t('bookings.details.actions.cancel')}</span>
-                      </Button>
+                    <div className="space-y-1">
+                      <CardTitle className="text-lg font-semibold line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</CardTitle>
+                      <CardDescription className="flex items-center">
+                        <span className="font-medium text-primary mr-1">#</span>{booking.id}
+                        {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
+                          booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
+                          <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{booking.service_name}</p>
+                        )}
+                      </CardDescription>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </CardHeader>
+                  {/* Rest of grid card content */}
+                  <CardContent className="pt-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center text-foreground/80 gap-2">
+                        <Icons.calendar className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
+                      </div>
+                      
+                      {/* Customer information */}
+                      {booking.customer_name && (
+                        <div className="flex items-start gap-2">
+                          <User className="h-4 w-4 text-primary mt-0.5" />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{booking.customer_name}</span>
+                            {booking.customer_email && (
+                              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{booking.customer_email}</span>
+                            )}
+                            {booking.customer_phone && (
+                              <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Location information */}
+                      {(booking.pickup_location || booking.dropoff_location) && (
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                          <div className="flex flex-col">
+                            {booking.pickup_location && (
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
+                                <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
+                              </div>
+                            )}
+                            {booking.dropoff_location && (
+                              <div className="flex flex-col mt-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
+                                <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {booking.vehicle && (
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4 text-primary" />
+                          <span className="font-medium">
+                            {booking.vehicle.make} {booking.vehicle.model} {booking.vehicle.year ? `(${booking.vehicle.year})` : ''}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Distance and duration if available */}
+                      {(booking.distance || booking.duration) && (
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-4 w-4 text-primary" />
+                          <div className="flex gap-x-3">
+                            {booking.distance && (
+                              <span className="text-sm">{booking.distance} {t('bookings.labels.km')}</span>
+                            )}
+                            {booking.duration && (
+                              <span className="text-sm">{booking.duration} {t('bookings.labels.min')}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-1 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/bookings/${booking.id}/edit`);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      <span>{t('common.edit')}</span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/bookings/${booking.id}/reschedule`);
+                      }}
+                    >
+                      <Icons.calendar className="h-4 w-4 mr-1" />
+                      <span>{t('bookings.details.actions.reschedule')}</span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCancelBooking(booking.id.toString());
+                      }}
+                    >
+                      <Trash className="h-4 w-4 mr-1" />
+                      <span>{t('common.cancel')}</span>
+                    </Button>
+                  </CardFooter>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+            </div>
+          );
+        } else {
+          // List view (default)
+          return (
+            <>
+              {/* Desktop table view - hide on mobile */}
+              <div className={`rounded-md border overflow-hidden shadow-sm ${isMobile ? 'hidden' : 'block'}`}>
+                {/* Table content for desktop */}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="w-[100px]">{t('bookings.tableHeaders.bookingId')}</TableHead>
+                        <TableHead className="w-[140px]">{t('bookings.tableHeaders.dateTime')}</TableHead>
+                        <TableHead>{t('bookings.tableHeaders.service')}</TableHead>
+                        <TableHead>{t('bookings.tableHeaders.customer')}</TableHead>
+                        <TableHead>{t('bookings.tableHeaders.locations')}</TableHead>
+                        <TableHead className="w-[120px]">{t('bookings.tableHeaders.status')}</TableHead>
+                        <TableHead className="text-right w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedBookings.map((booking) => (
+                        // Table row content...
+                        <TableRow 
+                          key={booking.id} 
+                          className="cursor-pointer hover:bg-muted/50 transition-colors" 
+                          onClick={() => handleViewBooking(booking.id)}
+                        >
+                          <TableCell className="font-medium text-primary">#{booking.id}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{formatDate(booking.date)}</span>
+                              <span className="text-xs text-muted-foreground">{booking.time}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</span>
+                              {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
+                                booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
+                                <span className="text-xs text-muted-foreground line-clamp-1">{booking.service_name}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</span>
+                              {booking.customer_email && (
+                                <span className="text-xs text-muted-foreground truncate max-w-[180px]">{booking.customer_email}</span>
+                              )}
+                              {booking.customer_phone && (
+                                <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col space-y-1.5">
+                              {booking.pickup_location && (
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span>
+                                  <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
+                                </div>
+                              )}
+                              {booking.dropoff_location && (
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span>
+                                  <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
+                                </div>
+                              )}
+                              {!booking.pickup_location && !booking.dropoff_location && (
+                                <span className="text-xs text-muted-foreground italic">{t('bookings.defaultLabels.noLocationData')}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              className={`px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
+                            >
+                              {t(`bookings.status.${booking.status}`)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/bookings/${booking.id}/edit`);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">{t('bookings.details.actions.edit')}</span>
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/bookings/${booking.id}/reschedule`);
+                                }}
+                              >
+                                <Icons.calendar className="h-4 w-4" />
+                                <span className="sr-only">{t('bookings.details.actions.reschedule')}</span>
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelBooking(booking.id.toString());
+                                }}
+                              >
+                                <Trash className="h-4 w-4" />
+                                <span className="sr-only">{t('bookings.details.actions.cancel')}</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Mobile card view */}
+              <div className={isMobile ? "block" : "hidden"}>
+                <div className="space-y-3">
+                  {paginatedBookings.map((booking) => (
+                    <Card 
+                      key={booking.id} 
+                      className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
+                      onClick={() => handleViewBooking(booking.id)}
+                    >
+                      <CardHeader className="pb-0 pt-3 px-4 relative">
+                        <Badge 
+                          className={`absolute right-4 top-4 px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
+                        >
+                          {t(`bookings.status.${booking.status}`)}
+                        </Badge>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <CardTitle className="text-lg font-semibold">#{booking.id}</CardTitle>
+                          </div>
+                          <CardDescription className="line-clamp-1 text-base">
+                            {booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}
+                          </CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-3 px-4 pb-3">
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-center text-foreground/80 gap-2">
+                            <Icons.calendar className="h-4 w-4 text-primary flex-shrink-0" />
+                            <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
+                          </div>
+                          
+                          {booking.customer_name && (
+                            <div className="flex items-start gap-2">
+                              <User className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{booking.customer_name}</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {booking.pickup_location && (
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
+                                <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {booking.dropoff_location && (
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
+                                <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-2 px-4 pb-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-2 border-t">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-9 px-3"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/bookings/${booking.id}/edit`);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="ml-1.5">{t('common.edit')}</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-9 px-3 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelBooking(booking.id.toString());
+                          }}
+                        >
+                          <Trash className="h-4 w-4" />
+                          <span className="ml-1.5">{t('common.cancel')}</span>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+        }
+      })()}
       
-      {/* Pagination */}
+      {/* Pagination - Make it more mobile friendly */}
       {filteredBookings.length > ITEMS_PER_PAGE && (
         <Pagination>
-          <PaginationContent>
+          <PaginationContent className={isMobile ? "gap-1" : ""}>
+            {/* Pagination content... */}
             {currentPage > 1 && (
               <PaginationItem>
                 <PaginationPrevious 
@@ -713,20 +847,105 @@ export function BookingsList({
                 />
               </PaginationItem>
             )}
-            {[...Array(calculatedTotalPages)].map((_, i) => (
-              <PaginationItem key={i + 1}>
-                <PaginationLink
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    onPageChange(i + 1)
-                  }}
-                  isActive={currentPage === i + 1}
-                >
-                  {i + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
+            {/* Simplify pagination on mobile */}
+            {isMobile ? (
+              <>
+                {/* Show only current page and immediate neighbors */}
+                {currentPage > 2 && (
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onPageChange(1)
+                      }}
+                    >
+                      1
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+                
+                {currentPage > 3 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                {currentPage > 1 && (
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onPageChange(currentPage - 1)
+                      }}
+                    >
+                      {currentPage - 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+                
+                <PaginationItem>
+                  <PaginationLink
+                    href="#"
+                    isActive
+                  >
+                    {currentPage}
+                  </PaginationLink>
+                </PaginationItem>
+                
+                {currentPage < calculatedTotalPages && (
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onPageChange(currentPage + 1)
+                      }}
+                    >
+                      {currentPage + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+                
+                {currentPage < calculatedTotalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+                
+                {currentPage < calculatedTotalPages - 1 && (
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onPageChange(calculatedTotalPages)
+                      }}
+                    >
+                      {calculatedTotalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                )}
+              </>
+            ) : (
+              // Desktop pagination - show all pages
+              [...Array(calculatedTotalPages)].map((_, i) => (
+                <PaginationItem key={i + 1}>
+                  <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onPageChange(i + 1)
+                    }}
+                    isActive={currentPage === i + 1}
+                  >
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))
+            )}
+            
             {currentPage < calculatedTotalPages && (
               <PaginationItem>
                 <PaginationNext

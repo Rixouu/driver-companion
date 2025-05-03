@@ -52,27 +52,96 @@ async function fetchAssignmentDetails(supabase: any, driverId: string | null, ve
 
 export default function BookingAssignment({ booking, onAssignmentComplete }: BookingAssignmentProps) {
   const { t } = useI18n();
-  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(booking.driver_id || null);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(booking.vehicle?.id || null);
+  const supabase = createClientComponentClient<Database>();
+  
+  // State for current data
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [currentDriverName, setCurrentDriverName] = useState<string | null>(null);
   const [currentVehicleName, setCurrentVehicleName] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(!(booking.driver_id && booking.vehicle?.id));
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // State for available options
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [originalVehicle, setOriginalVehicle] = useState<Vehicle | null>(null);
   const [isOriginalVehicleAvailable, setIsOriginalVehicleAvailable] = useState<boolean>(true);
+  
+  // Status flags
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const supabase = createClientComponentClient<Database>();
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Load fresh booking data from the database on mount
+  useEffect(() => {
+    async function fetchFreshBookingData() {
+      if (!booking.supabase_id) return;
+      
+      setIsLoading(true);
+      try {
+        console.log("[DEBUG] Fetching fresh booking data from database...");
+        const { data: freshBooking, error } = await supabase
+          .from('bookings')
+          .select('id, driver_id, vehicle_id')
+          .eq('id', booking.supabase_id)
+          .single();
+          
+        if (error) throw error;
+        
+        console.log("[DEBUG] Fresh booking data:", freshBooking);
+        
+        // Only update these specific fields
+        setCurrentBooking({
+          ...booking,
+          driver_id: freshBooking.driver_id || null,
+          vehicle: freshBooking.vehicle_id ? { id: freshBooking.vehicle_id } : null
+        });
+        
+        // Set the initial selection values based on the fresh data
+        setSelectedDriverId(freshBooking.driver_id || null);
+        setSelectedVehicleId(freshBooking.vehicle_id || null);
+        
+        // Get the names for display
+        const { driverName, vehicleName } = await fetchAssignmentDetails(
+          supabase, 
+          freshBooking.driver_id, 
+          freshBooking.vehicle_id
+        );
+        
+        console.log("[DEBUG] Display names from fresh data:", { driverName, vehicleName });
+        setCurrentDriverName(driverName);
+        setCurrentVehicleName(vehicleName);
+        
+        // Set edit mode only if we don't have both driver and vehicle
+        setIsEditing(!(freshBooking.driver_id && freshBooking.vehicle_id));
+        
+        setHasInitialized(true);
+      } catch (error) {
+        console.error("Error fetching fresh booking data:", error);
+        // Fall back to props data if we can't get fresh data
+        setCurrentBooking(booking);
+        setSelectedDriverId(booking.driver_id || null);
+        setSelectedVehicleId(booking.vehicle?.id || null);
+        setIsEditing(!(booking.driver_id && booking.vehicle?.id));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchFreshBookingData();
+  }, [booking.supabase_id, supabase]);
 
   // Load available drivers and vehicles
   useEffect(() => {
-    async function loadData() {
+    if (!hasInitialized || !currentBooking) return;
+    
+    async function loadAvailabilityData() {
       setIsLoading(true);
       try {
         // Fetch booking date and time for availability check
-        const bookingDate = booking.date;
-        const bookingTime = booking.time;
+        const bookingDate = currentBooking.date;
+        const bookingTime = currentBooking.time;
         const bookingDateTimeStr = `${bookingDate}T${bookingTime}:00`;
         const bookingDateTime = new Date(bookingDateTimeStr);
 
@@ -100,7 +169,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         if (vehiclesError) throw vehiclesError;
 
         // Check if the booking has an original vehicle
-        let bookingVehicleId = booking.vehicle?.id;
+        let bookingVehicleId = currentBooking.vehicle?.id;
         
         if (bookingVehicleId) {
           // Find the original vehicle in all vehicles
@@ -231,36 +300,38 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       }
     }
 
-    loadData();
-  }, [supabase, booking]);
+    loadAvailabilityData();
+  }, [hasInitialized, currentBooking, supabase]);
 
-  useEffect(() => {
-    // Fetch initial names if already assigned
-    if (booking.driver_id || booking.vehicle?.id) {
-      // Pass null explicitly if driver_id is undefined
-      fetchAssignmentDetails(supabase, booking.driver_id || null, booking.vehicle?.id || null)
-        .then(({ driverName, vehicleName }) => {
-          setCurrentDriverName(driverName);
-          setCurrentVehicleName(vehicleName);
-          // If fully assigned initially, don't start in editing mode
-          if (driverName && vehicleName) {
-            setIsEditing(false);
-          }
-        });
-    } else {
-      // Explicitly set names to null when no assignments exist
-      setCurrentDriverName(null);
-      setCurrentVehicleName(null);
+  // Add a more detailed logging in value change handler
+  const handleValueChange = (field: 'driver' | 'vehicle', value: string) => {
+    console.log(`[DEBUG] ${field} selection changed to: '${value}'`);
+    if (field === 'driver') {
+      setSelectedDriverId(value === "none" ? null : value);
+      console.log(`[DEBUG] selectedDriverId set to:`, value === "none" ? null : value);
+    } else if (field === 'vehicle') {
+      setSelectedVehicleId(value === "none" ? null : value);
+      console.log(`[DEBUG] selectedVehicleId set to:`, value === "none" ? null : value);
     }
-  }, [supabase, booking.driver_id, booking.vehicle?.id]);
+  };
 
   const handleAssign = async () => {
+    console.log('[DEBUG] --- Assignment process started ---');
+    console.log('[DEBUG] Initial values:', {
+      selectedDriverId,
+      selectedVehicleId,
+      isDriverNone: selectedDriverId === "none",
+      isVehicleNone: selectedVehicleId === "none",
+      isDriverNull: selectedDriverId === null,
+      isVehicleNull: selectedVehicleId === null
+    });
+
     setIsSubmitting(true);
     try {
-      const bookingUUID = booking.supabase_id;
-      if (!bookingUUID || typeof bookingUUID !== 'string') {
-         throw new Error('Valid Booking Supabase UUID is missing or invalid');
+      if (!currentBooking?.supabase_id) {
+        throw new Error('Valid Booking Supabase UUID is missing');
       }
+      const bookingUUID = currentBooking.supabase_id;
       
       // Validate UUID format only if an ID is actually selected
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -271,21 +342,42 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         throw new Error('Invalid Vehicle ID format (not a UUID)');
       }
 
-      // Prepare updates, explicitly setting null if needed
+      // Process driver_id and vehicle_id values with more careful null handling
+      let driver_id: string | null = null;
+      let vehicle_id: string | null = null;
+      
+      // Handle driver ID
+      if (selectedDriverId !== "none" && selectedDriverId !== null) {
+        driver_id = selectedDriverId;
+      }
+      
+      // Handle vehicle ID
+      if (selectedVehicleId !== "none" && selectedVehicleId !== null) {
+        vehicle_id = selectedVehicleId;
+      }
+      
+      console.log("[DEBUG] Processed values for DB update:", { driver_id, vehicle_id });
+      
+      // Prepare updates - now with our carefully processed values
       const updates = {
-        driver_id: selectedDriverId, // Will be null if "None" was selected
-        vehicle_id: selectedVehicleId // Will be null if "None" was selected
+        driver_id,
+        vehicle_id
       };
       
-      const { error: bookingUpdateError } = await supabase
+      console.log("[DEBUG] Sending to DB:", updates);
+      
+      const { data: updateResult, error: bookingUpdateError } = await supabase
         .from('bookings')
         .update(updates)
-        .eq('id', bookingUUID);
+        .eq('id', bookingUUID)
+        .select();
 
       if (bookingUpdateError) {
-        console.error("Error updating booking:", bookingUpdateError);
+        console.error("[DEBUG] Error updating booking:", bookingUpdateError);
         throw bookingUpdateError;
       }
+
+      console.log("[DEBUG] Booking update result:", updateResult);
 
       // Update dispatch_entries similarly, allowing nulls
       const { data: existingEntry, error: dispatchError } = await supabase
@@ -299,54 +391,119 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       }
 
       // Calculate start/end times for dispatch
-      const bookingDate = parseISO(booking.date);
-      const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
-      const durationMinutes = parseInt(String(booking.duration || "60"));
+      const bookingDate = parseISO(currentBooking.date);
+      const startTime = `${bookingDate.toISOString().split('T')[0]}T${currentBooking.time}:00`;
+      const durationMinutes = parseInt(String(currentBooking.duration || "60"));
       const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
       
-      // Prepare dispatch update
+      // Determine assignment status
+      const isFullyAssigned = driver_id !== null && vehicle_id !== null;
+      const assignmentStatus = isFullyAssigned ? 'assigned' : 'pending';
+      
+      console.log("[DEBUG] Assignment status:", { 
+        isFullyAssigned, 
+        assignmentStatus,
+        driver_id_set: driver_id !== null,
+        vehicle_id_set: vehicle_id !== null
+      });
+      
+      // Prepare dispatch update with our processed values
       const dispatchUpdate = {
-        driver_id: selectedDriverId,
-        vehicle_id: selectedVehicleId,
-        status: selectedDriverId && selectedVehicleId ? 'assigned' : 'pending',
+        driver_id,
+        vehicle_id,
+        status: assignmentStatus,
         start_time: startTime,
         end_time: endTimeDate.toISOString(),
         updated_at: new Date().toISOString(),
       };
+      
+      console.log("[DEBUG] Dispatch update payload:", dispatchUpdate);
 
       if (existingEntry) {
-        const { error: updateError } = await supabase
+        console.log("[DEBUG] Updating existing dispatch entry:", existingEntry.id);
+        const { data: dispatchUpdateResult, error: updateError } = await supabase
           .from('dispatch_entries')
           .update(dispatchUpdate)
-          .eq('id', existingEntry.id);
-        if (updateError) throw updateError;
+          .eq('id', existingEntry.id)
+          .select();
+          
+        if (updateError) {
+          console.error("[DEBUG] Error updating dispatch:", updateError);
+          throw updateError;
+        }
+        console.log("[DEBUG] Dispatch update result:", dispatchUpdateResult);
       } else {
-        // Insert new dispatch entry (only if fully assigned for now)
-        if (selectedDriverId && selectedVehicleId) { 
-          const { error: insertError } = await supabase
+        // Insert new dispatch entry only if fully assigned
+        if (isFullyAssigned) { 
+          console.log("[DEBUG] Creating new dispatch entry (fully assigned)");
+          const { data: newDispatch, error: insertError } = await supabase
             .from('dispatch_entries')
             .insert({
               ...dispatchUpdate,
               booking_id: bookingUUID,
               created_at: new Date().toISOString(),
-            });
-          if (insertError) throw insertError;
+            })
+            .select();
+            
+          if (insertError) {
+            console.error("[DEBUG] Error inserting dispatch:", insertError);
+            throw insertError;
+          }
+          console.log("[DEBUG] New dispatch created:", newDispatch);
+        } else {
+          console.log("[DEBUG] Not creating dispatch entry - not fully assigned");
         }
       }
 
-      toast({ description: "Assignment updated successfully" });
-      setIsEditing(false); // Exit editing mode
-      // Refresh assigned names
-      fetchAssignmentDetails(supabase, selectedDriverId, selectedVehicleId)
-        .then(({ driverName, vehicleName }) => {
-          setCurrentDriverName(driverName);
-          setCurrentVehicleName(vehicleName);
-        });
-      if (onAssignmentComplete) onAssignmentComplete();
-
+      toast({ description: t('bookings.assignment.assignSuccess') });
+      
+      console.log("[DEBUG] Assignment completed, updating state", { driver_id, vehicle_id });
+      
+      // Update our local state with the new values
+      // This will ensure the UI reflects the changes immediately
+      setCurrentBooking((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          driver_id: driver_id,
+          vehicle: vehicle_id ? { id: vehicle_id } : null
+        };
+      });
+      
+      // Exit editing mode
+      setIsEditing(false);
+      
+      // Explicitly set current names to null when "Not assigned" is selected
+      if (!driver_id && !vehicle_id) {
+        console.log("[DEBUG] Both driver and vehicle are null, explicitly setting display to 'Not assigned'");
+        setCurrentDriverName(null);
+        setCurrentVehicleName(null);
+      } else {
+        // Refresh display names
+        const { driverName, vehicleName } = await fetchAssignmentDetails(
+          supabase, 
+          driver_id, 
+          vehicle_id
+        );
+        setCurrentDriverName(driverName);
+        setCurrentVehicleName(vehicleName);
+        console.log("[DEBUG] Updated names:", { driverName, vehicleName });
+      }
+      
+      // Notify parent
+      if (onAssignmentComplete) {
+        console.log("[DEBUG] Calling onAssignmentComplete callback to refresh UI");
+        onAssignmentComplete();
+      }
+      
+      console.log('[DEBUG] --- Assignment process completed successfully ---');
     } catch (error: any) {
-      console.error("Error during assignment:", error);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error("[DEBUG] --- Assignment process failed ---", error);
+      toast({ 
+        title: t('common.error'), 
+        description: error.message, 
+        variant: "destructive" 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -354,8 +511,9 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
   const handleEditClick = () => {
     setIsEditing(true);
-    setSelectedDriverId(booking.driver_id || null);
-    setSelectedVehicleId(booking.vehicle?.id || null);
+    // Use current booking data for initial values
+    setSelectedDriverId(currentBooking?.driver_id || null);
+    setSelectedVehicleId(currentBooking?.vehicle?.id || null);
   };
 
   const getDriverById = (driverId: string) => {
@@ -365,6 +523,15 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
   const getVehicleById = (vehicleId: string) => {
     return availableVehicles.find(vehicle => vehicle.id === vehicleId);
   };
+
+  // If we don't have current booking data yet, show loading
+  if (!currentBooking && isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -378,26 +545,26 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
           {/* Booking Details Section */}
           <div className="border rounded-md overflow-hidden">
             <div className="px-4 py-3 bg-text-muted border-b">
-              <h3 className="text-base font-medium">Booking Details</h3>
+              <h3 className="text-base font-medium">{t('bookings.assignment.bookingDetails')}</h3>
             </div>
             <div className="p-4">
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Pickup Date</div>
-                  <div className="font-medium">{booking.date}</div>
+                  <div className="text-sm text-muted-foreground">{t('bookings.assignment.pickupDate')}</div>
+                  <div className="font-medium">{currentBooking?.date}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Pickup Time</div>
-                  <div className="font-medium">{booking.time}</div>
+                  <div className="text-sm text-muted-foreground">{t('bookings.assignment.pickupTime')}</div>
+                  <div className="font-medium">{currentBooking?.time}</div>
                 </div>
               </div>
               <div className="mb-4">
-                <div className="text-sm text-muted-foreground">Pickup Location</div>
-                <div className="font-medium">{booking.pickup_location}</div>
+                <div className="text-sm text-muted-foreground">{t('bookings.assignment.pickupLocation')}</div>
+                <div className="font-medium">{currentBooking?.pickup_location}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Dropoff Location</div>
-                <div className="font-medium">{booking.dropoff_location}</div>
+                <div className="text-sm text-muted-foreground">{t('bookings.assignment.dropoffLocation')}</div>
+                <div className="font-medium">{currentBooking?.dropoff_location}</div>
               </div>
             </div>
           </div>
@@ -407,20 +574,20 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <UserIcon className="h-5 w-5" />
-                <h3 className="text-base font-medium">Driver</h3>
+                <h3 className="text-base font-medium">{t('bookings.assignment.driver')}</h3>
               </div>
               
               {/* Driver Display - More robust check */}
               {isEditing ? (
                 <Select 
                   value={selectedDriverId ?? "none"}
-                  onValueChange={(value) => setSelectedDriverId(value === "none" ? null : value)}
+                  onValueChange={(value) => handleValueChange('driver', value)}
                 >
                   <SelectTrigger id="driver-select" className="w-full">
-                    <SelectValue placeholder="Not assigned" />
+                    <SelectValue placeholder={t('bookings.assignment.notAssigned')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not assigned</SelectItem>
+                    <SelectItem value="none">{t('bookings.assignment.notAssigned')}</SelectItem>
                     {availableDrivers.map((driver) => (
                       <SelectItem key={driver.id} value={driver.id}>
                         {driver.full_name}
@@ -431,26 +598,26 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
               ) : (
                 <div className="p-2 border rounded-md">
                   <p className="text-foreground">
-                    {currentDriverName ? currentDriverName : "Not assigned"}
+                    {currentDriverName ? currentDriverName : t('bookings.assignment.notAssigned')}
                   </p>
                 </div>
               )}
               
               {/* Driver Details */}
               <div className="mt-3 p-3 bg-muted/30 border border-border rounded-md">
-                <p className="text-sm font-medium text-muted-foreground">Driver Details</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('bookings.assignment.driverDetails')}</p>
                 {selectedDriverId && getDriverById(selectedDriverId) && (
                   <div className="mt-2 grid gap-1">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Name:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.name')}:</span>
                       <span className="text-sm">{getDriverById(selectedDriverId)?.full_name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Phone:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.phone')}:</span>
                       <span className="text-sm">{getDriverById(selectedDriverId)?.phone || "—"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Email:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.email')}:</span>
                       <span className="text-sm">{getDriverById(selectedDriverId)?.email || "—"}</span>
                     </div>
                   </div>
@@ -462,20 +629,20 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <CarIcon className="h-5 w-5" />
-                <h3 className="text-base font-medium">Vehicle</h3>
+                <h3 className="text-base font-medium">{t('bookings.assignment.vehicle')}</h3>
               </div>
               
               {/* Vehicle Display - Now showing original vehicle when possible */}
               {isEditing ? (
                 <Select 
                   value={selectedVehicleId ?? "none"}
-                  onValueChange={(value) => setSelectedVehicleId(value === "none" ? null : value)}
+                  onValueChange={(value) => handleValueChange('vehicle', value)}
                 >
                   <SelectTrigger id="vehicle-select" className="w-full">
-                    <SelectValue placeholder="Not assigned" />
+                    <SelectValue placeholder={t('bookings.assignment.notAssigned')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Not assigned</SelectItem>
+                    <SelectItem value="none">{t('bookings.assignment.notAssigned')}</SelectItem>
                     
                     {/* Show original vehicle first if it exists */}
                     {originalVehicle && (
@@ -485,14 +652,14 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
                         disabled={!isOriginalVehicleAvailable}
                       >
                         {originalVehicle.make} {originalVehicle.model} ({originalVehicle.license_plate})
-                        {!isOriginalVehicleAvailable && " - Not Available"}
+                        {!isOriginalVehicleAvailable && ` - ${t('bookings.assignment.notAvailable')}`}
                       </SelectItem>
                     )}
                     
                     {/* Show separator if we're displaying both original and alternatives */}
                     {originalVehicle && !isOriginalVehicleAvailable && availableVehicles.length > 0 && (
                       <SelectItem value="separator" disabled>
-                        Alternative Vehicles
+                        {t('bookings.assignment.alternativeVehicles')}
                       </SelectItem>
                     )}
                     
@@ -509,26 +676,26 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
               ) : (
                 <div className="p-2 border rounded-md">
                   <p className="text-foreground">
-                    {currentVehicleName ? currentVehicleName : "Not assigned"}
+                    {currentVehicleName ? currentVehicleName : t('bookings.assignment.notAssigned')}
                   </p>
                 </div>
               )}
               
               {/* Vehicle Details */}
               <div className="mt-3 p-3 bg-muted/30 border border-border rounded-md">
-                <p className="text-sm font-medium text-muted-foreground">Vehicle Details</p>
+                <p className="text-sm font-medium text-muted-foreground">{t('bookings.assignment.vehicleDetails')}</p>
                 {selectedVehicleId && getVehicleById(selectedVehicleId) && (
                   <div className="mt-2 grid gap-1">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">License Plate:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.licensePlate')}:</span>
                       <span className="text-sm">{getVehicleById(selectedVehicleId)?.license_plate || "—"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Vehicle Brand:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.vehicleBrand')}:</span>
                       <span className="text-sm">{getVehicleById(selectedVehicleId)?.make || "—"}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Vehicle Model:</span>
+                      <span className="text-sm text-muted-foreground">{t('bookings.assignment.vehicleModel')}:</span>
                       <span className="text-sm">{getVehicleById(selectedVehicleId)?.model || "—"}</span>
                     </div>
                   </div>
@@ -541,10 +708,10 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
             {isEditing ? (
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSubmitting}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button onClick={handleAssign} disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Confirm Assignment"}
+                  {isSubmitting ? t('bookings.assignment.saving') : t('bookings.assignment.confirmAssignment')}
                 </Button>
               </div>
             ) : (
@@ -554,7 +721,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
                 className="w-full md:w-auto"
               >
                 <Edit className="mr-2 h-4 w-4" />
-                Edit
+                {t('bookings.assignment.edit')}
               </Button>
             )}
           </div>

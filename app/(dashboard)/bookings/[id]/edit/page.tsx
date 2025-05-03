@@ -117,7 +117,19 @@ export default function EditBookingPage() {
           driver_id: loadedBooking.driver_id,
           vehicle_id: loadedBooking.vehicle?.id || null,
           flight_number: flightNumber,
-          terminal: terminal
+          terminal: terminal,
+          // Billing information
+          billing_company_name: loadedBooking.billing_company_name || '',
+          billing_tax_number: loadedBooking.billing_tax_number || '',
+          billing_street_name: loadedBooking.billing_street_name || '',
+          billing_street_number: loadedBooking.billing_street_number || '',
+          billing_city: loadedBooking.billing_city || '',
+          billing_state: loadedBooking.billing_state || '',
+          billing_postal_code: loadedBooking.billing_postal_code || '',
+          billing_country: loadedBooking.billing_country || '',
+          // Coupon information
+          coupon_code: loadedBooking.coupon_code || '',
+          coupon_discount_percentage: loadedBooking.coupon_discount_percentage || ''
         })
 
         // Fetch Drivers
@@ -252,7 +264,19 @@ export default function EditBookingPage() {
         distance: formData.distance,
         duration: formData.duration,
         notes: formData.notes,
-        meta: metaData
+        meta: metaData,
+        // Billing information
+        billing_company_name: formData.billing_company_name,
+        billing_tax_number: formData.billing_tax_number,
+        billing_street_name: formData.billing_street_name,
+        billing_street_number: formData.billing_street_number,
+        billing_city: formData.billing_city,
+        billing_state: formData.billing_state,
+        billing_postal_code: formData.billing_postal_code,
+        billing_country: formData.billing_country,
+        // Coupon information
+        coupon_code: formData.coupon_code,
+        coupon_discount_percentage: formData.coupon_discount_percentage
       }
       
       // Always use the Supabase UUID for updates
@@ -277,6 +301,12 @@ export default function EditBookingPage() {
       setSaveResult(result)
       
       if (result.success) {
+        // Customize the success message to use "Booking Number" with translation
+        setSaveResult({
+          ...result,
+          message: `${t('bookings.details.fields.bookingId')} ${id} ${t('common.updated')}`
+        })
+        
         // Navigate back to booking details after a short delay
         setTimeout(() => {
           router.push(`/bookings/${id}` as any)
@@ -544,18 +574,6 @@ export default function EditBookingPage() {
                             className="transition-all focus:ring-2 focus:border-primary"
                           />
                         </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
-                        <Input
-                          id="service_type"
-                          name="service_type"
-                          value={formData.service_type || ''}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Airport Transfer"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
                       </div>
                       
                       <div className="space-y-2">
@@ -901,6 +919,152 @@ export default function EditBookingPage() {
                         placeholder="Enter any additional notes or special instructions for this booking..."
                         className="transition-all focus:ring-2 focus:border-primary resize-none"
                       />
+                    </div>
+                  </div>
+                </Card>
+                
+                {/* Billing Information Card */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      {t('bookings.billing.title')}
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.companyName')}</h3>
+                          <Input
+                            id="billing_company_name"
+                            name="billing_company_name"
+                            value={formData.billing_company_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.taxNumber')}</h3>
+                          <Input
+                            id="billing_tax_number"
+                            name="billing_tax_number"
+                            value={formData.billing_tax_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetName')}</h3>
+                          <Input
+                            id="billing_street_name"
+                            name="billing_street_name"
+                            value={formData.billing_street_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetNumber')}</h3>
+                          <Input
+                            id="billing_street_number"
+                            name="billing_street_number"
+                            value={formData.billing_street_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.city')}</h3>
+                          <Input
+                            id="billing_city"
+                            name="billing_city"
+                            value={formData.billing_city || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.state')}</h3>
+                          <Input
+                            id="billing_state"
+                            name="billing_state"
+                            value={formData.billing_state || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.postalCode')}</h3>
+                          <Input
+                            id="billing_postal_code"
+                            name="billing_postal_code"
+                            value={formData.billing_postal_code || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.country')}</h3>
+                        <Input
+                          id="billing_country"
+                          name="billing_country"
+                          value={formData.billing_country || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+                
+                {/* Coupon Information Card */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <FileText className="mr-2 h-5 w-5" />
+                      {t('bookings.details.sections.coupon')}
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.couponCode')}</h3>
+                        <Input
+                          id="coupon_code"
+                          name="coupon_code"
+                          value={formData.coupon_code || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                          placeholder="e.g., SUMMER25"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.couponDiscount')}</h3>
+                        <Input
+                          id="coupon_discount_percentage"
+                          name="coupon_discount_percentage"
+                          value={formData.coupon_discount_percentage || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                          placeholder="e.g., 25"
+                        />
+                      </div>
                     </div>
                   </div>
                 </Card>

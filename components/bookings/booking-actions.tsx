@@ -8,11 +8,26 @@ import {
   Calendar as CalendarIcon, 
   Trash2, 
   CalendarPlus,
-  FileText
+  FileText,
+  AlertCircle,
+  Loader2
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { PrintButton } from "./print-button"
 import { InvoiceButton } from "./invoice-button"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { cancelBookingAction } from "@/app/actions/bookings"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/use-toast"
 
 interface BookingActionsProps {
   bookingId: string;
@@ -24,10 +39,48 @@ interface BookingActionsProps {
 
 export function BookingActions({ bookingId, status, date, time, booking }: BookingActionsProps) {
   const { t } = useI18n()
+  const router = useRouter()
+  const { toast } = useToast()
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   
-  const handleCancel = () => {
-    // This would typically open a confirmation modal
-    alert('This would cancel the booking. Add confirmation dialog here.');
+  const handleCancelBooking = async () => {
+    try {
+      setIsCancelling(true)
+      
+      // Call the cancel booking action
+      const result = await cancelBookingAction(bookingId)
+      
+      if (result.success) {
+        toast({
+          title: t('bookings.details.actions.cancelSuccess'),
+          description: result.message,
+          variant: "default",
+        })
+        
+        // Close the dialog
+        setIsDialogOpen(false)
+        
+        // Refresh the page to show updated status
+        setTimeout(() => {
+          router.refresh()
+        }, 1000)
+      } else {
+        toast({
+          title: t('bookings.details.actions.cancelError'),
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: t('bookings.details.actions.cancelError'),
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: "destructive",
+      })
+    } finally {
+      setIsCancelling(false)
+    }
   }
 
   // Helper function to format date for Google Calendar
@@ -115,14 +168,51 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
             <div className="flex-grow border-t"></div>
           </div>
 
-          <Button 
-            variant="outline"
-            className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 dark:bg-red-500/10 dark:text-red-500 dark:hover:bg-red-500/20 dark:border-red-500/30"
-            onClick={handleCancel}
-          >
-            <Trash2 className="mr-2 h-5 w-5" />
-            {t('bookings.details.bookingActions.cancelBooking')}
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline"
+                className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 dark:bg-red-500/10 dark:text-red-500 dark:hover:bg-red-500/20 dark:border-red-500/30"
+                disabled={status === 'cancelled'}
+              >
+                <Trash2 className="mr-2 h-5 w-5" />
+                {t('bookings.details.bookingActions.cancelBooking')}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  {t('bookings.details.actions.confirmCancellation')}
+                </DialogTitle>
+                <DialogDescription>
+                  {t('bookings.details.actions.cancellationWarning')}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex space-x-2 py-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleCancelBooking}
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('common.processing')}
+                    </>
+                  ) : (
+                    t('bookings.details.actions.confirmCancel')
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>

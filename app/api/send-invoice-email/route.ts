@@ -269,8 +269,15 @@ export async function POST(request: Request) {
                       align-items:center;
                       justify-content:center;
                       margin:0 auto 12px;
+                      position:relative;
                     ">
-                      <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="display:block;">
+                      <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="
+                        display:block;
+                        position:absolute;
+                        top:50%;
+                        left:50%;
+                        transform:translate(-50%, -50%);
+                      ">
                     </div>
                     <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">${t.subject}</h1>
                     <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">

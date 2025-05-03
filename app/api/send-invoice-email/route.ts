@@ -19,7 +19,7 @@ const translations = {
     estimatedDuration: 'Estimated duration',
     minutes: 'minutes',
     paymentSummary: 'Payment Summary',
-    viewBookingDetails: 'View Booking Details',
+    viewBookingDetails: 'Pay Now',
     questions: 'If you have any questions about this receipt, please contact us at',
     company: 'Japan Driver Co., Ltd.',
     emailText: `Receipt from Japan Driver
@@ -60,7 +60,7 @@ japandriver.com`
     estimatedDuration: '予想所要時間',
     minutes: '分',
     paymentSummary: '支払い概要',
-    viewBookingDetails: '予約詳細を見る',
+    viewBookingDetails: '今すぐ支払う',
     questions: 'この領収書に関するご質問は、以下までお問い合わせください',
     company: 'ジャパンドライバー株式会社',
     emailText: `ジャパンドライバーからの領収書
@@ -260,25 +260,19 @@ export async function POST(request: Request) {
                 <tr>
                   <td align="center" style="padding:24px;">
                     <!-- white circular badge -->
-                    <div style="
+                    <table cellpadding="0" cellspacing="0" style="
                       background:#FFFFFF;
                       border-radius:50%;
                       width:64px;
                       height:64px;
-                      display:flex;
-                      align-items:center;
-                      justify-content:center;
                       margin:0 auto 12px;
-                      position:relative;
                     ">
-                      <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="
-                        display:block;
-                        position:absolute;
-                        top:50%;
-                        left:50%;
-                        transform:translate(-50%, -50%);
-                      ">
-                    </div>
+                      <tr>
+                        <td align="center" valign="middle" style="text-align:center;">
+                          <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="display:block; margin:0 auto;">
+                        </td>
+                      </tr>
+                    </table>
                     <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">${t.subject}</h1>
                     <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
                       ${lang === 'ja' ? '領収書番号' : 'Receipt'} #${bookingId}

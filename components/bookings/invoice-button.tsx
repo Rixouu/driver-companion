@@ -33,7 +33,7 @@ const invoiceTranslations = {
     quantity: 'Quantity',
     price: 'Price',
     subtotal: 'Subtotal:',
-    tax: 'Tax (7%):',
+    // tax removed
     total: 'TOTAL:',
     thanksMessage: 'Thank you for your business!',
     contactMessage: 'If you have any questions about this invoice, please contact us at billing@japandriver.com',
@@ -58,7 +58,7 @@ const invoiceTranslations = {
     quantity: '数量',
     price: '価格',
     subtotal: '小計:',
-    tax: '消費税 (7%):',
+    // tax removed
     total: '合計:',
     thanksMessage: 'ご利用いただきありがとうございます。',
     contactMessage: 'この請求書に関するお問い合わせは billing@japandriver.com までご連絡ください。',
@@ -399,28 +399,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       subtotalRow.appendChild(subtotalAmount)
       totalTable.appendChild(subtotalRow)
       
-      // Tax row (if applicable)
-      const taxRate = 0.07 // 7% tax
-      const taxAmount = priceAmount * taxRate
-      
-      const taxRow = document.createElement('tr')
-      
-      const taxLabel = document.createElement('td')
-      taxLabel.textContent = invoiceT.tax
-      taxLabel.style.padding = '5px 15px 5px 0'
-      taxLabel.style.textAlign = 'right'
-      taxLabel.style.fontWeight = 'normal'
-      taxLabel.style.fontSize = '13px'
-      
-      const taxValue = document.createElement('td')
-      taxValue.textContent = formatCurrency(taxAmount, booking?.price?.currency || 'JPY')
-      taxValue.style.padding = '5px 0'
-      taxValue.style.textAlign = 'right'
-      taxValue.style.fontSize = '13px'
-      
-      taxRow.appendChild(taxLabel)
-      taxRow.appendChild(taxValue)
-      totalTable.appendChild(taxRow)
+      // No tax applied
       
       // Total row
       const totalRow = document.createElement('tr')
@@ -435,7 +414,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       totalLabel.style.fontSize = '14px'
       
       const totalAmount = document.createElement('td')
-      totalAmount.textContent = formatCurrency(priceAmount + taxAmount, booking?.price?.currency || 'JPY')
+      totalAmount.textContent = formatCurrency(priceAmount, booking?.price?.currency || 'JPY')
       totalAmount.style.padding = '8px 0'
       totalAmount.style.textAlign = 'right'
       totalAmount.style.fontWeight = 'bold'

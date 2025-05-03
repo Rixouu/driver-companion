@@ -35,55 +35,77 @@ export default function DriverDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
 
-  useEffect(() => {
-    async function loadDriverDataAndAvailability() {
-      try {
-        setIsLoading(true)
-        const driverData = await getDriverById(id as string)
-        setDriver(driverData as Driver)
+  // Function to load driver data that can be called on demand
+  const loadDriverDataAndAvailability = async () => {
+    try {
+      setIsLoading(true)
+      const driverData = await getDriverById(id as string)
+      setDriver(driverData as Driver)
+      
+      // Fetch current availability status
+      const today = formatDate(new Date(), "yyyy-MM-dd");
+      const availabilityRecords = await getDriverAvailability(id as string);
+      
+      // First look for booking-related unavailability (current ongoing booking)
+      const now = new Date();
+      const currentBookingAvailability = availabilityRecords.find((record) => {
+        const startDate = new Date(record.start_date);
+        const endDate = new Date(record.end_date);
+        const isNowBetweenDates = now >= startDate && now <= endDate;
+        const isBookingRelated = record.notes?.includes('Assigned to booking');
+        return isNowBetweenDates && isBookingRelated;
+      });
+      
+      // Store booking information to pass to the status badge
+      const isBooking = !!currentBookingAvailability?.notes?.includes('Assigned to booking');
+      const bookingNotes = currentBookingAvailability?.notes;
+      
+      // If there's a booking-related unavailability, prioritize that
+      if (currentBookingAvailability) {
+        setCurrentAvailabilityStatus(currentBookingAvailability.status);
         
-        // Fetch current availability status
-        const today = formatDate(new Date(), "yyyy-MM-dd");
-        const availabilityRecords = await getDriverAvailability(id as string);
+        // Store booking information in the driver object for the status badge
+        if (driverData) {
+          (driverData as any).isBooking = isBooking;
+          (driverData as any).bookingNotes = bookingNotes;
+        }
+      } else {
         const currentRecord = availabilityRecords.find(
           (record) => record.start_date <= today && record.end_date >= today
         );
         setCurrentAvailabilityStatus(currentRecord?.status || 'available'); // Default to available
-
-        // Try to get inspections but handle the case where driver_id column doesn't exist
-        try {
-          const inspectionsData = await getDriverInspections(id as string)
-          setInspections(inspectionsData)
-        } catch (inspectionError) {
-          console.error("Error loading driver inspections:", inspectionError)
-          setInspections([])
-        }
-      } catch (error) {
-        console.error("Error loading driver data:", error)
-        setDriver(null)
-        setCurrentAvailabilityStatus(null)
-      } finally {
-        setIsLoading(false)
       }
-    }
 
+      // Try to get inspections but handle the case where driver_id column doesn't exist
+      try {
+        const inspectionsData = await getDriverInspections(id as string)
+        setInspections(inspectionsData)
+      } catch (inspectionError) {
+        console.error("Error loading driver inspections:", inspectionError)
+        setInspections([])
+      }
+    } catch (error) {
+      console.error("Error loading driver data:", error)
+      setDriver(null)
+      setCurrentAvailabilityStatus(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     if (id) {
       loadDriverDataAndAvailability()
+      
+      // No auto-refresh interval
+      
+      // No cleanup needed since no interval is set
     }
   }, [id])
 
   // Function to reload data, passed to DriverVehicles
   const refreshDriverData = async () => {
-     try {
-        setIsLoading(true)
-        const driverData = await getDriverById(id as string)
-        setDriver(driverData as Driver)
-      } catch (error) {
-        console.error("Error refreshing driver data:", error)
-        setDriver(null)
-      } finally {
-        setIsLoading(false)
-      }
+    await loadDriverDataAndAvailability()
   }
 
   const handleViewFullSchedule = () => {
@@ -253,7 +275,11 @@ export default function DriverDetailsPage() {
                 <p className="text-sm text-muted-foreground">{t("drivers.fields.status")}</p>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
-                  <DriverStatusBadge status={currentAvailabilityStatus || driver.status} />
+                  <DriverStatusBadge 
+                    status={currentAvailabilityStatus || driver.status} 
+                    isBooking={(driver as any).isBooking}
+                    notes={(driver as any).bookingNotes}
+                  />
                 </div>
               </div>
             </CardContent>

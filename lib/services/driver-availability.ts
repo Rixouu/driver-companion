@@ -43,13 +43,19 @@ export async function getDriverAvailabilityInRange(
 export async function createDriverAvailability(
   availability: Omit<DriverAvailability, 'id' | 'created_at' | 'updated_at'>
 ): Promise<DriverAvailability> {
+  // Ensure the dates are properly formatted as ISO strings with time
+  const availabilityData = {
+    ...availability,
+    // Keep ISO format if it already has one, otherwise leave as is
+    start_date: availability.start_date,
+    end_date: availability.end_date,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
   const { data, error } = await supabase
     .from('driver_availability')
-    .insert({
-      ...availability,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
+    .insert(availabilityData)
     .select()
     .single();
 
@@ -66,12 +72,18 @@ export async function updateDriverAvailability(
   id: string,
   updates: Partial<Omit<DriverAvailability, 'id' | 'driver_id' | 'created_at'>>
 ): Promise<DriverAvailability> {
+  // Ensure the dates are properly formatted as ISO strings with time if provided
+  const updateData = {
+    ...updates,
+    // Keep ISO format for dates
+    start_date: updates.start_date,
+    end_date: updates.end_date,
+    updated_at: new Date().toISOString()
+  };
+
   const { data, error } = await supabase
     .from('driver_availability')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DispatchEntry, DispatchStatus, DispatchEntryWithRelations } from "@/types/dispatch";
-import { PlusIcon, InfoIcon, CarIcon, UserIcon, CalendarIcon, ClockIcon, User2Icon, MapPinIcon, ChevronsUpDownIcon } from "lucide-react";
+import { PlusIcon, InfoIcon, CarIcon, UserIcon, CalendarIcon, ClockIcon, User2Icon, MapPinIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils/styles";
 import { Driver } from "@/types/drivers";
@@ -20,6 +20,7 @@ interface DispatchBoardViewProps {
   entries: DispatchEntryWithRelations[];
   onAssignDriver?: (dispatchId: string, driverId: string) => void;
   onAssignVehicle?: (dispatchId: string, vehicleId: string) => void;
+  onUnassignVehicle?: (dispatchId: string) => void;
   availableDrivers?: Driver[];
   availableVehicles?: Vehicle[];
 }
@@ -31,6 +32,7 @@ interface ColumnProps {
   emptyMessage: string;
   onAssignDriver?: (dispatchId: string, driverId: string) => void;
   onAssignVehicle?: (dispatchId: string, vehicleId: string) => void;
+  onUnassignVehicle?: (dispatchId: string) => void;
   availableDrivers?: Driver[];
   availableVehicles?: Vehicle[];
 }
@@ -41,6 +43,8 @@ function getStatusColor(status: DispatchStatus): string {
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
     case "assigned":
       return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    case "confirmed":
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
     case "in_transit":
       return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
     case "completed":
@@ -63,6 +67,7 @@ interface DispatchCardProps {
   entry: DispatchEntryWithRelations;
   onAssignDriver?: (dispatchId: string, driverId: string) => void;
   onAssignVehicle?: (dispatchId: string, vehicleId: string) => void;
+  onUnassignVehicle?: (dispatchId: string) => void;
   availableDrivers?: Driver[];
   availableVehicles?: Vehicle[];
 }
@@ -71,6 +76,7 @@ function DispatchCard({
   entry, 
   onAssignDriver, 
   onAssignVehicle, 
+  onUnassignVehicle,
   availableDrivers = [], 
   availableVehicles = [] 
 }: DispatchCardProps) {
@@ -79,44 +85,13 @@ function DispatchCard({
   const formattedDate = format(parseISO(entry.start_time), "MMM d, yyyy");
   const timeRange = formatTimeRange(entry.start_time, entry.end_time);
   
-  // Get driver name if driver_id exists
-  const getDriverName = () => {
-    if (!entry.driver_id) return null;
-    
-    // Find the driver in availableDrivers array
-    const driver = availableDrivers.find(d => d.id === entry.driver_id);
-    if (driver) {
-      return `${driver.first_name} ${driver.last_name}`;
-    }
-    
-    // Fallback if driver not found in available drivers
-    return `Driver #${entry.driver_id.substring(0, 6)}`;
-  };
-
-  // Get vehicle name if vehicle_id exists
-  const getVehicleName = () => {
-    if (!entry.vehicle_id) return null;
-    
-    // Find the vehicle in availableVehicles array
-    const vehicle = availableVehicles.find(v => v.id === entry.vehicle_id);
-    if (vehicle) {
-      return vehicle.license_plate || vehicle.model;
-    }
-    
-    // Fallback if vehicle not found in available vehicles
-    return `Vehicle #${entry.vehicle_id.substring(0, 6)}`;
-  };
-
-  const handleViewDetails = () => {
-    router.push(`/bookings/${entry.booking.id}`);
-  };
-  
+  // Simplified booking card
   return (
     <Card className="mb-3 hover:shadow-md transition-shadow">
       <CardHeader className="py-3 px-4">
         <div className="flex justify-between items-start">
           <CardTitle className="text-sm font-medium">
-            Booking #{entry.booking.wp_id || "N/A"}
+            #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
           </CardTitle>
           <Badge className={getStatusColor(entry.status)}>
             {t(`dispatch.status.${entry.status}`)}
@@ -132,102 +107,15 @@ function DispatchCard({
           <ClockIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
           <span>{timeRange}</span>
         </div>
-        <div className="flex justify-between items-center">
-          <div className="flex items-center text-sm">
-            <UserIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-            <span className="truncate max-w-[120px]">
-              {getDriverName() || "Unassigned"}
-            </span>
-          </div>
-          
-          {onAssignDriver && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <ChevronsUpDownIcon className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {availableDrivers.length > 0 ? (
-                  availableDrivers.map((driver) => (
-                    <DropdownMenuItem 
-                      key={driver.id}
-                      onClick={() => onAssignDriver(entry.id, driver.id)}
-                    >
-                      <User2Icon className="mr-2 h-4 w-4" />
-                      <span>{driver.first_name} {driver.last_name}</span>
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem disabled>
-                    No available drivers
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <div className="flex items-center text-sm">
-            <CarIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-            <span className="truncate max-w-[120px]">
-              {getVehicleName() || "Unassigned"}
-            </span>
-          </div>
-          
-          {onAssignVehicle && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <ChevronsUpDownIcon className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {availableVehicles.length > 0 ? (
-                  availableVehicles.map((vehicle) => (
-                    <DropdownMenuItem 
-                      key={vehicle.id}
-                      onClick={() => onAssignVehicle(entry.id, vehicle.id)}
-                    >
-                      <CarIcon className="mr-2 h-4 w-4" />
-                      <span>{vehicle.license_plate || vehicle.model}</span>
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem disabled>
-                    No available vehicles
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-        
-        {entry.notes && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center text-sm cursor-help">
-                  <InfoIcon className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                  <span className="truncate max-w-[200px]">{entry.notes}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">{entry.notes}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
       </CardContent>
       <CardFooter className="pt-0 pb-3 px-4">
         <Button 
           variant="outline" 
           size="sm" 
           className="w-full text-xs h-8"
-          onClick={handleViewDetails}
+          onClick={() => router.push(`/bookings/${entry.booking.id}`)}
         >
-          {t("dispatch.actions.viewDetails")}
+          {t("dispatch.actions.viewDetails", { defaultValue: "View Details" })}
         </Button>
       </CardFooter>
     </Card>
@@ -241,6 +129,7 @@ function Column({
   emptyMessage,
   onAssignDriver,
   onAssignVehicle,
+  onUnassignVehicle,
   availableDrivers,
   availableVehicles
 }: ColumnProps) {
@@ -266,6 +155,7 @@ function Column({
               entry={entry} 
               onAssignDriver={onAssignDriver}
               onAssignVehicle={onAssignVehicle}
+              onUnassignVehicle={onUnassignVehicle}
               availableDrivers={availableDrivers}
               availableVehicles={availableVehicles}
             />
@@ -280,54 +170,71 @@ export default function DispatchBoardView({
   entries,
   onAssignDriver,
   onAssignVehicle,
+  onUnassignVehicle,
   availableDrivers = [],
   availableVehicles = []
 }: DispatchBoardViewProps) {
   const { t } = useI18n();
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
       <Column
-        title={t("dispatch.board.pending")}
+        title={t("dispatch.board.pending", { defaultValue: "Pending" })}
         status="pending"
         entries={entries}
-        emptyMessage={t("dispatch.empty.description")}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
         onAssignDriver={onAssignDriver}
         onAssignVehicle={onAssignVehicle}
+        onUnassignVehicle={onUnassignVehicle}
         availableDrivers={availableDrivers}
         availableVehicles={availableVehicles}
       />
       <Column
-        title={t("dispatch.board.assigned")}
+        title={t("dispatch.board.confirmed", { defaultValue: "Confirmed" })}
+        status="confirmed"
+        entries={entries}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
+        onAssignDriver={onAssignDriver}
+        onAssignVehicle={onAssignVehicle}
+        onUnassignVehicle={onUnassignVehicle}
+        availableDrivers={availableDrivers}
+        availableVehicles={availableVehicles}
+      />
+      <Column
+        title={t("dispatch.board.assigned", { defaultValue: "Assigned" })}
         status="assigned"
         entries={entries}
-        emptyMessage={t("dispatch.empty.description")}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
         onAssignDriver={onAssignDriver}
         onAssignVehicle={onAssignVehicle}
+        onUnassignVehicle={onUnassignVehicle}
         availableDrivers={availableDrivers}
         availableVehicles={availableVehicles}
       />
       <Column
-        title={t("dispatch.board.inTransit")}
+        title={t("dispatch.board.inTransit", { defaultValue: "In Transit" })}
         status="in_transit"
         entries={entries}
-        emptyMessage={t("dispatch.empty.description")}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
         onAssignDriver={onAssignDriver}
         onAssignVehicle={onAssignVehicle}
+        onUnassignVehicle={onUnassignVehicle}
         availableDrivers={availableDrivers}
         availableVehicles={availableVehicles}
       />
       <Column
-        title={t("dispatch.board.completed")}
+        title={t("dispatch.board.completed", { defaultValue: "Completed" })}
         status="completed"
         entries={entries}
-        emptyMessage={t("dispatch.empty.description")}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
+        onUnassignVehicle={onUnassignVehicle}
       />
       <Column
-        title={t("dispatch.board.cancelled")}
+        title={t("dispatch.board.cancelled", { defaultValue: "Cancelled" })}
         status="cancelled"
         entries={entries}
-        emptyMessage={t("dispatch.empty.description")}
+        emptyMessage={t("dispatch.empty.description", { defaultValue: "No entries" })}
+        onUnassignVehicle={onUnassignVehicle}
       />
     </div>
   );

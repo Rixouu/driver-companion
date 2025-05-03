@@ -1,8 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from "date-fns"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, 
+  addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, 
+  isWithinInterval, parseISO, isValid } from "date-fns"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, PlusCircle, 
+  Car, Clock, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils/styles"
 
 import { Button } from "@/components/ui/button"
@@ -15,26 +18,39 @@ import {
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { useI18n } from "@/lib/i18n/context"
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { DriverAvailabilityForm } from "./driver-availability-form"
 import { getDriverAvailability } from "@/lib/services/driver-availability"
+import { getDriverBookings } from "@/app/actions/bookings"
 import type { DriverAvailability, Driver } from "@/types/drivers"
+import type { Booking } from "@/types/bookings"
+
+// View types
+type CalendarView = "day" | "week" | "month"
 
 // Helper to get status color
 const getStatusColor = (status: string) => {
   switch (status) {
     case "available":
-      return "bg-green-100 text-green-800 hover:bg-green-200";
+      return "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400";
     case "unavailable":
-      return "bg-red-100 text-red-800 hover:bg-red-200";
+      return "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400";
     case "leave":
-      return "bg-amber-100 text-amber-800 hover:bg-amber-200";
+      return "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400";
     case "training":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-200";
+      return "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400";
+    case "booking":
+      return "bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 font-medium";
     default:
-      return "bg-gray-100 text-gray-800 hover:bg-gray-200";
+      return "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300";
   }
 };
 
@@ -45,117 +61,249 @@ interface DriverAvailabilityCalendarProps {
 export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalendarProps) {
   const { toast } = useToast()
   const { t } = useI18n()
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [view, setView] = useState<CalendarView>("month")
   const [availabilityRecords, setAvailabilityRecords] = useState<DriverAvailability[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   
-  // Get days in current month
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  // Calculate date range based on view
+  const dateRange = useMemo(() => {
+    switch (view) {
+      case "day":
+        return { start: currentDate, end: currentDate };
+      case "week":
+        return { 
+          start: startOfWeek(currentDate, { weekStartsOn: 0 }), 
+          end: endOfWeek(currentDate, { weekStartsOn: 0 }) 
+        };
+      case "month":
+      default:
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+    }
+  }, [currentDate, view]);
   
-  // Fetch availability data
-  const fetchAvailability = async () => {
+  // Get days in current view
+  const daysInView = useMemo(() => {
+    return eachDayOfInterval({ start: dateRange.start, end: dateRange.end });
+  }, [dateRange]);
+  
+  // Fetch availability and booking data
+  const fetchData = async () => {
     try {
-      setIsLoading(true)
-      const data = await getDriverAvailability(driver.id)
-      setAvailabilityRecords(data)
+      setIsLoading(true);
+      
+      // Fetch availability data
+      const availabilityData = await getDriverAvailability(driver.id);
+      setAvailabilityRecords(availabilityData);
+      
+      // Format date range for bookings query
+      const startDate = format(dateRange.start, "yyyy-MM-dd");
+      const endDate = format(dateRange.end, "yyyy-MM-dd");
+      
+      // Fetch bookings for this driver within the date range
+      const { bookings: driverBookings } = await getDriverBookings(driver.id, {
+        upcoming: true,
+        limit: 30 // Higher limit to get all relevant bookings
+      });
+      
+      setBookings(driverBookings || []);
     } catch (error) {
-      console.error("Error fetching driver availability:", error)
+      console.error("Error fetching calendar data:", error);
       toast({
         title: "Error",
-        description: "Failed to load driver availability",
+        description: "Failed to load calendar data",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
   
   useEffect(() => {
-    fetchAvailability()
-  }, [driver.id])
+    fetchData();
+    
+    // Listen for custom refresh events from the parent component
+    const handleCustomRefresh = () => fetchData();
+    document.addEventListener('refresh-availability-data', handleCustomRefresh);
+    
+    return () => {
+      document.removeEventListener('refresh-availability-data', handleCustomRefresh);
+    };
+  }, [driver.id, dateRange.start, dateRange.end]);
   
-  // Go to previous month
-  const prevMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1))
-  }
+  // Navigation functions
+  const goToToday = () => setCurrentDate(new Date());
   
-  // Go to next month
-  const nextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1))
-  }
+  const goToPrevious = () => {
+    switch (view) {
+      case "day":
+        setCurrentDate(prevDate => addDays(prevDate, -1));
+        break;
+      case "week":
+        setCurrentDate(prevDate => subWeeks(prevDate, 1));
+        break;
+      case "month":
+        setCurrentDate(prevDate => subMonths(prevDate, 1));
+        break;
+    }
+  };
+  
+  const goToNext = () => {
+    switch (view) {
+      case "day":
+        setCurrentDate(prevDate => addDays(prevDate, 1));
+        break;
+      case "week":
+        setCurrentDate(prevDate => addWeeks(prevDate, 1));
+        break;
+      case "month":
+        setCurrentDate(prevDate => addMonths(prevDate, 1));
+        break;
+    }
+  };
   
   // Check if a date has availability
   const getAvailabilityForDate = (date: Date) => {
     return availabilityRecords.find(record => {
-      const startDate = new Date(record.start_date)
-      const endDate = new Date(record.end_date)
-      return date >= startDate && date <= endDate
-    })
-  }
+      if (!record.start_date || !record.end_date) return false;
+      
+      try {
+        const startDate = parseISO(record.start_date);
+        const endDate = parseISO(record.end_date);
+        
+        if (!isValid(startDate) || !isValid(endDate)) return false;
+        
+        return isWithinInterval(date, { start: startDate, end: endDate });
+      } catch (error) {
+        return false;
+      }
+    });
+  };
+  
+  // Get bookings for a specific date
+  const getBookingsForDate = (date: Date) => {
+    const formattedDate = format(date, "yyyy-MM-dd");
+    return bookings.filter(booking => booking.date === formattedDate);
+  };
   
   // Handle adding new availability
   const handleAddAvailability = (date: Date) => {
-    setSelectedDate(date)
-    setIsDialogOpen(true)
-  }
+    setSelectedDate(date);
+    setIsDialogOpen(true);
+  };
   
   // Handle dialog close
   const handleDialogClose = () => {
-    setIsDialogOpen(false)
-    setSelectedDate(null)
-  }
+    setIsDialogOpen(false);
+    setSelectedDate(null);
+  };
   
   // Handle successful form submission
   const handleFormSuccess = () => {
-    setIsDialogOpen(false)
-    fetchAvailability()
-  }
+    setIsDialogOpen(false);
+    fetchData();
+  };
+  
+  // Format view title based on current view and date
+  const viewTitle = useMemo(() => {
+    switch (view) {
+      case "day":
+        return format(currentDate, "MMMM d, yyyy");
+      case "week":
+        return `${format(dateRange.start, "MMM d")} - ${format(dateRange.end, "MMM d, yyyy")}`;
+      case "month":
+      default:
+        return format(currentDate, "MMMM yyyy");
+    }
+  }, [currentDate, view, dateRange]);
+  
+  // Calculate grid columns based on view
+  const gridCols = view === "day" ? "grid-cols-1" : "grid-cols-7";
+  
+  // Handle view change
+  const handleViewChange = (newView: CalendarView) => {
+    setView(newView);
+  };
   
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2">
         <CardTitle className="text-lg sm:text-xl">{t("drivers.availability.calendar")}</CardTitle>
-        <div className="flex items-center space-x-2 self-end sm:self-center">
-          <Button variant="outline" size="icon" onClick={prevMonth} className="h-8 w-8 sm:h-9 sm:w-9">
-            <ChevronLeft className="h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+          <Button variant="outline" size="sm" onClick={goToToday} className="h-8 w-auto">
+            {t("common.today", { defaultValue: "Today" })}
           </Button>
-          <div className="font-medium text-sm sm:text-base whitespace-nowrap">
-            {format(currentMonth, "MMMM yyyy")}
+          
+          <div className="flex items-center">
+            <Button variant="outline" size="icon" onClick={goToPrevious} className="h-8 w-8 sm:h-9 sm:w-9 rounded-r-none">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="font-medium text-sm sm:text-base px-2 min-w-[120px] text-center">
+              {viewTitle}
+            </div>
+            <Button variant="outline" size="icon" onClick={goToNext} className="h-8 w-8 sm:h-9 sm:w-9 rounded-l-none">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="outline" size="icon" onClick={nextMonth} className="h-8 w-8 sm:h-9 sm:w-9">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                {view === "month" 
+                  ? t("common.month", { defaultValue: "Month" }) 
+                  : view === "week" 
+                    ? t("common.week", { defaultValue: "Week" }) 
+                    : t("common.day", { defaultValue: "Day" })}
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleViewChange("day")}>
+                {t("common.day", { defaultValue: "Day" })}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewChange("week")}>
+                {t("common.week", { defaultValue: "Week" })}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewChange("month")}>
+                {t("common.month", { defaultValue: "Month" })}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8 text-muted-foreground">{t("drivers.availability.loading")}</div>
+          <div className="flex justify-center py-8 text-muted-foreground">{t("drivers.availability.loading", { defaultValue: "Loading..." })}</div>
         ) : (
           <>
-            {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-medium text-muted-foreground mb-2">
-              {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
-                <div key={index} className="py-1">
-                  {day}
-                </div>
-              ))}
-            </div>
+            {/* Weekday Headers - only for week and month views */}
+            {view !== "day" && (
+              <div className={`grid ${gridCols} gap-1 text-center text-xs sm:text-sm font-medium text-muted-foreground mb-2`}>
+                {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                  <div key={index} className="py-1">
+                    {day}
+                  </div>
+                ))}
+              </div>
+            )}
+            
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {daysInMonth.map((day, i) => {
-                const availability = getAvailabilityForDate(day)
-                const isToday = isSameDay(day, new Date())
+            <div className={`grid ${gridCols} gap-1`}>
+              {daysInView.map((day, i) => {
+                const availability = getAvailabilityForDate(day);
+                const dayBookings = getBookingsForDate(day);
+                const isToday = isSameDay(day, new Date());
+                const isCurrentMonth = isSameMonth(day, currentDate);
                 
                 return (
                   <div
                     key={i}
                     className={cn(
-                      "min-h-[60px] sm:min-h-[80px] p-1 border rounded-md transition-colors relative flex flex-col",
-                      !isSameMonth(day, currentMonth) && "opacity-50 bg-muted/30",
+                      "min-h-[80px] sm:min-h-[100px] p-1 border rounded-md transition-colors relative flex flex-col gap-1",
+                      !isCurrentMonth && view === "month" && "opacity-50 bg-muted/30",
                       isToday && "border-primary",
                       "hover:bg-accent/50"
                     )}
@@ -163,9 +311,9 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                     <div className="flex justify-between items-center mb-1">
                       <div
                         className={cn(
-                          "text-[10px] sm:text-xs font-medium flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full",
+                          "text-xs sm:text-sm font-medium flex items-center justify-center h-5 w-5 sm:h-6 sm:w-6 rounded-full",
                           isToday && "bg-primary text-primary-foreground",
-                          !isSameMonth(day, currentMonth) && "text-muted-foreground"
+                          !isCurrentMonth && view === "month" && "text-muted-foreground"
                         )}
                       >
                         {format(day, "d")}
@@ -183,27 +331,56 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                         </DialogTrigger>
                       </Dialog>
                     </div>
+                    
+                    {/* Display availability status */}
                     {availability && (
                       <Badge 
                         variant="outline"
                         className={cn(
-                          "mt-auto text-[9px] sm:text-[10px] px-1 py-0.5 h-auto leading-tight justify-center truncate", 
+                          "text-[10px] px-1 py-0.5 h-auto leading-tight justify-center truncate", 
                           getStatusColor(availability.status)
                         )}
                       >
                         {t(`drivers.availability.statuses.${availability.status}`)}
                       </Badge>
                     )}
+                    
+                    {/* Display bookings */}
+                    {dayBookings.map((booking, idx) => (
+                      <Badge 
+                        key={`booking-${booking.id || idx}`}
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] px-1 py-0.5 h-auto leading-tight justify-start truncate flex gap-1 items-center", 
+                          getStatusColor("booking")
+                        )}
+                      >
+                        <Clock className="h-2 w-2 flex-shrink-0" />
+                        <span className="truncate">{booking.time && booking.time.substring(0, 5)}</span>
+                      </Badge>
+                    ))}
                   </div>
-                )
+                );
               })}
             </div>
+            
             {/* Legend */}
             <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("available"))}>{t("drivers.availability.statuses.available")}</Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("unavailable"))}>{t("drivers.availability.statuses.unavailable")}</Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("leave"))}>{t("drivers.availability.statuses.leave")}</Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("training"))}>{t("drivers.availability.statuses.training")}</Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("available"))}>
+                {t("drivers.availability.statuses.available")}
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("unavailable"))}>
+                {t("drivers.availability.statuses.unavailable")}
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("leave"))}>
+                {t("drivers.availability.statuses.leave")}
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("training"))}>
+                {t("drivers.availability.statuses.training")}
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("booking"))}>
+                {t("common.booking", { defaultValue: "Booking" })}
+              </Badge>
             </div>
           </>
         )}
@@ -214,19 +391,29 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
           <DialogHeader>
             <DialogTitle>
               {selectedDate ? (
-                t("drivers.availability.setAvailabilityFor", { date: format(selectedDate, "PP") })
+                t("drivers.availability.setAvailabilityFor", { 
+                  date: format(selectedDate, "PP"),
+                  defaultValue: `Set Availability for ${format(selectedDate, "PP")}`
+                })
               ) : (
-                t("drivers.availability.setAvailability")
+                t("drivers.availability.setAvailability", { 
+                  defaultValue: "Set Availability" 
+                })
               )}
             </DialogTitle>
           </DialogHeader>
           <DriverAvailabilityForm
             driverId={driver.id}
-            initialData={
-              selectedDate
-                ? undefined
-                : undefined
-            }
+            initialData={{
+              driver_id: driver.id,
+              start_date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+              end_date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+              status: "available",
+              id: "",
+              created_at: "",
+              updated_at: "",
+              notes: ""
+            }}
             onSuccess={handleFormSuccess}
             onCancel={handleDialogClose}
           />

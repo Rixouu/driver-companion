@@ -144,14 +144,111 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         const bookingTime = currentBooking.time;
         const bookingDateTimeStr = `${bookingDate}T${bookingTime}:00`;
         const bookingDateTime = new Date(bookingDateTimeStr);
+        
+        console.log("[DEBUG] Checking availability for booking datetime:", bookingDateTimeStr);
 
-        // Fetch drivers that are available
-        const { data: driversData, error: driversError } = await supabase
+        // Create a time buffer for the booking (e.g., 2 hours before and after)
+        const bufferHours = 2;
+        const bookingStartTime = new Date(bookingDateTime);
+        bookingStartTime.setHours(bookingStartTime.getHours() - bufferHours);
+        
+        const bookingEndTime = new Date(bookingDateTime);
+        const durationMinutes = parseInt(String(currentBooking.duration || "60"));
+        bookingEndTime.setMinutes(bookingEndTime.getMinutes() + durationMinutes + (bufferHours * 60));
+        
+        // Format dates for database queries
+        const startTimeISO = bookingStartTime.toISOString();
+        const endTimeISO = bookingEndTime.toISOString();
+        
+        console.log("[DEBUG] Availability check window:", { 
+          start: startTimeISO, 
+          end: endTimeISO,
+          bookingId: currentBooking.supabase_id
+        });
+
+        // Fetch ALL drivers to display in the dropdown
+        const { data: allDriversData, error: driversError } = await supabase
           .from('drivers')
-          .select('*')
-          .eq('status', 'available');
+          .select('*');
 
         if (driversError) throw driversError;
+        
+        // Fetch driver availability records to check conflicts
+        const { data: availabilityData, error: availabilityError } = await supabase
+          .from('driver_availability')
+          .select('*');
+          
+        if (availabilityError) throw availabilityError;
+        
+        // Fetch existing bookings to check which drivers and vehicles are already assigned
+        // during the time window of this booking
+        const { data: existingBookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id, driver_id, vehicle_id, date, time, duration')
+          .neq('id', currentBooking.supabase_id) // Exclude current booking
+          .eq('status', 'confirmed'); // Only consider confirmed bookings
+          
+        if (bookingsError) throw bookingsError;
+        
+        console.log("[DEBUG] Found existing bookings:", existingBookings?.length || 0);
+        
+        // Create sets of unavailable driver and vehicle IDs
+        const unavailableDriverIds = new Set<string>();
+        const unavailableVehicleIds = new Set<string>();
+        
+        // Check existing bookings for conflicts
+        existingBookings?.forEach(booking => {
+          // Convert booking time to Date object for comparison
+          const bookingTimeStr = `${booking.date}T${booking.time}:00`;
+          const bookingTime = new Date(bookingTimeStr);
+          const bookingEnd = new Date(bookingTime);
+          bookingEnd.setMinutes(bookingEnd.getMinutes() + parseInt(String(booking.duration || "60")));
+          
+          // Check if this booking overlaps with our time window
+          const hasOverlap = (
+            (bookingTime >= bookingStartTime && bookingTime <= bookingEndTime) || // Booking starts during our window
+            (bookingEnd >= bookingStartTime && bookingEnd <= bookingEndTime) || // Booking ends during our window
+            (bookingTime <= bookingStartTime && bookingEnd >= bookingEndTime) // Booking spans our entire window
+          );
+          
+          if (hasOverlap) {
+            // Mark this driver as unavailable
+            if (booking.driver_id) {
+              unavailableDriverIds.add(booking.driver_id);
+            }
+            
+            // Mark this vehicle as unavailable
+            if (booking.vehicle_id) {
+              unavailableVehicleIds.add(booking.vehicle_id);
+            }
+          }
+        });
+        
+        // Check driver availability records
+        availabilityData?.forEach(availability => {
+          // Only consider unavailable statuses
+          if (availability.status === 'unavailable' || 
+              availability.status === 'leave' || 
+              availability.status === 'training') {
+            
+            const availStartDate = new Date(availability.start_date);
+            const availEndDate = new Date(availability.end_date);
+            
+            // Check if any unavailability record conflicts with our booking window
+            const hasConflict = (
+              (availStartDate <= bookingEndTime && availEndDate >= bookingStartTime)
+            );
+            
+            if (hasConflict) {
+              unavailableDriverIds.add(availability.driver_id);
+            }
+          }
+        });
+        
+        console.log("[DEBUG] Unavailable resources:", { 
+          drivers: unavailableDriverIds.size, 
+          vehicles: unavailableVehicleIds.size 
+        });
 
         // Fetch ALL vehicles to check if the original vehicle exists
         const { data: allVehiclesData, error: allVehiclesError } = await supabase
@@ -160,13 +257,17 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
         if (allVehiclesError) throw allVehiclesError;
 
-        // Fetch vehicles that are available (not in maintenance)
-        const { data: vehiclesData, error: vehiclesError } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('status', 'active');
-
-        if (vehiclesError) throw vehiclesError;
+        // Filter available drivers
+        const availableDriversList = allDriversData?.filter(driver => 
+          // Driver is available if not in the unavailable set and is active
+          !unavailableDriverIds.has(driver.id) && driver.status === 'available'
+        );
+        
+        // Filter available vehicles
+        const availableVehiclesList = allVehiclesData?.filter(vehicle => 
+          // Vehicle is available if not in the unavailable set and is active
+          !unavailableVehicleIds.has(vehicle.id) && vehicle.status === 'active'
+        );
 
         // Check if the booking has an original vehicle
         let bookingVehicleId = currentBooking.vehicle?.id;
@@ -176,6 +277,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
           const originalVehicleData = allVehiclesData?.find(v => v.id === bookingVehicleId);
           
           if (originalVehicleData) {
+            // Map vehicle data to our expected format
             const mappedOriginalVehicle = {
               id: originalVehicleData.id,
               created_at: originalVehicleData.created_at,
@@ -193,59 +295,20 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
             setOriginalVehicle(mappedOriginalVehicle);
             
             // Check if the original vehicle is currently available
-            const isAvailable = vehiclesData?.some(v => v.id === bookingVehicleId);
-            setIsOriginalVehicleAvailable(!!isAvailable);
+            // A vehicle is unavailable if:
+            // 1. It's in the unavailable set (already assigned to another booking)
+            // 2. It's not in the active status
+            const isAvailable = !unavailableVehicleIds.has(bookingVehicleId) && 
+                               originalVehicleData.status === 'active';
+            
+            setIsOriginalVehicleAvailable(isAvailable);
+            console.log("[DEBUG] Original vehicle availability:", { 
+              id: bookingVehicleId, 
+              isAvailable, 
+              status: originalVehicleData.status 
+            });
           }
         }
-
-        // Fetch driver availability records
-        const { data: availabilityData, error: availabilityError } = await supabase
-          .from('driver_availability')
-          .select('*');
-          
-        if (availabilityError) throw availabilityError;
-
-        // Fetch current vehicle assignments
-        const { data: vehicleAssignments, error: assignmentsError } = await supabase
-          .from('vehicle_assignments')
-          .select('*')
-          .eq('status', 'active');
-          
-        if (assignmentsError) throw assignmentsError;
-
-        // Filter drivers based on availability
-        const availableDriversList = driversData?.filter(driver => {
-          // Get this driver's unavailability records
-          const driverUnavailability = availabilityData?.filter(
-            avail => avail.driver_id === driver.id && 
-            (avail.status === 'unavailable' || avail.status === 'leave' || avail.status === 'training')
-          );
-
-          // If driver has no unavailability records, they're available
-          if (!driverUnavailability || driverUnavailability.length === 0) {
-            return true;
-          }
-
-          // Check if any unavailability conflicts with booking time
-          const hasConflict = driverUnavailability.some(avail => {
-            const availStartDate = new Date(avail.start_date);
-            const availEndDate = new Date(avail.end_date);
-            
-            return bookingDateTime >= availStartDate && bookingDateTime <= availEndDate;
-          });
-
-          // Driver is available if there's no conflict
-          return !hasConflict;
-        });
-
-        // Filter vehicles based on current assignments and maintenance status
-        const assignedVehicleIds = new Set(
-          vehicleAssignments?.map(assignment => assignment.vehicle_id) || []
-        );
-
-        const availableVehiclesList = vehiclesData?.filter(vehicle => 
-          !assignedVehicleIds.has(vehicle.id) && vehicle.status === 'active'
-        );
 
         // Convert to expected types
         const mappedDrivers = availableDriversList?.map(driver => ({
@@ -287,7 +350,11 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         })) as Vehicle[];
 
         setAvailableDrivers(mappedDrivers);
+        console.log("[DEBUG] Available drivers:", mappedDrivers.length);
+        
         setAvailableVehicles(mappedVehicles);
+        console.log("[DEBUG] Available vehicles:", mappedVehicles.length);
+        
         setIsLoading(false);
       } catch (error) {
         console.error("Error loading assignment data:", error);
@@ -335,14 +402,14 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       
       // Validate UUID format only if an ID is actually selected
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (selectedDriverId && !uuidPattern.test(selectedDriverId)) {
+      if (selectedDriverId && selectedDriverId !== "none" && !uuidPattern.test(selectedDriverId)) {
         throw new Error('Invalid Driver ID format (not a UUID)');
       }
-      if (selectedVehicleId && !uuidPattern.test(selectedVehicleId)) {
+      if (selectedVehicleId && selectedVehicleId !== "none" && !uuidPattern.test(selectedVehicleId)) {
         throw new Error('Invalid Vehicle ID format (not a UUID)');
       }
 
-      // Process driver_id and vehicle_id values with more careful null handling
+      // Process driver_id and vehicle_id values with careful null handling
       let driver_id: string | null = null;
       let vehicle_id: string | null = null;
       
@@ -358,7 +425,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       
       console.log("[DEBUG] Processed values for DB update:", { driver_id, vehicle_id });
       
-      // Prepare updates - now with our carefully processed values
+      // Prepare updates
       const updates = {
         driver_id,
         vehicle_id
@@ -366,6 +433,8 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       
       console.log("[DEBUG] Sending to DB:", updates);
       
+      // Start a transaction to ensure all related updates are atomic
+      // First update the booking
       const { data: updateResult, error: bookingUpdateError } = await supabase
         .from('bookings')
         .update(updates)
@@ -379,18 +448,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
       console.log("[DEBUG] Booking update result:", updateResult);
 
-      // Update dispatch_entries similarly, allowing nulls
-      const { data: existingEntry, error: dispatchError } = await supabase
-        .from('dispatch_entries')
-        .select('id')
-        .eq('booking_id', bookingUUID) 
-        .maybeSingle();
-
-      if (dispatchError && dispatchError.code !== 'PGRST116') {
-        throw dispatchError;
-      }
-
-      // Calculate start/end times for dispatch
+      // Calculate booking time window
       const bookingDate = parseISO(currentBooking.date);
       const startTime = `${bookingDate.toISOString().split('T')[0]}T${currentBooking.time}:00`;
       const durationMinutes = parseInt(String(currentBooking.duration || "60"));
@@ -406,8 +464,81 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         driver_id_set: driver_id !== null,
         vehicle_id_set: vehicle_id !== null
       });
+
+      // Update vehicle status if a vehicle is assigned
+      if (vehicle_id) {
+        console.log("[DEBUG] Updating vehicle status to 'assigned' for vehicle:", vehicle_id);
+        const { error: vehicleUpdateError } = await supabase
+          .from('vehicles')
+          .update({ 
+            status: 'assigned',
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', vehicle_id);
+          
+        if (vehicleUpdateError) {
+          console.error("[DEBUG] Error updating vehicle status:", vehicleUpdateError);
+          // Log but don't throw error - continue with remaining operations
+        }
+      }
       
-      // Prepare dispatch update with our processed values
+      // Update driver status if a driver is assigned
+      if (driver_id) {
+        console.log("[DEBUG] Creating driver unavailability record for the booking timeframe");
+        
+        // First check if an overlapping availability record already exists
+        const { data: existingAvailability, error: checkAvailabilityError } = await supabase
+          .from('driver_availability')
+          .select('id')
+          .eq('driver_id', driver_id)
+          .lte('start_date', endTimeDate.toISOString())
+          .gte('end_date', startTime)
+          .eq('notes', `Assigned to booking ${bookingUUID}`)
+          .maybeSingle();
+          
+        if (checkAvailabilityError) {
+          console.error("[DEBUG] Error checking existing driver availability:", checkAvailabilityError);
+        }
+        
+        // If an availability record already exists for this booking, update it
+        // Otherwise create a new one
+        if (existingAvailability) {
+          console.log("[DEBUG] Updating existing driver availability record");
+          const { error: updateAvailError } = await supabase
+            .from('driver_availability')
+            .update({
+              start_date: startTime,
+              end_date: endTimeDate.toISOString(),
+              status: 'unavailable',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingAvailability.id);
+            
+          if (updateAvailError) {
+            console.error("[DEBUG] Error updating driver availability record:", updateAvailError);
+          }
+        } else {
+          // Create a driver_availability record to mark the driver as unavailable 
+          // during the booking timeframe
+          const { error: driverAvailError } = await supabase
+            .from('driver_availability')
+            .insert({
+              driver_id: driver_id,
+              start_date: startTime,
+              end_date: endTimeDate.toISOString(),
+              status: 'unavailable',
+              notes: `Assigned to booking ${bookingUUID}`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+          if (driverAvailError) {
+            console.error("[DEBUG] Error creating driver availability record:", driverAvailError);
+          }
+        }
+      }
+      
+      // Prepare dispatch update
       const dispatchUpdate = {
         driver_id,
         vehicle_id,
@@ -418,6 +549,17 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       };
       
       console.log("[DEBUG] Dispatch update payload:", dispatchUpdate);
+
+      // Update dispatch entry if it exists
+      const { data: existingEntry, error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .select('id')
+        .eq('booking_id', bookingUUID) 
+        .maybeSingle();
+
+      if (dispatchError && dispatchError.code !== 'PGRST116') {
+        throw dispatchError;
+      }
 
       if (existingEntry) {
         console.log("[DEBUG] Updating existing dispatch entry:", existingEntry.id);
@@ -455,6 +597,56 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         }
       }
 
+      // Create entry in vehicle_assignments if a vehicle is assigned
+      if (driver_id && vehicle_id) {
+        console.log("[DEBUG] Creating or updating vehicle assignment record");
+        
+        // First check if an assignment already exists for this combination
+        const { data: existingAssignment, error: checkAssignmentError } = await supabase
+          .from('vehicle_assignments')
+          .select('id')
+          .eq('vehicle_id', vehicle_id)
+          .eq('driver_id', driver_id)
+          .eq('status', 'active')
+          .maybeSingle();
+          
+        if (checkAssignmentError) {
+          console.error("[DEBUG] Error checking existing vehicle assignment:", checkAssignmentError);
+        }
+        
+        if (existingAssignment) {
+          console.log("[DEBUG] Updating existing vehicle assignment record");
+          const { error: updateAssignmentError } = await supabase
+            .from('vehicle_assignments')
+            .update({
+              start_date: startTime,
+              end_date: endTimeDate.toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingAssignment.id);
+            
+          if (updateAssignmentError) {
+            console.error("[DEBUG] Error updating vehicle assignment:", updateAssignmentError);
+          }
+        } else {
+          const { error: assignmentError } = await supabase
+            .from('vehicle_assignments')
+            .insert({
+              vehicle_id: vehicle_id,
+              driver_id: driver_id,
+              start_date: startTime,
+              end_date: endTimeDate.toISOString(),
+              status: 'active',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+          if (assignmentError) {
+            console.error("[DEBUG] Error creating vehicle assignment:", assignmentError);
+          }
+        }
+      }
+
       toast({ description: t('bookings.assignment.assignSuccess') });
       
       console.log("[DEBUG] Assignment completed, updating state", { driver_id, vehicle_id });
@@ -467,7 +659,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
           ...prev,
           driver_id: driver_id,
           vehicle: vehicle_id ? { id: vehicle_id } : null
-        };
+        } as any; // Type assertion to avoid TypeScript errors
       });
       
       // Exit editing mode

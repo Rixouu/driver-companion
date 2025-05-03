@@ -64,7 +64,13 @@ export const en: TranslationValue = {
     sending: "Sending...",
     selected: "Selected",
     current: "Current",
-    updated: "Updated"
+    updated: "Updated",
+    day: "Day",
+    week: "Week",
+    month: "Month",
+    today: "Today",
+    booking: "Booking",
+    unassign: "Unassign"
   },
   auth: {
     logout: "Logout"
@@ -201,7 +207,11 @@ export const en: TranslationValue = {
         description: "This driver has no upcoming bookings scheduled.",
         message: "No upcoming bookings"
       },
-      booking: "Booking"
+      booking: "Booking",
+      unassign: "Unassign",
+      unassignSuccess: "Booking unassigned",
+      unassignSuccessDescription: "The booking has been removed from this driver.",
+      unassignError: "Failed to unassign booking"
     },
     messages: {
       createSuccess: "Driver created successfully",
@@ -275,7 +285,7 @@ export const en: TranslationValue = {
       listView: {
         title: "List View",
         noRecords: "No availability records found. Click the button above to add one.",
-      loading: "Loading...",
+        loading: "Loading...",
         addAvailability: "Add Availability",
         editAvailability: "Edit Availability",
         deleteConfirmTitle: "Are you sure?",
@@ -283,8 +293,13 @@ export const en: TranslationValue = {
         deleteSuccess: "Availability deleted",
         deleteSuccessMessage: "Driver availability has been deleted successfully",
         deleteError: "Failed to delete driver availability",
-        loadError: "Failed to load driver availability"
+        loadError: "Failed to load driver availability",
+        editDisabledTooltip: "Cannot edit booking assignments",
+        deleteDisabledTooltip: "Cannot delete booking assignments"
       },
+      loading: "Loading...",
+      setAvailability: "Set Availability",
+      setAvailabilityFor: "Set Availability for {date}",
       noAvailabilityRecords: "No availability records",
       availabilityRecords: "Availability Records",
       calendar: "Availability Calendar",
@@ -317,7 +332,9 @@ export const en: TranslationValue = {
         createError: "Failed to create availability period",
         updateError: "Failed to update availability period",
         deleteError: "Failed to delete availability period"
-      }
+      },
+      returnMessage: "This driver will return to work on {date}.",
+      onBookingMessage: "This driver is currently on a booking until {endTime}."
     },
     vehicles: {
       title: "Assigned Vehicles",
@@ -1864,6 +1881,7 @@ export const en: TranslationValue = {
     status: {
       pending: "Pending",
       assigned: "Assigned",
+      confirmed: "Confirmed",
       in_transit: "In Transit",
       completed: "Completed",
       cancelled: "Cancelled"
@@ -1918,6 +1936,7 @@ export const en: TranslationValue = {
       view: "Board View",
       title: "Dispatch Board",
       pending: "Pending",
+      confirmed: "Confirmed",
       assigned: "Assigned",
       inTransit: "In Transit",
       completed: "Completed",

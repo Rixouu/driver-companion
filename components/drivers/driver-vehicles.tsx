@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Car, Trash2, Eye } from "lucide-react"
+import { Car, Trash2, Eye, AlertTriangle } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { toast } from "@/components/ui/use-toast"
 import { unassignVehicleFromDriverAction } from "@/app/actions/drivers" // Corrected import path (assuming it exists here)
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,15 +48,35 @@ export function DriverVehicles({
 }: DriverVehiclesProps) {
   const { t } = useI18n()
   const [isUnassigning, setIsUnassigning] = useState<string | null>(null) // Track which vehicle is being unassigned
+  const [hasActiveBookings, setHasActiveBookings] = useState(false)
+  const [keepBookingAssignments, setKeepBookingAssignments] = useState(false)
 
   const handleUnassign = async (vehicleId: string) => {
     setIsUnassigning(vehicleId)
     try {
-      const result = await unassignVehicleFromDriverAction(driverId, vehicleId)
+      const result = await unassignVehicleFromDriverAction(driverId, vehicleId, {
+        keepBookingAssignments
+      })
+      
+      if (result.hasActiveBookings) {
+        setHasActiveBookings(true)
+        setIsUnassigning(null)
+        return // Don't proceed with unassignment yet
+      }
+      
       if (result.success) {
         toast({ title: t("drivers.messages.unassignSuccess"), description: result.message })
         if (onUnassignSuccess) {
           onUnassignSuccess() // Trigger refresh in parent component
+        }
+        
+        // If vehicle had active bookings and was force unassigned, we need a full page refresh
+        // to ensure all related components are updated correctly
+        if (keepBookingAssignments && result.message.includes("Booking availability periods")) {
+          // Give toast time to appear before refresh
+          setTimeout(() => {
+            window.location.reload()
+          }, 1000)
         }
       } else {
         toast({ title: t("common.error"), description: result.message, variant: "destructive" })
@@ -63,6 +85,8 @@ export function DriverVehicles({
       toast({ title: t("common.error"), description: t("drivers.messages.unassignErrorDescription"), variant: "destructive" })
     } finally {
       setIsUnassigning(null)
+      setHasActiveBookings(false)
+      setKeepBookingAssignments(false)
     }
   }
 
@@ -147,24 +171,56 @@ export function DriverVehicles({
                         <Button 
                           variant="outline"
                           size="sm" 
-                          className="flex items-center gap-1 text-destructive hover:text-destructive border-destructive/50 hover:border-destructive/80 dark:text-red-500 dark:border-red-500/50 dark:hover:border-red-500/80 dark:hover:bg-red-900/20"
+                          className="flex items-center gap-1 text-destructive hover:text-destructive/90 border-destructive/50 hover:border-destructive/80 dark:text-red-500 dark:border-red-500/50 dark:hover:border-red-500/80 dark:hover:bg-red-900/20"
                           disabled={isUnassigning === vehicle.id}
                         > 
                           <Trash2 className="h-3 w-3"/> 
-                          {isUnassigning === vehicle.id ? t('common.deleting') : t('drivers.actions.unassignVehicle') }
+                          {isUnassigning === vehicle.id ? t('common.deleting') : t('common.unassign', { defaultValue: 'Unassign' }) }
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>{t('drivers.unassignVehicle.confirm')}</AlertDialogTitle>
+                          <AlertDialogTitle>{t('drivers.unassignVehicle.confirm', { defaultValue: 'Unassign' })}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            {t('drivers.unassignVehicle.confirmDescription')}
+                            {hasActiveBookings ? (
+                              <div className="space-y-3">
+                                <div className="flex items-start gap-2 text-amber-600">
+                                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                                  <p>{t('drivers.unassignVehicle.hasActiveBookings', { defaultValue: 'This vehicle has active bookings assigned to this driver.' })}</p>
+                                </div>
+                                <div className="pl-7">
+                                  <p className="mb-3">{t('drivers.unassignVehicle.bookingWarning', { defaultValue: 'Unassigning this vehicle could affect upcoming bookings. You can:' })}</p>
+                                  <ul className="list-disc pl-5 space-y-1">
+                                    <li>{t('drivers.unassignVehicle.option1', { defaultValue: 'Cancel and reassign these bookings to another vehicle first' })}</li>
+                                    <li>{t('drivers.unassignVehicle.option2', { defaultValue: 'Continue and force unassignment (may affect booking details)' })}</li>
+                                  </ul>
+                                </div>
+                                <div className="flex items-center space-x-2 mt-4">
+                                  <Checkbox 
+                                    id="keep-bookings" 
+                                    checked={keepBookingAssignments} 
+                                    onCheckedChange={(checked) => setKeepBookingAssignments(checked === true)}
+                                  />
+                                  <Label 
+                                    htmlFor="keep-bookings"
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
+                                    {t('drivers.unassignVehicle.keepBookingAssignments', { defaultValue: 'I understand the risks, proceed with unassignment anyway' })}
+                                  </Label>
+                                </div>
+                              </div>
+                            ) : (
+                              t('drivers.unassignVehicle.confirmDescription', { defaultValue: 'Are you sure you want to unassign this vehicle from the driver? This action cannot be undone.' })
+                            )}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleUnassign(vehicle.id)} disabled={isUnassigning === vehicle.id}>
-                            {isUnassigning === vehicle.id ? t('common.deleting') : t('drivers.actions.unassignVehicle')}
+                          <AlertDialogAction 
+                            onClick={() => handleUnassign(vehicle.id)} 
+                            disabled={isUnassigning === vehicle.id || (hasActiveBookings && !keepBookingAssignments)}
+                          >
+                            {isUnassigning === vehicle.id ? t('common.deleting') : t('common.unassign', { defaultValue: 'Unassign' })}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

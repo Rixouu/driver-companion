@@ -8,7 +8,8 @@ export type DispatchStatus =
   | "assigned" 
   | "in_transit" 
   | "completed" 
-  | "cancelled";
+  | "cancelled"
+  | "confirmed";
 
 export interface DispatchEntry {
   id: string;

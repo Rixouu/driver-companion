@@ -100,13 +100,15 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
     return groups;
   }, {} as Record<string, DispatchEntryWithRelations[]>);
   
-  // Create a function to get badge color based on status
+  // Get status badge color based on status
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
       case "assigned":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "confirmed":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
       case "in_transit":
         return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
       case "completed":
@@ -144,7 +146,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
     setSelectedDate(new Date());
   };
 
-  // Get entries happening in the current time range for the timeline view
+  // Filter entries happening in the current time range for the timeline view
   const getTimelineEntries = () => {
     if (viewMode === "day") {
       return entriesForSelectedDate;
@@ -154,9 +156,14 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
     const weekStart = startOfWeek(currentDate);
     const weekEnd = endOfWeek(currentDate);
     
-    return entries.filter(entry => {
+    const timelineEntries = entries.filter(entry => {
       const entryDate = parseISO(entry.start_time);
       return entryDate >= weekStart && entryDate <= weekEnd;
+    });
+    
+    // Sort entries by time
+    return timelineEntries.sort((a, b) => {
+      return parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime();
     });
   };
 
@@ -219,6 +226,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                               entry.status === 'completed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'cancelled' ? 'border-red-200 bg-red-50/90 dark:bg-red-950/40' :
                               entry.status === 'in_transit' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
+                              entry.status === 'confirmed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'assigned' ? 'border-blue-200 bg-blue-50/90 dark:bg-blue-950/40' :
                               'border-yellow-200 bg-yellow-50/90 dark:bg-yellow-950/40'
                             }`}
@@ -226,26 +234,28 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                             <div className="flex justify-between items-center">
                               <div className="font-medium">{format(parseISO(entry.start_time), "h:mm a")}</div>
                               <Badge variant="outline" className="text-[10px] h-4">
-                                #{entry.booking?.wp_id}
+                                #{entry.booking?.wp_id || entry.booking_id.substring(0, 8)}
                               </Badge>
                             </div>
                             
+                            {/* Simplified booking entry */}
                             <div className="flex items-center gap-1 mt-1.5">
-                              <User className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">{entry.booking?.customer_name || "Unknown customer"}</span>
+                              <Badge className={`text-[10px] h-4 ${getStatusColor(entry.status)}`}>
+                                {entry.status}
+                              </Badge>
+                              <span className="truncate text-xs">{entry.booking?.customer_name || "Customer"}</span>
                             </div>
                             
-                            <div className="flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate">{entry.booking?.pickup_location || "No location"}</span>
+                            <div className="flex items-center justify-end mt-1">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-6 rounded-sm px-2 text-[10px]"
+                                onClick={() => window.location.href = `/bookings/${entry.booking_id}`}
+                              >
+                                View
+                              </Button>
                             </div>
-                            
-                            {entry.driver && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                <span className="truncate">Driver: {entry.driver.first_name} {entry.driver.last_name}</span>
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -326,6 +336,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                               entry.status === 'completed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'cancelled' ? 'border-red-200 bg-red-50/90 dark:bg-red-950/40' :
                               entry.status === 'in_transit' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
+                              entry.status === 'confirmed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'assigned' ? 'border-blue-200 bg-blue-50/90 dark:bg-blue-950/40' :
                               'border-yellow-200 bg-yellow-50/90 dark:bg-yellow-950/40'
                             }`}
@@ -478,7 +489,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                         entry.status === 'completed' ? 'bg-green-500/10 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300' :
                                         entry.status === 'cancelled' ? 'bg-red-500/10 border-red-200 text-red-700 dark:border-red-800 dark:text-red-300' :
                                         entry.status === 'in_transit' ? 'bg-purple-500/10 border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300' :
-                                        entry.status === 'assigned' ? 'bg-blue-500/10 border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300' :
+                                        entry.status === 'confirmed' ? 'bg-green-500/10 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300' :
                                         'bg-yellow-500/10 border-yellow-200 text-yellow-700 dark:border-yellow-800 dark:text-yellow-300'
                                       )}
                                       onClick={(e) => {
@@ -565,7 +576,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                               entry.status === 'completed' ? 'border-green-200 dark:border-green-700/50' :
                               entry.status === 'cancelled' ? 'border-red-200 dark:border-red-700/50' :
                               entry.status === 'in_transit' ? 'border-purple-200 dark:border-purple-700/50' :
-                              entry.status === 'assigned' ? 'border-blue-200 dark:border-blue-700/50' :
+                              entry.status === 'confirmed' ? 'border-green-200 dark:border-green-700/50' :
                               'border-yellow-200 dark:border-yellow-700/50'
                             )}
                           >
@@ -664,7 +675,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                   </Button>
                                 )}
                                 
-                                {entry.status === 'assigned' && (
+                                {entry.status === 'confirmed' && (
                                   <Button 
                                     size="sm" 
                                     variant="default" 

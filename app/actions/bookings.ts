@@ -1345,11 +1345,14 @@ export async function getDriverBookings(driverId: string, options: {
   limit?: number;
   status?: string;
   upcoming?: boolean;
+  refresh?: boolean;
 } = {}): Promise<{
   bookings: Booking[];
   error?: string;
 }> {
   try {
+    // Just pass the options through to the existing implementation
+    // The refresh param will be ignored if the underlying function doesn't use it
     return await getBookingsByDriverId(driverId, options);
   } catch (error) {
     console.error('Error in getDriverBookings:', error);

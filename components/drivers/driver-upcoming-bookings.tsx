@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Clock, MapPin, User, Car, CalendarOff } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Car, CalendarOff, XCircle, Trash2, Eye } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { format } from 'date-fns'
 import { getDriverBookings } from '@/app/actions/bookings'
 import { Booking } from '@/types/bookings'
+import { useToast } from '@/components/ui/use-toast'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface DriverUpcomingBookingsProps {
   driverId: string
@@ -21,7 +23,10 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unassigningBooking, setUnassigningBooking] = useState<string | null>(null)
   const { t } = useI18n()
+  const { toast } = useToast()
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
     async function loadUpcomingBookings() {
@@ -46,8 +51,177 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
 
     if (driverId) {
       loadUpcomingBookings()
+      
+      // No automatic refresh to avoid annoying users
+      
+      // Clean up function (empty, but kept for consistency)
+      return () => {}
     }
   }, [driverId, limit])
+
+  const handleUnassignBooking = async (bookingId: string) => {
+    if (!bookingId) return
+    
+    try {
+      setUnassigningBooking(bookingId)
+      
+      console.log(`[Booking Unassign] Starting unassignment for booking ${bookingId}`)
+      
+      // First, get the booking details to check for vehicle assignment
+      const { data: bookingData, error: bookingFetchError } = await supabase
+        .from('bookings')
+        .select('driver_id, vehicle_id')
+        .eq('id', bookingId)
+        .single()
+      
+      if (bookingFetchError) {
+        console.error('[Booking Unassign] Error fetching booking details:', bookingFetchError)
+      } else {
+        console.log(`[Booking Unassign] Found booking details:`, bookingData)
+        
+        // If the booking has a vehicle assignment, we need to clean that up
+        if (bookingData?.vehicle_id && bookingData?.driver_id) {
+          console.log(`[Booking Unassign] Booking has vehicle ${bookingData.vehicle_id} assigned to driver ${bookingData.driver_id}`)
+          
+          // Find and end any active vehicle assignments
+          const { data: vehicleAssignments, error: assignmentsError } = await supabase
+            .from('vehicle_assignments')
+            .select('id')
+            .eq('vehicle_id', bookingData.vehicle_id)
+            .eq('driver_id', bookingData.driver_id)
+            .eq('status', 'active')
+          
+          if (assignmentsError) {
+            console.error('[Booking Unassign] Error finding vehicle assignments:', assignmentsError)
+          } else if (vehicleAssignments?.length) {
+            console.log(`[Booking Unassign] Found ${vehicleAssignments.length} active vehicle assignments to end`)
+            
+            for (const assignment of vehicleAssignments) {
+              const { error: updateError } = await supabase
+                .from('vehicle_assignments')
+                .update({
+                  status: 'inactive',
+                  end_date: new Date().toISOString(),
+                  notes: `Ended due to booking ${bookingId} unassignment`
+                })
+                .eq('id', assignment.id)
+                
+              if (updateError) {
+                console.error(`[Booking Unassign] Error ending vehicle assignment ${assignment.id}:`, updateError)
+              } else {
+                console.log(`[Booking Unassign] Successfully ended vehicle assignment ${assignment.id}`)
+              }
+            }
+          } else {
+            console.log('[Booking Unassign] No active vehicle assignments found')
+          }
+        }
+      }
+      
+      // Check if there are any driver availability records for this booking
+      const { data: availabilityRecords, error: availabilityError } = await supabase
+        .from('driver_availability')
+        .select('id')
+        .like('notes', `%Assigned to booking ${bookingId}%`)
+      
+      if (availabilityError) {
+        console.error('[Booking Unassign] Error finding availability records:', availabilityError)
+      } else if (availabilityRecords?.length) {
+        // Delete associated driver availability records
+        console.log(`[Booking Unassign] Deleting ${availabilityRecords.length} availability records for booking ${bookingId}`)
+        
+        for (const record of availabilityRecords) {
+          const { error: deleteError } = await supabase
+            .from('driver_availability')
+            .delete()
+            .eq('id', record.id)
+            
+          if (deleteError) {
+            console.error(`[Booking Unassign] Error deleting availability record ${record.id}:`, deleteError)
+          } else {
+            console.log(`[Booking Unassign] Successfully deleted availability record ${record.id}`)
+          }
+        }
+      } else {
+        console.log('[Booking Unassign] No driver availability records found')
+      }
+      
+      // Check for any dispatch entries for this booking
+      const { data: dispatchEntries, error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .select('id, vehicle_id, driver_id')
+        .eq('booking_id', bookingId)
+      
+      if (dispatchError) {
+        console.error('[Booking Unassign] Error finding dispatch entries:', dispatchError)
+      } else if (dispatchEntries?.length) {
+        console.log(`[Booking Unassign] Found ${dispatchEntries.length} dispatch entries to update`)
+        
+        for (const entry of dispatchEntries) {
+          const { error: updateError } = await supabase
+            .from('dispatch_entries')
+            .update({
+              driver_id: null,
+              vehicle_id: null,
+              status: 'pending',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', entry.id)
+            
+          if (updateError) {
+            console.error(`[Booking Unassign] Error updating dispatch entry ${entry.id}:`, updateError)
+          } else {
+            console.log(`[Booking Unassign] Successfully updated dispatch entry ${entry.id}`)
+          }
+        }
+      } else {
+        console.log('[Booking Unassign] No dispatch entries found')
+      }
+      
+      // Update the booking to remove driver assignment
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          driver_id: null,
+          vehicle_id: null, // Also clear the vehicle_id
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+      
+      if (error) {
+        console.error('[Booking Unassign] Error updating booking:', error)
+        throw error
+      }
+      
+      console.log('[Booking Unassign] Successfully updated booking')
+      
+      // Refresh bookings
+      const { bookings: updatedBookings } = await getDriverBookings(driverId, {
+        limit,
+        upcoming: true
+      })
+      
+      setBookings(updatedBookings || [])
+      
+      // Trigger refresh of availability list
+      document.dispatchEvent(new Event('refresh-driver-availability'))
+      document.dispatchEvent(new Event('booking-unassigned'))
+      
+      toast({
+        title: t('drivers.upcomingBookings.unassignSuccess', { defaultValue: 'Booking unassigned' }),
+        description: t('drivers.upcomingBookings.unassignSuccessDescription', { defaultValue: 'The booking has been removed from this driver.' })
+      })
+    } catch (err) {
+      console.error('[Booking Unassign] Error unassigning booking:', err)
+      toast({
+        title: t('common.error'),
+        description: t('drivers.upcomingBookings.unassignError', { defaultValue: 'Failed to unassign booking' }),
+        variant: 'destructive'
+      })
+    } finally {
+      setUnassigningBooking(null)
+    }
+  }
 
   const renderBookingStatus = (status: string) => {
     const statusMap: Record<string, { label: string, variant: "default" | "outline" | "secondary" | "destructive" | "success" }> = {
@@ -197,10 +371,31 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
                   </div>
                  )}
 
-                <div className="flex justify-end mt-3">
+                <div className="flex justify-end mt-3 gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-1 text-destructive hover:text-destructive/90 border-destructive/50 hover:border-destructive/80 dark:text-red-500 dark:border-red-500/50 dark:hover:border-red-500/80 dark:hover:bg-red-900/20"
+                    onClick={() => handleUnassignBooking(booking.supabase_id || booking.id || '')}
+                    disabled={unassigningBooking === (booking.supabase_id || booking.id)}
+                  >
+                    {unassigningBooking === (booking.supabase_id || booking.id) ? (
+                      <>
+                        <span className="animate-spin mr-1">
+                          <Clock className="h-3 w-3" />
+                        </span>
+                        {t('common.deleting', { defaultValue: 'Unassigning...' })}
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        {t('drivers.upcomingBookings.unassign', { defaultValue: 'Unassign' })}
+                      </>
+                    )}
+                  </Button>
                   <Button size="sm" variant="outline" asChild>
-                    <Link href={`/bookings/${booking.supabase_id || booking.id}`} >
-                      {t('common.viewDetails')}
+                    <Link href={`/bookings/${booking.supabase_id || booking.id}`} className="flex items-center gap-1">
+                      <Eye className="h-3 w-3"/> {t('common.view')}
                     </Link>
                   </Button>
                 </div>

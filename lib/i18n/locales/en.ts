@@ -61,7 +61,10 @@ export const en: TranslationValue = {
     exporting: "Exporting...",
     email: "Email",
     send: "Send Email",
-    sending: "Sending..."
+    sending: "Sending...",
+    selected: "Selected",
+    current: "Current",
+    updated: "Updated"
   },
   auth: {
     logout: "Logout"
@@ -1520,12 +1523,12 @@ export const en: TranslationValue = {
   },
   bookings: {
     title: "Bookings",
-    description: "Manage booking information",
+    description: "View and manage your vehicle bookings",
     search: {
       text: "Search bookings...",
       placeholder: "Search bookings..."
     },
-    addBooking: "Add Booking",
+    addBooking: "New Booking",
     newBooking: "New Booking",
     editBooking: "Edit Booking",
     viewOptions: {
@@ -1538,9 +1541,28 @@ export const en: TranslationValue = {
       generateInvoice: "Generate Invoice",
       emailInvoice: "Email Invoice"
     },
+    cancelDialog: {
+      title: "Cancel Booking",
+      description: "Are you sure you want to cancel this booking? This action cannot be undone.",
+      cancel: "Keep Booking",
+      confirm: "Yes, Cancel Booking"
+    },
     invoice: {
       emailDescription: "Send the invoice as a PDF attachment to the customer's email address.",
       includeDetails: "Include booking details"
+    },
+    billing: {
+      title: "Billing Information",
+      details: "Enter billing information for invoicing",
+      companyName: "Company Name",
+      taxNumber: "Tax Number / VAT ID",
+      streetName: "Street Name",
+      streetNumber: "Street Number / Building",
+      city: "City",
+      state: "State / Province",
+      postalCode: "Postal / ZIP Code",
+      country: "Country",
+      address: "Address"
     },
     tableHeaders: {
       bookingId: "Booking ID",
@@ -1621,7 +1643,10 @@ export const en: TranslationValue = {
         client: "Client Details",
         additional: "Additional Information",
         payment: "Payment Link",
-        assignment: "Driver & Vehicle Assignment"
+        assignment: "Driver & Vehicle Assignment",
+        billingAddress: "Billing Address",
+        billing: "Billing Information",
+        coupon: "Coupon Information"
       },
       fields: {
         bookingId: "Booking ID",
@@ -1649,9 +1674,25 @@ export const en: TranslationValue = {
         status: "Status",
         paymentLink: "Payment Link",
         amount: "Amount",
+        originalPrice: "Original Price",
+        finalAmount: "Final Amount",
         name: "Name",
         customerName: "Customer Name",
-        driver: "Driver"
+        driver: "Driver",
+        companyName: "Company Name",
+        taxNumber: "Tax Number / VAT ID",
+        street: "Street",
+        city: "City",
+        state: "State / Province",
+        postalCode: "Postal / ZIP Code",
+        country: "Country",
+        coupon: "Coupon",
+        couponCode: "Coupon Code",
+        couponDiscount: "Discount Percentage",
+        discount: "Discount",
+        address: "Address",
+        cityState: "City/State/Postal",
+        billingCompany: "Billing Company"
       },
       actions: {
         navigateToPickup: "Navigate to Pickup",
@@ -1756,7 +1797,23 @@ export const en: TranslationValue = {
       syncButton: "Sync Bookings",
       retrying: "Retrying...",
       retryButton: "Retry Connection",
-      successWithCount: "Successfully synced {count} bookings ({created} created, {updated} updated)"
+      successWithCount: "Successfully synced {count} bookings ({created} created, {updated} updated)",
+      confirmUpdates: "Confirm Booking Updates",
+      confirmUpdatesDescription: "The following bookings have changes. Select which bookings you want to update.",
+      syncSummary: "Found {newCount} new bookings to create and {updateCount} bookings to update.",
+      newBookingsAutomatically: "New bookings will be created automatically.",
+      confirmAndSync: "Confirm & Sync",
+      cancelled: "Sync cancelled by user",
+      changesSummary: "Changes Summary",
+      searchPlaceholder: "Search bookings...",
+      allChanges: "All Changes",
+      perPage: "{count} per page",
+      previous: "Previous",
+      next: "Next",
+      current: "Current",
+      afterUpdate: "After Update",
+      dateTime: "Date/Time",
+      importedBy: "Imported By"
     },
     calculateRoute: "Calculate Route Distance & Duration",
     autoCalculateAvailable: "Auto-calculate available"

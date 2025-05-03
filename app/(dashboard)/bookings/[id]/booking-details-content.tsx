@@ -90,6 +90,93 @@ export default function BookingDetailsContent({
   const [dispatchStatus, setDispatchStatus] = useState<string | null>(null)
   const supabase = createClientComponentClient<Database>()
   
+  // Enhanced debugging to see the full booking object and its structure
+  console.log('Booking object complete:', booking)
+  console.log('Booking keys:', Object.keys(booking))
+  
+  // Examine the coupon code and discount values
+  console.log('Coupon data:', {
+    code: booking.coupon_code,
+    codeType: typeof booking.coupon_code,
+    percentage: booking.coupon_discount_percentage,
+    percentageType: typeof booking.coupon_discount_percentage
+  })
+  
+  // Examine billing address data
+  console.log('Billing data:', {
+    company: booking.billing_company_name,
+    taxNumber: booking.billing_tax_number,
+    street: booking.billing_street_name,
+    streetNumber: booking.billing_street_number,
+    city: booking.billing_city,
+    state: booking.billing_state,
+    postalCode: booking.billing_postal_code,
+    country: booking.billing_country
+  })
+  
+  // Function to fetch and display raw booking data from debug endpoint
+  const fetchDebugData = async () => {
+    try {
+      const id = booking.id || booking.booking_id || bookingId
+      const response = await fetch(`/api/bookings/debug/${id}`)
+      
+      if (!response.ok) {
+        console.error('Error fetching debug data:', await response.text())
+        return
+      }
+      
+      const data = await response.json()
+      console.log('DEBUG - Raw booking data:', data.raw)
+      console.log('DEBUG - Mapped booking data:', data.mapped)
+      console.log('DEBUG - Raw keys:', data.keys.raw)
+      console.log('DEBUG - Mapped keys:', data.keys.mapped)
+      
+      // Check specifically for coupon fields
+      console.log('DEBUG - Raw coupon fields:', {
+        coupon_code: data.raw.coupon_code,
+        coupon_discount_percentage: data.raw.coupon_discount_percentage
+      })
+      
+      console.log('DEBUG - Mapped coupon fields:', {
+        coupon_code: data.mapped.coupon_code,
+        coupon_discount_percentage: data.mapped.coupon_discount_percentage
+      })
+    } catch (error) {
+      console.error('Error in debug function:', error)
+    }
+  }
+  
+  // Function to fetch debug data from our SQL debug endpoint
+  const fetchSqlDebugData = async () => {
+    try {
+      const id = booking.id || booking.booking_id || bookingId
+      const response = await fetch(`/api/bookings/sql-debug/${id}`)
+      
+      if (!response.ok) {
+        console.error('Error fetching SQL debug data:', await response.text())
+        return
+      }
+      
+      const data = await response.json()
+      console.log('SQL DEBUG - Raw booking data:', data)
+      console.log('SQL DEBUG - Fields of interest:', data.fields_of_interest)
+      console.log('SQL DEBUG - Available columns:', data.columns_available)
+      
+      // Show alert with key data
+      alert(
+        `SQL Debug Results:\n\n` +
+        `Coupon Code: ${data.fields_of_interest?.coupon_code || 'NULL'}\n` +
+        `Coupon Discount: ${data.fields_of_interest?.coupon_discount_percentage || 'NULL'}\n` +
+        `Company Name: ${data.fields_of_interest?.billing_company_name || 'NULL'}\n` +
+        `Tax Number: ${data.fields_of_interest?.billing_tax_number || 'NULL'}\n` +
+        `See console for full data`
+      )
+    } catch (error) {
+      console.error('Error in SQL debug function:', error)
+      alert('Error in SQL debug function: ' + (error instanceof Error ? error.message : String(error)))
+    }
+  }
+  
   // Fetch dispatch status on component mount
   useEffect(() => {
     async function fetchDispatchStatus() {
@@ -178,6 +265,16 @@ export default function BookingDetailsContent({
           {getStatusBadge(booking.status)}
           <PrintButton booking={booking} />
           <DriverActionsDropdown booking={booking} />
+          {process.env.NODE_ENV === 'development' && (
+            <Button variant="outline" size="sm" onClick={fetchDebugData}>
+              Debug
+            </Button>
+          )}
+          {process.env.NODE_ENV === 'development' && (
+            <Button variant="outline" size="sm" onClick={fetchSqlDebugData} className="ml-2 bg-blue-50">
+              SQL Debug
+            </Button>
+          )}
         </div>
       </div>
       
@@ -222,6 +319,38 @@ export default function BookingDetailsContent({
                   </p>
                 </div>
                 
+                {/* Coupon Code Section - Only display if coupon data exists */}
+                {(() => {
+                  console.log("[RENDER] Checking coupon fields:", {
+                    coupon_code: booking?.coupon_code,
+                    coupon_discount_percentage: booking?.coupon_discount_percentage,
+                    coupon_code_type: typeof booking?.coupon_code,
+                    coupon_percentage_type: typeof booking?.coupon_discount_percentage,
+                    anyFieldsExist: !!(booking?.coupon_code || booking?.coupon_discount_percentage)
+                  });
+                  
+                  // Only show if any coupon fields exist
+                  return (booking?.coupon_code || booking?.coupon_discount_percentage) && (
+                    <div className="col-span-2 border-t pt-4 mt-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.coupon') || 'Coupon'}</h3>
+                      <div className="mt-2 grid grid-cols-2 gap-4">
+                        {booking?.coupon_code && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">{t('bookings.details.fields.couponCode') || 'Code'}</p>
+                            <p className="font-medium">{booking.coupon_code}</p>
+                          </div>
+                        )}
+                        {booking?.coupon_discount_percentage && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">{t('bookings.details.fields.discount') || 'Discount'}</p>
+                            <p className="font-medium">{booking.coupon_discount_percentage}%</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+                
                 <div className="col-span-2">
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
                   {booking.payment_link ? (
@@ -243,6 +372,104 @@ export default function BookingDetailsContent({
               </div>
             </div>
           </Card>
+          
+          {/* Billing Address Card - Now in the details tab */}
+          {(() => {
+            console.log("[RENDER] Checking billing fields:", {
+              billing_company_name: booking.billing_company_name,
+              billing_tax_number: booking.billing_tax_number,
+              billing_street_name: booking.billing_street_name,
+              billing_street_number: booking.billing_street_number,
+              billing_city: booking.billing_city,
+              billing_state: booking.billing_state,
+              billing_postal_code: booking.billing_postal_code,
+              billing_country: booking.billing_country,
+              anyFieldsExist: !!(
+                booking.billing_company_name || 
+                booking.billing_tax_number || 
+                booking.billing_street_name || 
+                booking.billing_street_number || 
+                booking.billing_city || 
+                booking.billing_state || 
+                booking.billing_postal_code || 
+                booking.billing_country
+              )
+            });
+            
+            // Only show if any billing fields exist
+            return (booking.billing_company_name || 
+              booking.billing_tax_number || 
+              booking.billing_street_name || 
+              booking.billing_street_number || 
+              booking.billing_city || 
+              booking.billing_state || 
+              booking.billing_postal_code || 
+              booking.billing_country) && (
+              <Card>
+                <div className="border-b py-4 px-6">
+                  <h2 className="text-lg font-semibold flex items-center">
+                    <FileText className="mr-2 h-5 w-5" />
+                    {t('bookings.details.sections.billingAddress') || 'Billing Address'}
+                  </h2>
+                </div>
+                
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {booking.billing_company_name && (
+                      <div className="col-span-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.companyName') || 'Company Name'}</h3>
+                        <p className="mt-1">{booking.billing_company_name}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_tax_number && (
+                      <div className="col-span-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.taxNumber') || 'Tax Number'}</h3>
+                        <p className="mt-1">{booking.billing_tax_number}</p>
+                      </div>
+                    )}
+                    
+                    {(booking.billing_street_name || booking.billing_street_number) && (
+                      <div className="col-span-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.street') || 'Street'}</h3>
+                        <p className="mt-1">
+                          {booking.billing_street_name} {booking.billing_street_number}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_city && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.city') || 'City'}</h3>
+                        <p className="mt-1">{booking.billing_city}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_state && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.state') || 'State'}</h3>
+                        <p className="mt-1">{booking.billing_state}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_postal_code && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.postalCode') || 'Postal Code'}</h3>
+                        <p className="mt-1">{booking.billing_postal_code}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_country && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.country') || 'Country'}</h3>
+                        <p className="mt-1">{booking.billing_country}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
           
           {/* Vehicle Information Section */}
           <Card>

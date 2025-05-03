@@ -734,9 +734,48 @@ export async function getBookingById(
 }
 
 /**
+ * Syncs bookings from WordPress to Supabase
+ * This is the recommended way to ensure your database has the latest bookings
+ */
+export async function syncBookingsAction(params?: {
+  bookingIdsToUpdate?: string[];
+  selectedFieldsByBooking?: Record<string, string[]>;
+}): Promise<{
+  success: boolean;
+  message: string;
+  stats?: {
+    total: number;
+    created: number;
+    updated: number;
+  };
+}> {
+  try {
+    // Trigger the sync process
+    const result = await syncBookings(
+      params?.bookingIdsToUpdate,
+      params?.selectedFieldsByBooking
+    );
+    
+    return {
+      success: result.success,
+      message: result.message,
+      stats: result.stats // Pass along the stats for use with translations
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred during sync'
+    };
+  }
+}
+
+/**
  * Sync all bookings from WordPress API to the database
  */
-export async function syncBookings(): Promise<{
+export async function syncBookings(
+  bookingIdsToUpdate?: string[],
+  selectedFieldsByBooking?: Record<string, string[]>
+): Promise<{
   success: boolean;
   message: string;
   stats?: {
@@ -755,7 +794,7 @@ export async function syncBookings(): Promise<{
     const cacheHeaders = new Headers();
     cacheHeaders.append('Cache-Control', 'no-cache, no-store, must-revalidate');
     
-    const result = await syncBookingsFromWordPress();
+    const result = await syncBookingsFromWordPress(bookingIdsToUpdate, selectedFieldsByBooking);
     console.log("Sync completed with result:", result);
     
     if (result.error) {
@@ -810,42 +849,13 @@ export async function syncBookings(): Promise<{
 }
 
 /**
- * Syncs bookings from WordPress to Supabase
- * This is the recommended way to ensure your database has the latest bookings
- */
-export async function syncBookingsAction(): Promise<{
-  success: boolean;
-  message: string;
-  stats?: {
-    total: number;
-    created: number;
-    updated: number;
-  };
-}> {
-  try {
-    // Trigger the sync process
-    const result = await syncBookings();
-    
-    return {
-      success: result.success,
-      message: result.message,
-      stats: result.stats // Pass along the stats for use with translations
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred during sync'
-    };
-  }
-}
-
-/**
  * Get mock bookings for development and fallback
  */
 function getMockBookings(): Booking[] {
   return [
     {
       id: "1",
+      supabase_id: "1",
       date: new Date().toISOString().split('T')[0],
       time: "10:00 AM",
       status: "confirmed",
@@ -862,12 +872,25 @@ function getMockBookings(): Booking[] {
         year: "2020",
         registration: "ABC123"
       },
+      // Add coupon fields for testing
+      coupon_code: "SPRING25",
+      coupon_discount_percentage: "25",
+      // Add billing address fields for testing
+      billing_company_name: "Acme Corporation",
+      billing_tax_number: "TAX123456",
+      billing_street_name: "Main Street",
+      billing_street_number: "123",
+      billing_city: "New York",
+      billing_state: "NY",
+      billing_postal_code: "10001",
+      billing_country: "USA",
       notes: "Customer requested thorough brake inspection",
       created_at: new Date(Date.now() - 86400000).toISOString(),
       updated_at: new Date().toISOString()
     },
     {
       id: "2",
+      supabase_id: "2",
       date: new Date(Date.now() + 172800000).toISOString().split('T')[0],
       time: "2:30 PM",
       status: "pending",

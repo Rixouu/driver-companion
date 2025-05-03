@@ -61,7 +61,10 @@ export const ja: TranslationValue = {
     exporting: "エクスポート中...",
     email: "メールアドレス",
     send: "メール送信",
-    sending: "送信中..."
+    sending: "送信中...",
+    selected: "選択済み",
+    current: "現在",
+    updated: "更新後"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -1162,12 +1165,12 @@ export const ja: TranslationValue = {
   },
   bookings: {
     title: "予約",
-    description: "予約情報の管理",
+    description: "車両の予約を表示・管理する",
     search: {
       text: "予約を検索...",
       placeholder: "予約を検索..."
     },
-    addBooking: "予約を追加",
+    addBooking: "新規予約",
     newBooking: "新規予約",
     editBooking: "予約を編集",
     viewOptions: {
@@ -1180,9 +1183,28 @@ export const ja: TranslationValue = {
       generateInvoice: "請求書を生成",
       emailInvoice: "請求書をメールで送信"
     },
+    cancelDialog: {
+      title: "予約をキャンセル",
+      description: "この予約をキャンセルしてもよろしいですか？この操作は元に戻せません。",
+      cancel: "予約を維持",
+      confirm: "はい、予約をキャンセルします"
+    },
     invoice: {
       emailDescription: "請求書をPDF添付ファイルとして顧客のメールアドレスに送信します。",
       includeDetails: "予約詳細を含める"
+    },
+    billing: {
+      title: "請求情報",
+      details: "請求書発行のための請求情報を入力",
+      companyName: "会社名",
+      taxNumber: "税番号・VAT ID",
+      streetName: "町名・番地",
+      streetNumber: "建物名・部屋番号",
+      city: "市区町村",
+      state: "都道府県",
+      postalCode: "郵便番号",
+      country: "国",
+      address: "住所"
     },
     tableHeaders: {
       bookingId: "予約ID",
@@ -1249,7 +1271,10 @@ export const ja: TranslationValue = {
         client: "顧客詳細",
         additional: "追加情報",
         payment: "支払いリンク",
-        assignment: "ドライバーと車両の割り当て"
+        assignment: "ドライバーと車両の割り当て",
+        billingAddress: "請求先住所",
+        billing: "請求情報",
+        coupon: "クーポン情報"
       },
       fields: {
         bookingId: "予約ID",
@@ -1274,10 +1299,26 @@ export const ja: TranslationValue = {
         status: "ステータス",
         paymentLink: "支払いリンク",
         amount: "金額",
+        originalPrice: "元の価格",
+        finalAmount: "最終金額",
         name: "名前",
         serviceName: "サービス名",
         customerName: "顧客名",
-        driver: "ドライバー"
+        driver: "ドライバー",
+        companyName: "会社名",
+        taxNumber: "税番号 / VAT ID",
+        street: "町名・番地",
+        city: "市区町村",
+        state: "都道府県",
+        postalCode: "郵便番号",
+        country: "国",
+        coupon: "クーポン",
+        couponCode: "クーポンコード",
+        couponDiscount: "割引率",
+        discount: "割引",
+        address: "住所",
+        cityState: "市区町村/都道府県/郵便番号",
+        billingCompany: "請求先会社名"
       },
       quickCustomerActions: "クイック顧客アクション",
       tooltips: {
@@ -1378,7 +1419,23 @@ export const ja: TranslationValue = {
       syncButton: "予約を同期",
       retrying: "再試行中...",
       retryButton: "接続を再試行",
-      successWithCount: "{count}件の予約を同期しました（{created}件作成、{updated}件更新）"
+      successWithCount: "{count}件の予約を同期しました（{created}件作成、{updated}件更新）",
+      confirmUpdates: "予約更新の確認",
+      confirmUpdatesDescription: "以下の予約に変更があります。更新する予約を選択してください。",
+      syncSummary: "新規予約が{newCount}件、更新可能な予約が{updateCount}件見つかりました。",
+      newBookingsAutomatically: "新規予約は自動的に作成されます。",
+      confirmAndSync: "確認して同期",
+      cancelled: "同期はユーザーによりキャンセルされました",
+      changesSummary: "変更の概要",
+      searchPlaceholder: "予約を検索...",
+      allChanges: "すべての変更",
+      perPage: "ページあたり{count}件",
+      previous: "前へ",
+      next: "次へ",
+      current: "現在",
+      afterUpdate: "更新後",
+      dateTime: "日時",
+      importedBy: "インポート者"
     },
     calculateRoute: "ルート距離と時間を計算",
     autoCalculateAvailable: "自動計算可能",

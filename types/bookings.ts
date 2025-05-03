@@ -29,6 +29,20 @@ export interface Booking {
   customer_phone?: string
   driver_id?: string
   
+  // Billing address fields
+  billing_company_name?: string
+  billing_tax_number?: string
+  billing_street_name?: string
+  billing_street_number?: string
+  billing_city?: string
+  billing_state?: string
+  billing_postal_code?: string
+  billing_country?: string
+  
+  // Coupon fields
+  coupon_code?: string
+  coupon_discount_percentage?: string
+  
   // WordPress specific fields
   title?: string  // For WordPress format: "Booking XXXX"
   meta?: Record<string, any> // Raw WordPress meta data

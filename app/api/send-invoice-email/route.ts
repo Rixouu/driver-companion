@@ -19,6 +19,10 @@ const translations = {
     estimatedDuration: 'Estimated duration',
     minutes: 'minutes',
     paymentSummary: 'Payment Summary',
+    originalPrice: 'Original Price',
+    discount: 'Discount ({discount}%)',
+    couponCode: 'Coupon Code',
+    totalAmount: 'Total Amount',
     viewBookingDetails: 'Pay Now',
     questions: 'If you have any questions about this receipt, please contact us at',
     company: 'Japan Driver Co., Ltd.',
@@ -39,7 +43,8 @@ ROUTE:
 Pickup: {pickupLocation}
 Drop-off: {dropoffLocation}
 
-PAYMENT SUMMARY: {formattedAmount}
+PAYMENT SUMMARY:
+{priceBreakdown}
 
 If you have any questions about this receipt, please contact us at booking@japandriver.com.
 
@@ -60,6 +65,10 @@ japandriver.com`
     estimatedDuration: '予想所要時間',
     minutes: '分',
     paymentSummary: '支払い概要',
+    originalPrice: '元の料金',
+    discount: '割引 ({discount}%)',
+    couponCode: 'クーポンコード',
+    totalAmount: '合計金額',
     viewBookingDetails: '今すぐ支払う',
     questions: 'この領収書に関するご質問は、以下までお問い合わせください',
     company: 'ジャパンドライバー株式会社',
@@ -80,7 +89,8 @@ japandriver.com`
 出発地：{pickupLocation}
 目的地：{dropoffLocation}
 
-支払い概要：{formattedAmount}
+支払い概要：
+{priceBreakdown}
 
 この領収書に関するご質問は booking@japandriver.com までお問い合わせください。
 
@@ -160,6 +170,33 @@ export async function POST(request: Request) {
         currency: booking.price?.currency || 'JPY'
       }).format(booking.price?.amount || 0)
     
+    // Calculate original price and discount if coupon is present
+    const hasDiscount = booking.coupon_code && booking.coupon_discount_percentage
+    let originalPrice = booking.price?.amount || 0
+    let discountAmount = 0
+    let formattedOriginalPrice = formattedAmount
+    let formattedDiscountAmount = ''
+
+    if (hasDiscount) {
+      const discountPercentage = parseFloat(booking.coupon_discount_percentage as string)
+      if (!isNaN(discountPercentage) && discountPercentage > 0) {
+        // If we have a discount, calculate the original price (current price is after discount)
+        originalPrice = Math.round(originalPrice / (1 - discountPercentage / 100))
+        discountAmount = originalPrice - (booking.price?.amount || 0)
+
+        // Format original price and discount amount
+        formattedOriginalPrice = new Intl.NumberFormat(lang === 'ja' ? 'ja-JP' : 'en-US', {
+          style: 'currency',
+          currency: booking.price?.currency || 'JPY'
+        }).format(originalPrice)
+
+        formattedDiscountAmount = new Intl.NumberFormat(lang === 'ja' ? 'ja-JP' : 'en-US', {
+          style: 'currency',
+          currency: booking.price?.currency || 'JPY'
+        }).format(discountAmount)
+      }
+    }
+    
     // Format date for display in selected language
     const bookingDate = booking.date || new Date().toLocaleDateString(lang === 'ja' ? 'ja-JP' : 'en-US', {
       month: 'long',
@@ -190,6 +227,13 @@ export async function POST(request: Request) {
     const paymentLink = booking.payment_link || `${appUrl}/bookings/${bookingId}/payment`
     
     // Create the email text with placeholders replaced
+    const priceBreakdownText = hasDiscount ? 
+      `${t.originalPrice}: ${formattedOriginalPrice}
+${t.couponCode}: ${booking.coupon_code}
+${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}: -${formattedDiscountAmount}
+${t.totalAmount}: ${formattedAmount}` : 
+      `${formattedAmount}`
+    
     const emailText = t.emailText
       .replace('{bookingId}', bookingId)
       .replace(/{formattedAmount}/g, formattedAmount)
@@ -200,6 +244,7 @@ export async function POST(request: Request) {
       .replace('{pickupTimeFormatted}', pickupTimeFormatted)
       .replace('{pickupLocation}', booking.pickup_location || (lang === 'ja' ? '記載なし' : 'N/A'))
       .replace('{dropoffLocation}', booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A'))
+      .replace('{priceBreakdown}', priceBreakdownText)
     
     // Send the email using Resend API
     const { data, error } = await resend.emails.send({
@@ -363,6 +408,40 @@ export async function POST(request: Request) {
             <td style="padding:24px;">
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
                      style="background:#F8FAFC; border-radius:8px;">
+                ${hasDiscount ? `
+                <tr>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
+                    ${t.originalPrice}
+                  </td>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
+                    ${formattedOriginalPrice}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
+                    ${t.couponCode}
+                  </td>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
+                    ${booking.coupon_code}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
+                    ${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}
+                  </td>
+                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
+                    -${formattedDiscountAmount}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
+                    ${t.totalAmount}
+                  </td>
+                  <td style="padding:16px; font-size:16px; color:#32325D; font-weight:bold; text-align:right; font-family: Work Sans, sans-serif;">
+                    ${formattedAmount}
+                  </td>
+                </tr>
+                ` : `
                 <tr>
                   <td style="padding:16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
                     ${t.paymentSummary}
@@ -371,6 +450,7 @@ export async function POST(request: Request) {
                     ${formattedAmount}
                   </td>
                 </tr>
+                `}
               </table>
             </td>
           </tr>

@@ -17,12 +17,14 @@ export interface DateRangePickerProps {
   className?: string
   date?: DateRange | undefined
   onDateChange: (date: DateRange | undefined) => void
+  placeholder?: string
 }
 
 export function DateRangePicker({
   className,
   date,
   onDateChange,
+  placeholder = "Pick a date range",
 }: DateRangePickerProps) {
   return (
     <div className={cn("grid gap-2", className)}>
@@ -47,7 +49,7 @@ export function DateRangePicker({
                 format(date.from, "LLL dd, y")
               )
             ) : (
-              <span>Pick a date range</span>
+              <span>{placeholder}</span>
             )}
           </Button>
         </PopoverTrigger>

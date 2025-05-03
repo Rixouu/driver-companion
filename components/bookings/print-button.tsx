@@ -41,11 +41,11 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       // Create a new element to format as a PDF
       const pdfContainer = document.createElement('div')
       pdfContainer.className = 'pdf-export-container'
-      pdfContainer.style.fontFamily = 'Arial, sans-serif'
+      pdfContainer.style.fontFamily = 'Work Sans, sans-serif'
       pdfContainer.style.color = '#333'
       pdfContainer.style.backgroundColor = '#fff'
       pdfContainer.style.padding = '20px'
-      pdfContainer.style.width = '210mm' // A4 width
+      pdfContainer.style.width = '190mm' // A4 width
       pdfContainer.style.height = 'auto'
       pdfContainer.style.margin = '0'
       
@@ -64,7 +64,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       
       // Add booking header
       const header = document.createElement('div')
-      header.style.borderBottom = '2px solid #3b82f6'
+      header.style.borderBottom = '2px solid #FF2600'
       header.style.paddingBottom = '15px'
       header.style.marginBottom = '20px'
       header.style.backgroundColor = '#f8fafc'
@@ -76,7 +76,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       bookingTitle.style.fontSize = '22px'
       bookingTitle.style.fontWeight = 'bold'
       bookingTitle.style.marginBottom = '5px'
-      bookingTitle.style.color = '#1e3a8a'
+      bookingTitle.style.color = '#010101'
       
       const bookingDate = document.createElement('p')
       bookingDate.textContent = t('bookings.details.createdOn', { 
@@ -134,7 +134,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
         sectionTitle.style.borderBottom = '1px solid #e2e8f0'
         sectionTitle.style.paddingBottom = '8px'
         sectionTitle.style.marginBottom = '12px'
-        sectionTitle.style.color = '#1e40af'
+        sectionTitle.style.color = '#010101'
         
         section.appendChild(sectionTitle)
         
@@ -179,6 +179,34 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
         { label: t('bookings.details.fields.paymentMethod') || 'Payment Method', value: booking?.payment_method || 'N/A' },
         { label: t('bookings.details.fields.paymentStatus') || 'Payment Status', value: booking?.payment_status || 'Pending' }
       ])
+      
+      // Add each section to the container
+      detailsContainer.appendChild(summarySection)
+      
+      // Add coupon information if available
+      if (booking?.coupon_code || booking?.coupon_discount_percentage) {
+        const couponSection = createSection(t('bookings.details.sections.coupon') || 'Coupon Information', [
+          { label: t('bookings.details.fields.couponCode') || 'Coupon Code', value: booking?.coupon_code || 'N/A' },
+          { label: t('bookings.details.fields.discount') || 'Discount', value: booking?.price && booking?.coupon_discount_percentage ? 
+            (() => {
+              const priceAmount = booking.price.amount || 0;
+              const discountPercentage = parseFloat(booking.coupon_discount_percentage);
+              const originalPrice = Math.round(priceAmount / (1 - discountPercentage/100));
+              const discountAmount = originalPrice - priceAmount;
+              return `-${booking.price.currency || 'THB'} ${discountAmount.toLocaleString()} (${discountPercentage}%)`;
+            })() : 'N/A'
+          },
+          { label: t('bookings.details.fields.originalPrice') || 'Original Price', value: booking?.price && booking?.coupon_discount_percentage ? 
+            (() => {
+              const priceAmount = booking.price.amount || 0;
+              const discountPercentage = parseFloat(booking.coupon_discount_percentage);
+              const originalPrice = Math.round(priceAmount / (1 - discountPercentage/100));
+              return `${booking.price.currency || 'THB'} ${originalPrice.toLocaleString()}`;
+            })() : 'N/A'
+          }
+        ])
+        detailsContainer.appendChild(couponSection)
+      }
       
       // Vehicle section
       const vehicleSection = createSection(t('bookings.details.sections.vehicle') || 'Vehicle', [
@@ -231,10 +259,57 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       ])
       
       // Add each section to the container
-      detailsContainer.appendChild(summarySection)
       detailsContainer.appendChild(vehicleSection)
       detailsContainer.appendChild(routeSection)
       detailsContainer.appendChild(customerSection)
+      
+      // Add billing information after customer details
+      if (booking?.billing_company_name || 
+          booking?.billing_tax_number || 
+          booking?.billing_street_name || 
+          booking?.billing_street_number ||
+          booking?.billing_city ||
+          booking?.billing_state ||
+          booking?.billing_postal_code ||
+          booking?.billing_country) {
+        
+        const billingItems: Array<{label: string, value: string}> = [];
+        
+        if (booking?.billing_company_name) {
+          billingItems.push({ label: t('bookings.details.fields.billingCompany') || 'Company', value: booking.billing_company_name });
+        }
+        
+        if (booking?.billing_tax_number) {
+          billingItems.push({ label: t('bookings.details.fields.taxNumber') || 'Tax ID', value: booking.billing_tax_number });
+        }
+        
+        const address = [
+          booking?.billing_street_name, 
+          booking?.billing_street_number
+        ].filter(Boolean).join(' ');
+        
+        if (address) {
+          billingItems.push({ label: t('bookings.details.fields.address') || 'Address', value: address });
+        }
+        
+        const cityState = [
+          booking?.billing_city,
+          booking?.billing_state,
+          booking?.billing_postal_code
+        ].filter(Boolean).join(', ');
+        
+        if (cityState) {
+          billingItems.push({ label: t('bookings.details.fields.cityState') || 'City/State/Postal', value: cityState });
+        }
+        
+        if (booking?.billing_country) {
+          billingItems.push({ label: t('bookings.details.fields.country') || 'Country', value: booking.billing_country });
+        }
+        
+        const billingSection = createSection(t('bookings.details.sections.billing') || 'Billing Information', billingItems);
+        detailsContainer.appendChild(billingSection);
+      }
+      
       detailsContainer.appendChild(additionalSection)
       
       pdfContainer.appendChild(detailsContainer)

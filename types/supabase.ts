@@ -36,6 +36,16 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          billing_city: string | null
+          billing_company_name: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_state: string | null
+          billing_street_name: string | null
+          billing_street_number: string | null
+          billing_tax_number: string | null
+          coupon_code: string | null
+          coupon_discount_percentage: number | null
           created_at: string | null
           customer_email: string | null
           customer_id: string | null
@@ -74,6 +84,16 @@ export type Database = {
           wp_vehicle_id: string | null
         }
         Insert: {
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
+          coupon_code?: string | null
+          coupon_discount_percentage?: number | null
           created_at?: string | null
           customer_email?: string | null
           customer_id?: string | null
@@ -112,6 +132,16 @@ export type Database = {
           wp_vehicle_id?: string | null
         }
         Update: {
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
+          coupon_code?: string | null
+          coupon_discount_percentage?: number | null
           created_at?: string | null
           customer_email?: string | null
           customer_id?: string | null

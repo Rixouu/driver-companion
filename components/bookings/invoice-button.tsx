@@ -21,11 +21,12 @@ const invoiceTranslations = {
     invoiceDate: 'Invoice Date:',
     bookingRef: 'Booking Ref:',
     dueDate: 'Due Date:',
-    companyName: 'Japan Driver Co., Ltd.',
-    companyAddress1: '123 Tokyo Street, Shibuya-ku',
-    companyAddress2: 'Tokyo, Japan 123-4567',
-    companyEmail: 'info@japandriver.com',
-    companyWebsite: 'www.japandriver.com',
+    companyName: 'Driver (Thailand) Company Limited',
+    companyAddress1: '580/17 Soi Ramkhamhaeng 39',
+    companyAddress2: 'Wang Thong Lang',
+    companyAddress3: 'Bangkok 10310',
+    companyAddress4: 'Thailand',
+    companyTaxId: 'Tax ID: 0105566135845',
     billTo: 'BILL TO:',
     serviceDetails: 'SERVICE DETAILS:',
     serviceDescription: 'Service Description',
@@ -37,8 +38,19 @@ const invoiceTranslations = {
     total: 'TOTAL:',
     thanksMessage: 'Thank you for your business!',
     contactMessage: 'If you have any questions about this invoice, please contact us at billing@japandriver.com',
-    companyFooter: 'Japan Driver Co., Ltd. • www.japandriver.com',
-    transportationService: 'Transportation Service'
+    companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
+    transportationService: 'Transportation Service',
+    // Added translations for coupon and billing
+    originalPrice: 'Original Price:',
+    couponCode: 'Coupon Code:',
+    couponDiscount: 'Discount:',
+    finalPrice: 'Final Price:',
+    billingAddress: 'BILLING ADDRESS:',
+    companyNameLabel: 'Company:',
+    taxNumber: 'Tax ID:',
+    address: 'Address:',
+    cityStatePostal: 'City/State/Postal:',
+    country: 'Country:'
   },
   ja: {
     invoice: '請求書',
@@ -46,11 +58,12 @@ const invoiceTranslations = {
     invoiceDate: '請求書発行日:',
     bookingRef: '予約番号:',
     dueDate: 'お支払期限:',
-    companyName: 'ジャパンドライバー株式会社',
-    companyAddress1: '〒123-4567 東京都渋谷区',
-    companyAddress2: '東京ストリート123',
-    companyEmail: 'info@japandriver.com',
-    companyWebsite: 'www.japandriver.com',
+    companyName: 'Driver (Thailand) Company Limited',
+    companyAddress1: '580/17 Soi Ramkhamhaeng 39',
+    companyAddress2: 'Wang Thong Lang',
+    companyAddress3: 'Bangkok 10310',
+    companyAddress4: 'Thailand',
+    companyTaxId: 'Tax ID: 0105566135845',
     billTo: '請求先:',
     serviceDetails: 'サービス詳細:',
     serviceDescription: 'サービス内容',
@@ -62,8 +75,19 @@ const invoiceTranslations = {
     total: '合計:',
     thanksMessage: 'ご利用いただきありがとうございます。',
     contactMessage: 'この請求書に関するお問い合わせは billing@japandriver.com までご連絡ください。',
-    companyFooter: 'ジャパンドライバー株式会社 • www.japandriver.com',
-    transportationService: '送迎サービス'
+    companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
+    transportationService: '送迎サービス',
+    // Added translations for coupon and billing
+    originalPrice: '元の価格:',
+    couponCode: 'クーポンコード:',
+    couponDiscount: '割引:',
+    finalPrice: '最終価格:',
+    billingAddress: '請求先住所:',
+    companyNameLabel: '会社名:',
+    taxNumber: '税番号:',
+    address: '住所:',
+    cityStatePostal: '市区町村/都道府県/郵便番号:',
+    country: '国:'
   }
 };
 
@@ -213,34 +237,40 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       companyCity.style.margin = '0 0 2px 0'
       companyCity.style.fontSize = '13px'
       
-      const companyEmail = document.createElement('p')
-      companyEmail.textContent = invoiceT.companyEmail
-      companyEmail.style.margin = '0 0 2px 0'
-      companyEmail.style.fontSize = '13px'
+      const companyState = document.createElement('p')
+      companyState.textContent = invoiceT.companyAddress3
+      companyState.style.margin = '0 0 2px 0'
+      companyState.style.fontSize = '13px'
       
-      const companyWebsite = document.createElement('p')
-      companyWebsite.textContent = invoiceT.companyWebsite
-      companyWebsite.style.margin = '0'
-      companyWebsite.style.fontSize = '13px'
+      const companyCountry = document.createElement('p')
+      companyCountry.textContent = invoiceT.companyAddress4
+      companyCountry.style.margin = '0 0 10px 0' // Add more spacing after country
+      companyCountry.style.fontSize = '13px'
+      
+      const companyTaxId = document.createElement('p')
+      companyTaxId.textContent = invoiceT.companyTaxId
+      companyTaxId.style.margin = '0 0 10px 0' // Add spacing after tax ID
+      companyTaxId.style.fontSize = '13px'
       
       companyInfo.appendChild(companyName)
       companyInfo.appendChild(companyAddress)
       companyInfo.appendChild(companyCity)
-      companyInfo.appendChild(companyEmail)
-      companyInfo.appendChild(companyWebsite)
+      companyInfo.appendChild(companyState)
+      companyInfo.appendChild(companyCountry)
+      companyInfo.appendChild(companyTaxId)
       
       // Add elements to header container - invoice details on left, company info on right
       headerContainer.appendChild(invoiceDetails)
       headerContainer.appendChild(companyInfo)
       pdfContainer.appendChild(headerContainer)
       
-      // Customer info
+      // Customer info and Billing Address (merged)
       const customerSection = document.createElement('div')
       customerSection.style.marginBottom = '30px'
       customerSection.style.width = '100%'
       
       const billToTitle = document.createElement('h3')
-      billToTitle.textContent = invoiceT.billTo
+      billToTitle.textContent = invoiceT.billingAddress || invoiceT.billTo // Use billingAddress heading instead
       billToTitle.style.margin = '0 0 8px 0'
       billToTitle.style.color = '#333'
       billToTitle.style.fontSize = '14px'
@@ -266,6 +296,69 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       customerSection.appendChild(customerName)
       customerSection.appendChild(customerEmail)
       customerSection.appendChild(customerPhone)
+      
+      // Add Billing Address details if available
+      const hasBillingInfo = booking?.billing_company_name || 
+                            booking?.billing_tax_number || 
+                            booking?.billing_street_name || 
+                            booking?.billing_street_number ||
+                            booking?.billing_city ||
+                            booking?.billing_state ||
+                            booking?.billing_postal_code ||
+                            booking?.billing_country;
+                            
+      if (hasBillingInfo) {
+        // Add spacing between customer info and billing details
+        const spacer = document.createElement('div')
+        spacer.style.height = '10px'
+        customerSection.appendChild(spacer)
+        
+        // Company name if available
+        if (booking?.billing_company_name) {
+          const companyNameEl = document.createElement('p')
+          companyNameEl.textContent = `${invoiceT.companyNameLabel} ${booking.billing_company_name}`
+          companyNameEl.style.margin = '0 0 3px 0'
+          companyNameEl.style.fontSize = '13px'
+          customerSection.appendChild(companyNameEl)
+        }
+        
+        // Tax number if available
+        if (booking?.billing_tax_number) {
+          const taxNumberEl = document.createElement('p')
+          taxNumberEl.textContent = `${invoiceT.taxNumber} ${booking.billing_tax_number}`
+          taxNumberEl.style.margin = '0 0 3px 0'
+          taxNumberEl.style.fontSize = '13px'
+          customerSection.appendChild(taxNumberEl)
+        }
+        
+        // Street address if available
+        if (booking?.billing_street_name || booking?.billing_street_number) {
+          const addressEl = document.createElement('p')
+          addressEl.textContent = `${invoiceT.address} ${booking.billing_street_name || ''} ${booking.billing_street_number || ''}`
+          addressEl.style.margin = '0 0 3px 0'
+          addressEl.style.fontSize = '13px'
+          customerSection.appendChild(addressEl)
+        }
+        
+        // City, State, Postal code if available
+        if (booking?.billing_city || booking?.billing_state || booking?.billing_postal_code) {
+          const cityStateEl = document.createElement('p')
+          cityStateEl.textContent = `${invoiceT.cityStatePostal} ${booking.billing_city || ''} ${booking.billing_state ? ', ' + booking.billing_state : ''} ${booking.billing_postal_code ? ', ' + booking.billing_postal_code : ''}`
+          cityStateEl.style.margin = '0 0 3px 0'
+          cityStateEl.style.fontSize = '13px'
+          customerSection.appendChild(cityStateEl)
+        }
+        
+        // Country if available
+        if (booking?.billing_country) {
+          const countryEl = document.createElement('p')
+          countryEl.textContent = `${invoiceT.country} ${booking.billing_country}`
+          countryEl.style.margin = '0'
+          countryEl.style.fontSize = '13px'
+          customerSection.appendChild(countryEl)
+        }
+      }
+      
       pdfContainer.appendChild(customerSection)
       
       // Service description
@@ -359,12 +452,6 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       serviceSection.appendChild(serviceTable)
       pdfContainer.appendChild(serviceSection)
       
-      // Add a horizontal line after service table
-      const horizontalLine = document.createElement('hr')
-      horizontalLine.style.border = 'none'
-      horizontalLine.style.borderTop = '1px solid #e2e8f0'
-      horizontalLine.style.margin = '30px 0'
-      pdfContainer.appendChild(horizontalLine)
       
       // Total amount
       const totalSection = document.createElement('div')
@@ -376,6 +463,19 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       const totalTable = document.createElement('table')
       totalTable.style.width = '250px'
       totalTable.style.borderCollapse = 'collapse'
+      totalTable.style.tableLayout = 'fixed' // Force fixed layout
+      
+      // Define column widths
+      const labelColumn = document.createElement('col')
+      labelColumn.style.width = '40%' // Reduce label column width
+      
+      const valueColumn = document.createElement('col')
+      valueColumn.style.width = '60%' // Increase value column width
+      
+      const colGroup = document.createElement('colgroup')
+      colGroup.appendChild(labelColumn)
+      colGroup.appendChild(valueColumn)
+      totalTable.appendChild(colGroup)
       
       // Subtotal row
       const subtotalRow = document.createElement('tr')
@@ -398,6 +498,110 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       subtotalRow.appendChild(subtotalLabel)
       subtotalRow.appendChild(subtotalAmount)
       totalTable.appendChild(subtotalRow)
+      
+      // Add coupon information if available
+      if (booking?.coupon_code || booking?.coupon_discount_percentage) {
+        // Calculate original price based on discount percentage
+        let originalPrice = priceAmount;
+        let discountedAmount = 0;
+        
+        if (booking?.coupon_discount_percentage && booking.coupon_discount_percentage > 0) {
+          const discountPercentage = parseFloat(booking.coupon_discount_percentage);
+          originalPrice = Math.round(priceAmount / (1 - discountPercentage/100));
+          discountedAmount = originalPrice - priceAmount;
+        }
+        
+        // Original price row
+        const originalPriceRow = document.createElement('tr')
+        
+        const originalPriceLabel = document.createElement('td')
+        originalPriceLabel.textContent = invoiceT.originalPrice
+        originalPriceLabel.style.padding = '5px 15px 5px 0'
+        originalPriceLabel.style.textAlign = 'right'
+        originalPriceLabel.style.fontWeight = 'normal'
+        originalPriceLabel.style.fontSize = '13px'
+        
+        const originalPriceAmount = document.createElement('td')
+        originalPriceAmount.textContent = formatCurrency(originalPrice, booking?.price?.currency || 'JPY')
+        originalPriceAmount.style.padding = '5px 0'
+        originalPriceAmount.style.textAlign = 'right'
+        originalPriceAmount.style.fontSize = '13px'
+        
+        originalPriceRow.appendChild(originalPriceLabel)
+        originalPriceRow.appendChild(originalPriceAmount)
+        totalTable.appendChild(originalPriceRow)
+        
+        // Coupon code row
+        if (booking?.coupon_code) {
+          const couponRow = document.createElement('tr')
+          
+          const couponLabel = document.createElement('td')
+          couponLabel.textContent = invoiceT.couponCode
+          couponLabel.style.padding = '5px 15px 5px 0'
+          couponLabel.style.textAlign = 'right'
+          couponLabel.style.fontWeight = 'normal'
+          couponLabel.style.fontSize = '13px'
+          
+          const couponCode = document.createElement('td')
+          couponCode.textContent = booking.coupon_code
+          couponCode.style.padding = '5px 0'
+          couponCode.style.textAlign = 'right'
+          couponCode.style.fontSize = '13px'
+          couponCode.style.color = '#FF2600' // Red color to highlight coupon
+          
+          couponRow.appendChild(couponLabel)
+          couponRow.appendChild(couponCode)
+          totalTable.appendChild(couponRow)
+        }
+        
+        // Discount percentage row
+        if (booking?.coupon_discount_percentage) {
+          const discountRow = document.createElement('tr')
+          
+          const discountLabel = document.createElement('td')
+          discountLabel.textContent = invoiceT.couponDiscount
+          discountLabel.style.padding = '5px 15px 5px 0'
+          discountLabel.style.textAlign = 'right'
+          discountLabel.style.fontWeight = 'normal'
+          discountLabel.style.fontSize = '13px'
+          discountLabel.style.whiteSpace = 'nowrap' // Prevent wrapping
+          discountLabel.style.verticalAlign = 'middle' // Vertically align content
+          
+          const discountAmount = document.createElement('td')
+          discountAmount.textContent = `-${formatCurrency(discountedAmount, booking?.price?.currency || 'JPY')} (${booking.coupon_discount_percentage}%)`
+          discountAmount.style.padding = '5px 0'
+          discountAmount.style.textAlign = 'right'
+          discountAmount.style.fontSize = '13px'
+          discountAmount.style.color = '#FF2600' // Red color to highlight discount
+          discountAmount.style.whiteSpace = 'nowrap' // Prevent wrapping
+          discountAmount.style.verticalAlign = 'middle' // Vertically align content
+          discountAmount.style.width = '100%' // Take full width of the cell
+          
+          discountRow.appendChild(discountLabel)
+          discountRow.appendChild(discountAmount)
+          totalTable.appendChild(discountRow)
+        }
+        
+        // Final price row
+        const finalPriceRow = document.createElement('tr')
+        
+        const finalPriceLabel = document.createElement('td')
+        finalPriceLabel.textContent = invoiceT.finalPrice
+        finalPriceLabel.style.padding = '5px 15px 5px 0'
+        finalPriceLabel.style.textAlign = 'right'
+        finalPriceLabel.style.fontWeight = 'normal'
+        finalPriceLabel.style.fontSize = '13px'
+        
+        const finalPriceAmount = document.createElement('td')
+        finalPriceAmount.textContent = formatCurrency(priceAmount, booking?.price?.currency || 'JPY')
+        finalPriceAmount.style.padding = '5px 0'
+        finalPriceAmount.style.textAlign = 'right'
+        finalPriceAmount.style.fontSize = '13px'
+        
+        finalPriceRow.appendChild(finalPriceLabel)
+        finalPriceRow.appendChild(finalPriceAmount)
+        totalTable.appendChild(finalPriceRow)
+      }
       
       // No tax applied
       
@@ -645,28 +849,26 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
 
   return (
     <>
-      <div className="flex gap-2">
-        <BookingButton 
-          variant="outline"
-          icon={<FileText className="h-5 w-5" />}
-          onClick={handleGenerateInvoice}
-          disabled={isGenerating || !booking}
-        >
-          {isGenerating ? 
-            (t('common.exporting') || 'Generating...') : 
-            (t('bookings.actions.generateInvoice') || 'Generate Invoice')
-          }
-        </BookingButton>
-        
-        <BookingButton 
-          variant="outline"
-          icon={<Mail className="h-5 w-5" />}
-          onClick={handleEmailDialogOpen}
-          disabled={isGenerating || !booking}
-        >
-          {t('bookings.actions.emailInvoice') || 'Email Invoice'}
-        </BookingButton>
-      </div>
+      <BookingButton 
+        variant="outline"
+        icon={<FileText className="h-5 w-5" />}
+        onClick={handleGenerateInvoice}
+        disabled={isGenerating || !booking}
+      >
+        {isGenerating ? 
+          (t('common.exporting') || 'Generating...') : 
+          (t('bookings.actions.generateInvoice') || 'Generate Invoice')
+        }
+      </BookingButton>
+      
+      <BookingButton 
+        variant="outline"
+        icon={<Mail className="h-5 w-5" />}
+        onClick={handleEmailDialogOpen}
+        disabled={isGenerating || !booking}
+      >
+        {t('bookings.actions.emailInvoice') || 'Email Invoice'}
+      </BookingButton>
       
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">

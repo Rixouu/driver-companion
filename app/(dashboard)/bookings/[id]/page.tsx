@@ -108,6 +108,21 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Helper function to calculate original price from final price and discount percentage
+  const calculateOriginalPrice = (finalAmount?: string | number, discountPercentage?: string | number) => {
+    if (!finalAmount || !discountPercentage) return 'N/A';
+    
+    const finalPrice = typeof finalAmount === 'string' ? parseFloat(finalAmount.replace(/[^0-9.]/g, '')) : finalAmount;
+    const discount = typeof discountPercentage === 'string' ? parseFloat(discountPercentage) : discountPercentage;
+    
+    if (isNaN(finalPrice) || isNaN(discount) || discount <= 0 || discount >= 100) {
+      return 'THB ' + finalPrice;
+    }
+    
+    const originalPrice = Math.round(finalPrice / (1 - discount/100));
+    return `THB ${originalPrice.toLocaleString()}`;
+  };
+
   useEffect(() => {
     async function fetchBookingData() {
       try {
@@ -120,6 +135,7 @@ export default function BookingPage() {
           setError('Booking not found')
         }
       } catch (err) {
+        console.error("Error fetching booking:", err)
         setError(err instanceof Error ? err.message : 'Failed to load booking')
       } finally {
         setLoading(false)
@@ -491,7 +507,7 @@ export default function BookingPage() {
             </div>
           </Card>
           
-          {/* Additional Information Section */}
+          {/* Additional Information Section - Added back */}
           <Card>
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
@@ -546,7 +562,85 @@ export default function BookingPage() {
             </div>
           </Card>
           
-          {/* Payment Link Section - Added */}
+          {/* Billing Address Section - Moved under client details */}
+          {(booking.billing_company_name || 
+            booking.billing_tax_number || 
+            booking.billing_street_name || 
+            booking.billing_street_number || 
+            booking.billing_city || 
+            booking.billing_state || 
+            booking.billing_postal_code || 
+            booking.billing_country) && (
+            <Card>
+              <div className="border-b py-4 px-6">
+                <h2 className="text-lg font-semibold flex items-center">
+                  <FileText className="mr-2 h-5 w-5" />
+                  {t('bookings.details.sections.billingAddress')}
+                </h2>
+              </div>
+              
+              <div className="p-6">
+                <div className="space-y-3">
+                  {booking.billing_company_name && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.companyName')}</h3>
+                      <p className="mt-1">{booking.billing_company_name}</p>
+                    </div>
+                  )}
+                  
+                  {booking.billing_tax_number && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.taxNumber')}</h3>
+                      <p className="mt-1">{booking.billing_tax_number}</p>
+                    </div>
+                  )}
+                  
+                  {(booking.billing_street_name || booking.billing_street_number) && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.street')}</h3>
+                      <p className="mt-1">
+                        {booking.billing_street_name} {booking.billing_street_number}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {booking.billing_city && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.city')}</h3>
+                        <p className="mt-1">{booking.billing_city}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_state && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.state')}</h3>
+                        <p className="mt-1">{booking.billing_state}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {booking.billing_postal_code && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.postalCode')}</h3>
+                        <p className="mt-1">{booking.billing_postal_code}</p>
+                      </div>
+                    )}
+                    
+                    {booking.billing_country && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.country')}</h3>
+                        <p className="mt-1">{booking.billing_country}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+          
+          {/* Payment Link Section */}
           <Card>
             <div className="border-b py-4 px-6">
               <h2 className="text-lg font-semibold flex items-center">
@@ -560,6 +654,44 @@ export default function BookingPage() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
                   <p className="mt-1">{booking.payment_status || 'Pending'}</p>
+                </div>
+                
+                {/* Price Information - Updated with original price and discount calculation */}
+                {booking.coupon_code || booking.coupon_discount_percentage ? (
+                  <div className="space-y-2 pt-2">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.originalPrice') || 'Original Price'}</h3>
+                      <p className="mt-1 text-muted-foreground line-through">
+                        {booking.original_price ? 
+                          (booking.original_price.formatted || `${booking.price?.currency || 'THB'} ${booking.original_price.amount}`) : 
+                          calculateOriginalPrice(booking.price?.amount, booking.coupon_discount_percentage)
+                        }
+                      </p>
+                    </div>
+                    
+                    <div className="bg-secondary/50 px-3 py-2 rounded-md">
+                      <div className="flex items-center text-sm">
+                        <span className="flex-1 font-medium text-primary">{t('bookings.details.fields.coupon')}</span>
+                        <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
+                          {booking.coupon_code}
+                        </span>
+                      </div>
+                      <div className="flex items-center mt-1 text-sm">
+                        <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.discount')}</span>
+                        <span className="font-medium">-{booking.coupon_discount_percentage}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                
+                <div className={booking.coupon_code || booking.coupon_discount_percentage ? "pt-2 border-t" : ""}>
+                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.finalAmount') || 'Final Amount'}</h3>
+                  <p className="mt-1 font-semibold text-lg">
+                    {booking.price ? 
+                      (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
+                      'THB 8,200'
+                    }
+                  </p>
                 </div>
                 
                 <div>
@@ -577,16 +709,6 @@ export default function BookingPage() {
                   ) : (
                     <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
                   )}
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h3>
-                  <p className="mt-1 font-semibold">
-                    {booking.price ? 
-                      (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-                      'THB 8,200'
-                    }
-                  </p>
                 </div>
               </div>
             </div>

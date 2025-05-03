@@ -72,11 +72,8 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
         <div>
           <h3 className="text-sm font-medium mb-3">Documents</h3>
           
-          <div className="mb-3">
+          <div className="grid grid-cols-1 gap-3">
             <PrintButton booking={booking} />
-          </div>
-          
-          <div className="mb-3">
             <InvoiceButton booking={booking} />
           </div>
         </div>

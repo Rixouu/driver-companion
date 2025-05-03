@@ -618,13 +618,13 @@ export function BookingsList({
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
-                        <TableHead className="w-[100px]">{t('bookings.tableHeaders.bookingId')}</TableHead>
+                        <TableHead className="w-[120px]">Booking ID</TableHead>
                         <TableHead className="w-[140px]">{t('bookings.tableHeaders.dateTime')}</TableHead>
                         <TableHead>{t('bookings.tableHeaders.service')}</TableHead>
                         <TableHead>{t('bookings.tableHeaders.customer')}</TableHead>
                         <TableHead>{t('bookings.tableHeaders.locations')}</TableHead>
                         <TableHead className="w-[120px]">{t('bookings.tableHeaders.status')}</TableHead>
-                        <TableHead className="text-right w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
+                        <TableHead className="w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -688,8 +688,8 @@ export function BookingsList({
                               {t(`bookings.status.${booking.status}`)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
+                          <TableCell>
+                            <div className="flex gap-1">
                               <Button 
                                 variant="ghost" 
                                 size="icon"

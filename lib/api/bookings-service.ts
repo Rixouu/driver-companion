@@ -124,6 +124,34 @@ function extractVehicleInfo(wpMeta: Record<string, any>): {
 }
 
 /**
+ * Extracts billing address information from WordPress metadata
+ */
+function getBillingAddressFromMeta(meta: Record<string, any> | null): {
+  company_name?: string | undefined;
+  tax_number?: string | undefined;
+  street_name?: string | undefined;
+  street_number?: string | undefined;
+  city?: string | undefined;
+  state?: string | undefined;
+  postal_code?: string | undefined;
+  country?: string | undefined;
+} {
+  if (!meta) return {};
+  
+  // Extract billing information from WordPress metadata
+  return {
+    company_name: meta.chbs_billing_company_name || meta.billing_company || undefined,
+    tax_number: meta.chbs_billing_tax_number || meta.billing_tax_id || undefined,
+    street_name: meta.chbs_billing_street_name || meta.billing_address_1 || undefined,
+    street_number: meta.chbs_billing_street_number || meta.billing_address_2 || undefined,
+    city: meta.chbs_billing_city || meta.billing_city || undefined,
+    state: meta.chbs_billing_state || meta.billing_state || undefined,
+    postal_code: meta.chbs_billing_postal_code || meta.billing_postcode || undefined,
+    country: meta.chbs_billing_country || meta.billing_country || undefined
+  };
+}
+
+/**
  * Maps a WordPress booking to a Supabase booking structure
  */
 export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBooking, 'id'> => {
@@ -291,41 +319,103 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
 
   // Extract vehicle information
   const vehicleInfo = extractVehicleInfo(wpMeta);
+  
+  // Extract coupon information from WordPress metadata
+  const couponCode = wpBooking.coupon_code || 
+                     wpMeta.chbs_coupon_code || 
+                     wpMeta.coupon_code || 
+                     null;
+                     
+  const couponDiscountPercentage = wpBooking.coupon_discount_percentage || 
+                                   wpMeta.chbs_coupon_discount_percentage || 
+                                   wpMeta.coupon_discount_percentage || 
+                                   null;
+                                   
+  // Extract billing information from WordPress metadata
+  const billingCompanyName = wpBooking.billing_company_name || 
+                            wpMeta.chbs_client_billing_detail_company_name || 
+                            wpMeta.billing_company_name || 
+                            null;
+                          
+  const billingTaxNumber = wpBooking.billing_tax_number || 
+                           wpMeta.chbs_client_billing_detail_tax_number || 
+                           wpMeta.billing_tax_number || 
+                           null;
+                          
+  const billingStreetName = wpBooking.billing_street_name || 
+                            wpMeta.chbs_client_billing_detail_street_name || 
+                            wpMeta.billing_street_name || 
+                            null;
+                          
+  const billingStreetNumber = wpBooking.billing_street_number || 
+                              wpMeta.chbs_client_billing_detail_street_number || 
+                              wpMeta.billing_street_number || 
+                              null;
+                            
+  const billingCity = wpBooking.billing_city || 
+                      wpMeta.chbs_client_billing_detail_city || 
+                      wpMeta.billing_city || 
+                      null;
+                    
+  const billingState = wpBooking.billing_state || 
+                       wpMeta.chbs_client_billing_detail_state || 
+                       wpMeta.billing_state || 
+                       null;
+                       
+  const billingPostalCode = wpBooking.billing_postal_code || 
+                           wpMeta.chbs_client_billing_detail_postal_code || 
+                           wpMeta.billing_postal_code || 
+                           null;
+                         
+  const billingCountry = wpBooking.billing_country || 
+                         wpMeta.chbs_client_billing_detail_country_code || 
+                         wpMeta.billing_country || 
+                         null;
 
   // Create the base booking data
-  const bookingData: Omit<SupabaseBooking, 'id'> = {
-    wp_id: String(wpBooking.id),
-    service_name: serviceName,
-    date: bookingDate || '',
-    time: bookingTime,
-    duration: getDurationFromMeta(meta) || null,
+  const bookingData: Partial<SupabaseBooking> = {
+    wp_id: String(wpBooking.id || wpBooking.booking_id || ''),
     status: wpBooking.status || 'pending',
-    customer_name: customerName,
-    customer_email: wpMeta.chbs_client_contact_detail_email_address || null,
-    customer_phone: wpMeta.chbs_client_contact_detail_phone_number || null,
-    distance: wpMeta.chbs_distance?.toString() || null,
-    price_amount: priceAmount,
-    price_currency: priceCurrency,
-    price_formatted: priceFormatted,
-    payment_status: wpBooking.payment_status || null,
-    payment_method: wpBooking.payment_method || wpMeta.chbs_payment_name || null,
-    payment_link: paymentLink,
-    notes: wpMeta.chbs_comment || null,
-    pickup_location: wpMeta.chbs_coordinate && Array.isArray(wpMeta.chbs_coordinate) && wpMeta.chbs_coordinate.length > 0 && wpMeta.chbs_coordinate[0].address || null,
-    dropoff_location: wpMeta.chbs_coordinate && Array.isArray(wpMeta.chbs_coordinate) && wpMeta.chbs_coordinate.length > 1 && wpMeta.chbs_coordinate[1].address || null,
     
-    // Add vehicle information - store raw WordPress vehicle ID in wp_vehicle_id instead of vehicle_id
-    // to avoid UUID type conflicts
-    wp_vehicle_id: vehicleInfo.vehicle_id || null,
-    vehicle_make: vehicleInfo.make || null,
-    vehicle_model: vehicleInfo.model || null,
+    // Common fields
+    date: wpBooking.date,
+    time: wpBooking.time,
     
-    // Cast meta data to Json type to avoid type errors
-    wp_meta: wpMeta as unknown as Json,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    synced_at: new Date().toISOString(),
-  };
+    // Service information
+    service_id: String(wpBooking.service_id || ''),
+    service_name: wpBooking.service_name || wpBooking.service?.name || '',
+    
+    // Customer information
+    customer_id: String(wpBooking.customer_id || ''),
+    customer_name: wpBooking.customer_name || wpBooking.customer?.name || '',
+    customer_email: wpBooking.customer_email || wpBooking.customer?.email || wpBooking.email || '',
+    customer_phone: wpBooking.customer_phone || wpBooking.customer?.phone || wpBooking.phone || '',
+    
+    // Price information
+    price_amount: wpBooking.price?.amount,
+    price_currency: wpBooking.price?.currency || 'THB',
+    price_formatted: wpBooking.price?.formatted || '',
+    
+    // Payment information
+    payment_status: wpBooking.payment_status || 'pending',
+    payment_method: wpBooking.payment_method || '',
+    payment_link: wpBooking.payment_link || wpBooking.ipps_payment_link || '',
+    
+    // Location information
+    pickup_location: wpBooking.pickup_location || '',
+    dropoff_location: wpBooking.dropoff_location || '',
+    distance: wpBooking.distance || '',
+    duration: wpBooking.duration || '',
+    
+    // WordPress specific fields
+    title: wpBooking.title,
+    
+    // Additional metadata
+    notes: wpBooking.notes || undefined,
+    meta: wpBooking.wp_meta ? (typeof wpBooking.wp_meta === 'object' ? wpBooking.wp_meta : undefined) : undefined,
+    created_at: wpBooking.created_at || undefined,
+    updated_at: wpBooking.updated_at || undefined,
+  }
   
   return bookingData;
 }
@@ -452,6 +542,20 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     customer_phone: booking.customer_phone || undefined,
     driver_id: booking.driver_id || undefined,
     
+    // Billing address fields
+    billing_company_name: booking.billing_company_name || undefined,
+    billing_tax_number: booking.billing_tax_number || undefined,
+    billing_street_name: booking.billing_street_name || undefined,
+    billing_street_number: booking.billing_street_number || undefined,
+    billing_city: booking.billing_city || undefined,
+    billing_state: booking.billing_state || undefined,
+    billing_postal_code: booking.billing_postal_code || undefined,
+    billing_country: booking.billing_country || undefined,
+    
+    // Coupon fields
+    coupon_code: booking.coupon_code || undefined,
+    coupon_discount_percentage: booking.coupon_discount_percentage || undefined,
+    
     // Enhanced vehicle information
     ...(Object.keys(vehicleInfo).length > 0 && {
       vehicle: vehicleInfo
@@ -486,9 +590,258 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
 }
 
 /**
+ * Extract relevant fields from WordPress booking data to our format
+ */
+function extractBookingFieldsFromWordPress(wpBooking: any): Partial<Booking> {
+  const meta = wpBooking.meta_data || wpBooking.meta;
+  
+  // Extract fields from meta
+  const serviceType = meta?.chbs_service_type || "";
+  const pickupLocation = meta?.chbs_pickup_location_coordinate_address || meta?.chbs_pickup_location || "";
+  const dropoffLocation = meta?.chbs_dropoff_location_coordinate_address || meta?.chbs_dropoff_location || "";
+  const distance = meta?.chbs_distance ? parseFloat(meta.chbs_distance) : 0;
+  const duration = getDurationFromMeta(meta);
+  const time = meta?.chbs_pickup_time || meta?.chbs_pickup_datetime?.split(' ')[1] || "";
+  
+  // Extract billing address from meta data
+  const billingAddress = getBillingAddressFromMeta(meta);
+  
+  // Transform booking to our format
+  return {
+    date: formatWordPressDate(meta?.chbs_pickup_date || meta?.chbs_pickup_datetime),
+    time: time,
+    status: wpBooking.status,
+    service_name: wpBooking.service_name || wpBooking.title || "",
+    service_type: serviceType,
+    customer_name: wpBooking.client_contact_detail_name || wpBooking.client_name || "",
+    customer_email: wpBooking.client_contact_detail_email || wpBooking.client_email || "",
+    customer_phone: wpBooking.client_contact_detail_phone || wpBooking.client_phone || "",
+    pickup_location: pickupLocation,
+    dropoff_location: dropoffLocation,
+    distance: distance,
+    duration: duration,
+    
+    // WordPress specific fields
+    title: wpBooking.title,
+    meta: meta || {},
+    wp_id: String(wpBooking.id) || "",
+    
+    // Add billing address fields
+    billing_company_name: billingAddress.company_name,
+    billing_tax_number: billingAddress.tax_number,
+    billing_street_name: billingAddress.street_name,
+    billing_street_number: billingAddress.street_number,
+    billing_city: billingAddress.city,
+    billing_state: billingAddress.state,
+    billing_postal_code: billingAddress.postal_code,
+    billing_country: billingAddress.country
+  };
+}
+
+/**
+ * Syncs bookings from WordPress to Supabase
+ */
+export async function syncBookingsFromWordPress(
+  bookingIdsToUpdate?: string[],
+  selectedFieldsByBooking?: Record<string, string[]>
+): Promise<{
+  total: number;
+  created: number;
+  updated: number;
+  error?: string;
+  errors?: Array<{
+    booking_id: string;
+    error: string;
+  }>;
+  debug_info?: Record<string, any>;
+}> {
+  try {
+    // CRITICAL FIX: If bookingIdsToUpdate is provided but empty, don't sync anything
+    if (bookingIdsToUpdate && bookingIdsToUpdate.length === 0) {
+      return {
+        total: 0,
+        created: 0,
+        updated: 0,
+        error: 'No bookings were selected for update'
+      };
+    }
+    
+    // Create service client for admin-level database operations
+    const supabase = createServiceClient()
+    console.log('Starting WordPress to Supabase sync...');
+    
+    // Fetch all bookings from WordPress API - set a higher limit to get ALL bookings
+    console.log('Fetching bookings from WordPress API...');
+    let wordpressBookings;
+    try {
+      wordpressBookings = await fetchBookings({ limit: 1000 });
+      console.log(`Fetched ${wordpressBookings?.length || 0} bookings from WordPress API`);
+    } catch (apiError) {
+      console.error('Error fetching from WordPress API:', apiError);
+      return { 
+        total: 0, 
+        created: 0, 
+        updated: 0, 
+        error: `WordPress API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`,
+        debug_info: {
+          error_type: apiError instanceof Error ? apiError.constructor.name : typeof apiError,
+          error_details: apiError instanceof Error ? apiError.message : String(apiError)
+        }
+      };
+    }
+    
+    if (!wordpressBookings || wordpressBookings.length === 0) {
+      console.error('No bookings found in WordPress API');
+      return { 
+        total: 0, 
+        created: 0, 
+        updated: 0, 
+        error: 'No bookings found in WordPress API'
+      }
+    }
+    
+    // Validate booking data format
+    const validBookings = wordpressBookings.filter(booking => {
+      if (!booking || typeof booking !== 'object') {
+        console.error('Invalid booking data (not an object):', booking);
+        return false;
+      }
+      
+      if (!booking.id && !booking.booking_id) {
+        console.error('Booking missing ID:', booking);
+        return false;
+      }
+      
+      // We only require ID now - date and time will be handled during mapping
+      // The mapper is robust enough to extract date/time from various fields
+      return true;
+    });
+    
+    console.log(`Found ${validBookings.length} valid bookings out of ${wordpressBookings.length} total`);
+    
+    if (validBookings.length === 0) {
+      return {
+        total: wordpressBookings.length,
+        created: 0,
+        updated: 0,
+        error: 'No valid bookings found in WordPress API response'
+      };
+    }
+    
+    // Track stats
+    let created = 0
+    let updated = 0
+    let errors = 0
+    const errorDetails: Array<{ booking_id: string; error: string }> = []
+    
+    // Process each booking - figure out if it's new or existing
+    // First, get all the WP IDs from the database
+    const { data: existingBookings } = await supabase
+      .from('bookings')
+      .select('id, wp_id');
+    
+    // Create lookup maps for existing bookings
+    const existingWpIds = new Set(existingBookings?.map(b => b.wp_id) || []);
+
+    // Filter bookings based on operation:
+    // 1. New bookings: Always included
+    // 2. Update bookings: Only if in bookingIdsToUpdate (if specified)
+    const bookingsToProcess = validBookings.filter(booking => {
+      const bookingId = String(booking.id || booking.booking_id || '');
+      const exists = existingWpIds.has(bookingId);
+      
+      if (!exists) {
+        // New booking - always process
+        return true;
+      } else if (bookingIdsToUpdate) {
+        // Existing booking - only process if in the approved list
+        return bookingIdsToUpdate.includes(bookingId);
+      } else {
+        // No filter provided - process all
+        return true;
+      }
+    });
+    
+    // Sync the bookings
+    const syncResults = await Promise.all(bookingsToProcess.map(async (wpBooking) => {
+      try {
+        const bookingId = String(wpBooking.id || wpBooking.booking_id || '');
+        const selectedFields = selectedFieldsByBooking?.[bookingId] || [];
+        
+        const result = await syncSingleBooking(supabase, wpBooking, selectedFields);
+        
+        if (result.error) {
+          console.error(`Error syncing booking ${wpBooking.id}:`, result.error);
+          errors++;
+          errorDetails.push({
+            booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
+            error: result.error
+          });
+        }
+        
+        return result
+      } catch (syncError) {
+        console.error(`Error processing booking ${wpBooking.id}:`, syncError);
+        errors++;
+        errorDetails.push({
+          booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
+          error: syncError instanceof Error ? syncError.message : String(syncError)
+        });
+        return {
+          created: false,
+          updated: false,
+          error: syncError instanceof Error ? syncError.message : 'Unknown error'
+        };
+      }
+    }))
+    
+    // Count created and updated bookings
+    for (const result of syncResults) {
+      if (result.created) created++
+      if (result.updated) updated++
+    }
+    
+    console.log(`Sync completed: ${created} created, ${updated} updated, ${errors} errors`);
+    
+    // Prepare return value
+    const returnValue = {
+      total: bookingsToProcess.length,
+      created,
+      updated,
+    }
+    
+    // Add error details if there were errors
+    if (errors > 0) {
+      return {
+        ...returnValue,
+        errors: errorDetails
+      }
+    }
+    
+    return returnValue;
+  } catch (error) {
+    console.error('Error syncing bookings:', error)
+    return {
+      total: 0,
+      created: 0,
+      updated: 0,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      debug_info: {
+        error_type: error instanceof Error ? error.constructor.name : typeof error,
+        error_stack: error instanceof Error ? error.stack : undefined
+      }
+    }
+  }
+}
+
+/**
  * Syncs a single booking from WordPress to Supabase
  */
-async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: Booking): Promise<{
+async function syncSingleBooking(
+  supabase: SupabaseClient<Database>, 
+  wpBooking: Booking, 
+  selectedFields: string[] = []
+): Promise<{
   created: boolean;
   updated: boolean;
   booking_id?: string;
@@ -535,23 +888,86 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
     console.log(`Processing booking ${wpBooking.id}: ${existingBooking ? 'UPDATE' : 'INSERT'}`);
     
     if (existingBooking) {
+      // If selected fields are specified, only update those fields
+      let updateData: Partial<SupabaseBooking> = {
+        updated_at: now,
+        synced_at: now
+      };
+      
+      // CRITICAL: if selected fields are specified, ONLY update those fields
+      // Otherwise, update everything except for fields we need to preserve from existingBooking
+      if (selectedFields.length > 0) {
+        // Map of field names to properties in bookingData
+        const fieldMapping: Record<string, keyof SupabaseBooking> = {
+          'date': 'date',
+          'time': 'time',
+          'status': 'status',
+          'customer_name': 'customer_name',
+          'customer_email': 'customer_email',
+          'customer_phone': 'customer_phone',
+          'service_name': 'service_name',
+          'price_amount': 'price_amount',
+          'price_currency': 'price_currency',
+          'price_formatted': 'price_formatted',
+          'pickup_location': 'pickup_location',
+          'dropoff_location': 'dropoff_location',
+          'distance': 'distance',
+          'duration': 'duration',
+          'payment_status': 'payment_status',
+          'payment_method': 'payment_method',
+          'payment_link': 'payment_link',
+          'notes': 'notes',
+          'billing_company_name': 'billing_company_name',
+          'billing_tax_number': 'billing_tax_number',
+          'billing_street_name': 'billing_street_name',
+          'billing_street_number': 'billing_street_number',
+          'billing_city': 'billing_city',
+          'billing_state': 'billing_state',
+          'billing_postal_code': 'billing_postal_code',
+          'billing_country': 'billing_country',
+          'coupon_code': 'coupon_code',
+          'coupon_discount_percentage': 'coupon_discount_percentage',
+        };
+        
+        // Copy only the selected fields from bookingData
+        for (const field of selectedFields) {
+          const bookingField = fieldMapping[field];
+          if (bookingField && bookingData[bookingField] !== undefined) {
+            // @ts-ignore - We're using dynamic property access
+            updateData[bookingField] = bookingData[bookingField];
+          }
+        }
+        
+        console.log(`Updating booking ${wpId} with selected fields:`, Object.keys(updateData).filter(k => k !== 'updated_at' && k !== 'synced_at'));
+      } else {
+        // No selected fields, update all fields EXCEPT driver_id and status 
+        // which should be preserved unless explicitly selected
+        updateData = { ...bookingData };
+        
+        // NEVER override driver_id (assignment) since that's managed by the app
+        updateData.driver_id = existingBooking.driver_id;
+        
+        // NEVER override status unless explicitly selected - this is a common issue!
+        updateData.status = existingBooking.status;
+      }
+      
       // Update existing booking
       const { data, error: updateError } = await supabase
         .from('bookings')
-        .update(bookingData)
+        .update(updateData)
         .eq('wp_id', wpId)
         .select('id')
         .single();
       
       if (updateError) {
         console.error('Error updating booking:', updateError);
-        console.error('Booking data causing update error:', JSON.stringify(bookingData, null, 2));
+        console.error('Booking data causing update error:', JSON.stringify(updateData, null, 2));
         return { 
           updated: false, 
           created: false, 
           error: `Update error: ${updateError.message}`,
           debug_info: {
-            booking_data: { ...bookingData },
+            booking_data: { ...updateData },
             error_details: updateError,
             operation: 'update',
             booking_wp_id: wpId
@@ -637,158 +1053,6 @@ async function syncSingleBooking(supabase: SupabaseClient<Database>, wpBooking: 
 }
 
 /**
- * Syncs bookings from WordPress to Supabase
- */
-export async function syncBookingsFromWordPress(): Promise<{
-  total: number;
-  created: number;
-  updated: number;
-  error?: string;
-  errors?: Array<{
-    booking_id: string;
-    error: string;
-  }>;
-  debug_info?: Record<string, any>;
-}> {
-  try {
-    // Create service client for admin-level database operations
-    const supabase = createServiceClient()
-    console.log('Starting WordPress to Supabase sync...');
-    
-    // Fetch all bookings from WordPress API - set a higher limit to get ALL bookings
-    console.log('Fetching bookings from WordPress API...');
-    let wordpressBookings;
-    try {
-      wordpressBookings = await fetchBookings({ limit: 1000 });
-      console.log(`Fetched ${wordpressBookings?.length || 0} bookings from WordPress API`);
-    } catch (apiError) {
-      console.error('Error fetching from WordPress API:', apiError);
-      return { 
-        total: 0, 
-        created: 0, 
-        updated: 0, 
-        error: `WordPress API error: ${apiError instanceof Error ? apiError.message : String(apiError)}`,
-        debug_info: {
-          error_type: apiError instanceof Error ? apiError.constructor.name : typeof apiError,
-          error_details: apiError instanceof Error ? apiError.message : String(apiError)
-        }
-      };
-    }
-    
-    if (!wordpressBookings || wordpressBookings.length === 0) {
-      console.error('No bookings found in WordPress API');
-      return { 
-        total: 0, 
-        created: 0, 
-        updated: 0, 
-        error: 'No bookings found in WordPress API'
-      }
-    }
-    
-    // Validate booking data format
-    const validBookings = wordpressBookings.filter(booking => {
-      if (!booking || typeof booking !== 'object') {
-        console.error('Invalid booking data (not an object):', booking);
-        return false;
-      }
-      
-      if (!booking.id && !booking.booking_id) {
-        console.error('Booking missing ID:', booking);
-        return false;
-      }
-      
-      // We only require ID now - date and time will be handled during mapping
-      // The mapper is robust enough to extract date/time from various fields
-      return true;
-    });
-    
-    console.log(`Found ${validBookings.length} valid bookings out of ${wordpressBookings.length} total`);
-    
-    if (validBookings.length === 0) {
-      return {
-        total: wordpressBookings.length,
-        created: 0,
-        updated: 0,
-        error: 'No valid bookings found in WordPress API response'
-      };
-    }
-    
-    // Track stats
-    let created = 0
-    let updated = 0
-    let errors = 0
-    const errorDetails: Array<{ booking_id: string; error: string }> = []
-    
-    // Sync each booking
-    const syncResults = await Promise.all(validBookings.map(async (wpBooking) => {
-      try {
-        const result = await syncSingleBooking(supabase, wpBooking)
-        
-        if (result.error) {
-          console.error(`Error syncing booking ${wpBooking.id}:`, result.error);
-          errors++;
-          errorDetails.push({
-            booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
-            error: result.error
-          });
-        }
-        
-        return result
-      } catch (syncError) {
-        console.error(`Error processing booking ${wpBooking.id}:`, syncError);
-        errors++;
-        errorDetails.push({
-          booking_id: String(wpBooking.id || wpBooking.booking_id || 'unknown'),
-          error: syncError instanceof Error ? syncError.message : String(syncError)
-        });
-        return {
-          created: false,
-          updated: false,
-          error: syncError instanceof Error ? syncError.message : 'Unknown error'
-        };
-      }
-    }))
-    
-    // Count created and updated bookings
-    for (const result of syncResults) {
-      if (result.created) created++
-      if (result.updated) updated++
-    }
-    
-    console.log(`Sync completed: ${created} created, ${updated} updated, ${errors} errors`);
-    
-    // Prepare return value
-    const returnValue = {
-      total: validBookings.length,
-      created,
-      updated,
-    }
-    
-    // Add error details if there were errors
-    if (errors > 0) {
-      return {
-        ...returnValue,
-        errors: errorDetails
-      }
-    }
-    
-    return returnValue;
-  } catch (error) {
-    console.error('Error syncing bookings:', error)
-    return {
-      total: 0,
-      created: 0,
-      updated: 0,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      debug_info: {
-        error_type: error instanceof Error ? error.constructor.name : typeof error,
-        error_stack: error instanceof Error ? error.stack : undefined
-      }
-    }
-  }
-}
-
-/**
  * Gets all bookings from Supabase
  */
 export async function getBookingsFromDatabase(options: {
@@ -855,6 +1119,8 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
   error?: string;
 }> {
   try {
+    console.log(`[DB] getBookingByIdFromDatabase: Starting lookup for ID ${id}`)
+    
     // Create service client for admin-level operations
     const supabase = createServiceClient()
     
@@ -867,6 +1133,7 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     
     // If not found, try to find by WordPress ID
     if (!bookingData) {
+      console.log(`[DB] No booking found with internal UUID ${id}, trying WordPress ID`)
       const { data } = await supabase
         .from('bookings')
         .select('*')
@@ -877,13 +1144,40 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     }
     
     if (!bookingData) {
+      console.log(`[DB] Booking not found with either ID: ${id}`)
       return { booking: null, error: 'Booking not found' }
     }
     
+    console.log(`[DB] Raw booking data from database:`, {
+      id: bookingData.id,
+      wp_id: bookingData.wp_id,
+      billing_company_name: bookingData.billing_company_name,
+      billing_tax_number: bookingData.billing_tax_number,
+      coupon_code: bookingData.coupon_code,
+      coupon_discount_percentage: bookingData.coupon_discount_percentage,
+      all_keys: Object.keys(bookingData)
+    })
+    
     // Map to Booking type
-    return { booking: mapSupabaseBookingToBooking(bookingData) }
+    const mappedBooking = mapSupabaseBookingToBooking(bookingData)
+    
+    console.log(`[DB] Mapped booking data:`, {
+      id: mappedBooking.id,
+      billing_fields_exist: !!(
+        mappedBooking.billing_company_name || 
+        mappedBooking.billing_tax_number || 
+        mappedBooking.billing_city
+      ),
+      coupon_fields_exist: !!(
+        mappedBooking.coupon_code || 
+        mappedBooking.coupon_discount_percentage
+      ),
+      all_keys: Object.keys(mappedBooking)
+    })
+    
+    return { booking: mappedBooking }
   } catch (error) {
-    console.error(`Error fetching booking ${id} from database:`, error)
+    console.error(`[DB] Error fetching booking ${id} from database:`, error)
     return {
       booking: null,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -973,6 +1267,16 @@ export interface SupabaseBooking {
   vehicle_year?: string | null;
   wp_vehicle_id?: string | null;
   wp_meta?: Json | null;
+  billing_company_name?: string | null;
+  billing_tax_number?: string | null;
+  billing_street_name?: string | null;
+  billing_street_number?: string | null;
+  billing_city?: string | null;
+  billing_state?: string | null;
+  billing_postal_code?: string | null;
+  billing_country?: string | null;
+  coupon_code?: string | null;
+  coupon_discount_percentage?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   synced_at?: string | null;

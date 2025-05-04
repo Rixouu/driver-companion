@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { createTranslator } from './translator'
 import { en } from './locales/en'
 import { ja } from './locales/ja'
-import type { TranslationValues } from './types'
+import type { TranslationValue } from './types'
 
 const locales = {
   en,
@@ -10,6 +10,7 @@ const locales = {
 } as const
 
 export async function getDictionary() {
+  // In the latest Next.js, cookies() should be awaited
   const cookieStore = await cookies()
   const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en'
   
@@ -21,7 +22,7 @@ export async function getDictionary() {
   
   return {
     t,
-    dictionary: translations as TranslationValues
+    dictionary: translations as TranslationValue
   }
 }
 

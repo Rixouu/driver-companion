@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation"
 import { MaintenanceDetails } from "@/components/maintenance/maintenance-details"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 interface MaintenancePageProps {
   params: {
@@ -9,12 +8,12 @@ interface MaintenancePageProps {
   }
 }
 
-export default async function MaintenancePage({ params }: MaintenancePageProps) {
-  if (!params.id) {
+export default async function MaintenancePage(props: MaintenancePageProps) {
+  if (!props.params.id) {
     return notFound()
   }
 
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient()
 
   const { data: task } = await supabase
     .from('maintenance_tasks')
@@ -26,7 +25,7 @@ export default async function MaintenancePage({ params }: MaintenancePageProps) 
         plate_number
       )
     `)
-    .eq('id', params.id)
+    .eq('id', props.params.id)
     .single()
 
   if (!task) {

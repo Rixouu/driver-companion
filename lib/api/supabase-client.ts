@@ -6,8 +6,11 @@ import { NextResponse } from 'next/server';
 /**
  * Creates a typed Supabase client for use in API routes
  */
-export function createAPIClient() {
-  return createRouteHandlerClient<Database>({ cookies });
+export async function createAPIClient() {
+  const cookieStore = cookies();
+  return createRouteHandlerClient<Database>({ 
+    cookies: () => cookieStore 
+  });
 }
 
 /**

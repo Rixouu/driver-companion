@@ -2,6 +2,8 @@ import { Metadata } from "next"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { MaintenancePageContent } from "@/components/maintenance/maintenance-page-content"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { MaintenanceTask } from "@/types"
 
 export const metadata: Metadata = {
   title: "Maintenance",
@@ -9,7 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MaintenancePage() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient();
 
   const { data: tasks } = await supabase
     .from('maintenance_tasks')
@@ -23,5 +25,5 @@ export default async function MaintenancePage() {
     `)
     .order('due_date', { ascending: true })
 
-  return <MaintenancePageContent tasks={tasks || []} />
+  return <MaintenancePageContent tasks={(tasks || []) as MaintenanceTask[]} />
 } 

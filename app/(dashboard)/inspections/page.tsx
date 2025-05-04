@@ -9,6 +9,7 @@ import { redirect } from "next/navigation"
 import type { Database } from "@/types/supabase"
 import type { DbInspection } from "@/types/inspections"
 import type { Vehicle } from "@/types/vehicles"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 const ITEMS_PER_PAGE = 9
 
@@ -18,9 +19,8 @@ export const metadata = {
 }
 
 export default async function InspectionsPage() {
-  // Explicitly await cookies before passing to the client creator
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient<Database>({ cookies: () => cookieStore })
+  // Use the updated Supabase client that handles cookies properly in Next.js 15
+  const supabase = await createServerSupabaseClient();
 
   // Fetch user session (Example of using the client)
   const { data: { session } } = await supabase.auth.getSession();

@@ -32,7 +32,8 @@ import {
   ChevronRight,
   MapPin,
   User,
-  Timer
+  Timer,
+  FileText
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
@@ -212,10 +213,10 @@ export function DashboardContent({
                 <span className="text-center">{t("dashboard.quickActions.scheduleInspection")}</span>
               </Button>
             </Link>
-            <Link href="/reporting" className="col-span-1">
+            <Link href="/quotations/create" className="col-span-1">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
-                <BarChart3 className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.viewReports")}</span>
+                <FileText className="h-6 w-6" />
+                <span className="text-center">{t("dashboard.quickActions.createQuotation") || "Create Quotation"}</span>
               </Button>
             </Link>
           </div>

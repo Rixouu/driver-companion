@@ -1,8 +1,7 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { Button } from "@/components/ui/button"
 import { MaintenanceForm } from "@/components/maintenance/maintenance-form"
 
@@ -33,8 +32,9 @@ export default async function NewMaintenancePage({
   params: { id: string },
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
+  const supabase = await createServerSupabaseClient();
+  
   // Fetch vehicle details
-  const supabase = createServerComponentClient({ cookies })
   const { data: vehicle } = await supabase
     .from('vehicles')
     .select('name')

@@ -34,6 +34,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           billing_city: string | null
@@ -195,6 +213,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       dispatch_entries: {
         Row: {
@@ -963,6 +1014,336 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          service_types: string[]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          service_types: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          service_types?: string[]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_items: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          currency: string
+          duration_hours: number
+          id: string
+          is_active: boolean
+          price: number
+          service_type: string
+          updated_at: string
+          vehicle_type: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_hours: number
+          id?: string
+          is_active?: boolean
+          price: number
+          service_type: string
+          updated_at?: string
+          vehicle_type: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_hours?: number
+          id?: string
+          is_active?: boolean
+          price?: number
+          service_type?: string
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_activities: {
+        Row: {
+          action: string
+          created_at: string
+          customer_id: string | null
+          details: Json | null
+          id: string
+          quotation_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          customer_id?: string | null
+          details?: Json | null
+          id?: string
+          quotation_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          customer_id?: string | null
+          details?: Json | null
+          id?: string
+          quotation_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_activities_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_activities_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          quantity: number
+          quotation_id: string
+          sort_order: number
+          total_price: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          quantity?: number
+          quotation_id: string
+          sort_order?: number
+          total_price: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          quantity?: number
+          quotation_id?: string
+          sort_order?: number
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotations: {
+        Row: {
+          amount: number
+          billing_city: string | null
+          billing_company_name: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_state: string | null
+          billing_street_name: string | null
+          billing_street_number: string | null
+          billing_tax_number: string | null
+          converted_to_booking_id: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_notes: string | null
+          customer_phone: string | null
+          discount_percentage: number | null
+          dropoff_location: string | null
+          duration_hours: number | null
+          expiry_date: string
+          hours_per_day: number | null
+          id: string
+          merchant_id: string | null
+          merchant_notes: string | null
+          passenger_count: number | null
+          pickup_date: string | null
+          pickup_location: string | null
+          pickup_time: string | null
+          quote_number: number
+          reference_code: string | null
+          rejected_reason: string | null
+          service_days: number | null
+          service_type: string
+          status: string
+          tax_percentage: number | null
+          title: string
+          total_amount: number
+          updated_at: string
+          vehicle_category: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          amount: number
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
+          converted_to_booking_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          discount_percentage?: number | null
+          dropoff_location?: string | null
+          duration_hours?: number | null
+          expiry_date?: string
+          hours_per_day?: number | null
+          id?: string
+          merchant_id?: string | null
+          merchant_notes?: string | null
+          passenger_count?: number | null
+          pickup_date?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          quote_number?: number
+          reference_code?: string | null
+          rejected_reason?: string | null
+          service_days?: number | null
+          service_type: string
+          status?: string
+          tax_percentage?: number | null
+          title: string
+          total_amount: number
+          updated_at?: string
+          vehicle_category?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          amount?: number
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
+          converted_to_booking_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_notes?: string | null
+          customer_phone?: string | null
+          discount_percentage?: number | null
+          dropoff_location?: string | null
+          duration_hours?: number | null
+          expiry_date?: string
+          hours_per_day?: number | null
+          id?: string
+          merchant_id?: string | null
+          merchant_notes?: string | null
+          passenger_count?: number | null
+          pickup_date?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          quote_number?: number
+          reference_code?: string | null
+          rejected_reason?: string | null
+          service_days?: number | null
+          service_type?: string
+          status?: string
+          tax_percentage?: number | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          vehicle_category?: string | null
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_converted_to_booking_id_fkey"
+            columns: ["converted_to_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_assignments: {
         Row: {
           created_at: string | null
@@ -1100,6 +1481,40 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_summary_view: {
+        Row: {
+          amount: number | null
+          booking_status: string | null
+          converted_to_booking_id: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_name: string | null
+          discount_percentage: number | null
+          expiry_date: string | null
+          id: string | null
+          is_converted: boolean | null
+          is_expired: boolean | null
+          merchant_id: string | null
+          quote_number: number | null
+          service_type: string | null
+          status: string | null
+          tax_percentage: number | null
+          title: string | null
+          total_amount: number | null
+          updated_at: string | null
+          vehicle_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_converted_to_booking_id_fkey"
+            columns: ["converted_to_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

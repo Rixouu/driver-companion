@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PanelLeft,
-  Grid3x3
+  Grid3x3,
+  ClipboardList
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -38,6 +39,7 @@ export function Sidebar() {
     bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
+    quotations: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
     settings: { desktop: true, mobile: true },
     dispatch: { desktop: true, mobile: true }
@@ -51,7 +53,7 @@ export function Sidebar() {
         const parsedSettings = JSON.parse(savedMenuSettings)
         
         // Ensure specific items are always enabled if they exist in settings
-        const requiredItems = ['bookings', 'dispatch']; // Add 'dispatch' here
+        const requiredItems = ['bookings', 'dispatch', 'quotations']; // Add 'quotations' here
         requiredItems.forEach(key => {
           if (!parsedSettings[key]) {
             // If the key doesn't exist, add it with default visible state
@@ -120,6 +122,7 @@ export function Sidebar() {
       label: 'Operations',
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" },
+        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" },
         { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" },
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" },
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" }
@@ -156,6 +159,7 @@ export function Sidebar() {
                 height={30}
                 priority
                 unoptimized
+                className="w-auto h-8"
               />
             </div>
           ) : (

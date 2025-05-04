@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { DbVehicle } from "@/types"
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +37,7 @@ export default async function VehiclesPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary()
   
   // Get page from search params
@@ -53,7 +55,7 @@ export default async function VehiclesPage({
 
   return (
     <VehiclesPageContent 
-      vehicles={vehicles || []} 
+      vehicles={(vehicles || []) as DbVehicle[]} 
       currentPage={currentPage} 
       totalPages={totalPages} 
     />

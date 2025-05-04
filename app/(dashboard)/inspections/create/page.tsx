@@ -7,6 +7,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
 import { PageHeader } from "@/components/page-header"
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: "Create Inspection",
@@ -21,7 +22,7 @@ interface CreateInspectionPageProps {
 }
 
 export default async function CreateInspectionPage({ searchParams }: CreateInspectionPageProps) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary()
   
   // Extract parameters from the URL search params

@@ -2,9 +2,10 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 import type { InspectionInsert } from "@/types"
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function createInspection(data: InspectionInsert) {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  const supabase = await createServerSupabaseClient();
   
   try {
     const { data: inspection, error } = await supabase

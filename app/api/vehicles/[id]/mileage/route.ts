@@ -9,9 +9,8 @@ export async function GET(
 ) {
   const vehicleId = await params.id
 
-  // Initialize Supabase client with awaited cookies
-  const cookieStore = cookies()
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+  // Initialize Supabase client with direct cookies reference for Next.js 15
+  const supabase = createRouteHandlerClient<Database>({ cookies })
 
   // Verify authentication
   const { data: { session } } = await supabase.auth.getSession()

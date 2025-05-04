@@ -16,7 +16,9 @@ import {
   Calendar,
   ChevronUp,
   Package,
-  Clipboard
+  Clipboard,
+  FileText,
+  LayoutDashboard
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -126,7 +128,9 @@ export function MobileNav() {
                        pathname.includes('/inspections/') || 
                        pathname.includes('/vehicles/') ||
                        pathname.includes('/drivers/') ||
-                       pathname.includes('/bookings/');
+                       pathname.includes('/bookings/') ||
+                       pathname.includes('/quotations/') ||
+                       pathname.includes('/dispatch/');
   
   if (isDetailPage) return null;
   
@@ -174,6 +178,8 @@ export function MobileNav() {
     ],
     operations: [
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
+      { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
+      { id: 'dispatch', title: t("navigation.dispatch") || "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
       { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
       { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' }
     ]

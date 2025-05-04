@@ -1,7 +1,6 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { InspectionForm } from "@/components/inspections/inspection-form"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -18,8 +17,9 @@ export const metadata: Metadata = {
   description: "Perform a vehicle inspection",
 }
 
-export default async function PerformInspectionPage({ params }: PerformInspectionPageProps) {
-  const supabase = createServerComponentClient({ cookies })
+export default async function PerformInspectionPage(props: PerformInspectionPageProps) {
+  const supabase = await createServerSupabaseClient()
+  const id = props.params.id
   
   const { data: inspection } = await supabase
     .from('inspections')
@@ -27,7 +27,7 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
       *,
       vehicle:vehicles (*)
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!inspection || (inspection.status !== 'scheduled' && inspection.status !== 'in_progress')) {
@@ -45,7 +45,7 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
             asChild
           >
             <Link
-              href={`/inspections/${params.id}`}
+              href={`/inspections/${id}`}
               className="flex items-center gap-2" ><span className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to inspection details</span>

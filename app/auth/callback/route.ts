@@ -50,8 +50,11 @@ export async function GET(request: Request) {
 
   if (code) {
     console.log("[Auth Callback] Code found, attempting exchange...");
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    // Initialize Supabase client with direct cookies reference for Next.js 15
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient({ 
+      cookies: () => cookieStore 
+    });
     
     try {
       await supabase.auth.exchangeCodeForSession(code)

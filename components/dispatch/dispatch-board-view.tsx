@@ -89,11 +89,11 @@ function DispatchCard({
   return (
     <Card className="mb-3 hover:shadow-md transition-shadow">
       <CardHeader className="py-3 px-4">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col">
           <CardTitle className="text-sm font-medium">
             #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
           </CardTitle>
-          <Badge className={getStatusColor(entry.status)}>
+          <Badge className={`mt-1 ${getStatusColor(entry.status)}`}>
             {t(`dispatch.status.${entry.status}`)}
           </Badge>
         </div>

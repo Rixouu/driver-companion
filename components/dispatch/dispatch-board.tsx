@@ -355,6 +355,14 @@ export default function DispatchBoard() {
       // Check if there's already an entry for this booking
       const existingEntry = existingEntriesMap.get(booking.id);
       if (existingEntry) {
+        // Preserve the in_transit status from existing entries
+        if (existingEntry.status === 'in_transit') {
+          return {
+            ...existingEntry,
+            booking: booking
+          };
+        }
+        
         // Always ensure the status is synced with the booking status
         if (booking.status === 'completed' || booking.status === 'cancelled') {
           existingEntry.status = booking.status;

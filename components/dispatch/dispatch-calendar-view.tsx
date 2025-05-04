@@ -10,6 +10,8 @@ import { useI18n } from "@/lib/i18n/context";
 import { Calendar } from "@/components/ui/calendar";
 import { DispatchEntry, DispatchEntryWithRelations } from "@/types/dispatch";
 import { cn } from "@/lib/utils/styles";
+import { getSupabaseClient } from "@/lib/supabase";
+import { toast } from "@/components/ui/use-toast";
 
 interface DispatchCalendarViewProps {
   entries: DispatchEntryWithRelations[];
@@ -370,6 +372,119 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
     );
   };
 
+  // Handle starting a trip (changing status to in_transit)
+  const handleStartTrip = async (entryId: string, bookingId: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Update the dispatch entry status
+      const { error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .update({ 
+          status: 'in_transit',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', entryId);
+        
+      if (dispatchError) {
+        console.error('[Start Trip] Error updating dispatch entry:', dispatchError);
+        toast({
+          title: "Error",
+          description: "Failed to start trip",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Also update the booking status to ensure it's properly reflected
+      // (this is a fallback in case the database trigger fails)
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ 
+          status: 'confirmed',  // Keep confirmed status but mark as in transit in dispatch
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', bookingId);
+      
+      if (bookingError) {
+        console.error('[Start Trip] Error updating booking:', bookingError);
+        // Not failing the whole operation if this update fails
+      }
+      
+      toast({
+        title: "Success",
+        description: "Trip started successfully",
+      });
+      
+      // Force a hard refresh to ensure data is properly reloaded
+      window.location.href = window.location.pathname + "?refresh=" + new Date().getTime();
+    } catch (error) {
+      console.error('[Start Trip] Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start trip",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handle completing a trip (changing status to completed)
+  const handleCompleteTrip = async (entryId: string, bookingId: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      
+      // Update the dispatch entry status
+      const { error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', entryId);
+        
+      if (dispatchError) {
+        console.error('[Complete Trip] Error updating dispatch entry:', dispatchError);
+        toast({
+          title: "Error",
+          description: "Failed to complete trip",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update the booking status
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ status: 'completed' })
+        .eq('id', bookingId);
+        
+      if (bookingError) {
+        console.error('[Complete Trip] Error updating booking:', bookingError);
+        toast({
+          title: "Warning",
+          description: "Trip marked as complete but booking status not updated",
+          variant: "default",
+        });
+        return;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Trip completed successfully",
+      });
+      
+      // Force a hard refresh to ensure data is properly reloaded
+      window.location.href = window.location.pathname + "?refresh=" + new Date().getTime();
+    } catch (error) {
+      console.error('[Complete Trip] Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete trip",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="w-full h-full flex flex-col">
       <div className="flex items-center space-x-2 mb-4 bg-card rounded-md p-2 border">
@@ -682,8 +797,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                     className="h-9 w-full"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      // Logic to start the trip
-                                      // Add your implementation here
+                                      handleStartTrip(entry.id, entry.booking_id);
                                     }}
                                   >
                                     Start Trip
@@ -691,18 +805,36 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                 )}
                                 
                                 {entry.status === 'in_transit' && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="default" 
-                                    className="h-9 w-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      // Logic to complete the trip
-                                      // Add your implementation here
-                                    }}
-                                  >
-                                    Complete
-                                  </Button>
+                                  // Determine if we should show the Complete button based on time
+                                  (() => {
+                                    const now = new Date();
+                                    const endTime = entry.end_time ? new Date(entry.end_time) : null;
+                                    // Show button if end time is passed or if no end time is set
+                                    const shouldShowCompleteButton = !endTime || now >= endTime;
+                                    
+                                    return shouldShowCompleteButton ? (
+                                      <Button 
+                                        size="sm" 
+                                        variant="default" 
+                                        className="h-9 w-full"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCompleteTrip(entry.id, entry.booking_id);
+                                        }}
+                                      >
+                                        Mark as Complete
+                                      </Button>
+                                    ) : (
+                                      <div className="text-center text-sm text-muted-foreground py-2">
+                                        Trip in progress
+                                        {endTime && (
+                                          <p className="text-xs">
+                                            Complete button will appear after {format(endTime, "HH:mm")}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  })()
                                 )}
                               </div>
                             </div>

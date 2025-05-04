@@ -17,7 +17,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { BookingInspections } from "@/components/bookings/booking-inspections"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import BookingAssignment from '@/components/bookings/booking-assignment'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Database } from '@/types/supabase'
 
@@ -178,51 +178,62 @@ export default function BookingDetailsContent({
   }
   
   // Fetch dispatch status on component mount
-  useEffect(() => {
-    async function fetchDispatchStatus() {
-      const { data, error } = await supabase
-        .from('dispatch_entries')
-        .select('status')
-        .eq('booking_id', booking.id || booking.booking_id || bookingId)
-        .single()
-      
-      if (!error && data) {
-        setDispatchStatus(data.status)
-      }
-    }
+  const fetchDispatchStatus = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('dispatch_entries')
+      .select('status')
+      .eq('booking_id', booking.id || booking.booking_id || bookingId)
+      .order('updated_at', { ascending: false }) // Get most recent status
+      .maybeSingle()
     
-    fetchDispatchStatus()
-  }, [booking, bookingId, supabase])
+    if (!error && data) {
+      console.log('Dispatch status fetched:', data.status);
+      setDispatchStatus(data.status);
+    } else if (error) {
+      console.error('Error fetching dispatch status:', error);
+    }
+  }, [booking.id, booking.booking_id, bookingId, supabase]);
+  
+  useEffect(() => {
+    fetchDispatchStatus();
+    
+    // Poll for dispatch status updates every 30 seconds
+    const intervalId = setInterval(fetchDispatchStatus, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [fetchDispatchStatus]);
   
   const getStatusBadge = (status: string) => {
     // First check dispatch status
     if (dispatchStatus) {
       switch (dispatchStatus.toLowerCase()) {
         case 'assigned':
-          return <Badge className="bg-green-600 text-white">{t('dispatch.status.assigned')}</Badge>;
+          return <Badge className="bg-green-600 text-white font-medium">{t('dispatch.status.assigned')}</Badge>;
         case 'in_transit':
-          return <Badge className="bg-blue-600 text-white">{t('dispatch.status.in_transit')}</Badge>;
+          return <Badge className="bg-purple-600 text-white font-medium">{t('dispatch.status.in_transit')}</Badge>;
         case 'completed':
-          return <Badge className="bg-purple-600 text-white">{t('dispatch.status.completed')}</Badge>;
+          return <Badge className="bg-blue-600 text-white font-medium">{t('dispatch.status.completed')}</Badge>;
         case 'cancelled':
-          return <Badge className="bg-red-600 text-white">{t('dispatch.status.cancelled')}</Badge>;
+          return <Badge className="bg-red-600 text-white font-medium">{t('dispatch.status.cancelled')}</Badge>;
         case 'pending':
-          return <Badge className="bg-yellow-600 text-white">{t('dispatch.status.pending')}</Badge>;
+          return <Badge className="bg-yellow-600 text-white font-medium">{t('dispatch.status.pending')}</Badge>;
+        case 'confirmed':
+          return <Badge className="bg-green-600 text-white font-medium">{t('dispatch.status.confirmed')}</Badge>;
       }
     }
     
     // Fall back to booking status
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return <Badge className="bg-green-600 text-white">{t('bookings.details.status.confirmed')}</Badge>;
+        return <Badge className="bg-green-600 text-white font-medium">{t('bookings.details.status.confirmed')}</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-600 text-white">{t('bookings.details.status.pending')}</Badge>;
+        return <Badge className="bg-yellow-600 text-white font-medium">{t('bookings.details.status.pending')}</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-600 text-white">{t('bookings.details.status.cancelled')}</Badge>;
+        return <Badge className="bg-red-600 text-white font-medium">{t('bookings.details.status.cancelled')}</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-600 text-white">{t('bookings.details.status.completed')}</Badge>;
+        return <Badge className="bg-blue-600 text-white font-medium">{t('bookings.details.status.completed')}</Badge>;
       default:
-        return <Badge className="bg-gray-600 text-white">{status}</Badge>;
+        return <Badge className="bg-gray-600 text-white font-medium">{status}</Badge>;
     }
   };
   
@@ -263,6 +274,12 @@ export default function BookingDetailsContent({
         
         <div className="flex gap-3 mt-4 md:mt-0 items-center">
           {getStatusBadge(booking.status)}
+          {dispatchStatus && dispatchStatus !== booking.status && (
+            <Badge className="bg-purple-600 text-white font-medium flex items-center gap-1">
+              <span className="h-1.5 w-1.5 bg-white rounded-full animate-pulse"></span>
+              {t(`dispatch.status.${dispatchStatus}`)}
+            </Badge>
+          )}
           <PrintButton booking={booking} />
           <DriverActionsDropdown booking={booking} />
           {process.env.NODE_ENV === 'development' && (

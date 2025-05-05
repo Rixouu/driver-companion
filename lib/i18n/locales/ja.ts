@@ -412,6 +412,8 @@ export const ja: TranslationValue = {
       inspections: "点検",
       reporting: "レポート",
       settings: "設定",
+      quotations: "見積書",
+      dispatch: "配車ボード",
       save: "変更を保存"
     },
     templates: {

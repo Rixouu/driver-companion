@@ -19,7 +19,8 @@ import {
   ChevronRight,
   PanelLeft,
   Grid3x3,
-  ClipboardList
+  ClipboardList,
+  FileText
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -27,64 +28,87 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+// Type for menu item keys
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'dispatch' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
+
+// Interface for menu settings to ensure type safety
+interface MenuSettings {
+  dashboard: { desktop: boolean; mobile: boolean };
+  vehicles: { desktop: boolean; mobile: boolean };
+  drivers: { desktop: boolean; mobile: boolean };
+  bookings: { desktop: boolean; mobile: boolean };
+  quotations: { desktop: boolean; mobile: boolean };
+  dispatch: { desktop: boolean; mobile: boolean };
+  maintenance: { desktop: boolean; mobile: boolean };
+  inspections: { desktop: boolean; mobile: boolean };
+  reporting: { desktop: boolean; mobile: boolean };
+  settings: { desktop: boolean; mobile: boolean };
+}
+
+// Default menu settings
+const defaultMenuSettings: MenuSettings = {
+  dashboard: { desktop: true, mobile: true },
+  vehicles: { desktop: true, mobile: true },
+  drivers: { desktop: true, mobile: true },
+  bookings: { desktop: true, mobile: true },
+  quotations: { desktop: true, mobile: true }, // Ensure Quotations is present
+  dispatch: { desktop: true, mobile: true },
+  maintenance: { desktop: true, mobile: true },
+  inspections: { desktop: true, mobile: true },
+  reporting: { desktop: true, mobile: true },
+  settings: { desktop: true, mobile: true },
+};
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { t } = useI18n()
   const [collapsed, setCollapsed] = useState(false)
-  const [menuSettings, setMenuSettings] = useState({
-    dashboard: { desktop: true, mobile: true },
-    vehicles: { desktop: true, mobile: true },
-    drivers: { desktop: true, mobile: true },
-    bookings: { desktop: true, mobile: true },
-    maintenance: { desktop: true, mobile: true },
-    inspections: { desktop: true, mobile: true },
-    quotations: { desktop: true, mobile: true },
-    reporting: { desktop: true, mobile: true },
-    settings: { desktop: true, mobile: true },
-    dispatch: { desktop: true, mobile: true }
-  })
+  const [menuSettings, setMenuSettings] = useState<MenuSettings>(defaultMenuSettings)
   
   // Load menu settings from local storage
   useEffect(() => {
     const savedMenuSettings = localStorage.getItem('menuSettings')
+    let currentSettings = { ...defaultMenuSettings } // Start with defaults
+
     if (savedMenuSettings) {
       try {
         const parsedSettings = JSON.parse(savedMenuSettings)
+        // Merge saved settings with defaults to ensure all keys exist
+        currentSettings = { ...defaultMenuSettings, ...parsedSettings }
         
         // Ensure specific items are always enabled if they exist in settings
-        const requiredItems = ['bookings', 'dispatch', 'quotations']; // Add 'quotations' here
+        const requiredItems: MenuItemKey[] = ['bookings', 'dispatch', 'quotations']
         requiredItems.forEach(key => {
-          if (!parsedSettings[key]) {
-            // If the key doesn't exist, add it with default visible state
-            parsedSettings[key] = { desktop: true, mobile: true };
+          if (!currentSettings[key]) {
+            // If the key doesn't exist after merge, add it with default visible state
+            currentSettings[key] = { desktop: true, mobile: true }
           } else {
             // If the key exists, ensure desktop and mobile are true
-            parsedSettings[key].desktop = true;
-            parsedSettings[key].mobile = true;
+            currentSettings[key].desktop = true
+            currentSettings[key].mobile = true
           }
-        });
+        })
         
-        // Update localStorage with fixed settings
-        localStorage.setItem('menuSettings', JSON.stringify(parsedSettings))
-        
-        // Update state
-        setMenuSettings(parsedSettings)
       } catch (error) {
         console.error("Error parsing menu settings:", error)
-        localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
+        // Fallback to default settings if parsing fails
+        currentSettings = { ...defaultMenuSettings }
       }
-    } else {
-      // If no settings exist, save the defaults
-      localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
     }
+    
+    // Update localStorage with potentially corrected settings
+    localStorage.setItem('menuSettings', JSON.stringify(currentSettings))
+    
+    // Update state
+    setMenuSettings(currentSettings)
 
     // Load sidebar collapsed state
     const savedCollapsedState = localStorage.getItem('sidebarCollapsed')
     if (savedCollapsedState) {
       setCollapsed(savedCollapsedState === 'true')
     }
-  }, [])
+  }, []) // Removed menuSettings from dependency array to avoid potential loops if localStorage update triggers re-render
   
   // Save collapsed state to localStorage
   useEffect(() => {
@@ -101,43 +125,44 @@ export function Sidebar() {
     setCollapsed(!collapsed)
   }
 
-  // Menu items with group structure
+  // Menu items with group structure (Corrected Order)
   const menuGroups = [
     {
       id: 'dashboard',
       items: [
-        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" }
+        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" as MenuItemKey }
       ]
     },
     {
-      id: 'fleet',
+      id: 'fleet', // Fleet comes before Sales
       label: 'Fleet',
       items: [
-        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" },
-        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" }
+        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" as MenuItemKey },
+        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" as MenuItemKey }
+      ]
+    },
+    {
+      id: 'sales', 
+      label: 'Sales',
+      items: [
+        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" as MenuItemKey }
       ]
     },
     {
       id: 'operations',
       label: 'Operations',
       items: [
-        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" },
-        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" },
-        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" },
-        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" },
-        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" }
-      ]
-    },
-    {
-      id: 'reporting',
-      items: [
-        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" }
+        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" as MenuItemKey },
+        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" as MenuItemKey },
+        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" as MenuItemKey },
+        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" as MenuItemKey },
+        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" as MenuItemKey }
       ]
     },
     {
       id: 'settings',
       items: [
-        { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" }
+        { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" as MenuItemKey }
       ]
     }
   ]
@@ -163,7 +188,8 @@ export function Sidebar() {
               />
             </div>
           ) : (
-            <div></div>
+            // Placeholder to maintain alignment when collapsed
+            <div className="w-8 h-8"></div> // Adjust size as needed
           )}
 
           <Button 
@@ -183,12 +209,14 @@ export function Sidebar() {
             {menuGroups.map((group) => {
               // Filter items based on menu settings
               const visibleItems = group.items.filter(item => {
-                if (item.key === 'settings' || item.key === 'bookings') return true;
-                const setting = menuSettings[item.key as keyof typeof menuSettings];
+                // Always show settings 
+                if (item.key === 'settings') return true; 
+                // Use type assertion for safety
+                const setting = menuSettings[item.key as keyof MenuSettings]; 
                 return setting && setting.desktop;
               });
               
-              // Skip empty groups
+              // Skip rendering the group if no items are visible
               if (visibleItems.length === 0) return null;
               
               return (
@@ -222,7 +250,8 @@ export function Sidebar() {
                     return collapsed ? (
                       <Tooltip key={item.href}>
                         <TooltipTrigger asChild>
-                          <Link href={item.href}>
+                          {/* Cast href to any to resolve TypeScript error */}
+                          <Link href={item.href as any}> 
                             {menuItem}
                           </Link>
                         </TooltipTrigger>
@@ -231,7 +260,8 @@ export function Sidebar() {
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <Link key={item.href} href={item.href}>
+                      // Cast href to any to resolve TypeScript error
+                      <Link key={item.href} href={item.href as any}> 
                         {menuItem}
                       </Link>
                     );

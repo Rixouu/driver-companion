@@ -18,7 +18,8 @@ import {
   Package,
   Clipboard,
   FileText,
-  LayoutDashboard
+  LayoutDashboard,
+  Tag
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -61,52 +62,8 @@ function SafeLink({ href, className, children, onClick }: {
 export function MobileNav() {
   const pathname = usePathname()
   const { t } = useI18n()
-  const [menuSettings, setMenuSettings] = useState({
-    dashboard: { desktop: true, mobile: true },
-    vehicles: { desktop: true, mobile: true },
-    drivers: { desktop: true, mobile: true },
-    bookings: { desktop: true, mobile: true },
-    maintenance: { desktop: true, mobile: true },
-    inspections: { desktop: true, mobile: true },
-    reporting: { desktop: true, mobile: true },
-    settings: { desktop: true, mobile: true }
-  })
   const [activeGroup, setActiveGroup] = useState('dashboard')
   const [sheetOpen, setSheetOpen] = useState(false)
-
-  // Load menu settings from local storage
-  useEffect(() => {
-    const savedMenuSettings = localStorage.getItem('menuSettings')
-    if (savedMenuSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedMenuSettings)
-        
-        // Ensure bookings menu is enabled
-        if (!parsedSettings.bookings) {
-          parsedSettings.bookings = { desktop: true, mobile: true }
-        }
-        
-        // Ensure existing bookings menu item is visible
-        if (parsedSettings.bookings && 
-            (!parsedSettings.bookings.desktop || !parsedSettings.bookings.mobile)) {
-          parsedSettings.bookings.desktop = true
-          parsedSettings.bookings.mobile = true
-        }
-        
-        // Update localStorage with fixed settings
-        localStorage.setItem('menuSettings', JSON.stringify(parsedSettings))
-        
-        // Update state
-        setMenuSettings(parsedSettings)
-      } catch (error) {
-        console.error("Error parsing menu settings:", error)
-        localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
-      }
-    } else {
-      // If no settings exist, save the defaults
-      localStorage.setItem('menuSettings', JSON.stringify(menuSettings))
-    }
-  }, [])
 
   // Update active group based on pathname
   useEffect(() => {
@@ -114,12 +71,20 @@ export function MobileNav() {
       setActiveGroup('dashboard')
     } else if (pathname.startsWith('/vehicles') || pathname.startsWith('/drivers')) {
       setActiveGroup('fleet')
-    } else if (pathname.startsWith('/bookings') || pathname.startsWith('/maintenance') || pathname.startsWith('/inspections')) {
+    } else if (pathname.startsWith('/quotations')) {
+      setActiveGroup('sales')
+    } else if (
+      pathname.startsWith('/bookings') || 
+      pathname.startsWith('/dispatch') || 
+      pathname.startsWith('/maintenance') || 
+      pathname.startsWith('/inspections') ||
+      pathname.startsWith('/reporting')
+    ) {
       setActiveGroup('operations')
-    } else if (pathname.startsWith('/reporting')) {
-      setActiveGroup('reporting')
     } else if (pathname.startsWith('/settings')) {
       setActiveGroup('settings')
+    } else {
+      setActiveGroup('dashboard')
     }
   }, [pathname])
   
@@ -130,7 +95,8 @@ export function MobileNav() {
                        pathname.includes('/drivers/') ||
                        pathname.includes('/bookings/') ||
                        pathname.includes('/quotations/') ||
-                       pathname.includes('/dispatch/');
+                       pathname.includes('/dispatch/') ||
+                       pathname.includes('/reporting/')
   
   if (isDetailPage) return null;
   
@@ -150,17 +116,18 @@ export function MobileNav() {
       href: '#'
     },
     {
+      id: 'sales',
+      title: 'Sales',
+      icon: Tag,
+      hasSubmenu: true,
+      href: '#'
+    },
+    {
       id: 'operations',
       title: 'Operations',
       icon: Clipboard,
       hasSubmenu: true,
       href: '#'
-    },
-    {
-      id: 'reporting',
-      title: 'Reporting',
-      icon: BarChart,
-      href: '/reporting'
     },
     {
       id: 'settings',
@@ -176,20 +143,34 @@ export function MobileNav() {
       { id: 'vehicles', title: t("navigation.vehicles"), icon: Car, href: '/vehicles' },
       { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' }
     ],
+    sales: [
+      { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' }
+    ],
     operations: [
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
-      { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
       { id: 'dispatch', title: t("navigation.dispatch") || "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
       { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
-      { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' }
+      { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' },
+      { id: 'reporting', title: t("navigation.reporting"), icon: BarChart, href: '/reporting' }
     ]
   }
   
   // Get active submenu items based on current group
   const getActiveSubmenuItems = () => {
     if (activeGroup === 'fleet') return submenuItems.fleet;
+    if (activeGroup === 'sales') return submenuItems.sales;
     if (activeGroup === 'operations') return submenuItems.operations;
     return [];
+  }
+
+  // Function to get the title for the sheet based on active group
+  const getSheetTitle = () => {
+    switch (activeGroup) {
+      case 'fleet': return 'Fleet Management';
+      case 'sales': return 'Sales Management';
+      case 'operations': return 'Operations';
+      default: return '';
+    }
   }
 
   return (
@@ -201,15 +182,13 @@ export function MobileNav() {
             const isActive = activeGroup === group.id;
             const Icon = group.icon;
             
-            // For items with submenus, open the sheet when clicked if active
             const handleClick = (e: React.MouseEvent<HTMLElement>) => {
               if (group.hasSubmenu) {
-                if (isActive) {
-                  e.preventDefault();
-                  setSheetOpen(true);
-                } else {
-                  setActiveGroup(group.id);
-                }
+                setActiveGroup(group.id);
+                e.preventDefault();
+                setSheetOpen(true);
+              } else if (group.href) {
+                setActiveGroup(group.id);
               }
             };
             
@@ -220,7 +199,7 @@ export function MobileNav() {
                   "flex flex-col items-center justify-center w-full h-full relative cursor-pointer",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
-                onClick={handleClick}
+                onMouseDown={handleClick}
               >
                 {!group.hasSubmenu && group.href ? (
                   <SafeLink href={group.href} className="flex flex-col items-center">
@@ -233,7 +212,6 @@ export function MobileNav() {
                   <span className="flex flex-col items-center">
                     <div className="relative">
                       <Icon className="h-5 w-5" />
-                      {/* More prominent submenu indicator */}
                       {group.hasSubmenu && (
                         <div className={cn(
                           "absolute -top-1 -right-1.5 w-2 h-2 rounded-full",
@@ -245,7 +223,6 @@ export function MobileNav() {
                   </span>
                 )}
                 
-                {/* Indicator dot for active tab */}
                 {isActive && (
                   <motion.div
                     layoutId="activeDot"
@@ -254,7 +231,6 @@ export function MobileNav() {
                   />
                 )}
                 
-                {/* Show a more visible indicator for active items with submenus */}
                 {group.hasSubmenu && isActive && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground rounded-full p-0.5">
                     <ChevronUp className="h-3 w-3" />
@@ -270,10 +246,10 @@ export function MobileNav() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="bottom" className="h-auto max-h-[60vh] pt-4 pb-20 rounded-t-2xl">
           <SheetTitle className="sr-only">
-            {activeGroup === 'fleet' ? 'Fleet Management' : 'Operations'}
+            {getSheetTitle()}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            Select from available {activeGroup === 'fleet' ? 'fleet management' : 'operations'} options
+            Select from available {getSheetTitle().toLowerCase()} options
           </SheetDescription>
           <div className="space-y-4">
             <div className="flex items-center justify-center mb-4">
@@ -281,8 +257,7 @@ export function MobileNav() {
             </div>
             
             <h3 className="text-lg font-medium text-center">
-              {activeGroup === 'fleet' ? 'Fleet Management' : 
-               activeGroup === 'operations' ? 'Operations' : ''}
+              {getSheetTitle()}
             </h3>
             
             <div className="grid grid-cols-3 gap-4 mt-6 px-4">

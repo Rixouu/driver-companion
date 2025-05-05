@@ -188,26 +188,6 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
               </div>
             </div>
           </div>
-          
-          {(quotation.merchant_notes || quotation.customer_notes) && (
-            <div>
-              <h3 className="text-lg font-medium mb-2">
-                {t('quotations.details.notesAndTerms')}
-              </h3>
-              {quotation.customer_notes && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-sm">{t('quotations.form.customerNotes')}</h4>
-                  <p className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">{quotation.customer_notes}</p>
-                </div>
-              )}
-              {quotation.merchant_notes && (
-                <div>
-                  <h4 className="font-medium text-sm">{t('quotations.form.merchantNotes')}</h4>
-                  <p className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">{quotation.merchant_notes}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

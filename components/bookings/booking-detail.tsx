@@ -232,21 +232,6 @@ export function BookingDetail({ booking }: BookingDetailProps) {
             </CardContent>
           </Card>
         </div>
-        
-        {/* Add the Messages Component */}
-        {booking.id && (
-          <div className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Messages</CardTitle>
-                <CardDescription>Communicate with the customer about this booking</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <QuotationMessageContainer id={booking.id} />
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </Suspense>
     </div>
   );

@@ -419,18 +419,17 @@ export default function QuotationList({
                           {quotation.expiry_date && (
                             <div className={isExpired(quotation.expiry_date) ? 'text-red-500' : ''}>
                               {format(parseISO(quotation.expiry_date), 'MMM d, yyyy')}
+                              {needsReminder(quotation) && (
+                                <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 flex items-center">
+                                  <BellIcon className="h-3 w-3 mr-1" />
+                                  {t('quotations.actions.remind')}
+                                </div>
+                              )}
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="p-2">
                           <div className="flex justify-start items-center space-x-1">
-                            {needsReminder(quotation) && (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 mr-2">
-                                <AlertCircleIcon className="h-3 w-3 mr-1" />
-                                {t('quotations.actions.remind')}
-                              </Badge>
-                            )}
-
                             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }} className="h-8 w-8">
                               <EyeIcon className="h-4 w-4" />
                             </Button>

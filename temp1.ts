@@ -2007,49 +2007,6 @@ export const en: TranslationValue = {
         en: "English",
         ja: "日本語"
       }
-    },
-    menu: {
-      title: "Menu Settings",
-      description: "Customize the menu items displayed in the navigation",
-      menuItem: "Menu Item",
-      desktop: "Desktop",
-      mobile: "Mobile",
-      desktopSettingsHidden: "Desktop settings are only visible on larger screens.",
-      alwaysVisible: "Always Visible",
-      dashboard: "Dashboard",
-      vehicles: "Vehicles",
-      drivers: "Drivers",
-      bookings: "Bookings",
-      maintenance: "Maintenance",
-      inspections: "Inspections",
-      reporting: "Reporting",
-      settings: "Settings",
-      quotations: "Quotations",
-      dispatch: "Dispatch Board",
-      save: "Save Changes"
-    },
-    templates: {
-      title: "Inspection Templates",
-      description: "Manage the structure (sections and items) of your inspection forms."
-    },
-    tabs: {
-      profile: "Profile",
-      preferences: "Preferences",
-      menu: "Menu",
-      templates: "Templates",
-      account: "Account"
-    },
-    selectTemplate: "Select template type",
-    inspectionTypes: {
-      routine: "Routine Inspection",
-      safety: "Safety Inspection",
-      maintenance: "Maintenance Inspection",
-      select: "Select Inspection Type",
-      description: {
-        routine: "Regular periodic inspection of vehicle components",
-        safety: "Comprehensive safety system evaluation",
-        maintenance: "Detailed mechanical system inspection"
-      }
     }
   },
   notifications: {
@@ -2138,10 +2095,7 @@ export const en: TranslationValue = {
       notApproved: "Only approved quotations can be converted",
       alreadyConverted: "This quotation is already converted",
       expired: "This quotation has expired",
-      cannotReject: "This quotation cannot be rejected",
-      convertSuccess: "Quotation converted to booking successfully",
-      emailFailed: "Email could not be sent, but quotation status was updated",
-      partialSuccess: "Partial success"
+      cannotReject: "This quotation cannot be rejected"
     },
     messageBlock: {
       title: "Conversation",
@@ -2264,9 +2218,3 @@ export const en: TranslationValue = {
     },
     empty: {
       title: "No Quotations Found",
-      description: "No quotations found for the selected filters."
-    }
-  }
-}
-
-export default en 

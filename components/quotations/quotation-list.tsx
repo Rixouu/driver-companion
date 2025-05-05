@@ -334,31 +334,45 @@ export default function QuotationList({
                       <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
                         <Button 
                           variant="ghost" 
-                          size="sm"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                          title={t('quotations.actions.view')}
                         >
-                          <EyeIcon className="h-4 w-4 mr-2" />
-                          {t('quotations.actions.view')}
+                          <EyeIcon className="h-4 w-4" />
                         </Button>
+                        
+                        {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
+                          <Button 
+                            variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
+                            title={t('quotations.actions.remind')}
+                          >
+                            <BellIcon className="h-4 w-4" />
+                          </Button>
+                        )}
                         
                         <Button 
                           variant="ghost" 
-                          size="sm"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                          title={t('quotations.actions.copy')}
                         >
-                          <CopyIcon className="h-4 w-4 mr-2" />
-                          {t('quotations.actions.copy')}
+                          <CopyIcon className="h-4 w-4" />
                         </Button>
                         
                         {['draft', 'rejected', 'expired'].includes(quotation.status) && (
                           <Button 
                             variant="ghost" 
-                            size="sm"
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:text-red-600"
                             onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                            className="text-red-600 hover:text-red-600"
+                            title={t('quotations.actions.delete')}
                           >
-                            <TrashIcon className="h-4 w-4 mr-2" />
-                            {t('quotations.actions.delete')}
+                            <TrashIcon className="h-4 w-4" />
                           </Button>
                         )}
                         
@@ -366,11 +380,11 @@ export default function QuotationList({
                           <>
                             <Button 
                               variant="ghost" 
-                              size="sm"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
                             >
-                              <FileEditIcon className="h-4 w-4 mr-2" />
-                              {t('quotations.actions.edit')}
+                              <FileEditIcon className="h-4 w-4" />
                             </Button>
                           </>
                         )}

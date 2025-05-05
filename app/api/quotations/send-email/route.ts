@@ -33,7 +33,7 @@ const emailTemplates = {
   }
 };
 
-// --- Start: Integrated PDF Generation Function (from send-reminder) ---
+// --- Start: Improved PDF Generation Function ---
 async function generateQuotationPDF(quotation: any, language: string): Promise<Buffer | null> {
   try {
     console.log('🔄 [SEND-EMAIL API] Starting PDF generation with updated design');
@@ -447,38 +447,79 @@ async function generateQuotationPDF(quotation: any, language: string): Promise<B
     </html>
     `;
     
-    // Use puppeteer to generate the PDF
+    // Use puppeteer to generate the PDF with improved compatibility and error handling
     console.log('🔄 [SEND-EMAIL API] Creating PDF with puppeteer using updated design');
     
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
-    
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' }); 
-    
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '15mm',
-        right: '15mm',
-        bottom: '15mm',
-        left: '15mm'
+    let browser: any = null;
+    try {
+      // Enhanced puppeteer launch configuration that works in both environments
+      browser = await puppeteer.launch({
+        headless: true, // Use headless mode (true is compatible with all versions)
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox', 
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      });
+      
+      const page = await browser.newPage();
+      
+      // Set reasonable timeout and monitor for console errors
+      page.setDefaultNavigationTimeout(30000);
+      page.on('console', msg => console.log(`🔍 [PDF-BROWSER] ${msg.text()}`));
+      page.on('pageerror', error => console.error(`❌ [PDF-BROWSER] ${error.message}`));
+      
+      await page.setContent(htmlContent, { 
+        waitUntil: ['domcontentloaded', 'networkidle0'],
+        timeout: 30000 
+      });
+      
+      // Generate PDF with optimized settings
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '15mm',
+          right: '15mm',
+          bottom: '15mm',
+          left: '15mm'
+        },
+        preferCSSPageSize: true,
+        scale: 0.98 // Slightly reduce scale to ensure fitting
+      });
+      
+      const bufferSize = pdfBuffer.length / 1024 / 1024; // Size in MB
+      console.log(`✅ [SEND-EMAIL API] PDF generation completed. Size: ${bufferSize.toFixed(2)}MB`);
+      
+      if (bufferSize > 9) {
+        console.warn(`⚠️ [SEND-EMAIL API] PDF size approaching Resend's 10MB limit: ${bufferSize.toFixed(2)}MB`);
       }
-    });
-    
-    await browser.close();
-    console.log('✅ [SEND-EMAIL API] PDF generation with updated design completed');
-    
-    return Buffer.from(pdfBuffer);
+      
+      return Buffer.from(pdfBuffer);
+    } catch (puppeteerError) {
+      console.error('❌ [SEND-EMAIL API] Error during Puppeteer PDF generation:', puppeteerError);
+      throw puppeteerError; // Let the caller handle this error
+    } finally {
+      if (browser) {
+        try {
+          await browser.close();
+          console.log('✅ [SEND-EMAIL API] Browser instance closed successfully');
+        } catch (closeError) {
+          console.error('❌ [SEND-EMAIL API] Error closing browser:', closeError);
+        }
+      }
+    }
   } catch (error) {
-    console.error('❌ [SEND-EMAIL API] Error generating PDF with updated design:', error);
+    console.error('❌ [SEND-EMAIL API] Error in PDF generation process:', error);
     return null;
   }
 }
-// --- End: Integrated PDF Generation Function ---
+// --- End: Improved PDF Generation Function ---
 
 export async function POST(request: NextRequest) {
   try {

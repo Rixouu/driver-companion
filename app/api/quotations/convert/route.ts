@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (fetchError) {
       console.error('Error fetching quotation:', fetchError);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('quotations.notifications.error') },
         { status: 500 }
       );
     }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Check if the quotation is already converted
     if (quotation.status === 'converted') {
       return NextResponse.json(
-        { error: t('notifications.alreadyConverted') },
+        { error: t('quotations.notifications.alreadyConverted') },
         { status: 400 }
       );
     }
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Check if the quotation is approved (only approved quotations can be converted)
     if (quotation.status !== 'approved') {
       return NextResponse.json(
-        { error: t('notifications.notApproved') },
+        { error: t('quotations.notifications.notApproved') },
         { status: 400 }
       );
     }

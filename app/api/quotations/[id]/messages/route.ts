@@ -6,8 +6,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get quotation ID from params - must be properly awaited in Next.js 15
-    const quotationId = params.id;
+    // Get quotation ID from params - properly awaited in Next.js 15
+    const { id: quotationId } = await params;
     console.log('GET Request - Quotation ID:', quotationId);
     
     // Create server-side Supabase client with properly awaited cookies
@@ -63,8 +63,8 @@ export async function POST(
 ) {
   console.log('POST Request started');
   try {
-    // Get quotation ID from params - must be properly awaited in Next.js 15
-    const quotationId = params.id;
+    // Get quotation ID from params - properly awaited in Next.js 15
+    const { id: quotationId } = await params;
     console.log('POST - Quotation ID:', quotationId);
     
     // Get message from request body

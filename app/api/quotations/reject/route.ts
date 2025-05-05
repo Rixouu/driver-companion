@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (fetchError) {
       console.error('Error fetching quotation:', fetchError);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('quotations.notifications.error') },
         { status: 500 }
       );
     }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Check if the quotation can be rejected
     if (['approved', 'rejected', 'converted'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: t('notifications.cannotReject') },
+        { error: t('quotations.notifications.cannotReject') },
         { status: 400 }
       );
     }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      message: t('notifications.rejectSuccess'),
+      message: t('quotations.notifications.rejectSuccess'),
       quotation: updatedQuotation
     });
   } catch (error) {

@@ -137,7 +137,8 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface QuotationFormProps {
-  quotation?: Quotation;
+  initialData?: Quotation & { quotation_items?: any[] };
+  mode?: 'create' | 'edit';
   onSuccess?: (quotation: Quotation) => void;
 }
 
@@ -150,7 +151,7 @@ const steps = [
   { id: 'preview', name: 'Preview & Send', icon: Eye },
 ];
 
-export default function QuotationForm({ quotation, onSuccess }: QuotationFormProps) {
+export default function QuotationForm({ initialData, mode, onSuccess }: QuotationFormProps) {
   const { t } = useI18n();
   const router = useRouter();
   const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>([]);
@@ -163,44 +164,45 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
   const [currentStep, setCurrentStep] = useState(0);
   const isMobile = useMediaQuery('(max-width: 768px)');
   
-  const { 
-    loading, 
-    createQuotation, 
-    updateQuotation, 
+  const {
+    createQuotation,
+    updateQuotation,
+    loading: apiLoading,
     calculateQuotationAmount,
     getPricingCategories,
-    getPricingItems
+    getPricingItems,
+    sendQuotation
   } = useQuotationService();
 
   // Initialize form
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: quotation?.title || '',
-      customer_name: quotation?.customer_name || '',
-      customer_email: quotation?.customer_email || '',
-      customer_phone: quotation?.customer_phone || '',
-      billing_company_name: quotation?.billing_company_name || '',
-      billing_tax_number: quotation?.billing_tax_number || '',
-      billing_street_name: quotation?.billing_street_name || '',
-      billing_street_number: quotation?.billing_street_number || '',
-      billing_city: quotation?.billing_city || '',
-      billing_state: quotation?.billing_state || '',
-      billing_postal_code: quotation?.billing_postal_code || '',
-      billing_country: quotation?.billing_country || 'Thailand',
-      service_type: quotation?.service_type || '',
+      title: initialData?.title || '',
+      customer_name: initialData?.customer_name || '',
+      customer_email: initialData?.customer_email || '',
+      customer_phone: initialData?.customer_phone || '',
+      billing_company_name: initialData?.billing_company_name || '',
+      billing_tax_number: initialData?.billing_tax_number || '',
+      billing_street_name: initialData?.billing_street_name || '',
+      billing_street_number: initialData?.billing_street_number || '',
+      billing_city: initialData?.billing_city || '',
+      billing_state: initialData?.billing_state || '',
+      billing_postal_code: initialData?.billing_postal_code || '',
+      billing_country: initialData?.billing_country || 'Thailand',
+      service_type: initialData?.service_type || '',
       vehicle_category: '',
-      vehicle_type: quotation?.vehicle_type || '',
-      pickup_date: quotation?.pickup_date ? new Date(quotation.pickup_date) : undefined,
-      pickup_time: quotation?.pickup_time || '',
-      duration_hours: quotation?.duration_hours || 1,
-      service_days: quotation?.service_days || 1,
-      hours_per_day: quotation?.hours_per_day || (quotation?.service_type === 'charter' ? quotation?.duration_hours : 1) || 1,
-      discount_percentage: quotation?.discount_percentage || 0,
-      tax_percentage: quotation?.tax_percentage || 0,
-      merchant_notes: quotation?.merchant_notes || '',
-      customer_notes: quotation?.customer_notes || '',
-      passenger_count: quotation?.passenger_count || null,
+      vehicle_type: initialData?.vehicle_type || '',
+      pickup_date: initialData?.pickup_date ? new Date(initialData.pickup_date) : undefined,
+      pickup_time: initialData?.pickup_time || '',
+      duration_hours: initialData?.duration_hours || 1,
+      service_days: initialData?.service_days || 1,
+      hours_per_day: initialData?.hours_per_day || (initialData?.service_type === 'charter' ? initialData?.duration_hours : 1) || 1,
+      discount_percentage: initialData?.discount_percentage || 0,
+      tax_percentage: initialData?.tax_percentage || 0,
+      merchant_notes: initialData?.merchant_notes || '',
+      customer_notes: initialData?.customer_notes || '',
+      passenger_count: initialData?.passenger_count || null,
     },
   });
 
@@ -228,9 +230,9 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
           setSelectedCategory(firstCategory.id);
           
           // If we have a quotation with existing values, try to find the matching category
-          if (quotation?.service_type) {
+          if (initialData?.service_type) {
             const matchingCategory = categories.find(c => 
-              c.service_types.includes(quotation.service_type)
+              c.service_types.includes(initialData.service_type)
             );
             if (matchingCategory) {
               setSelectedCategory(matchingCategory.id);
@@ -244,7 +246,7 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
     };
     
     loadPricingData();
-  }, [quotation, getPricingCategories]);
+  }, [initialData, getPricingCategories]);
 
   // Load pricing items when category changes
   useEffect(() => {
@@ -515,16 +517,16 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
       let result: Quotation | null;
 
       try {
-        if (quotation) {
+        if (initialData) {
           // Update existing quotation
-          console.log('SAVE & SEND DEBUG - Updating existing quotation ID:', quotation.id);
-          result = await updateQuotation(quotation.id, input);
+          console.log('SAVE & SEND DEBUG - Updating existing quotation ID:', initialData.id);
+          result = await updateQuotation(initialData.id, input);
         
-          // If sending to customer, update status and send
+          // If sending to customer, send email via the API endpoint
           if (sendToCustomer && result) {
-            console.log('SAVE & SEND DEBUG - Updating status to sent for ID:', quotation.id);
-            await updateQuotation(quotation.id, { status: 'sent' });
-            // TODO: Add logic to send email
+            console.log('SAVE & SEND DEBUG - Sending email for ID:', initialData.id);
+            // Use the sendQuotation function which takes care of updating status and sending email
+            await sendQuotation(initialData.id);
             console.log('SUBMIT DEBUG - Sent to customer (Update)');
           }
         } else {
@@ -532,9 +534,11 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
           console.log('SAVE & SEND DEBUG - Creating new quotation');
           result = await createQuotation(input);
           
-          // If sending to customer and we get a result, no need to update status as it was set in the input
+          // If sending to customer, send email via the API endpoint
           if (sendToCustomer && result) {
-            // TODO: Add logic to send email
+            console.log('SAVE & SEND DEBUG - Sending email for new quotation ID:', result.id);
+            // Use the sendQuotation function which takes care of updating status and sending email
+            await sendQuotation(result.id);
             console.log('SUBMIT DEBUG - Sent to customer (Create)');
           }
         }
@@ -700,8 +704,8 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
     <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
        <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 sm:px-6 py-4">
          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-           {quotation ? <FileText className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-           {quotation ? t('quotations.form.update') : t('quotations.form.create')}
+           {initialData ? <FileText className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+           {initialData ? t('quotations.form.update') : t('quotations.form.create')}
          </CardTitle>
          {!isMobile && (
            <CardDescription>
@@ -1386,7 +1390,7 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
               type="button"
               variant="outline"
               onClick={prevStep}
-              disabled={currentStep === 0 || loading || submittingAndSending}
+              disabled={currentStep === 0 || apiLoading || submittingAndSending}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -1397,7 +1401,7 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
               <Button 
                 type="button" 
                 onClick={nextStep} 
-                disabled={loading || submittingAndSending}
+                disabled={apiLoading || submittingAndSending}
                 className="gap-2"
               >
                 {t('common.next')}
@@ -1405,27 +1409,27 @@ export default function QuotationForm({ quotation, onSuccess }: QuotationFormPro
               </Button>
             ) : (
               <div className="space-x-2">
-                 {!quotation && (
+                 {!initialData && (
                    <Button
                      type="button"
                      variant="outline"
                      onClick={form.handleSubmit((data) => onSubmit(data, false))}
-                     disabled={loading || submittingAndSending}
+                     disabled={apiLoading || submittingAndSending}
                      className="gap-2"
                    >
-                     {loading && !submittingAndSending && <LoadingSpinner className="mr-2 h-4 w-4" />}
+                     {apiLoading && !submittingAndSending && <LoadingSpinner className="mr-2 h-4 w-4" />}
                      <Save className="h-4 w-4"/>
                      {t('quotations.form.saveAsDraft')}
                    </Button>
                  )}
                  <Button
                    type="submit"
-                   disabled={loading || submittingAndSending}
+                   disabled={apiLoading || submittingAndSending}
                    className="gap-2"
                  >
-                   {(loading || submittingAndSending) && <LoadingSpinner className="mr-2 h-4 w-4" />}
+                   {(apiLoading || submittingAndSending) && <LoadingSpinner className="mr-2 h-4 w-4" />}
                    <Send className="h-4 w-4"/>
-                   {quotation ? t('common.updateAndSend') : t('quotations.form.sendToCustomer')}
+                   {initialData ? t('common.updateAndSend') : t('quotations.form.sendToCustomer')}
                  </Button>
               </div>
             )}

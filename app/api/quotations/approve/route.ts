@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (fetchError) {
       console.error('Error fetching quotation:', fetchError);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('quotations.notifications.error') },
         { status: 500 }
       );
     }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Check if the quotation is already approved or converted
     if (quotation.status === 'approved' || quotation.status === 'converted') {
       return NextResponse.json(
-        { error: t('notifications.alreadyApproved') },
+        { error: t('quotations.notifications.alreadyApproved') },
         { status: 400 }
       );
     }
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Check if the quotation is expired
     if (quotation.status === 'expired' || new Date(quotation.expiry_date) < new Date()) {
       return NextResponse.json(
-        { error: t('notifications.expired') },
+        { error: t('quotations.notifications.expired') },
         { status: 400 }
       );
     }

@@ -296,6 +296,11 @@ export const useQuotationService = () => {
         (input.service_days !== undefined && input.service_days !== currentQuotation.service_days);
 
       let updateData: any = { ...input };
+      
+      // Always set a new expiration date when updating a quotation
+      // Default to 30 days, can't rely on valid_days existing in the schema
+      const validDays = 30;
+      updateData.expiry_date = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
 
       // Recalculate amount if needed
       if (needsRecalculation) {
@@ -390,7 +395,8 @@ export const useQuotationService = () => {
         description: '',
       });
 
-      return data as Quotation;
+      // Explicitly cast the data to unknown first, then Quotation type
+      return data as unknown as Quotation;
     } catch (err: any) {
       console.error('Error updating quotation:', err);
       setError(err.message || 'Failed to update quotation');
@@ -552,24 +558,56 @@ export const useQuotationService = () => {
     }
   };
 
-  const sendQuotation = async (id: string): Promise<boolean> => {
+  const sendQuotation = async (id: string, email?: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     
     try {
-      // Update quotation status to sent
-      const { data, error } = await supabase
+      // Get the quotation data first to ensure we have the latest information
+      const { data: quotation, error: fetchError } = await supabase
         .from('quotations')
-        .update({ status: 'sent' })
+        .select('*')
         .eq('id', id)
-        .select()
         .single();
-
-      if (error) {
-        throw error;
+      
+      if (fetchError) {
+        console.error('Error fetching quotation before sending:', fetchError);
+        throw new Error('Failed to fetch quotation data');
       }
+      
+      // Determine which email to use - provided email or from quotation
+      const emailTo = email || quotation?.customer_email;
+      
+      if (!emailTo) {
+        throw new Error('No email address provided for sending quotation');
+      }
+      
+      // Prepare FormData for the /api/quotations/send-email endpoint
+      const formData = new FormData();
+      formData.append('email', emailTo);
+      formData.append('quotation_id', id);
+      // Default language to English, can be customized later if needed
+      formData.append('language', 'en'); 
+      // Include details by default, matches quotation-pdf-button logic
+      formData.append('include_details', 'true'); 
 
-      // Create activity log
+      // Make the API call to send the quotation email
+      // Updated endpoint to /api/quotations/send-email
+      const response = await fetch('/api/quotations/send-email', {
+        method: 'POST',
+        body: formData, // Send FormData instead of JSON
+      });
+      
+      if (!response.ok) {
+        // Parse error message from response
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send quotation email');
+      }
+      
+      // Parse the successful response
+      const result = await response.json();
+      
+      // Add activity log for the sent email
       await supabase
         .from('quotation_activities')
         .insert({
@@ -578,41 +616,27 @@ export const useQuotationService = () => {
           action: 'sent',
           details: { status: 'sent' }
         });
-
-      // Send email via server action (would typically call an API endpoint)
-      // Implementation depends on your email service
-      // This is a placeholder for the actual email sending logic
-      const response = await fetch('/api/quotations/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to send email');
-      }
-
+        
+      // Show success toast
       toast({
-        title: t('quotations.notifications.sendSuccess'),
-        description: '',
+        title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
       });
       
+      setLoading(false);
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error sending quotation:', err);
-      setError(err.message || 'Failed to send quotation');
+      setError(err instanceof Error ? err.message : 'An error occurred');
       
+      // Show error toast
       toast({
-        title: t('quotations.notifications.error'),
-        description: err.message || 'Failed to send quotation',
+        title: t('quotations.notifications.error') || 'Error',
+        description: err instanceof Error ? err.message : 'An error occurred',
         variant: 'destructive',
       });
       
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 

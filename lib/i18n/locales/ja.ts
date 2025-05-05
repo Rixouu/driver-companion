@@ -71,7 +71,9 @@ export const ja: TranslationValue = {
     month: "月",
     today: "今日",
     booking: "予約",
-    unassign: "割り当て解除"
+    unassign: "割り当て解除",
+    cannotBeUndone: "この操作は元に戻せません。",
+    updateAndSend: "更新して送信"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -1610,6 +1612,39 @@ export const ja: TranslationValue = {
       clearFilters: "フィルターをクリア",
       noResults: "検索条件に一致する見積書はありません"
     },
+    form: {
+      create: "新規見積書作成",
+      update: "見積書を更新",
+      customerSection: "顧客情報",
+      detailsSection: "見積書詳細",
+      servicesSection: "サービス情報",
+      priceSection: "価格詳細",
+      pricingSection: "価格情報",
+      notesSection: "メモとコメント",
+      previewSection: "プレビュー",
+      title: "タイトル",
+      placeholders: {
+        title: "見積書のタイトルを入力",
+        customerName: "顧客名を入力",
+        customerEmail: "顧客のメールアドレスを入力",
+        customerPhone: "顧客の電話番号を入力",
+        merchantNotes: "内部メモ（自分だけに表示）",
+        customerNotes: "顧客向けメモ（顧客にも表示されます）"
+      },
+      customerName: "顧客名",
+      customerEmail: "顧客メール",
+      customerPhone: "顧客電話番号",
+      discountPercentage: "割引率",
+      taxPercentage: "税率",
+      merchantNotes: "内部メモ",
+      customerNotes: "顧客向けメモ"
+    },
+    pricing: {
+      total: "合計金額",
+      subtotal: "小計",
+      tax: "税金",
+      discount: "割引"
+    },
     listColumns: {
       id: "ID",
       customer: "顧客",
@@ -1620,10 +1655,21 @@ export const ja: TranslationValue = {
       actions: "アクション"
     },
     notifications: {
-      sendSuccess: "見積書が正常に送信されました",
       error: "エラーが発生しました",
-      deleteConfirmation: "この見積書を削除してもよろしいですか？",
-      reminderSuccess: "リマインダーが正常に送信されました"
+      createSuccess: "見積書が正常に作成されました",
+      updateSuccess: "見積書が正常に更新されました",
+      deleteSuccess: "見積書が正常に削除されました",
+      sendSuccess: "見積書が正常に送信されました",
+      approveSuccess: "見積書が正常に承認されました",
+      rejectSuccess: "見積書が正常に拒否されました",
+      convertSuccess: "見積書が予約に正常に変換されました",
+      alreadyApproved: "この見積書はすでに承認されています",
+      alreadyConverted: "この見積書はすでに変換されています",
+      notApproved: "この見積書は変換前に承認が必要です",
+      expired: "この見積書は期限切れです",
+      cannotReject: "この見積書は拒否できません",
+      emailFailed: "メールを送信できませんでしたが、見積書のステータスは更新されました",
+      partialSuccess: "部分的に成功"
     },
     messageBlock: {
       title: "会話",

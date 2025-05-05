@@ -16,8 +16,8 @@ type Props = {
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
-  // Get quotation ID from params - no need to await in Next.js 15
-  const id = params.id;
+  // Get quotation ID from params - properly await in Next.js 15
+  const { id } = await params;
   const { t } = await getDictionary();
   
   return {
@@ -27,8 +27,8 @@ export async function generateMetadata(
 }
 
 export default async function EditQuotationPage({ params }: Props) {
-  // Get quotation ID from params - no need to await in Next.js 15
-  const id = params.id;
+  // Get quotation ID from params - properly await in Next.js 15
+  const { id } = await params;
   const { t } = await getDictionary();
   const supabase = await createServerSupabaseClient();
   

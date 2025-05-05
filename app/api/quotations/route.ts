@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching quotations:', error);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('quotations.notifications.error') },
         { status: 500 }
       );
     }
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     console.error('Error handling quotations GET request:', error);
     const { t } = await getDictionary();
     return NextResponse.json(
-      { error: t('notifications.error') },
+      { error: t('quotations.notifications.error') },
       { status: 500 }
     );
   }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating quotation:', error);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('quotations.notifications.error') },
         { status: 500 }
       );
     }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     console.error('Error handling quotations POST request:', error);
     const { t } = await getDictionary();
     return NextResponse.json(
-      { error: t('notifications.error') },
+      { error: t('quotations.notifications.error') },
       { status: 500 }
     );
   }

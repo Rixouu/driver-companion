@@ -18,7 +18,7 @@ export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
   // Make sure to await the params
-  const id = params.id;
+  const { id } = await params;
   const { t } = await getDictionary();
   
   return {
@@ -29,7 +29,7 @@ export async function generateMetadata(
 
 export default async function QuotationDetailsPage({ params }: Props) {
   // Make sure to await the params
-  const id = params.id;
+  const { id } = await params;
   const { t } = await getDictionary();
   
   // Create the Supabase client with properly awaited cookies

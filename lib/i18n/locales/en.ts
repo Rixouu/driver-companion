@@ -72,7 +72,8 @@ export const en: TranslationValue = {
     today: "Today",
     booking: "Booking",
     unassign: "Unassign",
-    cannotBeUndone: "This action cannot be undone."
+    cannotBeUndone: "This action cannot be undone.",
+    updateAndSend: "Update & Send"
   },
   auth: {
     logout: "Logout"
@@ -2038,6 +2039,39 @@ export const en: TranslationValue = {
       clearFilters: "Clear Filters",
       noResults: "No quotations match your search criteria"
     },
+    form: {
+      create: "Create New Quotation",
+      update: "Update Quotation",
+      customerSection: "Customer Information",
+      detailsSection: "Quotation Details",
+      servicesSection: "Services Information",
+      priceSection: "Price Details",
+      pricingSection: "Pricing Information",
+      notesSection: "Notes & Comments",
+      previewSection: "Preview",
+      title: "Title",
+      placeholders: {
+        title: "Enter a title for this quotation",
+        customerName: "Enter customer name",
+        customerEmail: "Enter customer email",
+        customerPhone: "Enter customer phone number",
+        merchantNotes: "Internal notes (only visible to you)",
+        customerNotes: "Notes for the customer (visible to customer)"
+      },
+      customerName: "Customer Name",
+      customerEmail: "Customer Email",
+      customerPhone: "Customer Phone",
+      discountPercentage: "Discount Percentage",
+      taxPercentage: "Tax Percentage",
+      merchantNotes: "Internal Notes",
+      customerNotes: "Customer Notes"
+    },
+    pricing: {
+      total: "Total Amount",
+      subtotal: "Subtotal",
+      tax: "Tax",
+      discount: "Discount" 
+    },
     listColumns: {
       id: "ID",
       customer: "Customer",
@@ -2050,8 +2084,18 @@ export const en: TranslationValue = {
     notifications: {
       sendSuccess: "Quotation sent successfully",
       error: "An error occurred",
+      createSuccess: "Quotation created successfully",
+      updateSuccess: "Quotation updated successfully",
+      approveSuccess: "Quotation approved successfully",
+      rejectSuccess: "Quotation rejected successfully",
+      reminderSuccess: "Reminder sent successfully",
+      deleteSuccess: "Quotation deleted successfully",
       deleteConfirmation: "Are you sure you want to delete this quotation?",
-      reminderSuccess: "Reminder sent successfully"
+      alreadyApproved: "This quotation is already approved",
+      notApproved: "Only approved quotations can be converted",
+      alreadyConverted: "This quotation is already converted",
+      expired: "This quotation has expired",
+      cannotReject: "This quotation cannot be rejected"
     },
     messageBlock: {
       title: "Conversation",
@@ -2176,6 +2220,25 @@ export const en: TranslationValue = {
       title: "No Quotations Found",
       description: "You haven't created any quotations yet.",
       cta: "Create Quotation"
+    },
+    notifications: {
+      sendSuccess: "Quotation sent successfully",
+      error: "An error occurred",
+      createSuccess: "Quotation created successfully",
+      updateSuccess: "Quotation updated successfully",
+      approveSuccess: "Quotation approved successfully",
+      rejectSuccess: "Quotation rejected successfully",
+      reminderSuccess: "Reminder sent successfully",
+      deleteSuccess: "Quotation deleted successfully",
+      deleteConfirmation: "Are you sure you want to delete this quotation?",
+      alreadyApproved: "This quotation is already approved",
+      notApproved: "Only approved quotations can be converted",
+      alreadyConverted: "This quotation is already converted",
+      expired: "This quotation has expired",
+      cannotReject: "This quotation cannot be rejected",
+      convertSuccess: "Quotation converted to booking successfully",
+      emailFailed: "Email could not be sent, but quotation status was updated",
+      partialSuccess: "Partial success"
     }
   }
 }

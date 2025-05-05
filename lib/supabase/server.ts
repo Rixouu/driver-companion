@@ -8,7 +8,7 @@ export async function createServerSupabaseClient() {
   try {
     console.log('Creating server Supabase client');
     
-    // In Next.js 15 cookies() returns ReadonlyRequestCookies directly and should not be awaited
+    // Get cookies correctly - the cookies() function should be called directly, not awaited
     const cookieStore = cookies();
     console.log('Cookie store initialized');
     

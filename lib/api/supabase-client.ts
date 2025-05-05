@@ -7,7 +7,10 @@ import { NextResponse } from 'next/server';
  * Creates a typed Supabase client for use in API routes
  */
 export async function createAPIClient() {
+  // In Next.js 15, cookies() returns a ReadonlyRequestCookies directly
   const cookieStore = cookies();
+  
+  // Create the client with proper cookie handling
   return createRouteHandlerClient<Database>({ 
     cookies: () => cookieStore 
   });

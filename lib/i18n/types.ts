@@ -894,6 +894,126 @@ export interface NotificationsTranslations {
   unread: string
 }
 
+export interface QuotationsTranslations {
+  title: string
+  description: string
+  create: string
+  edit: string
+  view: string
+  placeholder: string
+  list: string
+  listDescription: string
+  messageBlock: {
+    title: string
+    noMessages: string
+    startConversation: string
+    typePlaceholder: string
+    send: string
+    pressEnterHint: string
+    messageCounter: string
+    loadMore: string
+    unreadMessages: string
+  }
+  details: {
+    title: string
+    description: string
+    quotationNumber: string
+    customerInfo: string
+    contactInfo: string
+    billingAddress: string
+    taxId: string
+    serviceInfo: string
+    serviceDetails: string
+    serviceType: string
+    vehicleType: string
+    duration: string
+    hours: string
+    days: string
+    schedule: string
+    pickupDate: string
+    pickupTime: string
+    priceDetails: string
+    validUntil: string
+    created: string
+    expiry: string
+    validFor: string
+    locations: string
+    pickup: string
+    dropoff: string
+    notes: string
+    termsAndConditions: string
+    activities: string
+    untitled: string
+    expires: string
+    expired: string
+    approvalPanel: {
+      title: string
+      approveButton: string
+      rejectButton: string
+      approveConfirmation: string
+      rejectConfirmation: string
+      notesLabel: string
+      notesPlaceholder: string
+      reasonLabel: string
+      reasonPlaceholder: string
+      approvalSuccess: string
+      rejectionSuccess: string
+    }
+  }
+  status: {
+    draft: string
+    sent: string
+    approved: string
+    rejected: string
+    expired: string
+    converted: string
+  }
+  actions: {
+    view: string
+    edit: string
+    delete: string
+    send: string
+    copy: string
+    remind: string
+    print: string
+    download: string
+    email: string
+  }
+  filters: {
+    all: string
+    searchPlaceholder: string
+    clearFilters: string
+    noResults: string
+  }
+  listColumns: {
+    id: string
+    customer: string
+    date: string
+    amount: string
+    status: string
+    expiresOn: string
+    actions: string
+  }
+  notifications: {
+    sendSuccess: string
+    error: string
+    deleteConfirmation: string
+  }
+  emailDescription: string
+  includeDetails: string
+  editSection: {
+    title: string
+    description: string
+    notEditable: string
+    notEditableDescription: string
+  }
+  empty: {
+    title: string
+    description: string
+    cta: string
+  }
+}
+
 export interface TranslationSchema {
   common: TranslationValue
   navigation: TranslationValue
@@ -913,4 +1033,5 @@ export interface TranslationSchema {
   manageVehicles: {
     description: string
   }
+  quotations: QuotationsTranslations
 } 

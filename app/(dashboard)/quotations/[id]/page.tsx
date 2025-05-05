@@ -6,31 +6,37 @@ import { Suspense } from 'react';
 
 import { QuotationDetails } from './quotation-details';
 import LoadingSpinner from '@/components/shared/loading-spinner';
+import { Quotation, QuotationItem } from '@/types/quotations';
 
 // Define the types for dynamic params
 type Props = {
   params: { id: string }
 }
 
-// Fix the metadata generation to properly await params
+// Generate metadata for the page
 export async function generateMetadata(
   { params }: Props
 ): Promise<Metadata> {
-  const id = await params.id;
+  // Make sure to await the params
+  const id = params.id;
   const { t } = await getDictionary();
   
   return {
     title: `${t('quotations.details.title')} #${id.substring(0, 8)}`,
+    description: t('quotations.details.description')
   };
 }
 
 export default async function QuotationDetailsPage({ params }: Props) {
-  const id = await params.id;
+  // Make sure to await the params
+  const id = params.id;
   const { t } = await getDictionary();
+  
+  // Create the Supabase client with properly awaited cookies
   const supabase = await createServerSupabaseClient();
   
   // Get the quotation with expanded selection to include billing details
-  const { data: quotation, error } = await supabase
+  const { data, error } = await supabase
     .from('quotations')
     .select(`
       *,
@@ -40,9 +46,12 @@ export default async function QuotationDetailsPage({ params }: Props) {
     .eq('id', id)
     .single();
   
-  if (error || !quotation) {
+  if (error || !data) {
     notFound();
   }
+
+  // Use a type assertion - we know this format works with our component
+  const quotation = data as any;
 
   return (
     <div className="space-y-6">

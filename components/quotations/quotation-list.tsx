@@ -41,6 +41,7 @@ import {
 import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
+import { QuotationStatusFilter } from './quotation-status-filter';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -97,6 +98,29 @@ export default function QuotationList({
   // Check if quotation is expired
   const isExpired = (expiryDate: string) => {
     return new Date(expiryDate) < new Date();
+  };
+
+  // Check if quotation needs reminder
+  const needsReminder = (quotation: Quotation) => {
+    // If not in 'sent' status, no reminder needed
+    if (quotation.status !== 'sent') return false;
+    
+    // If already expired, no reminder needed
+    if (isExpired(quotation.expiry_date)) return false;
+    
+    // Get quotation creation or last activity date
+    const lastActivityDate = new Date(quotation.updated_at || quotation.created_at);
+    const now = new Date();
+    
+    // If created more than 24 hours ago, needs reminder
+    const hoursSinceActivity = (now.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceActivity >= 24) return true;
+    
+    // Check if nearing expiry (24h before expiry)
+    const expiryDate = new Date(quotation.expiry_date);
+    const hoursUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    
+    return hoursUntilExpiry <= 24 && hoursUntilExpiry > 0;
   };
 
   // Get status badge
@@ -198,17 +222,6 @@ export default function QuotationList({
     }
   };
 
-  // Status filter options
-  const statusOptions = [
-    { value: 'all', label: t('quotations.filters.all') },
-    { value: 'draft', label: t('quotations.status.draft') },
-    { value: 'sent', label: t('quotations.status.sent') },
-    { value: 'approved', label: t('quotations.status.approved') },
-    { value: 'rejected', label: t('quotations.status.rejected') },
-    { value: 'expired', label: t('quotations.status.expired') },
-    { value: 'converted', label: t('quotations.status.converted') }
-  ];
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -235,23 +248,20 @@ export default function QuotationList({
 
   return (
     <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle>{t('quotations.list.title')}</CardTitle>
-            <CardDescription>
-              {t('quotations.description')}
-            </CardDescription>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSearchQuery('')}
-              className="hidden sm:flex"
-            >
-              {t('quotations.filters.clearFilters')}
-            </Button>
+      <CardContent className="p-0">
+        {/* Search Bar Section */}
+        <div className="p-4 border-b">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder={t('quotations.filters.searchPlaceholder')}
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <Button 
               variant="outline" 
               size="icon" 
@@ -261,243 +271,223 @@ export default function QuotationList({
               <RefreshCwIcon className="h-4 w-4" />
             </Button>
             <Button 
-              variant="default" 
+              variant="outline" 
               size="sm" 
-              onClick={() => router.push('/quotations/create' as any)}
-              className="h-9 flex-1 sm:flex-initial"
+              onClick={() => setSearchQuery('')}
+              className="whitespace-nowrap"
             >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              {t('quotations.create')}
+              {t('quotations.filters.clearFilters')}
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t('quotations.filters.searchPlaceholder')}
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto">
-                  {statusOptions.find(option => option.value === statusFilter)?.label}
-                  <ChevronDownIcon className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
-                {statusOptions.map(option => (
-                  <DropdownMenuItem 
-                    key={option.value}
-                    onClick={() => setStatusFilter(option.value as QuotationStatus | 'all')}
-                  >
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        
+        {/* Filters Section */}
+        <div className="p-4 bg-muted/10 border-b">
+          <QuotationStatusFilter 
+            currentStatus={statusFilter}
+            onChange={(value) => setStatusFilter(value)}
+          />
         </div>
 
-        {filteredQuotations.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <AlertCircleIcon className="mx-auto h-8 w-8 mb-2" />
-            <p>{t('quotations.filters.noResults')}</p>
-          </div>
-        ) : (
-          <>
-            {/* Card view for mobile */}
-            <div className="md:hidden space-y-4">
-              {filteredQuotations.map((quotation) => (
-                <div 
-                  key={quotation.id}
-                  className="rounded-lg border bg-card shadow-sm hover:bg-accent/10 cursor-pointer transition-colors"
-                  onClick={() => handleRowClick(quotation.id)}
-                >
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="font-mono text-xs">#{quotation.quote_number}</div>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(quotation.status, quotation.expiry_date)}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-7 w-7 rounded-full">
-                              <MoreHorizontalIcon className="h-4 w-4" />
+        <div className="p-4">
+          {filteredQuotations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertCircleIcon className="mx-auto h-8 w-8 mb-2" />
+              <p>{t('quotations.filters.noResults')}</p>
+            </div>
+          ) : (
+            <>
+              {/* Card view for mobile */}
+              <div className="md:hidden space-y-4">
+                {filteredQuotations.map((quotation) => (
+                  <div 
+                    key={quotation.id}
+                    className="rounded-lg border bg-card shadow-sm hover:bg-accent/10 cursor-pointer transition-colors"
+                    onClick={() => handleRowClick(quotation.id)}
+                  >
+                    <div className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-mono text-xs">#{quotation.quote_number}</div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(quotation.status, quotation.expiry_date)}
+                          {needsReminder(quotation) && (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              <AlertCircleIcon className="h-3 w-3 mr-1" />
+                              {t('quotations.actions.remind')}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="font-medium mb-1">{quotation.customer_name || '—'}</div>
+                      <div className="text-xs text-muted-foreground mb-3 truncate">{quotation.customer_email}</div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="text-xs text-muted-foreground">
+                          {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
+                        </div>
+                        <div className="font-semibold text-right">
+                          {formatCurrency(quotation.total_amount, 'JPY')}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                        >
+                          <EyeIcon className="h-4 w-4 mr-2" />
+                          {t('quotations.actions.view')}
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                        >
+                          <CopyIcon className="h-4 w-4 mr-2" />
+                          {t('quotations.actions.copy')}
+                        </Button>
+                        
+                        {['draft', 'rejected', 'expired'].includes(quotation.status) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
+                            className="text-red-600 hover:text-red-600"
+                          >
+                            <TrashIcon className="h-4 w-4 mr-2" />
+                            {t('quotations.actions.delete')}
+                          </Button>
+                        )}
+                        
+                        {quotation.status === 'draft' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
+                            >
+                              <FileEditIcon className="h-4 w-4 mr-2" />
+                              {t('quotations.actions.edit')}
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => handleViewClick(e, quotation.id)}>
-                              <EyeIcon className="h-4 w-4 mr-2" />
-                              {t('quotations.actions.view')}
-                            </DropdownMenuItem>
-                            
-                            {quotation.status === 'draft' && (
-                              <DropdownMenuItem onClick={(e) => handleEditClick(e, quotation.id)}>
-                                <FileEditIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.edit')}
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {quotation.status === 'draft' && (
-                              <DropdownMenuItem onClick={(e) => handleSendClick(e, quotation.id)}>
-                                <MailIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.send')}
-                              </DropdownMenuItem>
-                            )}
-                            
-                            {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                              <DropdownMenuItem onClick={(e) => handleRemindClick(e, quotation.id)}>
-                                <BellIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.remind')}
-                              </DropdownMenuItem>
-                            )}
-                            
-                            <DropdownMenuItem onClick={(e) => handleDuplicateClick(e, quotation.id)}>
-                              <CopyIcon className="h-4 w-4 mr-2" />
-                              {t('quotations.actions.copy')}
-                            </DropdownMenuItem>
-                            
-                            <DropdownMenuSeparator />
-                            
-                            {['draft', 'rejected', 'expired'].includes(quotation.status) && (
-                              <DropdownMenuItem 
-                                onClick={(e) => handleDeleteClick(e, quotation.id)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <TrashIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.delete')}
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    
-                    <div className="font-medium mb-1">{quotation.customer_name || '—'}</div>
-                    <div className="text-xs text-muted-foreground mb-3 truncate">{quotation.customer_email}</div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="text-xs text-muted-foreground">
-                        {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
-                      </div>
-                      <div className="font-semibold text-right">
-                        {formatCurrency(quotation.total_amount, 'JPY')}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Table view for desktop */}
-            <div className="hidden md:block rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[90px]">{t('quotations.list.id')}</TableHead>
-                    <TableHead>{t('quotations.list.customer')}</TableHead>
-                    <TableHead>{t('quotations.list.date')}</TableHead>
-                    <TableHead>{t('quotations.list.amount')}</TableHead>
-                    <TableHead>{t('quotations.list.status')}</TableHead>
-                    <TableHead>{t('quotations.list.expiresOn')}</TableHead>
-                    <TableHead className="w-[70px] text-right">{t('quotations.list.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredQuotations.map((quotation) => (
-                    <TableRow 
-                      key={quotation.id} 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleRowClick(quotation.id)}
-                    >
-                      <TableCell className="font-mono text-xs sm:text-sm">#{quotation.quote_number}</TableCell>
-                      <TableCell>
-                        <div className="font-medium text-sm sm:text-base">{quotation.customer_name || '—'}</div>
-                        <div className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] md:max-w-none">{quotation.customer_email}</div>
-                      </TableCell>
-                      <TableCell>
-                        {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(quotation.total_amount, 'JPY')}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(quotation.status, quotation.expiry_date)}
-                      </TableCell>
-                      <TableCell>
-                        {quotation.expiry_date && (
-                          <div className={isExpired(quotation.expiry_date) ? 'text-red-500' : ''}>
-                            {format(parseISO(quotation.expiry_date), 'MMM d, yyyy')}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right p-0 pr-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()} className="h-8 w-8">
-                              <MoreHorizontalIcon className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => handleViewClick(e, quotation.id)}>
-                              <EyeIcon className="h-4 w-4 mr-2" />
-                              {t('quotations.actions.view')}
-                            </DropdownMenuItem>
-                            
-                            {quotation.status === 'draft' && (
-                              <DropdownMenuItem onClick={(e) => handleEditClick(e, quotation.id)}>
-                                <FileEditIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.edit')}
-                              </DropdownMenuItem>
+                ))}
+              </div>
+              
+              {/* Table view for desktop */}
+              <div className="hidden md:block rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="w-[90px]">{t('quotations.listColumns.id')}</TableHead>
+                      <TableHead>{t('quotations.listColumns.customer')}</TableHead>
+                      <TableHead>{t('quotations.listColumns.date')}</TableHead>
+                      <TableHead>{t('quotations.listColumns.amount')}</TableHead>
+                      <TableHead>{t('quotations.listColumns.status')}</TableHead>
+                      <TableHead>{t('quotations.listColumns.expiresOn')}</TableHead>
+                      <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredQuotations.map((quotation) => (
+                      <TableRow 
+                        key={quotation.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleRowClick(quotation.id)}
+                      >
+                        <TableCell className="font-mono text-xs sm:text-sm">#{quotation.quote_number}</TableCell>
+                        <TableCell>
+                          <div className="font-medium text-sm sm:text-base">{quotation.customer_name || '—'}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] md:max-w-none">{quotation.customer_email}</div>
+                        </TableCell>
+                        <TableCell>
+                          {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(quotation.total_amount, 'JPY')}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(quotation.status, quotation.expiry_date)}
+                        </TableCell>
+                        <TableCell>
+                          {quotation.expiry_date && (
+                            <div className={isExpired(quotation.expiry_date) ? 'text-red-500' : ''}>
+                              {format(parseISO(quotation.expiry_date), 'MMM d, yyyy')}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="p-2">
+                          <div className="flex justify-start items-center space-x-1">
+                            {needsReminder(quotation) && (
+                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 mr-2">
+                                <AlertCircleIcon className="h-3 w-3 mr-1" />
+                                {t('quotations.actions.remind')}
+                              </Badge>
                             )}
+
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }} className="h-8 w-8">
+                              <EyeIcon className="h-4 w-4" />
+                            </Button>
                             
                             {quotation.status === 'draft' && (
-                              <DropdownMenuItem onClick={(e) => handleSendClick(e, quotation.id)}>
-                                <MailIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.send')}
-                              </DropdownMenuItem>
+                              <>
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }} className="h-8 w-8">
+                                  <FileEditIcon className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }} className="h-8 w-8">
+                                  <MailIcon className="h-4 w-4" />
+                                </Button>
+                              </>
                             )}
                             
                             {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                              <DropdownMenuItem onClick={(e) => handleRemindClick(e, quotation.id)}>
-                                <BellIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.remind')}
-                              </DropdownMenuItem>
+                              <Button 
+                                variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                                size="icon" 
+                                onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }} 
+                                className="h-8 w-8"
+                              >
+                                <BellIcon className="h-4 w-4" />
+                              </Button>
                             )}
                             
-                            <DropdownMenuItem onClick={(e) => handleDuplicateClick(e, quotation.id)}>
-                              <CopyIcon className="h-4 w-4 mr-2" />
-                              {t('quotations.actions.copy')}
-                            </DropdownMenuItem>
-                            
-                            <DropdownMenuSeparator />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }} 
+                              className="h-8 w-8"
+                              title={t('quotations.actions.copy')}
+                            >
+                              <CopyIcon className="h-4 w-4" />
+                            </Button>
                             
                             {['draft', 'rejected', 'expired'].includes(quotation.status) && (
-                              <DropdownMenuItem 
-                                onClick={(e) => handleDeleteClick(e, quotation.id)}
-                                className="text-red-600 focus:text-red-600"
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
+                                className="h-8 w-8 text-red-600 hover:text-red-600"
+                                title={t('quotations.actions.delete')}
                               >
-                                <TrashIcon className="h-4 w-4 mr-2" />
-                                {t('quotations.actions.delete')}
-                              </DropdownMenuItem>
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

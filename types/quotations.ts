@@ -50,6 +50,9 @@ export interface Quotation {
   updated_at: string;
   rejected_reason?: string;
   quote_number: number;
+  expires_at: string;
+  user_id: string;
+  user_name?: string;
 }
 
 export interface QuotationItem {
@@ -91,9 +94,23 @@ export interface PricingItem {
 export interface QuotationActivity {
   id: string;
   quotation_id: string;
-  user_id?: string;
+  user_id: string;
+  user_name?: string;
+  customer_id?: string;
   action: string;
-  details?: any;
+  details?: Record<string, any>;
+  created_at: string;
+}
+
+export interface QuotationMessage {
+  id: string;
+  quotation_id: string;
+  user_id: string;
+  user_name?: string;
+  customer_id?: string;
+  message: string;
+  is_from_customer: boolean;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -104,6 +121,7 @@ export interface QuotationWithItems extends Quotation {
 export interface QuotationWithRelations extends Quotation {
   items: QuotationItem[];
   activities?: QuotationActivity[];
+  messages?: QuotationMessage[];
 }
 
 export interface CreateQuotationInput {

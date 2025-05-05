@@ -39,7 +39,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 
 // Import the componentized parts
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
@@ -61,10 +60,8 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
-  const [isApprovalSticky, setIsApprovalSticky] = useState(false);
-  const [shouldMoveToMainContent, setShouldMoveToMainContent] = useState(false);
+  const [isApprovalPanelSticky, setIsApprovalPanelSticky] = useState(false);
   const approvalPanelRef = useRef<HTMLDivElement>(null);
-  const priceDetailsRef = useRef<HTMLDivElement>(null);
   const { approveQuotation, rejectQuotation, sendQuotation } = useQuotationService();
 
   // Add the messages hook
@@ -174,7 +171,7 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
 
   // Go back to quotations list
   const handleBack = () => {
-    router.push('/quotations' as any);
+    router.push('/quotations');
   };
 
   // Send the quotation to the customer
@@ -224,18 +221,30 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
     refreshMessages();
   };
 
-  // Add scroll handler for approval positioning
+  // Add scroll event listener to handle sticky approval panel
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > window.innerHeight / 2) {
-        setShouldMoveToMainContent(true);
+      const scrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      
+      // Make approval panel sticky when scrolled beyond half of viewport height
+      if (scrollY > viewportHeight / 2) {
+        setIsApprovalPanelSticky(true);
       } else {
-        setShouldMoveToMainContent(false);
+        setIsApprovalPanelSticky(false);
       }
     };
-    
+
+    // Add scroll event listener
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    // Initial check
+    handleScroll();
+    
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   return (
@@ -274,7 +283,7 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/quotations/${quotation.id}/edit` as any)}
+              onClick={() => router.push(`/quotations/${quotation.id}/edit`)}
             >
               <Edit className="h-4 w-4 mr-2" />
               {t('quotations.editSection.title')}
@@ -464,84 +473,22 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
               <Separator className="my-6" />
               
               {/* Price Details */}
-              <div ref={priceDetailsRef}>
-                <PriceDetails 
-                  amount={quotation.amount}
-                  discount_percentage={quotation.discount_percentage}
-                  tax_percentage={quotation.tax_percentage}
-                  total_amount={quotation.total_amount}
-                  vehicle_type={quotation.vehicle_type}
-                  hours_per_day={quotation.hours_per_day}
-                  duration_hours={quotation.duration_hours}
-                  service_days={quotation.service_days}
-                  selectedCurrency={selectedCurrency}
-                  onCurrencyChange={setSelectedCurrency}
-                  formatCurrency={formatCurrency}
-                  calculateDiscountAmount={calculateDiscountAmount}
-                  calculateSubtotalAmount={calculateSubtotalAmount}
-                  calculateTaxAmount={calculateTaxAmount}
-                />
-              </div>
-              
-              {/* Conditional Approval Panel placement - under price details when scrolled */}
-              {shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
-                <div className="mt-6" ref={approvalPanelRef}>
-                  <QuotationDetailsApprovalPanel 
-                    quotationId={quotation.id}
-                    isProcessing={isLoading}
-                    onApprove={async (notes) => {
-                      setIsLoading(true);
-                      try {
-                        const success = await approveQuotation({
-                          quotation_id: quotation.id,
-                          notes: notes
-                        });
-                        if (success) {
-                          toast({
-                            title: t('quotations.notifications.approveSuccess'),
-                            variant: 'default',
-                          });
-                          router.refresh();
-                        }
-                      } catch (error) {
-                        console.error('Error approving quotation:', error);
-                        toast({
-                          title: t('quotations.notifications.error'),
-                          description: 'Failed to approve quotation',
-                          variant: 'destructive',
-                        });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    onReject={async (reason) => {
-                      setIsLoading(true);
-                      try {
-                        const success = await rejectQuotation({
-                          quotation_id: quotation.id,
-                          rejected_reason: reason
-                        });
-                        if (success) {
-                          toast({
-                            title: t('quotations.notifications.rejectSuccess'),
-                            variant: 'default',
-                          });
-                          router.refresh();
-                        }
-                      } catch (error) {
-                        console.error('Error rejecting quotation:', error);
-                        toast({
-                          title: t('quotations.notifications.error'),
-                          description: 'Failed to reject quotation',
-                          variant: 'destructive',
-                        });
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                  />
-                </div>
-              )}
+              <PriceDetails 
+                amount={quotation.amount}
+                discount_percentage={quotation.discount_percentage}
+                tax_percentage={quotation.tax_percentage}
+                total_amount={quotation.total_amount}
+                vehicle_type={quotation.vehicle_type}
+                hours_per_day={quotation.hours_per_day}
+                duration_hours={quotation.duration_hours}
+                service_days={quotation.service_days}
+                selectedCurrency={selectedCurrency}
+                onCurrencyChange={setSelectedCurrency}
+                formatCurrency={formatCurrency}
+                calculateDiscountAmount={calculateDiscountAmount}
+                calculateSubtotalAmount={calculateSubtotalAmount}
+                calculateTaxAmount={calculateTaxAmount}
+              />
               
               {/* Customer Notes and Merchant Notes sections */}
               {(quotation.customer_notes || quotation.merchant_notes) && (
@@ -582,9 +529,9 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
           </Card>
           
           {/* Message Block */}
-          <Card className="mt-24">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-semibold tracking-tight">
+          <Card className="mt-8">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium">
                 {t('quotations.messageBlock.title') || 'Conversation'}
               </CardTitle>
             </CardHeader>
@@ -603,7 +550,7 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
           {/* Quotation Info Card */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-medium">
+              <CardTitle className="text-lg font-medium">
                 {t('quotations.details.info') || 'Quotation Info'}
               </CardTitle>
             </CardHeader>
@@ -642,10 +589,12 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
             </CardContent>
           </Card>
           
-
-          {/* Default Approval Panel placement - in sidebar above activity feed */}
-          {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
-            <div className="mb-6 mt-6">
+          {/* Sticky Approval Panel - appears when scrolled */}
+          {isApprovalPanelSticky && ['draft', 'sent'].includes(quotation.status) && (
+            <div 
+              className="fixed top-4 right-4 z-50 w-[320px] shadow-lg transition-all duration-300 ease-in-out opacity-100 translate-y-0"
+              ref={approvalPanelRef}
+            >
               <QuotationDetailsApprovalPanel 
                 quotationId={quotation.id}
                 isProcessing={isLoading}
@@ -702,8 +651,65 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
               />
             </div>
           )}
-
-
+          
+          {/* Regular Approval Panel - only for eligible quotations */}
+          {['draft', 'sent'].includes(quotation.status) && !isApprovalPanelSticky && (
+            <QuotationDetailsApprovalPanel 
+              quotationId={quotation.id}
+              isProcessing={isLoading}
+              onApprove={async (notes) => {
+                setIsLoading(true);
+                try {
+                  const success = await approveQuotation({
+                    quotation_id: quotation.id,
+                    notes: notes
+                  });
+                  if (success) {
+                    toast({
+                      title: t('quotations.notifications.approveSuccess'),
+                      variant: 'default',
+                    });
+                    router.refresh();
+                  }
+                } catch (error) {
+                  console.error('Error approving quotation:', error);
+                  toast({
+                    title: t('quotations.notifications.error'),
+                    description: 'Failed to approve quotation',
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              onReject={async (reason) => {
+                setIsLoading(true);
+                try {
+                  const success = await rejectQuotation({
+                    quotation_id: quotation.id,
+                    rejected_reason: reason
+                  });
+                  if (success) {
+                    toast({
+                      title: t('quotations.notifications.rejectSuccess'),
+                      variant: 'default',
+                    });
+                    router.refresh();
+                  }
+                } catch (error) {
+                  console.error('Error rejecting quotation:', error);
+                  toast({
+                    title: t('quotations.notifications.error'),
+                    description: 'Failed to reject quotation',
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            />
+          )}
+          
           {/* Activity Feed */}
           <div className="mt-6">
             <QuotationActivityFeed 
@@ -712,8 +718,6 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
               onRefresh={handleRefreshActivityFeed}
             />
           </div>
-
-         
         </div>
       </div>
     </div>

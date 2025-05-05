@@ -1014,6 +1014,76 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_calculation_logs: {
+        Row: {
+          applied_discount: number | null
+          applied_tax: number | null
+          base_price: number | null
+          calculated_amount: number | null
+          calculation_details: Json | null
+          created_at: string
+          days_count: number | null
+          duration_hours: number | null
+          final_amount: number | null
+          function_name: string
+          id: string
+          quotation_id: string | null
+          service_type: string | null
+        }
+        Insert: {
+          applied_discount?: number | null
+          applied_tax?: number | null
+          base_price?: number | null
+          calculated_amount?: number | null
+          calculation_details?: Json | null
+          created_at?: string
+          days_count?: number | null
+          duration_hours?: number | null
+          final_amount?: number | null
+          function_name: string
+          id?: string
+          quotation_id?: string | null
+          service_type?: string | null
+        }
+        Update: {
+          applied_discount?: number | null
+          applied_tax?: number | null
+          base_price?: number | null
+          calculated_amount?: number | null
+          calculation_details?: Json | null
+          created_at?: string
+          days_count?: number | null
+          duration_hours?: number | null
+          final_amount?: number | null
+          function_name?: string
+          id?: string
+          quotation_id?: string | null
+          service_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_calculation_logs_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "pricing_calculation_logs_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_calculation_logs_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_categories: {
         Row: {
           created_at: string
@@ -1134,6 +1204,13 @@ export type Database = {
             foreignKeyName: "quotation_activities_quotation_id_fkey"
             columns: ["quotation_id"]
             isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "quotation_activities_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
             referencedRelation: "quotation_summary_view"
             referencedColumns: ["id"]
           },
@@ -1185,11 +1262,83 @@ export type Database = {
             foreignKeyName: "quotation_items_quotation_id_fkey"
             columns: ["quotation_id"]
             isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
             referencedRelation: "quotation_summary_view"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_messages: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          is_from_customer: boolean
+          is_read: boolean
+          message: string
+          quotation_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          is_from_customer?: boolean
+          is_read?: boolean
+          message: string
+          quotation_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          is_from_customer?: boolean
+          is_read?: boolean
+          message?: string
+          quotation_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_messages_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "quotation_messages_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_messages_quotation_id_fkey"
             columns: ["quotation_id"]
             isOneToOne: false
             referencedRelation: "quotations"
@@ -1216,6 +1365,7 @@ export type Database = {
           customer_name: string | null
           customer_notes: string | null
           customer_phone: string | null
+          days_count: number | null
           discount_percentage: number | null
           dropoff_location: string | null
           duration_hours: number | null
@@ -1259,6 +1409,7 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
+          days_count?: number | null
           discount_percentage?: number | null
           dropoff_location?: string | null
           duration_hours?: number | null
@@ -1302,6 +1453,7 @@ export type Database = {
           customer_name?: string | null
           customer_notes?: string | null
           customer_phone?: string | null
+          days_count?: number | null
           discount_percentage?: number | null
           dropoff_location?: string | null
           duration_hours?: number | null
@@ -1485,16 +1637,37 @@ export type Database = {
           },
         ]
       }
+      pricing_diagnostic_view: {
+        Row: {
+          actual_total_amount: number | null
+          base_price: number | null
+          calculation_details: Json | null
+          calculation_time: string | null
+          days_count: number | null
+          discount_percentage: number | null
+          duration_hours: number | null
+          expected_base_amount: number | null
+          quotation_id: string | null
+          service_type: string | null
+          tax_percentage: number | null
+          title: string | null
+          vehicle_type: string | null
+        }
+        Relationships: []
+      }
       quotation_summary_view: {
         Row: {
           amount: number | null
           booking_status: string | null
+          calculated_amount: number | null
           converted_to_booking_id: string | null
           created_at: string | null
           currency: string | null
           customer_email: string | null
           customer_name: string | null
+          days_count: number | null
           discount_percentage: number | null
+          duration_hours: number | null
           expiry_date: string | null
           id: string | null
           is_converted: boolean | null
@@ -1521,7 +1694,31 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      calculate_charter_price: {
+        Args:
+          | { base_price: number; days_count: number }
+          | { base_price: number; days_count: number; quotation_id?: string }
+        Returns: number
+      }
+      get_correct_price_for_duration: {
+        Args:
+          | {
+              p_vehicle_type: string
+              p_service_type: string
+              p_duration_hours: number
+            }
+          | {
+              p_vehicle_type: string
+              p_service_type: string
+              p_duration_hours: number
+              p_category_id: string
+            }
+        Returns: {
+          price: number
+          currency: string
+          duration_hours: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

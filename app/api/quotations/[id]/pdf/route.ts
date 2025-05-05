@@ -1,7 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import html2pdf from 'html2pdf.js'
-import { cookies } from 'next/headers'
 
 export async function GET(
   request: NextRequest,

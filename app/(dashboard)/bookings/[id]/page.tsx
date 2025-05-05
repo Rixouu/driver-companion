@@ -20,6 +20,7 @@ import { useI18n } from '@/lib/i18n/context'
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import BookingAssignment from '@/components/bookings/booking-assignment'
+import { QuotationMessageContainer } from '@/components/quotations/quotation-containers'
 
 function BookingNotFound({ bookingId }: { bookingId: string }) {
   const { t } = useI18n()
@@ -724,6 +725,22 @@ export default function BookingPage() {
           />
         </div>
       </div>
+
+      {/* Communications Card */}
+      <Card className="mb-6">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Mail className="h-5 w-5 mr-2 text-primary" />
+            {t('bookings.details.communication')}
+          </h2>
+          
+          <div className="space-y-4">
+            <QuotationMessageContainer id={id} />
+          </div>
+        </div>
+      </Card>
+
+      {/* Notes Section */}
     </div>
   );
 } 

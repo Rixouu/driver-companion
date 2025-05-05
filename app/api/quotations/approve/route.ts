@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { getDictionary } from '@/lib/i18n/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary();
 
   try {
@@ -62,6 +60,7 @@ export async function POST(request: NextRequest) {
       updateData.customer_notes = notes;
     }
     
+    // Update the quotation
     const { data: updatedQuotation, error: updateError } = await supabase
       .from('quotations')
       .update(updateData)
@@ -78,28 +77,21 @@ export async function POST(request: NextRequest) {
     }
     
     // Create activity log
+    // If session exists, use user_id, otherwise use a placeholder or customer_id
+    const userId = session?.user?.id || customerId || '00000000-0000-0000-0000-000000000000';
     await supabase
       .from('quotation_activities')
       .insert({
         quotation_id: id,
-        user_id: session?.user?.id || null,
-        customer_id: customerId || null,
+        user_id: userId,
         action: 'approved',
-        details: { notes, approved_at: new Date().toISOString() }
+        details: { 
+          status: 'approved',
+          notes: notes || null
+        }
       });
     
-    // In a real implementation, you would send an email notification
-    // to the merchant that the quotation was approved
-    console.log(`Quotation ${id} approved by ${customerId || 'customer'}`);
-    
-    // Optional: auto-convert to booking here
-    // In a real implementation, this might be a separate process or async job
-    
-    return NextResponse.json({
-      success: true,
-      message: t('notifications.approveSuccess'),
-      quotation: updatedQuotation
-    });
+    return NextResponse.json(updatedQuotation);
   } catch (error) {
     console.error('Error approving quotation:', error);
     return NextResponse.json(

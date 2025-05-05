@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { getDictionary } from '@/lib/i18n/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary();
 
   // Check auth
@@ -55,28 +53,46 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create a booking from the quotation details
+    // Update quotation status to 'converted'
+    const { data: updatedQuotation, error: updateError } = await supabase
+      .from('quotations')
+      .update({
+        status: 'converted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('Error updating quotation status:', updateError);
+      return NextResponse.json(
+        { error: t('notifications.error') },
+        { status: 500 }
+      );
+    }
+    
+    // Cast quotation to any to avoid TypeScript errors with unknown properties
+    const q = quotation as any;
+    
+    // Create a simplified booking record with only required fields
     const bookingData = {
-      customer_name: quotation.customer_name,
-      customer_email: quotation.customer_email,
-      customer_phone: quotation.customer_phone,
-      pickup_date: quotation.pickup_date,
-      pickup_time: quotation.pickup_time,
-      pickup_location: quotation.pickup_location,
-      dropoff_location: quotation.dropoff_location,
-      vehicle_type: quotation.vehicle_type,
-      service_type: quotation.service_type,
-      passenger_count: quotation.passenger_count,
-      duration_hours: quotation.duration_hours,
+      date: q.pickup_date || new Date().toISOString().split('T')[0],
+      time: q.pickup_time || '12:00',
+      service_name: q.service_type,
+      customer_name: q.customer_name,
+      customer_email: q.customer_email,
+      customer_phone: q.customer_phone,
+      vehicle_type: q.vehicle_type,
       status: 'confirmed',
-      total_amount: quotation.total_amount,
+      notes: q.notes || '',
+      amount: q.amount,
+      currency: q.currency || 'USD',
+      wp_id: '',  // Empty string instead of null
       created_by: session.user.id,
-      source: 'quotation',
-      notes: quotation.customer_notes,
-      internal_notes: `Converted from quotation ${quotation.quote_number || quotation.id}`
+      source: 'quotation'
     };
     
-    // Insert the booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert(bookingData)
@@ -85,33 +101,15 @@ export async function POST(request: NextRequest) {
     
     if (bookingError) {
       console.error('Error creating booking:', bookingError);
-      return NextResponse.json(
-        { error: t('notifications.error') },
-        { status: 500 }
-      );
-    }
-    
-    // Update the quotation with the booking ID and status
-    const { data: updatedQuotation, error: updateError } = await supabase
-      .from('quotations')
-      .update({
-        status: 'converted',
-        converted_to_booking_id: booking.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (updateError) {
-      console.error('Error updating quotation:', updateError);
       
-      // If updating the quotation fails, we should delete the created booking
-      // to avoid orphaned bookings
+      // Revert quotation status if booking creation fails
       await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', booking.id);
+        .from('quotations')
+        .update({
+          status: 'approved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
       
       return NextResponse.json(
         { error: t('notifications.error') },
@@ -126,24 +124,15 @@ export async function POST(request: NextRequest) {
         quotation_id: id,
         user_id: session.user.id,
         action: 'converted',
-        details: { 
-          booking_id: booking.id,
-          converted_at: new Date().toISOString()
-        }
+        details: { booking_id: booking.id }
       });
     
-    // In a real implementation, you would send a confirmation email
-    // to the customer with booking details
-    console.log(`Quotation ${id} converted to booking ${booking.id}`);
-    
     return NextResponse.json({
-      success: true,
-      message: t('notifications.convertSuccess'),
-      bookingId: booking.id,
-      quotation: updatedQuotation
+      quotation: updatedQuotation,
+      booking
     });
   } catch (error) {
-    console.error('Error converting quotation to booking:', error);
+    console.error('Error converting quotation:', error);
     return NextResponse.json(
       { error: t('notifications.error') },
       { status: 500 }

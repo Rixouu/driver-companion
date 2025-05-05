@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { getDictionary } from '@/lib/i18n/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary();
 
   try {
@@ -65,14 +63,15 @@ export async function POST(request: NextRequest) {
     }
     
     // Create activity log
+    // If session exists, use user_id, otherwise use customerId or a placeholder
+    const userId = session?.user?.id || customerId || '00000000-0000-0000-0000-000000000000';
     await supabase
       .from('quotation_activities')
       .insert({
         quotation_id: id,
-        user_id: session?.user?.id || null,
-        customer_id: customerId || null,
+        user_id: userId,
         action: 'rejected',
-        details: { reason, rejected_at: new Date().toISOString() }
+        details: { reason: reason || 'No reason provided' }
       });
     
     // In a real implementation, you would send an email notification

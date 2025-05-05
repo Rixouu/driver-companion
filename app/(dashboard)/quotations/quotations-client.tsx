@@ -16,6 +16,7 @@ import {
 import QuotationList from '@/components/quotations/quotation-list';
 import { useQuotationService } from '@/hooks/useQuotationService';
 import { Quotation } from '@/types/quotations';
+import { SendReminderDialog } from '@/components/quotations/send-reminder-dialog';
 
 interface QuotationsTableClientProps {
   initialQuotations: Quotation[];
@@ -27,6 +28,8 @@ export default function QuotationsTableClient({ initialQuotations }: QuotationsT
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null);
+  const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   
   const { 
     deleteQuotation, 
@@ -39,7 +42,7 @@ export default function QuotationsTableClient({ initialQuotations }: QuotationsT
     setIsLoading(true);
     try {
       const { data } = await listQuotations();
-      setQuotations(data as Quotation[]);
+      setQuotations(data as unknown as Quotation[]);
     } catch (error) {
       console.error('Error refreshing quotations:', error);
     } finally {
@@ -108,34 +111,14 @@ export default function QuotationsTableClient({ initialQuotations }: QuotationsT
     }
   }, [sendQuotation, t]);
 
-  // Send a reminder for a quotation
-  const handleRemind = useCallback(async (id: string) => {
-    setIsLoading(true);
-    try {
-      // This would typically call an API endpoint to send a reminder email
-      const response = await fetch(`/api/quotations/${id}/remind`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to send reminder');
-      }
-      
-      toast({
-        title: t('quotations.notifications.reminderSuccess'),
-        variant: 'default',
-      });
-    } catch (error) {
-      console.error('Error sending reminder:', error);
-      toast({
-        title: t('quotations.notifications.error'),
-        description: 'Failed to send reminder',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+  // Handle reminder click - open dialog instead of sending immediately
+  const handleRemind = useCallback((id: string) => {
+    const quotation = quotations.find(q => q.id === id);
+    if (quotation) {
+      setSelectedQuotation(quotation);
+      setReminderDialogOpen(true);
     }
-  }, [t]);
+  }, [quotations]);
 
   return (
     <>
@@ -170,6 +153,15 @@ export default function QuotationsTableClient({ initialQuotations }: QuotationsT
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Reminder Dialog */}
+      {selectedQuotation && (
+        <SendReminderDialog
+          quotation={selectedQuotation}
+          open={reminderDialogOpen}
+          onOpenChange={setReminderDialogOpen}
+        />
+      )}
     </>
   );
 } 

@@ -248,7 +248,7 @@ ${t.totalAmount}: ${formattedAmount}` :
     
     // Send the email using Resend API
     const { data, error } = await resend.emails.send({
-      from: `Japan Driver <booking@${emailDomain}>`,
+      from: `Driver Japan <booking@${emailDomain}>`,
       to: [email],
       subject: `${t.subject} - #${bookingId}`,
       text: emailText,

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getDictionary } from '@/lib/i18n/server';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  // Use the updated Supabase client that handles cookies properly in Next.js 15
+  const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary();
 
   // Check auth
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating quotation status:', updateError);
       return NextResponse.json(
-        { error: t('notifications.error') },
+        { error: t('system.notifications.error') },
         { status: 500 }
       );
     }
@@ -59,12 +58,12 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      message: t('notifications.sendSuccess')
+      message: t('system.notifications.sendSuccess')
     });
   } catch (error) {
     console.error('Error handling send quotation request:', error);
     return NextResponse.json(
-      { error: t('notifications.error') },
+      { error: t('system.notifications.error') },
       { status: 500 }
     );
   }

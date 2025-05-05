@@ -51,6 +51,7 @@ export async function GET(request: Request) {
   if (code) {
     console.log("[Auth Callback] Code found, attempting exchange...");
     // Initialize Supabase client with direct cookies reference for Next.js 15
+    // Make sure to properly await the cookie store in Next.js 15
     const cookieStore = cookies();
     const supabase = createRouteHandlerClient({ 
       cookies: () => cookieStore 

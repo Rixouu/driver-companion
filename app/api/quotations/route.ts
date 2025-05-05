@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { getDictionary } from '@/lib/i18n/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { t } = await getDictionary();
-
-  // Check auth
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    // Make sure to properly await the Supabase client creation
+    const supabase = await createServerSupabaseClient();
+    const { t } = await getDictionary();
+
+    // Check auth
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const search = searchParams.get('search');
@@ -60,6 +58,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error handling quotations GET request:', error);
+    const { t } = await getDictionary();
     return NextResponse.json(
       { error: t('notifications.error') },
       { status: 500 }
@@ -68,17 +67,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-  const { t } = await getDictionary();
-
-  // Check auth
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    // Make sure to properly await the Supabase client creation
+    const supabase = await createServerSupabaseClient();
+    const { t } = await getDictionary();
+
+    // Check auth
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const requestData = await request.json();
     
     // Ensure required fields are present
@@ -125,6 +124,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(quotation);
   } catch (error) {
     console.error('Error handling quotations POST request:', error);
+    const { t } = await getDictionary();
     return NextResponse.json(
       { error: t('notifications.error') },
       { status: 500 }

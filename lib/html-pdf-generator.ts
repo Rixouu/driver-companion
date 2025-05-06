@@ -55,13 +55,25 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
   `;
 
   try {
-    // Launch a new browser instance with @sparticuz/chromium for serverless environments
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true
-    });
+    // Check if we're in a production environment
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    let browser;
+    if (isProduction) {
+      // Use @sparticuz/chromium for serverless environments (production)
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: true
+      });
+    } else {
+      // Use regular Puppeteer for local development
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+    }
 
     // Create a new page
     const page = await browser.newPage();

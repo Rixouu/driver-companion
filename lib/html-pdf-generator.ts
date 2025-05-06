@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
 
 /**
  * Generates a PDF from HTML content using Puppeteer
@@ -54,10 +55,12 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
   `;
 
   try {
-    // Launch a new browser instance
+    // Launch a new browser instance with @sparticuz/chromium for serverless environments
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true
     });
 
     // Create a new page

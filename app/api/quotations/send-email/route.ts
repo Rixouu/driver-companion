@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
 import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
@@ -85,14 +85,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create server-side Supabase client
-    const supabase = await createServerSupabaseClient();
-    
-    // Check auth
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.error('❌ [SEND-EMAIL API] Not authenticated');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Create service client (doesn't rely on cookies)
+    console.log('🔄 [SEND-EMAIL API] Creating Supabase service client');
+    let supabase;
+    try {
+      supabase = createServiceClient();
+      console.log('✅ [SEND-EMAIL API] Supabase service client created successfully');
+    } catch (serviceClientError) {
+      console.error('❌ [SEND-EMAIL API] Error creating service client:', serviceClientError);
+      return NextResponse.json(
+        { error: 'Error connecting to database' },
+        { status: 500 }
+      );
     }
     
     // Always fetch the latest quotation data
@@ -202,16 +206,17 @@ export async function POST(request: NextRequest) {
         .eq('id', quotationId);
     
       // Log activity
+      const userId = '00000000-0000-0000-0000-000000000000'; // System user for emails
       await supabase
         .from('quotation_activities')
         .insert({
           quotation_id: quotationId,
-          user_id: session.user.id,
+          user_id: userId,
           action: 'email_sent',
           details: { 
             email: email,
             sent_at: new Date().toISOString(),
-            sent_by: session.user.email
+            sent_by: 'system'
           }
         });
       

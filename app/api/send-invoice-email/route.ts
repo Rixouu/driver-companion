@@ -153,6 +153,10 @@ export async function POST(request: Request) {
     const arrayBuffer = await pdfFile.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     
+    // Log PDF file size for debugging
+    const pdfSizeMB = buffer.length / (1024 * 1024);
+    console.log(`📄 [SEND-INVOICE-EMAIL] PDF size: ${pdfSizeMB.toFixed(2)}MB`);
+    
     // Initialize Resend with API key
     const resend = new Resend(process.env.RESEND_API_KEY)
     
@@ -494,19 +498,24 @@ ${t.totalAmount}: ${formattedAmount}` :
       attachments: [
         {
           filename: `invoice-${bookingId}.pdf`,
-          content: buffer
+          content: buffer.toString('base64')
         }
       ]
     })
     
     if (error) {
-      console.error('Resend API error:', error)
+      console.error('❌ [SEND-INVOICE-EMAIL] Resend API error:', error);
       return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
     }
     
-    return NextResponse.json({ success: true, messageId: data?.id })
+    console.log(`✅ [SEND-INVOICE-EMAIL] Email sent successfully to ${email} with invoice #${bookingId}`);
+    
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error sending email:', error)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    console.error('❌ [SEND-INVOICE-EMAIL] Error sending email:', error);
+    if (error instanceof Error && error.stack) {
+      console.error('❌ [SEND-INVOICE-EMAIL] Error stack:', error.stack);
+    }
+    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 })
   }
 } 

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
-import htmlPdf from 'html-pdf-node'
+// Remove jsPDF dependency - we're using Puppeteer now
+// Import our new HTML PDF generator
+import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator'
+// Import the new PDF helper utilities
+import { embedWorkSansFont, formatCurrency, createQuotationHeader } from '@/lib/pdf-helpers'
+
+console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
 
 // Email templates for different languages
 const emailTemplates = {
@@ -33,471 +39,34 @@ const emailTemplates = {
   }
 };
 
-// --- Start: Improved PDF Generation Function ---
+// Function to generate custom PDF using HTML-to-PDF approach
 async function generateQuotationPDF(quotation: any, language: string): Promise<Buffer | null> {
+  console.log(`🔄 [SEND-EMAIL API] Entering generateQuotationPDF for quote: ${quotation?.id}, lang: ${language}`);
+  
   try {
-    console.log('🔄 [SEND-EMAIL API] Starting PDF generation with updated design');
+    console.log('🔄 [SEND-EMAIL API] Starting PDF generation with HTML-to-PDF');
     
-    const isJapanese = language === 'ja';
+    // Generate the HTML for the quotation
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja');
     
-    // Get App URL for logo fetching
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
-    const logoUrl = `${appUrl}/img/driver-header-logo.png`;
-    let logoBase64 = '';
-
-    try {
-      console.log(`🔄 [SEND-EMAIL API] Fetching logo from: ${logoUrl}`);
-      const response = await fetch(logoUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch logo: ${response.statusText}`);
-      }
-      const imageBuffer = await response.arrayBuffer();
-      logoBase64 = `data:image/png;base64,${Buffer.from(imageBuffer).toString('base64')}`;
-      console.log('✅ [SEND-EMAIL API] Logo fetched and encoded successfully.');
-    } catch (logoError) {
-      console.error('❌ [SEND-EMAIL API] Error fetching or encoding logo:', logoError);
-      // Use a default placeholder if fetching fails
-      logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAoSURBVHhe7cExAQAAAMKg9U9tCj8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADipAQK8AAFEDckVAAAAAElFTkSuQmCC'; // Placeholder
-    }
+    // Convert the HTML to a PDF
+    const pdfBuffer = await generatePdfFromHtml(htmlContent, {
+      format: 'A4',
+      margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+      printBackground: true
+    });
     
-    // Use the translation map directly from quotation-pdf-button.tsx logic
-    const quotationTranslations = {
-      en: {
-        quotation: 'QUOTATION',
-        quotationNumber: 'Quotation #:',
-        quotationDate: 'Quotation Date:',
-        expiryDate: 'Expiry Date:',
-        validFor: 'Valid for:',
-        days: 'days',
-        companyName: 'Driver (Thailand) Company Limited',
-        companyAddress1: '580/17 Soi Ramkhamhaeng 39',
-        companyAddress2: 'Wang Thong Lang',
-        companyAddress3: 'Bangkok 10310',
-        companyAddress4: 'Thailand',
-        companyTaxId: 'Tax ID: 0105566135845',
-        customerInfo: 'CUSTOMER INFO:',
-        billingAddress: 'BILLING ADDRESS:',
-        serviceInfo: 'SERVICE INFO:',
-        serviceType: 'Service Type:',
-        vehicleType: 'Vehicle Type:',
-        pickupDate: 'Pickup Date:',
-        pickupTime: 'Pickup Time:',
-        duration: 'Duration:',
-        hours: 'hours',
-        priceDetails: 'PRICE DETAILS:',
-        items: {
-          description: 'Description',
-          price: 'Price',
-          total: 'Total'
-        },
-        subtotal: 'Subtotal:',
-        discount: 'Discount:',
-        tax: 'Tax:',
-        total: 'TOTAL:',
-        thanksMessage: 'Thank you for considering our services!',
-        contactMessage: 'If you have any questions about this quotation, please contact us at info@japandriver.com',
-        companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
-        termsAndConditions: 'Terms and Conditions',
-        termsContent: '1. This quotation is valid for the specified period from the date of issue.\n2. Prices are subject to change if requirements change.\n3. Payment terms: 50% advance, 50% before service.\n4. Cancellation policy: 100% refund if cancelled 7+ days before service, 50% refund if 3-7 days, no refund if less than 3 days.',
-        companyNameLabel: 'Company:',
-        taxNumber: 'Tax ID:',
-        address: 'Address:',
-        cityStatePostal: 'City/State/Postal:',
-        country: 'Country:'
-      },
-      ja: {
-        quotation: '見積書',
-        quotationNumber: '見積書番号:',
-        quotationDate: '見積書発行日:',
-        expiryDate: '有効期限:',
-        validFor: '有効期間:',
-        days: '日間',
-        companyName: 'Driver (Thailand) Company Limited',
-        companyAddress1: '580/17 Soi Ramkhamhaeng 39',
-        companyAddress2: 'Wang Thong Lang',
-        companyAddress3: 'Bangkok 10310',
-        companyAddress4: 'Thailand',
-        companyTaxId: 'Tax ID: 0105566135845',
-        customerInfo: 'お客様情報:',
-        billingAddress: '請求先住所:',
-        serviceInfo: 'サービス情報:',
-        serviceType: 'サービスタイプ:',
-        vehicleType: '車両タイプ:',
-        pickupDate: '送迎日:',
-        pickupTime: '送迎時間:',
-        duration: '利用時間:',
-        hours: '時間',
-        priceDetails: '価格詳細:',
-        items: {
-          description: '内容',
-          price: '価格',
-          total: '合計'
-        },
-        subtotal: '小計:',
-        discount: '割引:',
-        tax: '税金:',
-        total: '合計:',
-        thanksMessage: 'ご検討いただきありがとうございます。',
-        contactMessage: 'この見積書に関するお問い合わせは info@japandriver.com までご連絡ください。',
-        companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
-        termsAndConditions: '利用規約',
-        termsContent: '1. この見積書は発行日から指定された期間内有効です。\n2. 要件が変更された場合、価格も変更される場合があります。\n3. 支払条件: 前払い50%、サービス前に残りの50%。\n4. キャンセルポリシー: サービス開始7日以上前のキャンセルは全額返金、3～7日前は50%返金、3日未満は返金なし。',
-        companyNameLabel: '会社名:',
-        taxNumber: '税番号:',
-        address: '住所:',
-        cityStatePostal: '市区町村/都道府県/郵便番号:',
-        country: '国:'
-      }
-    };
+    console.log('✅ [SEND-EMAIL API] PDF generation successful!');
+    return pdfBuffer;
     
-    const quotationT = quotationTranslations[language as 'en' | 'ja'];
-    
-    // Format currency helper
-    const formatCurrency = (amount: number) => {
-      const currency = quotation.currency || 'THB'; 
-      return `${currency} ${amount.toLocaleString(isJapanese ? 'ja-JP' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; 
-    };
-    
-    // Prepare quotation data
-    const formattedQuotationId = `JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
-    const creationDate = quotation.created_at ? new Date(quotation.created_at) : new Date();
-    const validDays = quotation.valid_days || 2;
-    const expiryDate = new Date(creationDate);
-    expiryDate.setDate(expiryDate.getDate() + validDays);
-    
-    // Get service details
-    const vehicleType = quotation.vehicle_type || 'Standard Vehicle';
-    const hours = quotation.duration_hours || quotation.hours_per_day || 8;
-    const numDays = quotation.service_days || quotation.number_of_days || quotation.duration_days || 1;
-    
-    // Calculate pricing (using the logic from send-reminder)
-    let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
-    let baseAmount = hourlyRate * numDays;
-    
-    if (quotation.total_amount && baseAmount === 0) {
-      const totalAmount = parseFloat(String(quotation.total_amount));
-      const discountPercentage = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
-      const taxPercentage = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
-      let calculatedTotal = totalAmount;
-      let subtotalBeforeTax = calculatedTotal;
-      if (taxPercentage > 0) {
-        subtotalBeforeTax = calculatedTotal / (1 + (taxPercentage / 100));
-      }
-      if (discountPercentage > 0) {
-        baseAmount = subtotalBeforeTax / (1 - (discountPercentage / 100));
-      } else {
-        baseAmount = subtotalBeforeTax;
-      }
-      hourlyRate = baseAmount / numDays;
-    }
-    
-    const hasDiscount = quotation.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
-    let discountAmount = 0;
-    let subtotalAmount = baseAmount;
-    if (hasDiscount) {
-      const discountPercentage = parseFloat(String(quotation.discount_percentage));
-      discountAmount = (baseAmount * discountPercentage) / 100;
-      subtotalAmount = baseAmount - discountAmount;
-    }
-    
-    const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
-    let taxAmount = 0;
-    let totalAmount = subtotalAmount;
-    if (hasTax) {
-      const taxPercentage = parseFloat(String(quotation.tax_percentage));
-      taxAmount = (subtotalAmount * taxPercentage) / 100;
-      totalAmount = subtotalAmount + taxAmount;
-    }
-    const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : totalAmount;
-
-    // Generate the HTML content matching quotation-pdf-button.tsx
-    const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Quotation ${formattedQuotationId}</title>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap">
-      <style>
-        body {
-          font-family: 'Work Sans', Arial, sans-serif;
-          margin: 0;
-          padding: 0;
-          color: #333;
-          background-color: #fff;
-          font-size: 13px;
-          line-height: 1.5;
-        }
-        .container {
-          width: 180mm;
-          margin: 10px auto;
-          border-top: 2px solid #FF2600;
-          padding: 10px 0 0;
-          box-sizing: border-box;
-          position: relative;
-        }
-        .logo-container {
-          text-align: left;
-          margin-bottom: 30px;
-          margin-top: 30px;
-        }
-        .logo {
-          height: 50px;
-        }
-        .header-container {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 40px;
-          width: 100%;
-        }
-        .quotation-details {
-          flex: 1;
-          text-align: left;
-          max-width: 50%;
-        }
-        .quotation-title {
-          color: #333;
-          margin: 0 0 15px 0;
-          font-size: 24px;
-          font-weight: bold;
-        }
-        .company-info {
-          flex: 1;
-          max-width: 40%;
-          text-align: right;
-        }
-        .company-name {
-          margin: 0 0 5px 0;
-          color: #333;
-          font-size: 16px;
-          font-weight: bold;
-        }
-        .price-details-section {
-          margin-bottom: 30px;
-          width: 100%;
-        }
-        .section-title {
-          margin: 0 0 10px 0;
-          color: #333;
-          font-size: 14px;
-          font-weight: bold;
-        }
-        .price-container {
-          background-color: #f3f3f3;
-          padding: 15px;
-          border-radius: 4px;
-          margin-bottom: 15px;
-        }
-        .price-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding: 3px 0;
-        }
-        .price-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 5px;
-          font-weight: bold;
-          text-transform: uppercase;
-          color: #8898AA;
-          font-size: 13px;
-        }
-        .footer {
-          border-top: 1px solid #e2e8f0;
-          padding-top: 20px;
-          padding-bottom: 20px;
-          text-align: center;
-          margin-top: 20px;
-          width: 100%;
-        }
-        p {
-          margin: 0 0 3px 0;
-          font-size: 13px;
-        }
-        h3 {
-            margin: 0 0 8px 0;
-            color: #333;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        strong { font-weight: 500; }
-        .bold { font-weight: bold; }
-        .discount-row {
-          color: #e53e3e;
-        }
-        .border-top {
-          border-top: 1px solid #e2e8f0;
-          padding-top: 10px;
-        }
-        .customer-section {
-          margin-bottom: 30px;
-          width: 100%;
-        }
-        .terms-section {
-          margin-bottom: 25px;
-          width: 100%;
-        }
-        .terms-content {
-          font-size: 12px;
-          line-height: 1.5;
-          white-space: pre-line;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="logo-container">
-          <img src="${logoBase64}" alt="Driver Logo" class="logo">
-        </div>
-        <div class="header-container">
-          <div class="quotation-details">
-            <h1 class="quotation-title">${quotationT.quotation}</h1>
-            <p>${quotationT.quotationNumber} ${formattedQuotationId}</p>
-            <p>${quotationT.quotationDate} ${creationDate.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}</p>
-            <p>${quotationT.expiryDate} ${expiryDate.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}</p>
-            <p>${quotationT.validFor} ${validDays} ${quotationT.days}</p>
-          </div>
-          <div class="company-info">
-            <h2 class="company-name">${quotationT.companyName}</h2>
-            <p>${quotationT.companyAddress1}</p>
-            <p>${quotationT.companyAddress2}</p>
-            <p>${quotationT.companyAddress3}</p>
-            <p>${quotationT.companyAddress4}</p>
-            <p>${quotationT.companyTaxId}</p>
-          </div>
-        </div>
-        <div class="customer-section">
-          <h3>${quotationT.billingAddress}</h3>
-          <p>${quotation.customer_name || (quotation.customers?.name || 'N/A')}</p>
-          <p>${quotation.customer_email || (quotation.customers?.email || 'N/A')}</p>
-          <p style="margin-bottom: 15px;">${quotation.customer_phone || (quotation.customers?.phone || 'N/A')}</p>
-          ${quotation.billing_company_name ? `<p><strong>${quotationT.companyNameLabel}</strong> ${quotation.billing_company_name}</p>` : ''}
-          ${quotation.billing_tax_number ? `<p><strong>${quotationT.taxNumber}</strong> ${quotation.billing_tax_number}</p>` : ''}
-          ${(quotation.billing_street_name || quotation.billing_street_number) ? 
-            `<p><strong>${quotationT.address}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}</p>` : ''}
-          ${(quotation.billing_city || quotation.billing_state || quotation.billing_postal_code) ? 
-            `<p><strong>${quotationT.cityStatePostal}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}</p>` : ''}
-          ${quotation.billing_country ? `<p><strong>${quotationT.country}</strong> ${quotation.billing_country}</p>` : ''}
-        </div>
-        <div class="price-details-section">
-          <h3>${quotationT.priceDetails}</h3>
-          <div class="price-container">
-            <div class="price-header">
-              <div>${quotationT.items.description}</div>
-              <div>${quotationT.items.price}</div>
-            </div>
-            <div class="price-row">
-              <div>${vehicleType}</div>
-              <div></div>
-            </div>
-            <div class="price-row">
-              <div>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</div>
-              <div>${formatCurrency(hourlyRate)}</div>
-            </div>
-            ${numDays > 1 ? `
-            <div class="price-row">
-              <div style="color: #666;">${isJapanese ? '日数' : 'Number of Days'}</div>
-              <div>× ${numDays}</div>
-            </div>
-            ` : ''}
-            <div class="price-row border-top">
-              <div><strong>${isJapanese ? '基本料金' : 'Base Amount'}</strong></div>
-              <div><strong>${formatCurrency(baseAmount)}</strong></div>
-            </div>
-            ${hasDiscount ? `
-            <div class="price-row discount-row">
-              <div>${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</div>
-              <div>-${formatCurrency(discountAmount)}</div>
-            </div>
-            <div class="price-row border-top">
-              <div><strong>${isJapanese ? '小計' : 'Subtotal'}</strong></div>
-              <div><strong>${formatCurrency(subtotalAmount)}</strong></div>
-            </div>
-            ` : ''}
-            ${hasTax ? `
-            <div class="price-row">
-              <div style="color: #666;">${isJapanese ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}</div>
-              <div>+${formatCurrency(taxAmount)}</div>
-            </div>
-            ` : ''}
-            <div class="price-row border-top">
-              <div><strong class="bold">${isJapanese ? '合計金額' : 'Total Amount'}</strong></div>
-              <div><strong class="bold">${formatCurrency(finalAmount)}</strong></div>
-            </div>
-          </div>
-        </div>
-        <div class="terms-section">
-          <h3>${quotationT.termsAndConditions}</h3>
-          <p class="terms-content">${quotation.terms || quotationT.termsContent}</p>
-        </div>
-        <div class="footer">
-          <p><strong class="bold">${quotationT.thanksMessage}</strong></p>
-          <p>${quotationT.contactMessage}</p>
-          <p style="margin-top: 10px; font-size: 13px; color: #666;">${quotationT.companyFooter}</p>
-        </div>
-      </div>
-    </body>
-    </html>
-    `;
-    
-    // Use html-pdf-node to generate the PDF
-    console.log('🔄 [SEND-EMAIL API] Creating PDF with html-pdf-node using updated design');
-    
-    try {
-      // Create file option object for html-pdf-node
-      const fileOptions = { 
-        content: htmlContent,
-        name: `quotation-${formattedQuotationId}.pdf` 
-      };
-      
-      // Set PDF generation options
-      const pdfOptions = {
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '15mm',
-          right: '15mm',
-          bottom: '15mm',
-          left: '15mm'
-        },
-        preferCSSPageSize: true
-      };
-      
-      // Generate PDF with html-pdf-node
-      const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
-        htmlPdf.generatePdf(fileOptions, pdfOptions)
-          .then(pdfBuffer => {
-            resolve(Buffer.from(pdfBuffer));
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
-      
-      const bufferSize = pdfBuffer.length / 1024 / 1024; // Size in MB
-      console.log(`✅ [SEND-EMAIL API] PDF generation completed. Size: ${bufferSize.toFixed(2)}MB`);
-      
-      if (bufferSize > 9) {
-        console.warn(`⚠️ [SEND-EMAIL API] PDF size approaching Resend's 10MB limit: ${bufferSize.toFixed(2)}MB`);
-      }
-      
-      return pdfBuffer;
-    } catch (pdfError) {
-      console.error('❌ [SEND-EMAIL API] Error during html-pdf-node PDF generation:', pdfError);
-      throw pdfError; // Let the caller handle this error
-    }
   } catch (error) {
-    console.error('❌ [SEND-EMAIL API] Error in PDF generation process:', error);
+    console.error('❌ [SEND-EMAIL API] Error during PDF generation:', error);
     return null;
   }
 }
-// --- End: Improved PDF Generation Function ---
 
 export async function POST(request: NextRequest) {
+  console.log('🔄 [SEND-EMAIL API] Received POST request.'); // Log entry into POST
   try {
     // Use formData to handle the multipart/form-data request
     const formData = await request.formData();
@@ -545,7 +114,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [SEND-EMAIL API] Found quotation:', { id: quotation.id, email: quotation.customer_email });
     
     // Generate a fresh PDF from the latest data using the new function
-    console.log('🔄 [SEND-EMAIL API] Generating fresh PDF for email attachment');
+    console.log(`🔄 [SEND-EMAIL API] Calling generateQuotationPDF for quote: ${quotation.id}, lang: ${language}`); // Log before calling
     
     // Call the integrated PDF generation function
     const pdfBuffer = await generateQuotationPDF(quotation, language);
@@ -612,8 +181,10 @@ export async function POST(request: NextRequest) {
       });
     
       if (resendError) {
-        console.error('❌ [SEND-EMAIL API] Error sending email with Resend:', resendError);
-        throw resendError;
+        // Enhanced logging for Resend errors
+        console.error('❌ [SEND-EMAIL API] Error reported by Resend:', JSON.stringify(resendError, null, 2));
+        // Rethrow the specific Resend error for clearer debugging upstream if needed
+        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
       }
       
       console.log('✅ [SEND-EMAIL API] Email sent successfully! ID:', emailData?.id);
@@ -651,7 +222,12 @@ export async function POST(request: NextRequest) {
       });
       
     } catch (err) {
-      console.error('❌ [SEND-EMAIL API] Error sending email:', err);
+      // Log the specific error type and message
+      console.error(`❌ [SEND-EMAIL API] Error during email sending process: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
+      // Log the stack trace if available
+      if (err instanceof Error && err.stack) {
+          console.error('Stack trace:', err.stack);
+      }
       return NextResponse.json(
         { error: err instanceof Error ? err.message : 'Failed to send email' },
         { status: 500 }
@@ -659,9 +235,14 @@ export async function POST(request: NextRequest) {
     }
     
   } catch (err) {
-    console.error('❌ [SEND-EMAIL API] Unhandled error:', err);
+    // Simplified catch block for broader logging
+    console.error('❌ [SEND-EMAIL API] Unhandled error in POST handler:', err);
+    // Log stack trace if available
+    if (err instanceof Error && err.stack) {
+        console.error('[SEND-EMAIL API] POST Handler Stack Trace:', err.stack);
+    }
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'An unexpected error occurred' },
+      { error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler' },
       { status: 500 }
     );
   }
@@ -720,9 +301,11 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
   
   const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
   let taxAmount = 0;
+  let totalAmount = subtotalAmount;
   if (hasTax) {
     const taxPercentage = parseFloat(String(quotation.tax_percentage));
     taxAmount = (subtotalAmount * taxPercentage) / 100;
+    totalAmount = subtotalAmount + taxAmount;
   }
 
   const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : (subtotalAmount + taxAmount);

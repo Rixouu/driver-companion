@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/page-header';
 import { Separator } from '@/components/ui/separator';
 import QuotationFormClient from '../_components/quotation-form-client';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { Quotation } from '@/types/quotations';
+import { Quotation, QuotationItem } from '@/types/quotations';
 
 interface PageProps {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -22,18 +22,24 @@ export default async function CreateQuotationPage({ searchParams }: PageProps) {
     redirect('/auth/login');
   }
   
+  // In Next.js 15, searchParams should be awaited before using its properties
+  const params = await searchParams;
+  
   // Get duplicate ID more safely
-  const duplicateId = typeof searchParams?.duplicate === "string" ? searchParams.duplicate : undefined;
+  const duplicateId = typeof params?.duplicate === "string" ? params.duplicate : undefined;
   
   // If duplicating, fetch the original quotation
-  let duplicateFrom: Quotation | null = null;
+  let duplicateFrom: (Quotation & { quotation_items?: QuotationItem[] }) | null = null;
   
   if (duplicateId) {
     try {
       // Fetch the quotation AND any associated items to fully duplicate
       const { data: quotationData, error } = await supabase
         .from('quotations')
-        .select('*')
+        .select(`
+          *,
+          quotation_items (*)
+        `)
         .eq('id', duplicateId)
         .single();
       
@@ -42,7 +48,16 @@ export default async function CreateQuotationPage({ searchParams }: PageProps) {
       } else if (quotationData) {
         // Log success to help debug
         console.log('Successfully fetched quotation to duplicate:', duplicateId);
-        duplicateFrom = quotationData as unknown as Quotation;
+        
+        // Log the quotation_items specifically for debugging
+        if (quotationData.quotation_items) {
+          console.log('Quotation items found:', quotationData.quotation_items.length);
+          console.log('First item sample:', quotationData.quotation_items[0]);
+        } else {
+          console.warn('No quotation_items found in the data from Supabase');
+        }
+        
+        duplicateFrom = quotationData as unknown as Quotation & { quotation_items?: QuotationItem[] };
       }
     } catch (error) {
       console.error('Error fetching quotation to duplicate:', error);

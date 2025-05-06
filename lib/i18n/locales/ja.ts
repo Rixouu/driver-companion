@@ -74,7 +74,8 @@ export const ja: TranslationValue = {
     unassign: "割り当て解除",
     cannotBeUndone: "この操作は元に戻せません。",
     updateAndSend: "更新して送信",
-    processing: "処理中..."
+    processing: "処理中...",
+    copy: "コピー"
   },
   navigation: {
     dashboard: "ダッシュボード",

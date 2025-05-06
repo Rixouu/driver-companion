@@ -5,11 +5,11 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import QuotationForm from '@/components/quotations/quotation-form';
-import { Quotation } from '@/types/quotations';
+import { Quotation, QuotationItem } from '@/types/quotations';
 
 interface QuotationFormClientProps {
   quotation?: Quotation;
-  duplicateFrom?: Quotation | null;
+  duplicateFrom?: (Quotation & { quotation_items?: QuotationItem[] }) | null;
 }
 
 export default function QuotationFormClient({
@@ -19,38 +19,56 @@ export default function QuotationFormClient({
   const { t } = useI18n();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [preparedQuotation, setPreparedQuotation] = useState<Quotation | undefined>(quotation);
+  
+  // Initialize the prepared quotation immediately if duplicating
+  const initialPreparedQuotation = duplicateFrom ? prepareDuplicateQuotation(duplicateFrom, t) : quotation;
+  const [preparedQuotation, setPreparedQuotation] = useState<Quotation & { quotation_items?: QuotationItem[] } | undefined>(initialPreparedQuotation);
 
-  // Process the duplicate data when it changes
-  useEffect(() => {
-    if (duplicateFrom) {
-      console.log('Preparing duplicated quotation data:', duplicateFrom);
-      
-      // Create a new object with only the properties we want to keep
-      const duplicate: Partial<Quotation> = {
-        // Copy all properties except the ones we want to reset
-        ...JSON.parse(JSON.stringify(duplicateFrom)),
-        // Reset unique identifiers
+  // Helper function to prepare the duplicate data
+  function prepareDuplicateQuotation(source: Quotation & { quotation_items?: QuotationItem[] }, t: any) {
+    // Create a new object with only the properties we want to keep
+    const duplicate: any = {
+      // Copy all properties except the ones we want to reset
+      ...JSON.parse(JSON.stringify(source)),
+      // Reset unique identifiers
+      id: undefined,
+      created_at: undefined,
+      updated_at: undefined,
+      reference_code: undefined,
+      quote_number: undefined,
+      // Set as draft and update title to indicate it's a copy
+      status: 'draft',
+      title: `${source.title || ''} (${t('common.copy')})`,
+      // Reset expiry date to 48 hours from now
+      expiry_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+    };
+    
+    // Preserve quotation_items if present, but reset their IDs and quotation_id
+    if (source.quotation_items && Array.isArray(source.quotation_items)) {
+      duplicate.quotation_items = source.quotation_items.map((item: QuotationItem) => ({
+        ...item,
         id: undefined,
+        quotation_id: undefined,
         created_at: undefined,
-        updated_at: undefined,
-        reference_code: undefined,
-        quote_number: undefined,
-        // Set as draft and update title to indicate it's a copy
-        status: 'draft',
-        title: `${duplicateFrom.title || ''} (${t('common.copy')})`,
-        // Reset expiry date to 48 hours from now
-        expiry_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
-      };
-      
-      console.log('Prepared duplicate data:', duplicate);
-      setPreparedQuotation(duplicate as Quotation);
+        updated_at: undefined
+      }));
     }
-  }, [duplicateFrom, t]);
+    
+    return duplicate;
+  }
+
+  // Enhanced debugging on component mount to see the incoming data
+  useEffect(() => {
+    console.log('QuotationFormClient mounted with duplicateFrom:', duplicateFrom);
+    console.log('Original quotation items present?', duplicateFrom?.quotation_items ? `Yes, count: ${duplicateFrom.quotation_items.length}` : 'No');
+    console.log('Initial preparedQuotation:', preparedQuotation);
+    console.log('preparedQuotation items present?', preparedQuotation?.quotation_items ? `Yes, count: ${preparedQuotation.quotation_items.length}` : 'No');
+  }, []);
 
   const handleSuccess = (quotation: Quotation) => {
     // Use a simple string for Next.js 14+ router.push
-    router.push(`/quotations/${quotation.id}`);
+    // Type assertion to any to bypass strict typing
+    router.push(`/quotations/${quotation.id}` as any);
     
     toast({
       title: t(

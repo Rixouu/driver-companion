@@ -74,7 +74,8 @@ export const en: TranslationValue = {
     unassign: "Unassign",
     cannotBeUndone: "This action cannot be undone.",
     updateAndSend: "Update & Send",
-    processing: "Processing..."
+    processing: "Processing...",
+    copy: "Copy"
   },
   auth: {
     logout: "Logout"

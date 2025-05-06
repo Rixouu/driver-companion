@@ -74,11 +74,13 @@ import {
   Quotation, 
   PricingCategory,
   PricingItem,
-  QuotationStatus
+  QuotationStatus,
+  QuotationItem
 } from '@/types/quotations';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Define form schema with zod
 const formSchema = z.object({
@@ -137,7 +139,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface QuotationFormProps {
-  initialData?: Quotation & { quotation_items?: any[] };
+  initialData?: Quotation & { quotation_items?: QuotationItem[] };
   mode?: 'create' | 'edit';
   onSuccess?: (quotation: Quotation) => void;
 }
@@ -163,6 +165,19 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const [submittingAndSending, setSubmittingAndSending] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  // Debug: Log initialData at component mount
+  useEffect(() => {
+    console.log('QuotationForm received initialData:', initialData);
+    
+    if (initialData?.quotation_items) {
+      console.log('initialData includes quotation_items:', initialData.quotation_items);
+      console.log('Number of items:', initialData.quotation_items.length);
+    } else {
+      console.warn('No quotation_items in initialData');
+      console.log('initialData keys:', initialData ? Object.keys(initialData) : 'initialData is undefined');
+    }
+  }, [initialData]);
   
   const {
     createQuotation,
@@ -517,7 +532,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       let result: Quotation | null;
 
       try {
-        if (initialData) {
+        if (initialData?.id) {
           // Update existing quotation
           console.log('SAVE & SEND DEBUG - Updating existing quotation ID:', initialData.id);
           result = await updateQuotation(initialData.id, input);
@@ -532,10 +547,56 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
         } else {
           // Create new quotation
           console.log('SAVE & SEND DEBUG - Creating new quotation');
+          
+          // Create the quotation first
           result = await createQuotation(input);
           
+          // Check if we have quotation items to duplicate and the result was successful
+          if (result && initialData && initialData.quotation_items && 
+              Array.isArray(initialData.quotation_items) && initialData.quotation_items.length > 0) {
+            
+            const quotationItems = initialData.quotation_items;
+            console.log('SAVE & SEND DEBUG - Including quotation items in creation:', quotationItems.length);
+            
+            try {
+              // We need to use the browser's fetch API instead of the server component
+              const items = quotationItems.map(item => ({
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_price: item.total_price,
+                sort_order: item.sort_order || 0,
+                quotation_id: result?.id
+              }));
+              
+              console.log('SAVE & SEND DEBUG - Adding items to new quotation:', items);
+              
+              // Use the fetch API to create the line items
+              if (result?.id) {
+                const response = await fetch('/api/quotations/items/bulk-create', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ 
+                    quotation_id: result.id,
+                    items: items
+                  }),
+                });
+                
+                if (!response.ok) {
+                  console.error('SAVE & SEND DEBUG - Error creating line items:', await response.text());
+                } else {
+                  console.log('SAVE & SEND DEBUG - Successfully added all items to quotation');
+                }
+              }
+            } catch (itemsError) {
+              console.error('SAVE & SEND DEBUG - Error during items creation:', itemsError);
+            }
+          }
+          
           // If sending to customer, send email via the API endpoint
-          if (sendToCustomer && result) {
+          if (sendToCustomer && result?.id) {
             console.log('SAVE & SEND DEBUG - Sending email for new quotation ID:', result.id);
             // Use the sendQuotation function which takes care of updating status and sending email
             await sendQuotation(result.id);
@@ -1409,19 +1470,17 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
               </Button>
             ) : (
               <div className="space-x-2">
-                 {!initialData && (
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={form.handleSubmit((data) => onSubmit(data, false))}
-                     disabled={apiLoading || submittingAndSending}
-                     className="gap-2"
-                   >
-                     {apiLoading && !submittingAndSending && <LoadingSpinner className="mr-2 h-4 w-4" />}
-                     <Save className="h-4 w-4"/>
-                     {t('quotations.form.saveAsDraft')}
-                   </Button>
-                 )}
+                 <Button
+                   type="button"
+                   variant="outline"
+                   onClick={form.handleSubmit((data) => onSubmit(data, false))}
+                   disabled={apiLoading || submittingAndSending}
+                   className="gap-2"
+                 >
+                   {apiLoading && !submittingAndSending && <LoadingSpinner className="mr-2 h-4 w-4" />}
+                   <Save className="h-4 w-4"/>
+                   {t('quotations.form.saveAsDraft')}
+                 </Button>
                  <Button
                    type="submit"
                    disabled={apiLoading || submittingAndSending}
@@ -1429,7 +1488,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                  >
                    {(apiLoading || submittingAndSending) && <LoadingSpinner className="mr-2 h-4 w-4" />}
                    <Send className="h-4 w-4"/>
-                   {initialData ? t('common.updateAndSend') : t('quotations.form.sendToCustomer')}
+                   {initialData?.id ? t('common.updateAndSend') : t('quotations.form.sendToCustomer')}
                  </Button>
               </div>
             )}

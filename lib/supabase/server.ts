@@ -3,16 +3,16 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { Database } from '@/types/supabase'; // Adjusted path
 
-// This function is async to match the pattern required by Next.js 15
+// This function is async to match the pattern required by Next.js
 export async function createServerSupabaseClient() {
   try {
     console.log('Creating server Supabase client');
     
-    // Get cookies correctly - the cookies() function should be called directly, not awaited
+    // Get cookie store - this is the correct way to handle cookies in Next.js
     const cookieStore = cookies();
     console.log('Cookie store initialized');
     
-    // Pass the cookie store correctly to the client
+    // Create the Supabase client with the correct cookie store
     const client = createServerComponentClient<Database>({ 
       cookies: () => cookieStore 
     });

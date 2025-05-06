@@ -676,7 +676,11 @@ export const useQuotationService = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: input.quotation_id, notes: input.notes }),
+        body: JSON.stringify({ 
+          id: input.quotation_id, 
+          notes: input.notes,
+          skipStatusCheck: true 
+        }),
       });
       
       if (!response.ok) {
@@ -741,7 +745,11 @@ export const useQuotationService = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: input.quotation_id, reason: input.rejected_reason }),
+        body: JSON.stringify({ 
+          id: input.quotation_id, 
+          reason: input.rejected_reason,
+          skipStatusCheck: true 
+        }),
       });
       
       if (!response.ok) {

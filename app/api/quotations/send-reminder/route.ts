@@ -268,79 +268,150 @@ export async function POST(request: NextRequest) {
 
 // Helper function to generate HTML email content
 function generateReminderEmail(template: any, customerName: string, quotationId: string, quotationUrl: string, appUrl: string, logoUrl: string): string {
+  // Determine if Japanese language is being used
+  const isJapanese = template === reminderTemplates.ja;
+  
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="${isJapanese ? 'ja' : 'en'}">
     <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>${template.subject}</title>
       <style>
+        body, table, td, a {
+          -webkit-text-size-adjust:100%;
+          -ms-text-size-adjust:100%;
+          font-family: Work Sans, sans-serif;
+        }
+        table, td { mso-table-lspace:0; mso-table-rspace:0; }
+        img {
+          border:0;
+          line-height:100%;
+          outline:none;
+          text-decoration:none;
+          -ms-interpolation-mode:bicubic;
+        }
+        table { border-collapse:collapse!important; }
         body {
-          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
+          margin:0;
+          padding:0;
+          width:100%!important;
+          background:#F2F4F6;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
+        .greeting {
+          color:#32325D;
+          margin:24px 24px 16px;
+          line-height:1.4;
+          font-size: 14px;
         }
-        .header {
-          text-align: center;
-          margin-bottom: 20px;
+        @media only screen and (max-width:600px) {
+          .container { width:100%!important; }
+          .stack { display:block!important; width:100%!important; text-align:center!important; }
         }
-        .content {
-          background-color: #fff;
-          padding: 20px;
+        .details-table td, .details-table th {
+          padding: 10px 0;
+          font-size: 14px;
         }
-        .footer {
-          text-align: center;
-          margin-top: 20px;
-          font-size: 12px;
-          color: #666;
-        }
-        .button {
-          display: inline-block;
-          padding: 10px 20px;
-          background-color: #ff4b4b;
-          color: white !important;
-          text-decoration: none;
-          border-radius: 4px;
-          font-weight: bold;
-          margin: 20px 0;
-        }
-        .logo {
-          max-width: 150px;
-          margin-bottom: 20px;
+        .details-table th {
+           color: #8898AA;
+           text-transform: uppercase;
+           text-align: left;
         }
       </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <img src="${logoUrl}" alt="Driver Logo" class="logo">
-        </div>
-        <div class="content">
-          <p>${template.greeting} ${customerName},</p>
-          <p>${template.intro}</p>
-          <p>${template.followup}</p>
-          <p>${template.additionalInfo}</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${quotationUrl}" class="button">${template.callToAction}</a>
-          </div>
-          <p>${template.closing}</p>
-          <p>
-            ${template.regards}<br>
-            ${template.company}
-          </p>
-        </div>
-        <div class="footer">
-          <p>© ${new Date().getFullYear()} Driver (Thailand) Company Limited. All rights reserved.</p>
-        </div>
-      </div>
+    <body style="background:#F2F4F6; margin:0; padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td align="center" style="padding:24px;">
+            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
+              
+              <!-- HEADER -->
+              <tr>
+                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
+                  <table width="100%" role="presentation">
+                    <tr>
+                      <td align="center" style="padding:24px;">
+                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                          <tr><td align="center" valign="middle" style="text-align:center;">
+                              <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                          </td></tr>
+                        </table>
+                        <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
+                          ${isJapanese ? 'リマインダー: ドライバーからの見積書' : 'Reminder: Your Quotation from Driver'}
+                        </h1>
+                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                          ${isJapanese ? '見積書番号' : 'Quotation'} #${quotationId}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              
+              <!-- GREETING -->
+              <tr>
+                <td>
+                  <p class="greeting">
+                    ${template.greeting} ${customerName},<br><br>
+                    ${template.intro}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- REMINDER INFO -->
+              <tr>
+                <td style="padding:0 24px 24px;">
+                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6;">
+                    ${template.followup}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- CTA SECTION -->
+              <tr>
+                <td style="padding:12px 24px 24px; text-align: center;">
+                  <a href="${quotationUrl}"
+                     style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
+                            text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
+                            font-size:16px; font-weight:600; text-align: center;">
+                    ${template.callToAction}
+                  </a>
+                </td>
+              </tr>
+              
+              <!-- ADDITIONAL INFO -->
+              <tr>
+                <td style="padding:0px 24px 24px;">
+                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.additionalInfo}
+                  </p>
+                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.closing}
+                  </p>
+                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.regards}<br>
+                    ${template.company}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- FOOTER -->
+              <tr>
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                  <p style="margin:0 0 4px;">${template.company}</p>
+                  <p style="margin:0;">
+                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
+                      japandriver.com
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;

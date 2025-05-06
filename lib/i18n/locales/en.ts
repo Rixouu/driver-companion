@@ -73,7 +73,8 @@ export const en: TranslationValue = {
     booking: "Booking",
     unassign: "Unassign",
     cannotBeUndone: "This action cannot be undone.",
-    updateAndSend: "Update & Send"
+    updateAndSend: "Update & Send",
+    processing: "Processing..."
   },
   auth: {
     logout: "Logout"
@@ -2212,6 +2213,7 @@ export const en: TranslationValue = {
       pickup: "Pickup",
       dropoff: "Dropoff",
       notes: "Notes",
+      notesAndTerms: "Notes and Terms",
       termsAndConditions: "Terms and Conditions",
       activities: "Activity Feed",
       untitled: "Untitled Quotation",
@@ -2265,6 +2267,16 @@ export const en: TranslationValue = {
     empty: {
       title: "No Quotations Found",
       description: "No quotations found for the selected filters."
+    }
+  },
+  email: {
+    quotation: {
+      approved: {
+        subject: "Quotation Approved"
+      },
+      rejected: {
+        subject: "Quotation Rejected"
+      }
     }
   }
 }

@@ -73,7 +73,8 @@ export const ja: TranslationValue = {
     booking: "予約",
     unassign: "割り当て解除",
     cannotBeUndone: "この操作は元に戻せません。",
-    updateAndSend: "更新して送信"
+    updateAndSend: "更新して送信",
+    processing: "処理中..."
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -1742,6 +1743,7 @@ export const ja: TranslationValue = {
       pickup: "集合場所",
       dropoff: "目的地",
       notes: "備考",
+      notesAndTerms: "備考と利用規約",
       termsAndConditions: "利用規約",
       activities: "活動履歴",
       untitled: "無題の見積書",
@@ -1796,6 +1798,16 @@ export const ja: TranslationValue = {
       title: "見積書が見つかりません",
       description: "まだ見積書が作成されていません。",
       cta: "見積書を作成"
+    }
+  },
+  email: {
+    quotation: {
+      approved: {
+        subject: "見積書が承認されました"
+      },
+      rejected: {
+        subject: "見積書が却下されました"
+      }
     }
   } as const
 }

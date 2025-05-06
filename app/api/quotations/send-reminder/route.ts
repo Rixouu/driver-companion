@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
-import puppeteer from 'puppeteer'
+import htmlPdf from 'html-pdf-node'
 // Remove the import that might not exist
 // import { generateQuotationHtml } from '../send/route'
 
@@ -190,9 +190,25 @@ async function generateQuotationPDF(quotation: any, language: string): Promise<B
     }
     const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : totalAmount;
     
-    // Base64 encoded logo - Replace with the actual logo from quotation-pdf-button if needed
-    // For now, using a placeholder to avoid excessively long code edit string
-    const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAoSURBVHhe7cExAQAAAMKg9U9tCj8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADipAQK8AAFEDckVAAAAAElFTkSuQmCC'; // Simplified placeholder
+    // Get App URL for logo fetching
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    const logoUrl = `${appUrl}/img/driver-header-logo.png`;
+    let logoBase64 = '';
+
+    try {
+      console.log(`🔄 [SEND-REMINDER API] Fetching logo from: ${logoUrl}`);
+      const response = await fetch(logoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch logo: ${response.statusText}`);
+      }
+      const imageBuffer = await response.arrayBuffer();
+      logoBase64 = `data:image/png;base64,${Buffer.from(imageBuffer).toString('base64')}`;
+      console.log('✅ [SEND-REMINDER API] Logo fetched and encoded successfully.');
+    } catch (logoError) {
+      console.error('❌ [SEND-REMINDER API] Error fetching or encoding logo:', logoError);
+      // Use a default placeholder if fetching fails
+      logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAoSURBVHhe7cExAQAAAMKg9U9tCj8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADipAQK8AAFEDckVAAAAAElFTkSuQmCC'; // Placeholder
+    }
 
     // Generate the HTML content matching quotation-pdf-button.tsx
     const htmlContent = `
@@ -460,40 +476,18 @@ async function generateQuotationPDF(quotation: any, language: string): Promise<B
     </html>
     `;
     
-    // Use puppeteer to generate the PDF with improved compatibility and error handling
-    console.log('🔄 [SEND-REMINDER API] Creating PDF with puppeteer using updated design');
+    // Use html-pdf-node to generate the PDF (replacing puppeteer implementation)
+    console.log('🔄 [SEND-REMINDER API] Creating PDF with html-pdf-node using updated design');
     
-    let browser: any = null;
     try {
-      // Enhanced puppeteer launch configuration that works in both environments
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox', 
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu'
-        ]
-      });
+      // Create file option object for html-pdf-node
+      const fileOptions = { 
+        content: htmlContent,
+        name: `quotation-${formattedQuotationId}.pdf` 
+      };
       
-      const page = await browser.newPage();
-      
-      // Set reasonable timeout and monitor for console errors
-      page.setDefaultNavigationTimeout(30000);
-      page.on('console', msg => console.log(`🔍 [PDF-BROWSER] ${msg.text()}`));
-      page.on('pageerror', error => console.error(`❌ [PDF-BROWSER] ${error.message}`));
-      
-      await page.setContent(htmlContent, { 
-        waitUntil: ['domcontentloaded', 'networkidle0'],
-        timeout: 30000 
-      });
-      
-      // Generate PDF with optimized settings
-      const pdfBuffer = await page.pdf({
+      // Set PDF generation options
+      const pdfOptions = {
         format: 'A4',
         printBackground: true,
         margin: {
@@ -502,8 +496,18 @@ async function generateQuotationPDF(quotation: any, language: string): Promise<B
           bottom: '15mm',
           left: '15mm'
         },
-        preferCSSPageSize: true,
-        scale: 0.98 // Slightly reduce scale to ensure fitting
+        preferCSSPageSize: true
+      };
+      
+      // Generate PDF with html-pdf-node
+      const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
+        htmlPdf.generatePdf(fileOptions, pdfOptions)
+          .then(pdfBuffer => {
+            resolve(Buffer.from(pdfBuffer));
+          })
+          .catch(error => {
+            reject(error);
+          });
       });
       
       const bufferSize = pdfBuffer.length / 1024 / 1024; // Size in MB
@@ -513,19 +517,10 @@ async function generateQuotationPDF(quotation: any, language: string): Promise<B
         console.warn(`⚠️ [SEND-REMINDER API] PDF size approaching Resend's 10MB limit: ${bufferSize.toFixed(2)}MB`);
       }
       
-      return Buffer.from(pdfBuffer);
-    } catch (puppeteerError) {
-      console.error('❌ [SEND-REMINDER API] Error during Puppeteer PDF generation:', puppeteerError);
-      throw puppeteerError; // Let the caller handle this error
-    } finally {
-      if (browser) {
-        try {
-          await browser.close();
-          console.log('✅ [SEND-REMINDER API] Browser instance closed successfully');
-        } catch (closeError) {
-          console.error('❌ [SEND-REMINDER API] Error closing browser:', closeError);
-        }
-      }
+      return pdfBuffer;
+    } catch (pdfError) {
+      console.error('❌ [SEND-REMINDER API] Error during html-pdf-node PDF generation:', pdfError);
+      throw pdfError; // Let the caller handle this error
     }
   } catch (error) {
     console.error('❌ [SEND-REMINDER API] Error in PDF generation process:', error);

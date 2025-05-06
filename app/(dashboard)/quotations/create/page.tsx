@@ -3,11 +3,8 @@ import { getDictionary } from '@/lib/i18n/server';
 import { PageHeader } from '@/components/page-header';
 import { Separator } from '@/components/ui/separator';
 import QuotationFormClient from '../_components/quotation-form-client';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { Database } from '@/types/supabase';
-import { Quotation } from '@/types/quotations';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { Quotation } from '@/types/quotations';
 
 interface PageProps {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -25,35 +22,37 @@ export default async function CreateQuotationPage({ searchParams }: PageProps) {
     redirect('/auth/login');
   }
   
-  // Await searchParams before accessing properties
-  const params = await searchParams;
+  // Get duplicate ID more safely
+  const duplicateId = typeof searchParams?.duplicate === "string" ? searchParams.duplicate : undefined;
   
   // If duplicating, fetch the original quotation
   let duplicateFrom: Quotation | null = null;
   
-  // Get duplicate ID more safely
-  const duplicateId = typeof params?.duplicate === "string" ? params.duplicate : undefined;
-  
   if (duplicateId) {
     try {
-      const { data } = await supabase
+      // Fetch the quotation AND any associated items to fully duplicate
+      const { data: quotationData, error } = await supabase
         .from('quotations')
         .select('*')
         .eq('id', duplicateId)
         .single();
       
-      if (data) {
-        duplicateFrom = data as unknown as Quotation;
+      if (error) {
+        console.error('Error fetching quotation to duplicate:', error);
+      } else if (quotationData) {
+        // Log success to help debug
+        console.log('Successfully fetched quotation to duplicate:', duplicateId);
+        duplicateFrom = quotationData as unknown as Quotation;
       }
     } catch (error) {
-      console.error('Error fetching duplicate quotation:', error);
+      console.error('Error fetching quotation to duplicate:', error);
     }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={t('quotations.create')}
+        title={duplicateFrom ? t('quotations.duplicate') : t('quotations.create')}
       />
       
       <Separator className="my-6" />

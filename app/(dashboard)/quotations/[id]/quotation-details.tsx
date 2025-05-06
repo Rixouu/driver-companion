@@ -240,17 +240,17 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">
             {quotation.title || t('quotations.details.untitled')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {t('quotations.details.quotationNumber')}: {formattedQuoteNumber}
+            {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
           </p>
         </div>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 flex-shrink-0">
           <Button variant="outline" size="sm" onClick={handleBack}>
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             {t('common.back')}

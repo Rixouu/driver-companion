@@ -607,6 +607,22 @@ export const useQuotationService = () => {
       // Parse the successful response
       const result = await response.json();
       
+      // Update quotation status to 'sent'
+      const { error: updateError } = await supabase
+        .from('quotations')
+        .update({ status: 'sent' })
+        .eq('id', id);
+      
+      if (updateError) {
+        console.error('Error updating quotation status after sending:', updateError);
+        // Continue execution - email was still sent successfully
+        toast({
+          title: t('quotations.notifications.partialSuccess') || 'Partial success',
+          description: t('quotations.notifications.emailFailed') || 'Email sent but status update failed',
+          variant: 'default',
+        });
+      }
+      
       // Add activity log for the sent email
       await supabase
         .from('quotation_activities')

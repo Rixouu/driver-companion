@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service-client';
 import { Resend } from 'resend';
 
 export async function POST(request: NextRequest) {
   console.log('==================== REJECT ROUTE START ====================');
-  const supabase = await createServerSupabaseClient();
+  
+  // Get translations
+  console.log('Reject route - Getting translations');
   const { t } = await getDictionary();
   
-  console.log('Reject route - Session check result:', await supabase.auth.getSession().then(res => res.data.session ? 'Active session found' : 'No session'));
+  // Create service client (doesn't rely on cookies)
+  console.log('Reject route - Creating Supabase service client');
+  let supabase;
+  try {
+    supabase = createServiceClient();
+    console.log('Reject route - Supabase service client created successfully');
+  } catch (serviceClientError) {
+    console.error('Reject route - Error creating service client:', serviceClientError);
+    return NextResponse.json(
+      { error: 'Error connecting to database' },
+      { status: 500 }
+    );
+  }
 
   try {
     const { id, reason, customerId } = await request.json();
@@ -22,9 +36,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Get current session - this may be null for public access
-    const { data: { session } } = await supabase.auth.getSession();
     
     // Fetch the quotation
     console.log(`Reject route - Fetching quotation with ID: ${id}`);
@@ -78,7 +89,7 @@ export async function POST(request: NextRequest) {
     
     // Create activity log
     // If session exists, use user_id, otherwise use customerId or a placeholder
-    const userId = session?.user?.id || customerId || '00000000-0000-0000-0000-000000000000';
+    const userId = customerId || '00000000-0000-0000-0000-000000000000';
     console.log(`Reject route - Creating activity log with user ID: ${userId}`);
     
     try {

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { Resend } from 'resend';
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
-  const { t } = await getDictionary();
-
   try {
+    // Get the quotation data from the request body
     const { id, reason, customerId } = await request.json();
     
     if (!id) {
@@ -15,6 +14,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Create server-side Supabase client
+    const supabase = await createServerSupabaseClient();
+    
+    // Get translations
+    const { t } = await getDictionary();
     
     // Get current session - this may be null for public access
     const { data: { session } } = await supabase.auth.getSession();
@@ -22,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Fetch the quotation
     const { data: quotation, error: fetchError } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, customers (*)')
       .eq('id', id)
       .single();
     
@@ -65,6 +70,7 @@ export async function POST(request: NextRequest) {
     // Create activity log
     // If session exists, use user_id, otherwise use customerId or a placeholder
     const userId = session?.user?.id || customerId || '00000000-0000-0000-0000-000000000000';
+    
     await supabase
       .from('quotation_activities')
       .insert({
@@ -74,8 +80,47 @@ export async function POST(request: NextRequest) {
         details: { reason: reason || 'No reason provided' }
       });
     
-    // In a real implementation, you would send an email notification
-    // to the merchant that the quotation was rejected
+    // Send email notification if Resend API key is configured
+    if (process.env.RESEND_API_KEY) {
+      try {
+        // Initialize Resend with API key
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        
+        // Get email domain from env or fallback
+        const emailDomain = (process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com').replace(/%$/, '');
+        
+        // Get the public URL
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+        
+        // Format quotation ID to use JPDR prefix
+        const formattedQuotationId = `JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+        
+        // Email subject
+        const emailSubject = `Quotation Rejected - ${formattedQuotationId}`;
+        
+        // Send notification email to merchant/admin
+        await resend.emails.send({
+          from: `Driver Japan <noreply@${emailDomain}>`,
+          to: [process.env.ADMIN_EMAIL || 'info@japandriver.com'],
+          subject: emailSubject,
+          text: `Quotation ${formattedQuotationId} has been rejected by the customer.\n\nReason: ${reason || 'No reason provided'}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Quotation Rejected</h2>
+              <p>Quotation <strong>${formattedQuotationId}</strong> has been rejected by the customer.</p>
+              <p><strong>Reason:</strong> ${reason || 'No reason provided'}</p>
+              <p><a href="${appUrl}/quotations/${id}">View Quotation Details</a></p>
+            </div>
+          `
+        });
+        
+        console.log(`Rejection notification email sent for quotation ${id}`);
+      } catch (emailError) {
+        console.error('Error sending rejection notification email:', emailError);
+        // Continue with the response even if email fails
+      }
+    }
+    
     console.log(`Quotation ${id} rejected by ${customerId || 'customer'}`);
     
     return NextResponse.json({
@@ -86,7 +131,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error rejecting quotation:', error);
     return NextResponse.json(
-      { error: t('notifications.error') },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
   }

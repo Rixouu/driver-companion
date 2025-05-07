@@ -117,8 +117,12 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja')
   
   const formatCurrency = (amount: number, currency: string = 'JPY') => {
-    if (!amount) return `${currency} 0`;
-    return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    // Use the quotation's display_currency if available, otherwise default to JPY
+    const currencyToUse = quotation?.display_currency || quotation?.currency || currency;
+    if (!amount) return currencyToUse === 'JPY' ? `¥0` : `${currencyToUse} 0`;
+    return currencyToUse === 'JPY' 
+      ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+      : `${currencyToUse} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   const generateQuotationPdf = async (email: boolean = false, docLanguage: 'en' | 'ja' = 'en'): Promise<Blob | null> => {
@@ -467,11 +471,40 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       const serviceDays = latestQuotation?.service_days || 1;
       let hourlyRate = latestQuotation?.amount ? (latestQuotation.amount / serviceDays) : 0;
       let baseAmount = latestQuotation?.amount || 0;
-      const currency = latestQuotation?.currency || 'JPY';
+      const currency = latestQuotation?.display_currency || latestQuotation?.currency || 'JPY';
       
-      // Format currency helper
+      // Format currency based on the quotation's currency with conversion
       const formatCurrencyValue = (value: number): string => {
-        return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        // Exchange rates (simplified for demo)
+        const exchangeRates: Record<string, number> = {
+          'JPY': 1,
+          'USD': 0.0067,
+          'EUR': 0.0062,
+          'THB': 0.22,
+          'CNY': 0.048,
+          'SGD': 0.0091
+        };
+
+        // Convert amount from JPY to selected currency
+        const convertedAmount = value * (exchangeRates[currency] / exchangeRates['JPY']);
+        
+        if (currency === 'JPY' || currency === 'CNY') {
+          return currency === 'JPY' 
+            ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+            : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        }
+        
+        // Use locale and currency code for others
+        try {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2
+          }).format(convertedAmount);
+        } catch (error) {
+          // Fallback if currency code is invalid
+          return `${currency} ${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
       };
       
       // Hourly Rate row

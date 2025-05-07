@@ -222,11 +222,40 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
   // Calculate pricing
   let hourlyRate = quotation?.amount ? (quotation.amount / serviceDays) : 0;
   let baseAmount = quotation?.amount || 0;
-  const currency = quotation?.currency || 'THB';
+  const currency = quotation?.display_currency || quotation?.currency || 'JPY';
   
   // Format currency helper
   const formatCurrency = (value: number): string => {
-    return `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    // Exchange rates (simplified for demo)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    // Convert amount from JPY to selected currency
+    const convertedAmount = value * (exchangeRates[currency] / exchangeRates['JPY']);
+    
+    if (currency === 'JPY' || currency === 'CNY') {
+      return currency === 'JPY' 
+        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
+    
+    // Use Intl.NumberFormat for other currencies
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2
+      }).format(convertedAmount);
+    } catch (error) {
+      // Fallback if currency code is invalid
+      return `${currency} ${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
   };
   
   // Process discount and tax calculations

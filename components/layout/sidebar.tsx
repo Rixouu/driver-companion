@@ -28,6 +28,9 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase/client"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+// Organization domain for access control
+const ORGANIZATION_DOMAIN = 'japandriver.com'
+
 // Type for menu item keys
 type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'dispatch' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
 
@@ -65,6 +68,18 @@ export function Sidebar() {
   const { t } = useI18n()
   const [collapsed, setCollapsed] = useState(false)
   const [menuSettings, setMenuSettings] = useState<MenuSettings>(defaultMenuSettings)
+  const [isOrganizationMember, setIsOrganizationMember] = useState(false)
+  
+  // Check if user is from the organization
+  useEffect(() => {
+    const checkOrganizationStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const isOrgMember = user?.email?.endsWith(`@${ORGANIZATION_DOMAIN}`) || false
+      setIsOrganizationMember(isOrgMember)
+    }
+    
+    checkOrganizationStatus()
+  }, [])
   
   // Load menu settings from local storage
   useEffect(() => {
@@ -130,42 +145,55 @@ export function Sidebar() {
     {
       id: 'dashboard',
       items: [
-        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" as MenuItemKey }
+        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard" as const, key: "dashboard" as MenuItemKey }
       ]
     },
     {
       id: 'fleet', // Fleet comes before Sales
       label: 'Fleet',
       items: [
-        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" as MenuItemKey },
-        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" as MenuItemKey }
+        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles" as const, key: "vehicles" as MenuItemKey },
+        { icon: User, label: t("navigation.drivers"), href: "/drivers" as const, key: "drivers" as MenuItemKey }
       ]
     },
     {
       id: 'sales', 
       label: 'Sales',
       items: [
-        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" as MenuItemKey }
+        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations" as const, key: "quotations" as MenuItemKey }
       ]
     },
     {
       id: 'operations',
       label: 'Operations',
       items: [
-        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" as MenuItemKey },
-        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" as MenuItemKey },
-        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" as MenuItemKey },
-        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" as MenuItemKey },
-        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" as MenuItemKey }
+        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings" as const, key: "bookings" as MenuItemKey },
+        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch" as const, key: "dispatch" as MenuItemKey },
+        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance" as const, key: "maintenance" as MenuItemKey },
+        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections" as const, key: "inspections" as MenuItemKey },
+        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting" as const, key: "reporting" as MenuItemKey }
       ]
     },
     {
       id: 'settings',
       items: [
-        { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" as MenuItemKey }
+        { icon: Settings, label: t("navigation.settings"), href: "/settings" as const, key: "settings" as MenuItemKey }
       ]
     }
   ]
+
+  // For non-organization members, only show dashboard and quotations
+  const filteredMenuGroups = isOrganizationMember 
+    ? menuGroups 
+    : [
+        {
+          id: 'sales',
+          label: 'Sales',
+          items: [
+            { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations" as const, key: "quotations" as MenuItemKey }
+          ]
+        }
+      ];
 
   return (
     <div className={cn(
@@ -206,7 +234,7 @@ export function Sidebar() {
         {/* Main navigation */}
         <nav className="flex-1 overflow-y-auto py-4">
           <TooltipProvider delayDuration={300}>
-            {menuGroups.map((group) => {
+            {filteredMenuGroups.map((group) => {
               // Filter items based on menu settings
               const visibleItems = group.items.filter(item => {
                 // Always show settings 
@@ -250,18 +278,16 @@ export function Sidebar() {
                     return collapsed ? (
                       <Tooltip key={item.href}>
                         <TooltipTrigger asChild>
-                          {/* Cast href to any to resolve TypeScript error */}
-                          <Link href={item.href as any}> 
+                          <Link href={item.href as any}>
                             {menuItem}
                           </Link>
                         </TooltipTrigger>
                         <TooltipContent side="right">
-                          <p>{item.label}</p>
+                          {item.label}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      // Cast href to any to resolve TypeScript error
-                      <Link key={item.href} href={item.href as any}> 
+                      <Link key={item.href} href={item.href as any}>
                         {menuItem}
                       </Link>
                     );
@@ -271,37 +297,20 @@ export function Sidebar() {
             })}
           </TooltipProvider>
         </nav>
-        
-        {/* Logout button - positioned at the bottom */}
-        <div className="px-3 pb-6 pt-2 border-t border-[hsl(var(--border))]">
-          <TooltipProvider delayDuration={300}>
-            {collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="w-full justify-center text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>{t("auth.logout")}</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-red-400 hover:bg-[hsl(var(--sidebar-accent))] hover:text-red-400"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-5 w-5 mr-3" />
-                {t("auth.logout")}
-              </Button>
+
+        {/* Logout button at bottom */}
+        <div className="border-t border-[hsl(var(--border))] p-4">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full font-medium text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]",
+              collapsed ? "justify-center px-2" : "justify-start"
             )}
-          </TooltipProvider>
+            onClick={handleLogout}
+          >
+            <LogOut className={cn("h-5 w-5", !collapsed && "mr-3")} />
+            {!collapsed && t("navigation.logout")}
+          </Button>
         </div>
       </div>
     </div>

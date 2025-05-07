@@ -31,15 +31,14 @@ export async function embedWorkSansFont(doc: jsPDF): Promise<jsPDF> {
 /**
  * Formats currency to match the design in the screenshot
  * @param amount number to format
- * @param currency currency code (default: THB)
+ * @param currency currency code (default: JPY)
  * @returns formatted currency string
  */
-export function formatCurrency(amount: number, currency: string = 'THB'): string {
-  if (!amount) return `${currency} 0`;
-  return `${currency} ${amount.toLocaleString(undefined, { 
-    minimumFractionDigits: 0, 
-    maximumFractionDigits: 0 
-  })}`;
+export function formatCurrency(amount: number, currency: string = 'JPY'): string {
+  if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+  return currency === 'JPY'
+    ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+    : `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 /**

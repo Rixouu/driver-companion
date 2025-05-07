@@ -267,13 +267,11 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
   
   // Format pricing information
   const formatCurrency = (amount: number) => {
-    const currency = quotation.currency || 'THB';
-    return new Intl.NumberFormat(isJapanese ? 'ja-JP' : 'en-US', {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
+    const currency = quotation?.display_currency || quotation?.currency || 'JPY';
+    if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+    return currency === 'JPY'
+      ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+      : `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
   
   // Recalculate values for email body display
@@ -582,8 +580,11 @@ function generateEmailText(language: string, customerName: string, formattedQuot
   const durationUnit = isJapanese ? '時間' : 'hours';
   
   const formatCurrency = (amount: number) => {
-    const currency = quotation.currency || 'THB';
-    return `${currency} ${amount.toLocaleString(isJapanese ? 'ja-JP' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const currency = quotation?.display_currency || quotation?.currency || 'JPY';
+    if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+    return currency === 'JPY'
+      ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+      : `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   // Recalculate final amount for text email

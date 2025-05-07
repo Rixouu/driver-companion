@@ -87,7 +87,8 @@ export const ja: TranslationValue = {
     settings: "設定",
     reporting: "レポート",
     dispatch: "配車ボード",
-    quotations: "見積書"
+    quotations: "見積書",
+    logout: "ログアウト"
   },
   drivers: {
     title: "ドライバー",

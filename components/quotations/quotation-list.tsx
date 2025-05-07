@@ -50,6 +50,7 @@ interface QuotationListProps {
   onDelete?: (id: string) => void;
   onSend?: (id: string) => void;
   onRemind?: (id: string) => void;
+  isOrganizationMember?: boolean;
 }
 
 export default function QuotationList({
@@ -58,7 +59,8 @@ export default function QuotationList({
   onRefresh,
   onDelete,
   onSend,
-  onRemind
+  onRemind,
+  isOrganizationMember = true
 }: QuotationListProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -342,50 +344,54 @@ export default function QuotationList({
                           <EyeIcon className="h-4 w-4" />
                         </Button>
                         
-                        {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                          <Button 
-                            variant={needsReminder(quotation) ? "secondary" : "ghost"} 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
-                            title={t('quotations.actions.remind')}
-                          >
-                            <BellIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
-                          title={t('quotations.actions.copy')}
-                        >
-                          <CopyIcon className="h-4 w-4" />
-                        </Button>
-                        
-                        {['draft', 'rejected', 'expired'].includes(quotation.status) && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-600"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                            title={t('quotations.actions.delete')}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {quotation.status === 'draft' && (
+                        {isOrganizationMember && (
                           <>
+                            {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
+                              <Button 
+                                variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
+                                title={t('quotations.actions.remind')}
+                              >
+                                <BellIcon className="h-4 w-4" />
+                              </Button>
+                            )}
+                            
                             <Button 
                               variant="ghost" 
                               size="icon"
                               className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
+                              onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                              title={t('quotations.actions.copy')}
                             >
-                              <FileEditIcon className="h-4 w-4" />
+                              <CopyIcon className="h-4 w-4" />
                             </Button>
+                            
+                            {['draft', 'rejected', 'expired'].includes(quotation.status) && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-600"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
+                                title={t('quotations.actions.delete')}
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
+                            )}
+                            
+                            {quotation.status === 'draft' && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
+                                >
+                                  <FileEditIcon className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -405,7 +411,7 @@ export default function QuotationList({
                       <TableHead>{t('quotations.listColumns.amount')}</TableHead>
                       <TableHead>{t('quotations.listColumns.status')}</TableHead>
                       <TableHead>{t('quotations.listColumns.expiresOn')}</TableHead>
-                      <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>
+                      {isOrganizationMember && <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -442,57 +448,59 @@ export default function QuotationList({
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="p-2">
-                          <div className="flex justify-start items-center space-x-1">
-                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }} className="h-8 w-8">
-                              <EyeIcon className="h-4 w-4" />
-                            </Button>
-                            
-                            {quotation.status === 'draft' && (
-                              <>
-                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }} className="h-8 w-8">
-                                  <FileEditIcon className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }} className="h-8 w-8">
-                                  <MailIcon className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                            
-                            {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                              <Button 
-                                variant={needsReminder(quotation) ? "secondary" : "ghost"} 
-                                size="icon" 
-                                onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }} 
-                                className="h-8 w-8"
-                              >
-                                <BellIcon className="h-4 w-4" />
+                        {isOrganizationMember && (
+                          <TableCell className="p-2">
+                            <div className="flex justify-start items-center space-x-1">
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }} className="h-8 w-8">
+                                <EyeIcon className="h-4 w-4" />
                               </Button>
-                            )}
-                            
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }} 
-                              className="h-8 w-8"
-                              title={t('quotations.actions.copy')}
-                            >
-                              <CopyIcon className="h-4 w-4" />
-                            </Button>
-                            
-                            {['draft', 'rejected', 'expired'].includes(quotation.status) && (
+                              
+                              {quotation.status === 'draft' && (
+                                <>
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }} className="h-8 w-8">
+                                    <FileEditIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }} className="h-8 w-8">
+                                    <MailIcon className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
+                                <Button 
+                                  variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                                  size="icon" 
+                                  onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }} 
+                                  className="h-8 w-8"
+                                >
+                                  <BellIcon className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                                className="h-8 w-8 text-red-600 hover:text-red-600"
-                                title={t('quotations.actions.delete')}
+                                onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }} 
+                                className="h-8 w-8"
+                                title={t('quotations.actions.copy')}
                               >
-                                <TrashIcon className="h-4 w-4" />
+                                <CopyIcon className="h-4 w-4" />
                               </Button>
-                            )}
-                          </div>
-                        </TableCell>
+                              
+                              {['draft', 'rejected', 'expired'].includes(quotation.status) && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
+                                  className="h-8 w-8 text-red-600 hover:text-red-600"
+                                  title={t('quotations.actions.delete')}
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

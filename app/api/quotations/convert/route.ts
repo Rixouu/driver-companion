@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       status: 'confirmed',
       notes: q.notes || '',
       amount: q.amount,
-      currency: q.currency || 'USD',
+      currency: q.currency || 'JPY',
       wp_id: '',  // Empty string instead of null
       created_by: session.user.id,
       source: 'quotation'

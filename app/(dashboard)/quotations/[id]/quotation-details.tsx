@@ -40,6 +40,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 // Import the componentized parts
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
@@ -54,18 +55,19 @@ interface QuotationDetailsProps {
       phone?: string;
     }
   };
+  isOrganizationMember?: boolean;
 }
 
-export function QuotationDetails({ quotation }: QuotationDetailsProps) {
+export function QuotationDetails({ quotation, isOrganizationMember = true }: QuotationDetailsProps) {
   const { t } = useI18n();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(quotation?.display_currency || quotation?.currency || 'JPY');
   const [isApprovalSticky, setIsApprovalSticky] = useState(false);
   const [shouldMoveToMainContent, setShouldMoveToMainContent] = useState(false);
   const approvalPanelRef = useRef<HTMLDivElement>(null);
   const priceDetailsRef = useRef<HTMLDivElement>(null);
-  const { approveQuotation, rejectQuotation, sendQuotation } = useQuotationService();
+  const { approveQuotation, rejectQuotation, sendQuotation, updateQuotation } = useQuotationService();
 
   // Add the messages hook
   const {
@@ -238,6 +240,25 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Handler for currency change that updates the database
+  const handleCurrencyChange = async (newCurrency: string) => {
+    setSelectedCurrency(newCurrency);
+    
+    // Save the selected currency to the database
+    try {
+      await updateQuotation(quotation.id, {
+        display_currency: newCurrency
+      });
+    } catch (error) {
+      console.error('Error updating display currency:', error);
+      toast({
+        title: t('quotations.notifications.error'),
+        description: 'Failed to update currency preference',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
@@ -250,34 +271,28 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
           </p>
         </div>
         
-        <div className="flex flex-wrap gap-2 flex-shrink-0">
-          <Button variant="outline" size="sm" onClick={handleBack}>
-            <ArrowLeftIcon className="h-4 w-4 mr-2" />
-            {t('common.back')}
-          </Button>
-          
+        <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
           <QuotationPdfButton quotation={quotation} onSuccess={() => router.refresh()} />
           
-          {quotation.status === 'draft' && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSend}
+          {isOrganizationMember && quotation.status === 'draft' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSend} 
               disabled={isLoading}
+              className="mr-2"
             >
-              <Mail className="h-4 w-4 mr-2" />
+              <Mail className="mr-2 h-4 w-4" />
               {t('quotations.actions.send')}
             </Button>
           )}
           
-          {['draft', 'sent'].includes(quotation.status) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/quotations/${quotation.id}/edit` as any)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              {t('quotations.editSection.title')}
+          {isOrganizationMember && (
+            <Button variant="outline" size="sm" asChild className="mr-2">
+              <Link href={`/quotations/${quotation.id}/edit`}>
+                <Edit className="mr-2 h-4 w-4" />
+                {t('quotations.actions.edit')}
+              </Link>
             </Button>
           )}
         </div>
@@ -475,7 +490,7 @@ export function QuotationDetails({ quotation }: QuotationDetailsProps) {
                   duration_hours={quotation.duration_hours}
                   service_days={quotation.service_days}
                   selectedCurrency={selectedCurrency}
-                  onCurrencyChange={setSelectedCurrency}
+                  onCurrencyChange={handleCurrencyChange}
                   formatCurrency={formatCurrency}
                   calculateDiscountAmount={calculateDiscountAmount}
                   calculateSubtotalAmount={calculateSubtotalAmount}

@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS public.quotations (
   days_count INTEGER DEFAULT 1,
   expiry_date TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '48 hours'),
   amount DECIMAL(10, 2) NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'THB',
+  currency TEXT NOT NULL DEFAULT 'JPY',
   discount_percentage DECIMAL(5, 2) DEFAULT 0,
   tax_percentage DECIMAL(5, 2) DEFAULT 0,
   total_amount DECIMAL(10, 2) NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS public.pricing_items (
   vehicle_type TEXT NOT NULL,
   duration_hours INTEGER NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'THB',
+  currency TEXT NOT NULL DEFAULT 'JPY',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -159,34 +159,34 @@ BEGIN
     -- Mercedes Benz V Class Black Suite
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 1, 23000, 'THB'),
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 4, 92000, 'THB'),
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 6, 138000, 'THB'),
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 8, 184000, 'THB'),
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 10, 241500, 'THB'),
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 12, 299000, 'THB');
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 1, 23000, 'JPY'),
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 4, 92000, 'JPY'),
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 6, 138000, 'JPY'),
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 8, 184000, 'JPY'),
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 10, 241500, 'JPY'),
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'charter', 12, 299000, 'JPY');
     
     -- Toyota Alphard Executive Lounge
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 1, 23000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 4, 92000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 6, 138000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 8, 184000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 10, 241500, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 12, 299000, 'THB');
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 1, 23000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 4, 92000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 6, 138000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 8, 184000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 10, 241500, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'charter', 12, 299000, 'JPY');
     
     -- Haneda Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'airportTransferHaneda', 1, 46000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'airportTransferHaneda', 1, 46000, 'THB');
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'airportTransferHaneda', 1, 46000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'airportTransferHaneda', 1, 46000, 'JPY');
     
     -- Narita Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'airportTransferNarita', 1, 69000, 'THB'),
-      (platinum_id, 'Toyota Alphard Executive Lounge', 'airportTransferNarita', 1, 69000, 'THB');
+      (platinum_id, 'Mercedes Benz V Class - Black Suite', 'airportTransferNarita', 1, 69000, 'JPY'),
+      (platinum_id, 'Toyota Alphard Executive Lounge', 'airportTransferNarita', 1, 69000, 'JPY');
   END IF;
   
   -- Insert pricing items for Luxury
@@ -194,34 +194,34 @@ BEGIN
     -- Mercedes Benz V class Extra Long
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 1, 18000, 'THB'),
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 4, 72000, 'THB'),
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 6, 108000, 'THB'),
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 8, 144000, 'THB'),
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 10, 189000, 'THB'),
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 12, 234000, 'THB');
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 1, 18000, 'JPY'),
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 4, 72000, 'JPY'),
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 6, 108000, 'JPY'),
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 8, 144000, 'JPY'),
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 10, 189000, 'JPY'),
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'charter', 12, 234000, 'JPY');
     
     -- Toyota Alphard Z class
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 1, 18000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 4, 72000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 6, 108000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 8, 144000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 10, 189000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'charter', 12, 234000, 'THB');
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 1, 18000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 4, 72000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 6, 108000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 8, 144000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 10, 189000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'charter', 12, 234000, 'JPY');
     
     -- Haneda Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'airportTransferHaneda', 1, 36000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'airportTransferHaneda', 1, 36000, 'THB');
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'airportTransferHaneda', 1, 36000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'airportTransferHaneda', 1, 36000, 'JPY');
     
     -- Narita Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (luxury_id, 'Mercedes Benz V class - Extra Long', 'airportTransferNarita', 1, 54000, 'THB'),
-      (luxury_id, 'Toyota Alphard Z class', 'airportTransferNarita', 1, 54000, 'THB');
+      (luxury_id, 'Mercedes Benz V class - Extra Long', 'airportTransferNarita', 1, 54000, 'JPY'),
+      (luxury_id, 'Toyota Alphard Z class', 'airportTransferNarita', 1, 54000, 'JPY');
   END IF;
   
   -- Insert pricing items for Premium
@@ -229,22 +229,22 @@ BEGIN
     -- Toyota Hi-Ace Grand Cabin
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 1, 16000, 'THB'),
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 4, 64000, 'THB'),
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 6, 96000, 'THB'),
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 8, 128000, 'THB'),
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 10, 169000, 'THB'),
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 12, 208000, 'THB');
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 1, 16000, 'JPY'),
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 4, 64000, 'JPY'),
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 6, 96000, 'JPY'),
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 8, 128000, 'JPY'),
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 10, 169000, 'JPY'),
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'charter', 12, 208000, 'JPY');
     
     -- Haneda Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'airportTransferHaneda', 1, 32000, 'THB');
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'airportTransferHaneda', 1, 32000, 'JPY');
     
     -- Narita Airport Transfer
     INSERT INTO public.pricing_items (category_id, vehicle_type, service_type, duration_hours, price, currency)
     VALUES
-      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'airportTransferNarita', 1, 48000, 'THB');
+      (premium_id, 'Toyota Hi-Ace Grand Cabin', 'airportTransferNarita', 1, 48000, 'JPY');
   END IF;
 END
 $$;

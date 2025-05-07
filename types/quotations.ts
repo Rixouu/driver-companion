@@ -41,6 +41,7 @@ export interface Quotation {
   expiry_date: string;
   amount: number;
   currency: string;
+  display_currency?: string;
   discount_percentage?: number;
   tax_percentage?: number;
   total_amount: number;
@@ -153,6 +154,8 @@ export interface CreateQuotationInput {
   status?: QuotationStatus;
   merchant_notes?: string;
   customer_notes?: string;
+  currency?: string;
+  display_currency?: string;
 }
 
 export interface UpdateQuotationInput {
@@ -184,6 +187,11 @@ export interface UpdateQuotationInput {
   discount_percentage?: number;
   tax_percentage?: number;
   status?: QuotationStatus;
+  currency?: string;
+  display_currency?: string;
+  amount?: number;
+  total_amount?: number;
+  expiry_date?: string;
 }
 
 export interface QuotationResponse {

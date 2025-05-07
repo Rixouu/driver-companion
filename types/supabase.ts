@@ -1367,6 +1367,7 @@ export type Database = {
           customer_phone: string | null
           days_count: number | null
           discount_percentage: number | null
+          display_currency: string | null
           dropoff_location: string | null
           duration_hours: number | null
           expiry_date: string
@@ -1411,6 +1412,7 @@ export type Database = {
           customer_phone?: string | null
           days_count?: number | null
           discount_percentage?: number | null
+          display_currency?: string | null
           dropoff_location?: string | null
           duration_hours?: number | null
           expiry_date?: string
@@ -1455,6 +1457,7 @@ export type Database = {
           customer_phone?: string | null
           days_count?: number | null
           discount_percentage?: number | null
+          display_currency?: string | null
           dropoff_location?: string | null
           duration_hours?: number | null
           expiry_date?: string

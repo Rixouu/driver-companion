@@ -20,9 +20,10 @@ import { SendReminderDialog } from '@/components/quotations/send-reminder-dialog
 
 interface QuotationsTableClientProps {
   initialQuotations: Quotation[];
+  isOrganizationMember?: boolean;
 }
 
-export default function QuotationsTableClient({ initialQuotations }: QuotationsTableClientProps) {
+export default function QuotationsTableClient({ initialQuotations, isOrganizationMember = true }: QuotationsTableClientProps) {
   const { t } = useI18n();
   const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,9 +127,10 @@ export default function QuotationsTableClient({ initialQuotations }: QuotationsT
         quotations={quotations}
         isLoading={isLoading}
         onRefresh={handleRefresh}
-        onDelete={handleDelete}
-        onSend={handleSend}
-        onRemind={handleRemind}
+        onDelete={isOrganizationMember ? handleDelete : undefined}
+        onSend={isOrganizationMember ? handleSend : undefined}
+        onRemind={isOrganizationMember ? handleRemind : undefined}
+        isOrganizationMember={isOrganizationMember}
       />
       
       {/* Delete Confirmation Dialog */}

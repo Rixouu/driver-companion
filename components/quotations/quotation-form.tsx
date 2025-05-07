@@ -28,7 +28,8 @@ import {
   Tag,
   Percent,
   StickyNote,
-  Eye
+  Eye,
+  Globe
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -160,7 +161,8 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const [pricingItems, setPricingItems] = useState<PricingItem[]>([]);
   const [baseAmount, setBaseAmount] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [currency, setCurrency] = useState<string>('THB');
+  const [currency, setCurrency] = useState<string>(initialData?.currency || 'JPY');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(initialData?.display_currency || initialData?.currency || 'JPY');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [submittingAndSending, setSubmittingAndSending] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -321,14 +323,38 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     calculateQuotationAmount
   ]);
 
-  // Format currency
+  // Format currency with exchange rates
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'THB',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    if (amount === undefined) return `¥0`;
+    
+    // Exchange rates (simplified for demo)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    // Convert amount to selected currency
+    const convertedAmount = amount * (exchangeRates[selectedCurrency] / exchangeRates['JPY']);
+    
+    // Format based on currency
+    if (selectedCurrency === 'JPY' || selectedCurrency === 'CNY') {
+      return selectedCurrency === 'JPY' 
+        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else if (selectedCurrency === 'THB') {
+      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: selectedCurrency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(convertedAmount);
+    }
   };
 
   // Get service types for the selected category
@@ -499,7 +525,11 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                 : (parseInt(data.passenger_count, 10) || null) // Parse to integer or null if NaN
             : typeof data.passenger_count === 'number' 
                 ? data.passenger_count // Keep numeric values as is
-                : null // Default to null for undefined/null/other values
+                : null, // Default to null for undefined/null/other values
+
+        // Store the actual calculation currency and display currency
+        currency: currency || 'JPY',
+        display_currency: selectedCurrency || 'JPY'
       };
       
       // Additional numeric field sanitization to ensure no 'none' values slip through
@@ -1201,6 +1231,29 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
              <div className="space-y-6">
                <h2 className="text-lg font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5" /> {t('quotations.form.pricingSection')}</h2>
                  
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-medium">Currency Settings</h3>
+                  <div className="flex items-center space-x-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <Select 
+                      value={selectedCurrency}
+                      onValueChange={setSelectedCurrency}
+                    >
+                      <SelectTrigger className="w-[120px] h-8">
+                        <SelectValue placeholder="Currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="JPY">JPY (¥)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="THB">THB (฿)</SelectItem>
+                        <SelectItem value="CNY">CNY (¥)</SelectItem>
+                        <SelectItem value="SGD">SGD ($)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                 
                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     <FormField
                       control={form.control}
@@ -1253,6 +1306,9 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                   <Card className="bg-muted/40">
                      <CardHeader className="pb-2">
                        <CardTitle className="text-base font-medium">Estimated Pricing</CardTitle>
+                       <CardDescription className="text-xs text-muted-foreground">
+                         Values stored in {currency}. Displayed as: {selectedCurrency} format
+                       </CardDescription>
                      </CardHeader>
                     <CardContent>
                       <div className="space-y-2">

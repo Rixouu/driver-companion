@@ -90,7 +90,8 @@ export const en: TranslationValue = {
     settings: "Settings",
     reporting: "Reporting",
     dispatch: "Dispatch Board",
-    quotations: "Quotations"
+    quotations: "Quotations",
+    logout: "Logout"
   },
   drivers: {
     title: "Drivers",
@@ -2271,7 +2272,8 @@ export const en: TranslationValue = {
     },
     empty: {
       title: "No Quotations Found",
-      description: "No quotations found for the selected filters."
+      description: "No quotations found for the selected filters.",
+      cta: "Create Quotation"
     }
   },
   email: {

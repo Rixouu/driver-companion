@@ -9,6 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import { Quotation } from '@/types/quotations';
 import { formatDate } from '@/lib/utils/date-utils';
+import { Globe } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface QuotationDetailProps {
   id: string;
@@ -17,6 +19,7 @@ interface QuotationDetailProps {
 export function QuotationDetail({ id }: QuotationDetailProps) {
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
   const { toast } = useToast();
   const { t } = useI18n();
   const router = useRouter();
@@ -33,6 +36,8 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
         
         const data = await response.json();
         setQuotation(data);
+        // Initialize currency from the quotation
+        setSelectedCurrency(data.display_currency || data.currency || 'JPY');
       } catch (error) {
         console.error('Error loading quotation:', error);
         toast({
@@ -47,6 +52,41 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
     
     fetchQuotation();
   }, [id, toast]);
+
+  // Format currency with exchange rates
+  const formatCurrency = (amount: number | string | undefined) => {
+    if (amount === undefined) return `¥0`;
+    
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    // Exchange rates (simplified for demo)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    // Convert amount to selected currency
+    const convertedAmount = numericAmount * (exchangeRates[selectedCurrency] / exchangeRates[(quotation?.currency || 'JPY')]);
+    
+    // Format based on currency
+    if (selectedCurrency === 'JPY' || selectedCurrency === 'CNY') {
+      return selectedCurrency === 'JPY' 
+        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else if (selectedCurrency === 'THB') {
+      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: selectedCurrency,
+        minimumFractionDigits: 2
+      }).format(convertedAmount);
+    }
+  };
 
   if (isLoading) {
     return <QuotationDetailSkeleton />;
@@ -162,29 +202,48 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
           </div>
           
           <div>
-            <h3 className="text-lg font-medium mb-2">
-              {t('quotations.details.pricing')}
+            <h3 className="text-lg font-medium mb-2 flex justify-between items-center">
+              <span>{t('quotations.details.pricing')}</span>
+              <div className="flex items-center space-x-2">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <Select 
+                  value={selectedCurrency}
+                  onValueChange={setSelectedCurrency}
+                >
+                  <SelectTrigger className="w-[110px] h-8">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="JPY">JPY (¥)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="THB">THB (฿)</SelectItem>
+                    <SelectItem value="CNY">CNY (¥)</SelectItem>
+                    <SelectItem value="SGD">SGD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </h3>
             <div className="p-4 bg-muted rounded-md">
               <div className="flex justify-between items-center">
                 <span>{t('quotations.details.fields.amount')}:</span>
-                <span>{quotation.currency} {quotation.amount.toFixed(2)}</span>
+                <span>{formatCurrency(quotation.amount)}</span>
               </div>
               {quotation.discount_percentage && quotation.discount_percentage > 0 && (
                 <div className="flex justify-between items-center text-green-600">
                   <span>{t('quotations.details.fields.discount')} ({quotation.discount_percentage}%):</span>
-                  <span>- {quotation.currency} {(quotation.amount * (quotation.discount_percentage / 100)).toFixed(2)}</span>
+                  <span>- {formatCurrency(quotation.amount * (quotation.discount_percentage / 100))}</span>
                 </div>
               )}
               {quotation.tax_percentage && quotation.tax_percentage > 0 && (
                 <div className="flex justify-between items-center">
                   <span>{t('quotations.details.fields.tax')} ({quotation.tax_percentage}%):</span>
-                  <span>{quotation.currency} {(quotation.amount * (1 - (quotation.discount_percentage || 0) / 100) * (quotation.tax_percentage / 100)).toFixed(2)}</span>
+                  <span>{formatCurrency(quotation.amount * (1 - (quotation.discount_percentage || 0) / 100) * (quotation.tax_percentage / 100))}</span>
                 </div>
               )}
               <div className="flex justify-between items-center font-bold mt-2 pt-2 border-t">
                 <span>{t('quotations.details.fields.totalAmount')}:</span>
-                <span>{quotation.currency} {quotation.total_amount.toFixed(2)}</span>
+                <span>{formatCurrency(quotation.total_amount)}</span>
               </div>
             </div>
           </div>
@@ -248,15 +307,15 @@ function QuotationDetailSkeleton() {
             <div className="p-4 bg-muted rounded-md space-y-2">
               <div className="flex justify-between items-center">
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
               </div>
               <div className="flex justify-between items-center">
                 <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
               </div>
-              <div className="flex justify-between items-center pt-2 mt-2 border-t">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-5 w-24" />
+              <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-24" />
               </div>
             </div>
           </div>

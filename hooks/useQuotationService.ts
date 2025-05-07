@@ -193,6 +193,11 @@ export const useQuotationService = () => {
         billing_postal_code: input.billing_postal_code || null,
         billing_country: input.billing_country || null,
       };
+      
+      // Add display_currency if provided
+      if (input.display_currency) {
+        (recordToInsert as any).display_currency = input.display_currency;
+      }
 
       // Log the final record before attempting insert
       console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(recordToInsert));
@@ -249,7 +254,7 @@ export const useQuotationService = () => {
         title: t('quotations.notifications.createSuccess'),
       });
 
-      return data as Quotation;
+      return data as unknown as Quotation;
 
     } catch (err: any) {
       // Log the specific error caught
@@ -270,66 +275,69 @@ export const useQuotationService = () => {
   };
 
   const updateQuotation = async (id: string, input: UpdateQuotationInput): Promise<Quotation | null> => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      // Get current quotation to check if pricing needs recalculation
+      setLoading(true);
+      setError(null);
+      
+      // Fetch current quotation to compare changes
       const { data: currentQuotation, error: fetchError } = await supabase
         .from('quotations')
         .select('*')
         .eq('id', id)
         .single();
-
+      
       if (fetchError) {
         throw fetchError;
       }
-
-      // Determine if we need to recalculate the amount
-      const needsRecalculation = 
-        (input.service_type && input.service_type !== currentQuotation.service_type) ||
-        (input.vehicle_type && input.vehicle_type !== currentQuotation.vehicle_type) ||
-        (input.duration_hours && input.duration_hours !== currentQuotation.duration_hours) ||
-        (input.hours_per_day && input.hours_per_day !== currentQuotation.hours_per_day) ||
-        (input.discount_percentage !== undefined && input.discount_percentage !== currentQuotation.discount_percentage) ||
-        (input.tax_percentage !== undefined && input.tax_percentage !== currentQuotation.tax_percentage) ||
-        (input.service_days !== undefined && input.service_days !== currentQuotation.service_days);
-
-      let updateData: any = { ...input };
       
-      // Always set a new expiration date when updating a quotation
-      // Default to 30 days, can't rely on valid_days existing in the schema
+      // Cast to Quotation type to avoid TypeScript errors
+      const quotation = currentQuotation as unknown as Quotation;
+      
+      // Initialize update data object
+      const updateData: Record<string, any> = { ...input };
+      
+      // Set expiry date (original code had this, don't remove)
       const validDays = 30;
       updateData.expiry_date = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
+      
+      // Check if we need to recalculate pricing
+      const needsRecalculation = 
+        input.service_type !== undefined || 
+        input.vehicle_type !== undefined || 
+        input.duration_hours !== undefined || 
+        input.service_days !== undefined ||
+        input.hours_per_day !== undefined ||
+        input.discount_percentage !== undefined || 
+        input.tax_percentage !== undefined;
 
       // Recalculate amount if needed
       if (needsRecalculation) {
-        const serviceType = input.service_type || currentQuotation.service_type;
-        const vehicleType = input.vehicle_type || currentQuotation.vehicle_type;
+        const serviceType = input.service_type || quotation.service_type;
+        const vehicleType = input.vehicle_type || quotation.vehicle_type;
         const isCharter = serviceType === 'charter';
         
         // For charter services, prefer hours_per_day over duration_hours
         let effectiveDuration: number;
         if (isCharter) {
           effectiveDuration = input.hours_per_day || input.duration_hours || 
-            currentQuotation.hours_per_day || currentQuotation.duration_hours || 1;
+            quotation.hours_per_day || quotation.duration_hours || 1;
           // Ensure hours_per_day is synchronized with effectiveDuration
           updateData.hours_per_day = effectiveDuration;
         } else {
-          effectiveDuration = input.duration_hours || currentQuotation.duration_hours || 1;
+          effectiveDuration = input.duration_hours || quotation.duration_hours || 1;
         }
         
         updateData.duration_hours = effectiveDuration;
         
         const discountPercentage = input.discount_percentage !== undefined 
           ? input.discount_percentage 
-          : currentQuotation.discount_percentage;
+          : quotation.discount_percentage;
         const taxPercentage = input.tax_percentage !== undefined 
           ? input.tax_percentage 
-          : currentQuotation.tax_percentage;
+          : quotation.tax_percentage;
         const serviceDays = input.service_days !== undefined 
           ? input.service_days 
-          : currentQuotation.service_days || 1;
+          : quotation.service_days || 1;
 
         const { baseAmount, currency, totalAmount } = await calculateQuotationAmount(
           serviceType,
@@ -343,26 +351,39 @@ export const useQuotationService = () => {
         updateData.amount = baseAmount;
         updateData.currency = currency;
         updateData.total_amount = totalAmount;
+        
+        // If display_currency is not specified but we're recalculating,
+        // keep the existing display_currency or default to the actual currency
+        if (input.display_currency === undefined) {
+          updateData.display_currency = quotation.display_currency || currency;
+        }
+      } else if (input.display_currency) {
+        // Handle case where only display_currency is updated
+        updateData.display_currency = input.display_currency;
+      }
 
-        // Also update the quotation item if service changed
-        if (input.service_type || input.vehicle_type) {
-          const { data: items } = await supabase
+      // Also update the quotation item if service changed
+      if (input.service_type || input.vehicle_type) {
+        const serviceType = input.service_type || quotation.service_type;
+        const vehicleType = input.vehicle_type || quotation.vehicle_type;
+        const baseAmount = updateData.amount || quotation.amount;
+        
+        const { data: items } = await supabase
+          .from('quotation_items')
+          .select('id')
+          .eq('quotation_id', id)
+          .order('sort_order', { ascending: true })
+          .limit(1);
+
+        if (items && items.length > 0) {
+          await supabase
             .from('quotation_items')
-            .select('id')
-            .eq('quotation_id', id)
-            .order('sort_order', { ascending: true })
-            .limit(1);
-
-          if (items && items.length > 0) {
-            await supabase
-              .from('quotation_items')
-              .update({
-                description: `${serviceType} - ${vehicleType}`,
-                unit_price: baseAmount,
-                total_price: baseAmount
-              })
-              .eq('id', items[0].id);
-          }
+            .update({
+              description: `${serviceType} - ${vehicleType}`,
+              unit_price: baseAmount,
+              total_price: baseAmount
+            })
+            .eq('id', items[0].id);
         }
       }
 

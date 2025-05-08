@@ -135,38 +135,40 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     return Array.from(uniqueModels).sort();
   }, [vehicles, brandFilter]);
   
-  // Filter and paginate vehicles
+  // Filter Vehicle selection
   const filteredVehicles = useMemo(() => {
-    return vehicles.filter(vehicle => {
-      // Apply search filter
-      const matchesSearch = searchQuery.trim() === "" || 
-        vehicle.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    // If no filters and no search query, return all vehicles
+    if (brandFilter === 'all' && modelFilter === 'all' && !searchQuery) {
+      return vehicles;
+    }
+    
+    return vehicles.filter((vehicle) => {
+      const matchesBrand = brandFilter === 'all' || vehicle.brand === brandFilter;
+      const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
+      
+      // Search query match against name, model, brand, or plate number
+      const matchesSearch = !searchQuery || (
+        (vehicle.name && vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase()));
+        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
       
-      // Apply brand filter
-      const matchesBrand = brandFilter === "all" || vehicle.brand === brandFilter;
-      
-      // Apply model filter
-      const matchesModel = modelFilter === "all" || vehicle.model === modelFilter;
-      
-      return matchesSearch && matchesBrand && matchesModel;
+      return matchesBrand && matchesModel && matchesSearch;
     });
-  }, [vehicles, searchQuery, brandFilter, modelFilter]);
+  }, [vehicles, brandFilter, modelFilter, searchQuery]);
   
-  // Get paginated vehicles
+  // Pagination for vehicle selection
   const paginatedVehicles = useMemo(() => {
     const startIndex = (currentPage - 1) * vehiclesPerPage;
-    const endIndex = startIndex + vehiclesPerPage;
-    return filteredVehicles.slice(startIndex, endIndex);
+    return filteredVehicles.slice(startIndex, startIndex + vehiclesPerPage);
   }, [filteredVehicles, currentPage, vehiclesPerPage]);
   
-  // Reset filters
+  // Reset filters function
   const resetFilters = () => {
-    setSearchQuery("");
-    setBrandFilter("all");
-    setModelFilter("all");
+    setSearchQuery('');
+    setBrandFilter('all');
+    setModelFilter('all');
     setCurrentPage(1);
   };
   
@@ -235,14 +237,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           const categories = await getInspectionTemplates(selectedType);
           
           // Format the sections with their items
-          const sectionsWithItems: InspectionSection[] = categories.map(category => {
+          const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
             return {
               id: category.id,
               name_translations: category.name_translations,
               description_translations: category.description_translations,
               title: category.name_translations[locale] || 'Unknown Section',
               description: category.description_translations[locale] || '',
-              items: category.inspection_item_templates.map(item => ({
+              items: category.inspection_item_templates.map((item: any) => ({
                 id: item.id,
                 name_translations: item.name_translations,
                 description_translations: item.description_translations,
@@ -410,6 +412,27 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     setIsCameraOpen(false);
   };
   
+  // Handle photo deletion
+  const handleDeletePhoto = (sectionId: string, itemId: string, photoIndex: number) => {
+    setSections(prevSections =>
+      prevSections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              items: section.items.map(item =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      photos: item.photos.filter((_, index) => index !== photoIndex),
+                    }
+                  : item
+              ),
+            }
+          : section
+      )
+    );
+  };
+  
   // Calculate overall progress
   const getOverallProgress = () => {
     if (sections.length === 0) return 0;
@@ -492,7 +515,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       
       // Upload photos to storage and get URLs
       for (const item of itemsToSave) {
-        const uploadedPhotoUrls = [];
+        const uploadedPhotoUrls: string[] = [];
         
         for (const photoUrl of item.photos) {
           if (photoUrl.startsWith('blob:')) {
@@ -500,6 +523,16 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               const response = await fetch(photoUrl);
               const blob = await response.blob();
               const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+
+              if (!user) {
+                toast({
+                  title: "Authentication error",
+                  description: "User not found, cannot upload photo.",
+                  variant: "destructive",
+                });
+                setIsSubmitting(false);
+                return;
+              }
               
               // Upload to Supabase storage
               const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
@@ -546,7 +579,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       if (insertItemsError) throw insertItemsError;
       
       // Insert photos for items that have them
-      const photosToInsert = [];
+      const photosToInsert: Array<{ inspection_item_id: string; photo_url: string }> = [];
       for (let i = 0; i < itemsToSave.length; i++) {
         const item = itemsToSave[i];
         const newItem = newItems[i];
@@ -663,7 +696,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         
         {/* Showing results info */}
         <div className="text-sm text-muted-foreground">
-          {t('drivers.pagination.showing', {
+          {t('inspections.labels.showingVehicles', {
             start: String(Math.min((currentPage - 1) * vehiclesPerPage + 1, filteredVehicles.length)),
             end: String(Math.min(currentPage * vehiclesPerPage, filteredVehicles.length)),
             total: String(filteredVehicles.length)
@@ -673,8 +706,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       
       {/* Vehicle list */}
       {filteredVehicles.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg">
-          <Filter className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+        <div className="text-center py-8 border rounded-lg mt-4">
+          <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-1">
             {t('drivers.filters.noResults')}
           </h3>
@@ -686,59 +719,61 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           </Button>
         </div>
       ) : (
-        <ScrollArea className="max-h-[60vh]">
-          <div className="grid grid-cols-1 gap-4">
-            {paginatedVehicles.map(vehicle => (
-          <Card 
-            key={vehicle.id} 
-            className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
-            onClick={() => handleVehicleSelect(vehicle)}
-          >
-                <CardContent className="p-4">
-                  <div className="flex flex-row gap-4 items-center">
-                    {/* Vehicle thumbnail with 16:9 aspect ratio */}
-                    <div className="w-24 sm:w-48 shrink-0 flex items-center">
-                      <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
-              {vehicle.image_url ? (
-                  <Image 
-                    src={vehicle.image_url} 
-                    alt={vehicle.name}
-                            fill
-                            sizes="(max-width: 768px) 96px, 192px"
-                            className="object-cover"
-                            priority={currentPage === 1}
-                  />
-              ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <span className="text-muted-foreground">{t('common.noImage')}</span>
-                </div>
-              )}
+        <div className="relative">
+          <ScrollArea className="h-[60vh] pr-4 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-4 pb-2">
+              {paginatedVehicles.map((vehicle) => (
+                <Card 
+                  key={vehicle.id} 
+                  className={`cursor-pointer transition-colors ${selectedVehicle?.id === vehicle.id ? 'border-primary border-2' : ''}`}
+                  onClick={() => handleVehicleSelect(vehicle)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex flex-row gap-4 items-center">
+                      {/* Vehicle thumbnail with 16:9 aspect ratio */}
+                      <div className="w-24 sm:w-48 shrink-0 flex items-center">
+                        <div className="relative w-full aspect-[16/9] rounded-md overflow-hidden">
+                          {vehicle.image_url ? (
+                            <Image 
+                              src={vehicle.image_url} 
+                              alt={vehicle.name}
+                              fill
+                              sizes="(max-width: 768px) 96px, 192px"
+                              className="object-cover"
+                              priority={currentPage === 1}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <span className="text-muted-foreground">{t('common.noImage')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Vehicle details */}
+                      <div className="flex-1 flex flex-col justify-center">
+                        <h3 className="font-medium text-lg">{vehicle.name}</h3>
+                        <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
+                        {vehicle.brand && vehicle.model && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {vehicle.year && <span>{vehicle.year} </span>}
+                            <span>{vehicle.brand} </span>
+                            <span>{vehicle.model}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
-              
-                    {/* Vehicle details */}
-                    <div className="flex-1 flex flex-col justify-center">
-                <h3 className="font-medium text-lg">{vehicle.name}</h3>
-                      <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
-                {vehicle.brand && vehicle.model && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {vehicle.year && <span>{vehicle.year} </span>}
-                          <span>{vehicle.brand} </span>
-                          <span>{vehicle.model}</span>
-                        </p>
-                )}
-                    </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-        </ScrollArea>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       )}
       
       {/* Pagination controls */}
       {filteredVehicles.length > vehiclesPerPage && (
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-4">
           <div className="text-sm text-muted-foreground">
             {t('drivers.pagination.page', { page: String(currentPage) })} {t('drivers.pagination.of', { total: String(Math.ceil(filteredVehicles.length / vehiclesPerPage)) })}
           </div>
@@ -873,20 +908,27 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                 {item.photos.length > 0 && (
                   <div className="flex flex-wrap gap-3 mt-4">
                     {item.photos.map((photo, index) => (
-                      <div key={index} className="w-20 h-20 relative rounded overflow-hidden">
+                      <div key={index} className="w-20 h-20 relative rounded overflow-hidden group">
                         <Image 
                           src={photo} 
                           alt={t('inspections.labels.photoNumber', { number: String(index + 1) })}
                           fill
                           className="object-cover" 
                         />
+                        <button
+                          onClick={() => handleDeletePhoto(currentSection.id, item.id, index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Delete photo"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
                     ))}
                   </div>
                 )}
                 
                 {/* Notes input */}
-                {(item.requires_notes || item.status === 'fail') && (
+                {item.status === 'fail' && (
                   <Textarea
                     placeholder={t('inspections.fields.notesPlaceholder')}
                     value={item.notes}
@@ -937,27 +979,28 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     return (
       <Card className="my-6">
         <CardContent className="p-4">
-          <div className="flex flex-col">
-            {/* Vehicle thumbnail with 16:9 aspect ratio */}
-            {selectedVehicle.image_url ? (
-              <div className="w-full flex items-center mb-4">
-                <div className="relative aspect-[16/9] w-full rounded-md overflow-hidden">
-                <Image 
-                  src={selectedVehicle.image_url} 
-                  alt={selectedVehicle.name}
+          <div className="flex flex-row gap-4 items-center">
+            {/* Vehicle thumbnail - smaller size */}
+            <div className="shrink-0">
+              {selectedVehicle.image_url ? (
+                <div className="relative rounded-md overflow-hidden h-24 w-32">
+                  <Image 
+                    src={selectedVehicle.image_url} 
+                    alt={selectedVehicle.name}
                     fill
-                    sizes="(max-width: 640px) 100vw, 100vw"
+                    sizes="128px"
                     className="object-cover"
                     priority
-                />
+                  />
                 </div>
-              </div>
-            ) : (
-              <div className="w-full bg-muted flex items-center justify-center rounded-md mb-4" style={{ aspectRatio: '16/9' }}>
-                <span className="text-muted-foreground">{t('common.noImage')}</span>
-              </div>
-            )}
+              ) : (
+                <div className="w-32 h-24 bg-muted flex items-center justify-center rounded-md">
+                  <span className="text-muted-foreground">{t('common.noImage')}</span>
+                </div>
+              )}
+            </div>
             
+            {/* Vehicle info */}
             <div className="flex-1">
               <h3 className="text-xl font-bold">
                 {selectedVehicle.brand} {selectedVehicle.model}
@@ -968,43 +1011,43 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               <p className="text-muted-foreground mt-1">
                 {selectedVehicle.plate_number}
               </p>
-              
-              {currentStepIndex !== 0 && (
-              <div className="mt-3 space-y-2">
-                {/* Section info with progress */}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    {t('inspections.labels.currentSection')}: {currentSection.title}
-                  </p>
-                  <p className="text-sm font-medium">
-                    {progress}% - {currentSectionIndex + 1}/{sections.length}
-                  </p>
-                </div>
-                
-                {/* Section indicators */}
-                <div className="flex gap-1 h-2.5">
-                  {sections.map((section, index) => (
-                    <div 
-                      key={section.id} 
-                      className={`h-2.5 rounded-full flex-1 ${
-                        index < currentSectionIndex 
-                          ? 'bg-gradient-to-r from-green-500 to-green-600' 
-                          : index === currentSectionIndex 
-                            ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                            : 'bg-muted'
-                      }`}
-                    />
-                  ))}
-                </div>
-                
-                {/* Estimated time */}
-                <p className="text-xs text-right text-muted-foreground">
-                  {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
-                </p>
-              </div>
-              )}
             </div>
           </div>
+              
+          {currentStepIndex !== 0 && (
+            <div className="mt-3 space-y-2">
+              {/* Section info with progress */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  {t('inspections.labels.currentSection')}: {currentSection.title}
+                </p>
+                <p className="text-sm font-medium">
+                  {progress}% - {currentSectionIndex + 1}/{sections.length}
+                </p>
+              </div>
+              
+              {/* Section indicators */}
+              <div className="flex gap-1 h-2.5">
+                {sections.map((section, index) => (
+                  <div 
+                    key={section.id} 
+                    className={`h-2.5 rounded-full flex-1 ${
+                      index < currentSectionIndex 
+                        ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                        : index === currentSectionIndex 
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                          : 'bg-muted'
+                    }`}
+                  />
+                ))}
+              </div>
+              
+              {/* Estimated time */}
+              <p className="text-xs text-right text-muted-foreground">
+                {t('inspections.labels.estimatedTime')}: {estimatedTimeRemaining} {t('common.minutes')}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );

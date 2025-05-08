@@ -69,8 +69,13 @@ interface InspectionDetailsProps {
   inspection: ExtendedInspection
 }
 
+// Add a function to check if code is running in browser environment
+function isBrowser() {
+  return typeof window !== 'undefined';
+}
+
 export function InspectionDetails({ inspection: initialInspection }: InspectionDetailsProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const { toast } = useToast()
   const [inspection, setInspection] = useState<ExtendedInspection>(initialInspection)
@@ -146,34 +151,40 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   // Handle inspector data separately to avoid infinite loops
   useEffect(() => {
     // Skip if we've already attempted to fetch user info or there's no created_by
-    if (userFetchAttemptedRef.current || !inspection.created_by || !user) return;
+    if (userFetchAttemptedRef.current || !inspection.created_by) return;
     
     userFetchAttemptedRef.current = true;
     
-    const isCurrentUserInspector = user.id === inspection.created_by;
+    // If we have a user object and it matches the creator, use its data
+    const isCurrentUserInspector = user && user.id === inspection.created_by;
     
-    if (isCurrentUserInspector) {
-      // Current user is the inspector, use their details
+    if (isCurrentUserInspector && user) {
+      // Current user is the inspector, extract their details from user metadata
+      const fullName = user.user_metadata?.full_name || 
+                      user.user_metadata?.name || 
+                      (user.email ? user.email.split('@')[0] : null) || 
+                      t('common.notAssigned');
+      
       setInspection(prev => ({
         ...prev,
         inspector: {
-          id: user.id || inspection.created_by || '',
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || t('common.notAssigned'),
-          email: user.email
+          id: user.id,
+          name: fullName,
+          email: user.email || ''
         }
       }));
-    } else {
-      // Use a placeholder for the inspector
+    } else if (!inspection.inspector?.name || !inspection.inspector?.email) {
+      // Make sure we always have both name and email, even if one exists and not the other
       setInspection(prev => ({
         ...prev,
         inspector: {
-          id: inspection.created_by || '',
-          name: t('common.notAssigned'),
-          email: ''
+          id: prev.inspector?.id || inspection.created_by || '',
+          name: prev.inspector?.name || t('common.notAssigned'),
+          email: prev.inspector?.email || (user?.email || '')
         }
       }));
     }
-  }, [inspection.created_by, user, t]);
+  }, [inspection.created_by, inspection.inspector?.name, inspection.inspector?.email, user, t]);
   
   // Handle vehicle data updates only when needed
   useEffect(() => {
@@ -351,19 +362,31 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
 
   // Helper function to get template name
   function getTemplateName(template?: InspectionItemTemplate): string {
-    if (!template?.name_translations) return '';
+    if (!template?.name_translations) return t('common.noResults');
     
-    // Try to get the English name first
+    // Try to get the translated name using current locale first
     const translations = template.name_translations;
-    return translations.en || translations.ja || Object.values(translations)[0] || '';
+    
+    if (locale && translations[locale]) {
+      return translations[locale];
+    }
+    
+    // Fallback to English or Japanese if available
+    return translations.en || translations.ja || Object.values(translations)[0] || t('common.noResults');
   }
 
   // Helper function to get template description
   function getTemplateDescription(template?: InspectionItemTemplate): string {
     if (!template?.description_translations) return '';
     
-    // Try to get the English description first
+    // Try to get the translated description using current locale first
     const translations = template.description_translations;
+    
+    if (locale && translations[locale]) {
+      return translations[locale];
+    }
+    
+    // Fallback to English or Japanese if available
     return translations.en || translations.ja || Object.values(translations)[0] || '';
   }
 
@@ -433,7 +456,14 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       'emissions test': { section: 'diagnostics', item: 'emissions_test' }
     }
 
-    return mappings[name] || { section: '', item: '' }
+    const result = mappings[name];
+    
+    // If not found in the mappings, log it for debugging
+    if (!result && name && name !== t('common.noResults').toLowerCase()) {
+      console.log(`Translation mapping not found for: "${name}"`);
+    }
+    
+    return result || { section: '', item: '' }
   }
 
   // Function to create a maintenance task from failed items
@@ -507,7 +537,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       // Create a more descriptive filename with vehicle name and date
       const vehicleName = inspection.vehicle?.name || 'vehicle';
       const sanitizedVehicleName = vehicleName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-      const filename = `${sanitizedVehicleName}-inspection-${formattedDate}.csv`;
+      const filename = `inspection-report-${formattedDate}-${sanitizedVehicleName}.csv`;
       
       // Add vehicle information to CSV
       const vehicleInfo = [
@@ -567,349 +597,653 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
 
   // Function to handle exporting the report as PDF
   const handleExportPDF = () => {
+    if (!isBrowser()) return; // Only run in browser environment
+    
+    setIsExporting(true);
+    
     try {
-      setIsExporting(true);
+      // Calculate counts for the PDF
+      const passedItemsCount = itemsWithTemplates.filter(item => item.status === 'pass').length;
+      const failedItemsCount = itemsWithTemplates.filter(item => item.status === 'fail').length;
+      const notesItemsCount = itemsWithTemplates.filter(item => item.notes).length;
+      const photosItemsCount = itemsWithTemplates.reduce((count, item) => count + (item.inspection_photos?.length || 0), 0);
       
-      // Format date for filename
-      const formattedDate = inspection.date ? 
-        new Date(inspection.date).toISOString().split('T')[0] : 
-        new Date().toISOString().split('T')[0];
+      // Current language for formatting
+      const currentLanguage = locale || 'en';
       
-      // Create a more descriptive filename with vehicle name and date
-      const vehicleName = inspection.vehicle?.name || 'vehicle';
-      const sanitizedVehicleName = vehicleName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-      const filename = `${sanitizedVehicleName}-inspection-${formattedDate}.pdf`;
-      
-      // Check if we're in a browser environment
-      if (typeof window === 'undefined' || typeof document === 'undefined') {
-        toast({
-          title: "Error",
-          description: "PDF export is only available in browser environment",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Create a new element to format as a PDF
       const pdfContainer = document.createElement('div');
       pdfContainer.className = 'pdf-export-container';
-      pdfContainer.style.fontFamily = 'Arial, sans-serif';
+      
+      // Add language class to apply language-specific styling
+      pdfContainer.classList.add(`lang-${currentLanguage}`);
+      
+      // Add main container styles - clean white background
+      pdfContainer.style.fontFamily = 'Work Sans, sans-serif';
+      pdfContainer.style.margin = '0';
+      pdfContainer.style.padding = '0';
       pdfContainer.style.color = '#333';
       pdfContainer.style.backgroundColor = '#fff';
-      pdfContainer.style.padding = '20px';
-      pdfContainer.style.width = '210mm'; // A4 width
-      pdfContainer.style.height = 'auto';
-      pdfContainer.style.margin = '0';
+      pdfContainer.style.width = '190mm'; // A4 width
+      pdfContainer.style.boxSizing = 'border-box';
+      pdfContainer.style.position = 'relative';
+      pdfContainer.style.borderTop = '2px solid #FF2600'; // Add red/orange border at top
       
-      // Add company logo
+      // Add font link to ensure proper font loading
+      const fontLink = document.createElement('link');
+      fontLink.rel = 'stylesheet';
+      fontLink.href = 'https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap';
+      document.head.appendChild(fontLink);
+      
+      // Add company logo - matching the mockup
       const logoContainer = document.createElement('div');
-      logoContainer.style.textAlign = 'center';
+      logoContainer.style.textAlign = 'left';
       logoContainer.style.marginBottom = '20px';
+      logoContainer.style.marginTop = '30px';
+      logoContainer.style.paddingLeft = '20px';
       
       const logo = document.createElement('img');
-      logo.src = '/driver-header-logo.png'; // Use user provided logo path
+      logo.src = '/img/driver-header-logo.png'; // Ensure this path matches what's used in quotation PDF
       logo.alt = 'Driver Logo';
-      logo.style.height = '60px';
+      logo.style.height = '50px';
+      logo.crossOrigin = 'anonymous'; // Add this to handle CORS
+      
+      // Add a fallback mechanism if the logo fails to load
+      logo.onerror = () => {
+        console.warn('Failed to load logo, using fallback text');
+        const fallbackText = document.createElement('h2');
+        fallbackText.textContent = 'DRIVER';
+        fallbackText.style.fontSize = '24px';
+        fallbackText.style.color = '#FF2600';
+        fallbackText.style.fontWeight = 'bold';
+        fallbackText.style.margin = '0';
+        logoContainer.innerHTML = '';
+        logoContainer.appendChild(fallbackText);
+      };
       
       logoContainer.appendChild(logo);
       pdfContainer.appendChild(logoContainer);
       
-      // Add company info
-      const companyInfo = document.createElement('p');
-      companyInfo.textContent = 'Driver • japandriver.com';
-      companyInfo.style.textAlign = 'center';
-      companyInfo.style.fontSize = '14px';
-      companyInfo.style.color = '#64748b';
-      companyInfo.style.marginBottom = '20px';
+      // Create report header - no background
+      const reportHeader = document.createElement('div');
+      reportHeader.style.padding = '0 20px';
       
-      pdfContainer.appendChild(companyInfo);
+      const reportTitle = document.createElement('h1');
+      reportTitle.textContent = t('inspections.details.printTitle');
+      reportTitle.style.fontSize = '28px';
+      reportTitle.style.fontWeight = 'bold';
+      reportTitle.style.margin = '0 0 5px 0';
+      reportTitle.style.color = '#333';
       
-      // Add inspection header
-      const header = document.createElement('div');
-      header.style.borderBottom = '2px solid #3b82f6';
-      header.style.paddingBottom = '15px';
-      header.style.marginBottom = '20px';
-      header.style.backgroundColor = '#f8fafc';
-      header.style.padding = '15px';
-      header.style.borderRadius = '6px';
-      
-      const inspectionTitle = document.createElement('h1');
-      inspectionTitle.textContent = t('inspections.details.title', { id: inspection?.id || 'N/A' }) || 
-        `Vehicle Inspection #${inspection?.id || 'N/A'}`;
-      inspectionTitle.style.fontSize = '22px';
-      inspectionTitle.style.fontWeight = 'bold';
-      inspectionTitle.style.marginBottom = '5px';
-      inspectionTitle.style.color = '#1e3a8a';
-      
-      const inspectionDate = document.createElement('p');
-      inspectionDate.textContent = formatDate(inspection.date);
-      inspectionDate.style.color = '#64748b';
-      inspectionDate.style.margin = '5px 0';
-      
-      const statusBadge = document.createElement('div');
-      statusBadge.textContent = inspection?.status || 'Pending';
-      statusBadge.style.display = 'inline-block';
-      statusBadge.style.padding = '4px 8px';
-      statusBadge.style.borderRadius = '4px';
-      
-      // Set badge color based on status
-      if (inspection?.status?.toLowerCase() === 'completed') {
-        statusBadge.style.backgroundColor = '#dcfce7';
-        statusBadge.style.color = '#166534';
-      } else if (inspection?.status?.toLowerCase() === 'failed') {
-        statusBadge.style.backgroundColor = '#fee2e2';
-        statusBadge.style.color = '#b91c1c';
-      } else {
-        statusBadge.style.backgroundColor = '#fef9c3';
-        statusBadge.style.color = '#854d0e';
-      }
-      
-      statusBadge.style.fontWeight = 'bold';
-      statusBadge.style.fontSize = '14px';
-      statusBadge.style.marginTop = '10px';
-      
-      header.appendChild(inspectionTitle);
-      header.appendChild(inspectionDate);
-      header.appendChild(statusBadge);
-      pdfContainer.appendChild(header);
-      
-      // Function to create a section
-      const createSection = (title: string, items: Array<{label: string, value: string}>) => {
-        const section = document.createElement('div');
-        section.style.marginBottom = '25px';
-        section.style.backgroundColor = '#f8fafc';
-        section.style.padding = '15px';
-        section.style.borderRadius = '6px';
-        section.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        
-        const sectionTitle = document.createElement('h2');
-        sectionTitle.textContent = title;
-        sectionTitle.style.fontSize = '18px';
-        sectionTitle.style.borderBottom = '1px solid #e2e8f0';
-        sectionTitle.style.paddingBottom = '8px';
-        sectionTitle.style.marginBottom = '12px';
-        sectionTitle.style.color = '#1e40af';
-        
-        section.appendChild(sectionTitle);
-        
-        const grid = document.createElement('div');
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(2, 1fr)';
-        grid.style.gap = '15px';
-        
-        items.forEach(item => {
-          const itemContainer = document.createElement('div');
-          
-          const label = document.createElement('p');
-          label.textContent = item.label;
-          label.style.fontSize = '12px';
-          label.style.color = '#64748b';
-          label.style.margin = '0 0 3px 0';
-          
-          const value = document.createElement('p');
-          value.textContent = item.value || 'N/A';
-          value.style.fontSize = '14px';
-          value.style.margin = '0';
-          value.style.fontWeight = '500';
-          value.style.color = '#334155';
-          
-          itemContainer.appendChild(label);
-          itemContainer.appendChild(value);
-          grid.appendChild(itemContainer);
+      // Format date properly based on the current language
+      const formattedDate = formatDate ? 
+        formatDate(inspection.date) : 
+        new Date(inspection.date).toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
         });
         
-        section.appendChild(grid);
-        return section;
-      };
+      // Also format time for the inspection
+      const formattedTime = new Date(inspection.date).toLocaleTimeString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+        
+      const reportDate = document.createElement('p');
+      reportDate.textContent = `${t('inspections.dateLabel')}: ${formattedDate} ${formattedTime}`;
+      reportDate.style.fontSize = '16px';
+      reportDate.style.margin = '0 0 20px 0';
+      reportDate.style.color = '#666';
       
-      // Vehicle section
-      const vehicleSection = createSection(t('inspections.details.sections.vehicle') || 'Vehicle Information', [
-        { label: t('vehicles.fields.name') || 'Name', value: inspection.vehicle?.name || 'N/A' },
-        { label: t('vehicles.fields.plateNumber') || 'Plate Number', value: inspection.vehicle?.plate_number || 'N/A' },
-        { label: t('vehicles.fields.brand') || 'Brand', value: inspection.vehicle?.brand || 'N/A' },
-        { label: t('vehicles.fields.model') || 'Model', value: inspection.vehicle?.model || 'N/A' }
-      ]);
+      reportHeader.appendChild(reportTitle);
+      reportHeader.appendChild(reportDate);
+      pdfContainer.appendChild(reportHeader);
       
-      // Inspection summary section
-      const inspectionSection = createSection(t('inspections.details.sections.inspection') || 'Inspection Information', [
-        { label: t('inspections.fields.date') || 'Date', value: formatDate(inspection.date) },
-        { label: t('inspections.fields.type') || 'Type', value: inspection.type || 'N/A' },
-        { label: t('inspections.fields.status') || 'Status', value: inspection.status || 'N/A' },
-        { label: t('inspections.fields.inspector') || 'Inspector Name', value: inspection.inspector?.name || 'N/A' },
-        { label: t('inspections.fields.inspectorEmail') || 'Inspector Email', value: inspection.inspector?.email || 'N/A' }
-      ]);
+      // Add separator line
+      const separator = document.createElement('hr');
+      separator.style.border = 'none';
+      separator.style.borderBottom = '1px solid #e0e0e0';
+      separator.style.margin = '0 0 20px 0';
+      pdfContainer.appendChild(separator);
       
-      // Add summary stats
-      const statsSection = createSection(t('inspections.details.sections.summary') || 'Summary', [
-        { label: t('inspections.details.results.passCount', { count: String(passedItems) }) || 'Passed Items', value: `${passedItems} / ${totalItems}` },
-        { label: t('inspections.details.results.failCount', { count: String(failedItems) }) || 'Failed Items', value: `${failedItems} / ${totalItems}` },
-        { label: t('inspections.details.results.notesCount', { count: String(itemsWithNotes) }) || 'Items With Notes', value: `${itemsWithNotes}` },
-        { label: t('inspections.details.results.photoCount', { count: String(totalPhotos) }) || 'Photos Count', value: `${totalPhotos}` }
-      ]);
+      // ================ FIRST PAGE CONTENT ==================
+      // Create first page content wrapper for proper page break
+      const firstPageContent = document.createElement('div');
+      // Remove the automatic page break after to prevent extra blank pages
+      // firstPageContent.style.pageBreakAfter = 'always';
       
-      const detailsContainer = document.createElement('div');
-      detailsContainer.style.marginBottom = '20px';
+      // Vehicle Information Section - only title has background
+      const vehicleSection = document.createElement('div');
+      vehicleSection.style.margin = '0 20px 20px';
+      vehicleSection.style.padding = '0';
+      vehicleSection.style.border = '1px solid #e0e0e0';
+      vehicleSection.style.borderRadius = '4px';
       
-      detailsContainer.appendChild(vehicleSection);
-      detailsContainer.appendChild(inspectionSection);
-      detailsContainer.appendChild(statsSection);
+      const vehicleTitleContainer = document.createElement('div');
+      vehicleTitleContainer.style.backgroundColor = '#f9f9f9';
+      vehicleTitleContainer.style.padding = '10px 20px';
+      vehicleTitleContainer.style.borderBottom = '1px solid #e0e0e0';
       
-      pdfContainer.appendChild(detailsContainer);
+      const vehicleTitle = document.createElement('h2');
+      vehicleTitle.textContent = t('inspections.details.vehicleInfo.title');
+      vehicleTitle.style.fontSize = '18px';
+      vehicleTitle.style.fontWeight = 'bold';
+      vehicleTitle.style.margin = '0';
+      vehicleTitle.style.color = '#333';
       
-      // Add inspection items table
-      const itemsContainer = document.createElement('div');
-      itemsContainer.style.marginBottom = '25px';
+      vehicleTitleContainer.appendChild(vehicleTitle);
+      vehicleSection.appendChild(vehicleTitleContainer);
+      
+      // Create vehicle details grid - 2x2 layout as in mockup
+      const vehicleDetailsContainer = document.createElement('div');
+      vehicleDetailsContainer.style.padding = '15px 20px';
+      vehicleDetailsContainer.style.backgroundColor = '#fff';
+      
+      const vehicleGrid = document.createElement('div');
+      vehicleGrid.style.display = 'grid';
+      vehicleGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      vehicleGrid.style.gap = '10px 30px';
+      
+      // Vehicle Name
+      const vehicleNameLabel = document.createElement('div');
+      vehicleNameLabel.textContent = t('vehicles.fields.name');
+      vehicleNameLabel.style.color = '#666';
+      vehicleNameLabel.style.fontSize = '14px';
+      
+      const vehicleNameValue = document.createElement('div');
+      vehicleNameValue.textContent = inspection.vehicle?.name || t('common.notAvailable');
+      vehicleNameValue.style.fontSize = '16px';
+      vehicleNameValue.style.fontWeight = 'normal';
+      vehicleNameValue.style.marginBottom = '10px';
+      
+      // Manufacturer
+      const manufacturerLabel = document.createElement('div');
+      manufacturerLabel.textContent = t('vehicles.fields.brand');
+      manufacturerLabel.style.color = '#666';
+      manufacturerLabel.style.fontSize = '14px';
+      
+      const manufacturerValue = document.createElement('div');
+      manufacturerValue.textContent = inspection.vehicle?.brand || t('common.notAvailable');
+      manufacturerValue.style.fontSize = '16px';
+      manufacturerValue.style.fontWeight = 'normal';
+      manufacturerValue.style.marginBottom = '10px';
+      
+      // License Plate
+      const licensePlateLabel = document.createElement('div');
+      licensePlateLabel.textContent = t('vehicles.fields.plateNumber');
+      licensePlateLabel.style.color = '#666';
+      licensePlateLabel.style.fontSize = '14px';
+      
+      const licensePlateValue = document.createElement('div');
+      licensePlateValue.textContent = inspection.vehicle?.plate_number || t('common.notAvailable');
+      licensePlateValue.style.fontSize = '16px';
+      licensePlateValue.style.fontWeight = 'normal';
+      licensePlateValue.style.marginBottom = '10px';
+      
+      // Model
+      const modelLabel = document.createElement('div');
+      modelLabel.textContent = t('vehicles.fields.model');
+      modelLabel.style.color = '#666';
+      modelLabel.style.fontSize = '14px';
+      
+      const modelValue = document.createElement('div');
+      modelValue.textContent = inspection.vehicle?.model || t('common.notAvailable');
+      modelValue.style.fontSize = '16px';
+      modelValue.style.fontWeight = 'normal';
+      modelValue.style.marginBottom = '10px';
+      
+      // Add all vehicle details
+      const vehicleNameSection = document.createElement('div');
+      vehicleNameSection.appendChild(vehicleNameLabel);
+      vehicleNameSection.appendChild(vehicleNameValue);
+      
+      const manufacturerSection = document.createElement('div');
+      manufacturerSection.appendChild(manufacturerLabel);
+      manufacturerSection.appendChild(manufacturerValue);
+      
+      const licensePlateSection = document.createElement('div');
+      licensePlateSection.appendChild(licensePlateLabel);
+      licensePlateSection.appendChild(licensePlateValue);
+      
+      const modelSection = document.createElement('div');
+      modelSection.appendChild(modelLabel);
+      modelSection.appendChild(modelValue);
+      
+      vehicleGrid.appendChild(vehicleNameSection);
+      vehicleGrid.appendChild(manufacturerSection);
+      vehicleGrid.appendChild(licensePlateSection);
+      vehicleGrid.appendChild(modelSection);
+      
+      vehicleDetailsContainer.appendChild(vehicleGrid);
+      vehicleSection.appendChild(vehicleDetailsContainer);
+      firstPageContent.appendChild(vehicleSection);
+      
+      // Inspection Details Section - only title has background
+      const inspectionSection = document.createElement('div');
+      inspectionSection.style.margin = '0 20px 20px';
+      inspectionSection.style.padding = '0';
+      inspectionSection.style.border = '1px solid #e0e0e0';
+      inspectionSection.style.borderRadius = '4px';
+      
+      const inspectionTitleContainer = document.createElement('div');
+      inspectionTitleContainer.style.backgroundColor = '#f9f9f9';
+      inspectionTitleContainer.style.padding = '10px 20px';
+      inspectionTitleContainer.style.borderBottom = '1px solid #e0e0e0';
+      
+      const inspectionTitle = document.createElement('h2');
+      inspectionTitle.textContent = t('inspections.details.inspectionDetails');
+      inspectionTitle.style.fontSize = '18px';
+      inspectionTitle.style.fontWeight = 'bold';
+      inspectionTitle.style.margin = '0';
+      inspectionTitle.style.color = '#333';
+      
+      inspectionTitleContainer.appendChild(inspectionTitle);
+      inspectionSection.appendChild(inspectionTitleContainer);
+      
+      // Inspection details content - white background
+      const inspectionDetailsContainer = document.createElement('div');
+      inspectionDetailsContainer.style.padding = '15px 20px';
+      inspectionDetailsContainer.style.backgroundColor = '#fff';
+      
+      // Create inspection details grid - 2x2 layout
+      const inspectionGrid = document.createElement('div');
+      inspectionGrid.style.display = 'grid';
+      inspectionGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      inspectionGrid.style.gap = '10px 30px';
+      
+      // Type
+      createDetailItem(inspectionGrid, t('inspections.fields.type'), t(`inspections.type.${inspection.type || 'routine'}`));
+      
+      // Status
+      createDetailItem(inspectionGrid, t('inspections.fields.status'), t(`inspections.status.${inspection.status}`));
+      
+      // Date
+      createDetailItem(inspectionGrid, t('inspections.fields.date'), formattedDate);
+      
+      // Inspector
+      const inspectorName = inspection.inspector?.name || t('common.notAvailable');
+      const inspectorEmail = inspection.inspector?.email || t('common.notAvailable');
+      createDetailItem(inspectionGrid, t('inspections.fields.inspector'), inspectorName);
+      
+      // Add inspector email
+      createDetailItem(inspectionGrid, t('inspections.fields.inspectorEmail'), inspectorEmail);
+      
+      // Notes (if any)
+      if (inspection.notes) {
+        createDetailItem(inspectionGrid, t('inspections.fields.notes'), inspection.notes);
+      }
+      
+      inspectionDetailsContainer.appendChild(inspectionGrid);
+      inspectionSection.appendChild(inspectionDetailsContainer);
+      firstPageContent.appendChild(inspectionSection);
+      
+      // Results Summary Section - only title has background
+      const resultsSection = document.createElement('div');
+      resultsSection.style.margin = '0 20px 20px';
+      resultsSection.style.padding = '0';
+      resultsSection.style.border = '1px solid #e0e0e0';
+      resultsSection.style.borderRadius = '4px';
+      
+      const resultsTitleContainer = document.createElement('div');
+      resultsTitleContainer.style.backgroundColor = '#f9f9f9';
+      resultsTitleContainer.style.padding = '10px 20px';
+      resultsTitleContainer.style.borderBottom = '1px solid #e0e0e0';
+      
+      const resultsTitle = document.createElement('h2');
+      resultsTitle.textContent = t('inspections.details.results.title');
+      resultsTitle.style.fontSize = '18px';
+      resultsTitle.style.fontWeight = 'bold';
+      resultsTitle.style.margin = '0';
+      resultsTitle.style.color = '#333';
+      
+      resultsTitleContainer.appendChild(resultsTitle);
+      resultsSection.appendChild(resultsTitleContainer);
+      
+      // Results content - white background
+      const resultsContentContainer = document.createElement('div');
+      resultsContentContainer.style.padding = '15px 20px';
+      resultsContentContainer.style.backgroundColor = '#fff';
+      
+      // Create results details grid - 2x2 layout
+      const resultsGrid = document.createElement('div');
+      resultsGrid.style.display = 'grid';
+      resultsGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      resultsGrid.style.gap = '10px 30px';
+      
+      // Passed Items Count
+      createDetailItem(
+        resultsGrid, 
+        t('inspections.details.results.passedLabel'), 
+        t('inspections.details.results.passCount', { count: passedItemsCount.toString() })
+      );
+      
+      // Failed Items Count
+      createDetailItem(
+        resultsGrid, 
+        t('inspections.details.results.failedLabel'), 
+        t('inspections.details.results.failCount', { count: failedItemsCount.toString() })
+      );
+      
+      // Photos Count
+      createDetailItem(
+        resultsGrid, 
+        t('inspections.details.results.photosLabel'), 
+        t('inspections.details.results.photoCount', { count: photosItemsCount.toString() })
+      );
+      
+      // Notes Count
+      createDetailItem(
+        resultsGrid, 
+        t('inspections.details.results.notesLabel'), 
+        t('inspections.details.results.notesCount', { count: notesItemsCount.toString() })
+      );
+      
+      resultsContentContainer.appendChild(resultsGrid);
+      
+      // Completion Message - Add to results section
+      const completionMessage = document.createElement('div');
+      completionMessage.style.margin = '15px 0 0 0';
+      completionMessage.style.padding = '10px';
+      completionMessage.style.borderRadius = '4px';
+      
+      if (failedItemsCount === 0 && passedItemsCount > 0) {
+        // All items passed message
+        completionMessage.style.backgroundColor = '#e6f4ea';
+        completionMessage.style.color = '#137333';
+        
+        const allPassedTitle = document.createElement('h3');
+        allPassedTitle.textContent = t('inspections.details.results.allPassed');
+        allPassedTitle.style.margin = '0 0 5px 0';
+        allPassedTitle.style.fontSize = '16px';
+        allPassedTitle.style.fontWeight = 'bold';
+        
+        const allPassedMsg = document.createElement('p');
+        allPassedMsg.textContent = t('inspections.details.results.noFailedItems');
+        allPassedMsg.style.margin = '0';
+        allPassedMsg.style.fontSize = '14px';
+        
+        completionMessage.appendChild(allPassedTitle);
+        completionMessage.appendChild(allPassedMsg);
+      } else if (failedItemsCount > 0) {
+        // Failed items message
+        completionMessage.style.backgroundColor = '#fce8e6';
+        completionMessage.style.color = '#c5221f';
+        
+        const failedItemsTitle = document.createElement('h3');
+        failedItemsTitle.textContent = `${failedItemsCount} ${t('inspections.details.results.failedLabel')}`;
+        failedItemsTitle.style.margin = '0 0 5px 0';
+        failedItemsTitle.style.fontSize = '16px';
+        failedItemsTitle.style.fontWeight = 'bold';
+        
+        const failedItemsMsg = document.createElement('p');
+        failedItemsMsg.textContent = t('inspections.details.results.failedItemsDescription');
+        failedItemsMsg.style.margin = '0';
+        failedItemsMsg.style.fontSize = '14px';
+        
+        completionMessage.appendChild(failedItemsTitle);
+        completionMessage.appendChild(failedItemsMsg);
+      }
+      
+      resultsContentContainer.appendChild(completionMessage);
+      resultsSection.appendChild(resultsContentContainer);
+      firstPageContent.appendChild(resultsSection);
+      
+      // Add first page content to main container
+      pdfContainer.appendChild(firstPageContent);
+      
+      // ================ SECOND PAGE CONTENT ==================
+      // Create second page content wrapper
+      const secondPageContent = document.createElement('div');
+      
+      // Inspection Items Section
+      const itemsSection = document.createElement('div');
+      itemsSection.style.margin = '0 20px 20px';
+      itemsSection.style.padding = '0';
+      itemsSection.style.border = '1px solid #e0e0e0';
+      itemsSection.style.borderRadius = '4px';
+      
+      const itemsTitleContainer = document.createElement('div');
+      itemsTitleContainer.style.backgroundColor = '#f9f9f9';
+      itemsTitleContainer.style.padding = '10px 20px';
+      itemsTitleContainer.style.borderBottom = '1px solid #e0e0e0';
       
       const itemsTitle = document.createElement('h2');
-      itemsTitle.textContent = t('inspections.details.sections.items') || 'Inspection Items';
-      itemsTitle.style.fontSize = '18px';
-      itemsTitle.style.borderBottom = '1px solid #e2e8f0';
-      itemsTitle.style.paddingBottom = '8px';
-      itemsTitle.style.marginBottom = '12px';
-      itemsTitle.style.color = '#1e40af';
+      itemsTitle.textContent = t('inspections.details.inspectionItems');
+      itemsTitle.style.fontSize = '24px';
+      itemsTitle.style.fontWeight = 'bold';
+      itemsTitle.style.margin = '0';
+      itemsTitle.style.color = '#333';
       
-      itemsContainer.appendChild(itemsTitle);
+      itemsTitleContainer.appendChild(itemsTitle);
+      itemsSection.appendChild(itemsTitleContainer);
       
-      // Create table
-      const table = document.createElement('table');
-      table.style.width = '100%';
-      table.style.borderCollapse = 'collapse';
-      table.style.marginBottom = '20px';
+      // Items content - white background
+      const itemsContentContainer = document.createElement('div');
+      itemsContentContainer.style.padding = '15px 20px';
+      itemsContentContainer.style.backgroundColor = '#fff';
       
-      // Table header
-      const thead = document.createElement('thead');
+      // Create table for inspection items - important for visibility in PDF
+      const itemsTable = document.createElement('table');
+      itemsTable.style.width = '100%';
+      itemsTable.style.borderCollapse = 'collapse';
+      itemsTable.style.marginTop = '0';
+      itemsTable.style.border = '1px solid #ddd';
+      
+      // Table header row
+      const tableHeader = document.createElement('thead');
       const headerRow = document.createElement('tr');
+      headerRow.style.backgroundColor = '#ddd';
       
-      ['Item', 'Status', 'Notes'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        th.style.backgroundColor = '#f8fafc';
-        th.style.padding = '8px 12px';
-        th.style.textAlign = 'left';
-        th.style.fontSize = '14px';
-        th.style.fontWeight = 'bold';
-        th.style.color = '#475569';
-        th.style.border = '1px solid #e2e8f0';
-        headerRow.appendChild(th);
-      });
+      // Item name header
+      const itemHeader = document.createElement('th');
+      itemHeader.textContent = t('inspections.templates.itemNameLabel');
+      itemHeader.style.padding = '10px 8px';
+      itemHeader.style.textAlign = 'left';
+      itemHeader.style.width = '50%';
+      itemHeader.style.border = '1px solid #ccc';
       
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
+      // Status header
+      const statusHeader = document.createElement('th');
+      statusHeader.textContent = t('inspections.fields.status');
+      statusHeader.style.padding = '10px 8px';
+      statusHeader.style.textAlign = 'center';
+      statusHeader.style.width = '20%';
+      statusHeader.style.border = '1px solid #ccc';
       
-      // Table body
-      const tbody = document.createElement('tbody');
+      // Notes header
+      const notesHeader = document.createElement('th');
+      notesHeader.textContent = t('inspections.fields.notes');
+      notesHeader.style.padding = '10px 8px';
+      notesHeader.style.textAlign = 'left';
+      notesHeader.style.width = '30%';
+      notesHeader.style.border = '1px solid #ccc';
       
-      // Add rows for each inspection item
-      itemsWithTemplates.forEach((item, index) => {
-        const row = document.createElement('tr');
-        row.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+      // Add headers to header row
+      headerRow.appendChild(itemHeader);
+      headerRow.appendChild(statusHeader);
+      headerRow.appendChild(notesHeader);
+      tableHeader.appendChild(headerRow);
+      itemsTable.appendChild(tableHeader);
+      
+      // Create table body
+      const tableBody = document.createElement('tbody');
+      
+      // Group items by section for better organization
+      const itemsBySection = itemsWithTemplates.reduce<Record<string, InspectionItem[]>>((acc, item) => {
+        const keys = getTranslationKeys(item.template);
+        const section = keys.section || 'other';
         
-        // Item name cell
-        const nameCell = document.createElement('td');
-        nameCell.textContent = getTemplateName(item.template) || 'Unknown';
-        nameCell.style.padding = '8px 12px';
-        nameCell.style.border = '1px solid #e2e8f0';
-        nameCell.style.fontSize = '14px';
-        
-        // Status cell
-        const statusCell = document.createElement('td');
-        const statusText = item.status || 'pending';
-        statusCell.textContent = statusText.charAt(0).toUpperCase() + statusText.slice(1);
-        statusCell.style.padding = '8px 12px';
-        statusCell.style.border = '1px solid #e2e8f0';
-        statusCell.style.fontSize = '14px';
-        
-        // Set text color based on status
-        if (statusText === 'pass') {
-          statusCell.style.color = '#166534';
-        } else if (statusText === 'fail') {
-          statusCell.style.color = '#b91c1c';
-        } else {
-          statusCell.style.color = '#854d0e';
+        if (!acc[section]) {
+          acc[section] = [];
         }
         
-        // Notes cell
-        const notesCell = document.createElement('td');
-        notesCell.textContent = item.notes || '-';
-        notesCell.style.padding = '8px 12px';
-        notesCell.style.border = '1px solid #e2e8f0';
-        notesCell.style.fontSize = '14px';
+        acc[section].push(item);
+        return acc;
+      }, {});
+      
+      // Add each section and its items to the table
+      Object.entries(itemsBySection).forEach(([section, sectionItems]) => {
+        // Add section header row
+        const sectionRow = document.createElement('tr');
+        sectionRow.style.backgroundColor = '#f2f2f2';
         
-        row.appendChild(nameCell);
-        row.appendChild(statusCell);
-        row.appendChild(notesCell);
+        const sectionCell = document.createElement('td');
+        sectionCell.colSpan = 3;
+        sectionCell.style.padding = '10px 8px';
+        sectionCell.style.fontWeight = 'bold';
+        sectionCell.style.border = '1px solid #ccc';
         
-        tbody.appendChild(row);
+        // Get translated section name
+        let sectionTitle;
+        if (section !== 'other') {
+          sectionTitle = t(`inspections.sections.${section}.title`, { 
+            defaultValue: formatSectionName(section) 
+          });
+        } else {
+          sectionTitle = t('inspections.sections.other.title', { defaultValue: 'Other' });
+        }
+        
+        sectionCell.textContent = sectionTitle;
+        sectionRow.appendChild(sectionCell);
+        tableBody.appendChild(sectionRow);
+        
+        // Add individual item rows for this section
+        sectionItems.forEach((item, index) => {
+          const itemRow = document.createElement('tr');
+          itemRow.style.backgroundColor = index % 2 === 0 ? '#fff' : '#fafafa';
+          
+          // Item name cell
+          const itemCell = document.createElement('td');
+          itemCell.style.padding = '8px';
+          itemCell.style.borderBottom = '1px solid #ddd';
+          itemCell.style.borderLeft = '1px solid #ddd';
+          itemCell.style.borderRight = '1px solid #ddd';
+          
+          // Get translated item name
+          const keys = getTranslationKeys(item.template);
+          const itemName = keys.section && keys.item ? 
+            t(`inspections.sections.${keys.section}.items.${keys.item}.title`, { defaultValue: getTemplateName(item.template) }) : 
+            getTemplateName(item.template) || t('common.noResults');
+          
+          itemCell.textContent = itemName;
+          itemRow.appendChild(itemCell);
+          
+          // Status cell with Pass/Fail badge
+          const statusCell = document.createElement('td');
+          statusCell.style.padding = '8px';
+          statusCell.style.textAlign = 'center';
+          statusCell.style.borderBottom = '1px solid #ddd';
+          statusCell.style.borderRight = '1px solid #ddd';
+          
+          const statusBadge = document.createElement('span');
+          if (item.status === 'pass') {
+            statusBadge.textContent = t('inspections.actions.pass');
+            statusBadge.style.backgroundColor = '#e6f4ea';
+            statusBadge.style.color = '#137333';
+          } else {
+            statusBadge.textContent = t('inspections.actions.fail');
+            statusBadge.style.backgroundColor = '#fce8e6';
+            statusBadge.style.color = '#c5221f';
+          }
+          
+          statusBadge.style.padding = '4px 8px';
+          statusBadge.style.borderRadius = '4px';
+          statusBadge.style.fontSize = '12px';
+          statusBadge.style.fontWeight = 'bold';
+          statusBadge.style.display = 'inline-block';
+          
+          statusCell.appendChild(statusBadge);
+          itemRow.appendChild(statusCell);
+          
+          // Notes cell
+          const notesCell = document.createElement('td');
+          notesCell.style.padding = '8px';
+          notesCell.style.borderBottom = '1px solid #ddd';
+          notesCell.style.borderRight = '1px solid #ddd';
+          notesCell.textContent = item.notes || '-';
+          
+          itemRow.appendChild(notesCell);
+          tableBody.appendChild(itemRow);
+        });
       });
       
-      table.appendChild(tbody);
-      itemsContainer.appendChild(table);
+      // Add table body to table
+      itemsTable.appendChild(tableBody);
       
-      pdfContainer.appendChild(itemsContainer);
+      // Add the table to the inspection items section
+      itemsContentContainer.appendChild(itemsTable);
       
-      // Add footer
-      const footer = document.createElement('div');
-      footer.style.borderTop = '1px solid #e2e8f0';
-      footer.style.paddingTop = '15px';
-      footer.style.textAlign = 'center';
-      footer.style.marginTop = '30px';
+      // Add content container to the section
+      itemsSection.appendChild(itemsContentContainer);
       
-      const footerCompanyInfo = document.createElement('p');
-      footerCompanyInfo.textContent = 'Driver • japandriver.com';
-      footerCompanyInfo.style.fontSize = '12px';
-      footerCompanyInfo.style.color = '#64748b';
-      footerCompanyInfo.style.margin = '0';
+      // Add the section to the second page content
+      secondPageContent.appendChild(itemsSection);
       
-      footer.appendChild(footerCompanyInfo);
-      pdfContainer.appendChild(footer);
+      // Add second page content to main container
+      pdfContainer.appendChild(secondPageContent);
       
-      // Temporarily append to the document to allow html2pdf to process it
+      // Add to document body
       document.body.appendChild(pdfContainer);
       
-      // Configure html2pdf options
-      const options = {
-        margin: [10, 10, 10, 10], // Reduced margins to help fit on one page
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
+      // Helper function to format section names
+      function formatSectionName(name) {
+        return name.split('_').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      }
       
-      // Generate the PDF
-      html2pdf()
-        .set(options)
-        .from(pdfContainer)
-        .save()
-        .then(() => {
-          // Clean up
-          if (document.body.contains(pdfContainer)) {
-            document.body.removeChild(pdfContainer);
-          }
+      // Wait for images to load
+      setTimeout(async () => {
+        try {
+          // Options for html2pdf
+          const opt = {
+            margin: [10, 10, 10, 10], // top, left, bottom, right margins in mm
+            filename: `inspection-report-${formatDate ? formatDate(inspection.date).replace(/\s/g, '-').replace(/,/g, '') : dateFormat(new Date(inspection.date), 'yyyy-MM-dd')}-${inspection.vehicle?.name?.replace(/\s/g, '-').toLowerCase() || 'vehicle'}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+              scale: 2, 
+              useCORS: true,
+              letterRendering: true,
+              allowTaint: true,
+              // Add specific height to ensure full capture
+              height: pdfContainer.offsetHeight + 1000, // Add extra height to ensure all content is captured
+              windowHeight: pdfContainer.offsetHeight + 1000
+            },
+            jsPDF: { 
+              unit: 'mm', 
+              format: 'a4', 
+              orientation: 'portrait',
+              compress: true
+            },
+            pagebreak: {
+              mode: ['avoid-all', 'css', 'legacy']
+            }
+          };
+          
+          // Generate PDF
+          await html2pdf().from(pdfContainer).set(opt).save();
           
           toast({
             title: t('inspections.messages.exportSuccess'),
           });
-          
-          setIsExporting(false);
-        })
-        .catch((error: any) => {
-          console.error('Error exporting PDF:', error);
-          
-          // Clean up
-          if (document.body.contains(pdfContainer)) {
-            document.body.removeChild(pdfContainer);
-          }
-          
+        } catch (error) {
+          console.error('Error generating PDF:', error);
           toast({
             title: t('inspections.messages.exportError'),
             variant: "destructive",
           });
-          
+        } finally {
+          // Clean up
+          document.body.removeChild(pdfContainer);
+          if (document.head.contains(fontLink)) {
+            document.head.removeChild(fontLink);
+          }
           setIsExporting(false);
-        });
+        }
+      }, 500); // Wait for 500ms to ensure everything is rendered properly
       
     } catch (error) {
-      console.error('Error exporting PDF:', error);
+      console.error('Error setting up PDF export:', error);
       toast({
         title: t('inspections.messages.exportError'),
         variant: "destructive",
@@ -917,6 +1251,69 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       setIsExporting(false);
     }
   };
+  
+  // Helper function to create detail items for the PDF
+  function createDetailItem(container: HTMLElement, label: string, value: string) {
+    const item = document.createElement('div');
+    item.style.marginBottom = '5px';
+    
+    const labelEl = document.createElement('div');
+    labelEl.textContent = label;
+    labelEl.style.fontSize = '12px';
+    labelEl.style.color = '#666';
+    item.appendChild(labelEl);
+    
+    const valueEl = document.createElement('div');
+    valueEl.textContent = value;
+    valueEl.style.fontSize = '14px';
+    valueEl.style.fontWeight = 'bold';
+    item.appendChild(valueEl);
+    
+    container.appendChild(item);
+  }
+  
+  // Helper function to create item cards for the PDF
+  function createItemCard(item: InspectionItem) {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.style.padding = '15px';
+    card.style.border = '1px solid #ddd';
+    card.style.borderRadius = '5px';
+    card.style.backgroundColor = '#fff';
+    
+    const title = document.createElement('h3');
+    title.textContent = getTemplateName(item.template);
+    title.style.margin = '0 0 10px 0';
+    title.style.fontSize = '16px';
+    title.style.fontWeight = 'bold';
+    card.appendChild(title);
+    
+    const description = getTemplateDescription(item.template);
+    if (description) {
+      const desc = document.createElement('p');
+      desc.textContent = description;
+      desc.style.margin = '0 0 10px 0';
+      desc.style.fontSize = '14px';
+      card.appendChild(desc);
+    }
+    
+    if (item.notes) {
+      const notesTitle = document.createElement('div');
+      notesTitle.textContent = t('inspections.fields.notes');
+      notesTitle.style.fontWeight = 'bold';
+      notesTitle.style.fontSize = '14px';
+      notesTitle.style.marginTop = '10px';
+      card.appendChild(notesTitle);
+      
+      const notesContent = document.createElement('p');
+      notesContent.textContent = item.notes;
+      notesContent.style.margin = '5px 0 0 0';
+      notesContent.style.fontSize = '14px';
+      card.appendChild(notesContent);
+    }
+    
+    return card;
+  }
 
   // Function to navigate to a specific tab
   const navigateToTab = (tabValue: string) => {
@@ -967,7 +1364,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                 className="gap-2"
             asChild
           >
-                <Link href={`/vehicles/${inspection.vehicle_id}`} ><span className="flex items-center gap-2">
+                <Link href={`/inspections`} ><span className="flex items-center gap-2">
                   <div className="flex items-center">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     {t('common.backTo')}
@@ -996,17 +1393,17 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                         className="gap-2 hidden sm:flex"
                         disabled={isExporting}
                       >
-                        <Download className="h-4 w-4" />
+                        <FileText className="h-4 w-4 text-foreground" />
                         {t('inspections.details.actions.exportResult')}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={handleExportPDF}>
-                        <FileText className="h-4 w-4 mr-2" />
+                        <FileText className="h-4 w-4 mr-2 text-foreground" />
                         PDF
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleExportReport}>
-                        <Download className="h-4 w-4 mr-2" />
+                        <Download className="h-4 w-4 mr-2 text-foreground" />
                         CSV
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -1020,27 +1417,57 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       {/* Floating Action Button for Mobile */}
       {inspection.status === 'completed' && (
         <div className="fixed right-4 bottom-20 z-50 flex flex-col gap-2 md:hidden print-hide">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <div className="relative group">
+            {/* Main Export Button */}
+            <Button
+              size="icon"
+              className="rounded-full shadow-lg bg-primary hover:bg-primary/90 h-12 w-12"
+              disabled={isExporting}
+              onClick={() => {
+                const buttonElement = document.getElementById('mobile-export-actions');
+                if (buttonElement) {
+                  buttonElement.classList.toggle('scale-100');
+                  buttonElement.classList.toggle('opacity-100');
+                }
+              }}
+            >
+              {isExporting ? (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <FileText className="h-5 w-5 text-primary-foreground" />
+              )}
+            </Button>
+            
+            {/* Action buttons that pop up */}
+            <div 
+              id="mobile-export-actions"
+              className="absolute bottom-16 right-0 flex flex-col gap-2 scale-0 opacity-0 transition-all duration-200 origin-bottom-right"
+            >
+              {/* PDF Export */}
               <Button
                 size="icon"
-                className="rounded-full shadow-lg"
-                disabled={isExporting}
+                className="rounded-full shadow-md bg-white border border-gray-200 hover:bg-gray-100 h-10 w-10 relative group"
+                onClick={handleExportPDF}
               >
-                <Download className="h-4 w-4" />
+                <FileText className="h-4 w-4 text-gray-700" />
+                <span className="absolute right-12 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                  PDF
+                </span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportPDF}>
-                <FileText className="h-4 w-4 mr-2" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportReport}>
-                <Download className="h-4 w-4 mr-2" />
-                CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              
+              {/* CSV Export */}
+              <Button
+                size="icon"
+                className="rounded-full shadow-md bg-white border border-gray-200 hover:bg-gray-100 h-10 w-10 relative group"
+                onClick={handleExportReport}
+              >
+                <Download className="h-4 w-4 text-gray-700" />
+                <span className="absolute right-12 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                  CSV
+                </span>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
       {/* Print Header - Only visible when printing */}
@@ -1240,12 +1667,17 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
 
             {inspection.inspector && (
               <div className="pt-4 border-t">
-                <h3 className="font-medium mb-2">{t("inspections.fields.inspector") || "Inspector"}</h3>
+                <h3 className="font-medium mb-2">{t("inspections.details.inspector.title")}</h3>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">{inspection.inspector.name}</p>
-                  {inspection.inspector.email && (
-                    <p className="text-sm text-muted-foreground">{inspection.inspector.email}</p>
-                  )}
+                  <p className="text-sm font-medium">
+                    <span className="text-muted-foreground mr-1">{t("inspections.details.inspector.name")}:</span>
+                    {inspection.inspector.name}
+                  </p>
+                  {/* Always show email field, with fallbacks */}
+                  <p className="text-sm text-muted-foreground">
+                    <span className="mr-1">{t("inspections.details.inspector.email")}:</span>
+                    {inspection.inspector.email || user?.email || t("common.notAssigned")}
+                  </p>
                 </div>
               </div>
             )}

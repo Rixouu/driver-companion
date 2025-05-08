@@ -8,13 +8,12 @@ export async function createServerSupabaseClient() {
   try {
     console.log('Creating server Supabase client');
     
-    // Get cookie store - this is the correct way to handle cookies in Next.js
+    // Get the cookies object
     const cookieStore = cookies();
-    console.log('Cookie store initialized');
     
-    // Create the Supabase client with the correct cookie store
+    // Create the Supabase client - properly passing the cookies
     const client = createServerComponentClient<Database>({ 
-      cookies: () => cookieStore 
+      cookies: () => cookieStore
     });
     
     // Test the client connection with a simple query

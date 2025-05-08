@@ -669,10 +669,10 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     compact?: boolean 
   }) => (
     <Card className="overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col">
-      <CardHeader className={cn("p-4", compact && "p-3")}>
+      <CardHeader className={cn("p-4 sm:p-4", compact && "p-3")}>
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className={cn("text-lg truncate", compact && "text-base")}>
+            <CardTitle className={cn("text-base sm:text-lg truncate", compact && "text-sm sm:text-base")}>
               {inspection.vehicle?.name || t("inspections.noVehicle")}
             </CardTitle>
             {!compact && inspection.vehicle?.plate_number && (
@@ -681,7 +681,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               </CardDescription>
             )}
           </div>
-          <Badge variant={getStatusVariant(inspection.status || 'scheduled')} className="flex-shrink-0">
+          <Badge variant={getStatusVariant(inspection.status || 'scheduled')} className="flex-shrink-0 whitespace-nowrap">
             {t(`inspections.status.${inspection.status || 'scheduled'}`)}
           </Badge>
         </div>
@@ -702,19 +702,19 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         <div className={`space-y-${compact ? "1" : "2"}`}>
           <div className="flex items-center">
             <Calendar className={cn("mr-2 h-4 w-4 text-muted-foreground flex-shrink-0", compact && "h-3 w-3")} />
-            <span className={cn("text-sm", compact && "text-xs")}>{formatScheduledDate(inspection.date)}</span>
+            <span className={cn("text-xs sm:text-sm", compact && "text-xs")}>{formatScheduledDate(inspection.date)}</span>
           </div>
           
           <div className="flex items-center">
             <Clipboard className={cn("mr-2 h-4 w-4 text-muted-foreground flex-shrink-0", compact && "h-3 w-3")} />
-            <span className={cn("text-sm capitalize", compact && "text-xs")}>
+            <span className={cn("text-xs sm:text-sm capitalize", compact && "text-xs")}>
               {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
             </span>
           </div>
         </div>
       </CardContent>
       <CardFooter className={cn("p-4 pt-0 mt-auto", compact && "p-3 pt-0")}>
-        <Button variant="secondary" size={compact ? "sm" : "sm"} className="w-full" asChild>
+        <Button variant="secondary" size="sm" className="w-full text-xs sm:text-sm" asChild>
           <Link href={`/inspections/${inspection.id}`}>
             {t("common.viewDetails")}
           </Link>
@@ -739,153 +739,209 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   }) => {
     // Use media query hook inside the component
     const isMobile = useMediaQuery("(max-width: 640px)");
+    
+    // Keep this variable outside the return statement so it's available in both branches
     const showVehicleColumn = !hideVehicleColumn && !isMobile;
 
-    return (
-    <div className="border rounded-md overflow-x-auto"> 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {/* Conditionally render vehicle column */} 
-            {showVehicleColumn && <TableHead>{t("vehicles.title")}</TableHead>}
-            <TableHead>{t("inspections.fields.date")}</TableHead>
-            <TableHead>{t("inspections.fields.type")}</TableHead>
-            <TableHead>{t("inspections.fields.status")}</TableHead>
-            <TableHead className="w-[100px] text-right">{t("common.actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {inspections.map((inspection) => (
-            <TableRow key={inspection.id} className="hover:bg-muted/50">
-              {/* Conditionally render vehicle cell */} 
-              {showVehicleColumn && (
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {inspection.vehicle?.image_url && (
-                      <div className="relative h-8 w-12 rounded-sm overflow-hidden bg-muted flex-shrink-0">
-                        <Image
-                          src={inspection.vehicle.image_url}
-                          alt={inspection.vehicle.name || t("common.noImage")}
-                          className="object-cover"
-                          fill
-                          sizes="48px"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium">{inspection.vehicle?.name || t("inspections.noVehicle")}</div>
-                      {inspection.vehicle?.plate_number && (
-                        <div className="text-xs text-muted-foreground">{inspection.vehicle.plate_number}</div>
-                      )}
-                    </div>
+    return isMobile ? (
+      // Mobile-optimized table as cards
+      <div className="space-y-3">
+        {inspections.map((inspection) => (
+          <Card key={inspection.id} className="overflow-hidden">
+            <div className="p-3 flex items-center justify-between border-b">
+              <div className="flex items-center gap-2">
+                {inspection.vehicle?.image_url && (
+                  <div className="relative h-10 w-14 rounded-sm overflow-hidden bg-muted flex-shrink-0">
+                    <Image
+                      src={inspection.vehicle.image_url}
+                      alt={inspection.vehicle.name || t("common.noImage")}
+                      className="object-cover"
+                      fill
+                      sizes="56px"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
                   </div>
-                </TableCell>
-              )}
-              <TableCell>{formatDate(inspection.date)}</TableCell>
-              <TableCell className="capitalize">
-                {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
-              </TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(inspection.status || 'scheduled')}>
-                  {t(`inspections.status.${inspection.status || 'scheduled'}`)}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/inspections/${inspection.id}`}>
-                    {t("common.view")}
-                  </Link>
-                </Button>
-              </TableCell>
+                )}
+                <div>
+                  <div className="font-medium text-sm">{inspection.vehicle?.name || t("inspections.noVehicle")}</div>
+                  {inspection.vehicle?.plate_number && (
+                    <div className="text-xs text-muted-foreground">{inspection.vehicle.plate_number}</div>
+                  )}
+                </div>
+              </div>
+              <Badge variant={getStatusVariant(inspection.status || 'scheduled')}>
+                {t(`inspections.status.${inspection.status || 'scheduled'}`)}
+              </Badge>
+            </div>
+            <div className="p-3 space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs">{formatDate(inspection.date)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clipboard className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs capitalize">
+                    {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
+                  </span>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" asChild>
+                <Link href={`/inspections/${inspection.id}`}>
+                  {t("common.view")}
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    ) : (
+      // Regular table for larger screens
+      <div className="border rounded-md overflow-x-auto"> 
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {/* Conditionally render vehicle column */} 
+              {showVehicleColumn && <TableHead>{t("vehicles.title")}</TableHead>}
+              <TableHead>{t("inspections.fields.date")}</TableHead>
+              <TableHead>{t("inspections.fields.type")}</TableHead>
+              <TableHead>{t("inspections.fields.status")}</TableHead>
+              <TableHead className="w-[100px] text-right">{t("common.actions")}</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )}
+          </TableHeader>
+          <TableBody>
+            {inspections.map((inspection) => (
+              <TableRow key={inspection.id} className="hover:bg-muted/50">
+                {/* Conditionally render vehicle cell */} 
+                {showVehicleColumn && (
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {inspection.vehicle?.image_url && (
+                        <div className="relative h-8 w-12 rounded-sm overflow-hidden bg-muted flex-shrink-0">
+                          <Image
+                            src={inspection.vehicle.image_url}
+                            alt={inspection.vehicle.name || t("common.noImage")}
+                            className="object-cover"
+                            fill
+                            sizes="48px"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-medium">{inspection.vehicle?.name || t("inspections.noVehicle")}</div>
+                        {inspection.vehicle?.plate_number && (
+                          <div className="text-xs text-muted-foreground">{inspection.vehicle.plate_number}</div>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                )}
+                <TableCell>{formatDate(inspection.date)}</TableCell>
+                <TableCell className="capitalize">
+                  {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(inspection.status || 'scheduled')}>
+                    {t(`inspections.status.${inspection.status || 'scheduled'}`)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/inspections/${inspection.id}`}>
+                      {t("common.view")}
+                    </Link>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
 
   // Add filter controls
   const filterControls = () => {
-  return (
-      <div className="flex flex-col gap-4">
-        <SearchFilterBar 
-          onSearchChange={handleSearchChange}
-          onBrandFilterChange={handleBrandFilterChange}
-          onModelFilterChange={handleModelFilterChange}
-          searchPlaceholder={t("inspections.searchPlaceholder")}
-          brandOptions={brands}
-          modelOptions={models}
-          totalItems={filteredInspections.length}
-          startIndex={groupingMode === 'none' ? Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredInspections.length) : 1}
-          endIndex={groupingMode === 'none' ? Math.min(currentPage * ITEMS_PER_PAGE, filteredInspections.length) : filteredInspections.length}
-          selectedBrand={brandFilter}
-          selectedModel={modelFilter}
-        />
-        <div className="flex items-center justify-between bg-black p-2 rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <Button
-                size="sm"
-                variant={filter === 'all' ? 'default' : 'outline'}
-                onClick={() => setFilter('all')}
-                className="text-xs sm:text-sm"
-              >
-                {t('common.all')}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === 'pending' ? 'default' : 'outline'}
-                onClick={() => setFilter('pending')}
-                className="text-xs sm:text-sm"
-              >
-                {t('inspections.status.pending')}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === 'completed' ? 'default' : 'outline'}
-                onClick={() => setFilter('completed')}
-                className="text-xs sm:text-sm"
-              >
-                {t('inspections.status.completed')}
-        </Button>
-      </div>
+    return (
+        <div className="flex flex-col gap-4">
+          <SearchFilterBar 
+            onSearchChange={handleSearchChange}
+            onBrandFilterChange={handleBrandFilterChange}
+            onModelFilterChange={handleModelFilterChange}
+            searchPlaceholder={t("inspections.searchPlaceholder")}
+            brandOptions={brands}
+            modelOptions={models}
+            totalItems={filteredInspections.length}
+            startIndex={groupingMode === 'none' ? Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredInspections.length) : 1}
+            endIndex={groupingMode === 'none' ? Math.min(currentPage * ITEMS_PER_PAGE, filteredInspections.length) : filteredInspections.length}
+            selectedBrand={brandFilter}
+            selectedModel={modelFilter}
+          />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-black p-2 rounded-md gap-2">
+            <div className="flex flex-wrap items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
+              <div className="flex flex-wrap space-x-1">
+                <Button
+                  size="sm"
+                  variant={filter === 'all' ? 'default' : 'outline'}
+                  onClick={() => setFilter('all')}
+                  className="text-xs sm:text-sm mb-1 sm:mb-0"
+                >
+                  {t('common.all')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filter === 'pending' ? 'default' : 'outline'}
+                  onClick={() => setFilter('pending')}
+                  className="text-xs sm:text-sm mb-1 sm:mb-0"
+                >
+                  {t('inspections.status.pending')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={filter === 'completed' ? 'default' : 'outline'}
+                  onClick={() => setFilter('completed')}
+                  className="text-xs sm:text-sm mb-1 sm:mb-0"
+                >
+                  {t('inspections.status.completed')}
+                </Button>
+              </div>
 
-            {/* Date Range Picker - Always visible in the filter bar */}
-            {groupingMode === 'date' && (
-              <div className="ml-2">
-                <DateRangePicker
-                  date={dateRange}
-                  onDateChange={setDateRange}
-              />
+              {/* Date Range Picker - Always visible in the filter bar */}
+              {groupingMode === 'date' && (
+                <div className="w-full sm:w-auto sm:ml-2 mt-2 sm:mt-0">
+                  <DateRangePicker
+                    date={dateRange}
+                    onDateChange={setDateRange}
+                />
+                </div>
+              )}
             </div>
-            )}
-          </div>
 
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-white whitespace-nowrap">
-              {t('inspections.groupBy')}:
-            </span>
+            <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
+              <span className="text-sm text-white whitespace-nowrap">
+                {t('inspections.groupBy')}:
+              </span>
               <Select
                 value={groupingMode}
-              onValueChange={(value: GroupingMode) => setGroupingMode(value)}
+                onValueChange={(value: GroupingMode) => setGroupingMode(value)}
               >
-              <SelectTrigger className="h-8 w-[140px] text-xs sm:text-sm">
-                <SelectValue />
+                <SelectTrigger className="h-8 w-[140px] text-xs sm:text-sm">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="none">{t('inspections.groupByOptions.none')}</SelectItem>
-                <SelectItem value="date">{t('inspections.gro')}</SelectItem>
-                <SelectItem value="vehicle">{t('inspections.groupByOptions.vehicle')}</SelectItem>
+                  <SelectItem value="none">{t('inspections.groupByOptions.none')}</SelectItem>
+                  <SelectItem value="date">{t('inspections.groupByOptions.date')}</SelectItem>
+                  <SelectItem value="vehicle">{t('inspections.groupByOptions.vehicle')}</SelectItem>
                 </SelectContent>
               </Select>
 
-            <ViewToggle view={view} onViewChange={setView} />
-              </div>
+              <ViewToggle view={view} onViewChange={setView} />
             </div>
-            </div>
-    )
-  }
+          </div>
+        </div>
+      )
+    }
 
   return (
     <div className="space-y-6">

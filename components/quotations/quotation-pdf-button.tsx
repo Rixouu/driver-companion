@@ -269,6 +269,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       companyInfo.style.flex = '1'
       companyInfo.style.maxWidth = '40%'
       companyInfo.style.textAlign = 'right'
+      companyInfo.style.paddingTop = '5px' // Align company name a bit lower if title is long
       
       const companyName = document.createElement('h2')
       companyName.textContent = quotationT.companyName
@@ -358,6 +359,10 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
                             quotation?.billing_country;
                             
       if (hasBillingInfo) {
+        customerSection.style.marginBottom = '20px' // Less margin if billing info follows
+        const billingInfoContainer = document.createElement('div');
+        billingInfoContainer.style.marginTop = '15px'; // Add space before billing info if customer info was present
+
         // Company name if available
         if (quotation?.billing_company_name) {
           const companyNameEl = document.createElement('p')
@@ -413,19 +418,21 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       
       const priceTitle = document.createElement('h3')
       priceTitle.textContent = quotationT.priceDetails
-      priceTitle.style.margin = '0 0 10px 0'
       priceTitle.style.color = '#333'
       priceTitle.style.fontSize = '14px'
       priceTitle.style.fontWeight = 'bold'
+      priceTitle.style.borderBottom = '1px solid #e0e0e0' // Add a subtle line under the title
+      priceTitle.style.paddingBottom = '5px' // Space for the line
       
       priceSection.appendChild(priceTitle)
       
       // Create a container for the price details with light gray background
       const priceDetailsContainer = document.createElement('div')
-      priceDetailsContainer.style.backgroundColor = '#f3f3f3'
+      priceDetailsContainer.style.backgroundColor = '#f9f9f9' // Lighter gray
       priceDetailsContainer.style.padding = '15px'
       priceDetailsContainer.style.borderRadius = '4px'
       priceDetailsContainer.style.marginBottom = '15px'
+      priceDetailsContainer.style.marginTop = '10px' // Space after title
       
       // Create header row with Description and Price
       const headerRow = document.createElement('div')
@@ -433,17 +440,19 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       headerRow.style.justifyContent = 'space-between'
       headerRow.style.marginBottom = '10px'
       headerRow.style.borderBottom = '1px solid #e2e8f0'
-      headerRow.style.paddingBottom = '5px'
+      headerRow.style.paddingBottom = '8px' // Increased padding
       
       const descriptionHeader = document.createElement('div')
       descriptionHeader.textContent = quotationT.items.description
       descriptionHeader.style.fontWeight = 'bold'
       descriptionHeader.style.fontSize = '13px'
+      descriptionHeader.style.color = '#555' // Darker gray for header text
       
       const priceHeader = document.createElement('div')
       priceHeader.textContent = quotationT.items.price
       priceHeader.style.fontWeight = 'bold'
       priceHeader.style.fontSize = '13px'
+      priceHeader.style.color = '#555' // Darker gray for header text
       
       headerRow.appendChild(descriptionHeader)
       headerRow.appendChild(priceHeader)
@@ -454,6 +463,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       vehicleTypeRow.style.display = 'flex'
       vehicleTypeRow.style.justifyContent = 'space-between'
       vehicleTypeRow.style.marginBottom = '10px'
+      vehicleTypeRow.style.padding = '5px 0' // Add some vertical padding to rows
       
       const vehicleTypeLabel = document.createElement('div')
       vehicleTypeLabel.textContent = quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'
@@ -512,6 +522,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       hourlyRateRow.style.display = 'flex'
       hourlyRateRow.style.justifyContent = 'space-between'
       hourlyRateRow.style.marginBottom = '10px'
+      hourlyRateRow.style.padding = '5px 0' // Add some vertical padding to rows
       
       const hourlyRateLabel = document.createElement('div')
       hourlyRateLabel.textContent = `Hourly Rate (${hours} hours / day)`
@@ -532,6 +543,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         daysRow.style.display = 'flex'
         daysRow.style.justifyContent = 'space-between'
         daysRow.style.marginBottom = '10px'
+        daysRow.style.padding = '5px 0' // Add some vertical padding to rows
         
         const daysLabel = document.createElement('div')
         daysLabel.textContent = 'Number of Days'
@@ -554,6 +566,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       baseAmountRow.style.marginBottom = '10px'
       baseAmountRow.style.paddingTop = '10px'
       baseAmountRow.style.borderTop = '1px solid #e2e8f0'
+      baseAmountRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
       
       const baseAmountLabel = document.createElement('div')
       baseAmountLabel.textContent = 'Base Amount'
@@ -584,7 +597,8 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         discountRow.style.display = 'flex'
         discountRow.style.justifyContent = 'space-between'
         discountRow.style.marginBottom = '10px'
-        discountRow.style.color = '#e53e3e'
+        discountRow.style.color = '#e53e3e' // Keep red for discount
+        discountRow.style.padding = '5px 0' // Add some vertical padding to rows
         
         const discountLabel = document.createElement('div')
         discountLabel.textContent = `Discount (${discountPercentage}%)`
@@ -605,6 +619,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         subtotalRow.style.marginBottom = '10px'
         subtotalRow.style.paddingTop = '10px'
         subtotalRow.style.borderTop = '1px solid #e2e8f0'
+        subtotalRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
         
         const subtotalLabel = document.createElement('div')
         subtotalLabel.textContent = 'Subtotal'
@@ -637,6 +652,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         taxRow.style.justifyContent = 'space-between'
         taxRow.style.marginBottom = '10px'
         taxRow.style.color = '#666'
+        taxRow.style.padding = '5px 0' // Add some vertical padding to rows
         
         const taxLabel = document.createElement('div')
         taxLabel.textContent = `Tax (${taxPercentage}%)`
@@ -657,6 +673,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       totalRow.style.justifyContent = 'space-between'
       totalRow.style.paddingTop = '10px'
       totalRow.style.borderTop = '1px solid #e2e8f0'
+      totalRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
       
       const totalLabel = document.createElement('div')
       totalLabel.textContent = 'Total Amount'
@@ -707,6 +724,8 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       termsTitle.style.color = '#333'
       termsTitle.style.fontSize = '14px'
       termsTitle.style.fontWeight = 'bold'
+      termsTitle.style.borderBottom = '1px solid #e0e0e0' // Add a subtle line under the title
+      termsTitle.style.paddingBottom = '5px' // Space for the line
       
       const termsContent = document.createElement('p')
       termsContent.textContent = quotation?.terms || quotationT.termsContent
@@ -725,7 +744,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       footer.style.paddingTop = '20px'
       footer.style.paddingBottom = '20px'
       footer.style.textAlign = 'center'
-      footer.style.marginTop = '20px'
+      footer.style.marginTop = 'auto' // Push footer to bottom more effectively if content is short
       footer.style.width = '100%'
       
       const thanksMessage = document.createElement('p')

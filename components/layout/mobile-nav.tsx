@@ -104,34 +104,34 @@ export function MobileNav() {
   const mainGroups: MenuGroup[] = [
     {
       id: 'dashboard',
-      title: 'Dashboard',
+      title: t("navigation.dashboard"),
       icon: Home,
       href: '/dashboard'
     },
     {
       id: 'fleet',
-      title: 'Fleet',
+      title: t("navigation.fleet"),
       icon: Car,
       hasSubmenu: true,
       href: '#'
     },
     {
       id: 'sales',
-      title: 'Sales',
+      title: t("navigation.sales"),
       icon: Tag,
       hasSubmenu: true,
       href: '#'
     },
     {
       id: 'operations',
-      title: 'Operations',
+      title: t("navigation.operations"),
       icon: Clipboard,
       hasSubmenu: true,
       href: '#'
     },
     {
       id: 'settings',
-      title: 'Settings',
+      title: t("navigation.settings"),
       icon: Settings,
       href: '/settings'
     }
@@ -166,9 +166,9 @@ export function MobileNav() {
   // Function to get the title for the sheet based on active group
   const getSheetTitle = () => {
     switch (activeGroup) {
-      case 'fleet': return 'Fleet Management';
-      case 'sales': return 'Sales Management';
-      case 'operations': return 'Operations';
+      case 'fleet': return t("navigation.fleet");
+      case 'sales': return t("navigation.sales");
+      case 'operations': return t("navigation.operations");
       default: return '';
     }
   }

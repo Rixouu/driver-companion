@@ -35,6 +35,7 @@ interface SearchFilterBarProps {
   showModelFilter?: boolean
   selectedBrand?: string
   selectedModel?: string
+  showingTranslationKey?: string
 }
 
 export function SearchFilterBar({
@@ -52,7 +53,8 @@ export function SearchFilterBar({
   showBrandFilter = true,
   showModelFilter = true,
   selectedBrand = "all",
-  selectedModel = "all"
+  selectedModel = "all",
+  showingTranslationKey = "drivers.pagination.showing"
 }: SearchFilterBarProps) {
   const { t } = useI18n()
   const [searchQuery, setSearchQuery] = useState("")
@@ -100,6 +102,9 @@ export function SearchFilterBar({
   }
   
   const showClearButton = searchQuery !== "" || brandFilter !== "all" || modelFilter !== "all"
+
+  // Ensure endIndex is never less than startIndex for display purposes
+  const displayEndIndex = totalItems === 0 ? 0 : Math.max(endIndex, startIndex)
 
   return (
     <div className={`bg-muted/30 p-4 rounded-lg space-y-4 ${className}`}>
@@ -176,9 +181,9 @@ export function SearchFilterBar({
       {/* Showing results info */}
       {showItemCount && (
         <div className="text-sm text-muted-foreground">
-          {t('drivers.pagination.showing', {
-            start: String(startIndex),
-            end: String(endIndex),
+          {t(showingTranslationKey, {
+            start: String(totalItems === 0 ? 0 : startIndex),
+            end: String(displayEndIndex),
             total: String(totalItems)
           })}
         </div>

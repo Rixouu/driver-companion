@@ -75,7 +75,17 @@ export const ja: TranslationValue = {
     cannotBeUndone: "この操作は元に戻せません。",
     updateAndSend: "更新して送信",
     processing: "処理中...",
-    copy: "コピー"
+    copy: "コピー",
+    dateFormat: {
+      short: "YYYY/MM/DD",
+      medium: "YYYY年M月D日",
+      long: "YYYY年M月D日",
+      monthYear: "YYYY年M月"
+    },
+    formHasErrors: "送信前にフォームのエラーを修正してください",
+    exportPDF: "PDFをエクスポート",
+    exportCSV: "CSVをエクスポート",
+    notAvailable: "該当なし"
   },
   navigation: {
     dashboard: "ダッシュボード",
@@ -88,7 +98,11 @@ export const ja: TranslationValue = {
     reporting: "レポート",
     dispatch: "配車ボード",
     quotations: "見積書",
-    logout: "ログアウト"
+    logout: "ログアウト",
+    // Mobile menu specific translations
+    operations: "運営",
+    fleet: "フリート",
+    sales: "営業"
   },
   drivers: {
     title: "ドライバー",
@@ -359,6 +373,9 @@ export const ja: TranslationValue = {
         export: "レポートエクスポート",
         exportResult: "結果をエクスポート"
       },
+    },
+    pagination: {
+      showing: "{total}件中{start}〜{end}件を表示",
     },
   },
   labels: {
@@ -746,34 +763,31 @@ export const ja: TranslationValue = {
     description: "車両点検の管理",
     addInspection: "点検を追加",
     newInspection: "新規点検",
+    createNewInspection: "新規点検作成",
+    createNewInspectionDescription: "以下のフォームを記入して新しい点検を作成します",
     editInspection: "点検を編集",
     searchPlaceholder: "点検を検索...",
     noInspections: "点検が見つかりません",
     createInspection: "点検を作成",
     defaultType: "定期点検",
-    status: {
-      scheduled: "予定済み",
-      in_progress: "進行中",
-      pending: "保留中",
-      completed: "完了",
-      cancelled: "キャンセル済み"
-    },
-    tabs: {
-      list: "リスト",
-      stats: "統計"
-    },
     groupBy: "グループ化",
+    addNew: "上のボタンをクリックして最初の点検を作成してください",
     groupByOptions: {
-      none: "グループ化なし", 
-      date: "日付別",
-      vehicle: "車両別"
+      none: "なし",
+      date: "日付",
+      vehicle: "車両"
     },
-    gro: "日付別",
+    steps: {
+      selectVehicle: "車両を選択",
+      selectType: "点検タイプを選択"
+    },
     labels: {
       progress: "点検の進捗",
       estimatedTime: "推定残り時間",
       model: "モデル",
-      photoNumber: "写真 {{number}}"
+      photoNumber: "写真 {{number}}",
+      currentSection: "現在のセクション",
+      showingVehicles: "{{total}}台中の{{start}}〜{{end}}台を表示"
     },
     actions: {
       pass: "合格",
@@ -782,706 +796,266 @@ export const ja: TranslationValue = {
       markComplete: "完了としてマーク",
       markInProgress: "点検を開始",
       startInspection: "点検を開始",
-      cancel: "点検をキャンセル",
-      edit: "点検を編集",
-      delete: "点検を削除",
       addPhoto: "写真を追加",
-      addNotes: "メモを追加",
-      resume: "点検を再開",
-      scheduleRepair: "修理を予定",
-      needsRepair: "修理が必要",
-      scheduleRepairDescription: "車両を最適な状態に保つため、不合格項目の修理メンテナンスタスクを予定します。",
-      takePhoto: "写真を撮る",
-      photos: "写真 ({{count}}枚)",
+      addNote: "メモを追加",
+      viewDetails: "詳細を表示",
       previousSection: "前のセクション",
       nextSection: "次のセクション",
-      completeInspection: "点検を完了"
+      completeInspection: "点検を完了する",
+      takePhoto: "写真を撮る",
+      photos: "写真{{count}}枚",
+      needsRepair: "修理が必要な項目",
+      scheduleRepair: "修理を予定",
+      scheduleRepairDescription: "不合格項目のメンテナンスタスクを作成する"
     },
-    noGrouping: "グループ化なし",
-    allVehicles: "すべての車両",
-    resultsCount: "{count}件の結果",
+    status: {
+      pending: "保留中",
+      inProgress: "進行中",
+      completed: "完了",
+      failed: "不合格"
+    },
+    type: {
+      routine: "定期点検",
+      safety: "安全点検",
+      maintenance: "メンテナンス点検",
+      description: {
+        routine: "車両システムの総合点検",
+        safety: "安全に関する重要なコンポーネントの集中点検"
+      }
+    },
+    fields: {
+      date: "日付",
+      type: "タイプ",
+      status: "ステータス",
+      vehicle: "車両",
+      inspector: "検査員",
+      inspectorName: "検査員名",
+      inspectorEmail: "検査員メールアドレス",
+      notes: "メモ",
+      notesPlaceholder: "この項目についてのメモを追加...",
+      photos: "写真",
+      photo: "写真"
+    },
+    messages: {
+      saveSuccess: "点検を保存しました",
+      saveError: "点検の保存中にエラーが発生しました",
+      exportSuccess: "点検をエクスポートしました",
+      exportError: "点検のエクスポート中にエラーが発生しました",
+      completeSuccess: "点検を完了としてマークしました",
+      completeError: "点検の完了中にエラーが発生しました",
+      printStarted: "印刷を開始しました"
+    },
+    dateLabel: "点検日",
+    templates: {
+      itemNameLabel: "項目名"
+    },
+    details: {
+      title: "点検詳細",
+      printTitle: "点検レポート",
+      scheduledFor: "{date}に予定",
+      inspectionItems: "点検項目",
+      sections: {
+        vehicle: "車両情報",
+        inspection: "点検情報",
+        summary: "概要",
+        items: "点検項目",
+        steering_system: "ステアリングシステム",
+        brake_system: "ブレーキシステム",
+        suspension: "サスペンションシステム",
+        lighting: "ライティングシステム",
+        tires: "タイヤ",
+        engine: "エンジン",
+        transmission: "トランスミッション",
+        electrical: "電気系統",
+        safety_equipment: "安全装備",
+        brake_safety: "ブレーキ安全性",
+        scheduled_maintenance: "定期メンテナンス",
+        wear_items: "消耗品",
+        visibility: "視認性",
+        restraint_systems: "拘束システム",
+        diagnostics: "診断",
+        other: "その他"
+      },
+      vehicleInfo: {
+        title: "車両情報",
+        plateNumber: "ナンバープレート",
+        brand: "メーカー",
+        model: "モデル",
+        year: "年式",
+        noImage: "画像なし"
+      },
+      inspectionDetails: "点検詳細",
+      inspector: {
+        title: "検査員",
+        name: "検査員名",
+        email: "検査員メールアドレス"
+      },
+      results: {
+        title: "点検結果",
+        passCount: "合格項目数: {count}",
+        failCount: "不合格項目数: {count}",
+        photoCount: "撮影写真数: {count}",
+        notesCount: "メモ付き項目数: {count}",
+        completionRate: "完了率",
+        lastUpdated: "最終更新",
+        failedItemsFound: "不合格項目あり",
+        failedItemsDescription: "以下の項目が点検基準を満たしていません。",
+        allPassed: "全項目合格",
+        noFailedItems: "この点検では不合格項目はありませんでした。",
+        passedLabel: "合格項目",
+        failedLabel: "不合格項目",
+        notesLabel: "追加メモ",
+        photosLabel: "撮影写真"
+      },
+      tabs: {
+        details: "詳細",
+        failed: "不合格項目",
+        passed: "合格項目",
+        photos: "写真",
+        notes: "メモ"
+      },
+      photos: {
+        title: "写真",
+        downloadPhoto: "写真をダウンロード"
+      },
+      vehicleDetails: "車両詳細",
+      exportResult: "結果をエクスポート",
+      actions: {
+        exportResult: "結果をエクスポート",
+        needsRepair: "修理が必要な項目",
+        scheduleRepair: "修理を予定",
+        scheduleRepairDescription: "不合格項目のメンテナンスタスクを作成する"
+      },
+      dateLabel: "点検日"
+    },
+    notesPlaceholder: "この項目についてのメモを追加...",
     noVehicle: "車両未割り当て",
-    selectVehiclePrompt: "表示する車両を選択してください",
     dateGroup: {
       today: "今日",
       yesterday: "昨日",
       thisWeek: "今週",
       thisMonth: "今月",
-      upcoming: "今後",
-      older: "過去",
+      upcoming: "近日予定",
+      older: "それ以前",
       unknown: "不明な日付"
     },
     stats: {
-      totalInspections: "総点検数",
-      completed: "完了済み",
-      scheduled: "予定済み",
-      byVehicle: "車両別点検数",
-      byType: "タイプ別点検数",
-      count: "{count} 件の点検",
-      vehicleCount: "{count} 台の車両"
+      count: "{{count}}件の点検",
+      vehicleCount: "{{count}}件の点検"
     },
-    pagination: {
-      showing: "{total}台中{start}-{end}台を表示",
-      page: "ページ {page}",
-      of: "/ {total}"
-    }
-  },
-  dashboard: {
-    title: "ダッシュボード",
-    description: "車両フリートの概要",
-    quickActions: {
-      title: "クイックアクション",
-      description: "一般的なタスクとアクション",
-      addVehicle: "車両を追加",
-      scheduleMaintenance: "メンテナンスを予定",
-      scheduleInspection: "点検を作成",
-      createQuotation: "見積書を作成",
-      viewReports: "レポートを表示"
-    },
-    activityFeed: {
-      title: "アクティビティフィード",
-      description: "最近および今後のアクティビティ",
-      noUpcoming: "今後のアクティビティはありません",
-      noRecent: "最近のアクティビティはありません",
-      viewAll: "すべて表示"
-    },
-    dailyChecklist: {
-      title: "日次チェックリスト",
-      description: "今日完了するタスク",
-      completeChecklist: "チェックリストを完了",
-      checkAllItems: "すべての項目をチェックして完了",
-      upcomingReminders: "今後のリマインダー",
-      completed: {
-        title: "チェックリスト完了！",
-        message: "お疲れ様でした！日次チェックがすべて完了しました。また明日！",
-        reset: "チェックリストをリセット"
+    sections: {
+      lighting: {
+        title: "ライティングシステム",
+        items: {
+          taillights: { title: "テールランプ", description: "テールランプの動作と状態を確認します。" },
+          turn_indicators: { title: "方向指示器", description: "方向指示器の動作と状態を確認します。" },
+          headlights: { title: "ヘッドライト", description: "ヘッドライトの動作と状態を確認します。" },
+          brake_lights: { title: "ブレーキランプ", description: "ブレーキランプの動作と状態を確認します。" }
+        }
+      },
+      tires: {
+        title: "タイヤ",
+        items: {
+          tire_pressure: { title: "タイヤ空気圧", description: "タイヤの空気圧を推奨レベルに確認・調整します。" },
+          tread_depth: { title: "トレッドの深さ", description: "タイヤのトレッドの深さを測定し、十分なグリップがあるか確認します。" },
+          wear_pattern: { title: "摩耗パターン", description: "タイヤの不均一な摩耗パターンを検査します。" }
+        }
+      },
+      engine: {
+        title: "エンジン",
+        items: {
+          oil_level: { title: "オイルレベル", description: "エンジンオイルのレベルと状態を確認します。" },
+          coolant_level: { title: "クーラントレベル", description: "エンジンクーラントのレベルと状態を確認します。" },
+          drive_belts: { title: "ドライブベルト", description: "ドライブベルトの摩耗と張力を検査します。" },
+          fluid_leaks: { title: "液体漏れ", description: "エンジンの液体漏れがないか確認します。" }
+        }
+      },
+      transmission: {
+        title: "トランスミッション",
+        items: {
+          shifting_operation: { title: "シフト操作", description: "トランスミッションがスムーズにシフトするかテストします。" },
+          clutch_operation: { title: "クラッチ操作", description: "クラッチのエンゲージメントと操作を確認します（該当する場合）。" }
+        }
+      },
+      electrical: {
+        title: "電気系統",
+        items: {
+          battery_condition: { title: "バッテリー状態", description: "バッテリー端子と全体的な状態を検査します。" },
+          alternator_output: { title: "オルタネーター出力", description: "オルタネーターの充電電圧を確認します。" },
+          starter_operation: { title: "スターター操作", description: "スターターモーターの動作をテストします。" }
+        }
+      },
+      safety_equipment: {
+        title: "安全装備",
+        items: {
+          seatbelt_operation: { title: "シートベルト操作", description: "すべてのシートベルトが適切に機能し、良好な状態であるか確認します。" },
+          airbag_system: { title: "エアバッグシステム", description: "エアバッグ警告灯の状態を確認します（アクティブな障害なし）。" },
+          wiper_operation: { title: "ワイパー操作", description: "フロントガラスワイパーとウォッシャー液の動作をテストします。" },
+          horn_operation: { title: "ホーン操作", description: "ホーンの動作をテストします。" }
+        }
+      },
+      steering_system: {
+        title: "ステアリングシステム",
+        items: {
+          power_steering: { title: "パワーステアリング", description: "パワーステアリングフルードのレベルと漏れを確認します。動作をテストします。" },
+          steering_column: { title: "ステアリングコラム", description: "ステアリングコラムの緩みや遊びを検査します。" }
+        }
+      },
+      brake_system: {
+        title: "ブレーキシステム",
+        items: {
+          brake_pedal: { title: "ブレーキペダル", description: "ブレーキペダルの感触と遊びを確認します。" },
+          brake_discs: { title: "ブレーキディスク/パッド", description: "ブレーキディスクとパッドの摩耗を検査します。" },
+          brake_fluid: { title: "ブレーキフルード", description: "ブレーキフルードのレベルと状態を確認します。" }
+        }
+      },
+      suspension: {
+        title: "サスペンションシステム",
+        items: {
+          shock_absorbers: { title: "ショックアブソーバー", description: "ショックアブソーバーの漏れや損傷を検査します。" },
+          springs: { title: "スプリング", description: "サスペンションスプリングの損傷やたるみを検査します。" },
+          bushings: { title: "ブッシュ", description: "サスペンションブッシュの摩耗や損傷を検査します。" }
+        }
+      },
+      other: {
+        title: "その他",
+        items: {
+          lighting_device: { 
+            title: "照明装置", 
+            description: "ナンバープレートライトを含むすべての外部ライトの動作を確認" 
+          },
+          blinkers_hazards: { 
+            title: "ウインカー・ハザード", 
+            description: "方向指示器とハザードランプの動作を確認" 
+          },
+          brake_lights: { 
+            title: "ブレーキライト", 
+            description: "ペダルを踏んだときのブレーキライトの作動を確認" 
+          },
+          engine_oil: { 
+            title: "エンジンオイル", 
+            description: "ディップスティックを使用してオイルレベルと状態を確認" 
+          },
+          brake_fluid_volume: { 
+            title: "ブレーキ液量", 
+            description: "ブレーキ液リザーバー内の液量を確認" 
+          },
+          radiator_fluid: { 
+            title: "ラジエーターリザーバータンク液量", 
+            description: "リザーバータンク内の冷却水レベルを確認" 
+          },
+          liquid_leakage: { 
+            title: "液体漏れ（車両下部）", 
+            description: "流体漏れの兆候がないか車両下部を点検" 
+          }
+        }
       },
       items: {
-        checkTires: "タイヤの空気圧と状態を確認",
-        checkLights: "すべてのライトが機能していることを確認",
-        checkFluids: "オイルと冷却水のレベルを確認",
-        checkBrakes: "ブレーキとパーキングブレーキをテスト",
-        visualInspection: "目視検査を実施"
+        title: "点検項目",
+        itemHeader: "項目",
+        statusHeader: "状態",
+        notesHeader: "メモ"
       }
-    },
-    upcomingBookings: {
-      title: "今後の予約",
-      description: "レビューと割り当て待ちの予約",
-      viewAll: "すべての予約を表示",
-      empty: {
-        title: "今後の予約はありません",
-        description: "レビューまたは割り当て待ちの予約はありません。",
-        message: "今後の予約はありません"
-      }
-    },
-    vehicleStats: {
-      title: "車両概要",
-      description: "車両の簡単な統計",
-      fuelLevel: "燃料レベル",
-      mileage: "走行距離",
-      viewAllVehicles: "すべての車両を表示"
-    },
-    maintenance: {
-      title: "メンテナンス",
-      description: "今後および最近のメンテナンスタスク"
-    },
-    inspections: {
-      title: "点検",
-      description: "今後および最近の点検"
-    },
-    stats: {
-      totalVehicles: "車両総数",
-      maintenanceTasks: "メンテナンスタスク",
-      inspections: "点検",
-      activeVehicles: "稼働中の車両"
-    },
-    sections: {
-      maintenanceSchedule: {
-        title: "メンテナンススケジュール",
-        noPending: "保留中のメンテナンスタスクはありません"
-      },
-      inspectionSchedule: {
-        title: "点検スケジュール",
-        noPending: "保留中の点検はありません"
-      },
-      recentMaintenance: {
-        title: "最近のメンテナンス",
-        noCompleted: "完了したメンテナンスタスクはありません"
-      },
-      recentInspections: {
-        title: "最近の点検",
-        noCompleted: "完了した点検はありません"
-      }
-    }
-  },
-  fuel: {
-    title: "燃料ログ",
-    description: "燃料補給の記録を管理",
-    new: {
-      title: "新規燃料ログ",
-      description: "新しい燃料補給を記録"
-    },
-    edit: {
-      title: "燃料ログを編集",
-      description: "燃料補給の記録を編集"
-    },
-    fields: {
-      date: "日付",
-      odometer_reading: "走行距離",
-      fuel_amount: "給油量",
-      fuel_cost: "費用",
-      fuel_type: "燃料タイプ",
-      station_name: "給油所",
-      full_tank: "満タン給油",
-      notes: "メモ"
-    },
-    messages: {
-      created: "燃料ログを作成しました",
-      updated: "燃料ログを更新しました",
-      deleted: "燃料ログを削除しました",
-      error: "エラーが発生しました"
-    },
-    noData: "燃料ログデータがありません"
-  },
-  mileage: {
-    title: "走行距離ログ",
-    description: "走行距離の記録を管理",
-    new: {
-      title: "新規走行距離ログ",
-      description: "新しい走行距離を記録"
-    },
-    edit: {
-      title: "走行距離ログを編集",
-      description: "走行距離の記録を編集"
-    },
-    fields: {
-      date: "日付",
-      start_odometer: "開始時の走行距離",
-      end_odometer: "終了時の走行距離",
-      distance: "走行距離",
-      purpose: "目的",
-      notes: "メモ"
-    },
-    messages: {
-      created: "走行距離ログを作成しました",
-      updated: "走行距離ログを更新しました",
-      deleted: "走行距離ログを削除しました",
-      error: "エラーが発生しました"
-    }
-  },
-  reporting: {
-    title: "レポート & 分析",
-    description: "車両管理の詳細なレポートと分析を表示します。",
-    filters: {
-      vehicleType: "車両タイプ",
-      status: "ステータス",
-      apply: "フィルター適用",
-      reset: "リセット",
-    },
-    export: {
-      title: "エクスポート",
-      pdf: "PDFとしてエクスポート",
-      excel: "Excelとしてエクスポート",
-    },
-    fromPreviousPeriod: "前期間比",
-    sections: {
-      overview: "概要",
-      analytics: "分析",
-      reports: {
-        title: "レポート",
-        maintenance: "メンテナンス履歴レポート",
-        maintenanceDescription: "各車両の詳細なメンテナンス記録",
-        fuel: "燃費レポート",
-        fuelDescription: "燃料消費と効率の分析",
-        cost: "コスト分析レポート",
-        costDescription: "全車両関連コストの詳細な内訳",
-        downloadCSV: "CSVをダウンロード",
-        downloadPDF: "PDFをダウンロード",
-        customReport: "カスタムレポート",
-        customReportDescription: "複数のソースからデータを組み合わせて単一のレポートを作成",
-        recentReports: "最近のレポート",
-        createCustomReport: "カスタムレポートを作成",
-        generateReport: "レポートを生成",
-        reportName: "レポート名",
-        reportType: "レポートタイプ",
-        includeData: "データを含める",
-        vehicleInformation: "車両情報",
-        maintenanceData: "メンテナンスデータ",
-        fuelData: "燃料データ",
-        costAnalysis: "コスト分析",
-        cancel: "キャンセル"
-      },
-      fleetOverview: {
-        title: "車両概要",
-        totalVehicles: "総車両数",
-        activeVehicles: "稼働中の車両",
-        inMaintenance: "メンテナンス中",
-        inactive: "非稼働",
-      },
-      maintenanceMetrics: {
-        title: "メンテナンス指標",
-        totalTasks: "総タスク数",
-        completedTasks: "完了タスク",
-        averageCompletionTime: "平均完了時間（日）",
-        upcomingTasks: "予定タスク",
-        tasksByPriority: "優先度別タスク",
-        tasksByStatus: "状態別タスク",
-        costOverTime: "メンテナンスコストの推移",
-        totalCost: "総メンテナンスコスト",
-        scheduledCost: "計画メンテナンス",
-        unscheduledCost: "緊急メンテナンス"
-      },
-      inspectionMetrics: {
-        title: "点検指標",
-        totalInspections: "総点検数",
-        passRate: "合格率",
-        failRate: "不合格率",
-        commonFailures: "一般的な不具合",
-        inspectionsByStatus: "状態別点検",
-      },
-      vehicleUtilization: {
-        title: "車両稼働率",
-        maintenanceCostPerVehicle: "車両別メンテナンスコスト",
-        inspectionPassRateByVehicle: "車両別点検合格率",
-        vehicleStatus: "車両状態分布",
-      },
-      vehiclePerformance: {
-        title: "車両パフォーマンス",
-        description: "各車両のパフォーマンス指標",
-        vehicle: "車両",
-        utilization: "稼働率",
-        distance: "走行距離 (km)",
-        fuelUsed: "燃料使用量 (L)",
-        efficiency: "燃費 (km/L)",
-        costPerKm: "1km当たりのコスト",
-        noData: "選択期間のパフォーマンスデータがありません",
-        search: "車両を検索...",
-        filterByBrand: "ブランドでフィルター",
-        allBrands: "すべてのブランド",
-        noVehiclesFound: "条件に一致する車両が見つかりません",
-        scheduled: "計画メンテナンス",
-        unscheduled: "緊急メンテナンス",
-        consumption: "消費量",
-        maintenance: "メンテナンス",
-        fuel: "燃料"
-      },
-      costPerKm: {
-        title: "1キロメートルあたりのコスト",
-        description: "車両ごとのメンテナンスと燃料の1キロメートルあたりのコスト"
-      },
-      fuelConsumption: {
-        title: "燃料消費傾向",
-        description: "車両タイプ別の月間燃料消費量",
-        noData: "選択期間の燃料消費データがありません"
-      },
-      monthlyMileage: {
-        title: "月間走行距離傾向",
-        description: "車両タイプ別の月間走行距離",
-        noData: "選択期間の走行距離データがありません"
-      },
-      maintenanceFrequency: {
-        title: "メンテナンス頻度",
-        description: "計画・緊急メンテナンスの頻度"
-      },
-      vehicleAvailability: {
-        title: "車両稼働状況",
-        description: "車両の稼働時間とメンテナンス期間"
-      },
-      maintenanceCosts: {
-        title: "メンテナンスコスト分布",
-        range: "コスト範囲",
-        count: "タスク数",
-        total: "総コスト",
-        average: "平均コスト"
-      }
-    },
-    noData: "選択したフィルターに該当するデータがありません",
-  },
-  notifications: {
-    title: "通知",
-    empty: "通知はありません",
-    toggle: "通知の切り替え",
-    delete: "通知を削除",
-    deleteSuccess: "通知を削除しました",
-    deleteError: "通知の削除に失敗しました",
-    markAllAsRead: "すべて既読にする",
-    markAsRead: "既読にする",
-    markAsReadSuccess: "既読にしました",
-    markAsReadError: "既読にできませんでした",
-    upcoming: "今後",
-    today: "今日",
-    thisWeek: "今週",
-    newNotifications: "{count}件の新しい通知",
-    clickToView: "クリックして表示",
-    unread: "未読{count}件"
-  },
-  system: {
-    notifications: {
-      sendSuccess: "正常に送信されました",
-      error: "エラーが発生しました",
-      createSuccess: "正常に作成されました",
-      updateSuccess: "正常に更新されました",
-      deleteSuccess: "正常に削除されました"
-    }
-  },
-  schedules: {
-    title: "スケジュール",
-    createSchedule: "スケジュール作成",
-    frequency: "頻度",
-    selectFrequency: "頻度を選択",
-    frequencyDescription: "このタスクを実行する頻度",
-    intervalDays: "間隔（日）",
-    intervalDaysPlaceholder: "日数を入力",
-    intervalDaysDescription: "各発生の間の日数",
-    startDate: "開始日",
-    startDateDescription: "タスク生成を開始する日",
-    endDate: "終了日（任意）",
-    endDatePlaceholder: "終了日なし",
-    endDateDescription: "タスク生成を停止する日",
-    selectDate: "日付を選択",
-    frequencies: {
-      daily: "毎日",
-      weekly: "毎週",
-      biweekly: "隔週",
-      monthly: "毎月",
-      quarterly: "四半期ごと",
-      biannually: "半年ごと",
-      annually: "毎年",
-      custom: "カスタム"
-    },
-    maintenance: {
-      title: "定期メンテナンスのスケジュール",
-      description: "指定した頻度で自動的にスケジュールされる定期メンテナンスタスクを設定する",
-      createSuccess: "メンテナンススケジュールが正常に作成されました",
-      createError: "メンテナンススケジュールの作成に失敗しました",
-      updateSuccess: "メンテナンススケジュールが正常に更新されました",
-      updateError: "メンテナンススケジュールの更新に失敗しました",
-      deleteSuccess: "メンテナンススケジュールが正常に削除されました",
-      deleteError: "メンテナンススケジュールの削除に失敗しました"
-    },
-    inspection: {
-      title: "定期点検のスケジュール",
-      description: "指定した頻度で自動的にスケジュールされる定期点検を設定する",
-      createSuccess: "点検スケジュールが正常に作成されました",
-      createError: "点検スケジュールの作成に失敗しました",
-      updateSuccess: "点検スケジュールが正常に更新されました",
-      updateError: "点検スケジュールの更新に失敗しました",
-      deleteSuccess: "点検スケジュールが正常に削除されました",
-      deleteError: "点検スケジュールの削除に失敗しました"
-    }
-  },
-  auth: {
-    login: "ログイン",
-    logout: "ログアウト",
-    email: "メールアドレス",
-    password: "パスワード",
-    forgotPassword: "パスワードをお忘れですか",
-    resetPassword: "パスワードをリセット",
-    register: "登録",
-    loginSuccess: "ログインに成功しました",
-    loginError: "ログインに失敗しました",
-    logoutSuccess: "ログアウトに成功しました"
-  },
-  bookings: {
-    title: "予約",
-    description: "車両の予約を表示・管理する",
-    search: {
-      text: "予約を検索...",
-      placeholder: "予約を検索..."
-    },
-    addBooking: "新規予約",
-    newBooking: "新規予約",
-    editBooking: "予約を編集",
-    viewOptions: {
-      grid: "グリッド表示",
-      list: "リスト表示"
-    },
-    actions: {
-      sync: "予約を同期",
-      refresh: "更新",
-      generateInvoice: "請求書を生成",
-      emailInvoice: "請求書をメールで送信"
-    },
-    cancelDialog: {
-      title: "予約をキャンセル",
-      description: "この予約をキャンセルしてもよろしいですか？この操作は元に戻せません。",
-      cancel: "予約を維持",
-      confirm: "はい、予約をキャンセルします"
-    },
-    invoice: {
-      emailDescription: "請求書をPDF添付ファイルとして顧客のメールアドレスに送信します。",
-      includeDetails: "予約詳細を含める"
-    },
-    billing: {
-      title: "請求情報",
-      details: "請求書発行のための請求情報を入力",
-      companyName: "会社名",
-      taxNumber: "税番号・VAT ID",
-      streetName: "町名・番地",
-      streetNumber: "建物名・部屋番号",
-      city: "市区町村",
-      state: "都道府県",
-      postalCode: "郵便番号",
-      country: "国",
-      address: "住所"
-    },
-    tableHeaders: {
-      bookingId: "予約ID",
-      dateTime: "日時",
-      service: "サービス",
-      customer: "顧客",
-      locations: "場所",
-      status: "ステータス",
-      actions: "アクション"
-    },
-    labels: {
-      from: "出発地",
-      to: "目的地"
-    },
-    status: {
-      publish: "公開済み",
-      pending: "保留中",
-      confirmed: "確認済み",
-      completed: "完了",
-      cancelled: "キャンセル済み"
-    },
-    filters: {
-      statusPlaceholder: "ステータスでフィルタリング",
-      all: "すべて",
-      pending: "保留中",
-      confirmed: "確認済み",
-      completed: "完了",
-      cancelled: "キャンセル済み",
-      advancedFilters: "詳細フィルター",
-      clearFilters: "フィルターをクリア"
-    },
-    empty: {
-      title: "予約が見つかりません",
-      description: "システムにはまだ予約がありません。"
-    },
-    assignment: {
-      title: "ドライバーと車両の割り当て",
-      driver: "ドライバー",
-      vehicle: "車両",
-      selectDriver: "ドライバーを選択",
-      selectVehicle: "車両を選択",
-      driverDetails: "ドライバー詳細",
-      vehicleDetails: "車両詳細",
-      noDriversAvailable: "この予約時間に利用可能なドライバーがいません",
-      noVehiclesAvailable: "利用可能な車両がありません",
-      assignSuccess: "割り当てが正常に完了しました",
-      assignFailed: "予約の割り当てに失敗しました",
-      summary: "この予約にドライバーと車両を割り当てます",
-      bookingDetails: "予約詳細",
-      confirmAssignment: "割り当てを確定",
-      notAssigned: "未割り当て",
-      pickupDate: "ピックアップ日",
-      pickupTime: "ピックアップ時間",
-      pickupLocation: "ピックアップ場所",
-      dropoffLocation: "降車場所",
-      edit: "編集",
-      saving: "保存中...",
-      licensePlate: "ナンバープレート",
-      vehicleBrand: "車両メーカー",
-      vehicleModel: "車両モデル",
-      alternativeVehicles: "代替車両",
-      notAvailable: "利用不可",
-      name: "名前",
-      phone: "電話番号",
-      email: "メールアドレス"
-    },
-    details: {
-      title: "予約詳細",
-      notFound: "予約が見つかりません",
-      notFoundDescription: "お探しの予約が見つかりませんでした。",
-      backToBookings: "予約一覧に戻る",
-      createdOn: "作成日: {date}",
-      lastUpdated: "最終更新: {date}",
-      bookingNumber: "予約番号 #{id}",
-      sections: {
-        summary: "予約概要",
-        vehicle: "車両情報",
-        route: "ルート情報",
-        client: "顧客詳細",
-        additional: "追加情報",
-        payment: "支払いリンク",
-        assignment: "ドライバーと車両の割り当て",
-        billingAddress: "請求先住所",
-        billing: "請求情報",
-        coupon: "クーポン情報"
-      },
-      fields: {
-        bookingId: "予約ID",
-        orderTotal: "注文合計",
-        pickupDate: "ピックアップ日",
-        paymentMethod: "支払い方法",
-        pickupTime: "ピックアップ時間",
-        paymentStatus: "支払い状況",
-        vehicle: "車両",
-        capacity: "定員",
-        vehicleId: "車両ID",
-        serviceType: "サービスタイプ",
-        pickupLocation: "ピックアップ場所",
-        dropoffLocation: "降車場所",
-        distance: "距離",
-        duration: "所要時間",
-        flightNumber: "フライト番号",
-        terminal: "ターミナル",
-        comment: "コメント",
-        email: "メール",
-        phone: "電話番号",
-        status: "ステータス",
-        paymentLink: "支払いリンク",
-        amount: "金額",
-        originalPrice: "元の価格",
-        finalAmount: "最終金額",
-        name: "名前",
-        serviceName: "サービス名",
-        customerName: "顧客名",
-        driver: "ドライバー",
-        companyName: "会社名",
-        taxNumber: "税番号 / VAT ID",
-        street: "町名・番地",
-        city: "市区町村",
-        state: "都道府県",
-        postalCode: "郵便番号",
-        country: "国",
-        coupon: "クーポン",
-        couponCode: "クーポンコード",
-        couponDiscount: "割引率",
-        discount: "割引",
-        address: "住所",
-        cityState: "市区町村/都道府県/郵便番号",
-        billingCompany: "請求先会社名"
-      },
-      quickCustomerActions: "クイック顧客アクション",
-      tooltips: {
-        emailTo: "メール送信先",
-        callTo: "通話先",
-        textTo: "テキスト送信先"
-      },
-      flightInformation: "フライト情報",
-      notesAndInstructions: "備考と指示",
-      actions: {
-        navigateToPickup: "ピックアップ場所へナビゲート",
-        navigateToDropoff: "降車場所へナビゲート",
-        viewLargerMap: "大きな地図で見る",
-        contactCustomer: "顧客に連絡",
-        call: "電話",
-        sendMessage: "メッセージを送信",
-        openPaymentLink: "決済リンクを開く",
-        edit: "編集",
-        reschedule: "再スケジュール",
-        cancel: "キャンセル",
-        confirmCancel: "はい、予約をキャンセルします",
-        confirmCancellation: "予約をキャンセルしますか？",
-        cancellationWarning: "この予約をキャンセルしてもよろしいですか？この操作は元に戻せません。",
-        cancelSuccess: "予約がキャンセルされました",
-        cancelError: "予約のキャンセル中にエラーが発生しました",
-        print: "印刷",
-        viewInvoice: "請求書を表示",
-        changeStatus: "ステータスを変更",
-        addToCalendar: "Googleカレンダーに追加",
-        printDetails: "詳細を印刷",
-        copyClipboard: "クリップボードにコピー",
-        tripChecklist: "旅行チェックリスト",
-        sendArrivalNotification: "到着通知を送信",
-        shareWhatsApp: "WhatsAppで共有",
-        shareLine: "LINEで共有",
-        shareEmail: "メールで共有",
-        exportPdf: "PDFをエクスポート",
-        generateInvoice: "請求書を作成",
-        emailInvoice: "請求書をメールで送信",
-        emailCustomer: "顧客にメール",
-        callCustomer: "顧客に電話",
-        textCustomer: "顧客にメッセージ"
-      },
-      weather: {
-        title: "出発日の天気予報",
-        notAvailable: "{date}の予報はありません",
-        errorMessage: "天気予報の取得に失敗しました",
-        disclaimer: "* 天気データはWeatherAPI.comによって提供されています",
-        forecastUnavailable: "{date}の予報はありません"
-      },
-      bookingActions: {
-        title: "予約アクション",
-        addToGoogleCalendar: "Googleカレンダーに追加",
-        managementActions: "管理アクション",
-        editBooking: "予約を編集",
-        rescheduleBooking: "予約を再スケジュール",
-        dangerZone: "危険ゾーン",
-        cancelBooking: "予約をキャンセル"
-      },
-      driverActions: {
-        title: "ドライバーアクション",
-        tripManagement: "配車管理",
-        shareBooking: "予約を共有",
-        addToGoogleCalendar: "Googleカレンダーに追加"
-      },
-      documents: {
-        title: "書類"
-      },
-      customerSince: "{date}からの顧客",
-      noDriversAvailable: "この予約時間に利用可能なドライバーがいません",
-      noVehiclesAvailable: "利用可能な車両がありません",
-      assignSuccess: "割り当てが正常に完了しました",
-      assignFailed: "予約の割り当てに失敗しました",
-      summary: "この予約にドライバーと車両を割り当てます",
-      bookingDetails: "予約詳細",
-      confirmAssignment: "割り当てを確定"
-    },
-    edit: {
-      title: "予約 #{id} を編集",
-      description: "この予約の情報を更新する",
-      backToDetails: "詳細に戻る",
-      saveChanges: "変更を保存",
-      saving: "保存中...",
-      success: "成功",
-      error: "エラー",
-      successMessage: "予約が正常に更新されました",
-      errorMessage: "予約の更新中にエラーが発生しました"
-    },
-    messages: {
-      createSuccess: "予約が正常に作成されました",
-      updateSuccess: "予約が正常に更新されました",
-      deleteSuccess: "予約が正常に削除されました",
-      syncSuccess: "予約が正常に同期されました",
-      error: "エラーが発生しました"
-    },
-    sync: {
-      title: "予約の同期",
-      description: "外部システムから予約を同期する",
-      connectionIssue: "外部予約システムとの接続に問題がある可能性があります。",
-      success: "予約が正常に同期されました",
-      failed: "同期に失敗しました",
-      syncing: "同期中...",
-      syncButton: "予約を同期",
-      retrying: "再試行中...",
-      retryButton: "接続を再試行",
-      successWithCount: "{count}件の予約を同期しました（{created}件作成、{updated}件更新）",
-      confirmUpdates: "予約更新の確認",
-      confirmUpdatesDescription: "以下の予約に変更があります。更新する予約を選択してください。",
-      syncSummary: "新規予約が{newCount}件、更新可能な予約が{updateCount}件見つかりました。",
-      newBookingsAutomatically: "新規予約は自動的に作成されます。",
-      confirmAndSync: "確認して同期",
-      cancelled: "同期はユーザーによりキャンセルされました",
-      changesSummary: "変更の概要",
-      searchPlaceholder: "予約を検索...",
-      allChanges: "すべての変更",
-      perPage: "ページあたり{count}件",
-      previous: "前へ",
-      next: "次へ",
-      current: "現在",
-      afterUpdate: "更新後",
-      dateTime: "日時",
-      importedBy: "インポート者"
-    },
-    calculateRoute: "ルート距離と時間を計算",
-    autoCalculateAvailable: "自動計算可能",
-    placeholders: {
-      enterPickupAddress: "出発地を入力してください",
-      enterDropoffAddress: "目的地を入力してください",
-      enterBothLocations: "ルートを表示するには、出発地と目的地の両方を入力してください"
     }
   },
   dispatch: {
@@ -1592,11 +1166,10 @@ export const ja: TranslationValue = {
     select: "点検タイプを選択",
     routine: "定期点検",
     safety: "安全点検",
-    maintenance: "メンテナンス点検",
+    maintenance: "メンテナンス",
     description: {
       routine: "車両システムの総合点検",
-      safety: "安全システムの重要点検",
-      maintenance: "定期メンテナンス確認"
+      safety: "安全に関する重要なコンポーネントの集中点検"
     }
   },
   googleMapsApiKeyMissing: "Google Maps APIキーが設定されていません",
@@ -1814,6 +1387,125 @@ export const ja: TranslationValue = {
       rejected: {
         subject: "見積書が却下されました"
       }
+    }
+  },
+  notAuthorized: {
+    title: "アクセス拒否",
+    description: "このエリアへのアクセス権限がありません。Japan Driverスタッフのみがこのセクションにアクセスできます。",
+    loginButton: "別のアカウントでログイン"
+  },
+  dashboard: {
+    title: "ダッシュボード",
+    description: "車両フリートの概要",
+    quickActions: {
+      title: "クイックアクション",
+      description: "一般的なタスクとアクション",
+      addVehicle: "車両を追加",
+      scheduleMaintenance: "メンテナンスを予定",
+      scheduleInspection: "点検を作成",
+      createQuotation: "見積書を作成",
+      viewReports: "レポートを表示"
+    },
+    activityFeed: {
+      title: "アクティビティフィード",
+      description: "最近および今後のアクティビティ",
+      noUpcoming: "予定されているアクティビティはありません",
+      noRecent: "最近のアクティビティはありません",
+      viewAll: "すべて表示"
+    },
+    dailyChecklist: {
+      title: "デイリーチェックリスト",
+      description: "今日完了するタスク",
+      completeChecklist: "チェックリストを完了",
+      checkAllItems: "すべての項目をチェックして完了",
+      upcomingReminders: "今後のリマインダー",
+      completed: {
+        title: "チェックリスト完了！",
+        message: "お疲れ様でした！デイリーチェックがすべて完了しました。また明日！",
+        reset: "チェックリストをリセット"
+      },
+      items: {
+        checkTires: "タイヤの空気圧と状態を確認",
+        checkLights: "すべてのライトの機能を確認",
+        checkFluids: "オイルとクーラントのレベルを確認",
+        checkBrakes: "ブレーキとパーキングブレーキをテスト",
+        visualInspection: "視覚検査を実施"
+      }
+    },
+    upcomingBookings: {
+      title: "予定された予約",
+      description: "レビューと割り当て待ちの予約",
+      viewAll: "すべての予約を表示",
+      empty: {
+        title: "予定された予約はありません",
+        description: "レビューまたは割り当て待ちの予約はありません。",
+        message: "予定された予約はありません"
+      }
+    },
+    vehicleStats: {
+      title: "車両概要",
+      description: "車両に関する簡単な統計",
+      fuelLevel: "燃料レベル",
+      mileage: "走行距離",
+      viewAllVehicles: "すべての車両を表示"
+    },
+    maintenance: {
+      title: "メンテナンス",
+      description: "予定および最近のメンテナンスタスク",
+      noTasksScheduled: "予定されたメンテナンスタスクはありません",
+      noTasksCompleted: "完了したメンテナンスタスクはありません",
+      noTasksInProgress: "進行中のメンテナンスタスクはありません",
+      viewAll: "すべてのメンテナンスタスクを表示"
+    },
+    inspections: {
+      title: "点検",
+      description: "予定および最近の点検",
+      noInspectionsScheduled: "予定された点検はありません",
+      noInspectionsCompleted: "完了した点検はありません",
+      noInspectionsInProgress: "進行中の点検はありません",
+      viewAll: "すべての点検を表示"
+    },
+    stats: {
+      totalVehicles: "車両総数",
+      maintenanceTasks: "メンテナンスタスク",
+      inspections: "点検",
+      activeVehicles: "稼働中の車両",
+      vehiclesInMaintenance: "メンテナンス中",
+      scheduledInspections: "予定済み",
+      inProgressInspections: "進行中",
+      completedInspections: "完了",
+      pendingTasks: "保留中",
+      inProgressTasks: "進行中",
+      completedTasks: "完了"
+    },
+    sections: {
+      maintenanceSchedule: {
+        title: "メンテナンススケジュール",
+        noPending: "保留中のメンテナンスタスクはありません"
+      },
+      inspectionSchedule: {
+        title: "点検スケジュール",
+        noPending: "保留中の点検はありません"
+      },
+      recentMaintenance: {
+        title: "最近のメンテナンス",
+        noCompleted: "完了したメンテナンスタスクはありません"
+      },
+      recentInspections: {
+        title: "最近の点検",
+        noCompleted: "完了した点検はありません"
+      },
+      inProgress: {
+        title: "進行中",
+        maintenance: "進行中のメンテナンス",
+        inspections: "進行中の点検",
+        noTasks: "進行中のタスクはありません"
+      }
+    },
+    tabs: {
+      recent: "最近",
+      upcoming: "予定",
+      inProgress: "進行中"
     }
   } as const
 }

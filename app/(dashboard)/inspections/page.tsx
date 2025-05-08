@@ -3,12 +3,9 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { InspectionList } from "@/components/inspections/inspection-list"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import type { Database } from "@/types/supabase"
-import type { DbInspection } from "@/types/inspections"
-import type { Vehicle } from "@/types/vehicles"
+import type { DbInspection, Inspection } from "@/types"
+import type { DbVehicle } from "@/types"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 
 const ITEMS_PER_PAGE = 9
@@ -19,15 +16,15 @@ export const metadata = {
 }
 
 export default async function InspectionsPage() {
-  // Use the updated Supabase client that handles cookies properly in Next.js 15
-  const supabase = await createServerSupabaseClient();
+  // Use the updated Supabase client that properly handles cookies in Next.js
+  const supabase = await createServerSupabaseClient()
 
-  // Fetch user session (Example of using the client)
-  const { data: { session } } = await supabase.auth.getSession();
+  // Fetch user session
+  const { data: { session } } = await supabase.auth.getSession()
 
   // If no user, redirect to login
   if (!session) {
-    redirect('/login') // Adjust login path if necessary
+    redirect('/login')
   }
 
   // Fetch inspections
@@ -44,15 +41,15 @@ export default async function InspectionsPage() {
 
   // Handle potential errors
   if (inspectionsError) {
-    console.error("Error fetching inspections:", inspectionsError.message);
+    console.error("Error fetching inspections:", inspectionsError.message)
   }
   if (vehiclesError) {
-    console.error("Error fetching vehicles:", vehiclesError.message);
+    console.error("Error fetching vehicles:", vehiclesError.message)
   }
 
-  // Corrected Type assertion/casting
-  const inspections = (inspectionsData as any[] ?? []) as DbInspection[]
-  const vehicles = (vehiclesData as any[] ?? []) as Vehicle[]
+  // Cast data to the expected types using intermediate unknown cast
+  const inspections = ((inspectionsData || []) as unknown) as Inspection[]
+  const vehicles = ((vehiclesData || []) as unknown) as DbVehicle[]
 
   return (
     <div className="space-y-6">

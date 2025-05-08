@@ -3,8 +3,9 @@
 import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { InspectionType } from "@/lib/types/inspections"
+import { InspectionType } from "@/types/inspections"
 import { Control } from "react-hook-form"
+import { useI18n } from "@/lib/i18n/context"
 
 interface InspectionTypeSelectorProps {
   control: Control<any>
@@ -17,6 +18,8 @@ export function InspectionTypeSelector({
   onTypeChange,
   defaultValue = 'routine'
 }: InspectionTypeSelectorProps) {
+  const { t } = useI18n();
+  
   return (
     <FormField
       control={control}
@@ -39,7 +42,7 @@ export function InspectionTypeSelector({
                   htmlFor="routine"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  <span className="text-sm font-medium">Routine</span>
+                  <span className="text-sm font-medium">{t('inspections.type.routine')}</span>
                 </Label>
               </div>
               <div>
@@ -48,7 +51,7 @@ export function InspectionTypeSelector({
                   htmlFor="safety"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  <span className="text-sm font-medium">Safety</span>
+                  <span className="text-sm font-medium">{t('inspections.type.safety')}</span>
                 </Label>
               </div>
               <div>
@@ -57,7 +60,7 @@ export function InspectionTypeSelector({
                   htmlFor="maintenance"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  <span className="text-sm font-medium">Maintenance</span>
+                  <span className="text-sm font-medium">{t('inspections.type.maintenance')}</span>
                 </Label>
               </div>
             </RadioGroup>

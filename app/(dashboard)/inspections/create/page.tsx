@@ -41,8 +41,8 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Create New Inspection"
-        description="Create a new inspection by filling out the form below"
+        title={t('inspections.createNewInspection')}
+        description={t('inspections.createNewInspectionDescription')}
       />
 
       <StepBasedInspectionForm 

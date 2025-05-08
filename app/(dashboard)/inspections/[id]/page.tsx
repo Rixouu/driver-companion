@@ -4,10 +4,25 @@ import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { InspectionDetails } from "@/components/inspections/inspection-details"
 
+// Force dynamic rendering to handle cookies properly
+export const dynamic = 'force-dynamic';
+
 interface InspectionDetailsPageProps {
   params: {
     id: string
   }
+}
+
+// Define interface for template and photo items
+interface InspectionItemTemplate {
+  id: string;
+  [key: string]: any;
+}
+
+interface InspectionPhoto {
+  id: string;
+  inspection_item_id: string;
+  [key: string]: any;
 }
 
 export const metadata: Metadata = {
@@ -16,85 +31,64 @@ export const metadata: Metadata = {
 }
 
 export default async function InspectionDetailsPage({ params }: InspectionDetailsPageProps) {
-  const supabase = createServerComponentClient({ cookies })
-  
   try {
+    // Create the supabase client
+    const cookieStore = cookies()
+    const supabase = createServerComponentClient({ 
+      cookies: () => cookieStore 
+    })
+    
+    // Access the id parameter correctly
+    const id = params.id
+    
     // Fetch the inspection with vehicle details
     const { data: inspection, error } = await supabase
       .from('inspections')
-      .select(`
-        *,
-        vehicle:vehicles (*),
-        inspection_items (
-          id,
-          template_id,
-          status,
-          notes
-        )
-      `)
-      .eq('id', params.id)
+      .select('*, vehicle:vehicle_id(*)')
+      .eq('id', id)
       .single()
-    
-    if (error) {
-      console.error('Error fetching inspection:', error)
-      return notFound()
+      
+    if (error || !inspection) {
+      console.error("Error fetching inspection:", error)
+      notFound()
     }
     
-    if (!inspection) {
-      console.error('No inspection found with ID:', params.id)
-      return notFound()
+    // Fetch inspection items with templates
+    const { data: items, error: itemsError } = await supabase
+      .from('inspection_items')
+      .select('*, template:template_id(*)')
+      .eq('inspection_id', id)
+      
+    if (itemsError) {
+      console.error("Error fetching inspection items:", itemsError)
+      // Continue as we can show partial data
     }
-
-    // Fetch inspection item templates
-    let templates = []
-    if (inspection.inspection_items && inspection.inspection_items.length > 0) {
-      const templateIds = inspection.inspection_items.map((item: { template_id: string }) => item.template_id)
+    
+    // Fetch inspection item photos
+    const { data: photos, error: photosError } = await supabase
+      .from('inspection_photos')
+      .select('*')
+      .in('inspection_item_id', items?.map(item => item.id) || [])
       
-      const { data: templatesData, error: templatesError } = await supabase
-        .from('inspection_item_templates')
-        .select('*')
-        .in('id', templateIds)
-      
-      if (templatesError) {
-        console.error('Error fetching templates:', templatesError)
-      } else {
-        templates = templatesData
-      }
+    if (photosError) {
+      console.error("Error fetching inspection photos:", photosError)
+      // Continue as we can show partial data
     }
-
-    // Fetch photos for inspection items
-    let photos = []
-    if (inspection.inspection_items && inspection.inspection_items.length > 0) {
-      const itemIds = inspection.inspection_items.map((item: { id: string }) => item.id)
-      
-      const { data: photosData, error: photosError } = await supabase
-        .from('inspection_photos')
-        .select('*')
-        .in('inspection_item_id', itemIds)
-      
-      if (photosError) {
-        console.error('Error fetching photos:', photosError)
-      } else {
-        photos = photosData
-      }
-    }
-
-    // Attach templates and photos to inspection items
-    if (inspection.inspection_items) {
-      inspection.inspection_items = inspection.inspection_items.map((item: { id: string, template_id: string }) => ({
+    
+    // Attach items and photos to the inspection
+    const inspectionWithItems = {
+      ...inspection,
+      inspection_items: items?.map(item => ({
         ...item,
-        template: templates.find(t => t.id === item.template_id) || null,
-        inspection_photos: photos.filter(p => p.inspection_item_id === item.id) || []
+        inspection_photos: photos?.filter(photo => photo.inspection_item_id === item.id) || []
       }))
     }
-
+    
     return (
-      <div className="container mx-auto py-6">
-        <InspectionDetails inspection={inspection} />
-      </div>
+      <InspectionDetails inspection={inspectionWithItems} />
     )
   } catch (error) {
-    console.error('Error in InspectionDetailsPage:', error)
+    console.error("Error in InspectionDetailsPage:", error)
     return notFound()
   }
 } 

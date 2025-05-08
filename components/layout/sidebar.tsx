@@ -150,7 +150,7 @@ export function Sidebar() {
     },
     {
       id: 'fleet', // Fleet comes before Sales
-      label: 'Fleet',
+      label: t("navigation.fleet"),
       items: [
         { icon: Car, label: t("navigation.vehicles"), href: "/vehicles" as const, key: "vehicles" as MenuItemKey },
         { icon: User, label: t("navigation.drivers"), href: "/drivers" as const, key: "drivers" as MenuItemKey }
@@ -158,14 +158,14 @@ export function Sidebar() {
     },
     {
       id: 'sales', 
-      label: 'Sales',
+      label: t("navigation.sales"),
       items: [
         { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations" as const, key: "quotations" as MenuItemKey }
       ]
     },
     {
       id: 'operations',
-      label: 'Operations',
+      label: t("navigation.operations"),
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings" as const, key: "bookings" as MenuItemKey },
         { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch" as const, key: "dispatch" as MenuItemKey },

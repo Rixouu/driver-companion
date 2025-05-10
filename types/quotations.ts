@@ -216,4 +216,72 @@ export interface QuotationApprovalInput {
 export interface QuotationRejectionInput {
   quotation_id: string;
   rejected_reason: string;
+}
+
+// New interfaces for pricing promotions and packages
+export type DiscountType = 'percentage' | 'fixed_amount';
+
+export interface PricingPromotion {
+  id: string;
+  name: string;
+  description?: string | null;
+  code: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  discount_type: DiscountType;
+  discount_value: number;
+  minimum_amount?: number | null;
+  maximum_discount?: number | null;
+  is_active: boolean;
+  usage_limit?: number | null;
+  times_used: number;
+  applicable_services: string[];
+  applicable_vehicle_types: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type PackageType = 'bundle' | 'tour' | 'special_event' | 'seasonal';
+
+export interface PricingPackage {
+  id: string;
+  name: string;
+  description?: string | null;
+  thumbnail_url?: string | null;
+  banner_url?: string | null;
+  package_type: PackageType;
+  base_price: number;
+  currency: string;
+  service_days?: number;
+  hours_per_day?: number | null;
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  exclude_from_promotions?: boolean;
+  items?: PricingPackageItem[];
+}
+
+export type PackageItemType = 'service' | 'accommodation' | 'meal' | 'attraction' | 'extra';
+
+export interface PricingPackageItem {
+  id: string;
+  package_id: string;
+  item_type: PackageItemType;
+  name: string;
+  description?: string | null;
+  quantity: number;
+  price: number;
+  price_override?: number | null;
+  is_included_in_base: boolean;
+  is_optional?: boolean;
+  sort_order: number;
+  pricing_item_id?: string;
+  service_type?: string;
+  vehicle_type?: string;
+  created_at: string;
+  updated_at: string;
 } 

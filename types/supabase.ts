@@ -1164,6 +1164,158 @@ export type Database = {
           },
         ]
       }
+      pricing_package_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_included_in_base: boolean
+          item_type: string
+          name: string
+          package_id: string
+          price: number
+          quantity: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_included_in_base?: boolean
+          item_type: string
+          name: string
+          package_id: string
+          price: number
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_included_in_base?: boolean
+          item_type?: string
+          name?: string
+          package_id?: string
+          price?: number
+          quantity?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_packages: {
+        Row: {
+          base_price: number
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          package_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          base_price: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          package_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          package_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_promotions: {
+        Row: {
+          applicable_services: string[]
+          applicable_vehicle_types: string[]
+          code: string
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          end_date: string | null
+          id: string
+          is_active: boolean
+          maximum_discount: number | null
+          minimum_amount: number | null
+          name: string
+          start_date: string | null
+          times_used: number
+          updated_at: string
+          usage_limit: number | null
+        }
+        Insert: {
+          applicable_services?: string[]
+          applicable_vehicle_types?: string[]
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          maximum_discount?: number | null
+          minimum_amount?: number | null
+          name: string
+          start_date?: string | null
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Update: {
+          applicable_services?: string[]
+          applicable_vehicle_types?: string[]
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          maximum_discount?: number | null
+          minimum_amount?: number | null
+          name?: string
+          start_date?: string | null
+          times_used?: number
+          updated_at?: string
+          usage_limit?: number | null
+        }
+        Relationships: []
+      }
       quotation_activities: {
         Row: {
           action: string

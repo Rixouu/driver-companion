@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Send test email
     console.log('📧 [TEST EMAIL API] Sending test email to:', session.user.email);
     const { data: emailData, error } = await resend.emails.send({
-      from: `Driver Japan <quotations@${emailDomain}>`,
+      from: `Driver Japan <booking@${emailDomain}>`,
       to: [session.user.email || ''],
       subject: 'Test Email from Vehicle Inspection App',
       text: 'This is a test email to verify the Resend API is working correctly in the app.',

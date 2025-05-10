@@ -269,9 +269,35 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
   const formatCurrency = (amount: number) => {
     const currency = quotation?.display_currency || quotation?.currency || 'JPY';
     if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
-    return currency === 'JPY'
-      ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-      : `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    
+    // Exchange rates (simplified for demo)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    // Convert amount from JPY to selected currency
+    const originalCurrency = quotation?.currency || 'JPY';
+    const convertedAmount = amount * (exchangeRates[currency] / exchangeRates[originalCurrency]);
+    
+    // Format based on currency
+    if (currency === 'JPY' || currency === 'CNY') {
+      return currency === 'JPY' 
+        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else if (currency === 'THB') {
+      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2
+      }).format(convertedAmount);
+    }
   };
   
   // Recalculate values for email body display
@@ -582,9 +608,35 @@ function generateEmailText(language: string, customerName: string, formattedQuot
   const formatCurrency = (amount: number) => {
     const currency = quotation?.display_currency || quotation?.currency || 'JPY';
     if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
-    return currency === 'JPY'
-      ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-      : `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    
+    // Exchange rates (simplified for demo)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    // Convert amount from JPY to selected currency
+    const originalCurrency = quotation?.currency || 'JPY';
+    const convertedAmount = amount * (exchangeRates[currency] / exchangeRates[originalCurrency]);
+    
+    // Format based on currency
+    if (currency === 'JPY' || currency === 'CNY') {
+      return currency === 'JPY' 
+        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else if (currency === 'THB') {
+      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2
+      }).format(convertedAmount);
+    }
   };
 
   // Recalculate final amount for text email

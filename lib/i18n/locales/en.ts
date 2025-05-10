@@ -95,16 +95,17 @@ export const en: TranslationValue = {
     vehicles: "Vehicles",
     drivers: "Drivers",
     bookings: "Bookings",
+    quotations: "Quotations",
+    pricing: "Pricing",
+    dispatch: "Dispatch",
     maintenance: "Maintenance",
     inspections: "Inspections",
-    settings: "Settings",
     reporting: "Reporting",
-    dispatch: "Dispatch Board",
-    quotations: "Quotations",
-    logout: "Logout",
-    operations: "Operations",
+    settings: "Settings",
     fleet: "Fleet",
-    sales: "Sales"
+    sales: "Sales",
+    operations: "Operations",
+    logout: "Logout"
   },
   drivers: {
     title: "Drivers",
@@ -915,6 +916,30 @@ export const en: TranslationValue = {
           shock_absorbers: { title: "Shock Absorbers", description: "Inspect shock absorbers for leaks or damage." },
           springs: { title: "Springs", description: "Inspect suspension springs for damage or sagging." },
           bushings: { title: "Bushings", description: "Inspect suspension bushings for wear or damage." }
+        }
+      },
+      brake_safety: {
+        title: "Brake Safety",
+        items: {
+          abs_system: { title: "ABS System", description: "Check ABS warning light and system operation." },
+          emergency_brake: { title: "Emergency Brake", description: "Test parking brake for proper operation and holding ability." },
+          brake_lines: { title: "Brake Lines", description: "Inspect brake lines and hoses for leaks, cracks or damage." }
+        }
+      },
+      restraint_systems: {
+        title: "Restraint Systems",
+        items: {
+          seatbelt_condition: { title: "Seatbelt Condition", description: "Inspect all seatbelts for damage or fraying." },
+          airbag_indicators: { title: "Airbag Indicators", description: "Check airbag system indicators for proper operation." },
+          child_locks: { title: "Child Locks", description: "Test rear door child locks for proper function." }
+        }
+      },
+      visibility: {
+        title: "Visibility",
+        items: {
+          windshield_condition: { title: "Windshield Condition", description: "Inspect windshield for cracks or chips." },
+          mirror_condition: { title: "Mirror Condition", description: "Check all mirrors for proper adjustment and condition." },
+          window_operation: { title: "Window Operation", description: "Test all windows for smooth operation." }
         }
       },
       other: {
@@ -1999,6 +2024,62 @@ export const en: TranslationValue = {
     title: "Access Denied",
     description: "You don't have permission to access this area. Only Japan Driver staff can access this section.",
     loginButton: "Log in with a different account"
+  },
+  pricing: {
+    title: "Pricing Management",
+    description: "Manage service pricing, promotions, and packages",
+    categories: {
+      title: "Categories",
+      description: "Manage pricing categories",
+      createSuccess: "Category created successfully",
+      createSuccessDescription: "The new category has been added",
+      createError: "Failed to create category",
+      updateSuccess: "Category updated successfully",
+      updateSuccessDescription: "The category has been updated",
+      updateError: "Failed to update category",
+      deleteSuccess: "Category deleted successfully",
+      deleteSuccessDescription: "The category has been removed",
+      deleteError: "Failed to delete category"
+    },
+    items: {
+      title: "Pricing Items",
+      description: "Manage individual pricing items",
+      createSuccess: "Pricing item created successfully",
+      createSuccessDescription: "The new pricing item has been added",
+      createError: "Failed to create pricing item",
+      updateSuccess: "Pricing item updated successfully",
+      updateSuccessDescription: "The pricing item has been updated",
+      updateError: "Failed to update pricing item",
+      deleteSuccess: "Pricing item deleted successfully",
+      deleteSuccessDescription: "The pricing item has been removed",
+      deleteError: "Failed to delete pricing item"
+    },
+    promotions: {
+      title: "Promotions",
+      description: "Manage promotional codes and discounts",
+      createSuccess: "Promotion created successfully",
+      createSuccessDescription: "The new promotion has been added",
+      createError: "Failed to create promotion",
+      updateSuccess: "Promotion updated successfully",
+      updateSuccessDescription: "The promotion has been updated",
+      updateError: "Failed to update promotion",
+      deleteSuccess: "Promotion deleted successfully",
+      deleteSuccessDescription: "The promotion has been removed",
+      deleteError: "Failed to delete promotion"
+    },
+    packages: {
+      title: "Packages",
+      description: "Manage package deals and bundles",
+      createSuccess: "Package created successfully",
+      createSuccessDescription: "The new package has been added",
+      createError: "Failed to create package",
+      updateSuccess: "Package updated successfully",
+      updateSuccessDescription: "The package has been updated",
+      updateError: "Failed to update package",
+      deleteSuccess: "Package deleted successfully",
+      deleteSuccessDescription: "The package has been removed",
+      deleteError: "Failed to delete package"
+    }
   }
 }
 

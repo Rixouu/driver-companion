@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { toast } from '@/components/ui/use-toast';
 import { 
@@ -10,7 +10,12 @@ import {
   UpdateQuotationInput,
   QuotationApprovalInput,
   QuotationRejectionInput,
-  QuotationStatus
+  QuotationStatus,
+  PricingPromotion,
+  PricingPackage,
+  PricingPackageItem,
+  PackageType,
+  PackageItemType
 } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
 import { Database } from '@/types/supabase';
@@ -19,6 +24,9 @@ import { Database } from '@/types/supabase';
 const pricingCache = {
   categories: null as PricingCategory[] | null,
   items: new Map<string, PricingItem[]>(),
+  promotions: null as PricingPromotion[] | null,
+  packages: null as PricingPackage[] | null,
+  packageItems: new Map<string, PricingPackageItem[]>(),
   lastFetch: 0
 };
 
@@ -449,7 +457,7 @@ export const useQuotationService = () => {
         throw error;
       }
       
-      return data as Quotation;
+      return data as unknown as Quotation;
     } catch (err: any) {
       console.error('Error fetching quotation:', err);
       setError(err.message || 'Failed to fetch quotation');
@@ -878,7 +886,7 @@ export const useQuotationService = () => {
   };
 
   // Updated getPricingCategories with caching
-  const getPricingCategories = async (): Promise<PricingCategory[]> => {
+  const getPricingCategories = useCallback(async (): Promise<PricingCategory[]> => {
     try {
       // Use cached categories if available and recent (within 30 seconds)
       const now = Date.now();
@@ -906,7 +914,7 @@ export const useQuotationService = () => {
       console.error('Error fetching pricing categories:', err);
       return getFallbackCategories();
     }
-  };
+  }, []);
   
   // Helper function for fallback categories
   const getFallbackCategories = (): PricingCategory[] => {
@@ -970,7 +978,22 @@ export const useQuotationService = () => {
       }
       
       if (serviceType) {
-        query = query.eq('service_type', serviceType);
+        // Handle common variations in service type naming 
+        // (e.g., airportTransfer vs airport_transfer vs Airport Transfer)
+        const normalizedServiceType = serviceType.toLowerCase()
+          .replace(/\s+/g, '')
+          .replace(/_/g, '');
+          
+        if (normalizedServiceType.includes('airport')) {
+          // For airport transfers, match any service_type containing 'airport'
+          query = query.ilike('service_type', `%airport%`);
+        } else if (normalizedServiceType.includes('charter')) {
+          // For charter services
+          query = query.ilike('service_type', `%charter%`);
+        } else {
+          // For exact matches
+          query = query.eq('service_type', serviceType);
+        }
       }
       
       if (vehicleType) {
@@ -1044,6 +1067,569 @@ export const useQuotationService = () => {
     ];
   };
 
+  // New methods for pricing promotions and packages
+  const getPricingPromotions = async (
+    isActive: boolean = true
+  ): Promise<PricingPromotion[]> => {
+    try {
+      // Use cached promotions if available and recent (within 30 seconds)
+      const now = Date.now();
+      if (pricingCache.promotions && (now - pricingCache.lastFetch < 30000)) {
+        return pricingCache.promotions.filter(p => !isActive || p.is_active);
+      }
+      
+      let query = supabase
+        .from('pricing_promotions')
+        .select('*');
+        
+      if (isActive) {
+        query = query.eq('is_active', true);
+      }
+      
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching pricing promotions:', error);
+        return [];
+      }
+      
+      // Cast database results to match TypeScript interface
+      const typedPromotions = (data || []).map(promo => ({
+        ...promo,
+        discount_type: promo.discount_type as 'percentage' | 'fixed_amount'
+      }));
+      
+      // Cache the results
+      pricingCache.promotions = typedPromotions;
+      pricingCache.lastFetch = now;
+      
+      return typedPromotions;
+    } catch (err: any) {
+      console.error('Error fetching pricing promotions:', err);
+      return [];
+    }
+  };
+  
+  const getPricingPromotion = async (id: string): Promise<PricingPromotion | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_promotions')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching pricing promotion:', error);
+        return null;
+      }
+      
+      return data as unknown as PricingPromotion;
+    } catch (err: any) {
+      console.error('Error fetching pricing promotion:', err);
+      return null;
+    }
+  };
+  
+  const createPricingPromotion = async (promotion: Omit<PricingPromotion, 'id' | 'created_at' | 'updated_at' | 'times_used'>): Promise<PricingPromotion | null> => {
+    try {
+      setLoading(true);
+      
+      console.log('Creating promotion with data:', promotion);
+      
+      // Call a server API endpoint that has admin privileges instead of direct table access
+      const response = await fetch('/api/admin/pricing/promotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...promotion,
+          times_used: 0
+        })
+      });
+      
+      // Get the full response for debugging
+      const responseText = await response.text();
+      let errorData;
+      let responseData;
+      
+      try {
+        // Try to parse as JSON
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        // Not valid JSON, use the text as is
+        console.error('Error parsing response:', e);
+        console.log('Raw response:', responseText);
+      }
+      
+      if (!response.ok) {
+        console.error('API error status:', response.status, response.statusText);
+        console.error('API error response:', responseData || responseText);
+        
+        const errorMessage = responseData?.error || 
+                             `API error (${response.status}): ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+      
+      console.log('Successfully created promotion:', responseData);
+      
+      // Invalidate cache
+      pricingCache.promotions = null;
+      
+      toast({
+        title: t('pricing.promotions.createSuccess'),
+        description: t('pricing.promotions.createSuccessDescription')
+      });
+      
+      return responseData as PricingPromotion;
+    } catch (err: any) {
+      console.error('Error creating pricing promotion:', err);
+      toast({
+        title: t('pricing.promotions.createError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const updatePricingPromotion = async (id: string, updates: Partial<Omit<PricingPromotion, 'id' | 'created_at' | 'updated_at' | 'times_used'>>): Promise<PricingPromotion | null> => {
+    try {
+      setLoading(true);
+      
+      // Call a server API endpoint that has admin privileges instead of direct table access
+      const response = await fetch(`/api/admin/pricing/promotions/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to update promotion');
+      }
+      
+      const data = await response.json();
+      
+      // Invalidate cache
+      pricingCache.promotions = null;
+      
+      toast({
+        title: t('pricing.promotions.updateSuccess'),
+        description: t('pricing.promotions.updateSuccessDescription')
+      });
+      
+      return data as PricingPromotion;
+    } catch (err: any) {
+      console.error('Error updating pricing promotion:', err);
+      toast({
+        title: t('pricing.promotions.updateError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const deletePricingPromotion = async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      // Call a server API endpoint that has admin privileges
+      const response = await fetch(`/api/admin/pricing/promotions/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to delete promotion');
+      }
+      
+      // Invalidate cache
+      pricingCache.promotions = null;
+      
+      toast({
+        title: t('pricing.promotions.deleteSuccess'),
+        description: t('pricing.promotions.deleteSuccessDescription')
+      });
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting pricing promotion:', err);
+      toast({
+        title: t('pricing.promotions.deleteError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Package methods
+  const getPricingPackages = async (
+    isActive: boolean = true,
+    withItems: boolean = false
+  ): Promise<PricingPackage[]> => {
+    try {
+      // Use cached packages if available and recent (within 30 seconds)
+      const now = Date.now();
+      if (pricingCache.packages && (now - pricingCache.lastFetch < 30000) && !withItems) {
+        return pricingCache.packages.filter(p => !isActive || p.is_active);
+      }
+      
+      let query = supabase
+        .from('pricing_packages')
+        .select('*')
+        .order('sort_order');
+        
+      if (isActive) {
+        query = query.eq('is_active', true);
+      }
+      
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching pricing packages:', error);
+        return [];
+      }
+      
+      // Cast database results to match TypeScript interface
+      const typedPackages = (data || []).map(pkg => ({
+        ...pkg,
+        package_type: pkg.package_type as PackageType
+      }));
+      
+      // Cache the results
+      pricingCache.packages = typedPackages;
+      pricingCache.lastFetch = now;
+      
+      let packages = typedPackages;
+      
+      // Load package items if requested
+      if (withItems && packages.length > 0) {
+        const packageIds = packages.map(p => p.id);
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('pricing_package_items')
+          .select('*')
+          .in('package_id', packageIds)
+          .order('sort_order');
+          
+        if (!itemsError && itemsData) {
+          // Group items by package_id
+          const itemsByPackage = itemsData.reduce((acc, item) => {
+            if (!acc[item.package_id]) {
+              acc[item.package_id] = [];
+            }
+            acc[item.package_id].push({
+              ...item,
+              item_type: item.item_type as PackageItemType
+            });
+            return acc;
+          }, {} as Record<string, PricingPackageItem[]>);
+          
+          // Add items to packages
+          packages = packages.map(pkg => ({
+            ...pkg,
+            items: itemsByPackage[pkg.id] || []
+          }));
+        }
+      }
+      
+      return packages;
+    } catch (err: any) {
+      console.error('Error fetching pricing packages:', err);
+      return [];
+    }
+  };
+  
+  const getPricingPackage = async (id: string, withItems: boolean = true): Promise<PricingPackage | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('pricing_packages')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching pricing package:', error);
+        return null;
+      }
+      
+      let packageData = data;
+      
+      // Load items if requested
+      if (withItems) {
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('pricing_package_items')
+          .select('*')
+          .eq('package_id', id)
+          .order('sort_order');
+          
+        if (!itemsError) {
+          // Create a proper PricingPackage object with items
+          const typedPackageData = {
+            ...packageData,
+            // Force package_type to be a valid PackageType
+            package_type: (packageData.package_type as PackageType),
+            // Add items array
+            items: (itemsData || []).map(item => ({
+              ...item,
+              // Force item_type to be a valid PackageItemType
+              item_type: (item.item_type as PackageItemType)
+            }))
+          } as PricingPackage;
+          
+          return typedPackageData;
+        }
+      }
+      
+      // If no items or there was an error, just return the package data with type cast
+      return {
+        ...packageData,
+        // Force package_type to be a valid PackageType
+        package_type: (packageData.package_type as PackageType)
+      } as PricingPackage;
+    } catch (err: any) {
+      console.error('Error fetching pricing package:', err);
+      return null;
+    }
+  };
+  
+  const createPricingPackage = async (
+    packageData: Omit<PricingPackage, 'id' | 'created_at' | 'updated_at'>, 
+    items?: Omit<PricingPackageItem, 'id' | 'package_id' | 'created_at' | 'updated_at'>[]
+  ): Promise<PricingPackage | null> => {
+    try {
+      setLoading(true);
+      
+      // Start a transaction
+      const { data, error } = await supabase
+        .from('pricing_packages')
+        .insert({
+          name: packageData.name,
+          description: packageData.description,
+          thumbnail_url: packageData.thumbnail_url,
+          banner_url: packageData.banner_url,
+          package_type: packageData.package_type,
+          base_price: packageData.base_price,
+          currency: packageData.currency,
+          is_featured: packageData.is_featured,
+          is_active: packageData.is_active,
+          sort_order: packageData.sort_order,
+          valid_from: packageData.valid_from,
+          valid_to: packageData.valid_to
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error creating pricing package:', error);
+        toast({
+          title: t('pricing.packages.createError'),
+          description: error.message,
+          variant: 'destructive'
+        });
+        return null;
+      }
+      
+      const newPackage = data;
+      
+      // Add package items if provided
+      if (items && items.length > 0 && newPackage) {
+        const packageItems = items.map(item => ({
+          ...item,
+          package_id: newPackage.id
+        }));
+        
+        const { error: itemsError } = await supabase
+          .from('pricing_package_items')
+          .insert(packageItems);
+          
+        if (itemsError) {
+          console.error('Error creating package items:', itemsError);
+          // We won't fail the entire operation, but log the error
+        }
+      }
+      
+      // Invalidate cache
+      pricingCache.packages = null;
+      
+      toast({
+        title: t('pricing.packages.createSuccess'),
+        description: t('pricing.packages.createSuccessDescription')
+      });
+      
+      return newPackage as unknown as PricingPackage;
+    } catch (err: any) {
+      console.error('Error creating pricing package:', err);
+      toast({
+        title: t('pricing.packages.createError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const updatePricingPackage = async (
+    id: string, 
+    updates: Partial<Omit<PricingPackage, 'id' | 'created_at' | 'updated_at'>>,
+    itemUpdates?: {
+      create?: Omit<PricingPackageItem, 'id' | 'package_id' | 'created_at' | 'updated_at'>[],
+      update?: (Partial<Omit<PricingPackageItem, 'package_id' | 'created_at' | 'updated_at'>> & { id: string })[],
+      delete?: string[]
+    }
+  ): Promise<PricingPackage | null> => {
+    try {
+      setLoading(true);
+      
+      // Remove service_days and hours_per_day fields if they exist in updates
+      const sanitizedUpdates = { ...updates };
+      delete sanitizedUpdates.service_days;
+      delete sanitizedUpdates.hours_per_day;
+      
+      // Update package data
+      const { data, error } = await supabase
+        .from('pricing_packages')
+        .update(sanitizedUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating pricing package:', error);
+        toast({
+          title: t('pricing.packages.updateError'),
+          description: error.message,
+          variant: 'destructive'
+        });
+        return null;
+      }
+      
+      // Handle item updates if provided
+      if (itemUpdates) {
+        // Handle creates
+        if (itemUpdates.create && itemUpdates.create.length > 0) {
+          const newItems = itemUpdates.create.map(item => ({
+            ...item,
+            package_id: id
+          }));
+          
+          const { error: createError } = await supabase
+            .from('pricing_package_items')
+            .insert(newItems);
+            
+          if (createError) {
+            console.error('Error creating package items:', createError);
+          }
+        }
+        
+        // Handle updates
+        if (itemUpdates.update && itemUpdates.update.length > 0) {
+          for (const item of itemUpdates.update) {
+            const { id: itemId, ...updates } = item;
+            
+            const { error: updateError } = await supabase
+              .from('pricing_package_items')
+              .update(updates)
+              .eq('id', itemId);
+              
+            if (updateError) {
+              console.error(`Error updating package item ${itemId}:`, updateError);
+            }
+          }
+        }
+        
+        // Handle deletes
+        if (itemUpdates.delete && itemUpdates.delete.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('pricing_package_items')
+            .delete()
+            .in('id', itemUpdates.delete);
+            
+          if (deleteError) {
+            console.error('Error deleting package items:', deleteError);
+          }
+        }
+      }
+      
+      // Invalidate cache
+      pricingCache.packages = null;
+      pricingCache.packageItems.clear();
+      
+      toast({
+        title: t('pricing.packages.updateSuccess'),
+        description: t('pricing.packages.updateSuccessDescription')
+      });
+      
+      return data as unknown as PricingPackage;
+    } catch (err: any) {
+      console.error('Error updating pricing package:', err);
+      toast({
+        title: t('pricing.packages.updateError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const deletePricingPackage = async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase
+        .from('pricing_packages')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('Error deleting pricing package:', error);
+        toast({
+          title: t('pricing.packages.deleteError'),
+          description: error.message,
+          variant: 'destructive'
+        });
+        return false;
+      }
+      
+      // Invalidate cache
+      pricingCache.packages = null;
+      pricingCache.packageItems.delete(id);
+      
+      toast({
+        title: t('pricing.packages.deleteSuccess'),
+        description: t('pricing.packages.deleteSuccessDescription')
+      });
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting pricing package:', err);
+      toast({
+        title: t('pricing.packages.deleteError'),
+        description: err.message,
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -1059,6 +1645,17 @@ export const useQuotationService = () => {
     convertToBooking,
     getPricingCategories,
     getPricingItems,
-    calculateQuotationAmount
+    calculateQuotationAmount,
+    // New methods for promotions and packages
+    getPricingPromotions,
+    getPricingPromotion,
+    createPricingPromotion,
+    updatePricingPromotion,
+    deletePricingPromotion,
+    getPricingPackages,
+    getPricingPackage,
+    createPricingPackage,
+    updatePricingPackage,
+    deletePricingPackage
   };
 }; 

@@ -14,20 +14,17 @@ export const metadata: Metadata = {
   description: "Create a new vehicle inspection",
 }
 
-interface CreateInspectionPageProps {
-  searchParams?: {
-    vehicleId?: string
-    bookingId?: string
-  }
-}
-
-export default async function CreateInspectionPage({ searchParams }: CreateInspectionPageProps) {
+export default async function CreateInspectionPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
   const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary()
   
   // Extract parameters from the URL search params
-  const vehicleId = searchParams?.vehicleId || ""
-  const bookingId = searchParams?.bookingId || ""
+  const vehicleId = typeof searchParams.vehicleId === "string" ? searchParams.vehicleId : "";
+  const bookingId = typeof searchParams.bookingId === "string" ? searchParams.bookingId : "";
   
   // Fetch vehicles for the form
   const { data: vehicles } = await supabase
@@ -49,7 +46,7 @@ export default async function CreateInspectionPage({ searchParams }: CreateInspe
         inspectionId="" 
         vehicleId={vehicleId} 
         bookingId={bookingId}
-        vehicles={vehicles || []}
+        vehicles={(vehicles || []).map(v => ({ ...v, image_url: v.image_url || undefined }))}
       />
     </div>
   );

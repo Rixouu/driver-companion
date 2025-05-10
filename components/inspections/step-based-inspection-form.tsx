@@ -476,7 +476,37 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         return;
       }
 
-      // Create the inspection record first
+      if (!user) {
+        toast({
+          title: "Authentication error",
+          description: "You must be logged in to submit an inspection.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create a folder for the user if it doesn't exist already
+      // This will verify storage access permissions
+      try {
+        await supabase.storage
+          .from('inspection-photos')
+          .upload(`${user.id}/.folder_placeholder`, new File([], '.folder_placeholder'));
+      } catch (storageAccessError) {
+        // Ignore error if it's because the file already exists
+        if (!(storageAccessError instanceof Error && storageAccessError.message.includes('duplicate'))) {
+          console.error('Storage access exception:', storageAccessError);
+          toast({
+            title: "Storage access error",
+            description: "Unable to access photo storage. Please check your permissions.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Create the inspection record first with explicit user data
       const { data: newInspection, error: inspectionError } = await supabase
         .from('inspections')
         .insert({
@@ -486,8 +516,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           status: 'completed',
           date: new Date().toISOString(),
           notes: notes,
-          created_by: user?.id,
-          inspector_id: user?.id,
+          created_by: user.id,
+          inspector_id: user.id,
         })
         .select()
         .single();
@@ -505,13 +535,33 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
 
       // Filter items to save
       const itemsToSave = sections.flatMap(section => 
-        section.items.map(item => ({
-          template_id: item.id,
-          status: item.status,
-          notes: item.notes,
-          photos: item.photos
-        }))
-      ).filter(item => item.status !== null);
+        section.items
+          .filter(item => item.status !== null)
+          .map(item => ({
+            template_id: item.id,
+            status: item.status,
+            notes: item.notes,
+            photos: item.photos
+          }))
+      );
+      
+      if (itemsToSave.length === 0) {
+        // Handle edge case where no items are completed
+        toast({
+          title: "No completed items found",
+          description: "Please complete at least one inspection item before submitting.",
+          variant: "destructive"
+        });
+        
+        // Clean up the created inspection since we can't continue
+        await supabase
+          .from('inspections')
+          .delete()
+          .eq('id', newInspection.id);
+          
+        setIsSubmitting(false);
+        return;
+      }
       
       // Upload photos to storage and get URLs
       for (const item of itemsToSave) {
@@ -523,18 +573,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               const response = await fetch(photoUrl);
               const blob = await response.blob();
               const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-
-              if (!user) {
-                toast({
-                  title: "Authentication error",
-                  description: "User not found, cannot upload photo.",
-                  variant: "destructive",
-                });
-                setIsSubmitting(false);
-                return;
-              }
               
-              // Upload to Supabase storage
+              // Upload to Supabase storage with better error handling
               const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
               const filePath = `${user.id}/${fileName}`;
               
@@ -542,7 +582,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                 .from('inspection-photos')
                 .upload(filePath, file);
                 
-              if (error) throw error;
+              if (error) {
+                console.error('Photo upload error:', error);
+                throw new Error(`Photo upload failed: ${error.message}`);
+              }
               
               // Get public URL
               const { data: urlData } = supabase.storage
@@ -552,6 +595,13 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               uploadedPhotoUrls.push(urlData.publicUrl);
             } catch (error) {
               console.error('Error uploading photo:', error);
+              toast({
+                title: "Photo upload failed",
+                description: error instanceof Error ? error.message : "Unknown error during photo upload",
+                variant: "destructive"
+              });
+              setIsSubmitting(false);
+              return;
             }
           } else {
             // Already uploaded photo
@@ -563,23 +613,42 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         item.photos = uploadedPhotoUrls;
       }
       
+      // Prepare the payload for inspection_items
+      const inspectionItemsPayload = itemsToSave
+        .filter(item => item.status === 'pass' || item.status === 'fail')
+        .map(item => ({
+          inspection_id: newInspection.id,
+          template_id: item.template_id,
+          status: item.status,
+          notes: item.notes ?? null,
+          created_by: user.id
+        }));
       // Insert inspection items
       const { data: newItems, error: insertItemsError } = await supabase
         .from('inspection_items')
-        .insert(
-          itemsToSave.map(item => ({
-            inspection_id: newInspection.id,
-            template_id: item.template_id,
-            status: item.status,
-            notes: item.notes
-          }))
-        )
+        .insert(inspectionItemsPayload)
         .select();
-        
-      if (insertItemsError) throw insertItemsError;
+      if (insertItemsError) {
+        // Detailed debug logging for RLS troubleshooting
+        console.error('[DEBUG] Error inserting inspection items:', JSON.stringify(insertItemsError, null, 2));
+        console.error('[DEBUG] Payload sent to inspection_items:', JSON.stringify(inspectionItemsPayload, null, 2));
+        console.error('[DEBUG] Current user:', JSON.stringify(user, null, 2));
+        // Try to clean up the inspection since items failed
+        await supabase
+          .from('inspections')
+          .delete()
+          .eq('id', newInspection.id);
+        toast({
+          title: "Failed to save inspection items",
+          description: "You don't have permission to create inspection items. Contact your administrator.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       // Insert photos for items that have them
-      const photosToInsert: Array<{ inspection_item_id: string; photo_url: string }> = [];
+      const photosToInsert: { inspection_item_id: string; photo_url: string; created_by: string }[] = [];
       for (let i = 0; i < itemsToSave.length; i++) {
         const item = itemsToSave[i];
         const newItem = newItems[i];
@@ -588,7 +657,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           for (const photoUrl of item.photos) {
             photosToInsert.push({
               inspection_item_id: newItem.id,
-              photo_url: photoUrl
+              photo_url: photoUrl,
+              created_by: user.id // Add user ID for RLS policy
             });
           }
         }
@@ -599,7 +669,30 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           .from('inspection_photos')
           .insert(photosToInsert);
           
-        if (insertPhotosError) throw insertPhotosError;
+        if (insertPhotosError) {
+          console.error('Error inserting inspection photos:', JSON.stringify(insertPhotosError, null, 2));
+          
+          // Try to clean up if photos insertion fails
+          // First delete the items
+          await supabase
+            .from('inspection_items')
+            .delete()
+            .eq('inspection_id', newInspection.id);
+            
+          // Then delete the inspection
+          await supabase
+            .from('inspections')
+            .delete()
+            .eq('id', newInspection.id);
+            
+          toast({
+            title: "Failed to save inspection photos",
+            description: "You don't have permission to save inspection photos. Contact your administrator.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       toast({
@@ -608,10 +701,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       
       router.push(`/inspections/${newInspection.id}`);
     } catch (error: any) {
-      console.error("Error submitting inspection:", error);
+      console.error("Error submitting inspection:", JSON.stringify(error, null, 2));
       toast({
         title: "Failed to submit inspection",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {

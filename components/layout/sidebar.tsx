@@ -20,7 +20,8 @@ import {
   PanelLeft,
   Grid3x3,
   ClipboardList,
-  FileText
+  FileText,
+  DollarSign
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -32,7 +33,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'dispatch' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
+
+// Interface for menu items
+interface MenuItem {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  key: MenuItemKey;
+  adminOnly?: boolean;
+}
 
 // Interface for menu settings to ensure type safety
 interface MenuSettings {
@@ -41,6 +51,7 @@ interface MenuSettings {
   drivers: { desktop: boolean; mobile: boolean };
   bookings: { desktop: boolean; mobile: boolean };
   quotations: { desktop: boolean; mobile: boolean };
+  pricing: { desktop: boolean; mobile: boolean };
   dispatch: { desktop: boolean; mobile: boolean };
   maintenance: { desktop: boolean; mobile: boolean };
   inspections: { desktop: boolean; mobile: boolean };
@@ -54,7 +65,8 @@ const defaultMenuSettings: MenuSettings = {
   vehicles: { desktop: true, mobile: true },
   drivers: { desktop: true, mobile: true },
   bookings: { desktop: true, mobile: true },
-  quotations: { desktop: true, mobile: true }, // Ensure Quotations is present
+  quotations: { desktop: true, mobile: true },
+  pricing: { desktop: true, mobile: true },
   dispatch: { desktop: true, mobile: true },
   maintenance: { desktop: true, mobile: true },
   inspections: { desktop: true, mobile: true },
@@ -145,52 +157,59 @@ export function Sidebar() {
     {
       id: 'dashboard',
       items: [
-        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard" as const, key: "dashboard" as MenuItemKey }
+        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" } as MenuItem
       ]
     },
     {
       id: 'fleet', // Fleet comes before Sales
       label: t("navigation.fleet"),
       items: [
-        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles" as const, key: "vehicles" as MenuItemKey },
-        { icon: User, label: t("navigation.drivers"), href: "/drivers" as const, key: "drivers" as MenuItemKey }
+        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" } as MenuItem,
+        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" } as MenuItem
       ]
     },
     {
       id: 'sales', 
       label: t("navigation.sales"),
       items: [
-        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations" as const, key: "quotations" as MenuItemKey }
+        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
+        { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem
       ]
     },
     {
       id: 'operations',
       label: t("navigation.operations"),
       items: [
-        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings" as const, key: "bookings" as MenuItemKey },
-        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch" as const, key: "dispatch" as MenuItemKey },
-        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance" as const, key: "maintenance" as MenuItemKey },
-        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections" as const, key: "inspections" as MenuItemKey },
-        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting" as const, key: "reporting" as MenuItemKey }
+        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
+        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" } as MenuItem,
+        { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
+        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
+        { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" } as MenuItem
       ]
     },
     {
       id: 'settings',
       items: [
-        { icon: Settings, label: t("navigation.settings"), href: "/settings" as const, key: "settings" as MenuItemKey }
+        { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" } as MenuItem
       ]
     }
   ]
 
-  // For non-organization members, only show dashboard and quotations
+  // For non-organization members, only show quotations
   const filteredMenuGroups = isOrganizationMember 
-    ? menuGroups 
+    ? menuGroups.map(group => {
+        // If user is org member, filter out adminOnly items if they don't have admin rights
+        return {
+          ...group,
+          items: group.items.filter(item => !item.adminOnly || isOrganizationMember)
+        };
+      })
     : [
         {
           id: 'sales',
           label: 'Sales',
           items: [
-            { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations" as const, key: "quotations" as MenuItemKey }
+            { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem
           ]
         }
       ];

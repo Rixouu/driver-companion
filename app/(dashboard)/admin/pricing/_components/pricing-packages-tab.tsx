@@ -26,7 +26,9 @@ import {
   ShoppingCart,
   Tag,
   Clock,
-  Globe
+  Globe,
+  MoveUp,
+  MoveDown
 } from "lucide-react";
 import { 
   Select, 
@@ -41,19 +43,32 @@ import { cn } from "@/lib/utils";
 import { CalendarDateRangePicker } from "@/components/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
+import { toast } from "@/components/ui/use-toast";
+
+// Assuming a type for individual service types if not already defined elsewhere
+interface ServiceTypeInfo {
+  id: string;
+  name: string;
+}
+
+// Augment PricingItem to expect service_type_name, assuming it's populated by the service hook
+interface EnrichedPricingItem extends PricingItem {
+  service_type_name?: string;
+}
 
 export default function PricingPackagesTab() {
   const [packages, setPackages] = useState<PricingPackage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPackage, setCurrentPackage] = useState<Partial<PricingPackage> | null>(null);
-  const [packageItems, setPackageItems] = useState<Partial<PricingPackageItem>[]>([]);
+  const [packageItems, setPackageItems] = useState<PricingPackageItem[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
   
   // Service selection state
   const [categories, setCategories] = useState<PricingCategory[]>([]);
-  const [allItems, setAllItems] = useState<PricingItem[]>([]);
+  const [allItems, setAllItems] = useState<EnrichedPricingItem[]>([]); // Use enriched type
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   const [selectedItems, setSelectedItems] = useState<{[key: string]: boolean}>({});
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeVehicleType, setActiveVehicleType] = useState<string>("all");
@@ -64,7 +79,15 @@ export default function PricingPackagesTab() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("JPY");
   
-  const { getPricingPackages, getPricingCategories, getPricingItems, getPricingPackage, createPricingPackage, updatePricingPackage } = useQuotationService();
+  const { 
+    getPricingPackages, 
+    getPricingCategories, 
+    getPricingItems, 
+    getServiceTypes: getAllServiceTypesFromHook, // Renamed to avoid conflict
+    createPricingPackage, 
+    updatePricingPackage, 
+    deletePricingPackage 
+  } = useQuotationService();
   const { t } = useI18n();
   
   // Load packages and categories on mount
@@ -79,8 +102,11 @@ export default function PricingPackagesTab() {
         const categoriesData = await getPricingCategories();
         setCategories(categoriesData);
         
-        const itemsData = await getPricingItems();
+        const itemsData = await getPricingItems() as EnrichedPricingItem[]; // Cast to enriched type
         setAllItems(itemsData);
+
+        const serviceTypesData = await getAllServiceTypesFromHook();
+        setAllServiceTypes(serviceTypesData);
         
         // Extract unique vehicle types
         const uniqueVehicleTypes = Array.from(
@@ -90,6 +116,11 @@ export default function PricingPackagesTab() {
         
       } catch (error) {
         console.error("Error loading packages:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load pricing packages",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
@@ -128,27 +159,39 @@ export default function PricingPackagesTab() {
     ];
   };
   
-  const getServiceTypesByCategory = (categoryId: string) => {
+  // Get service type IDs for a given category
+  const getServiceTypeIdsForCategory = (categoryId: string): string[] => {
     if (categoryId === "all") {
-      return Array.from(new Set(allItems.map(item => item.service_type)));
+      // Return all unique service type IDs from allItems
+      return Array.from(new Set(allItems.map(item => item.service_type_id).filter(Boolean))) as string[];
     }
     
     const category = categories.find(cat => cat.id === categoryId);
-    if (category) {
-      return category.service_types || [];
-    }
-    return [];
+    // Use the new service_type_ids field
+    return category?.service_type_ids || [];
+  };
+
+  const getServiceTypeName = (serviceTypeId: string | null | undefined): string => {
+    if (!serviceTypeId) return "N/A";
+    const serviceType = allServiceTypes.find(st => st.id === serviceTypeId);
+    return serviceType?.name || serviceTypeId; // Fallback to ID if name not found
   };
   
-  const getFilteredItems = () => {
+  const getFilteredItems = (): EnrichedPricingItem[] => {
     if (allItems.length === 0) return [];
     
     return allItems.filter(item => {
-      // Filter by category
+      // Filter by category (using service_type_ids)
       if (activeCategory !== "all") {
-        const category = categories.find(cat => cat.id === activeCategory);
-        const categoryServices = category?.service_types || [];
-        if (!categoryServices.includes(item.service_type)) {
+        const categoryServiceTypeIds = getServiceTypeIdsForCategory(activeCategory);
+        // Ensure item.service_type_id is not null before using in includes()
+        if (item.service_type_id && !categoryServiceTypeIds.includes(item.service_type_id)) {
+          return false;
+        }
+        // If item.service_type_id is null and we are filtering by a specific category, 
+        // it probably shouldn't match unless the category explicitly handles null service_type_ids.
+        // For now, if it's null and we have an active category filter, we exclude it.
+        if (item.service_type_id === null) {
           return false;
         }
       }
@@ -248,7 +291,7 @@ export default function PricingPackagesTab() {
       updatedPackage.currency = selectedCurrency;
       
       // Create package items from selected items
-      const items: Partial<PricingPackageItem>[] = Object.keys(selectedItems)
+      const items = Object.keys(selectedItems)
         .filter(id => selectedItems[id])
         .map(itemId => {
           const pricingItem = allItems.find(item => item.id === itemId);
@@ -263,19 +306,19 @@ export default function PricingPackagesTab() {
           // Otherwise create a new package item
           return {
             pricing_item_id: itemId,
-            item_type: 'service',
+            item_type: 'service' as PackageItemType,
             quantity: 1,
             price: pricingItem.price,
             price_override: null,
             is_included_in_base: true,
             is_optional: false,
             sort_order: 1,
-            service_type: pricingItem.service_type,
+            service_type_id: pricingItem.service_type_id, // Corrected: was service_type
             vehicle_type: pricingItem.vehicle_type,
-            name: pricingItem.service_type // Use service_type as name instead of the non-existent name property
+            name: pricingItem.service_type_name || getServiceTypeName(pricingItem.service_type_id) 
           };
         })
-        .filter(Boolean) as Partial<PricingPackageItem>[];
+        .filter(Boolean) as PricingPackageItem[];
       
       if (isEditing && currentPackage.id) {
         // Update existing package
@@ -293,16 +336,16 @@ export default function PricingPackagesTab() {
         }, {
           // Only pass the items that need to be created
           create: items.filter(item => !item.id).map(item => ({
-            pricing_item_id: item.pricing_item_id || "",
-            item_type: item.item_type || "service",
+            pricing_item_id: item.pricing_item_id,
+            item_type: item.item_type,
             quantity: item.quantity || 1,
             price: item.price || 0,
             is_included_in_base: item.is_included_in_base || true,
             is_optional: item.is_optional || false,
             sort_order: item.sort_order || 1,
-            service_type: item.service_type || "",
-            vehicle_type: item.vehicle_type || "",
-            name: item.name || item.service_type || ""
+            service_type_id: item.service_type_id, // Corrected: was service_type
+            vehicle_type: item.vehicle_type,
+            name: item.name 
           }))
         });
         
@@ -328,16 +371,16 @@ export default function PricingPackagesTab() {
         };
         
         const itemsToCreate = items.map(item => ({
-          pricing_item_id: item.pricing_item_id || "",
-          item_type: item.item_type || "service",
+          pricing_item_id: item.pricing_item_id,
+          item_type: item.item_type,
           quantity: item.quantity || 1,
           price: item.price || 0,
           is_included_in_base: item.is_included_in_base || true,
           is_optional: item.is_optional || false,
           sort_order: item.sort_order || 1,
-          service_type: item.service_type || "",
-          vehicle_type: item.vehicle_type || "",
-          name: item.name || item.service_type || ""
+          service_type_id: item.service_type_id, // Corrected: was service_type
+          vehicle_type: item.vehicle_type,
+          name: item.name 
         }));
         
         const result = await createPricingPackage(packageToCreate, itemsToCreate);
@@ -351,27 +394,64 @@ export default function PricingPackagesTab() {
       }
     } catch (error) {
       console.error("Error saving package:", error);
+      toast({
+        title: "Error",
+        description: `Failed to ${isEditing ? 'update' : 'create'} package`,
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleDeletePackage = (packageId: string) => {
-    // Delete package logic would go here
-    console.log("Deleting package:", packageId);
-    
-    // Placeholder - filter out the deleted package
-    setPackages(packages.filter(pkg => pkg.id !== packageId));
+  const handleDeletePackage = async (packageId: string) => {
+    try {
+      setIsLoading(true);
+      const success = await deletePricingPackage(packageId);
+      
+      if (success) {
+        const updatedData = await getPricingPackages(false, true);
+        setPackages(updatedData);
+        toast({
+          title: "Package Deleted",
+          description: "The package has been deleted successfully."
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting package:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete package",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleTogglePackageStatus = (packageId: string, isActive: boolean) => {
-    // Toggle package status logic would go here
-    console.log("Toggling package status:", packageId, isActive);
-    
-    // Placeholder - update the package status
-    setPackages(packages.map(pkg => 
-      pkg.id === packageId ? { ...pkg, is_active: isActive } : pkg
-    ));
+  const handleTogglePackageStatus = async (packageId: string, isActive: boolean) => {
+    try {
+      setIsLoading(true);
+      const result = await updatePricingPackage(packageId, { is_active: isActive });
+      
+      if (result) {
+        const updatedData = await getPricingPackages(false, true);
+        setPackages(updatedData);
+        toast({
+          title: isActive ? "Package Activated" : "Package Deactivated",
+          description: `The package has been ${isActive ? 'activated' : 'deactivated'} successfully.`
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling package status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update package status",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleInputChange = (field: string, value: any) => {
@@ -466,15 +546,15 @@ export default function PricingPackagesTab() {
     }
   };
   
-  const getItemDetails = (itemId: string) => {
+  const getItemDetails = (itemId: string): EnrichedPricingItem | undefined => {
     return allItems.find(item => item.id === itemId);
   };
   
-  const getDurationText = (item: PricingItem) => {
-    if (!item) return "";
+  const getDurationText = (item: EnrichedPricingItem | undefined) => {
+    if (!item || !item.service_type_id) return "";
     
-    // For charter services, show duration
-    if (item.service_type.toLowerCase().includes('charter')) {
+    const serviceTypeName = item.service_type_name || getServiceTypeName(item.service_type_id);
+    if (serviceTypeName.toLowerCase().includes('charter')) {
       return item.duration_hours ? `${item.duration_hours} hour${item.duration_hours !== 1 ? 's' : ''}` : '';
     }
     
@@ -499,6 +579,7 @@ export default function PricingPackagesTab() {
           if (!item) return null;
           
           const durationText = getDurationText(item);
+          const serviceTypeName = item.service_type_name || getServiceTypeName(item.service_type_id);
           
           return (
             <div 
@@ -506,9 +587,9 @@ export default function PricingPackagesTab() {
               className="flex items-center justify-between border rounded-md p-3"
             >
               <div>
-                <div className="font-medium">{item.service_type}</div>
+                <div className="font-medium">{serviceTypeName}</div>
                 <div className="text-sm text-muted-foreground">
-                  {item.service_type} | {item.vehicle_type}
+                  {serviceTypeName} | {item.vehicle_type}
                   {durationText && (
                     <span className="ml-2 inline-flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
@@ -699,6 +780,7 @@ export default function PricingPackagesTab() {
                         <div className="space-y-2">
                           {getFilteredItems().map(item => {
                             const durationText = getDurationText(item);
+                            const serviceTypeName = item.service_type_name || getServiceTypeName(item.service_type_id);
                             
                             return (
                               <div 
@@ -719,10 +801,10 @@ export default function PricingPackagesTab() {
                                       htmlFor={`select-${item.id}`} 
                                       className="font-medium cursor-pointer"
                                     >
-                                      {item.service_type}
+                                      {serviceTypeName}
                                     </Label>
                                     <div className="text-xs text-muted-foreground">
-                                      {item.service_type}
+                                      {serviceTypeName}
                                       {durationText && (
                                         <span className="ml-2 inline-flex items-center">
                                           <Clock className="h-3 w-3 mr-1" />
@@ -899,7 +981,7 @@ export default function PricingPackagesTab() {
                       )}
                     </CardTitle>
                     <CardDescription>
-                      {pkg.package_type} {pkg.valid_from && pkg.valid_to ? `• Valid ${formatDateRange(pkg.valid_from, pkg.valid_to)}` : ''}
+                      {pkg.package_type} {pkg.valid_from && pkg.valid_to ? `• Valid ${formatDateRangeText(pkg.valid_from, pkg.valid_to)}` : ''}
                     </CardDescription>
                   </div>
                   <div className="flex space-x-2">
@@ -965,7 +1047,8 @@ export default function PricingPackagesTab() {
                         {pkg.items && pkg.items.length > 0 ? (
                           <div className="space-y-2">
                             {pkg.items.map(item => {
-                              const pricingItem = allItems.find(i => i.id === item.pricing_item_id);
+                              // item.name here should already be the service type name from when the package was saved
+                              const serviceDisplayName = item.name || getServiceTypeName(item.service_type_id);
                               
                               return (
                                 <div 
@@ -974,15 +1057,15 @@ export default function PricingPackagesTab() {
                                 >
                                   <div>
                                     <div className="text-sm font-medium">
-                                      {pricingItem?.service_type || item.name}
+                                      {serviceDisplayName}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                      {item.service_type} | {item.vehicle_type || pricingItem?.vehicle_type}
+                                      {getServiceTypeName(item.service_type_id)} | {item.vehicle_type}
                                       {item.is_optional && " (Optional)"}
                                     </div>
                                   </div>
                                   <div className="text-sm font-medium">
-                                    {formatCurrency(item.price_override || pricingItem?.price || 0)}
+                                    {formatCurrency(item.price_override || item.price || 0)}
                                     {item.quantity > 1 && ` x ${item.quantity}`}
                                   </div>
                                 </div>
@@ -1024,7 +1107,8 @@ export default function PricingPackagesTab() {
     );
   };
   
-  const formatDateRange = (start: string, end: string) => {
+  // Renamed to avoid conflict with date-fns format
+  const formatDateRangeText = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     return `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;

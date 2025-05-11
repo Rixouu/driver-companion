@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Send, User } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QuotationMessage } from '@/types/quotations';
@@ -36,6 +36,12 @@ export function QuotationMessageBlock({
     } finally {
       setIsSending(false);
     }
+  };
+
+  // Function to format date and time
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'MMM d, yyyy HH:mm');
   };
 
   return (
@@ -83,9 +89,9 @@ export function QuotationMessageBlock({
                   <p className="text-sm">{message.message}</p>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <span>{message.user_name || 'Unknown'}</span>
+                  <span>{message.is_from_customer ? 'Customer' : 'Admin'}</span>
                   <span>•</span>
-                  <span>{formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}</span>
+                  <span>{formatDateTime(message.created_at)}</span>
                 </div>
               </div>
             </div>

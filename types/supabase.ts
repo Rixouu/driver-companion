@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_users: {
@@ -365,7 +340,6 @@ export type Database = {
           notes: string | null
           phone: string | null
           profile_image_url: string | null
-          status: string
           updated_at: string
           user_id: string
         }
@@ -384,7 +358,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           profile_image_url?: string | null
-          status?: string
           updated_at?: string
           user_id: string
         }
@@ -403,7 +376,6 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           profile_image_url?: string | null
-          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -533,6 +505,7 @@ export type Database = {
       inspection_items: {
         Row: {
           created_at: string | null
+          created_by: string | null
           id: string
           inspection_id: string | null
           notes: string | null
@@ -542,6 +515,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           id?: string
           inspection_id?: string | null
           notes?: string | null
@@ -551,6 +525,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           id?: string
           inspection_id?: string | null
           notes?: string | null
@@ -585,6 +560,7 @@ export type Database = {
       inspection_photos: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
           inspection_item_id: string | null
           photo_url: string
@@ -592,6 +568,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           id?: string
           inspection_item_id?: string | null
           photo_url: string
@@ -599,6 +576,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           id?: string
           inspection_item_id?: string | null
           photo_url?: string
@@ -1091,6 +1069,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          service_type_ids: string[] | null
           service_types: string[]
           sort_order: number
           updated_at: string
@@ -1101,6 +1080,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          service_type_ids?: string[] | null
           service_types: string[]
           sort_order?: number
           updated_at?: string
@@ -1111,6 +1091,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          service_type_ids?: string[] | null
           service_types?: string[]
           sort_order?: number
           updated_at?: string
@@ -1127,6 +1108,7 @@ export type Database = {
           is_active: boolean
           price: number
           service_type: string
+          service_type_id: string | null
           updated_at: string
           vehicle_type: string
         }
@@ -1139,6 +1121,7 @@ export type Database = {
           is_active?: boolean
           price: number
           service_type: string
+          service_type_id?: string | null
           updated_at?: string
           vehicle_type: string
         }
@@ -1151,10 +1134,18 @@ export type Database = {
           is_active?: boolean
           price?: number
           service_type?: string
+          service_type_id?: string | null
           updated_at?: string
           vehicle_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_service_type"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pricing_items_category_id_fkey"
             columns: ["category_id"]
@@ -1227,6 +1218,8 @@ export type Database = {
           package_type: string
           sort_order: number
           updated_at: string
+          valid_from: string | null
+          valid_to: string | null
         }
         Insert: {
           base_price: number
@@ -1240,6 +1233,8 @@ export type Database = {
           package_type: string
           sort_order?: number
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
         }
         Update: {
           base_price?: number
@@ -1253,12 +1248,15 @@ export type Database = {
           package_type?: string
           sort_order?: number
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
         }
         Relationships: []
       }
       pricing_promotions: {
         Row: {
-          applicable_services: string[]
+          applicable_service: string[]
+          applicable_service_type_ids: string[] | null
           applicable_vehicle_types: string[]
           code: string
           created_at: string
@@ -1277,7 +1275,8 @@ export type Database = {
           usage_limit: number | null
         }
         Insert: {
-          applicable_services?: string[]
+          applicable_service?: string[]
+          applicable_service_type_ids?: string[] | null
           applicable_vehicle_types?: string[]
           code: string
           created_at?: string
@@ -1296,7 +1295,8 @@ export type Database = {
           usage_limit?: number | null
         }
         Update: {
-          applicable_services?: string[]
+          applicable_service?: string[]
+          applicable_service_type_ids?: string[] | null
           applicable_vehicle_types?: string[]
           code?: string
           created_at?: string
@@ -1651,6 +1651,33 @@ export type Database = {
           },
         ]
       }
+      service_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vehicle_assignments: {
         Row: {
           created_at: string | null
@@ -1990,9 +2017,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

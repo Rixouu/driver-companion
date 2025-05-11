@@ -5,6 +5,7 @@ import PricingCategoriesTab from "./_components/pricing-categories-tab";
 import PricingItemsTab from "./_components/pricing-items-tab";
 import PricingPromotionsTab from "./_components/pricing-promotions-tab";
 import PricingPackagesTab from "./_components/pricing-packages-tab";
+import PricingServiceTypesTab from "./_components/pricing-service-types-tab";
 
 export const dynamic = "force-dynamic"
 
@@ -24,9 +25,10 @@ export default function PricingManagementPage() {
       </div>
 
       <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full md:w-[600px]">
+        <TabsList className="grid grid-cols-5 w-full md:w-[750px]">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="items">Pricing Items</TabsTrigger>
+          <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
         </TabsList>
@@ -56,6 +58,20 @@ export default function PricingManagementPage() {
               </CardHeader>
               <CardContent>
                 <PricingItemsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="serviceTypes">
+            <Card>
+              <CardHeader>
+                <CardTitle>Service Types</CardTitle>
+                <CardDescription>
+                  Manage the different types of services offered
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PricingServiceTypesTab />
               </CardContent>
             </Card>
           </TabsContent>

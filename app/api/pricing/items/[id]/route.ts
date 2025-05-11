@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { Database } from '@/types/supabase';
-
-export const dynamic = "force-dynamic"
 
 export async function GET(
   req: NextRequest,
@@ -31,7 +28,7 @@ export async function GET(
     }
 
     const { data, error } = await supabase
-      .from('pricing_promotions')
+      .from('pricing_items')
       .select('*')
       .eq('id', params.id)
       .single();
@@ -42,7 +39,7 @@ export async function GET(
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error handling GET request for pricing promotion:', error);
+    console.error('Error handling GET request for pricing item:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
       { status: 500 }
@@ -50,7 +47,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -75,38 +72,47 @@ export async function PATCH(
     }
 
     // Parse request body
-    const updates = await req.json();
+    const body = await req.json();
 
-    // Check if promotion exists
-    const { data: existingPromotion, error: fetchError } = await supabase
-      .from('pricing_promotions')
+    // Check if pricing item exists
+    const { data: existingItem, error: fetchError } = await supabase
+      .from('pricing_items')
       .select('id')
       .eq('id', params.id)
       .single();
 
     if (fetchError) {
-      return NextResponse.json({ error: 'Promotion not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Pricing item not found' }, { status: 404 });
     }
 
-    // Prepare update data, removing id and timestamps if present
-    const { id, created_at, updated_at, times_used, ...updateData } = updates;
+    // Prepare update data, mapping service_type_id from request to service_type in DB
+    const updateData = {
+      ...(body.category_id !== undefined && { category_id: body.category_id }),
+      ...(body.service_type_id !== undefined && { service_type: body.service_type_id }),
+      ...(body.vehicle_type !== undefined && { vehicle_type: body.vehicle_type }),
+      ...(body.duration_hours !== undefined && { duration_hours: body.duration_hours }),
+      ...(body.price !== undefined && { price: body.price }),
+      ...(body.currency !== undefined && { currency: body.currency }),
+      ...(body.is_active !== undefined && { is_active: body.is_active }),
+      ...(body.sort_order !== undefined && { sort_order: body.sort_order })
+    };
 
-    // Update the promotion
+    // Update the pricing item
     const { data, error } = await supabase
-      .from('pricing_promotions')
+      .from('pricing_items')
       .update(updateData)
       .eq('id', params.id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error updating pricing promotion:', error);
+      console.error('Error updating pricing item:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error handling PATCH request for pricing promotion:', error);
+    console.error('Error handling PUT request for pricing item:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
       { status: 500 }
@@ -138,20 +144,20 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    // Delete the promotion
+    // Delete the pricing item
     const { error } = await supabase
-      .from('pricing_promotions')
+      .from('pricing_items')
       .delete()
       .eq('id', params.id);
 
     if (error) {
-      console.error('Error deleting pricing promotion:', error);
+      console.error('Error deleting pricing item:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error handling DELETE request for pricing promotion:', error);
+    console.error('Error handling DELETE request for pricing item:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
       { status: 500 }

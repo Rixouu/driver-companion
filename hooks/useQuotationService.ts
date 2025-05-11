@@ -20,6 +20,12 @@ import {
 import { useI18n } from '@/lib/i18n/context';
 import { Database } from '@/types/supabase';
 
+// Define ServiceTypeInfo here as it might be used by multiple components
+export interface ServiceTypeInfo {
+  id: string;
+  name: string;
+}
+
 // Add a cache for pricing items to prevent repeated fetching
 const pricingCache = {
   categories: null as PricingCategory[] | null,
@@ -27,7 +33,9 @@ const pricingCache = {
   promotions: null as PricingPromotion[] | null,
   packages: null as PricingPackage[] | null,
   packageItems: new Map<string, PricingPackageItem[]>(),
-  lastFetch: 0
+  serviceTypes: null as ServiceTypeInfo[] | null, // Cache for service types
+  lastFetch: 0,
+  lastServiceTypesFetch: 0,
 };
 
 export const useQuotationService = () => {
@@ -37,7 +45,7 @@ export const useQuotationService = () => {
   const supabase = createClientComponentClient<Database>();
 
   const calculateQuotationAmount = async (
-    serviceType: string,
+    serviceTypeId: string, // Changed from serviceType (text) to serviceTypeId (UUID)
     vehicleType: string,
     durationHours: number,
     discountPercentageInput: number | null | undefined = 0,
@@ -48,11 +56,11 @@ export const useQuotationService = () => {
     const taxPercentage = taxPercentageInput ?? 0;
     
     try {
-      // Find the price for the given service, vehicle, and duration
+      // Find the price for the given service_type_id, vehicle, and duration
       const { data: pricingItems, error: pricingError } = await supabase
         .from('pricing_items')
-        .select('price, currency')
-        .eq('service_type', serviceType)
+        .select('price, currency, service_types ( name )' ) // Fetch service type name for context
+        .eq('service_type_id', serviceTypeId) // Use service_type_id
         .eq('vehicle_type', vehicleType)
         .eq('duration_hours', durationHours)
         .eq('is_active', true)
@@ -60,21 +68,23 @@ export const useQuotationService = () => {
         .limit(1);
 
       if (pricingError) {
-        console.error('Error fetching pricing:', pricingError);
+        console.error('Error fetching pricing for calculation:', pricingError);
         // Provide fallback pricing instead of throwing
         return provideFallbackPricing(durationHours, discountPercentage, taxPercentage, serviceDays);
       }
 
       if (!pricingItems || pricingItems.length === 0) {
-        console.warn('No pricing found for the selected criteria');
+        console.warn('No pricing found for calculation criteria');
         // Provide fallback pricing
         return provideFallbackPricing(durationHours, discountPercentage, taxPercentage, serviceDays);
       }
 
-      const { price, currency } = pricingItems[0];
+      const item = pricingItems[0] as any; // Cast to any to access nested service_types.name
+      const { price, currency } = item;
+      const serviceTypeName = item.service_types?.name || 'unknown_service'; // Get service name
       
-      // Apply days multiplier for charter services
-      const basePrice = serviceType === 'charter' ? price * serviceDays : price;
+      // Apply days multiplier for charter services (check by name)
+      const basePrice = serviceTypeName.toLowerCase().includes('charter') ? price * serviceDays : price;
       
       // Calculate the amount with discount and tax
       const discountAmount = basePrice * (discountPercentage / 100);
@@ -129,24 +139,35 @@ export const useQuotationService = () => {
     setError(null);
 
     try {
-      // Input is assumed to be sanitized by Zod resolver in the form
       console.log('SAVE & SEND DEBUG - Raw input from form (Zod sanitized):', JSON.stringify(input));
-
-      // Ensure status is valid ('draft' or 'sent')
       const status = input.status === 'sent' ? 'sent' : 'draft';
 
-      // --- Calculate Amount ---
-      // Use optional chaining and nullish coalescing for safer defaults
       const serviceDays = input.service_days ?? 1;
       const discountPercentage = input.discount_percentage ?? 0;
       const taxPercentage = input.tax_percentage ?? 0;
-      const isCharter = input.service_type === 'charter';
+      
+      // Assuming input.service_type is now input.service_type_id (UUID)
+      // We need the service type name for charter check, fetch it if not passed
+      if (!input.service_type_id) {
+        throw new Error("service_type_id is required to create a quotation.");
+      }
+
+      let serviceTypeName = 'unknown_service';
+      const { data: stData, error: stError } = await supabase
+        .from('service_types')
+        .select('name')
+        .eq('id', input.service_type_id)
+        .single();
+      if (stError) console.warn('Could not fetch service type name for charter check', stError);
+      if (stData) serviceTypeName = stData.name;
+      
+      const isCharter = serviceTypeName.toLowerCase().includes('charter');
       const effectiveDuration = isCharter
-        ? (input.hours_per_day ?? input.duration_hours ?? 1) // Prefer hours_per_day for charter
+        ? (input.hours_per_day ?? input.duration_hours ?? 1)
         : (input.duration_hours ?? 1);
 
       const { baseAmount, currency, totalAmount } = await calculateQuotationAmount(
-        input.service_type,
+        input.service_type_id,
         input.vehicle_type,
         effectiveDuration,
         discountPercentage,
@@ -155,43 +176,40 @@ export const useQuotationService = () => {
       );
       console.log('SAVE & SEND DEBUG - Calculated Pricing:', { baseAmount, currency, totalAmount });
 
-      // --- Prepare record for DB Insert ---
       const userId = (await supabase.auth.getUser()).data.user?.id;
       if (!userId) {
         throw new Error("User not authenticated");
       }
 
-      // Directly build the record for insertion
-      // Ensure numeric fields from input are numbers or null (Zod should handle this)
-      const recordToInsert: Database['public']['Tables']['quotations']['Insert'] = {
-        title: input.title || '', // Ensure title is not undefined
+      const recordToInsert: Omit<Database['public']['Tables']['quotations']['Row'], 'id' | 'created_at' | 'updated_at' | 'quote_number'> & { service_type_id: string } = {
+        title: input.title || '',
         status: status,
         customer_name: input.customer_name || null,
         customer_email: input.customer_email,
         customer_phone: input.customer_phone || null,
+        customer_id: input.customer_id || null,
         merchant_id: userId,
         merchant_notes: input.merchant_notes || null,
-        customer_notes: input.customer_notes || null, // Add customer notes if provided
-        service_type: input.service_type,
+        customer_notes: input.customer_notes || null,
+        service_type_id: input.service_type_id,
+        service_type: serviceTypeName,
         vehicle_category: input.vehicle_category || null,
         vehicle_type: input.vehicle_type,
-        pickup_location: null, // Assuming these aren't in the form yet
-        dropoff_location: null, // Assuming these aren't in the form yet
-        pickup_date: input.pickup_date || undefined, // Keep as string 'YYYY-MM-DD' or undefined
+        pickup_location: null, 
+        dropoff_location: null, 
+        pickup_date: input.pickup_date || null,
         pickup_time: input.pickup_time || null,
-        // Use calculated/validated numeric values
-        duration_hours: effectiveDuration, // Zod ensures this is number or default
-        service_days: serviceDays,         // Zod ensures this is number or default
-        hours_per_day: isCharter ? effectiveDuration : null, // Only set for charter
-        passenger_count: input.passenger_count ?? null,      // Zod ensures this is number or null
-        amount: baseAmount,
+        duration_hours: effectiveDuration, 
+        service_days: serviceDays,
+        days_count: serviceDays,
+        hours_per_day: isCharter ? effectiveDuration : null, 
+        passenger_count: input.passenger_count ?? null,      
+        amount: Number(baseAmount),
         currency: currency,
-        discount_percentage: discountPercentage, // Zod ensures this is number or default
-        tax_percentage: taxPercentage,       // Zod ensures this is number or default
-        total_amount: totalAmount,
-        expiry_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(), // 48 hours expiry
-        quote_number: Math.floor(Math.random() * 1000000), // Generate quote number
-        // Ensure billing fields are null if empty/undefined
+        discount_percentage: discountPercentage, 
+        tax_percentage: taxPercentage,       
+        total_amount: Number(totalAmount),
+        expiry_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
         billing_company_name: input.billing_company_name || null,
         billing_tax_number: input.billing_tax_number || null,
         billing_street_name: input.billing_street_name || null,
@@ -200,22 +218,21 @@ export const useQuotationService = () => {
         billing_state: input.billing_state || null,
         billing_postal_code: input.billing_postal_code || null,
         billing_country: input.billing_country || null,
+        display_currency: input.display_currency || null,
+        converted_to_booking_id: null, // Explicitly null for new quotations
+        reference_code: null, // Explicitly null
+        rejected_reason: null, // Explicitly null
       };
       
-      // Add display_currency if provided
-      if (input.display_currency) {
-        (recordToInsert as any).display_currency = input.display_currency;
-      }
-
-      // Log the final record before attempting insert
       console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(recordToInsert));
 
-      // --- Perform DB Insert ---
       const { data, error: insertError } = await supabase
         .from('quotations')
-        .insert(recordToInsert)
+        .insert(recordToInsert as Database['public']['Tables']['quotations']['Insert'])
         .select()
         .single();
+
+      console.log('SAVE & SEND DEBUG - Data returned from DB after insert:', JSON.stringify(data));
 
       if (insertError) {
          console.error('SAVE & SEND DEBUG - DB Insert error details:', {
@@ -225,36 +242,33 @@ export const useQuotationService = () => {
             hint: insertError.hint,
             fullError: insertError
           });
-        throw insertError; // Rethrow the actual Supabase error
+        throw insertError; 
       }
 
-      // --- Create Quotation Item and Activity Log ---
       if (data) {
-        // Create quotation item (service line)
+        const serviceDescription = `${serviceTypeName} - ${input.vehicle_type}`;
         const { error: itemError } = await supabase
           .from('quotation_items')
           .insert({
             quotation_id: data.id,
-            description: `${input.service_type} - ${input.vehicle_type}`,
-            quantity: 1, // Assuming always 1 for the main service line
-            unit_price: baseAmount, // Use calculated baseAmount
-            total_price: baseAmount, // Use calculated baseAmount
+            description: serviceDescription,
+            quantity: 1, 
+            unit_price: baseAmount, 
+            total_price: baseAmount, 
             sort_order: 1
           });
 
         if (itemError) {
-          // Log error but don't fail the whole process for item creation error
           console.error('SAVE & SEND DEBUG - Error creating quotation item:', itemError);
         }
 
-        // Create activity log
         await supabase
           .from('quotation_activities')
           .insert({
             quotation_id: data.id,
             user_id: userId,
             action: 'created',
-            details: { status } // Log the initial status
+            details: { status } 
           });
       }
 
@@ -265,7 +279,6 @@ export const useQuotationService = () => {
       return data as unknown as Quotation;
 
     } catch (err: any) {
-      // Log the specific error caught
       console.error('SAVE & SEND DEBUG - Error in createQuotation function:', err);
        const errorMessage = err.message || 'Failed to create quotation';
        setError(errorMessage);
@@ -276,7 +289,7 @@ export const useQuotationService = () => {
         variant: 'destructive',
       });
 
-      return null; // Return null on failure
+      return null; 
     } finally {
       setLoading(false);
     }
@@ -287,10 +300,9 @@ export const useQuotationService = () => {
       setLoading(true);
       setError(null);
       
-      // Fetch current quotation to compare changes
-      const { data: currentQuotation, error: fetchError } = await supabase
+      const { data: currentQuotationData, error: fetchError } = await supabase
         .from('quotations')
-        .select('*')
+        .select('*, service_type:service_type_id(id, name)')
         .eq('id', id)
         .single();
       
@@ -298,19 +310,14 @@ export const useQuotationService = () => {
         throw fetchError;
       }
       
-      // Cast to Quotation type to avoid TypeScript errors
-      const quotation = currentQuotation as unknown as Quotation;
+      const quotation = currentQuotationData as any;
+      const updateData: Partial<Database['public']['Tables']['quotations']['Row']> & {service_type_id?: string} = { ...input };
       
-      // Initialize update data object
-      const updateData: Record<string, any> = { ...input };
-      
-      // Set expiry date (original code had this, don't remove)
       const validDays = 30;
       updateData.expiry_date = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
       
-      // Check if we need to recalculate pricing
       const needsRecalculation = 
-        input.service_type !== undefined || 
+        input.service_type_id !== undefined || 
         input.vehicle_type !== undefined || 
         input.duration_hours !== undefined || 
         input.service_days !== undefined ||
@@ -318,23 +325,26 @@ export const useQuotationService = () => {
         input.discount_percentage !== undefined || 
         input.tax_percentage !== undefined;
 
-      // Recalculate amount if needed
       if (needsRecalculation) {
-        const serviceType = input.service_type || quotation.service_type;
+        const serviceTypeId = input.service_type_id || quotation.service_type_id;
         const vehicleType = input.vehicle_type || quotation.vehicle_type;
-        const isCharter = serviceType === 'charter';
         
-        // For charter services, prefer hours_per_day over duration_hours
+        let serviceTypeName = quotation.service_type?.name || 'unknown_service';
+        if (input.service_type_id && input.service_type_id !== quotation.service_type_id) {
+            const { data: stData } = await supabase.from('service_types').select('name').eq('id', input.service_type_id).single();
+            if (stData) serviceTypeName = stData.name;
+        }
+
+        const isCharter = serviceTypeName.toLowerCase().includes('charter');
+        
         let effectiveDuration: number;
         if (isCharter) {
           effectiveDuration = input.hours_per_day || input.duration_hours || 
             quotation.hours_per_day || quotation.duration_hours || 1;
-          // Ensure hours_per_day is synchronized with effectiveDuration
           updateData.hours_per_day = effectiveDuration;
         } else {
           effectiveDuration = input.duration_hours || quotation.duration_hours || 1;
         }
-        
         updateData.duration_hours = effectiveDuration;
         
         const discountPercentage = input.discount_percentage !== undefined 
@@ -348,7 +358,7 @@ export const useQuotationService = () => {
           : quotation.service_days || 1;
 
         const { baseAmount, currency, totalAmount } = await calculateQuotationAmount(
-          serviceType,
+          serviceTypeId!,
           vehicleType,
           effectiveDuration,
           discountPercentage,
@@ -360,20 +370,25 @@ export const useQuotationService = () => {
         updateData.currency = currency;
         updateData.total_amount = totalAmount;
         
-        // If display_currency is not specified but we're recalculating,
-        // keep the existing display_currency or default to the actual currency
         if (input.display_currency === undefined) {
           updateData.display_currency = quotation.display_currency || currency;
         }
       } else if (input.display_currency) {
-        // Handle case where only display_currency is updated
         updateData.display_currency = input.display_currency;
       }
+      updateData.display_currency = updateData.display_currency || null;
 
-      // Also update the quotation item if service changed
-      if (input.service_type || input.vehicle_type) {
-        const serviceType = input.service_type || quotation.service_type;
-        const vehicleType = input.vehicle_type || quotation.vehicle_type;
+      if (input.service_type_id || input.vehicle_type) {
+        const finalServiceTypeId = input.service_type_id || quotation.service_type_id;
+        let finalServiceTypeName = 'Service';
+        if (finalServiceTypeId) {
+            const {data: stNameData} = await supabase.from('service_types').select('name').eq('id', finalServiceTypeId).single();
+            if(stNameData) finalServiceTypeName = stNameData.name;
+        } else if (quotation.service_type) {
+             finalServiceTypeName = quotation.service_type.name;
+        }
+
+        const finalVehicleType = input.vehicle_type || quotation.vehicle_type;
         const baseAmount = updateData.amount || quotation.amount;
         
         const { data: items } = await supabase
@@ -387,7 +402,7 @@ export const useQuotationService = () => {
           await supabase
             .from('quotation_items')
             .update({
-              description: `${serviceType} - ${vehicleType}`,
+              description: `${finalServiceTypeName} - ${finalVehicleType}`,
               unit_price: baseAmount,
               total_price: baseAmount
             })
@@ -395,8 +410,7 @@ export const useQuotationService = () => {
         }
       }
 
-      // Update the quotation
-      const { data, error } = await supabase
+      const { data: updatedDbData, error } = await supabase
         .from('quotations')
         .update(updateData)
         .eq('id', id)
@@ -407,8 +421,7 @@ export const useQuotationService = () => {
         throw error;
       }
 
-      // Create activity log
-      if (data) {
+      if (updatedDbData) {
         await supabase
           .from('quotation_activities')
           .insert({
@@ -424,8 +437,7 @@ export const useQuotationService = () => {
         description: '',
       });
 
-      // Explicitly cast the data to unknown first, then Quotation type
-      return data as unknown as Quotation;
+      return updatedDbData as unknown as Quotation;
     } catch (err: any) {
       console.error('Error updating quotation:', err);
       setError(err.message || 'Failed to update quotation');
@@ -888,7 +900,6 @@ export const useQuotationService = () => {
   // Updated getPricingCategories with caching
   const getPricingCategories = useCallback(async (): Promise<PricingCategory[]> => {
     try {
-      // Use cached categories if available and recent (within 30 seconds)
       const now = Date.now();
       if (pricingCache.categories && (now - pricingCache.lastFetch < 30000)) {
         return pricingCache.categories;
@@ -896,73 +907,42 @@ export const useQuotationService = () => {
       
       const { data, error } = await supabase
         .from('pricing_categories')
-        .select('*')
+        .select('id, name, description, service_type_ids, is_active, sort_order, created_at, updated_at') // Ensure service_type_ids is selected
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
       if (error) {
         console.error('Error fetching pricing categories:', error);
-        return getFallbackCategories();
+        // return getFallbackCategories(); // Fallback might be outdated, consider removing or updating
+        return []; // Return empty on error
       }
       
-      // Cache the results
-      pricingCache.categories = data || [];
+      const categoriesData = (data || []).map(category => ({
+        ...category,
+        service_type_ids: category.service_type_ids || [], // Ensure service_type_ids is an array
+      })) as PricingCategory[];
+
+      pricingCache.categories = categoriesData;
       pricingCache.lastFetch = now;
       
-      return data || [];
+      return categoriesData;
     } catch (err: any) {
       console.error('Error fetching pricing categories:', err);
-      return getFallbackCategories();
+      // return getFallbackCategories();
+      return [];
     }
   }, []);
   
-  // Helper function for fallback categories
-  const getFallbackCategories = (): PricingCategory[] => {
-    return [
-      {
-        id: 'mock-platinum',
-        name: 'Platinum',
-        description: 'Premium luxury service',
-        service_types: ['charter', 'airportTransferHaneda', 'airportTransferNarita'],
-        is_active: true,
-        sort_order: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-luxury',
-        name: 'Luxury',
-        description: 'High-end luxury service',
-        service_types: ['charter', 'airportTransferHaneda', 'airportTransferNarita'],
-        is_active: true,
-        sort_order: 2,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-premium',
-        name: 'Premium',
-        description: 'Standard premium service',
-        service_types: ['charter', 'airportTransferHaneda', 'airportTransferNarita'],
-        is_active: true,
-        sort_order: 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
-  };
+  // Fallback categories might need updating or removal if not maintained
+  // const getFallbackCategories = (): PricingCategory[] => { ... };
 
-  // Updated getPricingItems with caching
-  const getPricingItems = async (
+  const getPricingItems = useCallback(async (
     categoryId?: string,
-    serviceType?: string,
+    serviceTypeId?: string, // Changed from serviceType (text) to serviceTypeId (UUID)
     vehicleType?: string
   ): Promise<PricingItem[]> => {
     try {
-      // Create a cache key based on the parameters
-      const cacheKey = `${categoryId || ''}-${serviceType || ''}-${vehicleType || ''}`;
-      
-      // Use cached items if available and recent (within 30 seconds)
+      const cacheKey = `${categoryId || 'all'}-${serviceTypeId || 'all'}-${vehicleType || 'all'}`;
       const now = Date.now();
       if (pricingCache.items.has(cacheKey) && (now - pricingCache.lastFetch < 30000)) {
         return pricingCache.items.get(cacheKey) || [];
@@ -970,30 +950,27 @@ export const useQuotationService = () => {
       
       let query = supabase
         .from('pricing_items')
-        .select('*')
+        .select(`
+          id,
+          category_id,
+          service_type_id,
+          vehicle_type,
+          duration_hours,
+          price,
+          currency,
+          is_active,
+          created_at,
+          updated_at,
+          service_type:service_type_id ( id, name ) 
+        `)
         .eq('is_active', true);
 
       if (categoryId) {
         query = query.eq('category_id', categoryId);
       }
       
-      if (serviceType) {
-        // Handle common variations in service type naming 
-        // (e.g., airportTransfer vs airport_transfer vs Airport Transfer)
-        const normalizedServiceType = serviceType.toLowerCase()
-          .replace(/\s+/g, '')
-          .replace(/_/g, '');
-          
-        if (normalizedServiceType.includes('airport')) {
-          // For airport transfers, match any service_type containing 'airport'
-          query = query.ilike('service_type', `%airport%`);
-        } else if (normalizedServiceType.includes('charter')) {
-          // For charter services
-          query = query.ilike('service_type', `%charter%`);
-        } else {
-          // For exact matches
-          query = query.eq('service_type', serviceType);
-        }
+      if (serviceTypeId) {
+        query = query.eq('service_type_id', serviceTypeId); // Filter by service_type_id
       }
       
       if (vehicleType) {
@@ -1004,68 +981,54 @@ export const useQuotationService = () => {
 
       if (error) {
         console.error('Error fetching pricing items:', error);
-        return getFallbackItems(categoryId);
+        // return getFallbackItems(categoryId); // Fallback might be outdated
+        return [];
       }
       
-      // Cache the results
-      pricingCache.items.set(cacheKey, data || []);
+      const enrichedData = (data || []).map(item => ({
+        ...(item as PricingItem),
+        service_type_name: (item as any).service_type?.name || 'N/A',
+      }));
+
+      pricingCache.items.set(cacheKey, enrichedData as PricingItem[]);
       pricingCache.lastFetch = now;
       
-      return data || [];
+      return enrichedData as PricingItem[];
     } catch (err: any) {
       console.error('Error fetching pricing items:', err);
-      return getFallbackItems(categoryId);
+      // return getFallbackItems(categoryId);
+      return [];
     }
-  };
+  }, [supabase]); // supabase is stable, so [] would also work but [supabase] is more explicit
   
-  // Helper function for fallback items
-  const getFallbackItems = (categoryId?: string): PricingItem[] => {
-    // Different fallback items based on category
-    if (categoryId === 'mock-platinum' || !categoryId) {
-      return [
-        {
-          id: 'mock-platinum-1',
-          category_id: 'mock-platinum',
-          service_type: 'charter',
-          vehicle_type: 'Mercedes Benz V Class - Black Suite',
-          duration_hours: 1,
-          price: 23000,
-          currency: 'THB',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-platinum-2',
-          category_id: 'mock-platinum',
-          service_type: 'airportTransferHaneda',
-          vehicle_type: 'Mercedes Benz V Class - Black Suite',
-          duration_hours: 1,
-          price: 46000,
-          currency: 'THB',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-    }
-    
-    // Default fallback
-    return [
-      {
-        id: 'mock-item-1',
-        category_id: categoryId || 'mock-category-1',
-        service_type: 'charter',
-        vehicle_type: 'Standard Vehicle',
-        duration_hours: 1,
-        price: 5000,
-        currency: 'THB',
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+  // Fallback items might need updating or removal
+  // const getFallbackItems = (categoryId?: string): PricingItem[] => { ... };
+
+  const getServiceTypes = useCallback(async (): Promise<ServiceTypeInfo[]> => {
+    try {
+      const now = Date.now();
+      if (pricingCache.serviceTypes && (now - pricingCache.lastServiceTypesFetch < 60000)) { // Cache for 1 minute
+        return pricingCache.serviceTypes;
       }
-    ];
-  };
+
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching service types:', error);
+        return [];
+      }
+      pricingCache.serviceTypes = data || [];
+      pricingCache.lastServiceTypesFetch = now;
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching service types:', err);
+      return [];
+    }
+  }, [supabase]); // supabase is stable, so [] would also work but [supabase] is more explicit
 
   // New methods for pricing promotions and packages
   const getPricingPromotions = async (
@@ -1080,7 +1043,7 @@ export const useQuotationService = () => {
       
       let query = supabase
         .from('pricing_promotions')
-        .select('*');
+        .select('*, applicable_service_type_ids'); // Ensure new field is selected
         
       if (isActive) {
         query = query.eq('is_active', true);
@@ -1134,18 +1097,22 @@ export const useQuotationService = () => {
     try {
       setLoading(true);
       
-      console.log('Creating promotion with data:', promotion);
+      // Ensure applicable_services (old field) is not sent if it exists on the input
+      const { applicable_services, ...restOfPromotion } = promotion as any;
+      const promotionDataForApi = {
+        ...restOfPromotion,
+        applicable_service_type_ids: promotion.applicable_service_type_ids || null, // Ensure new field is used
+        times_used: 0
+      };
+
+      console.log('Creating promotion with data:', promotionDataForApi);
       
-      // Call a server API endpoint that has admin privileges instead of direct table access
       const response = await fetch('/api/admin/pricing/promotions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...promotion,
-          times_used: 0
-        })
+        body: JSON.stringify(promotionDataForApi)
       });
       
       // Get the full response for debugging
@@ -1197,15 +1164,25 @@ export const useQuotationService = () => {
   
   const updatePricingPromotion = async (id: string, updates: Partial<Omit<PricingPromotion, 'id' | 'created_at' | 'updated_at' | 'times_used'>>): Promise<PricingPromotion | null> => {
     try {
-      setLoading(true);
+      setLoading(true)
+
+      // Ensure applicable_services (old field) is not sent if it exists on the input
+      // And ensure applicable_service_type_ids is correctly formatted if present
+      const { applicable_services, ...restOfUpdates } = updates as any;
+      const updateDataForApi: Partial<Omit<PricingPromotion, 'id' | 'created_at' | 'updated_at' | 'times_used'>> & { applicable_service_type_ids?: string[] | null } = {
+        ...restOfUpdates,
+      };
+
+      if (updates.hasOwnProperty('applicable_service_type_ids')) {
+        updateDataForApi.applicable_service_type_ids = updates.applicable_service_type_ids || null;
+      }
       
-      // Call a server API endpoint that has admin privileges instead of direct table access
       const response = await fetch(`/api/admin/pricing/promotions/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updateDataForApi)
       });
       
       if (!response.ok) {
@@ -1275,6 +1252,152 @@ export const useQuotationService = () => {
     }
   };
   
+  // CRUD for Pricing Categories
+  const createPricingCategory = async (categoryData: Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>): Promise<PricingCategory | null> => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/pricing/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create pricing category');
+      }
+      const data = await response.json();
+      pricingCache.categories = null; // Invalidate cache
+      toast({ title: t('pricing.categories.createSuccess') });
+      return data as PricingCategory;
+    } catch (err: any) {
+      console.error('Error creating pricing category:', err);
+      toast({ title: t('pricing.categories.createError'), description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePricingCategory = async (id: string, updates: Partial<Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>>): Promise<PricingCategory | null> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/admin/pricing/categories/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update pricing category');
+      }
+      const data = await response.json();
+      pricingCache.categories = null; // Invalidate cache
+      toast({ title: t('pricing.categories.updateSuccess') });
+      return data as PricingCategory;
+    } catch (err: any) {
+      console.error('Error updating pricing category:', err);
+      toast({ title: t('pricing.categories.updateError'), description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePricingCategory = async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/admin/pricing/categories/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete pricing category');
+      }
+      pricingCache.categories = null; // Invalidate cache
+      toast({ title: t('pricing.categories.deleteSuccess') });
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting pricing category:', err);
+      toast({ title: t('pricing.categories.deleteError'), description: err.message, variant: 'destructive' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // CRUD for Pricing Items
+  const createPricingItem = async (itemData: Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'>): Promise<PricingItem | null> => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/pricing/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create pricing item');
+      }
+      const data = await response.json();
+      pricingCache.items.clear(); // Invalidate cache
+      toast({ title: t('pricing.items.createSuccess') });
+      return data as PricingItem;
+    } catch (err: any) {
+      console.error('Error creating pricing item:', err);
+      toast({ title: t('pricing.items.createError'), description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updatePricingItem = async (id: string, updates: Partial<Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'>>): Promise<PricingItem | null> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/admin/pricing/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update pricing item');
+      }
+      const data = await response.json();
+      pricingCache.items.clear(); // Invalidate cache
+      toast({ title: t('pricing.items.updateSuccess') });
+      return data as PricingItem;
+    } catch (err: any) {
+      console.error('Error updating pricing item:', err);
+      toast({ title: t('pricing.items.updateError'), description: err.message, variant: 'destructive' });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePricingItem = async (id: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/admin/pricing/items/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete pricing item');
+      }
+      pricingCache.items.clear(); // Invalidate cache
+      toast({ title: t('pricing.items.deleteSuccess') });
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting pricing item:', err);
+      toast({ title: t('pricing.items.deleteError'), description: err.message, variant: 'destructive' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Package methods
   const getPricingPackages = async (
     isActive: boolean = true,
@@ -1646,12 +1769,21 @@ export const useQuotationService = () => {
     getPricingCategories,
     getPricingItems,
     calculateQuotationAmount,
+    getServiceTypes, // Export the new method
     // New methods for promotions and packages
     getPricingPromotions,
     getPricingPromotion,
     createPricingPromotion,
     updatePricingPromotion,
     deletePricingPromotion,
+    // Pricing Category CRUD
+    createPricingCategory,
+    updatePricingCategory,
+    deletePricingCategory,
+    // Pricing Item CRUD
+    createPricingItem,
+    updatePricingItem,
+    deletePricingItem,
     getPricingPackages,
     getPricingPackage,
     createPricingPackage,

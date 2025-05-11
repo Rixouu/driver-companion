@@ -78,6 +78,7 @@ import {
   QuotationStatus,
   QuotationItem
 } from '@/types/quotations';
+import { ServiceTypeInfo } from '@/hooks/useQuotationService';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
@@ -159,6 +160,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const router = useRouter();
   const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>([]);
   const [pricingItems, setPricingItems] = useState<PricingItem[]>([]);
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   const [baseAmount, setBaseAmount] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>(initialData?.currency || 'JPY');
@@ -188,7 +190,8 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     calculateQuotationAmount,
     getPricingCategories,
     getPricingItems,
-    sendQuotation
+    sendQuotation,
+    getServiceTypes
   } = useQuotationService();
 
   // Initialize form
@@ -207,14 +210,14 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       billing_state: initialData?.billing_state || '',
       billing_postal_code: initialData?.billing_postal_code || '',
       billing_country: initialData?.billing_country || 'Thailand',
-      service_type: initialData?.service_type || '',
+      service_type: initialData?.service_type_id || '',
       vehicle_category: '',
       vehicle_type: initialData?.vehicle_type || '',
       pickup_date: initialData?.pickup_date ? new Date(initialData.pickup_date) : undefined,
       pickup_time: initialData?.pickup_time || '',
       duration_hours: initialData?.duration_hours || 1,
       service_days: initialData?.service_days || 1,
-      hours_per_day: initialData?.hours_per_day || (initialData?.service_type === 'charter' ? initialData?.duration_hours : 1) || 1,
+      hours_per_day: initialData?.hours_per_day || 1,
       discount_percentage: initialData?.discount_percentage || 0,
       tax_percentage: initialData?.tax_percentage || 0,
       merchant_notes: initialData?.merchant_notes || '',
@@ -235,6 +238,11 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const serviceDays = form.watch('service_days');
   const hoursPerDay = form.watch('hours_per_day');
 
+  // Find the selected service type object (name and id)
+  const selectedServiceTypeObject = useMemo(() => {
+    return allServiceTypes.find(st => st.id === serviceType);
+  }, [allServiceTypes, serviceType]);
+
   // Load pricing categories on mount
   useEffect(() => {
     const loadPricingData = async () => {
@@ -247,9 +255,9 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
           setSelectedCategory(firstCategory.id);
           
           // If we have a quotation with existing values, try to find the matching category
-          if (initialData?.service_type) {
+          if (initialData?.service_type_id) {
             const matchingCategory = categories.find(c => 
-              c.service_types.includes(initialData.service_type)
+              c.service_type_ids && c.service_type_ids.includes(initialData.service_type_id)
             );
             if (matchingCategory) {
               setSelectedCategory(matchingCategory.id);
@@ -264,6 +272,19 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     
     loadPricingData();
   }, [initialData, getPricingCategories]);
+
+  // Load all service types on mount
+  useEffect(() => {
+    async function loadAllServiceTypes() {
+      try {
+        const serviceTypesData = await getServiceTypes();
+        setAllServiceTypes(serviceTypesData);
+      } catch (error) {
+        console.error("Failed to load all service types:", error);
+      }
+    }
+    loadAllServiceTypes();
+  }, [getServiceTypes]);
 
   // Load pricing items when category changes
   useEffect(() => {
@@ -288,7 +309,8 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       if (serviceType && vehicleType && (durationHours || hoursPerDay)) {
         try {
           // For charter services, use hoursPerDay as the duration
-          const effectiveDuration = serviceType === 'charter' ? hoursPerDay || durationHours : durationHours;
+          const isCharter = selectedServiceTypeObject?.name.toLowerCase().includes('charter');
+          const effectiveDuration = isCharter ? hoursPerDay || durationHours : durationHours;
           
           const { baseAmount: amount, totalAmount: total, currency: curr } = 
             await calculateQuotationAmount(
@@ -320,7 +342,8 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     serviceDays,
     discountPercentage, 
     taxPercentage, 
-    calculateQuotationAmount
+    calculateQuotationAmount,
+    selectedServiceTypeObject
   ]);
 
   // Format currency with exchange rates
@@ -361,7 +384,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const getServiceTypesForCategory = () => {
     if (selectedCategory) {
       const category = pricingCategories.find(cat => cat.id === selectedCategory);
-      return category ? category.service_types : [];
+      return category ? category.service_type_ids || [] : [];
     }
     
     // Fallback service types if no categories are available
@@ -378,7 +401,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     
     // Get unique vehicle types from pricing items for this service type
     const vehicleTypes = pricingItems
-      .filter(item => item.service_type === serviceType)
+      .filter(item => item.service_type_id === serviceType)
       .map(item => item.vehicle_type);
     
     // Return unique vehicle types
@@ -418,8 +441,9 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   };
 
   // Add helper functions for service types
-  const getAvailableServiceTypes = () => {
-    return [
+  const getAvailableServiceTypes = (): ServiceTypeInfo[] => {
+    return allServiceTypes.length > 0 ? allServiceTypes : [
+      // Basic fallback if allServiceTypes is empty, ideally should not happen
       { id: 'charter', name: 'Charter Services (Hourly)' },
       { id: 'airportTransferHaneda', name: 'Airport Transfer - Haneda' },
       { id: 'airportTransferNarita', name: 'Airport Transfer - Narita' }
@@ -504,14 +528,14 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
         billing_state: formData.billing_state || undefined,
         billing_postal_code: formData.billing_postal_code || undefined,
         billing_country: formData.billing_country || undefined,
-        service_type: formData.service_type,
+        service_type_id: formData.service_type,
         vehicle_category: formData.vehicle_category || undefined,
         vehicle_type: formData.vehicle_type,
         pickup_date: formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined,
         pickup_time: formData.pickup_time || undefined,
         duration_hours: typeof formData.duration_hours === 'number' ? formData.duration_hours : 1,
         service_days: typeof formData.service_days === 'number' ? formData.service_days : 1,
-        hours_per_day: (formData.service_type === 'charter' && typeof formData.hours_per_day === 'number') ? formData.hours_per_day : undefined,
+        hours_per_day: (selectedServiceTypeObject?.name.toLowerCase().includes('charter') && typeof formData.hours_per_day === 'number') ? formData.hours_per_day : undefined,
         merchant_notes: formData.merchant_notes || undefined,
         discount_percentage: typeof formData.discount_percentage === 'number' ? formData.discount_percentage : 0,
         tax_percentage: typeof formData.tax_percentage === 'number' ? formData.tax_percentage : 0,
@@ -532,24 +556,10 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
         display_currency: selectedCurrency || 'JPY'
       };
       
-      // Additional numeric field sanitization to ensure no 'none' values slip through
-      ['duration_hours', 'service_days', 'hours_per_day', 'discount_percentage', 'tax_percentage'].forEach(field => {
-        if ((inputData as any)[field] === 'none' || (inputData as any)[field] === 'undefined') {
-          console.log(`SAVE & SEND DEBUG - Replaced "none" value in ${field}`);
-          
-          if (['service_days', 'duration_hours'].includes(field)) {
-            (inputData as any)[field] = 1;
-          } else if (['discount_percentage', 'tax_percentage'].includes(field)) {
-            (inputData as any)[field] = 0;
-          } else if (field === 'hours_per_day') {
-            (inputData as any)[field] = null;
-          }
-        }
-      });
-      
       // Create input object for the API
       const input: CreateQuotationInput = {
         ...inputData,
+        // service_type_id is now correctly in inputData
         // Fix for passenger_count specifically
         passenger_count: inputData.passenger_count,
         // Convert pickup_date from Date to string if needed
@@ -1172,7 +1182,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                     />
                   </div>
 
-                  {serviceType === 'charter' && (
+                  {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
                     <>
                       <FormField
                         control={form.control}
@@ -1201,7 +1211,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                     </>
                   )}
 
-                  {serviceType && serviceType.includes('airportTransfer') && (
+                  {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
                      <FormField
                        control={form.control}
                        name="duration_hours"
@@ -1312,7 +1322,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                      </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {serviceType === 'charter' && (
+                        {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
                           <>
                             <div className="flex justify-between text-sm">
                               <span>Hourly Rate ({hoursPerDay || 1} hour{(hoursPerDay || 1) !== 1 ? 's' : ''} / day)</span>
@@ -1330,7 +1340,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                           </>
                         )}
                         
-                        {serviceType && !serviceType.includes('charter') && (
+                        {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
                           <div className="flex justify-between text-sm font-medium">
                             <span>Base Amount</span>
                             <span>{formatCurrency(baseAmount)}</span>
@@ -1458,18 +1468,18 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                        <Separator className="my-3" />
                        <h3 className="font-medium text-base mb-2 border-b pb-1">Service Details</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          <span className="text-muted-foreground">Service Type:</span> <span>{getAvailableServiceTypes().find(s => s.id === watchedValues.service_type)?.name || '-'}</span>
+                          <span className="text-muted-foreground">Service Type:</span> <span>{selectedServiceTypeObject?.name || watchedValues.service_type || '-'}</span>
                           <span className="text-muted-foreground">Vehicle Category:</span> <span>{getVehicleCategories().find(c => c.id === watchedValues.vehicle_category)?.name || '-'}</span>
                           <span className="text-muted-foreground">Vehicle Type:</span> <span>{watchedValues.vehicle_type || '-'}</span>
                           <span className="text-muted-foreground">Pickup Date:</span> <span>{watchedValues.pickup_date ? format(watchedValues.pickup_date, 'PPP') : '-'}</span>
                            <span className="text-muted-foreground">Pickup Time:</span> <span>{watchedValues.pickup_time || '-'}</span>
-                          {watchedValues.service_type === 'charter' && (
+                          {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
                             <>
                               <span className="text-muted-foreground">Service Days:</span> <span>{watchedValues.service_days || 1}</span>
                               <span className="text-muted-foreground">Hours per Day:</span> <span>{watchedValues.hours_per_day || '-'}</span>
                             </>
                           )}
-                          {watchedValues.service_type?.includes('airportTransfer') && (
+                          {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
                              <>
                                <span className="text-muted-foreground">Duration:</span> <span>1 Hour</span>
                              </>

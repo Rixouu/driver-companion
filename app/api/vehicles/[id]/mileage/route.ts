@@ -13,8 +13,8 @@ export async function GET(
   const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
 
   // Initialize Supabase client with cookies() (do not await)
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+  const supabase = createRouteHandlerClient({ cookies });
+  const supabase = createRouteHandlerClient<Database>({ cookies })
 
   // Verify authentication
   const { data: { session } } = await supabase.auth.getSession()

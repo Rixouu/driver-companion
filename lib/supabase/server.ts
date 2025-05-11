@@ -12,10 +12,10 @@ export async function createServerSupabaseClient() {
     console.log('Creating server Supabase client');
     
     // Create the Supabase client with the correct pattern for Next.js 15
-    // Do NOT await cookies() - it should be called directly
-    const cookieStore = cookies();
+    // In Next.js 15, cookies() should not be called directly but passed as a function
+    // to avoid the "cookies() should be awaited" error
     const client = createServerComponentClient<Database>({ 
-      cookies: () => cookieStore
+      cookies // Pass the cookies function directly
     });
     
     // Test the client connection with a simple query
@@ -55,6 +55,5 @@ export async function getCurrentUser(supabase: any) {
 
 // Deprecated - use createServerSupabaseClient instead
 export async function getSupabaseServerClient() {
-  const cookieStore = cookies();
-  return createServerComponentClient<Database>({ cookies: () => cookieStore });
+  return createServerComponentClient<Database>({ cookies });
 } 

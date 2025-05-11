@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PricingCategory } from "@/types/quotations";
 import { useQuotationService } from "@/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash, Check, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { ServiceTypeInfo } from "@/hooks/useQuotationService";
+import { toast } from "@/components/ui/use-toast";
 
 export default function PricingCategoriesTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
@@ -27,26 +29,45 @@ export default function PricingCategoriesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Partial<PricingCategory> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   
-  const { getPricingCategories } = useQuotationService();
+  const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory } = useQuotationService();
   const { t } = useI18n();
   
-  // Load categories on mount
+  // Function to refresh categories
+  const refreshCategories = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const categoriesData = await getPricingCategories();
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error("Error refreshing categories:", error);
+      // Optionally set an error state here
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getPricingCategories]);
+
+  // Load categories and service types on mount
   useEffect(() => {
-    async function loadCategories() {
+    async function loadData() {
       setIsLoading(true);
       try {
-        const data = await getPricingCategories();
-        setCategories(data);
+        const categoriesData = await getPricingCategories();
+        setCategories(categoriesData);
+
+        const serviceTypesData = await getServiceTypes();
+        setAllServiceTypes(serviceTypesData);
+
       } catch (error) {
-        console.error("Error loading pricing categories:", error);
+        console.error("Error loading data:", error);
       } finally {
         setIsLoading(false);
       }
     }
     
-    loadCategories();
-  }, [getPricingCategories]);
+    loadData();
+  }, [getPricingCategories, getServiceTypes]);
   
   const handleOpenDialog = (category: PricingCategory | null = null) => {
     if (category) {
@@ -56,7 +77,7 @@ export default function PricingCategoriesTab() {
       setCurrentCategory({
         name: "",
         description: "",
-        service_types: [],
+        service_type_ids: [],
         sort_order: categories.length + 1,
         is_active: true
       });
@@ -71,47 +92,45 @@ export default function PricingCategoriesTab() {
   };
   
   const handleSaveCategory = async () => {
-    // Save category logic would go here
-    console.log("Saving category:", currentCategory);
-    
-    // Placeholder - in real implementation, this would call to API
-    if (isEditing && currentCategory?.id) {
-      // Update existing category
-      const updatedCategories = categories.map(cat => 
-        cat.id === currentCategory.id ? { ...cat, ...currentCategory } : cat
-      );
-      setCategories(updatedCategories);
-    } else if (currentCategory) {
-      // Create new category
-      const newCategory = {
-        ...currentCategory,
-        id: `temp-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as PricingCategory;
-      
-      setCategories([...categories, newCategory]);
+    if (!currentCategory) return;
+
+    // Basic validation (can be enhanced)
+    if (!currentCategory.name?.trim()) {
+      toast({ title: "Validation Error", description: "Category name is required", variant: "destructive" });
+      return;
     }
-    
-    handleCloseDialog();
+
+    let result: PricingCategory | null = null;
+    if (isEditing && currentCategory.id) {
+      // Update existing category
+      const { id, created_at, updated_at, ...updateData } = currentCategory as PricingCategory;
+      result = await updatePricingCategory(id, updateData);
+    } else {
+      // Create new category
+      const { id, created_at, updated_at, ...createData } = currentCategory; // currentCategory is Partial here
+      result = await createPricingCategory(createData as Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>);
+    }
+
+    if (result) {
+      await refreshCategories();
+      handleCloseDialog();
+    } else {
+      // Error toast is handled by the hook, keep dialog open
+    }
   };
   
-  const handleDeleteCategory = (categoryId: string) => {
-    // Delete category logic would go here
-    console.log("Deleting category:", categoryId);
-    
-    // Placeholder - filter out the deleted category
-    setCategories(categories.filter(cat => cat.id !== categoryId));
+  const handleDeleteCategory = async (categoryId: string) => {
+    const success = await deletePricingCategory(categoryId);
+    if (success) {
+      await refreshCategories();
+    }
   };
   
-  const handleToggleCategoryStatus = (categoryId: string, isActive: boolean) => {
-    // Toggle category status logic would go here
-    console.log("Toggling category status:", categoryId, isActive);
-    
-    // Placeholder - update the category status
-    setCategories(categories.map(cat => 
-      cat.id === categoryId ? { ...cat, is_active: isActive } : cat
-    ));
+  const handleToggleCategoryStatus = async (categoryId: string, isActive: boolean) => {
+    const result = await updatePricingCategory(categoryId, { is_active: isActive });
+    if (result) {
+      await refreshCategories();
+    }
   };
   
   const handleInputChange = (field: string, value: any) => {
@@ -167,9 +186,14 @@ export default function PricingCategoriesTab() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {category.service_types.map((service) => (
-                        <Badge key={service} variant="outline">{service}</Badge>
-                      ))}
+                      {category.service_type_ids && category.service_type_ids.map((serviceId) => {
+                        const serviceType = allServiceTypes.find(st => st.id === serviceId);
+                        return (
+                          <Badge key={serviceId} variant="outline">
+                            {serviceType ? serviceType.name : serviceId}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
@@ -267,26 +291,25 @@ export default function PricingCategoriesTab() {
               <Label htmlFor="is_active">Active</Label>
             </div>
             
-            {/* Service Types - this would be more sophisticated in a real implementation */}
             <div className="grid gap-2">
               <Label>Service Types</Label>
-              <div className="p-2 border rounded-md grid grid-cols-2 gap-2">
-                {["charter", "airportTransferHaneda", "airportTransferNarita"].map((service) => (
-                  <div key={service} className="flex items-center space-x-2">
+              <div className="p-2 border rounded-md grid grid-cols-2 gap-2 h-32 overflow-y-auto">
+                {allServiceTypes.map((serviceType) => (
+                  <div key={serviceType.id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`service-${service}`}
-                      checked={currentCategory?.service_types?.includes(service) ?? false}
+                      id={`service-${serviceType.id}`}
+                      checked={currentCategory?.service_type_ids?.includes(serviceType.id) ?? false}
                       onCheckedChange={(checked) => {
-                        const currentServices = currentCategory?.service_types || [];
+                        const currentSelectedIds = currentCategory?.service_type_ids || [];
                         handleInputChange(
-                          "service_types",
+                          "service_type_ids",
                           checked
-                            ? [...currentServices, service]
-                            : currentServices.filter(s => s !== service)
+                            ? [...currentSelectedIds, serviceType.id]
+                            : currentSelectedIds.filter(id => id !== serviceType.id)
                         );
                       }}
                     />
-                    <Label htmlFor={`service-${service}`}>{service}</Label>
+                    <Label htmlFor={`service-${serviceType.id}`}>{serviceType.name}</Label>
                   </div>
                 ))}
               </div>

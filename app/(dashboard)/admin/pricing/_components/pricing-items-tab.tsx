@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PricingItem, PricingCategory } from "@/types/quotations";
-import { useQuotationService } from "@/hooks/useQuotationService";
+import { useQuotationService, ServiceTypeInfo } from "@/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,6 +25,19 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash, Check, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
+import { toast } from "@/components/ui/use-toast";
+
+// Utility functions (moved to top for availability)
+const getVehicleTypes = () => ["Sedan", "Van", "Minibus", "Bus", "Coach"];
+
+const getDurationOptions = () => [
+  { value: 1, label: "1 hour" },
+  { value: 4, label: "4 hours" },
+  { value: 6, label: "6 hours" },
+  { value: 8, label: "8 hours" },
+  { value: 10, label: "10 hours" },
+  { value: 12, label: "12 hours" },
+];
 
 export default function PricingItemsTab() {
   const [items, setItems] = useState<PricingItem[]>([]);
@@ -34,176 +47,199 @@ export default function PricingItemsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Partial<PricingItem> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   
-  const { getPricingCategories, getPricingItems } = useQuotationService();
+  const {
+    getPricingCategories,
+    getServiceTypes,
+    getPricingItems,
+    createPricingItem,
+    updatePricingItem,
+    deletePricingItem
+  } = useQuotationService();
   const { t } = useI18n();
   
-  // Load categories on mount
-  useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      try {
-        const categoriesData = await getPricingCategories();
-        setCategories(categoriesData);
-        
-        if (categoriesData.length > 0) {
-          setSelectedCategory(categoriesData[0].id);
-        }
-      } catch (error) {
-        console.error("Error loading pricing categories:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadData();
-  }, []);
-  
-  // Load items when category changes
-  useEffect(() => {
-    async function loadItems() {
-      if (!selectedCategory) return;
+  // Function to refresh items
+  const refreshItems = useCallback(async (currentCategoryId?: string | null) => {
+    setIsLoading(true);
+    try {
+      // Determine the category ID to use for fetching
+      const categoryToFetch = currentCategoryId === undefined ? selectedCategory : currentCategoryId;
       
+      if (categoryToFetch) {
+        const itemsData = await getPricingItems(categoryToFetch, undefined /* service_type_id */, undefined /* vehicle_type */);
+        const serviceTypesData = await getServiceTypes(); // Fetch all service types for name mapping
+        setAllServiceTypes(serviceTypesData);
+
+        // Map service_type_id to service_type_name
+        const itemsWithServiceNames = itemsData.map(item => ({
+          ...item,
+          service_type_name: serviceTypesData.find(st => st.id === item.service_type_id)?.name || item.service_type_id
+        }));        
+        setItems(itemsWithServiceNames);
+      } else {
+        setItems([]); // Clear items if no category is selected
+      }
+    } catch (error) {
+      console.error("Error refreshing pricing items:", error);
+      toast({ title: t('common.error.genericTitle'), description: t('common.error.fetchFailed', { entity: 'pricing items' }), variant: 'destructive' });
+      setItems([]); // Clear items on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getPricingItems, getServiceTypes, selectedCategory, t]);
+
+  // Load categories and initial items
+  useEffect(() => {
+    const loadInitialData = async () => {
       setIsLoading(true);
       try {
-        // Find the selected category object
-        const categoryObj = categories.find(c => c.id === selectedCategory);
-        if (!categoryObj) {
-          setItems([]);
-          return;
-        }
-        
-        // Load items based on the service types in the category, not by category_id
-        // This ensures that we show all items that match the service types for this category
-        const serviceTypesToMatch = categoryObj.service_types || [];
-        
-        if (serviceTypesToMatch.length === 0) {
-          // If no service types, just load by category ID (fallback)
-          const data = await getPricingItems(selectedCategory);
-          setItems(data);
+        const [categoriesData, serviceTypesData] = await Promise.all([
+          getPricingCategories(),
+          getServiceTypes()
+        ]);
+        setCategories(categoriesData);
+        setAllServiceTypes(serviceTypesData);
+        if (categoriesData.length > 0) {
+          const initialCategory = categoriesData[0].id;
+          setSelectedCategory(initialCategory);
+          await refreshItems(initialCategory); 
         } else {
-          // For categories like "Airport Transfers" or "Charter Services",
-          // get items that match ANY of the service types listed
-          let allItems: PricingItem[] = [];
-          
-          // Fetch items for each service type and combine results
-          for (const serviceType of serviceTypesToMatch) {
-            const serviceItems = await getPricingItems(undefined, serviceType);
-            allItems = [...allItems, ...serviceItems];
-          }
-          
-          // Remove duplicates by ID
-          const uniqueItems = allItems.filter((item, index, self) =>
-            index === self.findIndex((t) => t.id === item.id)
-          );
-          
-          setItems(uniqueItems);
+          setItems([]); 
         }
       } catch (error) {
-        console.error("Error loading pricing items:", error);
+        console.error("Error loading initial pricing data:", error);
+        toast({ title: t('common.error.genericTitle'), description: t('common.error.initialLoadFailed', { context: 'pricing setup' }), variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
+    };
+    loadInitialData();
+  }, [getPricingCategories, getServiceTypes, refreshItems]);
+
+  // Effect to reload items when selectedCategory changes
+  useEffect(() => {
+    if (selectedCategory) {
+      refreshItems(selectedCategory);
+    } else {
+      // If no category is selected (e.g., all categories were deleted), clear items
+      setItems([]);
     }
-    
-    loadItems();
-  }, [selectedCategory, categories]);
-  
-  const getServiceTypes = () => {
-    const category = categories.find(c => c.id === selectedCategory);
-    return category?.service_types || [];
+  }, [selectedCategory, refreshItems]);
+
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
   };
-  
-  const getVehicleTypes = () => {
-    return [
-      "Mercedes Benz V Class - Black Suite",
-      "Toyota Alphard Executive Lounge",
-      "Mercedes Benz V class - Extra Long",
-      "Toyota Alphard Z class",
-      "Toyota Alphard S class",
-      "Toyota Hiace GL",
-    ];
-  };
-  
-  const getDurationOptions = () => {
-    return [
-      { value: 1, label: "1 hour" },
-      { value: 4, label: "4 hours" },
-      { value: 6, label: "6 hours" },
-      { value: 8, label: "8 hours" },
-      { value: 10, label: "10 hours" },
-      { value: 12, label: "12 hours" },
-    ];
-  };
-  
-  const handleOpenDialog = (item: PricingItem | null = null) => {
+
+  const handleOpenDialog = (item?: PricingItem) => {
+    const defaultServiceTypeId = allServiceTypes.length > 0 ? allServiceTypes[0].id : undefined;
     if (item) {
       setCurrentItem({ ...item });
       setIsEditing(true);
     } else {
+      // For new item, ensure category_id is set if a category is selected
       setCurrentItem({
         category_id: selectedCategory,
-        service_type: getServiceTypes()[0] || "",
-        vehicle_type: getVehicleTypes()[0] || "",
+        service_type_id: defaultServiceTypeId,
+        vehicle_type: getVehicleTypes()[0] || "", // Assuming getVehicleTypes exists and provides defaults
         duration_hours: 1,
         price: 0,
-        currency: "JPY",
+        currency: 'JPY', // Default currency
         is_active: true,
       });
       setIsEditing(false);
     }
     setIsDialogOpen(true);
   };
-  
+
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setCurrentItem(null);
   };
-  
+
   const handleSaveItem = async () => {
-    // Save item logic would go here
-    console.log("Saving item:", currentItem);
-    
-    // Placeholder - in real implementation, this would call to API
-    if (isEditing && currentItem?.id) {
-      // Update existing item
-      const updatedItems = items.map(item => 
-        item.id === currentItem.id ? { ...item, ...currentItem } : item
-      );
-      setItems(updatedItems);
-    } else if (currentItem) {
-      // Create new item
-      const newItem = {
-        ...currentItem,
-        id: `temp-${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as PricingItem;
-      
-      setItems([...items, newItem]);
+    if (!currentItem) return;
+
+    // Validate that a service_type_id is selected
+    if (!currentItem.service_type_id) {
+      toast({ title: t('common.error.validationError'), description: t('pricing.items.errors.serviceTypeRequired'), variant: 'destructive' });
+      return;
     }
     
-    handleCloseDialog();
+    // Remove service_type_name before sending to API, as it's a client-side property
+    const { service_type_name, ...itemToSave } = currentItem as PricingItem; 
+
+    // Ensure category_id is present, default to selectedCategory if item is new and doesn't have one
+    const payload = {
+      ...itemToSave,
+      category_id: itemToSave.category_id || selectedCategory || null,
+    };
+
+    if (!payload.category_id) {
+        toast({ title: t('common.error.validationError'), description: t('pricing.items.errors.categoryRequired'), variant: 'destructive' });
+        return;
+    }
+
+    try {
+      let success = false;
+      if (isEditing && currentItem.id) {
+        // Ensure 'id' is not in the payload for update, only service function needs it
+        const { id, ...updatePayload } = payload as PricingItem; 
+        if (id) { // Check if id is defined before calling update
+            success = !!(await updatePricingItem(id, updatePayload));
+        }
+      } else {
+        // For create, ensure required fields are present from Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'>
+        const createPayload = payload as Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'>;
+        success = !!(await createPricingItem(createPayload));
+      }
+
+      if (success) {
+        await refreshItems();
+        handleCloseDialog();
+      } else {
+        // Error toast is shown by the service hook
+      }
+    } catch (error) {
+      console.error("Error saving pricing item:", error);
+      // Error toast is typically handled by the hook, but a fallback can be here
+      toast({ title: t('common.error.genericTitle'), description: t('common.error.saveFailed', { entity: 'pricing item' }), variant: 'destructive' });
+    }
   };
-  
-  const handleDeleteItem = (itemId: string) => {
-    // Delete item logic would go here
-    console.log("Deleting item:", itemId);
-    
-    // Placeholder - filter out the deleted item
-    setItems(items.filter(item => item.id !== itemId));
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!itemId) return;
+    try {
+      const success = await deletePricingItem(itemId);
+      if (success) {
+        await refreshItems();
+        toast({ title: t('pricing.items.deleteSuccess') });
+      } else {
+        // Error toast is shown by the service hook
+      }
+    } catch (error) {
+      console.error("Error deleting pricing item:", error);
+      toast({ title: t('common.error.genericTitle'), description: t('common.error.deleteFailed', { entity: 'pricing item' }), variant: 'destructive' });
+    }
   };
-  
-  const handleToggleItemStatus = (itemId: string, isActive: boolean) => {
-    // Toggle item status logic would go here
-    console.log("Toggling item status:", itemId, isActive);
-    
-    // Placeholder - update the item status
-    setItems(items.map(item => 
-      item.id === itemId ? { ...item, is_active: isActive } : item
-    ));
+
+  // Placeholder - actual implementation would call API via useQuotationService
+  const handleToggleItemStatus = async (item: PricingItem) => {
+    if (!item || typeof item.id === 'undefined') return;
+    try {
+        const success = await updatePricingItem(item.id, { is_active: !item.is_active });
+        if (success) {
+            await refreshItems();
+            toast({ title: t('pricing.items.statusUpdateSuccess') });
+        } else {
+           // Error toast handled by hook
+        }
+    } catch (error) {
+        console.error("Error toggling item status:", error);
+        toast({ title: t('common.error.genericTitle'), description: t('common.error.updateFailed', { entity: 'item status' }), variant: 'destructive' });
+    }
   };
-  
+
   const handleInputChange = (field: string, value: any) => {
     if (currentItem) {
       setCurrentItem({
@@ -267,7 +303,7 @@ export default function PricingItemsTab() {
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>{item.service_type}</TableCell>
+                  <TableCell>{item.service_type_name}</TableCell>
                   <TableCell>{item.vehicle_type}</TableCell>
                   <TableCell className="text-center">{item.duration_hours} hour{item.duration_hours !== 1 ? 's' : ''}</TableCell>
                   <TableCell className="text-right font-medium">
@@ -282,7 +318,7 @@ export default function PricingItemsTab() {
                       variant={item.is_active ? "default" : "outline"}
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleToggleItemStatus(item.id, !item.is_active)}
+                      onClick={() => handleToggleItemStatus(item)}
                     >
                       {item.is_active ? (
                         <Check className="h-4 w-4" />
@@ -337,15 +373,15 @@ export default function PricingItemsTab() {
             <div className="grid gap-2">
               <Label htmlFor="service_type">Service Type</Label>
               <Select
-                value={currentItem?.service_type || ""}
-                onValueChange={(value) => handleInputChange("service_type", value)}
+                value={currentItem?.service_type_id || ""}
+                onValueChange={(value) => handleInputChange("service_type_id", value)}
               >
-                <SelectTrigger id="service_type">
+                <SelectTrigger id="service_type_id">
                   <SelectValue placeholder="Select service type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getServiceTypes().map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  {allServiceTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -27,7 +27,8 @@ export interface Quotation {
   merchant_id?: string;
   merchant_notes?: string;
   customer_notes?: string;
-  service_type: string;
+  service_type_id: string;
+  service_type?: string;
   vehicle_category?: string;
   vehicle_type: string;
   pickup_location?: string;
@@ -72,7 +73,7 @@ export interface PricingCategory {
   id: string;
   name: string;
   description?: string | null;
-  service_types: string[];
+  service_type_ids: string[] | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -82,8 +83,9 @@ export interface PricingCategory {
 export interface PricingItem {
   id: string;
   category_id: string | null;
+  service_type_id: string;
+  service_type_name?: string;
   vehicle_type: string;
-  service_type: string;
   duration_hours: number;
   price: number;
   currency: string;
@@ -130,6 +132,7 @@ export interface CreateQuotationInput {
   customer_email: string;
   customer_name?: string;
   customer_phone?: string;
+  customer_id?: string;
   billing_company_name?: string;
   billing_tax_number?: string;
   billing_street_name?: string;
@@ -138,7 +141,7 @@ export interface CreateQuotationInput {
   billing_state?: string;
   billing_postal_code?: string;
   billing_country?: string;
-  service_type: string;
+  service_type_id: string;
   vehicle_category?: string;
   vehicle_type: string;
   pickup_location?: string;
@@ -171,7 +174,7 @@ export interface UpdateQuotationInput {
   billing_state?: string;
   billing_postal_code?: string;
   billing_country?: string;
-  service_type?: string;
+  service_type_id?: string;
   vehicle_category?: string;
   vehicle_type?: string;
   pickup_location?: string;
@@ -199,7 +202,7 @@ export interface QuotationResponse {
   status: QuotationStatus;
   customer_name?: string;
   customer_email: string;
-  service_type: string;
+  service_type_id: string;
   vehicle_type: string;
   amount: number;
   total_amount: number;
@@ -235,7 +238,7 @@ export interface PricingPromotion {
   is_active: boolean;
   usage_limit?: number | null;
   times_used: number;
-  applicable_services: string[];
+  applicable_service_type_ids: string[] | null;
   applicable_vehicle_types: string[];
   created_at: string;
   updated_at: string;
@@ -280,7 +283,7 @@ export interface PricingPackageItem {
   is_optional?: boolean;
   sort_order: number;
   pricing_item_id?: string;
-  service_type?: string;
+  service_type_id?: string | null;
   vehicle_type?: string;
   created_at: string;
   updated_at: string;

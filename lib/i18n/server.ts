@@ -12,7 +12,7 @@ const locales = {
 export const dynamic = 'force-dynamic'
 
 export async function getDictionary() {
-  // In the latest Next.js, cookies() should be awaited
+  // In Next.js, pass cookies directly
   const cookieStore = await cookies()
   const locale = cookieStore.get('NEXT_LOCALE')?.value || 'en'
   
@@ -28,9 +28,8 @@ export async function getDictionary() {
   }
 }
 
-export async function getCookieStore() {
-  const cookieStore = await cookies()
-  return cookieStore
+export function getCookieStore() {
+  return cookies()
 }
 
 export type Locale = keyof typeof locales

@@ -48,6 +48,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
+import { ServiceTypeInfo } from "@/hooks/useQuotationService";
 
 export default function PricingPromotionsTab() {
   const [promotions, setPromotions] = useState<PricingPromotion[]>([]);
@@ -58,8 +59,9 @@ export default function PricingPromotionsTab() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const [expandedPromotionId, setExpandedPromotionId] = useState<string | null>(null);
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   
-  const { getPricingPromotions, getPricingItems, createPricingPromotion, updatePricingPromotion, deletePricingPromotion } = useQuotationService();
+  const { getPricingPromotions, getPricingItems, createPricingPromotion, updatePricingPromotion, deletePricingPromotion, getServiceTypes } = useQuotationService();
   const { t } = useI18n();
   
   // Load promotions on mount
@@ -69,6 +71,10 @@ export default function PricingPromotionsTab() {
       try {
         const data = await getPricingPromotions(false); // false to get inactive ones too
         setPromotions(data);
+
+        const serviceTypesData = await getServiceTypes();
+        setAllServiceTypes(serviceTypesData);
+
       } catch (error) {
         console.error("Error loading promotions:", error);
       } finally {
@@ -105,14 +111,6 @@ export default function PricingPromotionsTab() {
     loadVehicleTypes();
   }, []);
   
-  const getServiceTypes = () => {
-    return [
-      "charter",
-      "airportTransferHaneda",
-      "airportTransferNarita"
-    ];
-  };
-  
   const getVehicleTypes = () => {
     return vehicleTypes.length > 0 ? vehicleTypes : [
       // Fallback if data isn't loaded yet
@@ -131,7 +129,7 @@ export default function PricingPromotionsTab() {
       discount_type: "percentage" as DiscountType,
       discount_value: 0,
       is_active: true,
-      applicable_services: [],
+      applicable_service_type_ids: [],
       applicable_vehicle_types: [],
       times_used: 0
     });
@@ -335,8 +333,8 @@ export default function PricingPromotionsTab() {
     let services = "All services";
     let vehicles = "All vehicles";
     
-    if (promotion.applicable_services && promotion.applicable_services.length > 0) {
-      services = promotion.applicable_services.join(", ");
+    if (promotion.applicable_service_type_ids && promotion.applicable_service_type_ids.length > 0) {
+      services = promotion.applicable_service_type_ids.join(", ");
     }
     
     if (promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0) {
@@ -450,28 +448,28 @@ export default function PricingPromotionsTab() {
               <div className="space-y-2">
                 <Label>Applicable Services</Label>
                 <div className="grid grid-cols-1 gap-2 border rounded-md p-3 max-h-24 overflow-y-auto">
-                  {getServiceTypes().map(service => (
-                    <div key={service} className="flex items-center space-x-2">
+                  {allServiceTypes.map(serviceType => (
+                    <div key={serviceType.id} className="flex items-center space-x-2">
                       <Checkbox 
-                        id={`service-${service}`}
-                        checked={(currentPromotion.applicable_services || []).includes(service)}
+                        id={`service-${serviceType.id}`}
+                        checked={(currentPromotion.applicable_service_type_ids || []).includes(serviceType.id)}
                         onCheckedChange={(checked) => {
-                          const services = [...(currentPromotion.applicable_services || [])];
+                          const currentSelectedIds = [...(currentPromotion.applicable_service_type_ids || [])];
                           if (checked) {
-                            if (!services.includes(service)) {
-                              services.push(service);
+                            if (!currentSelectedIds.includes(serviceType.id)) {
+                              currentSelectedIds.push(serviceType.id);
                             }
                           } else {
-                            const index = services.indexOf(service);
+                            const index = currentSelectedIds.indexOf(serviceType.id);
                             if (index > -1) {
-                              services.splice(index, 1);
+                              currentSelectedIds.splice(index, 1);
                             }
                           }
-                          handleInputChange("applicable_services", services);
+                          handleInputChange("applicable_service_type_ids", currentSelectedIds);
                         }}
                       />
-                      <Label htmlFor={`service-${service}`} className="text-sm cursor-pointer">
-                        {service}
+                      <Label htmlFor={`service-${serviceType.id}`} className="text-sm cursor-pointer">
+                        {serviceType.name}
                       </Label>
                     </div>
                   ))}
@@ -645,12 +643,12 @@ export default function PricingPromotionsTab() {
                         </div>
                         
                         <div>
-                          <h4 className="text-sm font-medium mb-1">Applicable Services</h4>
+                        <h4 className="text-sm font-medium mb-1">Applicable Services</h4>
                           <div className="flex flex-wrap gap-1">
-                            {promotion.applicable_services && promotion.applicable_services.length > 0 ? (
-                              promotion.applicable_services.map(service => (
-                                <Badge key={service} variant="secondary">
-                                  {service}
+                            {promotion.applicable_service_type_ids && promotion.applicable_service_type_ids.length > 0 ? (
+                              promotion.applicable_service_type_ids.map(serviceId => (
+                                <Badge key={serviceId} variant="secondary">
+                                  {serviceId} {/* Display ID for now */}
                                 </Badge>
                               ))
                             ) : (

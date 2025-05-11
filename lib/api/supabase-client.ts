@@ -9,13 +9,8 @@ export const dynamic = "force-dynamic";
  * Creates a typed Supabase client for use in API routes
  */
 export async function createAPIClient() {
-  // In Next.js 15, cookies() returns a ReadonlyRequestCookies directly
-  const cookieStore = cookies();
-  
-  // Create the client with proper cookie handling
-  return createRouteHandlerClient<Database>({ 
-    cookies: () => cookieStore 
-  });
+  // In Next.js 15, pass cookies directly to avoid the "cookies() should be awaited" error
+  return createRouteHandlerClient<Database>({ cookies });
 }
 
 /**
@@ -91,7 +86,6 @@ export async function withErrorHandling<T>(
   }
 }
 
-export async function getCookieStore() {
-  const cookieStore = await cookies();
-  return cookieStore;
+export function getCookieStore() {
+  return cookies();
 } 

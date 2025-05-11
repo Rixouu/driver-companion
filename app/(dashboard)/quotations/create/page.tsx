@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { redirect } from 'next/navigation';
 import { getDictionary } from '@/lib/i18n/server';
 import { PageHeader } from '@/components/page-header';

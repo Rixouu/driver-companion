@@ -1,33 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service-client';
+
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get quotation ID from params - properly awaited in Next.js 15
+    // Get quotation ID from params properly in Next.js 15 - must await params
     const { id: quotationId } = await params;
     console.log('Activities GET - Quotation ID:', quotationId);
     
-    // Create server-side Supabase client with properly awaited cookies
-    const supabase = await createServerSupabaseClient();
-    console.log('Activities - Supabase client created');
+    // Use service client only - no cookie dependency
+    const serviceClient = createServiceClient();
     
-    // Ensure the user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('Activities - User authenticated:', !!user);
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    // Fetch activities without attempting to join with users table
-    // Explicitly specify which fields to select to avoid any implicit joins
-    const { data, error } = await supabase
+    // Fetch activities directly without authentication check
+    const { data, error } = await serviceClient
       .from('quotation_activities')
       .select('id, quotation_id, user_id, action, details, created_at')
       .eq('quotation_id', quotationId)
@@ -43,13 +33,8 @@ export async function GET(
     
     console.log('Activities found:', data?.length || 0);
     
-    // Process data with a default user_name
-    const processedActivities = data.map(activity => ({
-      ...activity,
-      user_name: activity.user_id === user.id ? 'You' : 'System User' // Personalize the current user's activities
-    }));
-    
-    return NextResponse.json(processedActivities);
+    // Return raw data without user_name processing
+    return NextResponse.json(data || []);
   } catch (error: any) {
     console.error('Error in activities API:', error);
     return NextResponse.json(

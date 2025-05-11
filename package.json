@@ -120,7 +120,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.3.3",
     "vaul": "^0.9.6",
-    "vercel": "^41.7.0",
+    "vercel": "^41.7.4",
     "workbox-expiration": "^7.0.0",
     "workbox-precaching": "^7.0.0",
     "workbox-routing": "^7.0.0",

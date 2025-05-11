@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { Database } from '@/types/supabase';
 
+export const dynamic = "force-dynamic"
+
 export async function POST(request: Request) {
   try {
     // Get the admin supabase client

@@ -15,11 +15,11 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const { dictionary } = await getDictionary()
+    const { t } = await getDictionary()
     
     return {
-      title: dictionary?.vehicles?.title || "Vehicles",
-      description: dictionary?.vehicles?.description || "Manage your fleet of vehicles",
+      title: t('vehicles.title') || "Vehicles",
+      description: t('vehicles.description') || "Manage your fleet of vehicles",
     }
   } catch (error) {
     console.error("Error generating metadata:", error)
@@ -40,8 +40,13 @@ export default async function VehiclesPage({
   const supabase = await createServerSupabaseClient();
   const { t } = await getDictionary()
   
-  // Get page from search params
-  const pageParam = searchParams.page ? Number(searchParams.page) : 1
+  // Await searchParams for Next.js 15 dynamic API compliance
+  const params = await searchParams;
+  const pageParam = Array.isArray(params.page)
+    ? Number(params.page[0])
+    : params.page
+      ? Number(params.page)
+      : 1
   const currentPage = !isNaN(pageParam) && pageParam > 0 ? pageParam : 1
   
   const { data: vehicles } = await supabase

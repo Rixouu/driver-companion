@@ -1,11 +1,9 @@
+export const dynamic = "force-dynamic"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { InspectionDetails } from "@/components/inspections/inspection-details"
-
-// Force dynamic rendering to handle cookies properly
-export const dynamic = 'force-dynamic';
 
 interface InspectionDetailsPageProps {
   params: {

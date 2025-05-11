@@ -4,6 +4,9 @@ import { createServiceClient } from '@/lib/supabase/service-client';
 import { Resend } from 'resend';
 import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
 
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
+
 // Helper function to generate email HTML with styling exactly matching send-email
 function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, reason?: string) {
   const isJapanese = language === 'ja';

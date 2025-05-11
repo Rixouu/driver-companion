@@ -1,11 +1,13 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useEffect, useState } from "react"
 import { DateRange } from "react-day-picker"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Download, RotateCcw, FileText, BarChart3, Fuel, Wrench, Clock, Calendar, Filter, ChevronRight, PlusCircle } from "lucide-react"
-import { DateRangePicker } from "@/components/date-range-picker"
+import { CalendarDateRangePicker } from "@/components/date-range-picker"
 import { FuelConsumptionChart } from "@/components/reporting/fuel-consumption-chart"
 import { MaintenanceCostChart } from "@/components/reporting/maintenance-cost-chart"
 import { VehiclePerformance } from "@/components/reporting/vehicle-performance"
@@ -328,10 +330,9 @@ export default function ReportingPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            placeholder={safeT('common.selectDateRange', { defaultValue: 'Select date range' })}
+          <CalendarDateRangePicker
+            date={dateRange}
+            onSelect={setDateRange}
           />
           <Button variant="outline" size="icon" onClick={handleResetDateRange}>
             <RotateCcw className="h-4 w-4" />
@@ -412,7 +413,7 @@ export default function ReportingPage() {
                     <p className="text-muted-foreground">{safeT('common.loading', { defaultValue: 'Loading...' })}</p>
                   </div>
                 ) : costDistribution.length > 0 ? (
-                  <MaintenanceFrequencyChart />
+                  <MaintenanceFrequencyChart dateRange={dateRange || defaultDateRange} />
                 ) : (
                   <p className="text-center py-12 text-muted-foreground">{safeT('reporting.noData', { defaultValue: 'No data available' })}</p>
                 )}

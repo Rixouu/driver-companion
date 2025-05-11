@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     // Make sure to properly await the Supabase client creation

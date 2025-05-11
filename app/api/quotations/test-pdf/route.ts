@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import puppeteer from 'puppeteer';
 
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   console.log('🔍 [TEST PDF API] Starting test PDF generation route');
   

@@ -3,14 +3,18 @@ import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 import { Database } from "@/types/supabase"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
-  const vehicleId = await params.id
+  const awaitedParams = await context.params;
+  const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
 
-  // Initialize Supabase client with direct cookies reference for Next.js 15
-  const supabase = createRouteHandlerClient<Database>({ cookies })
+  // Initialize Supabase client with cookies() (do not await)
+  const cookieStore = cookies();
+  const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
 
   // Verify authentication
   const { data: { session } } = await supabase.auth.getSession()

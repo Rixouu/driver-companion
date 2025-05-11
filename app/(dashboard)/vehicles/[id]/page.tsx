@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
 import { getVehicles } from "@/lib/services/vehicles"
+import type { DbVehicle } from "@/types"
 
 interface VehiclePageProps {
   params: {
@@ -15,13 +16,15 @@ interface VehiclePageProps {
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
   try {
-  const { dictionary } = await getDictionary()
-  const { vehicles } = await getVehicles()
-  const vehicle = vehicles.find(v => v.id === params.id)
-  
-  return {
-      title: vehicle ? `${vehicle.name} - ${dictionary?.vehicles?.title || "Vehicles"}` : (dictionary?.vehicles?.title || "Vehicle Details"),
-      description: dictionary?.vehicles?.description || "View vehicle details",
+    const { t } = await getDictionary()
+    const { vehicles } = await getVehicles()
+    const awaitedParams = await params;
+    const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
+    const vehicle = vehicles.find(v => v.id === vehicleId)
+    
+    return {
+      title: vehicle ? `${vehicle.name} - ${t('vehicles.title') || "Vehicles"}` : (t('vehicles.title') || "Vehicle Details"),
+      description: t('vehicles.description') || "View vehicle details",
     }
   } catch (error) {
     console.error("Error generating metadata:", error)
@@ -35,7 +38,9 @@ export async function generateMetadata({ params }: VehiclePageProps): Promise<Me
 export default async function VehiclePage({ params }: VehiclePageProps) {
   const { t } = await getDictionary()
   const { vehicles } = await getVehicles()
-  const vehicle = vehicles.find(v => v.id === params.id)
+  const awaitedParams = await params;
+  const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
+  const vehicle = vehicles.find(v => v.id === vehicleId)
 
   if (!vehicle) {
     return notFound()
@@ -43,7 +48,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
   return (
     <div className="space-y-6">
-      <VehicleDetails vehicle={vehicle} />
+      <VehicleDetails vehicle={vehicle as DbVehicle} />
     </div>
   )
 } 

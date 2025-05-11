@@ -6,6 +6,8 @@ import PricingItemsTab from "./_components/pricing-items-tab";
 import PricingPromotionsTab from "./_components/pricing-promotions-tab";
 import PricingPackagesTab from "./_components/pricing-packages-tab";
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Pricing Management",
   description: "Manage service pricing, promotions, and packages",

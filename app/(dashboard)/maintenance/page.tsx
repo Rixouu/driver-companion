@@ -5,6 +5,8 @@ import { MaintenancePageContent } from "@/components/maintenance/maintenance-pag
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { MaintenanceTask } from "@/types"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Maintenance",
   description: "Vehicle maintenance management",

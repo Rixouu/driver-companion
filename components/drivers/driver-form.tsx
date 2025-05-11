@@ -38,7 +38,6 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
       line_id: initialData?.line_id || "",
       license_number: initialData?.license_number || "",
       license_expiry: initialData?.license_expiry || "",
-      status: initialData?.status || "available",
       address: initialData?.address || "",
       emergency_contact: initialData?.emergency_contact || "",
       notes: initialData?.notes || "",

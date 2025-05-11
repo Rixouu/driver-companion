@@ -2,15 +2,20 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { Database } from '@/types/supabase'; // Adjusted path
+import { createClient } from '@supabase/supabase-js';
+
+export const dynamic = "force-dynamic";
 
 // This function is async to match the pattern required by Next.js
 export async function createServerSupabaseClient() {
   try {
     console.log('Creating server Supabase client');
     
-    // Create the Supabase client with the recommended pattern for Next.js 14+
+    // Create the Supabase client with the correct pattern for Next.js 15
+    // Do NOT await cookies() - it should be called directly
+    const cookieStore = cookies();
     const client = createServerComponentClient<Database>({ 
-      cookies
+      cookies: () => cookieStore
     });
     
     // Test the client connection with a simple query
@@ -27,4 +32,29 @@ export async function createServerSupabaseClient() {
     console.error('Error creating server Supabase client:', error);
     throw error;
   }
+}
+
+// Function to get the current user without using auth.getUser()
+// This avoids the cookie issue in Next.js 15 by using the client that's already been created
+export async function getCurrentUser(supabase: any) {
+  try {
+    // Since supabase client is already created and passed in with proper cookie handling,
+    // we just need to use it correctly without re-accessing cookies
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return { user: null };
+    }
+    
+    return { user: session.user };
+  } catch (error) {
+    console.error('Error in getCurrentUser:', error);
+    return { user: null };
+  }
+}
+
+// Deprecated - use createServerSupabaseClient instead
+export async function getSupabaseServerClient() {
+  const cookieStore = cookies();
+  return createServerComponentClient<Database>({ cookies: () => cookieStore });
 } 

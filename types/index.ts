@@ -278,7 +278,6 @@ export type DriverFormData = {
   line_id?: string
   license_number?: string
   license_expiry?: string
-  status: 'available' | 'unavailable' | 'leave' | 'training'
   profile_image_url?: string
   address?: string
   emergency_contact?: string
@@ -295,7 +294,6 @@ export interface Driver {
   line_id?: string
   license_number?: string
   license_expiry?: string
-  status: 'available' | 'unavailable' | 'leave' | 'training'
   profile_image_url?: string
   address?: string
   emergency_contact?: string

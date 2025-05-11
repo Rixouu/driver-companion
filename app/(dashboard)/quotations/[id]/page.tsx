@@ -8,6 +8,9 @@ import { QuotationDetails } from './quotation-details';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { Quotation, QuotationItem } from '@/types/quotations';
 
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
+
 // Organization domain for access control
 const ORGANIZATION_DOMAIN = 'japandriver.com';
 

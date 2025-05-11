@@ -15,6 +15,8 @@ export const metadata = {
   description: "Vehicle inspection management",
 }
 
+export const dynamic = "force-dynamic"
+
 export default async function InspectionsPage() {
   // Use the updated Supabase client that properly handles cookies in Next.js
   const supabase = await createServerSupabaseClient()

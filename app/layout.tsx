@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Vehicle inspection app",
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function RootLayout({
   children,
 }: {

@@ -5,6 +5,7 @@ import { QuotationMessage, QuotationActivity } from '@/types/quotations';
 import { QuotationMessageBlock } from '@/components/quotations/quotation-message-block';
 import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
 import { useToast } from '@/components/ui/use-toast';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export function QuotationMessageContainer({ id }: { id: string }) {
   const [messages, setMessages] = useState<QuotationMessage[]>([]);
@@ -50,12 +51,23 @@ export function QuotationMessageContainer({ id }: { id: string }) {
 
   const sendMessage = async (message: string): Promise<boolean> => {
     try {
+      // Get the current user ID from Supabase
+      const supabase = createClientComponentClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const response = await fetch(`/api/quotations/${id}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ 
+          message,
+          userId: user.id
+        }),
       });
       
       if (!response.ok) {

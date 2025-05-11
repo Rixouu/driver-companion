@@ -16,8 +16,11 @@ export const metadata: Metadata = {
   description: "Schedule a new vehicle inspection",
 }
 
+export const dynamic = "force-dynamic"
+
 export default async function ScheduleInspectionPage({ params }: ScheduleInspectionPageProps) {
-  const supabase = createServerComponentClient({ cookies })
+  const cookieStore = cookies()
+  const supabase = createServerComponentClient({ cookies: () => cookieStore })
   
   const { data: vehicle } = await supabase
     .from('vehicles')

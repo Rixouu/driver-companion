@@ -75,13 +75,23 @@ export const useQuotationMessages = (quotationId: string) => {
     setError(null);
     
     try {
+      // Get the current user ID from Supabase auth
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       // Use the API endpoint instead of direct database insert
       const response = await fetch(`/api/quotations/${quotationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: message.trim() }),
+        body: JSON.stringify({ 
+          message: message.trim(),
+          userId: user.id
+        }),
       });
       
       if (!response.ok) {

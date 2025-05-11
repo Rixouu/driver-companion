@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import { NextResponse } from 'next/server';
 
+export const dynamic = "force-dynamic";
+
 /**
  * Creates a typed Supabase client for use in API routes
  */
@@ -87,4 +89,9 @@ export async function withErrorHandling<T>(
       { status: 500 }
     );
   }
+}
+
+export async function getCookieStore() {
+  const cookieStore = await cookies();
+  return cookieStore;
 } 

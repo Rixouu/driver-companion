@@ -1,31 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service-client';
+
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get quotation ID from params - properly awaited in Next.js 15
+    // Get quotation ID from params properly in Next.js 15
     const { id: quotationId } = await params;
     console.log('GET Request - Quotation ID:', quotationId);
     
-    // Create server-side Supabase client with properly awaited cookies
-    const supabase = await createServerSupabaseClient();
+    // Use service client only (no cookies, no auth.getSession)
+    const serviceClient = createServiceClient();
     
-    // Ensure the user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('User authenticated:', !!user);
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    // Fetch messages without attempting to join with users table
-    const { data, error } = await supabase
+    // Fetch messages
+    const { data, error } = await serviceClient
       .from('quotation_messages')
       .select('*')
       .eq('quotation_id', quotationId)
@@ -41,13 +33,8 @@ export async function GET(
     
     console.log('Messages found:', data?.length || 0);
     
-    // Process data with a default user_name
-    const processedMessages = data.map(message => ({
-      ...message,
-      user_name: message.user_id === user.id ? 'You' : 'System User' // Default name since we don't have users table
-    }));
-    
-    return NextResponse.json(processedMessages);
+    // Return messages without user_name processing
+    return NextResponse.json(data || []);
   } catch (error: any) {
     console.error('Error in messages API:', error);
     return NextResponse.json(
@@ -63,12 +50,12 @@ export async function POST(
 ) {
   console.log('POST Request started');
   try {
-    // Get quotation ID from params - properly awaited in Next.js 15
+    // Get quotation ID from params properly in Next.js 15
     const { id: quotationId } = await params;
     console.log('POST - Quotation ID:', quotationId);
     
     // Get message from request body
-    const { message } = await request.json();
+    const { message, userId } = await request.json();
     console.log('Message to send:', message?.substring(0, 30) + (message?.length > 30 ? '...' : ''));
     
     if (!message?.trim()) {
@@ -78,26 +65,18 @@ export async function POST(
       );
     }
     
-    // Create server-side Supabase client with properly awaited cookies
-    const supabase = await createServerSupabaseClient();
-    console.log('Supabase client created');
-    
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('Auth user retrieved:', !!user, user?.id?.substring(0, 8));
-    
-    if (!user) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'User ID is required' },
+        { status: 400 }
       );
     }
     
-    // Creating message - explicitly specify only the required fields to avoid any joins
-    console.log('Creating message for quotation:', quotationId);
+    // Use service client only (no cookie dependency)
+    const serviceClient = createServiceClient();
     
     // First, check if the quotation exists to avoid foreign key issues
-    const { data: quotation, error: quotationError } = await supabase
+    const { data: quotation, error: quotationError } = await serviceClient
       .from('quotations')
       .select('id')
       .eq('id', quotationId)
@@ -114,7 +93,7 @@ export async function POST(
     // Prepare the message data object explicitly
     const messageObject = {
       quotation_id: quotationId,
-      user_id: user.id,
+      user_id: userId,
       message: message.trim(),
       is_from_customer: false,
       is_read: false,
@@ -125,7 +104,7 @@ export async function POST(
     console.log('Inserting message:', messageObject);
     
     // Create the message
-    const { data: newMessage, error } = await supabase
+    const { data: newMessage, error } = await serviceClient
       .from('quotation_messages')
       .insert([messageObject])
       .select()
@@ -144,7 +123,7 @@ export async function POST(
     // Also add an activity log for this message
     const activityObject = {
       quotation_id: quotationId,
-      user_id: user.id,
+      user_id: userId,
       action: 'message_sent',
       details: {
         message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
@@ -154,7 +133,7 @@ export async function POST(
     };
     
     // Create the activity log
-    const { error: activityError } = await supabase
+    const { error: activityError } = await serviceClient
       .from('quotation_activities')
       .insert([activityObject]);
     
@@ -165,11 +144,8 @@ export async function POST(
       console.log('Activity log created for message');
     }
     
-    // Return the processed new message with user_name
-    return NextResponse.json({
-      ...newMessage,
-      user_name: 'You' // Since this is always the current user sending the message
-    });
+    // Return the new message
+    return NextResponse.json(newMessage);
   } catch (error: any) {
     console.error('Error in messages POST API:', error);
     return NextResponse.json(

@@ -32,7 +32,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 // Use any type to avoid type conflicts
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 const ITEMS_PER_PAGE = 6
 
 export default function DriversPage() {

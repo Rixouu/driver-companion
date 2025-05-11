@@ -1034,4 +1034,9 @@ export interface TranslationSchema {
     description: string
   }
   quotations: QuotationsTranslations
+}
+
+// Utility type for deeply nested translation objects
+export type RecursiveStringRecord = {
+  [key: string]: string | RecursiveStringRecord
 } 

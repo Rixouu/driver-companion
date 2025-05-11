@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "New Inspection",
   description: "Create a new vehicle inspection",

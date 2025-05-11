@@ -6,6 +6,8 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { MaintenanceScheduleForm } from "@/components/maintenance/maintenance-schedule-form"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Schedule Maintenance",
   description: "Schedule a new maintenance task",

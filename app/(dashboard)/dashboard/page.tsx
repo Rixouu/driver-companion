@@ -3,6 +3,8 @@ import { getDictionary } from "@/lib/i18n/server"
 import { DashboardContent } from "@/components/dashboard/dashboard-content"
 import { getDashboardData } from "@/app/actions/dashboard"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Dashboard",
   description: "Vehicle fleet management dashboard",

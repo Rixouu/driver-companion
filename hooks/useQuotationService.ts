@@ -675,9 +675,9 @@ export const useQuotationService = () => {
         });
         
       // Show success toast
-      toast({
-        title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-      });
+      // toast({
+      //   title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
+      // });
       
       setLoading(false);
       return true;

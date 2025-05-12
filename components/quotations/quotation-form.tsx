@@ -583,6 +583,13 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
             // Use the sendQuotation function which takes care of updating status and sending email
             await sendQuotation(initialData.id);
             console.log('SUBMIT DEBUG - Sent to customer (Update)');
+            
+            // Show appropriate toast based on mode (edit vs create)
+            toast({
+              title: initialData?.id 
+                ? t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent' 
+                : t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
+            });
           }
         } else {
           // Create new quotation
@@ -641,6 +648,13 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
             // Use the sendQuotation function which takes care of updating status and sending email
             await sendQuotation(result.id);
             console.log('SUBMIT DEBUG - Sent to customer (Create)');
+            
+            // Show appropriate toast based on mode
+            toast({
+              title: initialData?.id 
+                ? t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent' 
+                : t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
+            });
           }
         }
       } catch (apiError) {

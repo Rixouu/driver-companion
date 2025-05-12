@@ -1866,23 +1866,17 @@ export const en: TranslationValue = {
       actions: "Actions"
     },
     notifications: {
-      sendSuccess: "Quotation sent successfully",
-      error: "An error occurred",
       createSuccess: "Quotation created successfully",
       updateSuccess: "Quotation updated successfully",
+      deleteSuccess: "Quotation deleted successfully",
+      error: "Error",
+      sendSuccess: "Your Quotation has been sent",
+      updateAndSendSuccess: "Your Updated Quotation has been sent",
+      partialSuccess: "Partial success",
+      emailFailed: "Email sent but status update failed",
       approveSuccess: "Quotation approved successfully",
       rejectSuccess: "Quotation rejected successfully",
-      reminderSuccess: "Reminder sent successfully",
-      deleteSuccess: "Quotation deleted successfully",
-      deleteConfirmation: "Are you sure you want to delete this quotation?",
-      alreadyApproved: "This quotation is already approved",
-      notApproved: "Only approved quotations can be converted",
-      alreadyConverted: "This quotation is already converted",
-      expired: "This quotation has expired",
-      cannotReject: "This quotation cannot be rejected",
-      convertSuccess: "Quotation converted to booking successfully",
-      emailFailed: "Email could not be sent, but quotation status was updated",
-      partialSuccess: "Partial success"
+      convertSuccess: "Quotation converted to booking successfully"
     },
     messageBlock: {
       title: "Conversation",

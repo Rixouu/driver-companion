@@ -1237,21 +1237,24 @@ export const ja: TranslationValue = {
       actions: "アクション"
     },
     notifications: {
-      error: "エラーが発生しました",
       createSuccess: "見積書が正常に作成されました",
       updateSuccess: "見積書が正常に更新されました",
       deleteSuccess: "見積書が正常に削除されました",
-      sendSuccess: "見積書が正常に送信されました",
+      error: "エラー",
+      sendSuccess: "見積書が送信されました",
+      updateAndSendSuccess: "更新された見積書が送信されました",
+      partialSuccess: "部分的に成功",
+      emailFailed: "メールは送信されましたが、ステータスの更新に失敗しました",
       approveSuccess: "見積書が正常に承認されました",
       rejectSuccess: "見積書が正常に拒否されました",
-      convertSuccess: "見積書が予約に正常に変換されました",
-      alreadyApproved: "この見積書はすでに承認されています",
-      alreadyConverted: "この見積書はすでに変換されています",
-      notApproved: "この見積書は変換前に承認が必要です",
+      convertSuccess: "見積書が正常に予約に変換されました",
+      reminderSuccess: "リマインダーが正常に送信されました",
+      deleteConfirmation: "この見積書を削除してもよろしいですか？",
+      alreadyApproved: "この見積書は既に承認されています",
+      notApproved: "承認された見積書のみ変換できます",
+      alreadyConverted: "この見積書は既に変換されています",
       expired: "この見積書は期限切れです",
-      cannotReject: "この見積書は拒否できません",
-      emailFailed: "メールを送信できませんでしたが、見積書のステータスは更新されました",
-      partialSuccess: "部分的に成功"
+      cannotReject: "この見積書は拒否できません"
     },
     messageBlock: {
       title: "会話",

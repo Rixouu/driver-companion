@@ -102,7 +102,8 @@ export const ja: TranslationValue = {
     // Mobile menu specific translations
     operations: "運営",
     fleet: "フリート",
-    sales: "営業"
+    sales: "営業",
+    pricing: "価格管理"
   },
   drivers: {
     title: "ドライバー",
@@ -434,11 +435,27 @@ export const ja: TranslationValue = {
       settings: "設定",
       quotations: "見積書",
       dispatch: "配車ボード",
-      save: "変更を保存"
+      save: "変更を保存",
+      pricing: "価格管理"
     },
     templates: {
       title: "点検テンプレート",
-      description: "点検フォーム（セクションと項目）の構造を管理します。"
+      description: "点検フォーム（セクションと項目）の構造を管理します。",
+      createSuccess: "テンプレートタイプが正常に作成されました",
+      createError: "テンプレートタイプの作成に失敗しました",
+      nameRequired: "テンプレート名が必要です",
+      slugRequired: "テンプレートスラッグが必要です",
+      invalidSlug: "無効なスラッグ形式です。小文字、数字、ハイフンのみを使用してください",
+      slugExists: "このスラッグは既に存在します。別のものを使用してください",
+      add: "テンプレートタイプを追加",
+      addTemplate: "新しいテンプレートタイプを追加",
+      addTemplateDescription: "新しい点検テンプレートタイプを作成します",
+      templateName: "テンプレート名",
+      templateNamePlaceholder: "英語でテンプレート名を入力",
+      templateNamePlaceholderJa: "テンプレート名を日本語で入力",
+      templateSlug: "テンプレートスラッグ",
+      templateSlugPlaceholder: "URL用の識別子を入力",
+      templateSlugDescription: "小文字、数字、ハイフンのみ使用可能"
     },
     tabs: {
       profile: "プロフィール",
@@ -772,10 +789,36 @@ export const ja: TranslationValue = {
     defaultType: "定期点検",
     groupBy: "グループ化",
     addNew: "上のボタンをクリックして最初の点検を作成してください",
+    noVehicle: "車両が割り当てられていません",
+    dateGroup: {
+      today: "今日",
+      yesterday: "昨日",
+      thisWeek: "今週",
+      thisMonth: "今月",
+      upcoming: "今後",
+      older: "過去",
+      unknown: "不明な日付"
+    },
+    stats: {
+      count: "点検数：{{count}}",
+      vehicleCount: "点検数：{{count}}"
+    },
     groupByOptions: {
       none: "なし",
       date: "日付",
       vehicle: "車両"
+    },
+    type: {
+      routine: "定期点検",
+      safety: "安全点検",
+      maintenance: "メンテナンス",
+      daily: "日次点検",
+      description: {
+        routine: "車両システムの総合点検",
+        safety: "安全に関する重要なコンポーネントの集中点検",
+        maintenance: "詳細な機械システム点検",
+        daily: "必須コンポーネントの迅速な日次点検"
+      }
     },
     steps: {
       selectVehicle: "車両を選択",
@@ -814,15 +857,6 @@ export const ja: TranslationValue = {
       completed: "完了",
       failed: "不合格"
     },
-    type: {
-      routine: "定期点検",
-      safety: "安全点検",
-      maintenance: "メンテナンス点検",
-      description: {
-        routine: "車両システムの総合点検",
-        safety: "安全に関する重要なコンポーネントの集中点検"
-      }
-    },
     fields: {
       date: "日付",
       type: "タイプ",
@@ -847,7 +881,36 @@ export const ja: TranslationValue = {
     },
     dateLabel: "点検日",
     templates: {
-      itemNameLabel: "項目名"
+      itemNameLabel: "項目名",
+      addItem: "項目を追加",
+      deleteSectionConfirm: "このセクションを削除してもよろしいですか？",
+      requiresPhoto: "写真が必要",
+      requiresNotes: "メモが必要",
+      deleteItemConfirm: "この項目を削除してもよろしいですか？",
+      newItemTitle: "新しい点検項目を追加",
+      newItemDescription: "このセクションに新しい項目を追加します",
+      itemNamePlaceholder: "項目名を入力",
+      itemNamePlaceholderJa: "項目名を入力（日本語）",
+      itemDescriptionLabel: "項目の説明",
+      itemDescriptionPlaceholder: "項目の説明を入力",
+      itemDescriptionPlaceholderJa: "項目の説明を入力（日本語）",
+      editSectionTitle: "セクションを編集",
+      editSectionDescription: "セクション情報を更新",
+      sectionNameLabel: "セクション名",
+      sectionDescriptionLabel: "セクションの説明",
+      editItemTitle: "点検項目を編集",
+      editItemDescription: "点検項目の詳細を更新",
+      manageTitle: "テンプレート管理",
+      managerDescription: "{type}点検テンプレートを設定およびカスタマイズします。セクションと項目を追加して点検プロセスを効率化します。",
+      addSection: "セクションを追加",
+      newSectionTitle: "新しいセクションを追加",
+      newSectionDescription: "この点検テンプレートに新しいセクションを作成",
+      sectionNamePlaceholder: "セクション名を入力",
+      sectionNamePlaceholderJa: "セクション名を入力（日本語）",
+      sectionDescriptionPlaceholder: "セクションの説明を入力",
+      sectionDescriptionPlaceholderJa: "セクションの説明を入力（日本語）",
+      noSections: "セクションが見つかりません。セクションを追加してください。",
+      addItemError: "点検項目の追加中にエラーが発生しました"
     },
     details: {
       title: "点検詳細",
@@ -956,9 +1019,18 @@ export const ja: TranslationValue = {
       tires: {
         title: "タイヤ",
         items: {
-          tire_pressure: { title: "タイヤ空気圧", description: "タイヤの空気圧を推奨レベルに確認・調整します。" },
-          tread_depth: { title: "トレッドの深さ", description: "タイヤのトレッドの深さを測定し、十分なグリップがあるか確認します。" },
-          wear_pattern: { title: "摩耗パターン", description: "タイヤの不均一な摩耗パターンを検査します。" }
+          tire_pressure: { 
+            title: "タイヤ空気圧", 
+            description: "タイヤの空気圧を推奨レベルに確認・調整します。" 
+          },
+          tread_depth: { 
+            title: "トレッドの深さ", 
+            description: "タイヤのトレッドの深さを測定し、十分なグリップがあるか確認します。" 
+          },
+          wear_pattern: { 
+            title: "摩耗パターン", 
+            description: "タイヤの不均一な摩耗パターンを検査します。" 
+          }
         }
       },
       engine: {
@@ -1167,9 +1239,12 @@ export const ja: TranslationValue = {
     routine: "定期点検",
     safety: "安全点検",
     maintenance: "メンテナンス",
+    daily: "日次点検",
     description: {
       routine: "車両システムの総合点検",
-      safety: "安全に関する重要なコンポーネントの集中点検"
+      safety: "安全に関する重要なコンポーネントの集中点検",
+      maintenance: "詳細な機械システム点検",
+      daily: "必須コンポーネントの迅速な日次点検"
     }
   },
   googleMapsApiKeyMissing: "Google Maps APIキーが設定されていません",

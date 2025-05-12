@@ -60,7 +60,7 @@ function SafeLink({ href, className, children, onClick }: {
 }
 
 export function MobileNav() {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const { t } = useI18n()
   const [activeGroup, setActiveGroup] = useState('dashboard')
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -144,7 +144,8 @@ export function MobileNav() {
       { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' }
     ],
     sales: [
-      { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' }
+      { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
+      { id: 'pricing', title: t("navigation.pricing"), icon: Tag, href: '/admin/pricing' }
     ],
     operations: [
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },

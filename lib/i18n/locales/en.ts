@@ -510,9 +510,7 @@ export const en: TranslationValue = {
       title: "In Progress Tasks",
       maintenanceTitle: "Maintenance In Progress",
       inspectionsTitle: "Inspections In Progress",
-      noTasks: "No tasks in progress",
-      noMaintenanceTasks: "No maintenance tasks in progress",
-      noInspections: "No inspections in progress"
+      noTasks: "No tasks in progress"
     },
     allVehicles: "All Vehicles",
     status: {
@@ -674,6 +672,19 @@ export const en: TranslationValue = {
     defaultType: "Routine",
     groupBy: "Group by",
     addNew: "Click the button above to create your first inspection",
+    noVehicle: "No vehicle assigned",
+    dateGroup: {
+      today: "Today",
+      yesterday: "Yesterday",
+      thisWeek: "This Week",
+      thisMonth: "This Month",
+      upcoming: "Upcoming",
+      older: "Older"
+    },
+    stats: {
+      count: "{{count}} inspections",
+      vehicleCount: "{{count}} inspections"
+    },
     groupByOptions: {
       none: "None",
       date: "Date",
@@ -720,9 +731,12 @@ export const en: TranslationValue = {
       routine: "Routine",
       safety: "Safety",
       maintenance: "Maintenance",
+      daily: "Daily",
       description: {
         routine: "Comprehensive check of vehicle systems.",
-        safety: "Focused check on safety-critical components."
+        safety: "Focused check on safety-critical components.",
+        maintenance: "Detailed mechanical system inspection.",
+        daily: "Quick daily inspection of essential components."
       }
     },
     fields: {
@@ -736,6 +750,44 @@ export const en: TranslationValue = {
       notesPlaceholder: "Add notes about this item...",
       photos: "Photos",
       photo: "Photo"
+    },
+    sections: {
+      vehicle: "Vehicle Information",
+      inspection: "Inspection Information",
+      summary: "Summary",
+      items: "Inspection Items",
+      steering_system: "Steering System",
+      brake_system: "Brake System",
+      suspension: "Suspension System",
+      lighting: "Lighting System",
+      engine: "Engine",
+      transmission: "Transmission",
+      electrical: "Electrical System",
+      safety_equipment: "Safety Equipment",
+      brake_safety: "Brake Safety",
+      scheduled_maintenance: "Scheduled Maintenance",
+      wear_items: "Wear Items",
+      visibility: "Visibility",
+      restraint_systems: "Restraint Systems",
+      diagnostics: "Diagnostics",
+      other: "Other",
+      tires: {
+        title: "Tires",
+        items: {
+          tire_pressure: { 
+            title: "Tire Pressure", 
+            description: "Check and adjust tire pressure to recommended levels." 
+          },
+          tread_depth: { 
+            title: "Tread Depth", 
+            description: "Measure tire tread depth to ensure sufficient grip." 
+          },
+          wear_pattern: { 
+            title: "Wear Pattern", 
+            description: "Inspect tires for uneven wear patterns." 
+          }
+        }
+      },
     },
     messages: {
       saveSuccess: "Inspection saved successfully",
@@ -760,7 +812,6 @@ export const en: TranslationValue = {
         brake_system: "Brake System",
         suspension: "Suspension System",
         lighting: "Lighting System",
-        tires: "Tires",
         engine: "Engine",
         transmission: "Transmission",
         electrical: "Electrical System",
@@ -771,7 +822,24 @@ export const en: TranslationValue = {
         visibility: "Visibility",
         restraint_systems: "Restraint Systems",
         diagnostics: "Diagnostics",
-        other: "Other"
+        other: "Other",
+        tires: {
+          title: "Tires",
+          items: {
+            tire_pressure: { 
+              title: "Tire Pressure", 
+              description: "Check and adjust tire pressure to recommended levels." 
+            },
+            tread_depth: { 
+              title: "Tread Depth", 
+              description: "Measure tire tread depth to ensure sufficient grip." 
+            },
+            wear_pattern: { 
+              title: "Wear Pattern", 
+              description: "Inspect tires for uneven wear patterns." 
+            }
+          }
+        }
       },
       vehicleInfo: {
         title: "Vehicle Information",
@@ -827,160 +895,36 @@ export const en: TranslationValue = {
     },
     dateLabel: "Inspection Date",
     templates: {
-      itemNameLabel: "Item Name"
-    },
-    notesPlaceholder: "Add notes about this item...",
-    noVehicle: "No Vehicle Assigned",
-    dateGroup: {
-      today: "Today",
-      yesterday: "Yesterday",
-      thisWeek: "This Week",
-      thisMonth: "This Month",
-      upcoming: "Upcoming",
-      older: "Older",
-      unknown: "Unknown Date"
-    },
-    stats: {
-      count: "{{count}} inspections",
-      vehicleCount: "{{count}} inspections"
-    },
-    sections: {
-      lighting: {
-        title: "Lighting System",
-        items: {
-          taillights: { title: "Taillights", description: "Check taillight operation and condition." },
-          turn_indicators: { title: "Turn Indicators", description: "Check turn indicator operation and condition." },
-          headlights: { title: "Headlights", description: "Check headlight operation and condition." },
-          brake_lights: { title: "Brake Lights", description: "Check brake light operation and condition." }
-        }
-      },
-      tires: {
-        title: "Tires",
-        items: {
-          tire_pressure: { title: "Tire Pressure", description: "Check and adjust tire pressure to recommended levels." },
-          tread_depth: { title: "Tread Depth", description: "Measure tire tread depth for sufficient grip." },
-          wear_pattern: { title: "Wear Pattern", description: "Inspect tires for uneven wear patterns." }
-        }
-      },
-      engine: {
-        title: "Engine",
-        items: {
-          oil_level: { title: "Oil Level", description: "Check engine oil level and condition." },
-          coolant_level: { title: "Coolant Level", description: "Check engine coolant level and condition." },
-          drive_belts: { title: "Drive Belts", description: "Inspect drive belts for wear and tension." },
-          fluid_leaks: { title: "Fluid Leakage", description: "Check for any engine fluid leaks." }
-        }
-      },
-      transmission: {
-        title: "Transmission",
-        items: {
-          shifting_operation: { title: "Shifting Operation", description: "Test transmission for smooth shifting." },
-          clutch_operation: { title: "Clutch Operation", description: "Check clutch engagement and operation (if applicable)." }
-        }
-      },
-      electrical: {
-        title: "Electrical System",
-        items: {
-          battery_condition: { title: "Battery Condition", description: "Inspect battery terminals and overall condition." },
-          alternator_output: { title: "Alternator Output", description: "Check alternator charging voltage." },
-          starter_operation: { title: "Starter Operation", description: "Test starter motor operation." }
-        }
-      },
-      safety_equipment: {
-        title: "Safety Equipment",
-        items: {
-          seatbelt_operation: { title: "Seatbelt Operation", description: "Check all seatbelts for proper function and condition." },
-          airbag_system: { title: "Airbag System", description: "Verify airbag warning light status (no active faults)." },
-          wiper_operation: { title: "Wiper Operation", description: "Test windshield wiper and washer fluid operation." },
-          horn_operation: { title: "Horn Operation", description: "Test horn operation." }
-        }
-      },
-      steering_system: {
-        title: "Steering System",
-        items: {
-          power_steering: { title: "Power Steering", description: "Check power steering fluid level and for leaks. Test operation." },
-          steering_column: { title: "Steering Column", description: "Inspect steering column for looseness or play." }
-        }
-      },
-      brake_system: {
-        title: "Brake System",
-        items: {
-          brake_pedal: { title: "Brake Pedal", description: "Check brake pedal feel and travel." },
-          brake_discs: { title: "Brake Discs/Pads", description: "Inspect brake discs and pads for wear." },
-          brake_fluid: { title: "Brake Fluid", description: "Check brake fluid level and condition." }
-        }
-      },
-      suspension: {
-        title: "Suspension System",
-        items: {
-          shock_absorbers: { title: "Shock Absorbers", description: "Inspect shock absorbers for leaks or damage." },
-          springs: { title: "Springs", description: "Inspect suspension springs for damage or sagging." },
-          bushings: { title: "Bushings", description: "Inspect suspension bushings for wear or damage." }
-        }
-      },
-      brake_safety: {
-        title: "Brake Safety",
-        items: {
-          abs_system: { title: "ABS System", description: "Check ABS warning light and system operation." },
-          emergency_brake: { title: "Emergency Brake", description: "Test parking brake for proper operation and holding ability." },
-          brake_lines: { title: "Brake Lines", description: "Inspect brake lines and hoses for leaks, cracks or damage." }
-        }
-      },
-      restraint_systems: {
-        title: "Restraint Systems",
-        items: {
-          seatbelt_condition: { title: "Seatbelt Condition", description: "Inspect all seatbelts for damage or fraying." },
-          airbag_indicators: { title: "Airbag Indicators", description: "Check airbag system indicators for proper operation." },
-          child_locks: { title: "Child Locks", description: "Test rear door child locks for proper function." }
-        }
-      },
-      visibility: {
-        title: "Visibility",
-        items: {
-          windshield_condition: { title: "Windshield Condition", description: "Inspect windshield for cracks or chips." },
-          mirror_condition: { title: "Mirror Condition", description: "Check all mirrors for proper adjustment and condition." },
-          window_operation: { title: "Window Operation", description: "Test all windows for smooth operation." }
-        }
-      },
-      other: {
-        title: "Other",
-        items: {
-          lighting_device: { 
-            title: "Lighting Device", 
-            description: "Check operation of all external lights including license plate light" 
-          },
-          blinkers_hazards: { 
-            title: "Blinkers, Hazards", 
-            description: "Check operation of turn signals and hazard lights" 
-          },
-          brake_lights: { 
-            title: "Brake Lights", 
-            description: "Check brake light activation when pedal is pressed" 
-          },
-          engine_oil: { 
-            title: "Engine Oil", 
-            description: "Check oil level and condition using dipstick" 
-          },
-          brake_fluid_volume: { 
-            title: "Brake Fluid Volume", 
-            description: "Check fluid level in brake fluid reservoir" 
-          },
-          radiator_fluid: { 
-            title: "Radiator Reservoir Tank Fluid Volume", 
-            description: "Check coolant level in reservoir tank" 
-          },
-          liquid_leakage: { 
-            title: "Liquid leakage (under the vehicle)", 
-            description: "Inspect under the vehicle for signs of fluid leaks" 
-          }
-        }
-      },
-      items: {
-        title: "Inspection Items",
-        itemHeader: "Item",
-        statusHeader: "Status",
-        notesHeader: "Notes"
-      }
+      itemNameLabel: "Item Name",
+      addItem: "Add Item",
+      deleteSectionConfirm: "Are you sure you want to delete this section?",
+      requiresPhoto: "Requires Photo",
+      requiresNotes: "Requires Notes",
+      deleteItemConfirm: "Are you sure you want to delete this item?",
+      newItemTitle: "Add New Inspection Item",
+      newItemDescription: "Add a new item to this inspection section",
+      itemNamePlaceholder: "Enter item name",
+      itemNamePlaceholderJa: "項目名を入力（日本語）",
+      itemDescriptionLabel: "Item Description",
+      itemDescriptionPlaceholder: "Enter item description",
+      itemDescriptionPlaceholderJa: "項目の説明を入力（日本語）",
+      editSectionTitle: "Edit Section",
+      editSectionDescription: "Update section information",
+      sectionNameLabel: "Section Name",
+      sectionDescriptionLabel: "Section Description",
+      editItemTitle: "Edit Inspection Item",
+      editItemDescription: "Update inspection item details",
+      manageTitle: "Manage Templates",
+      managerDescription: "Configure and customize your {type} inspection templates. Add sections and items to streamline your inspection process.",
+      addSection: "Add Section",
+      newSectionTitle: "Add New Section",
+      newSectionDescription: "Create a new section for this inspection template",
+      sectionNamePlaceholder: "Enter section name",
+      sectionNamePlaceholderJa: "セクション名を入力（日本語）",
+      sectionDescriptionPlaceholder: "Enter section description",
+      sectionDescriptionPlaceholderJa: "セクションの説明を入力（日本語）",
+      noSections: "No sections found. Add a section to get started.",
+      addItemError: "Error adding inspection item"
     }
   },
   dashboard: {
@@ -1089,6 +1033,23 @@ export const en: TranslationValue = {
         maintenance: "Maintenance In Progress",
         inspections: "Inspections In Progress",
         noTasks: "No tasks in progress"
+      },
+      tires: {
+        title: "Tires",
+        items: {
+          tire_pressure: { 
+            title: "Tire Pressure", 
+            description: "Check and adjust tire pressure to recommended levels." 
+          },
+          tread_depth: { 
+            title: "Tread Depth", 
+            description: "Measure tire tread depth to ensure sufficient grip." 
+          },
+          wear_pattern: { 
+            title: "Wear Pattern", 
+            description: "Inspect tires for uneven wear patterns." 
+          }
+        }
       }
     },
     tabs: {
@@ -1763,11 +1724,27 @@ export const en: TranslationValue = {
       settings: "Settings",
       quotations: "Quotations",
       dispatch: "Dispatch Board",
+      pricing: "Pricing",
       save: "Save Changes"
     },
     templates: {
       title: "Inspection Templates",
-      description: "Manage the structure (sections and items) of your inspection forms."
+      description: "Manage the structure (sections and items) of your inspection forms.",
+      createSuccess: "Template type created successfully",
+      createError: "Failed to create template type",
+      nameRequired: "Template name is required",
+      slugRequired: "Template slug is required",
+      invalidSlug: "Invalid slug format. Use only lowercase letters, numbers, and hyphens",
+      slugExists: "This slug already exists. Please use a different one",
+      add: "Add Template Type",
+      addTemplate: "Add New Template Type",
+      addTemplateDescription: "Create a new inspection template type",
+      templateName: "Template Name",
+      templateNamePlaceholder: "Enter template name in English",
+      templateNamePlaceholderJa: "テンプレート名を日本語で入力",
+      templateSlug: "Template Slug",
+      templateSlugPlaceholder: "Enter URL-friendly identifier",
+      templateSlugDescription: "Lowercase letters, numbers, and hyphens only"
     },
     tabs: {
       profile: "Profile",

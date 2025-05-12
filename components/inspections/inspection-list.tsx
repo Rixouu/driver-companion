@@ -339,6 +339,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     const baseType = type.toLowerCase().includes('routine') ? 'routine'
                    : type.toLowerCase().includes('safety') ? 'safety'
                    : type.toLowerCase().includes('maintenance') ? 'maintenance'
+                   : type.toLowerCase().includes('daily') ? 'daily'
                    : 'unspecified';
     return baseType;
   }

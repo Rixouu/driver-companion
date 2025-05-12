@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Wrench as WrenchIcon, // Alias Wrench to avoid naming conflict
   Calendar,
+  Plus,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InspectionTemplateManager } from "@/components/inspections"
@@ -66,10 +67,23 @@ import { useToast } from "@/hooks/use-toast"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog"
+import {
+  Save,
+} from "lucide-react"
 
 export default function SettingsPage() {
   const [session, setSession] = useState<Session | null>(null)
-  const { t, language, setLanguage } = useI18n()
+  const { t, locale, setLanguage } = useI18n()
   const [activeTab, setActiveTab] = useState('account')
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
@@ -82,6 +96,16 @@ export default function SettingsPage() {
     settings: { desktop: true, mobile: true }
   })
   const [isSaving, setIsSaving] = useState(false)
+  const { toast } = useToast()
+  
+  // State for new template type
+  const [newTemplateNameEn, setNewTemplateNameEn] = useState("")
+  const [newTemplateNameJa, setNewTemplateNameJa] = useState("")
+  const [newTemplateSlug, setNewTemplateSlug] = useState("")
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
+  const [isNewTemplateDialogOpen, setIsNewTemplateDialogOpen] = useState(false)
+  const [customTemplateTypes, setCustomTemplateTypes] = useState<Array<{slug: string, name: Record<string, string>}>>([])
+  const [activeTemplateTab, setActiveTemplateTab] = useState("routine")
 
   // Define tab options for both mobile select and desktop tabs
   const tabOptions = [
@@ -179,6 +203,124 @@ export default function SettingsPage() {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   }
+  
+  // Handle template tab change
+  const handleTemplateTabChange = (value: string) => {
+    setActiveTemplateTab(value);
+  }
+  
+  // Handle creating a new template type
+  const handleCreateTemplateSubmit = async () => {
+    // Validate inputs
+    if (!newTemplateNameEn.trim() && !newTemplateNameJa.trim()) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.templates.nameRequired"),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!newTemplateSlug.trim()) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.templates.slugRequired"),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if slug follows pattern: lowercase letters, numbers, and hyphens only
+    const slugPattern = /^[a-z0-9-]+$/;
+    if (!slugPattern.test(newTemplateSlug)) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.templates.invalidSlug"),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check for duplicate slug
+    if (customTemplateTypes.some(template => template.slug === newTemplateSlug) ||
+        ["routine", "safety", "maintenance"].includes(newTemplateSlug)) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.templates.slugExists"),
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSavingTemplate(true);
+    
+    try {
+      // Create translations object
+      const nameTranslations: Record<string, string> = {};
+      if (newTemplateNameEn.trim()) nameTranslations.en = newTemplateNameEn.trim();
+      if (newTemplateNameJa.trim()) nameTranslations.ja = newTemplateNameJa.trim();
+      
+      // In a real app, we would make an API call to create the template type
+      // For now, we'll just add it to local state
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Add to custom template types
+      const newTemplateType = {
+        slug: newTemplateSlug,
+        name: nameTranslations
+      };
+      
+      setCustomTemplateTypes(prev => [...prev, newTemplateType]);
+      
+      // Save to localStorage for persistence
+      const existingTypes = JSON.parse(localStorage.getItem('customTemplateTypes') || '[]');
+      localStorage.setItem('customTemplateTypes', JSON.stringify([...existingTypes, newTemplateType]));
+      
+      // Show success toast
+      toast({
+        title: t("common.success"),
+        description: t("settings.templates.createSuccess")
+      });
+      
+      // Reset form and close dialog
+      setNewTemplateNameEn("");
+      setNewTemplateNameJa("");
+      setNewTemplateSlug("");
+      setIsNewTemplateDialogOpen(false);
+      
+      // Set the active tab to the new template
+      setActiveTemplateTab(newTemplateSlug);
+    } catch (error) {
+      console.error("Error creating template type:", error);
+      toast({
+        title: t("common.error"),
+        description: t("settings.templates.createError"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+  
+  // Load custom template types from localStorage on mount
+  useEffect(() => {
+    const loadCustomTemplateTypes = () => {
+      try {
+        const savedTypes = localStorage.getItem('customTemplateTypes');
+        if (savedTypes) {
+          setCustomTemplateTypes(JSON.parse(savedTypes));
+        }
+      } catch (error) {
+        console.error("Error loading custom template types:", error);
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      loadCustomTemplateTypes();
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -402,17 +544,10 @@ export default function SettingsPage() {
             <CardContent className="px-8 sm:px-10 pb-8">
               <div className="space-y-6">
                 {/* Responsive Template Tabs - Works for both mobile and desktop */}
-                <Tabs defaultValue="routine" className="w-full">
+                <Tabs value={activeTemplateTab} onValueChange={handleTemplateTabChange} className="w-full">
                   {/* Mobile template selector */}
                   <div className="sm:hidden mb-4">
-                    <Select defaultValue="routine" onValueChange={(value) => {
-                      // Set the tab value programmatically by finding the TabsList element
-                      const tabsList = document.querySelector('[role="tablist"]') as HTMLElement;
-                      if (tabsList) {
-                        const tab = tabsList.querySelector(`[data-value="${value}"]`) as HTMLElement;
-                        tab?.click();
-                      }
-                    }}>
+                    <Select value={activeTemplateTab} onValueChange={handleTemplateTabChange}>
                       <SelectTrigger className="w-full py-3">
                         <SelectValue placeholder={t("common.type") || "Select template type"} />
                       </SelectTrigger>
@@ -435,25 +570,122 @@ export default function SettingsPage() {
                             <span>{t("inspections.type.maintenance")}</span>
                           </div>
                         </SelectItem>
+                        {customTemplateTypes.map(template => (
+                          <SelectItem key={template.slug} value={template.slug}>
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span>{template.name[locale] || template.name.en || template.slug}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   
                   {/* TabsList - Hidden on mobile, visible on desktop */}
-                  <TabsList className="hidden sm:flex w-full mb-4">
-                    <TabsTrigger value="routine" className="flex-1 py-3" data-value="routine">
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>{t("inspections.type.routine")}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="safety" className="flex-1 py-3" data-value="safety">
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                      <span>{t("inspections.type.safety")}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="maintenance" className="flex-1 py-3" data-value="maintenance">
-                      <WrenchIcon className="mr-2 h-4 w-4" />
-                      <span>{t("inspections.type.maintenance")}</span>
-                    </TabsTrigger>
-                  </TabsList>
+                  <div className="hidden sm:flex w-full mb-4 items-center">
+                    <TabsList className="flex-grow">
+                      <TabsTrigger value="routine" className="flex-1 py-3">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>{t("inspections.type.routine")}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="safety" className="flex-1 py-3">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        <span>{t("inspections.type.safety")}</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="maintenance" className="flex-1 py-3">
+                        <WrenchIcon className="mr-2 h-4 w-4" />
+                        <span>{t("inspections.type.maintenance")}</span>
+                      </TabsTrigger>
+                      {customTemplateTypes.map(template => (
+                        <TabsTrigger key={template.slug} value={template.slug} className="flex-1 py-3">
+                          <FileText className="mr-2 h-4 w-4" />
+                          <span>{template.name[locale] || template.name.en || template.slug}</span>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    
+                    {/* Add new template type button */}
+                    <Dialog open={isNewTemplateDialogOpen} onOpenChange={setIsNewTemplateDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="ml-2 h-10 w-10" title={t("settings.templates.add")}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+                        <DialogHeader>
+                          <DialogTitle>{t("settings.templates.addTemplate")}</DialogTitle>
+                          <DialogDescription>
+                            {t("settings.templates.addTemplateDescription")}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <Label htmlFor="template-name-en" className="col-span-12 xs:col-span-4 xs:text-right">
+                              {t("settings.templates.templateName")} (EN)
+                            </Label>
+                            <Input 
+                              id="template-name-en" 
+                              value={newTemplateNameEn}
+                              onChange={(e) => setNewTemplateNameEn(e.target.value)}
+                              className="col-span-12 xs:col-span-8" 
+                              placeholder={t("settings.templates.templateNamePlaceholder")} 
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <Label htmlFor="template-name-ja" className="col-span-12 xs:col-span-4 xs:text-right">
+                              {t("settings.templates.templateName")} (JA)
+                            </Label>
+                            <Input 
+                              id="template-name-ja" 
+                              value={newTemplateNameJa}
+                              onChange={(e) => setNewTemplateNameJa(e.target.value)}
+                              className="col-span-12 xs:col-span-8" 
+                              placeholder={t("settings.templates.templateNamePlaceholderJa")} 
+                            />
+                          </div>
+                          <div className="grid grid-cols-12 items-center gap-2">
+                            <Label htmlFor="template-slug" className="col-span-12 xs:col-span-4 xs:text-right">
+                              {t("settings.templates.templateSlug")}
+                            </Label>
+                            <Input 
+                              id="template-slug" 
+                              value={newTemplateSlug}
+                              onChange={(e) => setNewTemplateSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                              className="col-span-12 xs:col-span-8" 
+                              placeholder={t("settings.templates.templateSlugPlaceholder")} 
+                            />
+                            <p className="col-span-12 xs:col-start-5 xs:col-span-8 text-sm text-muted-foreground">
+                              {t("settings.templates.templateSlugDescription")}
+                            </p>
+                          </div>
+                        </div>
+                        <DialogFooter className="flex-col xs:flex-row gap-2">
+                          <DialogClose asChild>
+                            <Button type="button" variant="outline" className="w-full xs:w-auto">{t("common.cancel")}</Button>
+                          </DialogClose>
+                          <Button 
+                            type="button" 
+                            className="w-full xs:w-auto"
+                            onClick={handleCreateTemplateSubmit}
+                            disabled={isSavingTemplate}
+                          >
+                            {isSavingTemplate ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                {t("common.saving")}
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-2 h-4 w-4" />
+                                {t("common.save")}
+                              </>
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   
                   {/* Tab contents - Used for both mobile and desktop */}
                   <TabsContent value="routine" className="mt-0">
@@ -483,6 +715,19 @@ export default function SettingsPage() {
                     </div>
                     <InspectionTemplateManager type="maintenance" />
                   </TabsContent>
+                  
+                  {/* Dynamic tabs for custom template types */}
+                  {customTemplateTypes.map(template => (
+                    <TabsContent key={template.slug} value={template.slug} className="mt-0">
+                      <div className="sm:hidden py-2 px-3 mb-4 border rounded-md bg-muted/30">
+                        <h3 className="text-sm font-medium flex items-center">
+                          <FileText className="mr-2 h-4 w-4" />
+                          {template.name[locale] || template.name.en || template.slug}
+                        </h3>
+                      </div>
+                      <InspectionTemplateManager type={template.slug as any} />
+                    </TabsContent>
+                  ))}
                 </Tabs>
               </div>
             </CardContent>

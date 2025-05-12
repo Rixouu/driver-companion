@@ -63,6 +63,15 @@ export function InspectionTypeSelector({
                   <span className="text-sm font-medium">{t('inspections.type.maintenance')}</span>
                 </Label>
               </div>
+              <div>
+                <RadioGroupItem value="daily" id="daily" className="peer sr-only" />
+                <Label
+                  htmlFor="daily"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <span className="text-sm font-medium">{t('inspections.type.daily')}</span>
+                </Label>
+              </div>
             </RadioGroup>
           </FormControl>
         </FormItem>

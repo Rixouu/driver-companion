@@ -3,6 +3,9 @@
 import { useI18n } from '@/lib/i18n/context';
 import { CreditCard, Globe } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { QuotationItem } from '@/types/quotations';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface PriceDetailsProps {
   amount: number | string;
@@ -19,6 +22,7 @@ interface PriceDetailsProps {
   calculateDiscountAmount: (amount: number | string, discountPercentage: number) => number;
   calculateSubtotalAmount: (amount: number | string, discountPercentage: number) => number;
   calculateTaxAmount: (subtotalAmount: number | string, taxPercentage: number) => number;
+  quotation_items?: QuotationItem[];
 }
 
 export function PriceDetails({
@@ -35,9 +39,17 @@ export function PriceDetails({
   formatCurrency,
   calculateDiscountAmount,
   calculateSubtotalAmount,
-  calculateTaxAmount
+  calculateTaxAmount,
+  quotation_items = []
 }: PriceDetailsProps) {
   const { t } = useI18n();
+  
+  console.log('[PRICE DETAILS] Rendering with items:', quotation_items?.length || 0);
+  if (quotation_items && quotation_items.length > 0) {
+    console.log('[PRICE DETAILS] First item:', quotation_items[0]);
+  }
+  
+  const hasMultipleItems = quotation_items && quotation_items.length > 0;
   
   return (
     <div data-price-details>
@@ -68,43 +80,84 @@ export function PriceDetails({
       </div>
       
       <div className="rounded-md bg-muted/30 border p-4 space-y-3">
-        {/* Headers */}
         <div className="flex justify-between font-medium mb-2">
           <div>Description</div>
           <div>Price</div>
         </div>
         
-        {/* Vehicle Type */}
-        <div className="flex justify-between">
-          <div className="text-sm">
-            {vehicle_type}
-          </div>
-          <div></div>
-        </div>
-        
-        {/* Hourly Rate */}
-        <div className="flex justify-between">
-          <div className="text-sm">
-            Hourly Rate ({hours_per_day || duration_hours || 8} hours / day)
-          </div>
-          <div className="font-medium">
-            {formatCurrency(typeof amount === 'string' ? parseFloat(amount) / service_days : amount / service_days)}
-          </div>
-        </div>
-        
-        {/* Number of Days */}
-        {service_days > 1 && (
-          <div className="flex justify-between">
-            <div className="text-sm text-muted-foreground">
-              Number of Days
+        {hasMultipleItems ? (
+          <>
+            {quotation_items.map((item, index) => (
+              <div key={item.id || index} className={`flex justify-between py-2 px-2 mb-2 ${index !== quotation_items.length - 1 ? 'border-b' : ''} rounded-sm hover:bg-muted/20 transition-colors`}>
+                <div className="text-sm flex-1 pr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={cn(
+                      "text-xs py-0.5 px-1.5 rounded-sm font-medium",
+                      item.service_type_name?.toLowerCase().includes('charter') 
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" 
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                    )}>
+                      {item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
+                    </div>
+                    <span className="font-medium">{item.description}</span>
+                  </div>
+                  
+                  {item.is_service_item && (
+                    <div className="text-xs text-muted-foreground mt-1 grid grid-cols-[70px_1fr] gap-y-1">
+                      <span>Vehicle:</span>
+                      <span>{item.vehicle_type}</span>
+                      
+                      {item.service_type_name?.toLowerCase().includes('charter') ? (
+                        <>
+                          <span>Service:</span>
+                          <span>{item.service_days || 1} day(s) × {item.hours_per_day || 1} hour(s)/day</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Service:</span>
+                          <span>{item.duration_hours || 1} hour(s)</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="font-medium text-right">
+                  {formatCurrency(item.total_price || item.unit_price)}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between">
+              <div className="text-sm grid grid-cols-[100px_1fr]">
+                <span>Vehicle:</span>
+                <span>{vehicle_type}</span>
+              </div>
             </div>
-            <div>
-              × {service_days}
+            
+            <div className="flex justify-between">
+              <div className="text-sm">
+                Hourly Rate ({hours_per_day || duration_hours || 8} hours / day)
+              </div>
+              <div className="font-medium">
+                {formatCurrency(typeof amount === 'string' ? parseFloat(amount) / service_days : amount / service_days)}
+              </div>
             </div>
-          </div>
+            
+            {service_days > 1 && (
+              <div className="flex justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Number of Days
+                </div>
+                <div>
+                  × {service_days}
+                </div>
+              </div>
+            )}
+          </>
         )}
         
-        {/* Base Amount */}
         <div className="flex justify-between pt-2 border-t">
           <div className="font-medium">
             Base Amount
@@ -114,7 +167,6 @@ export function PriceDetails({
           </div>
         </div>
         
-        {/* Discount if available */}
         {Number(discount_percentage) > 0 && (
           <div className="flex justify-between text-red-500">
             <div>
@@ -126,7 +178,6 @@ export function PriceDetails({
           </div>
         )}
         
-        {/* Subtotal if we have discount or tax */}
         {(Number(discount_percentage) > 0 || Number(tax_percentage) > 0) && (
           <div className="flex justify-between pt-2 border-t">
             <div className="font-medium">
@@ -138,7 +189,6 @@ export function PriceDetails({
           </div>
         )}
         
-        {/* Tax if available */}
         {Number(tax_percentage) > 0 && (
           <div className="flex justify-between text-muted-foreground">
             <div>
@@ -153,12 +203,11 @@ export function PriceDetails({
           </div>
         )}
         
-        {/* Total Amount */}
-        <div className="flex justify-between pt-2 border-t">
-          <div className="font-semibold">
+        <div className="flex justify-between font-semibold pt-2 border-t">
+          <div>
             Total Amount
           </div>
-          <div className="font-semibold">
+          <div>
             {formatCurrency(total_amount)}
           </div>
         </div>

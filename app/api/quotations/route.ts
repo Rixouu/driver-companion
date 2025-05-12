@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const requestData = await request.json();
     
     // Ensure required fields are present
-    if (!requestData.title || !requestData.customer_email || !requestData.service_type || !requestData.vehicle_type) {
+    if (!requestData.title || !requestData.customer_email || !requestData.vehicle_type) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -97,6 +97,14 @@ export async function POST(request: NextRequest) {
     // Calculate the expiry date (48 hours from now if not provided)
     if (!requestData.expiry_date) {
       requestData.expiry_date = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    }
+    
+    // Validate service_type_id - remove if empty or invalid format
+    if (!requestData.service_type_id || requestData.service_type_id === '' || requestData.service_type_id === 'default-service-type') {
+      // Remove invalid service_type_id
+      delete requestData.service_type_id;
+      // Set a default service_type if needed for UI display
+      requestData.service_type = requestData.service_type || 'General Service';
     }
     
     // Insert the quotation

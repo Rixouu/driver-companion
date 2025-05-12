@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { InspectionDetails } from "@/components/inspections/inspection-details"
 
 interface InspectionDetailsPageProps {
@@ -30,16 +29,11 @@ export const metadata: Metadata = {
 
 export default async function InspectionDetailsPage({ params }: InspectionDetailsPageProps) {
   try {
-    // Create the supabase client
-    const cookieStore = cookies()
-    const supabase = createServerComponentClient({ 
-      cookies: () => cookieStore 
-    })
-    
     // Access the id parameter correctly
     const id = params.id
     
     // Fetch the inspection with vehicle details
+    const supabase = await createServerSupabaseClient()
     const { data: inspection, error } = await supabase
       .from('inspections')
       .select('*, vehicle:vehicle_id(*)')

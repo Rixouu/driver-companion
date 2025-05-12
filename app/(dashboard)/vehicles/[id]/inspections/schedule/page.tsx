@@ -1,7 +1,6 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { ScheduleInspectionForm } from "@/components/inspections/schedule-inspection-form"
 import { ScheduleInspectionContent } from "./content"
 
@@ -19,8 +18,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic"
 
 export default async function ScheduleInspectionPage({ params }: ScheduleInspectionPageProps) {
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const supabase = await createServerSupabaseClient()
   
   const { data: vehicle } = await supabase
     .from('vehicles')

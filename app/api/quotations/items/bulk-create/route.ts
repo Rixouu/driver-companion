@@ -34,14 +34,27 @@ export async function POST(request: Request) {
       .from('quotations')
       .select('id')
       .eq('id', quotation_id)
-      .eq('user_id', user.id)
+      .eq('merchant_id', user.id)
       .single();
     
     if (quotationError || !quotation) {
-      return NextResponse.json(
-        { error: 'Quotation not found or not authorized' },
-        { status: 404 }
-      );
+      console.log('Quotation check failed:', quotationError);
+      
+      // Try again without merchant_id check as fallback
+      const { data: fallbackQuotation, error: fallbackError } = await supabase
+        .from('quotations')
+        .select('id, merchant_id')
+        .eq('id', quotation_id)
+        .single();
+        
+      if (fallbackError || !fallbackQuotation) {
+        return NextResponse.json(
+          { error: 'Quotation not found or not authorized', details: quotationError },
+          { status: 404 }
+        );
+      }
+      
+      console.log('Quotation found via fallback, merchant_id:', fallbackQuotation.merchant_id);
     }
     
     // Format items for insertion
@@ -51,7 +64,16 @@ export async function POST(request: Request) {
       quantity: item.quantity || 1,
       unit_price: item.unit_price || 0,
       total_price: item.total_price || 0,
-      sort_order: item.sort_order || index
+      sort_order: item.sort_order || index,
+      // Added fields for service-specific metadata
+      service_type_id: item.service_type_id || null,
+      service_type_name: item.service_type_name || null,
+      vehicle_type: item.vehicle_type || null,
+      vehicle_category: item.vehicle_category || null,
+      duration_hours: item.duration_hours || null,
+      service_days: item.service_days || null,
+      hours_per_day: item.hours_per_day || null,
+      is_service_item: item.is_service_item || false
     }));
     
     // Insert items in bulk

@@ -237,8 +237,45 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     };
     
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    
+    // Load debug script
+    const loadDebugScript = () => {
+      const script = document.createElement('script');
+      script.src = '/js/debug-quotation.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('[QUOTATION DEBUG] Debug script loaded.');
+        console.log('[QUOTATION DEBUG] Call debugQuotation("' + quotation.id + '") to analyze this quotation.');
+        
+        // Add detailed logging for quotation items
+        console.log('[QUOTATION ITEMS DEBUG] Quotation ID:', quotation.id);
+        console.log('[QUOTATION ITEMS DEBUG] Items count:', quotation.quotation_items?.length || 0);
+        console.log('[QUOTATION ITEMS DEBUG] Full items array:', JSON.stringify(quotation.quotation_items, null, 2));
+        
+        // Log individual items for easier debugging
+        if (quotation.quotation_items && quotation.quotation_items.length > 0) {
+          console.log('[QUOTATION ITEMS DEBUG] First few items:');
+          quotation.quotation_items.slice(0, 3).forEach((item, index) => {
+            console.log(`[QUOTATION ITEMS DEBUG] Item ${index + 1}:`, item);
+          });
+        } else {
+          console.log('[QUOTATION ITEMS DEBUG] No items found in quotation');
+        }
+      };
+      document.body.appendChild(script);
+    };
+    
+    loadDebugScript();
+    
+    return () => { 
+      window.removeEventListener('scroll', handleScroll);
+      // Remove debug script if needed
+      const debugScript = document.querySelector('script[src="/js/debug-quotation.js"]');
+      if (debugScript) {
+        document.body.removeChild(debugScript);
+      }
+    };
+  }, [quotation.id]);
 
   // Handler for currency change that updates the database
   const handleCurrencyChange = async (newCurrency: string) => {
@@ -384,93 +421,166 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <h2 className="text-xl font-semibold">{t('quotations.details.serviceInfo')}</h2>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                      {t('quotations.details.serviceDetails')}
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex flex-col space-y-1">
-                        <span className="text-sm text-muted-foreground">{t('quotations.details.serviceType')}</span>
-                        <span className="font-medium">
-                          {quotation.service_type || 'Charter Services (Hourly)'}
-                        </span>
+                {quotation.quotation_items && quotation.quotation_items.length > 0 ? (
+                  <div className="space-y-6">
+                    {quotation.quotation_items.length === 1 ? (
+                      // Single service display
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                            {t('quotations.details.serviceDetails')}
+                          </h3>
+                          <div className="grid grid-cols-[120px_1fr] gap-2">
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.serviceType')}</span>
+                            <span className="font-medium">
+                              {quotation.quotation_items[0].service_type_name || quotation.service_type || 'N/A'}
+                            </span>
+                            
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.vehicleType')}</span>
+                            <span className="font-medium">
+                              {quotation.quotation_items[0].vehicle_type || quotation.vehicle_type || 'N/A'}
+                            </span>
+                            
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.duration')}</span>
+                            <span className="font-medium">
+                              {quotation.quotation_items[0].hours_per_day || quotation.quotation_items[0].duration_hours || 1} {t('quotations.details.hours')}
+                              {' × '}
+                              {quotation.quotation_items[0].service_days || 1} {t('quotations.details.days')}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                            {t('quotations.details.schedule')}
+                          </h3>
+                          <div className="grid grid-cols-[120px_1fr] gap-2">
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.pickupDate')}</span>
+                            <span className="font-medium">
+                              {quotation.pickup_date ? format(parseISO(quotation.pickup_date), 'yyyy-MM-dd') : 'N/A'}
+                            </span>
+                            
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.pickupTime')}</span>
+                            <span className="font-medium">
+                              {quotation.pickup_time || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      
-                      <div className="flex flex-col space-y-1">
-                        <span className="text-sm text-muted-foreground">{t('quotations.details.vehicleType')}</span>
-                        <span className="font-medium">
-                          {quotation.vehicle_type || 'Mercedes Benz V Class'}
-                        </span>
+                    ) : (
+                      // Multiple services display
+                      <div>
+                        {quotation.quotation_items.map((item, index) => (
+                          <div key={item.id || index} className="border rounded-md p-4 mb-4 bg-muted/10">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className={cn(
+                                "text-xs py-0.5 px-1.5 rounded-sm font-medium",
+                                item.service_type_name?.toLowerCase().includes('charter') 
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" 
+                                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                              )}>
+                                {item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
+                              </div>
+                              <h3 className="font-semibold text-base">{item.description}</h3>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                              <div>
+                                <div className="flex gap-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[120px]">{t('quotations.details.vehicleType')}:</span>
+                                  <span className="text-sm">{item.vehicle_type || 'N/A'}</span>
+                                </div>
+                                
+                                <div className="flex gap-2 mt-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[120px]">{t('quotations.details.duration')}:</span>
+                                  <span className="text-sm">
+                                    {item.service_type_name?.toLowerCase().includes('charter')
+                                      ? `${item.service_days || 1} ${t('quotations.details.days')} × ${item.hours_per_day || 8} ${t('quotations.details.hoursPerDay')}`
+                                      : `${item.duration_hours || 1} ${t('quotations.details.hours')}`
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <div className="flex gap-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[120px]">{t('quotations.details.pickupDate')}:</span>
+                                  <span className="text-sm">
+                                    {item.pickup_date 
+                                      ? format(parseISO(item.pickup_date), 'yyyy-MM-dd') 
+                                      : quotation.pickup_date 
+                                        ? format(parseISO(quotation.pickup_date), 'yyyy-MM-dd') 
+                                        : 'N/A'}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex gap-2 mt-2">
+                                  <span className="text-sm font-medium text-muted-foreground min-w-[120px]">{t('quotations.details.pickupTime')}:</span>
+                                  <span className="text-sm">
+                                    {item.pickup_time || quotation.pickup_time || 'N/A'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      
-                      {(quotation.duration_hours || quotation.service_days) && (
+                    )}
+                  </div>
+                ) : (
+                  // Fallback display if no items (legacy format)
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        {t('quotations.details.serviceDetails')}
+                      </h3>
+                      <div className="space-y-3">
                         <div className="flex flex-col space-y-1">
-                          <span className="text-sm text-muted-foreground">{t('quotations.details.duration')}</span>
+                          <span className="text-sm text-muted-foreground">{t('quotations.details.serviceType')}</span>
                           <span className="font-medium">
-                            {quotation.duration_hours && `${quotation.duration_hours} ${t('quotations.details.hours')}`}
-                            {quotation.duration_hours && quotation.service_days && ' × '}
-                            {quotation.service_days && `${quotation.service_days} ${t('quotations.details.days')}`}
+                            {quotation.service_type || 'Charter Services (Hourly)'}
                           </span>
                         </div>
-                      )}
-                      
-                      {quotation.passenger_count && (
+                        
                         <div className="flex flex-col space-y-1">
-                          <span className="text-sm text-muted-foreground">{t('quotations.details.passengers')}</span>
-                          <span className="font-medium">{quotation.passenger_count}</span>
+                          <span className="text-sm text-muted-foreground">{t('quotations.details.vehicleType')}</span>
+                          <span className="font-medium">
+                            {quotation.vehicle_type || 'Mercedes Benz V Class'}
+                          </span>
                         </div>
-                      )}
+                        
+                        {(quotation.duration_hours || quotation.service_days) && (
+                          <div className="flex flex-col space-y-1">
+                            <span className="text-sm text-muted-foreground">{t('quotations.details.duration')}</span>
+                            <span className="font-medium">
+                              {quotation.duration_hours && `${quotation.duration_hours} ${t('quotations.details.hours')}`}
+                              {quotation.duration_hours && quotation.service_days && ' × '}
+                              {quotation.service_days && `${quotation.service_days} ${t('quotations.details.days')}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                      {t('quotations.details.schedule')}
-                    </h3>
-                    <div className="space-y-3">
-                      {quotation.pickup_date && (
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                        {t('quotations.details.schedule')}
+                      </h3>
+                      <div className="space-y-3">
                         <div className="flex flex-col space-y-1">
                           <span className="text-sm text-muted-foreground">{t('quotations.details.pickupDate')}</span>
-                          <span className="font-medium">{quotation.pickup_date}</span>
+                          <span className="font-medium">
+                            {quotation.pickup_date ? format(parseISO(quotation.pickup_date), 'yyyy-MM-dd') : 'N/A'}
+                          </span>
                         </div>
-                      )}
-                      
-                      {quotation.pickup_time && (
+                        
                         <div className="flex flex-col space-y-1">
                           <span className="text-sm text-muted-foreground">{t('quotations.details.pickupTime')}</span>
-                          <span className="font-medium">{quotation.pickup_time}</span>
+                          <span className="font-medium">
+                            {quotation.pickup_time || 'N/A'}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {(quotation.pickup_location || quotation.dropoff_location) && (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-4">
-                      {t('quotations.details.locations')}
-                    </h3>
-                    <div className="space-y-4">
-                      {quotation.pickup_location && (
-                        <div className="flex items-start gap-2">
-                          <MapPinIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="font-medium">{t('quotations.details.pickup')}</p>
-                            <p className="text-sm">{quotation.pickup_location}</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {quotation.dropoff_location && (
-                        <div className="flex items-start gap-2">
-                          <MapPinIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="font-medium">{t('quotations.details.dropoff')}</p>
-                            <p className="text-sm">{quotation.dropoff_location}</p>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -495,6 +605,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   calculateDiscountAmount={calculateDiscountAmount}
                   calculateSubtotalAmount={calculateSubtotalAmount}
                   calculateTaxAmount={calculateTaxAmount}
+                  quotation_items={quotation.quotation_items}
                 />
               </div>
               

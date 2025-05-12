@@ -231,18 +231,25 @@ export async function POST(request: NextRequest) {
     
     // Fetch the quotation
     console.log(`Reject route - Fetching quotation with ID: ${id}`);
-    const { data: quotation, error } = await supabase
-      .from('quotations')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error || !quotation) {
-      console.log(`Reject route - Error fetching quotation: ${error?.message || 'Quotation not found'}`);
-      return NextResponse.json({ error: error?.message || 'Quotation not found' }, { status: 404 });
+    let quotation;
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('quotations')
+        .select('*, quotation_items (*)') // Include quotation_items
+        .eq('id', id)
+        .single();
+      
+      if (fetchError || !data) {
+        console.log(`Reject route - Error fetching quotation: ${fetchError?.message || 'Quotation not found'}`);
+        return NextResponse.json({ error: fetchError?.message || 'Quotation not found' }, { status: 404 });
+      }
+      
+      quotation = data;
+      console.log(`Reject route - Quotation fetched successfully. ID: ${quotation.id}, Status: ${quotation.status}, Quote Number: ${quotation.quote_number}`);
+    } catch (fetchError) {
+      console.error('Reject route - Error fetching quotation:', fetchError);
+      return NextResponse.json({ error: fetchError instanceof Error ? fetchError.message : 'An error occurred' }, { status: 500 });
     }
-    
-    console.log(`Reject route - Quotation fetched successfully. ID: ${quotation.id}, Status: ${quotation.status}, Quote Number: ${quotation.quote_number}`);
     
     // Only check status if skipStatusCheck is false
     if (!skipStatusCheck && quotation.status === 'rejected') {
@@ -313,7 +320,7 @@ export async function POST(request: NextRequest) {
     // Fetch full quotation with customer details for email
     const { data: fullQuotation, error: fetchError } = await supabase
       .from('quotations')
-      .select('*, customers(*)')
+      .select('*, customers(*), quotation_items(*)')
       .eq('id', id)
       .single();
       

@@ -191,8 +191,8 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       // Add company logo
       const logoContainer = document.createElement('div')
       logoContainer.style.textAlign = 'left'
-      logoContainer.style.marginBottom = '30px'
-      logoContainer.style.marginTop = '30px'
+      logoContainer.style.marginBottom = '20px' // Reduced from 30px
+      logoContainer.style.marginTop = '20px' // Reduced from 30px
       
       const logo = document.createElement('img')
       logo.src = '/img/driver-header-logo.png'
@@ -207,7 +207,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       headerContainer.style.display = 'flex'
       headerContainer.style.justifyContent = 'space-between'
       headerContainer.style.alignItems = 'flex-start'
-      headerContainer.style.marginBottom = '40px'
+      headerContainer.style.marginBottom = '25px' // Reduced from 40px
       headerContainer.style.width = '100%'
       
       // Quotation title and details (left side)
@@ -316,7 +316,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       
       // Customer info section with combined billing info
       const customerSection = document.createElement('div')
-      customerSection.style.marginBottom = '30px'
+      customerSection.style.marginBottom = '32px' // Increased for more separation
       customerSection.style.width = '100%'
       
       const customerTitle = document.createElement('h3')
@@ -359,9 +359,9 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
                             quotation?.billing_country;
                             
       if (hasBillingInfo) {
-        customerSection.style.marginBottom = '20px' // Less margin if billing info follows
+        customerSection.style.marginBottom = '15px' // Reduced from 20px
         const billingInfoContainer = document.createElement('div');
-        billingInfoContainer.style.marginTop = '15px'; // Add space before billing info if customer info was present
+        billingInfoContainer.style.marginTop = '10px'; // Reduced from 15px
 
         // Company name if available
         if (quotation?.billing_company_name) {
@@ -413,7 +413,8 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       
       // Price details section - With service type and vehicle type in description
       const priceSection = document.createElement('div')
-      priceSection.style.marginBottom = '30px'
+      priceSection.style.marginBottom = '15px'
+      priceSection.style.marginTop = '60px' // Ensure no extra top margin
       priceSection.style.width = '100%'
       
       const priceTitle = document.createElement('h3')
@@ -421,66 +422,48 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       priceTitle.style.color = '#333'
       priceTitle.style.fontSize = '14px'
       priceTitle.style.fontWeight = 'bold'
-      priceTitle.style.borderBottom = '1px solid #e0e0e0' // Add a subtle line under the title
-      priceTitle.style.paddingBottom = '5px' // Space for the line
+      priceTitle.style.borderBottom = '1px solid #e0e0e0'
+      priceTitle.style.paddingBottom = '5px' 
+      priceTitle.style.marginBottom = '8px' // Added to reduce space after title
       
       priceSection.appendChild(priceTitle)
       
       // Create a container for the price details with light gray background
       const priceDetailsContainer = document.createElement('div')
-      priceDetailsContainer.style.backgroundColor = '#f9f9f9' // Lighter gray
-      priceDetailsContainer.style.padding = '15px'
+      priceDetailsContainer.style.backgroundColor = '#f9f9f9'
+      priceDetailsContainer.style.padding = '10px' // Reduced from 15px
       priceDetailsContainer.style.borderRadius = '4px'
       priceDetailsContainer.style.marginBottom = '15px'
-      priceDetailsContainer.style.marginTop = '10px' // Space after title
+      priceDetailsContainer.style.marginTop = '5px' // Reduced from 10px
       
       // Create header row with Description and Price
       const headerRow = document.createElement('div')
       headerRow.style.display = 'flex'
       headerRow.style.justifyContent = 'space-between'
-      headerRow.style.marginBottom = '10px'
+      headerRow.style.marginBottom = '8px' // Reduced from 10px
       headerRow.style.borderBottom = '1px solid #e2e8f0'
-      headerRow.style.paddingBottom = '8px' // Increased padding
+      headerRow.style.paddingBottom = '6px' // Reduced from 8px
       
       const descriptionHeader = document.createElement('div')
       descriptionHeader.textContent = quotationT.items.description
       descriptionHeader.style.fontWeight = 'bold'
       descriptionHeader.style.fontSize = '13px'
       descriptionHeader.style.color = '#555' // Darker gray for header text
+      descriptionHeader.style.flex = '3'
       
       const priceHeader = document.createElement('div')
       priceHeader.textContent = quotationT.items.price
       priceHeader.style.fontWeight = 'bold'
       priceHeader.style.fontSize = '13px'
       priceHeader.style.color = '#555' // Darker gray for header text
+      priceHeader.style.flex = '1'
+      priceHeader.style.textAlign = 'right'
       
       headerRow.appendChild(descriptionHeader)
       headerRow.appendChild(priceHeader)
       priceDetailsContainer.appendChild(headerRow)
       
-      // Vehicle Type row with empty price
-      const vehicleTypeRow = document.createElement('div')
-      vehicleTypeRow.style.display = 'flex'
-      vehicleTypeRow.style.justifyContent = 'space-between'
-      vehicleTypeRow.style.marginBottom = '10px'
-      vehicleTypeRow.style.padding = '5px 0' // Add some vertical padding to rows
-      
-      const vehicleTypeLabel = document.createElement('div')
-      vehicleTypeLabel.textContent = quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'
-      vehicleTypeLabel.style.fontSize = '13px'
-      
-      const emptyVehiclePrice = document.createElement('div')
-      emptyVehiclePrice.style.fontSize = '13px'
-      
-      vehicleTypeRow.appendChild(vehicleTypeLabel)
-      vehicleTypeRow.appendChild(emptyVehiclePrice)
-      priceDetailsContainer.appendChild(vehicleTypeRow)
-      
-      // Calculate the hourly rate, days, and base amount
-      const hours = latestQuotation?.duration_hours || latestQuotation?.hours_per_day || 8;
-      const serviceDays = latestQuotation?.service_days || 1;
-      let hourlyRate = latestQuotation?.amount ? (latestQuotation.amount / serviceDays) : 0;
-      let baseAmount = latestQuotation?.amount || 0;
+      // Define currency variable before it's used in formatCurrencyValue
       const currency = latestQuotation?.display_currency || latestQuotation?.currency || 'JPY';
       
       // Format currency based on the quotation's currency with conversion
@@ -517,88 +500,195 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         }
       };
       
-      // Hourly Rate row
-      const hourlyRateRow = document.createElement('div')
-      hourlyRateRow.style.display = 'flex'
-      hourlyRateRow.style.justifyContent = 'space-between'
-      hourlyRateRow.style.marginBottom = '10px'
-      hourlyRateRow.style.padding = '5px 0' // Add some vertical padding to rows
-      
-      const hourlyRateLabel = document.createElement('div')
-      hourlyRateLabel.textContent = `Hourly Rate (${hours} hours / day)`
-      hourlyRateLabel.style.fontSize = '13px'
-      
-      const hourlyRateValue = document.createElement('div')
-      hourlyRateValue.textContent = formatCurrencyValue(hourlyRate)
-      hourlyRateValue.style.fontSize = '13px'
-      hourlyRateValue.style.fontWeight = 'medium'
-      
-      hourlyRateRow.appendChild(hourlyRateLabel)
-      hourlyRateRow.appendChild(hourlyRateValue)
-      priceDetailsContainer.appendChild(hourlyRateRow)
-      
-      // Number of Days row (if more than 1)
-      if (serviceDays > 1) {
-        const daysRow = document.createElement('div')
-        daysRow.style.display = 'flex'
-        daysRow.style.justifyContent = 'space-between'
-        daysRow.style.marginBottom = '10px'
-        daysRow.style.padding = '5px 0' // Add some vertical padding to rows
+      // Check if we have quotation items (multiple services)
+      if (latestQuotation?.quotation_items && Array.isArray(latestQuotation.quotation_items) && latestQuotation.quotation_items.length > 0) {
+        // Display each service item individually
+        latestQuotation.quotation_items.forEach((item, index) => {
+          const serviceRow = document.createElement('div')
+          serviceRow.style.display = 'flex'
+          serviceRow.style.justifyContent = 'space-between'
+          serviceRow.style.marginBottom = '6px' // Reduced from 10px
+          serviceRow.style.padding = '3px 0' // Reduced from 5px
+          serviceRow.style.borderBottom = index < latestQuotation.quotation_items.length - 1 ? '1px solid #edf2f7' : ''
+          
+          const serviceDetails = document.createElement('div')
+          serviceDetails.style.flex = '3'
+          serviceDetails.style.fontSize = '13px'
+          
+          // Create description with service and vehicle type
+          const description = document.createElement('div')
+          description.textContent = item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard'}`
+          description.style.fontWeight = 'medium'
+          description.style.marginBottom = '3px'
+          
+          // Create additional details for charter services
+          if (item.service_type_name?.toLowerCase().includes('charter')) {
+            // For charter services, show days and hours per day
+            const details = document.createElement('div')
+            details.style.fontSize = '12px'
+            details.style.color = '#666'
+            details.textContent = `${item.service_days || 1} ${quotationT.days}, ${item.hours_per_day || 8} ${quotationT.hours}/${quotationT.days}`
+            serviceDetails.appendChild(description)
+            serviceDetails.appendChild(details)
+          } else {
+            // For airport transfers, show pickup date if available
+            if (item.pickup_date) {
+              const details = document.createElement('div')
+              details.style.fontSize = '12px'
+              details.style.color = '#666'
+              const pickupDate = new Date(item.pickup_date).toLocaleDateString(docLanguage === 'ja' ? 'ja-JP' : 'en-US')
+              details.textContent = `${quotationT.pickupDate} ${pickupDate}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}`
+              serviceDetails.appendChild(description)
+              serviceDetails.appendChild(details)
+            } else {
+              serviceDetails.appendChild(description)
+            }
+          }
+          
+          const servicePrice = document.createElement('div')
+          servicePrice.style.flex = '1'
+          servicePrice.style.fontSize = '13px'
+          servicePrice.style.textAlign = 'right'
+          servicePrice.textContent = formatCurrencyValue(item.total_price || (item.unit_price * (item.quantity || 1)))
+          
+          serviceRow.appendChild(serviceDetails)
+          serviceRow.appendChild(servicePrice)
+          priceDetailsContainer.appendChild(serviceRow)
+        })
         
-        const daysLabel = document.createElement('div')
-        daysLabel.textContent = 'Number of Days'
-        daysLabel.style.fontSize = '13px'
-        daysLabel.style.color = '#666'
+        // Add a total/base amount row with separator
+        const baseAmountRow = document.createElement('div')
+        baseAmountRow.style.display = 'flex'
+        baseAmountRow.style.justifyContent = 'space-between'
+        baseAmountRow.style.marginTop = '8px' // Reduced from 10px
+        baseAmountRow.style.marginBottom = '8px' // Reduced from 10px
+        baseAmountRow.style.paddingTop = '8px' // Reduced from 10px
+        baseAmountRow.style.borderTop = '1px solid #e2e8f0'
+        baseAmountRow.style.padding = '6px 0' // Reduced from 8px
         
-        const daysValue = document.createElement('div')
-        daysValue.textContent = `× ${serviceDays}`
-        daysValue.style.fontSize = '13px'
+        const baseAmountLabel = document.createElement('div')
+        baseAmountLabel.textContent = 'Base Amount'
+        baseAmountLabel.style.fontSize = '13px'
+        baseAmountLabel.style.fontWeight = 'medium'
         
-        daysRow.appendChild(daysLabel)
-        daysRow.appendChild(daysValue)
-        priceDetailsContainer.appendChild(daysRow)
+        const baseAmountValue = document.createElement('div')
+        baseAmountValue.textContent = formatCurrencyValue(latestQuotation.amount || 0)
+        baseAmountValue.style.fontSize = '13px'
+        baseAmountValue.style.fontWeight = 'medium'
+        
+        baseAmountRow.appendChild(baseAmountLabel)
+        baseAmountRow.appendChild(baseAmountValue)
+        priceDetailsContainer.appendChild(baseAmountRow)
+      } else {
+        // Fall back to the original display if no items are available
+        // Vehicle Type row with empty price
+        const vehicleTypeRow = document.createElement('div')
+        vehicleTypeRow.style.display = 'flex'
+        vehicleTypeRow.style.justifyContent = 'space-between'
+        vehicleTypeRow.style.marginBottom = '10px'
+        vehicleTypeRow.style.padding = '5px 0' // Add some vertical padding to rows
+        
+        const vehicleTypeLabel = document.createElement('div')
+        vehicleTypeLabel.textContent = quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'
+        vehicleTypeLabel.style.fontSize = '13px'
+        
+        const emptyVehiclePrice = document.createElement('div')
+        emptyVehiclePrice.style.fontSize = '13px'
+        
+        vehicleTypeRow.appendChild(vehicleTypeLabel)
+        vehicleTypeRow.appendChild(emptyVehiclePrice)
+        priceDetailsContainer.appendChild(vehicleTypeRow)
+        
+        // Calculate the hourly rate, days, and base amount
+        const hours = latestQuotation?.duration_hours || latestQuotation?.hours_per_day || 8;
+        const serviceDays = latestQuotation?.service_days || 1;
+        let hourlyRate = latestQuotation?.amount ? (latestQuotation.amount / serviceDays) : 0;
+        let baseAmount = latestQuotation?.amount || 0;
+        
+        // Hourly Rate row
+        const hourlyRateRow = document.createElement('div')
+        hourlyRateRow.style.display = 'flex'
+        hourlyRateRow.style.justifyContent = 'space-between'
+        hourlyRateRow.style.marginBottom = '10px'
+        hourlyRateRow.style.padding = '5px 0' // Add some vertical padding to rows
+        
+        const hourlyRateLabel = document.createElement('div')
+        hourlyRateLabel.textContent = `Hourly Rate (${hours} hours / day)`
+        hourlyRateLabel.style.fontSize = '13px'
+        
+        const hourlyRateValue = document.createElement('div')
+        hourlyRateValue.textContent = formatCurrencyValue(hourlyRate)
+        hourlyRateValue.style.fontSize = '13px'
+        hourlyRateValue.style.fontWeight = 'medium'
+        
+        hourlyRateRow.appendChild(hourlyRateLabel)
+        hourlyRateRow.appendChild(hourlyRateValue)
+        priceDetailsContainer.appendChild(hourlyRateRow)
+        
+        // Number of Days row (if more than 1)
+        if (serviceDays > 1) {
+          const daysRow = document.createElement('div')
+          daysRow.style.display = 'flex'
+          daysRow.style.justifyContent = 'space-between'
+          daysRow.style.marginBottom = '10px'
+          daysRow.style.padding = '5px 0' // Add some vertical padding to rows
+          
+          const daysLabel = document.createElement('div')
+          daysLabel.textContent = 'Number of Days'
+          daysLabel.style.fontSize = '13px'
+          daysLabel.style.color = '#666'
+          
+          const daysValue = document.createElement('div')
+          daysValue.textContent = `× ${serviceDays}`
+          daysValue.style.fontSize = '13px'
+          
+          daysRow.appendChild(daysLabel)
+          daysRow.appendChild(daysValue)
+          priceDetailsContainer.appendChild(daysRow)
+        }
+        
+        // Base Amount row with separator
+        const baseAmountRow = document.createElement('div')
+        baseAmountRow.style.display = 'flex'
+        baseAmountRow.style.justifyContent = 'space-between'
+        baseAmountRow.style.marginBottom = '10px'
+        baseAmountRow.style.paddingTop = '10px'
+        baseAmountRow.style.borderTop = '1px solid #e2e8f0'
+        baseAmountRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
+        
+        const baseAmountLabel = document.createElement('div')
+        baseAmountLabel.textContent = 'Base Amount'
+        baseAmountLabel.style.fontSize = '13px'
+        baseAmountLabel.style.fontWeight = 'medium'
+        
+        const baseAmountValue = document.createElement('div')
+        baseAmountValue.textContent = formatCurrencyValue(baseAmount)
+        baseAmountValue.style.fontSize = '13px'
+        baseAmountValue.style.fontWeight = 'medium'
+        
+        baseAmountRow.appendChild(baseAmountLabel)
+        baseAmountRow.appendChild(baseAmountValue)
+        priceDetailsContainer.appendChild(baseAmountRow)
       }
       
-      // Base Amount row with separator
-      const baseAmountRow = document.createElement('div')
-      baseAmountRow.style.display = 'flex'
-      baseAmountRow.style.justifyContent = 'space-between'
-      baseAmountRow.style.marginBottom = '10px'
-      baseAmountRow.style.paddingTop = '10px'
-      baseAmountRow.style.borderTop = '1px solid #e2e8f0'
-      baseAmountRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
-      
-      const baseAmountLabel = document.createElement('div')
-      baseAmountLabel.textContent = 'Base Amount'
-      baseAmountLabel.style.fontSize = '13px'
-      baseAmountLabel.style.fontWeight = 'medium'
-      
-      const baseAmountValue = document.createElement('div')
-      baseAmountValue.textContent = formatCurrencyValue(baseAmount)
-      baseAmountValue.style.fontSize = '13px'
-      baseAmountValue.style.fontWeight = 'medium'
-      
-      baseAmountRow.appendChild(baseAmountLabel)
-      baseAmountRow.appendChild(baseAmountValue)
-      priceDetailsContainer.appendChild(baseAmountRow)
-      
+      // Calculate discount and tax
       // Get discount info
       const hasDiscount = latestQuotation?.discount_percentage && parseFloat(String(latestQuotation.discount_percentage)) > 0;
       let discountAmount = 0;
-      let subtotalAmount = baseAmount;
+      let subtotalAmount = latestQuotation?.amount || 0;
       
       if (hasDiscount) {
         const discountPercentage = parseFloat(String(latestQuotation.discount_percentage));
-        discountAmount = (baseAmount * discountPercentage) / 100;
-        subtotalAmount = baseAmount - discountAmount;
+        discountAmount = (subtotalAmount * discountPercentage) / 100;
+        subtotalAmount = subtotalAmount - discountAmount;
         
         // Discount row
         const discountRow = document.createElement('div')
         discountRow.style.display = 'flex'
         discountRow.style.justifyContent = 'space-between'
-        discountRow.style.marginBottom = '10px'
-        discountRow.style.color = '#e53e3e' // Keep red for discount
-        discountRow.style.padding = '5px 0' // Add some vertical padding to rows
+        discountRow.style.marginBottom = '8px' // Reduced from 10px
+        discountRow.style.color = '#e53e3e'
+        discountRow.style.padding = '3px 0' // Reduced from 5px
         
         const discountLabel = document.createElement('div')
         discountLabel.textContent = `Discount (${discountPercentage}%)`
@@ -616,10 +706,10 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         const subtotalRow = document.createElement('div')
         subtotalRow.style.display = 'flex'
         subtotalRow.style.justifyContent = 'space-between'
-        subtotalRow.style.marginBottom = '10px'
-        subtotalRow.style.paddingTop = '10px'
+        subtotalRow.style.marginBottom = '8px' // Reduced from 10px
+        subtotalRow.style.paddingTop = '8px' // Reduced from 10px
         subtotalRow.style.borderTop = '1px solid #e2e8f0'
-        subtotalRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
+        subtotalRow.style.padding = '6px 0' // Reduced from 8px
         
         const subtotalLabel = document.createElement('div')
         subtotalLabel.textContent = 'Subtotal'
@@ -650,9 +740,9 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         const taxRow = document.createElement('div')
         taxRow.style.display = 'flex'
         taxRow.style.justifyContent = 'space-between'
-        taxRow.style.marginBottom = '10px'
+        taxRow.style.marginBottom = '8px' // Reduced from 10px
         taxRow.style.color = '#666'
-        taxRow.style.padding = '5px 0' // Add some vertical padding to rows
+        taxRow.style.padding = '3px 0' // Reduced from 5px
         
         const taxLabel = document.createElement('div')
         taxLabel.textContent = `Tax (${taxPercentage}%)`
@@ -671,9 +761,9 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       const totalRow = document.createElement('div')
       totalRow.style.display = 'flex'
       totalRow.style.justifyContent = 'space-between'
-      totalRow.style.paddingTop = '10px'
+      totalRow.style.paddingTop = '8px' // Reduced from 10px
       totalRow.style.borderTop = '1px solid #e2e8f0'
-      totalRow.style.padding = '8px 0' // Add some vertical padding, adjust top/bottom
+      totalRow.style.padding = '6px 0' // Reduced from 8px
       
       const totalLabel = document.createElement('div')
       totalLabel.textContent = 'Total Amount'
@@ -692,31 +782,22 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       priceSection.appendChild(priceDetailsContainer)
       pdfContainer.appendChild(priceSection)
       
-      // Total amount section with discount and tax
-      const totalSection = document.createElement('div')
-      totalSection.style.width = '100%'
-      totalSection.style.display = 'flex'
-      totalSection.style.justifyContent = 'flex-end'
-      totalSection.style.marginBottom = '35px'
+      // Add a page break after price details
+      const pageBreak = document.createElement('div')
+      pageBreak.style.pageBreakAfter = 'always'
+      pageBreak.style.height = '1px'
+      pdfContainer.appendChild(pageBreak)
       
-      const totalTable = document.createElement('table')
-      totalTable.style.width = '250px'
-      totalTable.style.borderCollapse = 'collapse'
-      totalTable.style.tableLayout = 'fixed'
-      
-      // Get the total amount from either latestQuotation or our calculated totalAmount
-      const finalAmount = latestQuotation?.total_amount || totalAmount;
-      
-      // Skip creating duplicate subtotal/discount/tax rows because they're already
-      // included in the price details component above
-      
-      // Add only the total row to the separate total section (optional)
-
-      
-      // Terms and conditions
+      // Terms and conditions - start on new page
       const termsSection = document.createElement('div')
       termsSection.style.marginBottom = '25px'
       termsSection.style.width = '100%'
+      termsSection.style.marginLeft = '0px'
+      termsSection.style.maxWidth = '180mm'
+      termsSection.style.paddingLeft = '0px'
+      termsSection.style.boxSizing = 'border-box'
+      termsSection.style.marginTop = '20px' // Match the logo's top margin
+      termsSection.style.paddingTop = '0px'
       
       const termsTitle = document.createElement('h3')
       termsTitle.textContent = quotationT.termsAndConditions

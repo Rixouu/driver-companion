@@ -67,6 +67,16 @@ export interface QuotationItem {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  service_type_id?: string | null;
+  service_type_name?: string | null;
+  vehicle_type?: string | null;
+  vehicle_category?: string | null;
+  duration_hours?: number | null;
+  service_days?: number | null;
+  hours_per_day?: number | null;
+  is_service_item?: boolean;
+  pickup_date?: string | null;
+  pickup_time?: string | null;
 }
 
 export interface PricingCategory {
@@ -132,7 +142,21 @@ export interface CreateQuotationInput {
   customer_email: string;
   customer_name?: string;
   customer_phone?: string;
-  customer_id?: string;
+  customer_id?: string | null;
+  merchant_notes?: string;
+  customer_notes?: string;
+  service_type_id: string;
+  vehicle_category?: string;
+  vehicle_type: string;
+  pickup_date?: string;
+  pickup_time?: string;
+  duration_hours: number;
+  service_days?: number;
+  hours_per_day?: number | null;
+  passenger_count?: number | null;
+  discount_percentage?: number;
+  tax_percentage?: number;
+  status?: QuotationStatus;
   billing_company_name?: string;
   billing_tax_number?: string;
   billing_street_name?: string;
@@ -141,24 +165,10 @@ export interface CreateQuotationInput {
   billing_state?: string;
   billing_postal_code?: string;
   billing_country?: string;
-  service_type_id: string;
-  vehicle_category?: string;
-  vehicle_type: string;
-  pickup_location?: string;
-  dropoff_location?: string;
-  pickup_date?: string;
-  pickup_time?: string;
-  duration_hours?: number;
-  service_days?: number;
-  hours_per_day?: number | null;
-  passenger_count?: number | null;
-  discount_percentage?: number;
-  tax_percentage?: number;
-  status?: QuotationStatus;
-  merchant_notes?: string;
-  customer_notes?: string;
   currency?: string;
   display_currency?: string;
+  amount?: number;
+  total_amount?: number;
 }
 
 export interface UpdateQuotationInput {
@@ -287,4 +297,22 @@ export interface PricingPackageItem {
   vehicle_type?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ServiceItemInput {
+  description: string;
+  service_type_id: string;
+  service_type_name?: string;
+  vehicle_category?: string;
+  vehicle_type: string;
+  duration_hours?: number;
+  service_days?: number;
+  hours_per_day?: number | null;
+  unit_price: number;
+  total_price: number;
+  quantity: number;
+  sort_order?: number;
+  is_service_item: boolean;
+  pickup_date?: string | null;
+  pickup_time?: string | null;
 } 

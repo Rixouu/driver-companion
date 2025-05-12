@@ -99,11 +99,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Always fetch the latest quotation data
+    // Fetch quotation data
     console.log('🔄 [SEND-EMAIL API] Fetching latest quotation data');
     const { data: quotation, error } = await supabase
       .from('quotations')
-      .select('*, customers (*)') // Include customer data if needed for billing/info
+      .select('*, customers (*), quotation_items (*)') // Include quotation_items
       .eq('id', quotationId)
       .single();
     
@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
           status: 'sent',
           last_sent_at: new Date().toISOString(),
           last_sent_to: email,
-          // Update expiry date to 30 days from now (or keep existing logic if preferred)
-          expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          // Update expiry date to 2 days from now (or keep existing logic if preferred)
+          expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
         })
         .eq('id', quotationId);
     
@@ -454,26 +454,50 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                         style="background:#F8FAFC; border-radius:8px;">
                     <tr>
                       <td style="padding:12px;">
-                        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                          <tr>
-                            <th width="30%">${isJapanese ? 'サービスタイプ:' : 'SERVICE TYPE'}</th>
-                            <td>${serviceType}</td>
-                          </tr>
-                          <tr>
-                            <th>${isJapanese ? '車両:' : 'VEHICLE'}</th>
-                            <td>${vehicleType}</td>
-                          </tr>
-                          <tr>
-                            <th>${isJapanese ? '時間:' : 'HOURS'}</th>
-                            <td>${hours} ${durationUnit}</td>
-                          </tr>
-                          ${serviceDays > 1 ? `
-                          <tr>
-                            <th>${isJapanese ? '日数:' : 'NUMBER OF DAYS'}</th>
-                            <td>${serviceDays}</td>
-                          </tr>
-                          ` : ''}
-                        </table>
+                        ${
+                          // Check if we have multiple service items
+                          quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
+                            // If we have items, display each one
+                            `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                              ${quotation.quotation_items.map((item, index) => `
+                                <tr ${index > 0 ? 'style="border-top: 1px solid #EDF2F7; margin-top: 8px;"' : ''}>
+                                  <td style="padding: ${index > 0 ? '12px 0 0 0' : '0'};">
+                                    <div style="font-weight: 500; margin-bottom: 4px;">${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}</div>
+                                    ${item.service_type_name?.toLowerCase().includes('charter') ?
+                                      `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` :
+                                      item.pickup_date ?
+                                      `<div style="font-size: 13px; color: #666;">${isJapanese ? '集合日' : 'Pickup'}: ${new Date(item.pickup_date).toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${item.pickup_time}` : ''}</div>` :
+                                      ''}
+                                  </td>
+                                  <td style="text-align: right; vertical-align: top; padding: ${index > 0 ? '12px 0 0 0' : '0'};">
+                                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                                  </td>
+                                </tr>
+                              `).join('')}
+                            </table>`
+                            :
+                            // Fallback to the original display if no items
+                            `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                              <tr>
+                                <th width="30%">${isJapanese ? 'サービスタイプ:' : 'SERVICE TYPE'}</th>
+                                <td>${serviceType}</td>
+                              </tr>
+                              <tr>
+                                <th>${isJapanese ? '車両:' : 'VEHICLE'}</th>
+                                <td>${vehicleType}</td>
+                              </tr>
+                              <tr>
+                                <th>${isJapanese ? '時間:' : 'HOURS'}</th>
+                                <td>${hours} ${durationUnit}</td>
+                              </tr>
+                              ${serviceDays > 1 ? `
+                              <tr>
+                                <th>${isJapanese ? '日数:' : 'NUMBER OF DAYS'}</th>
+                                <td>${serviceDays}</td>
+                              </tr>
+                              ` : ''}
+                            </table>`
+                        }
                       </td>
                     </tr>
                   </table>
@@ -499,20 +523,41 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                               ${isJapanese ? '価格' : 'PRICE'}
                             </th>
                           </tr>
-                          <tr>
-                            <td style="padding-top: 15px;">${vehicleType}</td>
-                            <td align="right" style="padding-top: 15px;"></td>
-                          </tr>
-                          <tr>
-                            <td>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</td>
-                            <td align="right">${formatCurrency(hourlyRate)}</td>
-                          </tr>
-                          ${serviceDays > 1 ? `
-                          <tr>
-                            <td style="color: #666;">${isJapanese ? '日数' : 'Number of Days'}</td>
-                            <td align="right">× ${serviceDays}</td>
-                          </tr>
-                          ` : ''}
+                          ${
+                            // Check if we have multiple service items
+                            quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
+                              // If we have items, display each one
+                              quotation.quotation_items.map((item, index) => `
+                                <tr>
+                                  <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
+                                    <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
+                                      ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
+                                    </div>
+                                    ${item.service_type_name?.toLowerCase().includes('charter') ?
+                                      `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` : ''}
+                                  </td>
+                                  <td align="right" style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}; vertical-align: top;">
+                                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                                  </td>
+                                </tr>
+                              `).join('')
+                              :
+                              // Fallback to the original display if no items
+                              `<tr>
+                                <td style="padding-top: 15px;">${vehicleType}</td>
+                                <td align="right" style="padding-top: 15px;"></td>
+                              </tr>
+                              <tr>
+                                <td>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</td>
+                                <td align="right">${formatCurrency(hourlyRate)}</td>
+                              </tr>
+                              ${serviceDays > 1 ? `
+                              <tr>
+                                <td style="color: #666;">${isJapanese ? '日数' : 'Number of Days'}</td>
+                                <td align="right">× ${serviceDays}</td>
+                              </tr>
+                              ` : ''}`
+                          }
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '基本料金' : 'Base Amount'}</td>
                             <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(baseAmount)}</td>
@@ -678,10 +723,26 @@ ${emailTemplates[language].greeting} ${customerName},
 ${greetingText} ${emailTemplates[language].intro}
 
 ${isJapanese ? 'サービス概要' : 'SERVICE SUMMARY'}:
-- ${isJapanese ? 'サービスタイプ' : 'SERVICE TYPE'}: ${serviceType}
+${
+  // Check if we have multiple service items
+  quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
+    // If we have items, display each one
+    quotation.quotation_items.map(item => 
+      `- ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`} ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+      ${item.service_type_name?.toLowerCase().includes('charter') ?
+        `  ${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}` :
+        item.pickup_date ?
+        `  ${isJapanese ? '集合日' : 'Pickup'}: ${new Date(item.pickup_date).toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${item.pickup_time}` : ''}` :
+        ''
+      }`
+    ).join('\n')
+    :
+    // Fallback to the original display if no items
+    `- ${isJapanese ? 'サービスタイプ' : 'SERVICE TYPE'}: ${serviceType}
 - ${isJapanese ? '車両' : 'VEHICLE'}: ${vehicleType}
 - ${isJapanese ? '時間' : 'HOURS'}: ${hours} ${durationUnit}
-${serviceDays > 1 ? `- ${isJapanese ? '日数' : 'NUMBER OF DAYS'}: ${serviceDays}` : ''}
+${serviceDays > 1 ? `- ${isJapanese ? '日数' : 'NUMBER OF DAYS'}: ${serviceDays}` : ''}`
+}
 
 ${isJapanese ? '価格詳細' : 'PRICE DETAILS'}:
 - ${isJapanese ? '合計金額' : 'TOTAL AMOUNT'}: ${formatCurrency(finalAmount)}

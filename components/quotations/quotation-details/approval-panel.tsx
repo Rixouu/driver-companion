@@ -50,7 +50,7 @@ export function QuotationDetailsApprovalPanel({
             {t('quotations.details.approvalPanel.title')}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground mt-1 pb-2">
-            Review this quotation and either approve to proceed or reject with detailed feedback.
+            {t('quotations.details.approvalPanel.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>

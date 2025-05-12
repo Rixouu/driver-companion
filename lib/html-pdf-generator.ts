@@ -204,28 +204,38 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
   // Get translations for the selected language
   const quotationT = quotationTranslations[language];
   const isJapanese = language === 'ja';
-
-  // Format quotation number with JPDR prefix and padding
-  const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+  
+  // Format date values
+  const localeCode = language === 'ja' ? 'ja-JP' : 'en-US';
+  const dateFormat = new Intl.DateTimeFormat(localeCode, { 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  });
   
   // Prepare dates
   const creationDate = quotation?.created_at ? new Date(quotation.created_at) : new Date();
+  const quotationDate = dateFormat.format(creationDate);
+  
   const validDays = quotation?.valid_days || 2;
   const expiryDate = new Date(creationDate);
   expiryDate.setDate(expiryDate.getDate() + validDays);
+  const expiryDateString = dateFormat.format(expiryDate);
+  
+  // Format quotation number with JPDR prefix and padding
+  const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   
   // Get service details
   const vehicleType = quotation?.vehicle_type || 'Toyota Alphard Executive Lounge';
   const hours = quotation?.duration_hours || quotation?.hours_per_day || 8;
   const serviceDays = quotation?.service_days || 1;
   
-  // Calculate pricing
-  let hourlyRate = quotation?.amount ? (quotation.amount / serviceDays) : 0;
-  let baseAmount = quotation?.amount || 0;
-  const currency = quotation?.display_currency || quotation?.currency || 'JPY';
-  
-  // Format currency helper
+  // Format currency based on the quotation's currency
   const formatCurrency = (value: number): string => {
+    // Use the quotation's display_currency if available, otherwise default to JPY
+    const currency = quotation?.display_currency || quotation?.currency || 'JPY';
+    if (!value) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+    
     // Exchange rates (simplified for demo)
     const exchangeRates: Record<string, number> = {
       'JPY': 1,
@@ -243,22 +253,26 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
       return currency === 'JPY' 
         ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
         : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-    }
-    
-    // Use Intl.NumberFormat for other currencies
-    try {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2
-      }).format(convertedAmount);
-    } catch (error) {
-      // Fallback if currency code is invalid
-      return `${currency} ${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    } else if (currency === 'THB') {
+      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currency,
+          minimumFractionDigits: 2
+        }).format(convertedAmount);
+      } catch (error) {
+        // Fallback if currency code is invalid
+        return `${currency} ${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
     }
   };
   
-  // Process discount and tax calculations
+  // Calculate values for price details
+  let baseAmount = quotation?.amount || 0;
+  
+  // Check if we have discount
   const hasDiscount = quotation?.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
   let discountAmount = 0;
   let subtotalAmount = baseAmount;
@@ -269,6 +283,7 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
     subtotalAmount = baseAmount - discountAmount;
   }
   
+  // Check if we have tax
   const hasTax = quotation?.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
   let taxAmount = 0;
   let totalAmount = subtotalAmount;
@@ -279,8 +294,6 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
     totalAmount = subtotalAmount + taxAmount;
   }
   
-  const finalAmount = quotation?.total_amount || totalAmount;
-
   // Customer information
   const customerName = quotation?.customer_name || (quotation?.customers?.name || 'N/A');
   const customerEmail = quotation?.customer_email || (quotation?.customers?.email || 'N/A');
@@ -295,150 +308,264 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
                          quotation?.billing_state ||
                          quotation?.billing_postal_code ||
                          quotation?.billing_country;
-
-  // Generate HTML that exactly matches the client-side implementation
+  
+  // Generate the HTML
   const html = `
-    <div style="font-family: 'Work Sans', sans-serif; color: #333; background-color: #fff; padding: 10px 0px 0px; width: 180mm; box-sizing: border-box; position: relative; margin: 0 auto; border-top: 2px solid #FF2600;">
+    <div style="font-family: 'Work Sans', sans-serif; color: #333; box-sizing: border-box; width: 100%; margin: 0; padding: 0;">
+      <!-- Red line at top -->
+      <div style="border-top: 2px solid #FF2600; width: 100%; margin-bottom: 20px;"></div>
       
-      <!-- Company Logo -->
-      <div style="text-align: left; margin-bottom: 30px; margin-top: 30px;">
-        <img src="https://driver-companion.vercel.app/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
+      <!-- Logo -->
+      <div style="text-align: left; margin-bottom: 20px; margin-top: 20px;">
+        <img src="${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
       </div>
       
-      <!-- Header Container -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; width: 100%;">
-        
-        <!-- Quotation Title and Details (Left) -->
-        <div style="flex: 1; text-align: left; max-width: 50%;">
-          <h1 style="color: #333; margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">${quotationT.quotation}</h1>
-          <p style="margin: 0 0 5px 0; font-weight: normal; font-size: 13px;">${quotationT.quotationNumber} ${formattedQuotationId}</p>
-          <p style="margin: 0 0 5px 0; font-size: 13px;">${quotationT.quotationDate} ${creationDate.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}</p>
-          <p style="margin: 0 0 5px 0; font-size: 13px;">${quotationT.expiryDate} ${expiryDate.toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}</p>
-          <p style="margin: 0; font-size: 13px;">${quotationT.validFor} ${validDays} ${quotationT.days}</p>
+      <!-- Header with quotation and company info -->
+      <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+        <div style="flex: 1; max-width: 50%;">
+          <h1 style="color: #333; margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">
+            ${quotationT.quotation}
+          </h1>
+          <p style="margin: 0 0 5px 0; font-weight: normal; font-size: 13px;">
+            ${quotationT.quotationNumber} ${formattedQuotationId}
+          </p>
+          <p style="margin: 0 0 5px 0; font-size: 13px;">
+            ${quotationT.quotationDate} ${quotationDate}
+          </p>
+          <p style="margin: 0 0 5px 0; font-size: 13px;">
+            ${quotationT.expiryDate} ${expiryDateString}
+          </p>
+          <p style="margin: 0; font-size: 13px;">
+            ${quotationT.validFor} ${validDays} ${quotationT.days}
+          </p>
         </div>
         
-        <!-- Company Information (Right) -->
-        <div style="flex: 1; max-width: 40%; text-align: right;">
-          <h2 style="margin: 0 0 5px 0; color: #333; font-size: 16px;">${quotationT.companyName}</h2>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">${quotationT.companyAddress1}</p>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">${quotationT.companyAddress2}</p>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">${quotationT.companyAddress3}</p>
-          <p style="margin: 0 0 10px 0; font-size: 13px;">${quotationT.companyAddress4}</p>
-          <p style="margin: 0 0 10px 0; font-size: 13px;">${quotationT.companyTaxId}</p>
+        <div style="flex: 1; max-width: 40%; text-align: right; padding-top: 5px;">
+          <h2 style="margin: 0 0 5px 0; color: #333; font-size: 16px;">
+            ${quotationT.companyName}
+          </h2>
+          <p style="margin: 0 0 2px 0; font-size: 13px;">
+            ${quotationT.companyAddress1}
+          </p>
+          <p style="margin: 0 0 2px 0; font-size: 13px;">
+            ${quotationT.companyAddress2}
+          </p>
+          <p style="margin: 0 0 2px 0; font-size: 13px;">
+            ${quotationT.companyAddress3}
+          </p>
+          <p style="margin: 0 0 10px 0; font-size: 13px;">
+            ${quotationT.companyAddress4}
+          </p>
+          <p style="margin: 0 0 10px 0; font-size: 13px;">
+            ${quotationT.companyTaxId}
+          </p>
         </div>
       </div>
       
-      <!-- Customer Info Section -->
-      <div style="margin-bottom: 30px; width: 100%;">
-        <h3 style="margin: 0 0 8px 0; color: #333; font-size: 14px; font-weight: bold;">${quotationT.billingAddress}</h3>
-        <p style="margin: 0 0 3px 0; font-weight: normal; font-size: 13px;">${customerName}</p>
-        <p style="margin: 0 0 3px 0; font-size: 13px;">${customerEmail}</p>
-        <p style="margin: 0 0 15px 0; font-size: 13px;">${customerPhone}</p>
+      <!-- Billing Address section -->
+      <div style="margin-bottom: 32px;">
+        <h3 style="margin: 0 0 8px 0; color: #333; font-size: 14px; font-weight: bold;">
+          ${quotationT.billingAddress}
+        </h3>
+        <p style="margin: 0 0 3px 0; font-weight: normal; font-size: 13px;">
+          ${quotation?.customer_name || 'N/A'}
+        </p>
+        <p style="margin: 0 0 3px 0; font-size: 13px;">
+          ${quotation?.customer_email || 'N/A'}
+        </p>
+        <p style="margin: 0 0 15px 0; font-size: 13px;">
+          ${quotation?.customer_phone || 'N/A'}
+        </p>
         
-        ${hasBillingInfo ? `
-          ${quotation?.billing_company_name ? `
-            <p style="margin: 0 0 3px 0; font-size: 13px;"><strong>${quotationT.companyNameLabel}</strong> ${quotation.billing_company_name}</p>
-          ` : ''}
-          
-          ${quotation?.billing_tax_number ? `
-            <p style="margin: 0 0 3px 0; font-size: 13px;"><strong>${quotationT.taxNumber}</strong> ${quotation.billing_tax_number}</p>
-          ` : ''}
-          
-          ${quotation?.billing_street_name || quotation?.billing_street_number ? `
-            <p style="margin: 0 0 3px 0; font-size: 13px;"><strong>${quotationT.address}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}</p>
-          ` : ''}
-          
-          ${quotation?.billing_city || quotation?.billing_state || quotation?.billing_postal_code ? `
-            <p style="margin: 0 0 3px 0; font-size: 13px;"><strong>${quotationT.cityStatePostal}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}</p>
-          ` : ''}
-          
-          ${quotation?.billing_country ? `
-            <p style="margin: 0; font-size: 13px;"><strong>${quotationT.country}</strong> ${quotation.billing_country}</p>
-          ` : ''}
+        ${quotation?.billing_company_name ? `
+          <p style="margin: 0 0 3px 0; font-size: 13px;">
+            <strong>${quotationT.companyNameLabel}</strong> ${quotation.billing_company_name}
+          </p>
+        ` : ''}
+        
+        ${quotation?.billing_tax_number ? `
+          <p style="margin: 0 0 3px 0; font-size: 13px;">
+            <strong>${quotationT.taxNumber}</strong> ${quotation.billing_tax_number}
+          </p>
+        ` : ''}
+        
+        ${(quotation?.billing_street_name || quotation?.billing_street_number) ? `
+          <p style="margin: 0 0 3px 0; font-size: 13px;">
+            <strong>${quotationT.address}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}
+          </p>
+        ` : ''}
+        
+        ${(quotation?.billing_city || quotation?.billing_state || quotation?.billing_postal_code) ? `
+          <p style="margin: 0 0 3px 0; font-size: 13px;">
+            <strong>${quotationT.cityStatePostal}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}
+          </p>
+        ` : ''}
+        
+        ${quotation?.billing_country ? `
+          <p style="margin: 0; font-size: 13px;">
+            <strong>${quotationT.country}</strong> ${quotation.billing_country}
+          </p>
         ` : ''}
       </div>
       
-      <!-- Price Details Section -->
-      <div style="margin-bottom: 30px; width: 100%;">
-        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold;">${quotationT.priceDetails}</h3>
+      <!-- Price Details section with service breakdown -->
+      <div style="margin-bottom: 15px; margin-top: 0px;">
+        <h3 style="color: #333; font-size: 14px; font-weight: bold; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 8px;">
+          ${quotationT.priceDetails}
+        </h3>
         
-        <div style="background-color: #f3f3f3; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
-          <!-- Header Row -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">
-            <div style="font-weight: bold; font-size: 13px;">${quotationT.items.description}</div>
-            <div style="font-weight: bold; font-size: 13px;">${quotationT.items.price}</div>
-          </div>
-          
-          <!-- Vehicle Type Row -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <div style="font-size: 13px;">${vehicleType}</div>
-            <div style="font-size: 13px;"></div>
-          </div>
-          
-          <!-- Hourly Rate Row -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-            <div style="font-size: 13px;">Hourly Rate (${hours} hours / day)</div>
-            <div style="font-size: 13px; font-weight: medium;">${formatCurrency(hourlyRate)}</div>
-          </div>
-          
-          <!-- Number of Days Row (if more than 1) -->
-          ${serviceDays > 1 ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-              <div style="font-size: 13px; color: #666;">Number of Days</div>
-              <div style="font-size: 13px;">× ${serviceDays}</div>
+        <div style="background-color: #f9f9f9; padding: 10px; border-radius: 4px; margin-bottom: 15px; margin-top: 5px;">
+          <!-- Header row -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+            <div style="font-weight: bold; font-size: 13px; color: #555; flex: 3;">
+              ${quotationT.items.description}
             </div>
-          ` : ''}
-          
-          <!-- Base Amount Row -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
-            <div style="font-size: 13px; font-weight: medium;">Base Amount</div>
-            <div style="font-size: 13px; font-weight: medium;">${formatCurrency(baseAmount)}</div>
+            <div style="font-weight: bold; font-size: 13px; color: #555; flex: 1; text-align: right;">
+              ${quotationT.items.price}
+            </div>
           </div>
           
-          <!-- Discount Row (if applicable) -->
+          <!-- Service items rows -->
+          ${
+            // Check if we have multiple service items
+            quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
+              // If we have items, display each one
+              quotation.quotation_items.map((item, index) => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 3px 0; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #edf2f7;' : ''}">
+                  <div style="flex: 3;">
+                    <div style="font-weight: medium; margin-bottom: 3px; font-size: 13px;">
+                      ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
+                    </div>
+                    ${item.service_type_name?.toLowerCase().includes('charter') ?
+                      `<div style="font-size: 12px; color: #666;">
+                        ${item.service_days || 1} ${quotationT.days}, ${item.hours_per_day || 8} ${quotationT.hours}/${quotationT.days}
+                      </div>` :
+                      item.pickup_date ?
+                      `<div style="font-size: 12px; color: #666;">
+                        ${quotationT.pickupDate} ${new Date(item.pickup_date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
+                      </div>` :
+                      ''
+                    }
+                  </div>
+                  <div style="flex: 1; font-size: 13px; text-align: right;">
+                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                  </div>
+                </div>
+              `).join('')
+              :
+              // Fallback to a single service display if no items
+              `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
+                <div style="font-size: 13px;">
+                  ${quotation?.vehicle_type || 'Toyota Alphard Executive Lounge'}
+                </div>
+                <div style="font-size: 13px;">
+                </div>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
+                <div style="font-size: 13px;">
+                  ${language === 'ja' ? `時間料金 (${quotation?.hours_per_day || 8} 時間 / 日)` : 
+                                       `Hourly Rate (${quotation?.hours_per_day || 8} hours / day)`}
+                </div>
+                <div style="font-size: 13px; font-weight: medium;">
+                  ${formatCurrency(quotation?.hourly_rate || quotation?.daily_rate || (baseAmount / (quotation?.service_days || 1)))}
+                </div>
+              </div>
+              
+              ${(quotation?.service_days || 1) > 1 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
+                <div style="font-size: 13px; color: #666;">
+                  ${language === 'ja' ? '日数' : 'Number of Days'}
+                </div>
+                <div style="font-size: 13px;">
+                  × ${quotation?.service_days || 1}
+                </div>
+              </div>
+              ` : ''}`
+          }
+          
+          <!-- Base Amount row -->
+          <div style="display: flex; justify-content: space-between; margin-top: 8px; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
+            <div style="font-size: 13px; font-weight: medium;">
+              ${language === 'ja' ? '基本料金' : 'Base Amount'}
+            </div>
+            <div style="font-size: 13px; font-weight: medium;">
+              ${formatCurrency(baseAmount)}
+            </div>
+          </div>
+          
+          <!-- Discount row if applicable -->
           ${hasDiscount ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #e53e3e;">
-              <div style="font-size: 13px;">Discount (${parseFloat(String(quotation.discount_percentage))}%)</div>
-              <div style="font-size: 13px;">-${formatCurrency(discountAmount)}</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #e53e3e; padding: 3px 0;">
+              <div style="font-size: 13px;">
+                ${language === 'ja' ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}
+              </div>
+              <div style="font-size: 13px;">
+                -${formatCurrency(discountAmount)}
+              </div>
             </div>
             
-            <!-- Subtotal Row -->
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
-              <div style="font-size: 13px; font-weight: medium;">Subtotal</div>
-              <div style="font-size: 13px; font-weight: medium;">${formatCurrency(subtotalAmount)}</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
+              <div style="font-size: 13px; font-weight: medium;">
+                ${language === 'ja' ? '小計' : 'Subtotal'}
+              </div>
+              <div style="font-size: 13px; font-weight: medium;">
+                ${formatCurrency(subtotalAmount)}
+              </div>
             </div>
           ` : ''}
           
-          <!-- Tax Row (if applicable) -->
+          <!-- Tax row if applicable -->
           ${hasTax ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #666;">
-              <div style="font-size: 13px;">Tax (${parseFloat(String(quotation.tax_percentage))}%)</div>
-              <div style="font-size: 13px;">+${formatCurrency(taxAmount)}</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #666; padding: 3px 0;">
+              <div style="font-size: 13px;">
+                ${language === 'ja' ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}
+              </div>
+              <div style="font-size: 13px;">
+                +${formatCurrency(taxAmount)}
+              </div>
             </div>
           ` : ''}
           
-          <!-- Total Amount Row -->
-          <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #e2e8f0;">
-            <div style="font-size: 13px; font-weight: bold;">Total Amount</div>
-            <div style="font-size: 13px; font-weight: bold;">${formatCurrency(finalAmount)}</div>
+          <!-- Total row -->
+          <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
+            <div style="font-size: 13px; font-weight: bold;">
+              ${language === 'ja' ? '合計金額' : 'Total Amount'}
+            </div>
+            <div style="font-size: 13px; font-weight: bold;">
+              ${formatCurrency(quotation?.total_amount || totalAmount)}
+            </div>
           </div>
         </div>
       </div>
       
+      <!-- Page break before Terms and Conditions -->
+      <div style="page-break-after: always; height: 1px;"></div>
+      
       <!-- Terms and Conditions -->
-      <div style="margin-bottom: 25px; width: 100%;">
-        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold;">${quotationT.termsAndConditions}</h3>
-        <p style="margin: 0; font-size: 12px; line-height: 1.5; white-space: pre-line;">${quotation?.terms || quotationT.termsContent}</p>
+      <div style="margin-bottom: 25px; margin-top: 20px;">
+        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px;">
+          ${quotationT.termsAndConditions}
+        </h3>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; white-space: pre-line;">
+          ${quotation?.terms || quotationT.termsContent}
+        </p>
       </div>
       
       <!-- Footer -->
-      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-align: center; margin-top: 20px; width: 100%;">
-        <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #333; text-align: center;">${quotationT.thanksMessage}</p>
-        <p style="margin: 0 0 5px 0; font-size: 13px; text-align: center;">${quotationT.contactMessage}</p>
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666; text-align: center;">${quotationT.companyFooter}</p>
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-align: center; margin-top: auto;">
+        <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #333; text-align: center;">
+          ${quotationT.thanksMessage}
+        </p>
+        <p style="margin: 0 0 5px 0; font-size: 13px; text-align: center;">
+          ${quotationT.contactMessage}
+        </p>
+        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666; text-align: center;">
+          ${quotationT.companyFooter}
+        </p>
       </div>
     </div>
   `;
-
+  
   return html;
 } 

@@ -1848,7 +1848,9 @@ export const en: TranslationValue = {
       discountPercentage: "Discount Percentage",
       taxPercentage: "Tax Percentage",
       merchantNotes: "Internal Notes",
-      customerNotes: "Customer Notes"
+      customerNotes: "Customer Notes",
+      serviceUpdated: "Service Updated",
+      serviceUpdatedDescription: "The service details have been updated successfully."
     },
     pricing: {
       total: "Total Amount",
@@ -1935,6 +1937,7 @@ export const en: TranslationValue = {
       duration: "Duration",
       hours: "hours",
       days: "days",
+      hoursPerDay: "hours per day",
       schedule: "Schedule",
       pickupDate: "Pickup Date",
       pickupTime: "Pickup Time",
@@ -1963,6 +1966,7 @@ export const en: TranslationValue = {
         rejectButton: "Reject Quotation",
         approveConfirmation: "Are you sure you want to approve this quotation?",
         rejectConfirmation: "Are you sure you want to reject this quotation?",
+        description: "Review this quotation and either approve to proceed or reject with detailed feedback.",
         notesLabel: "Notes (Optional)",
         notesPlaceholder: "Add any notes or comments about your decision",
         reasonLabel: "Reason for Rejection",

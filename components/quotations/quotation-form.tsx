@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { 
   CalendarIcon, 
   User, 
@@ -29,7 +29,14 @@ import {
   Percent,
   StickyNote,
   Eye,
-  Globe
+  Globe,
+  Plus,
+  Trash,
+  Copy,
+  List,
+  PlusCircle,
+  Loader2,
+  PencilIcon
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -76,13 +83,25 @@ import {
   PricingCategory,
   PricingItem,
   QuotationStatus,
-  QuotationItem
+  QuotationItem,
+  ServiceItemInput
 } from '@/types/quotations';
 import { ServiceTypeInfo } from '@/hooks/useQuotationService';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 // Define form schema with zod
 const formSchema = z.object({
@@ -98,9 +117,9 @@ const formSchema = z.object({
   billing_state: z.string().optional(),
   billing_postal_code: z.string().optional(),
   billing_country: z.string().optional(),
-  service_type: z.string().min(1, { message: 'Service type is required' }),
-  vehicle_category: z.string().min(1, { message: 'Vehicle category is required' }),
-  vehicle_type: z.string().min(1, { message: 'Vehicle type is required' }),
+  service_type: z.string().optional(), // Remove validation
+  vehicle_category: z.string().optional(), // Remove validation
+  vehicle_type: z.string().optional(), // Remove validation
   pickup_date: z.date().optional(),
   pickup_time: z.string().optional(),
   duration_hours: z.union([
@@ -169,6 +188,16 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const [submittingAndSending, setSubmittingAndSending] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  // Add new state for service items
+  const [serviceItems, setServiceItems] = useState<ServiceItemInput[]>([]);
+  const [selectedItem, setSelectedItem] = useState<ServiceItemInput | null>(null);
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [isRemovingService, setIsRemovingService] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+  // Add new state for editing a service
+  const [isEditingService, setIsEditingService] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   // Debug: Log initialData at component mount
   useEffect(() => {
@@ -483,6 +512,514 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     }
   };
 
+  // Initialize serviceItems if initialData has quotation_items
+  useEffect(() => {
+    if (initialData?.quotation_items && Array.isArray(initialData.quotation_items)) {
+      // Filter only items marked as service items
+      const existingServiceItems = initialData.quotation_items
+        .filter(item => item.is_service_item)
+        .map(item => ({
+          description: item.description,
+          service_type_id: item.service_type_id || '',
+          service_type_name: item.service_type_name || '',
+          vehicle_category: item.vehicle_category || undefined,
+          vehicle_type: item.vehicle_type || '',
+          duration_hours: item.duration_hours || undefined,
+          service_days: item.service_days || undefined,
+          hours_per_day: item.hours_per_day || undefined,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          quantity: item.quantity,
+          sort_order: item.sort_order,
+          is_service_item: true
+        }));
+      
+      if (existingServiceItems.length > 0) {
+        setServiceItems(existingServiceItems);
+      }
+    }
+  }, [initialData]);
+
+  // Add a new function to better handle tax and discount calculations
+  const calculateFinalAmounts = () => {
+    const baseTotal = calculateTotalServiceAmount() || 0;
+    const discountPercentageValue = discountPercentage || 0;
+    const discountAmount = baseTotal * discountPercentageValue / 100;
+    const subtotal = baseTotal - discountAmount;
+    const taxPercentageValue = taxPercentage || 0;
+    const taxAmount = subtotal * taxPercentageValue / 100;
+    const finalTotal = subtotal + taxAmount;
+    
+    console.log("Calculating final amounts:", {
+      serviceItems: serviceItems.length,
+      baseTotal,
+      discountPercentage: discountPercentageValue,
+      discountAmount,
+      subtotal,
+      taxPercentage: taxPercentageValue,
+      taxAmount,
+      finalTotal
+    });
+    
+    return {
+      baseTotal,
+      discountAmount,
+      subtotal,
+      taxAmount,
+      finalTotal
+    };
+  };
+
+  // Calculate total amount for all service items
+  const calculateTotalServiceAmount = () => {
+    if (serviceItems.length === 0) {
+      // If no service items, fall back to basic calculation
+      return baseAmount;
+    }
+    
+    const total = serviceItems.reduce((total, item) => {
+      const itemTotal = item.total_price || (item.unit_price * (item.quantity || 1) * (item.service_days || 1));
+      console.log(`Service item ${item.description} total: ${itemTotal}`);
+      return total + itemTotal;
+    }, 0);
+    
+    console.log(`Total service amount: ${total} from ${serviceItems.length} items`);
+    return total;
+  };
+
+  // Add a function to recalculate and update all totals
+  const updateTotals = () => {
+    // Calculate the total amount from all service items
+    const baseTotal = calculateTotalServiceAmount();
+    const discountAmount = baseTotal * (discountPercentage || 0) / 100;
+    const subtotal = baseTotal - discountAmount;
+    const taxAmount = subtotal * (taxPercentage || 0) / 100;
+    const finalTotal = subtotal + taxAmount;
+    
+    console.log('UPDATE TOTALS - Recalculating all totals:', {
+      serviceItems: serviceItems.length,
+      baseTotal,
+      discountPercentage,
+      discountAmount,
+      subtotal,
+      taxPercentage,
+      taxAmount,
+      finalTotal
+    });
+    
+    // Update form field values with the appropriate field names from the schema
+    form.setValue('discount_percentage', discountPercentage || 0);
+    form.setValue('tax_percentage', taxPercentage || 0);
+    
+    // These might be handled differently in the form submission logic
+    setFormData(prev => ({
+      ...prev,
+      amount: baseTotal,
+      discount_amount: discountAmount,
+      subtotal: subtotal,
+      tax_amount: taxAmount,
+      total_amount: finalTotal
+    }));
+  };
+
+  // Function to create the effective hours_per_day value with proper type handling
+  const getEffectiveHoursPerDay = (hoursPerDay?: number, fallbackHours?: number | null): number | undefined => {
+    if (typeof hoursPerDay === 'number') {
+      return hoursPerDay;
+    }
+    if (typeof fallbackHours === 'number') {
+      return fallbackHours;
+    }
+    return undefined;
+  };
+
+  // Handle adding a new service item
+  const handleAddServiceItem = async () => {
+    // Prevent potential form submission by wrapping in a timeout
+    setTimeout(async () => {
+      try {
+        setIsCalculating(true);
+        
+        // If no service type or vehicle type is selected, use defaults
+        const effectiveServiceType = serviceType || "placeholder-service";
+        const effectiveVehicleType = vehicleType || "Standard Vehicle";
+        const effectiveVehicleCategory = vehicleCategory || "standard";
+        
+        console.log('ADD SERVICE - Input values:', {
+          serviceType: effectiveServiceType,
+          serviceTypeObject: selectedServiceTypeObject,
+          vehicleType: effectiveVehicleType,
+          vehicleCategory: effectiveVehicleCategory,
+          serviceDays: serviceDays || 1,
+          hoursPerDay
+        });
+        
+        // Calculate if this is a charter service
+        const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
+        // Define effectiveDuration based on service type
+        const effectiveDuration = isCharter ? hoursPerDay || 1 : 1;
+        
+        // Calculate pricing for this service item
+        const pricingResult = await calculateQuotationAmount(
+          effectiveServiceType,
+          effectiveVehicleType,
+          effectiveDuration,
+          0, // No discount at the service item level
+          0, // No tax at the service item level
+          serviceDays || 1,
+          hoursPerDay
+        );
+        
+        console.log('ADD SERVICE - Price calculation result:', pricingResult);
+        
+        // Prepare the new service item
+        const newItem: ServiceItemInput = {
+          service_type_id: effectiveServiceType,
+          service_type_name: selectedServiceTypeObject?.name || 'Service',
+          vehicle_type: effectiveVehicleType,
+          vehicle_category: effectiveVehicleCategory,
+          duration_hours: effectiveDuration,
+          unit_price: pricingResult.baseAmount,
+          quantity: 1,
+          total_price: pricingResult.baseAmount * (serviceDays || 1),
+          service_days: serviceDays || 1,
+          hours_per_day: effectiveDuration,
+          description: `${selectedServiceTypeObject?.name || 'Service'} - ${effectiveVehicleType}`,
+          sort_order: serviceItems.length,
+          is_service_item: true
+        };
+        
+        console.log('ADD SERVICE - New service item:', newItem);
+        
+        // Add the new item to the list
+        setServiceItems(prev => [...prev, newItem]);
+        
+        // Clear/reset form fields for the next service
+        form.setValue('service_type', '');
+        form.setValue('vehicle_category', '');
+        form.setValue('vehicle_type', '');
+        form.setValue('service_days', 1);
+        form.setValue('hours_per_day', undefined);
+        
+        // Recalculate the total amount
+        const newTotal = calculateTotalServiceAmount();
+        console.log('ADD SERVICE - New total amount:', newTotal);
+        
+        toast({
+          title: t('quotations.form.serviceAdded'),
+          description: t('quotations.form.serviceAddedDescription')
+        });
+      } catch (error) {
+        console.error('Error adding service item:', error);
+        toast({
+          title: t('quotations.form.error'),
+          description: t('quotations.form.errorAddingService'),
+          variant: 'destructive'
+        });
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 0);
+  };
+  
+  // Handle removing a service item
+  const handleRemoveServiceItem = (index: number) => {
+    // Prevent form submission with a callback
+    setTimeout(() => {
+      setSelectedItem(serviceItems[index]);
+      setIsRemovingService(true);
+    }, 0);
+  };
+  
+  const confirmRemoveServiceItem = () => {
+    if (selectedItem) {
+      const updatedItems = serviceItems.filter(item => item !== selectedItem);
+      setServiceItems(updatedItems);
+      setSelectedItem(null);
+      setIsRemovingService(false);
+      
+      toast({
+        title: "Service Removed",
+        description: `Removed ${selectedItem.description} from quotation`,
+      });
+    }
+  };
+  
+  // Duplicate a service item
+  const handleDuplicateServiceItem = (index: number) => {
+    // Prevent form submission with a callback
+    setTimeout(() => {
+      const itemToDuplicate = serviceItems[index];
+      const duplicate: ServiceItemInput = {
+        ...JSON.parse(JSON.stringify(itemToDuplicate)),
+        sort_order: serviceItems.length
+      };
+      
+      setServiceItems([...serviceItems, duplicate]);
+      
+      toast({
+        title: "Service Duplicated",
+        description: `Duplicated ${itemToDuplicate.description}`,
+      });
+    }, 0);
+  };
+
+  // Add a function to handle editing a service item
+  const handleEditServiceItem = (index: number) => {
+    // Prevent form submission with a callback
+    setTimeout(() => {
+      setSelectedItem(serviceItems[index]);
+      setEditingIndex(index);
+      
+      // Pre-fill form with the selected item's values
+      const item = serviceItems[index];
+      form.setValue('service_type', item.service_type_id || '');
+      form.setValue('vehicle_category', item.vehicle_category as string || '');
+      form.setValue('vehicle_type', item.vehicle_type || '');
+      form.setValue('service_days', item.service_days || 1);
+      form.setValue('hours_per_day', item.hours_per_day || undefined);
+      form.setValue('duration_hours', item.duration_hours || 1);
+      
+      // Set pickup date and time if available in the item
+      if (item.pickup_date) {
+        form.setValue('pickup_date', parseISO(item.pickup_date));
+      }
+      if (item.pickup_time) {
+        form.setValue('pickup_time', item.pickup_time);
+      }
+      
+      // Scroll to the service form section
+      const serviceFormElement = document.getElementById('service-form-section');
+      if (serviceFormElement) {
+        serviceFormElement.scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      // Update UI to show we're in edit mode instead of using a modal
+      setIsEditingService(true);
+    }, 0);
+  };
+
+  // Add a function to update a service item
+  const handleUpdateServiceItem = async () => {
+    // Prevent potential form submission by wrapping in a timeout
+    setTimeout(async () => {
+      try {
+        setIsCalculating(true);
+        
+        if (editingIndex === null || !selectedItem) {
+          setIsCalculating(false);
+          return;
+        }
+        
+        // Similar logic to handleAddServiceItem but for updating
+        const effectiveServiceType = serviceType || selectedItem.service_type_id || "placeholder-service";
+        const effectiveVehicleType = vehicleType || selectedItem.vehicle_type || "Standard Vehicle";
+        const effectiveVehicleCategory = vehicleCategory || (selectedItem.vehicle_category as string) || "standard";
+        
+        console.log('UPDATE SERVICE - Input values:', {
+          serviceType: effectiveServiceType,
+          serviceTypeObject: selectedServiceTypeObject,
+          vehicleType: effectiveVehicleType,
+          vehicleCategory: effectiveVehicleCategory,
+          serviceDays: serviceDays || selectedItem.service_days || 1,
+          hoursPerDay: hoursPerDay || selectedItem.hours_per_day || 1,
+          editingIndex,
+          originalItem: selectedItem
+        });
+        
+        const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
+        const effectiveDuration = isCharter 
+          ? hoursPerDay || selectedItem.hours_per_day || 1 
+          : 1;
+        const effectiveServiceDays = serviceDays || selectedItem.service_days || 1;
+        
+        // Use the helper function for proper type handling
+        const effectiveHoursPerDay = getEffectiveHoursPerDay(hoursPerDay, selectedItem.hours_per_day);
+        
+        // Calculate pricing for this service item
+        const pricingResult = await calculateQuotationAmount(
+          effectiveServiceType,
+          effectiveVehicleType,
+          effectiveDuration,
+          0, // No discount at the service item level
+          0, // No tax at the service item level
+          effectiveServiceDays,
+          effectiveHoursPerDay
+        );
+        
+        console.log('UPDATE SERVICE - Price calculation result:', pricingResult);
+        
+        // Create the updated item
+        const updatedItem: ServiceItemInput = {
+          ...selectedItem,
+          service_type_id: effectiveServiceType,
+          service_type_name: selectedServiceTypeObject?.name || selectedItem.service_type_name || 'Service',
+          vehicle_type: effectiveVehicleType,
+          vehicle_category: effectiveVehicleCategory,
+          duration_hours: effectiveDuration,
+          unit_price: pricingResult.baseAmount,
+          quantity: 1,
+          total_price: pricingResult.baseAmount * effectiveServiceDays,
+          service_days: effectiveServiceDays,
+          hours_per_day: effectiveDuration,
+          description: `${selectedServiceTypeObject?.name || selectedItem.service_type_name || 'Service'} - ${effectiveVehicleType}`,
+          is_service_item: true,
+          pickup_date: watchedValues.pickup_date ? format(watchedValues.pickup_date, 'yyyy-MM-dd') : selectedItem.pickup_date,
+          pickup_time: watchedValues.pickup_time || selectedItem.pickup_time
+        };
+        
+        console.log('UPDATE SERVICE - Updated service item:', {
+          before: selectedItem,
+          after: updatedItem,
+          priceDifference: updatedItem.unit_price - selectedItem.unit_price,
+          totalDifference: updatedItem.total_price - selectedItem.total_price
+        });
+        
+        // Update the item in the list
+        const updatedItems = [...serviceItems];
+        updatedItems[editingIndex] = updatedItem;
+        setServiceItems(updatedItems);
+        
+        // Reset the editing state
+        setIsEditingService(false);
+        setEditingIndex(null);
+        setSelectedItem(null);
+        
+        // Clear form fields
+        form.setValue('service_type', '');
+        form.setValue('vehicle_category', '');
+        form.setValue('vehicle_type', '');
+        form.setValue('service_days', 1);
+        form.setValue('hours_per_day', undefined);
+        
+        // Recalculate the total amount
+        const newTotal = calculateTotalServiceAmount();
+        console.log('UPDATE SERVICE - New total amount:', newTotal);
+        
+        toast({
+          title: t('quotations.form.serviceUpdated'),
+          description: t('quotations.form.serviceUpdatedDescription')
+        });
+      } catch (error) {
+        console.error('Error updating service item:', error);
+        toast({
+          title: t('quotations.form.error'),
+          description: t('quotations.form.errorUpdatingService'),
+          variant: 'destructive'
+        });
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 0);
+  };
+
+  // Render the service items list
+  const renderServiceItemsList = () => {
+    if (serviceItems.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground">
+          <Car className="mx-auto h-8 w-8 mb-2 opacity-50" />
+          <p>No services added yet. Add your first service using the button below.</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {serviceItems.map((item, index) => (
+          <Card key={index} className={`relative overflow-hidden ${editingIndex === index ? 'ring-2 ring-primary' : ''}`}>
+            <div className={`absolute top-0 left-0 h-full w-1 ${item.service_type_name?.toLowerCase().includes('charter') ? 'bg-blue-500' : 'bg-amber-500'}`} />
+            <CardContent className="pt-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium text-base flex items-center">
+                    <Badge variant={item.service_type_name?.toLowerCase().includes('charter') ? "default" : "secondary"} className="mr-2">
+                      {item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
+                    </Badge>
+                    {item.description}
+                    {editingIndex === index && <Badge variant="outline" className="ml-2">Editing</Badge>}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                    <div className="text-muted-foreground">Vehicle:</div>
+                    <div>{item.vehicle_type}</div>
+                    
+                    {item.service_type_name?.toLowerCase().includes('charter') ? (
+                      <>
+                        <div className="text-muted-foreground">Days:</div>
+                        <div>{item.service_days || 1}</div>
+                        <div className="text-muted-foreground">Hours per day:</div>
+                        <div>{item.hours_per_day || 'N/A'}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-muted-foreground">Duration:</div>
+                        <div>{item.duration_hours} hour(s)</div>
+                      </>
+                    )}
+                    
+                    <div className="text-muted-foreground">Unit Price:</div>
+                    <div>{formatCurrency(item.unit_price)}</div>
+                    
+                    <div className="text-muted-foreground">Total:</div>
+                    <div className="font-semibold">{formatCurrency(item.total_price || item.unit_price)}</div>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button 
+                    variant={editingIndex === index ? "default" : "ghost"}
+                    size="icon"
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent form submission
+                      e.stopPropagation(); // Stop event bubbling
+                      handleEditServiceItem(index);
+                    }}
+                    title="Edit Service"
+                    type="button" // Explicitly set button type to prevent form submission
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent form submission
+                      e.stopPropagation(); // Stop event bubbling
+                      handleDuplicateServiceItem(index);
+                    }}
+                    title="Duplicate Service"
+                    disabled={isEditingService}
+                    type="button" // Explicitly set button type to prevent form submission
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent form submission
+                      e.stopPropagation(); // Stop event bubbling
+                      handleRemoveServiceItem(index);
+                    }}
+                    title="Remove Service"
+                    disabled={isEditingService}
+                    type="button" // Explicitly set button type to prevent form submission
+                  >
+                    <Trash className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        <div className="pt-2 pb-4 flex justify-between items-center font-medium">
+          <span>Total Amount (before discount/tax):</span>
+          <span>{formatCurrency(calculateTotalServiceAmount())}</span>
+        </div>
+      </div>
+    );
+  };
+
   // Submit the form
   const onSubmit = async (data: FormData, sendToCustomer = false) => {
     try {
@@ -496,6 +1033,12 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       // Rely on Zod coercion from form.handleSubmit, just apply defaults if necessary
       const formData = {
         ...data,
+        // Ensure service type has a default value if undefined
+        service_type: data.service_type || '',
+        // Ensure vehicle category has a default value if undefined  
+        vehicle_category: data.vehicle_category || '',
+        // Ensure vehicle type has a default value if undefined
+        vehicle_type: data.vehicle_type || '',
         duration_hours: typeof data.duration_hours === 'number' && !isNaN(data.duration_hours) ? data.duration_hours : 1,
         hours_per_day: typeof data.hours_per_day === 'number' && !isNaN(data.hours_per_day) ? data.hours_per_day : undefined, // Keep undefined if not applicable/invalid
         service_days: typeof data.service_days === 'number' && !isNaN(data.service_days) ? data.service_days : 1,
@@ -515,7 +1058,37 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       });
 
       // Handle problematic values directly in the input object
-      const inputData = {
+      const input: {
+        title: string;
+        customer_email: string;
+        customer_name: string | undefined;
+        customer_phone: string | undefined;
+        billing_company_name: string | undefined;
+        billing_tax_number: string | undefined;
+        billing_street_name: string | undefined;
+        billing_street_number: string | undefined;
+        billing_city: string | undefined;
+        billing_state: string | undefined;
+        billing_postal_code: string | undefined;
+        billing_country: string | undefined;
+        service_type_id: string;
+        vehicle_category: string | undefined;
+        vehicle_type: string;
+        pickup_date: string | undefined;
+        pickup_time: string | undefined;
+        duration_hours: number;
+        service_days: number;
+        hours_per_day: number | undefined;
+        merchant_notes: string | undefined;
+        discount_percentage: number;
+        tax_percentage: number;
+        status: QuotationStatus;
+        passenger_count: number | null;
+        currency: string;
+        display_currency: string;
+        amount?: number;
+        total_amount?: number;
+      } = {
         title: formData.title || '',
         customer_email: formData.customer_email,
         customer_name: formData.customer_name || undefined,
@@ -556,105 +1129,238 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
         display_currency: selectedCurrency || 'JPY'
       };
       
+      // If we have multiple services, calculate the actual amount here
+      if (serviceItems.length > 0) {
+        const { baseTotal, finalTotal } = calculateFinalAmounts();
+        input.amount = baseTotal;
+        input.total_amount = finalTotal;
+        console.log('SAVE & SEND DEBUG - Multiple services calculation:', {
+          serviceItemsCount: serviceItems.length,
+          baseTotal,
+          finalTotal
+        });
+      }
+      
       // Create input object for the API
-      const input: CreateQuotationInput = {
-        ...inputData,
-        // service_type_id is now correctly in inputData
-        // Fix for passenger_count specifically
-        passenger_count: inputData.passenger_count,
-        // Convert pickup_date from Date to string if needed
-        pickup_date: inputData.pickup_date as string
+      const createInput: CreateQuotationInput = {
+        ...input,
+        // Don't use a default string for service_type_id, it needs to be a valid UUID
+        service_type_id: (input.service_type_id && input.service_type_id !== "default-service-type") 
+          ? input.service_type_id 
+          : (serviceItems.length > 0 && serviceItems[0].service_type_id) 
+            ? serviceItems[0].service_type_id 
+            : "", // Use empty string as a fallback to avoid undefined
+        // Ensure vehicle_type is never empty
+        vehicle_type: input.vehicle_type || "Standard Vehicle",
+        // Rest of the fields remain the same
+        passenger_count: input.passenger_count,
+        pickup_date: input.pickup_date as string,
+        ...(serviceItems.length > 0 ? {
+          amount: input.amount,
+          total_amount: input.total_amount
+        } : {})
       };
       
       // Debug log for API input - important for diagnosing issues
-      console.log('SAVE & SEND DEBUG - API input:', input);
+      console.log('SAVE & SEND DEBUG - API input:', createInput);
 
-      let result: Quotation | null;
+      let result: Quotation | null = null;
 
       try {
-        if (initialData?.id) {
-          // Update existing quotation
-          console.log('SAVE & SEND DEBUG - Updating existing quotation ID:', initialData.id);
-          result = await updateQuotation(initialData.id, input);
-        
-          // If sending to customer, send email via the API endpoint
-          if (sendToCustomer && result) {
-            console.log('SAVE & SEND DEBUG - Sending email for ID:', initialData.id);
-            // Use the sendQuotation function which takes care of updating status and sending email
-            await sendQuotation(initialData.id);
-            console.log('SUBMIT DEBUG - Sent to customer (Update)');
+        // Handle multiple services
+        if (serviceItems.length > 0) {
+          console.log('SAVE & SEND DEBUG - Using multiple services mode:', serviceItems.length, 'services');
+          
+          // Calculate total amount for all service items - let the backend handle this though
+          // Ensure each service item has the right values
+          const processedServiceItems = serviceItems.map(item => ({
+            ...item,
+            total_price: item.total_price || (item.unit_price * (item.quantity || 1))
+          }));
+          
+          // Use the updated createQuotation method that supports service items
+          if (initialData?.id) {
+            // For existing quotations, send the updated quotation data with explicit amounts
+            const updateInput = {
+              ...input,
+              amount: input.amount,  // Ensure these are explicitly set for the update
+              total_amount: input.total_amount
+            };
             
-            // Show appropriate toast based on mode (edit vs create)
-            toast({
-              title: initialData?.id 
-                ? t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent' 
-                : t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
+            console.log('SAVE & SEND DEBUG - Update input with explicit amounts:', {
+              amount: updateInput.amount,
+              total_amount: updateInput.total_amount
             });
-          }
-        } else {
-          // Create new quotation
-          console.log('SAVE & SEND DEBUG - Creating new quotation');
-          
-          // Create the quotation first
-          result = await createQuotation(input);
-          
-          // Check if we have quotation items to duplicate and the result was successful
-          if (result && initialData && initialData.quotation_items && 
-              Array.isArray(initialData.quotation_items) && initialData.quotation_items.length > 0) {
             
-            const quotationItems = initialData.quotation_items;
-            console.log('SAVE & SEND DEBUG - Including quotation items in creation:', quotationItems.length);
+            // For existing quotations, send the updated quotation data first
+            result = await updateQuotation(initialData.id, updateInput);
             
-            try {
-              // We need to use the browser's fetch API instead of the server component
-              const items = quotationItems.map(item => ({
-                description: item.description,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total_price: item.total_price,
-                sort_order: item.sort_order || 0,
-                quotation_id: result?.id
-              }));
-              
-              console.log('SAVE & SEND DEBUG - Adding items to new quotation:', items);
-              
-              // Use the fetch API to create the line items
-              if (result?.id) {
-                const response = await fetch('/api/quotations/items/bulk-create', {
+            // Then, delete existing service items and create new ones
+            if (result) {
+              try {
+                // Delete existing items
+                const deleteResponse = await fetch(`/api/quotations/${initialData.id}/items/delete-all`, {
+                  method: 'DELETE'
+                });
+                
+                if (!deleteResponse.ok) {
+                  console.error('Failed to clear existing items:', await deleteResponse.text());
+                }
+                
+                // Create new items
+                const createResponse = await fetch('/api/quotations/items/bulk-create', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ 
-                    quotation_id: result.id,
-                    items: items
-                  }),
+                  body: JSON.stringify({
+                    quotation_id: initialData.id,
+                    items: processedServiceItems
+                  })
                 });
                 
-                if (!response.ok) {
-                  console.error('SAVE & SEND DEBUG - Error creating line items:', await response.text());
-                } else {
-                  console.log('SAVE & SEND DEBUG - Successfully added all items to quotation');
+                if (!createResponse.ok) {
+                  throw new Error(`Failed to create service items: ${await createResponse.text()}`);
                 }
+                
+                // After creating items, update the quotation again to ensure the amount is correct
+                const finalAmounts = calculateFinalAmounts();
+                const finalUpdateResponse = await fetch(`/api/quotations/${initialData.id}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    amount: finalAmounts.baseTotal,
+                    total_amount: finalAmounts.finalTotal
+                  })
+                });
+                
+                if (!finalUpdateResponse.ok) {
+                  console.error('Failed to update final amounts:', await finalUpdateResponse.text());
+                } else {
+                  const updatedQuotation = await finalUpdateResponse.json();
+                  console.log('SAVE & SEND DEBUG - Final quotation update result:', updatedQuotation);
+                  result = updatedQuotation;
+                }
+              } catch (error) {
+                console.error('Error updating service items:', error);
+                // Continue with the process even if service items failed
               }
-            } catch (itemsError) {
-              console.error('SAVE & SEND DEBUG - Error during items creation:', itemsError);
+            }
+            
+            // If sending to customer, send email via the API endpoint
+            if (sendToCustomer && result) {
+              console.log('SAVE & SEND DEBUG - Sending email for ID:', initialData.id);
+              // Use the sendQuotation function which takes care of updating status and sending email
+              await sendQuotation(initialData.id);
+              console.log('SUBMIT DEBUG - Sent to customer (Update)');
+              
+              // Show appropriate toast based on mode (edit vs create)
+              toast({
+                title: t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent',
+              });
+            }
+          } else {
+            // For new quotations, use our enhanced createQuotation with service items
+            result = await createQuotation(createInput, processedServiceItems);
+            
+            // If sending to customer, send email via the API endpoint
+            if (sendToCustomer && result?.id) {
+              console.log('SAVE & SEND DEBUG - Sending email for new quotation ID:', result.id);
+              // Use the sendQuotation function which takes care of updating status and sending email
+              await sendQuotation(result.id);
+              console.log('SUBMIT DEBUG - Sent to customer (Create)');
+              
+              toast({
+                title: t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
+              });
             }
           }
+        } else {
+          // Fallback to single service mode if no service items were added
+          console.log('SAVE & SEND DEBUG - Using single service mode');
           
-          // If sending to customer, send email via the API endpoint
-          if (sendToCustomer && result?.id) {
-            console.log('SAVE & SEND DEBUG - Sending email for new quotation ID:', result.id);
-            // Use the sendQuotation function which takes care of updating status and sending email
-            await sendQuotation(result.id);
-            console.log('SUBMIT DEBUG - Sent to customer (Create)');
+          if (initialData?.id) {
+            // Update existing quotation
+            console.log('SAVE & SEND DEBUG - Updating existing quotation ID:', initialData.id);
+            result = await updateQuotation(initialData.id, input);
+          
+            // If sending to customer, send email via the API endpoint
+            if (sendToCustomer && result) {
+              console.log('SAVE & SEND DEBUG - Sending email for ID:', initialData.id);
+              // Use the sendQuotation function which takes care of updating status and sending email
+              await sendQuotation(initialData.id);
+              console.log('SUBMIT DEBUG - Sent to customer (Update)');
+              
+              // Show appropriate toast based on mode (edit vs create)
+              toast({
+                title: t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent',
+              });
+            }
+          } else {
+            // Create new quotation
+            console.log('SAVE & SEND DEBUG - Creating new quotation');
             
-            // Show appropriate toast based on mode
-            toast({
-              title: initialData?.id 
-                ? t('quotations.notifications.updateAndSendSuccess') || 'Your Updated Quotation has been sent' 
-                : t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
-            });
+            // Create the quotation first
+            result = await createQuotation(createInput);
+            
+            // Check if we have quotation items to duplicate and the result was successful
+            if (result && initialData && initialData.quotation_items && 
+                Array.isArray(initialData.quotation_items) && initialData.quotation_items.length > 0) {
+              
+              const quotationItems = initialData.quotation_items;
+              console.log('SAVE & SEND DEBUG - Including quotation items in creation:', quotationItems.length);
+              
+              try {
+                // We need to use the browser's fetch API instead of the server component
+                const items = quotationItems.map(item => ({
+                  description: item.description,
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  total_price: item.total_price,
+                  sort_order: item.sort_order || 0,
+                  quotation_id: result?.id
+                }));
+                
+                console.log('SAVE & SEND DEBUG - Adding items to new quotation:', items);
+                
+                // Use the fetch API to create the line items
+                if (result?.id) {
+                  const response = await fetch('/api/quotations/items/bulk-create', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                      quotation_id: result.id,
+                      items: items
+                    }),
+                  });
+                  
+                  if (!response.ok) {
+                    console.error('SAVE & SEND DEBUG - Error creating line items:', await response.text());
+                  } else {
+                    console.log('SAVE & SEND DEBUG - Successfully added all items to quotation');
+                  }
+                }
+              } catch (itemsError) {
+                console.error('SAVE & SEND DEBUG - Error during items creation:', itemsError);
+              }
+            }
+            
+            // If sending to customer, send email via the API endpoint
+            if (sendToCustomer && result?.id) {
+              console.log('SAVE & SEND DEBUG - Sending email for new quotation ID:', result.id);
+              // Use the sendQuotation function which takes care of updating status and sending email
+              await sendQuotation(result.id);
+              console.log('SUBMIT DEBUG - Sent to customer (Create)');
+              
+              // Show appropriate toast based on mode
+              toast({
+                title: t('quotations.notifications.sendSuccess') || 'Your Quotation has been sent',
+              });
+            }
           }
         }
       } catch (apiError) {
@@ -692,7 +1398,21 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
 
   // Navigation functions
   const nextStep = () => {
-    // Optionally trigger validation for the current step before proceeding
+    // Always allow proceeding from step 1 (service config) regardless of validation
+    if (currentStep === 1) {
+      setCurrentStep(currentStep + 1);
+      return;
+    }
+    
+    // If we have services added already, also allow proceeding
+    if (serviceItems.length > 0) {
+      if (currentStep < steps.length - 1) {
+        setCurrentStep(currentStep + 1);
+      }
+      return;
+    }
+    
+    // Otherwise, optionally trigger validation for the current step before proceeding
     // form.trigger([...fields_in_current_step]).then(isValid => { if(isValid) ... });
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -815,6 +1535,12 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     );
   };
 
+  // Add a function to handle form submission with explicit control
+  const handleExplicitSubmit = (e: React.FormEvent, sendToCustomer = false) => {
+    e.preventDefault();
+    form.handleSubmit((data) => onSubmit(data, sendToCustomer))(e);
+  };
+
   return (
     <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
        <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 sm:px-6 py-4">
@@ -891,7 +1617,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
 
       <Form {...form}>
         <form 
-          onSubmit={form.handleSubmit((data) => onSubmit(data, true))}
+          onSubmit={(e) => handleExplicitSubmit(e, true)}
           className="p-3 sm:p-6 pb-20 md:pb-6 space-y-8"
         >
           {currentStep === 0 && (
@@ -1128,14 +1854,44 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
              <div className="space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2"><Car className="h-5 w-5" /> {t('quotations.form.serviceSection')}</h2>
                  
-                 {renderButtonGroup('service_type', getAvailableServiceTypes())}
+                {/* Display existing services if any */}
+                {serviceItems.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-medium flex items-center gap-2">
+                        <List className="h-4 w-4 text-muted-foreground" />
+                        Selected Services
+                      </h3>
+                      <Badge variant="outline">{serviceItems.length} {serviceItems.length === 1 ? 'service' : 'services'}</Badge>
+                    </div>
+                    {renderServiceItemsList()}
+                  </div>
+                )}
+                 
+                {/* Service Selection Form - with clear visual separation */}
+                <div id="service-form-section" className={cn(
+                  "space-y-4 rounded-lg border p-4",
+                  serviceItems.length > 0 && "bg-muted/20"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-medium">
+                      {isEditingService 
+                        ? `Edit Service: ${selectedItem?.description}`
+                        : serviceItems.length > 0 
+                          ? "Add Another Service" 
+                          : "Configure Service"
+                      }
+                    </h3>
+                  </div>
+                  
+                  {renderButtonGroup('service_type', getAvailableServiceTypes())}
 
                   {renderButtonGroup('vehicle_category', getVehicleCategories(), !serviceType)}
                  
-                 {renderVehicleTypeButtons('vehicle_type', getVehicleTypesForCategory(), !vehicleCategory)}
+                  {renderVehicleTypeButtons('vehicle_type', getVehicleTypesForCategory(), !vehicleCategory)}
 
-                 <Separator className="my-4" />
-                 <h3 className="text-lg font-medium flex items-center gap-2"><Clock className="h-5 w-5" /> Date, Time & Duration</h3>
+                  <Separator className="my-4" />
+                  <h3 className="text-lg font-medium flex items-center gap-2"><Clock className="h-5 w-5" /> Date, Time & Duration</h3>
 
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     <FormField
@@ -1221,7 +1977,6 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                       />
                       
                       {renderHoursPerDayButtons('hours_per_day', getDurationsForServiceAndVehicle())}
-
                     </>
                   )}
 
@@ -1248,6 +2003,60 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                        )}
                      />
                   )}
+                  
+                  {/* Button to add or update service */}
+                  <div className="flex justify-center gap-2 mt-6">
+                    {isEditingService ? (
+                      <>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={(e) => {
+                            // Reset editing state
+                            e.preventDefault();
+                            setIsEditingService(false);
+                            setEditingIndex(null);
+                            setSelectedItem(null);
+                            
+                            // Reset form fields
+                            form.setValue('service_type', '');
+                            form.setValue('vehicle_category', '');
+                            form.setValue('vehicle_type', '');
+                            form.setValue('service_days', 1);
+                            form.setValue('hours_per_day', undefined);
+                          }}
+                          className="w-full sm:w-auto"
+                        >
+                          Cancel Edit
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleUpdateServiceItem();
+                          }}
+                          disabled={!serviceType || !vehicleType}
+                          className="w-full sm:w-auto"
+                        >
+                          Update Service
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAddServiceItem();
+                        }}
+                        disabled={!serviceType || !vehicleType} // Require at least service type and vehicle type
+                        className="w-full sm:w-auto"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> 
+                        {serviceItems.length === 0 ? 'Add This Service' : 'Add Another Service'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
           )}
           
@@ -1336,54 +2145,80 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                      </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
+                        {serviceItems.length > 0 ? (
+                          // Display multiple services pricing with improved breakdown
                           <>
-                            <div className="flex justify-between text-sm">
-                              <span>Hourly Rate ({hoursPerDay || 1} hour{(hoursPerDay || 1) !== 1 ? 's' : ''} / day)</span>
-                              <span>{formatCurrency(baseAmount / (serviceDays || 1))}</span>
-                            </div>
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                              <span>Number of Days</span>
-                              <span>× {serviceDays || 1}</span>
-                            </div>
-                             <Separator className="my-1" />
-                            <div className="flex justify-between text-sm font-medium">
-                              <span>Base Amount</span>
-                              <span>{formatCurrency(baseAmount)}</span>
-                            </div>
+                            <div className="text-sm font-medium mb-2">Services:</div>
+                            {serviceItems.map((item, index) => (
+                              <div key={index} className="flex justify-between text-sm pl-4">
+                                <span className="truncate max-w-[70%]">{item.description}</span>
+                                <span>{formatCurrency(item.total_price || item.unit_price)}</span>
+                              </div>
+                            ))}
+                            <Separator className="my-2" />
+                            {(() => {
+                              const { baseTotal, discountAmount, subtotal, taxAmount, finalTotal } = calculateFinalAmounts();
+                              return (
+                                <>
+                                  <div className="flex justify-between text-sm font-medium">
+                                    <span>Base Amount</span>
+                                    <span>{formatCurrency(baseTotal)}</span>
+                                  </div>
+                                  {(discountPercentage || 0) > 0 && (
+                                    <div className="flex justify-between text-sm text-red-600">
+                                      <span>Discount ({discountPercentage || 0}%)</span>
+                                      <span>-{formatCurrency(discountAmount)}</span>
+                                    </div>
+                                  )}
+                                  <Separator className="my-1" />
+                                  <div className="flex justify-between text-sm font-medium">
+                                    <span>Subtotal</span>
+                                    <span>{formatCurrency(subtotal)}</span>
+                                  </div>
+                                  {(taxPercentage || 0) > 0 && (
+                                    <div className="flex justify-between text-sm text-muted-foreground">
+                                      <span>Tax ({taxPercentage || 0}%)</span>
+                                      <span>+{formatCurrency(taxAmount)}</span>
+                                    </div>
+                                  )}
+                                  <Separator className="my-2" />
+                                  <div className="flex justify-between font-semibold text-lg">
+                                    <span>{t('quotations.pricing.total')}</span>
+                                    <span>{formatCurrency(finalTotal)}</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </>
+                        ) : (
+                          // Traditional single service view remains unchanged
+                          <>
+                            {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
+                              <>
+                                <div className="flex justify-between text-sm">
+                                  <span>Hourly Rate ({hoursPerDay || 1} hour{(hoursPerDay || 1) !== 1 ? 's' : ''} / day)</span>
+                                  <span>{formatCurrency(baseAmount / (serviceDays || 1))}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-muted-foreground">
+                                  <span>Number of Days</span>
+                                  <span>× {serviceDays || 1}</span>
+                                </div>
+                                 <Separator className="my-1" />
+                                <div className="flex justify-between text-sm font-medium">
+                                  <span>Base Amount</span>
+                                  <span>{formatCurrency(baseAmount)}</span>
+                                </div>
+                              </>
+                            )}
+                            
+                            {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
+                              <div className="flex justify-between text-sm font-medium">
+                                <span>Base Amount</span>
+                                <span>{formatCurrency(baseAmount)}</span>
+                              </div>
+                            )}
                           </>
                         )}
-                        
-                        {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
-                          <div className="flex justify-between text-sm font-medium">
-                            <span>Base Amount</span>
-                            <span>{formatCurrency(baseAmount)}</span>
-                          </div>
-                        )}
-                        
-                        {(discountPercentage || 0) > 0 && (
-                          <div className="flex justify-between text-sm text-red-600">
-                            <span>Discount ({discountPercentage || 0}%)</span>
-                            <span>-{formatCurrency((baseAmount * (discountPercentage || 0)) / 100)}</span>
-                          </div>
-                        )}
-                         <Separator className="my-1" />
-                         <div className="flex justify-between text-sm font-medium">
-                            <span>Subtotal</span>
-                            <span>{formatCurrency(baseAmount * (1 - (discountPercentage || 0) / 100))}</span>
-                          </div>
-
-                        {(taxPercentage || 0) > 0 && (
-                          <div className="flex justify-between text-sm text-muted-foreground">
-                            <span>Tax ({taxPercentage || 0}%)</span>
-                            <span>+{formatCurrency((baseAmount * (1 - (discountPercentage || 0) / 100) * (taxPercentage || 0)) / 100)}</span>
-                          </div>
-                        )}
-                        <Separator className="my-2" />
-                        <div className="flex justify-between font-semibold text-lg">
-                          <span>{t('quotations.pricing.total')}</span>
-                          <span>{formatCurrency(totalAmount)}</span>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -1481,32 +2316,78 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                        
                        <Separator className="my-3" />
                        <h3 className="font-medium text-base mb-2 border-b pb-1">Service Details</h3>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          <span className="text-muted-foreground">Service Type:</span> <span>{selectedServiceTypeObject?.name || watchedValues.service_type || '-'}</span>
-                          <span className="text-muted-foreground">Vehicle Category:</span> <span>{getVehicleCategories().find(c => c.id === watchedValues.vehicle_category)?.name || '-'}</span>
-                          <span className="text-muted-foreground">Vehicle Type:</span> <span>{watchedValues.vehicle_type || '-'}</span>
-                          <span className="text-muted-foreground">Pickup Date:</span> <span>{watchedValues.pickup_date ? format(watchedValues.pickup_date, 'PPP') : '-'}</span>
-                           <span className="text-muted-foreground">Pickup Time:</span> <span>{watchedValues.pickup_time || '-'}</span>
-                          {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
-                            <>
-                              <span className="text-muted-foreground">Service Days:</span> <span>{watchedValues.service_days || 1}</span>
-                              <span className="text-muted-foreground">Hours per Day:</span> <span>{watchedValues.hours_per_day || '-'}</span>
-                            </>
-                          )}
-                          {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
-                             <>
-                               <span className="text-muted-foreground">Duration:</span> <span>1 Hour</span>
-                             </>
-                          )}
-                       </div>
+                       
+                       {serviceItems.length > 0 ? (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                              <span className="text-muted-foreground">Pickup Date:</span> 
+                              <span>{watchedValues.pickup_date ? format(watchedValues.pickup_date, 'PPP') : '-'}</span>
+                              <span className="text-muted-foreground">Pickup Time:</span> 
+                              <span>{watchedValues.pickup_time || '-'}</span>
+                            </div>
+                            
+                            <div className="pt-2">
+                              <h4 className="font-medium">Services ({serviceItems.length}):</h4>
+                              <div className="space-y-2 mt-2">
+                                {serviceItems.map((item, idx) => (
+                                  <div key={idx} className="bg-muted/30 p-3 rounded-md">
+                                    <div className="font-medium">{item.description}</div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1 text-sm">
+                                      {item.service_type_name?.toLowerCase().includes('charter') ? (
+                                        <>
+                                          <span className="text-muted-foreground">Days:</span>
+                                          <span>{item.service_days || 1}</span>
+                                          <span className="text-muted-foreground">Hours per day:</span>
+                                          <span>{item.hours_per_day || '-'}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="text-muted-foreground">Duration:</span>
+                                          <span>{item.duration_hours} hour(s)</span>
+                                        </>
+                                      )}
+                                      <span className="text-muted-foreground">Price:</span>
+                                      <span>{formatCurrency(item.total_price || item.unit_price)}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <span className="text-muted-foreground">Service Type:</span> <span>{selectedServiceTypeObject?.name || watchedValues.service_type || '-'}</span>
+                            <span className="text-muted-foreground">Vehicle Category:</span> <span>{getVehicleCategories().find(c => c.id === watchedValues.vehicle_category)?.name || '-'}</span>
+                            <span className="text-muted-foreground">Vehicle Type:</span> <span>{watchedValues.vehicle_type || '-'}</span>
+                            <span className="text-muted-foreground">Pickup Date:</span> <span>{watchedValues.pickup_date ? format(watchedValues.pickup_date, 'PPP') : '-'}</span>
+                             <span className="text-muted-foreground">Pickup Time:</span> <span>{watchedValues.pickup_time || '-'}</span>
+                            {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
+                              <>
+                                <span className="text-muted-foreground">Service Days:</span> <span>{watchedValues.service_days || 1}</span>
+                                <span className="text-muted-foreground">Hours per Day:</span> <span>{watchedValues.hours_per_day || '-'}</span>
+                              </>
+                            )}
+                            {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
+                               <>
+                                 <span className="text-muted-foreground">Duration:</span> <span>1 Hour</span>
+                               </>
+                            )}
+                          </div>
+                        )}
                        
                        <Separator className="my-3" />
                        <h3 className="font-medium text-base mb-2 border-b pb-1">Pricing</h3>
                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          <span className="text-muted-foreground">Base Amount:</span> <span>{formatCurrency(baseAmount)}</span>
+                          <span className="text-muted-foreground">Base Amount:</span> 
+                          <span>{formatCurrency(serviceItems.length > 0 ? calculateTotalServiceAmount() : baseAmount)}</span>
                           <span className="text-muted-foreground">Discount:</span> <span>{watchedValues.discount_percentage || 0}%</span>
                           <span className="text-muted-foreground">Tax:</span> <span>{watchedValues.tax_percentage || 0}%</span>
-                          <span className="text-muted-foreground font-semibold">Total Amount:</span> <span className="font-semibold">{formatCurrency(totalAmount)}</span>
+                          <span className="text-muted-foreground font-semibold">Total Amount:</span> 
+                          <span className="font-semibold">
+                            {serviceItems.length > 0 
+                              ? formatCurrency(calculateFinalAmounts().finalTotal) 
+                              : formatCurrency(totalAmount)}
+                          </span>
                        </div>
                        
                        <Separator className="my-3" />
@@ -1553,7 +2434,10 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
                  <Button
                    type="button"
                    variant="outline"
-                   onClick={form.handleSubmit((data) => onSubmit(data, false))}
+                   onClick={(e) => {
+                     e.preventDefault();
+                     handleExplicitSubmit(e, false);
+                   }}
                    disabled={apiLoading || submittingAndSending}
                    className="gap-2"
                  >
@@ -1575,6 +2459,90 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
           </div>
         </form>
       </Form>
+
+      {/* Add Service Dialog */}
+      <AlertDialog open={isAddingService} onOpenChange={setIsAddingService}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Add the currently configured service to this quotation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="font-semibold">Service Type:</div>
+                <div>{selectedServiceTypeObject?.name || '-'}</div>
+                
+                <div className="font-semibold">Vehicle Category:</div>
+                <div>{getVehicleCategories().find(c => c.id === vehicleCategory)?.name || '-'}</div>
+                
+                <div className="font-semibold">Vehicle Type:</div>
+                <div>{vehicleType || '-'}</div>
+                
+                {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
+                  <>
+                    <div className="font-semibold">Days:</div>
+                    <div>{serviceDays || 1}</div>
+                    
+                    <div className="font-semibold">Hours Per Day:</div>
+                    <div>{hoursPerDay || '-'}</div>
+                  </>
+                )}
+                
+                {selectedServiceTypeObject?.name.toLowerCase().includes('airporttransfer') && (
+                  <>
+                    <div className="font-semibold">Duration:</div>
+                    <div>1 Hour</div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddServiceItem}>Add Service</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Remove Service Dialog */}
+      <AlertDialog open={isRemovingService} onOpenChange={setIsRemovingService}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this service from the quotation?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            {selectedItem && (
+              <p className="text-sm">
+                <span className="font-medium">{selectedItem.description}</span>
+              </p>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                confirmRemoveServiceItem();
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 } 

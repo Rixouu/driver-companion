@@ -47,7 +47,7 @@ export default async function RootLayout({
         >
           <I18nProvider>
             <Providers>
-              {children}
+                {children}
               <Toaster />
             </Providers>
           </I18nProvider>

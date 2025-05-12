@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
     try {
       const { data, error: fetchError } = await supabase
         .from('quotations')
-        .select('*')
+        .select('*, quotation_items (*)')
         .eq('id', id)
         .single();
       
@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
     // Fetch full quotation with customer details for email
     const { data: fullQuotation, error: fetchError } = await supabase
       .from('quotations')
-      .select('*, customers(*)')
+      .select('*, customers(*), quotation_items(*)')
       .eq('id', id)
       .single();
       

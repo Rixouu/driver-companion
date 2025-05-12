@@ -50,14 +50,52 @@ export default async function QuotationDetailsPage({ params }: Props) {
     .from('quotations')
     .select(`
       *,
-      quotation_items (*),
+      quotation_items (
+        *,
+        id,
+        quotation_id,
+        description,
+        quantity,
+        unit_price,
+        total_price,
+        sort_order,
+        service_type_id,
+        service_type_name,
+        vehicle_type,
+        vehicle_category,
+        duration_hours,
+        service_days,
+        hours_per_day,
+        is_service_item
+      ),
       customers:customer_id (*)
     `)
     .eq('id', id)
     .single();
   
-  if (error || !data) {
+  // Add better logging
+  if (error) {
+    console.error('[QUOTATION DEBUG] Error fetching quotation:', error);
     notFound();
+  }
+
+  if (!data) {
+    console.error('[QUOTATION DEBUG] No quotation data found for ID:', id);
+    notFound();
+  }
+
+  // Log the received data to debug
+  console.log(`[QUOTATION DEBUG] Retrieved quotation with ID ${id}`);
+  console.log('[QUOTATION DEBUG] Quotation data preview:', {
+    id: data.id,
+    title: data.title,
+    items_count: data.quotation_items?.length || 0
+  });
+
+  if (data.quotation_items && data.quotation_items.length > 0) {
+    console.log('[QUOTATION DEBUG] First item preview:', data.quotation_items[0]);
+  } else {
+    console.log('[QUOTATION DEBUG] No quotation items found in the database query');
   }
 
   // Use a type assertion - we know this format works with our component

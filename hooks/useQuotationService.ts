@@ -15,7 +15,8 @@ import {
   PricingPackage,
   PricingPackageItem,
   PackageType,
-  PackageItemType
+  PackageItemType,
+  ServiceItemInput
 } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
 import { Database } from '@/types/supabase';
@@ -44,413 +45,670 @@ export const useQuotationService = () => {
   const { t } = useI18n();
   const supabase = createClientComponentClient<Database>();
 
+  /**
+   * Get a service type by ID
+   */
+  const getServiceTypeById = async (serviceTypeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('service_types')
+        .select('*')
+        .eq('id', serviceTypeId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching service type:', error);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Unexpected error fetching service type:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Calculate quotation amount based on service type and options
+   */
   const calculateQuotationAmount = async (
-    serviceTypeId: string, // Changed from serviceType (text) to serviceTypeId (UUID)
+    serviceTypeId: string,
     vehicleType: string,
-    durationHours: number,
-    discountPercentageInput: number | null | undefined = 0,
-    taxPercentageInput: number | null | undefined = 0,
-    serviceDays = 1
-  ) => {
-    const discountPercentage = discountPercentageInput ?? 0;
-    const taxPercentage = taxPercentageInput ?? 0;
+    durationHours: number = 1,
+    discountPercentage: number = 0,
+    taxPercentage: number = 0,
+    serviceDays: number = 1,
+    hoursPerDay?: number
+  ): Promise<{
+    baseAmount: number;
+    discountAmount: number;
+    taxAmount: number;
+    totalAmount: number;
+    currency: string;
+  }> => {
+    let baseAmount = 0; // Default to 0 instead of hard-coded value
+    const currency = 'JPY'; // Default currency
+    let priceSource = 'default'; // Log the source of the price
     
     try {
-      // Find the price for the given service_type_id, vehicle, and duration
+      console.log('PRICE CALCULATION - Inputs:', {
+        serviceTypeId,
+        vehicleType,
+        durationHours,
+        discountPercentage,
+        taxPercentage,
+        serviceDays,
+        hoursPerDay
+      });
+      
+      // Get service type information
+      const serviceTypeResult = await getServiceTypeById(serviceTypeId);
+      const serviceType = serviceTypeResult?.name || '';
+      
+      console.log('PRICE CALCULATION - Service type:', {
+        id: serviceTypeId,
+        name: serviceType
+      });
+      
+      // Try to fetch price from database first
       const { data: pricingItems, error: pricingError } = await supabase
         .from('pricing_items')
-        .select('price, currency, service_types ( name )' ) // Fetch service type name for context
-        .eq('service_type_id', serviceTypeId) // Use service_type_id
+        .select('*')
+        .eq('service_type_id', serviceTypeId)
         .eq('vehicle_type', vehicleType)
         .eq('duration_hours', durationHours)
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (pricingError) {
-        console.error('Error fetching pricing for calculation:', pricingError);
-        // Provide fallback pricing instead of throwing
-        return provideFallbackPricing(durationHours, discountPercentage, taxPercentage, serviceDays);
-      }
-
-      if (!pricingItems || pricingItems.length === 0) {
-        console.warn('No pricing found for calculation criteria');
-        // Provide fallback pricing
-        return provideFallbackPricing(durationHours, discountPercentage, taxPercentage, serviceDays);
-      }
-
-      const item = pricingItems[0] as any; // Cast to any to access nested service_types.name
-      const { price, currency } = item;
-      const serviceTypeName = item.service_types?.name || 'unknown_service'; // Get service name
+        .eq('is_active', true);
       
-      // Apply days multiplier for charter services (check by name)
-      const basePrice = serviceTypeName.toLowerCase().includes('charter') ? price * serviceDays : price;
+      console.log('PRICE CALCULATION - Database query results:', {
+        items: pricingItems?.length || 0,
+        error: pricingError?.message
+      });
       
-      // Calculate the amount with discount and tax
-      const discountAmount = basePrice * (discountPercentage / 100);
-      const amountAfterDiscount = basePrice - discountAmount;
+      if (pricingItems && pricingItems.length > 0) {
+        // Found an exact pricing match in the database
+        baseAmount = Number(pricingItems[0].price);
+        priceSource = 'database_exact_match';
+        
+        console.log('PRICE CALCULATION - Exact database match found:', {
+          id: pricingItems[0].id,
+          price: baseAmount,
+          vehicle_type: pricingItems[0].vehicle_type,
+          service_type_id: pricingItems[0].service_type_id,
+          duration_hours: pricingItems[0].duration_hours
+        });
+      } else {
+        // No exact match, try to get hourly rate from database
+        const { data: hourlyRates, error: hourlyError } = await supabase
+          .from('pricing_items')
+          .select('*')
+          .eq('service_type_id', serviceTypeId)
+          .eq('vehicle_type', vehicleType)
+          .eq('duration_hours', 1) // Get the hourly rate
+          .eq('is_active', true);
+          
+        console.log('PRICE CALCULATION - Hourly rate query results:', {
+          items: hourlyRates?.length || 0,
+          error: hourlyError?.message
+        });
+        
+        if (hourlyRates && hourlyRates.length > 0) {
+          // Use hourly rate from database
+          const hourlyRate = Number(hourlyRates[0].price);
+          priceSource = 'database_hourly_rate';
+          
+          console.log('PRICE CALCULATION - Found hourly rate in database:', {
+            id: hourlyRates[0].id,
+            hourlyRate,
+            vehicle_type: hourlyRates[0].vehicle_type,
+            service_type_id: hourlyRates[0].service_type_id
+          });
+          
+          // Different calculation logic based on service type
+          if (serviceType.toLowerCase().includes('charter')) {
+            // For charter, calculate based on days and hours per day
+            const effectiveHoursPerDay = hoursPerDay || durationHours;
+            const dailyRate = hourlyRate * effectiveHoursPerDay;
+            baseAmount = dailyRate * serviceDays;
+            
+            console.log('PRICE CALCULATION - Charter calculation:', {
+              hourlyRate,
+              effectiveHoursPerDay,
+              dailyRate,
+              serviceDays,
+              baseAmount
+            });
+          } else {
+            // For other services, simple hourly rate * duration
+            baseAmount = hourlyRate * durationHours;
+            
+            console.log('PRICE CALCULATION - Standard calculation:', {
+              hourlyRate,
+              durationHours,
+              baseAmount
+            });
+          }
+        } else {
+          // Fallback to querying any pricing for this vehicle type
+          const { data: vehiclePricing, error: vehicleError } = await supabase
+            .from('pricing_items')
+            .select('*')
+            .eq('vehicle_type', vehicleType)
+            .eq('is_active', true)
+            .limit(1);
+            
+          console.log('PRICE CALCULATION - Vehicle fallback query results:', {
+            items: vehiclePricing?.length || 0,
+            error: vehicleError?.message
+          });
+          
+          if (vehiclePricing && vehiclePricing.length > 0) {
+            // Use a price from the same vehicle type as a base
+            baseAmount = Number(vehiclePricing[0].price);
+            priceSource = 'database_vehicle_match';
+            
+            console.log('PRICE CALCULATION - Found vehicle type match:', {
+              id: vehiclePricing[0].id,
+              price: baseAmount,
+              vehicle_type: vehiclePricing[0].vehicle_type,
+              service_type_id: vehiclePricing[0].service_type_id
+            });
+          } else {
+            // Last resort - use hardcoded fallbacks but log extensively
+            priceSource = 'hardcoded_fallback';
+            
+            // Different base pricing for different services
+            if (serviceType.toLowerCase().includes('airporttransfer')) {
+              if (serviceType.toLowerCase().includes('haneda')) {
+                // Haneda pricing by vehicle type
+                if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
+                  baseAmount = 46000;
+                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
+                  baseAmount = 42000;
+                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
+                  baseAmount = 55000;
+                } else {
+                  baseAmount = 46000; // Default
+                }
+                
+                console.log('PRICE CALCULATION - Using hardcoded Haneda airport transfer fallback:', {
+                  vehicleType,
+                  baseAmount
+                });
+              } else if (serviceType.toLowerCase().includes('narita')) {
+                // Narita pricing by vehicle type
+                if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
+                  baseAmount = 69000;
+                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
+                  baseAmount = 65000;
+                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
+                  baseAmount = 75000;
+                } else {
+                  baseAmount = 69000; // Default
+                }
+                
+                console.log('PRICE CALCULATION - Using hardcoded Narita airport transfer fallback:', {
+                  vehicleType,
+                  baseAmount
+                });
+              }
+              
+              // Multiply by duration for airport transfers (usually 1 hour)
+              baseAmount = baseAmount * durationHours;
+            } else if (serviceType.toLowerCase().includes('charter')) {
+              // Charter services pricing - hardcoded fallbacks
+              let hourlyRate = 0;
+              
+              if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
+                hourlyRate = 23000;
+              } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
+                hourlyRate = 23000;
+              } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
+                hourlyRate = 27000;
+              } else {
+                hourlyRate = 23000; // Default to match Mercedes pricing
+              }
+              
+              console.log('PRICE CALCULATION - Using hardcoded charter hourly rate fallback:', {
+                vehicleType,
+                hourlyRate
+              });
+              
+              // For charter, calculate based on days and hours per day
+              // If hoursPerDay is provided, use it; otherwise use durationHours
+              const effectiveHoursPerDay = hoursPerDay || durationHours;
+              const dailyRate = hourlyRate * effectiveHoursPerDay;
+              baseAmount = dailyRate * serviceDays;
+              
+              console.log('PRICE CALCULATION - Charter calculation from fallback hourly rate:', {
+                hourlyRate,
+                effectiveHoursPerDay,
+                dailyRate,
+                serviceDays,
+                baseAmount
+              });
+            } else {
+              // Default fallback for unknown service types
+              baseAmount = 46000; // General default
+              console.log('PRICE CALCULATION - Using general default fallback price:', baseAmount);
+            }
+          }
+        }
+      }
+      
+      // Apply discount and tax
+      const discountAmount = baseAmount * (discountPercentage / 100);
+      const amountAfterDiscount = baseAmount - discountAmount;
       const taxAmount = amountAfterDiscount * (taxPercentage / 100);
       const totalAmount = amountAfterDiscount + taxAmount;
-
+      
+      console.log('PRICE CALCULATION - Final price calculation:', {
+        priceSource,
+        baseAmount,
+        discountPercentage,
+        discountAmount,
+        amountAfterDiscount,
+        taxPercentage,
+        taxAmount,
+        totalAmount,
+        currency
+      });
+      
       return {
-        baseAmount: basePrice,
-        currency,
+        baseAmount,
         discountAmount,
         taxAmount,
-        totalAmount
+        totalAmount,
+        currency
       };
     } catch (error) {
       console.error('Error calculating quotation amount:', error);
-      // Provide fallback pricing
-      return provideFallbackPricing(durationHours, discountPercentage, taxPercentage, serviceDays);
+      
+      // Return default values on error with explanation
+      console.log('PRICE CALCULATION - Error occurred, using emergency fallback price of 46000');
+      
+      const baseAmount = 46000; // Emergency fallback
+      const discountAmount = baseAmount * (discountPercentage / 100);
+      const amountAfterDiscount = baseAmount - discountAmount;
+      const taxAmount = amountAfterDiscount * (taxPercentage / 100);
+      const totalAmount = amountAfterDiscount + taxAmount;
+      
+      console.log('PRICE CALCULATION - Emergency fallback calculation:', {
+        baseAmount,
+        discountPercentage,
+        discountAmount,
+        amountAfterDiscount,
+        taxPercentage,
+        taxAmount,
+        totalAmount,
+        currency
+      });
+      
+      return {
+        baseAmount,
+        discountAmount,
+        taxAmount,
+        totalAmount,
+        currency
+      };
     }
   };
 
-  // Helper function to provide fallback pricing when database fails
-  const provideFallbackPricing = (
-    durationHours: number, 
-    discountPercentage = 0, 
-    taxPercentage = 0,
-    serviceDays = 1
-  ) => {
-    // Base price calculation: longer durations get a slight discount
-    let basePrice = durationHours * 5000; // 5000 per hour
+  // Add helper function to calculate total for multiple services
+  const calculateTotalWithMultipleServices = (
+    serviceItems: ServiceItemInput[],
+    discountPercentage: number = 0,
+    taxPercentage: number = 0,
+    currency: string = 'JPY'
+  ): {
+    baseAmount: number;
+    discountAmount: number;
+    taxAmount: number;
+    totalAmount: number;
+    currency: string;
+  } => {
+    console.log('MULTI_SERVICE_CALCULATION - Starting calculation for multiple services', {
+      serviceCount: serviceItems.length,
+      discountPercentage,
+      taxPercentage
+    });
     
-    // Apply days multiplier
-    basePrice = basePrice * serviceDays;
+    // Calculate base amount as sum of all service items
+    const baseAmount = serviceItems.reduce((total, item, index) => {
+      const itemTotal = item.total_price || (item.unit_price * (item.quantity || 1));
+      
+      console.log(`MULTI_SERVICE_CALCULATION - Service item ${index}:`, {
+        description: item.description,
+        serviceType: item.service_type_name,
+        vehicleType: item.vehicle_type,
+        unitPrice: item.unit_price,
+        quantity: item.quantity || 1,
+        totalPrice: itemTotal
+      });
+      
+      return total + itemTotal;
+    }, 0);
     
-    // Calculate discount and tax
-    const discountAmount = basePrice * (discountPercentage / 100);
-    const amountAfterDiscount = basePrice - discountAmount;
+    // Apply discount and tax
+    const discountAmount = baseAmount * (discountPercentage / 100);
+    const amountAfterDiscount = baseAmount - discountAmount;
     const taxAmount = amountAfterDiscount * (taxPercentage / 100);
     const totalAmount = amountAfterDiscount + taxAmount;
     
+    console.log('MULTI_SERVICE_CALCULATION - Final calculation:', {
+      baseAmount,
+      discountAmount,
+      amountAfterDiscount,
+      taxAmount,
+      totalAmount,
+      currency
+    });
+    
     return {
-      baseAmount: basePrice,
-      currency: 'JPY',
+      baseAmount,
       discountAmount,
       taxAmount,
-      totalAmount
+      totalAmount,
+      currency
     };
   };
 
-  const createQuotation = async (input: CreateQuotationInput): Promise<Quotation | null> => {
-    setLoading(true);
-    setError(null);
-
+  // Modify the createQuotation function to handle multiple services
+  const createQuotation = async (input: CreateQuotationInput, serviceItems?: ServiceItemInput[]): Promise<Quotation | null> => {
     try {
+      // Debug raw input
       console.log('SAVE & SEND DEBUG - Raw input from form (Zod sanitized):', JSON.stringify(input));
-      const status = input.status === 'sent' ? 'sent' : 'draft';
-
-      const serviceDays = input.service_days ?? 1;
-      const discountPercentage = input.discount_percentage ?? 0;
-      const taxPercentage = input.tax_percentage ?? 0;
       
-      // Assuming input.service_type is now input.service_type_id (UUID)
-      // We need the service type name for charter check, fetch it if not passed
-      if (!input.service_type_id) {
-        throw new Error("service_type_id is required to create a quotation.");
+      // Debug service items if provided
+      if (serviceItems && serviceItems.length > 0) {
+        console.log('SAVE & SEND DEBUG - Service items from form:', JSON.stringify(serviceItems));
+        
+        // Log each service item with its pricing details
+        serviceItems.forEach((item, index) => {
+          console.log(`SAVE & SEND DEBUG - Service item ${index}:`, {
+            description: item.description,
+            service_type_id: item.service_type_id,
+            service_type_name: item.service_type_name,
+            vehicle_type: item.vehicle_type,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            service_days: item.service_days,
+            hours_per_day: item.hours_per_day
+          });
+          
+          // For each service item, query the database to see what the price should be
+          setTimeout(async () => {
+            try {
+              // Look up the current price for this service in the database
+              const { data: dbPrices, error: dbError } = await supabase
+                .from('pricing_items')
+                .select('*')
+                .eq('service_type_id', item.service_type_id)
+                .eq('vehicle_type', item.vehicle_type)
+                .eq('is_active', true);
+                
+              if (dbError) {
+                console.log(`PRICE VALIDATION - Error fetching prices for item ${index}:`, dbError.message);
+              } else if (dbPrices && dbPrices.length > 0) {
+                const exactMatch = dbPrices.find(p => p.duration_hours === (item.hours_per_day || 1));
+                if (exactMatch) {
+                  console.log(`PRICE VALIDATION - Item ${index} exact match from DB:`, {
+                    item_price: item.unit_price,
+                    db_price: Number(exactMatch.price),
+                    match: item.unit_price === Number(exactMatch.price) ? 'MATCH ✓' : 'MISMATCH ✗',
+                    db_id: exactMatch.id,
+                    vehicle_type: exactMatch.vehicle_type,
+                    duration_hours: exactMatch.duration_hours
+                  });
+                } else {
+                  // Try to find the hourly rate
+                  const hourlyRate = dbPrices.find(p => p.duration_hours === 1);
+                  if (hourlyRate) {
+                    console.log(`PRICE VALIDATION - Item ${index} hourly rate from DB:`, {
+                      item_price: item.unit_price,
+                      db_hourly_price: Number(hourlyRate.price),
+                      hours: item.hours_per_day || 1,
+                      expected_price: Number(hourlyRate.price) * (item.hours_per_day || 1),
+                      match: item.unit_price === Number(hourlyRate.price) * (item.hours_per_day || 1) ? 'MATCH ✓' : 'MISMATCH ✗'
+                    });
+                  } else {
+                    console.log(`PRICE VALIDATION - Item ${index} no hourly rate found:`, {
+                      item_price: item.unit_price,
+                      db_prices: dbPrices.map(p => ({
+                        id: p.id,
+                        price: p.price,
+                        duration_hours: p.duration_hours
+                      }))
+                    });
+                  }
+                }
+              } else {
+                console.log(`PRICE VALIDATION - Item ${index} no pricing found in DB:`, {
+                  service_type_id: item.service_type_id,
+                  vehicle_type: item.vehicle_type,
+                  used_price: item.unit_price 
+                });
+              }
+            } catch (validationError) {
+              console.error(`PRICE VALIDATION - Error validating price for item ${index}:`, validationError);
+            }
+          }, 0);
+        });
+        
+        // Calculate the total with multiple services
+        const totalsObj = calculateTotalWithMultipleServices(
+          serviceItems,
+          input.discount_percentage || 0,
+          input.tax_percentage || 0,
+          input.currency || 'JPY'
+        );
+        
+        console.log('SAVE & SEND DEBUG - Multi-service totals calculated:', totalsObj);
       }
-
-      let serviceTypeName = 'unknown_service';
-      const { data: stData, error: stError } = await supabase
-        .from('service_types')
-        .select('name')
-        .eq('id', input.service_type_id)
-        .single();
-      if (stError) console.warn('Could not fetch service type name for charter check', stError);
-      if (stData) serviceTypeName = stData.name;
       
-      const isCharter = serviceTypeName.toLowerCase().includes('charter');
-      const effectiveDuration = isCharter
-        ? (input.hours_per_day ?? input.duration_hours ?? 1)
-        : (input.duration_hours ?? 1);
-
-      const { baseAmount, currency, totalAmount } = await calculateQuotationAmount(
-        input.service_type_id,
-        input.vehicle_type,
-        effectiveDuration,
-        discountPercentage,
-        taxPercentage,
-        serviceDays
-      );
-      console.log('SAVE & SEND DEBUG - Calculated Pricing:', { baseAmount, currency, totalAmount });
-
-      const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) {
-        throw new Error("User not authenticated");
+      // Calculate pricing if not provided
+      let calculatedAmount = input.amount;
+      let calculatedTotalAmount = input.total_amount;
+      
+      if (!calculatedAmount || !calculatedTotalAmount) {
+        const pricing = await calculateQuotationAmount(
+          input.service_type_id,
+          input.vehicle_type,
+          input.duration_hours || 1,
+          input.discount_percentage || 0,
+          input.tax_percentage || 0,
+          input.service_days || 1,
+          input.hours_per_day || undefined
+        );
+        
+        calculatedAmount = pricing.baseAmount;
+        calculatedTotalAmount = pricing.totalAmount;
+        
+        console.log('SAVE & SEND DEBUG - Calculated Pricing:', pricing);
+      } else {
+        console.log('SAVE & SEND DEBUG - Using explicit amounts from input:', {
+          amount: calculatedAmount,
+          total_amount: calculatedTotalAmount
+        });
       }
-
-      const recordToInsert: Omit<Database['public']['Tables']['quotations']['Row'], 'id' | 'created_at' | 'updated_at' | 'quote_number'> & { service_type_id: string } = {
-        title: input.title || '',
-        status: status,
-        customer_name: input.customer_name || null,
-        customer_email: input.customer_email,
-        customer_phone: input.customer_phone || null,
-        customer_id: input.customer_id || null,
-        merchant_id: userId,
-        merchant_notes: input.merchant_notes || null,
-        customer_notes: input.customer_notes || null,
-        service_type_id: input.service_type_id,
-        service_type: serviceTypeName,
-        vehicle_category: input.vehicle_category || null,
-        vehicle_type: input.vehicle_type,
-        pickup_location: null, 
-        dropoff_location: null, 
-        pickup_date: input.pickup_date || null,
-        pickup_time: input.pickup_time || null,
-        duration_hours: effectiveDuration, 
-        service_days: serviceDays,
-        days_count: serviceDays,
-        hours_per_day: isCharter ? effectiveDuration : null, 
-        passenger_count: input.passenger_count ?? null,      
-        amount: Number(baseAmount),
-        currency: currency,
-        discount_percentage: discountPercentage, 
-        tax_percentage: taxPercentage,       
-        total_amount: Number(totalAmount),
-        expiry_date: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-        billing_company_name: input.billing_company_name || null,
-        billing_tax_number: input.billing_tax_number || null,
-        billing_street_name: input.billing_street_name || null,
-        billing_street_number: input.billing_street_number || null,
-        billing_city: input.billing_city || null,
-        billing_state: input.billing_state || null,
-        billing_postal_code: input.billing_postal_code || null,
-        billing_country: input.billing_country || null,
-        display_currency: input.display_currency || null,
-        converted_to_booking_id: null, // Explicitly null for new quotations
-        reference_code: null, // Explicitly null
-        rejected_reason: null, // Explicitly null
+      
+      // Override the service_type field based on the service_type_id
+      const service = await getServiceTypeById(input.service_type_id);
+      
+      // Prepare record for DB insert
+      const record = {
+        ...input,
+        // Format dates
+        expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        // Set service name from ID
+        service_type: service?.name || 'Unknown Service',
+        // Add days count field for clarity in DB
+        days_count: input.service_days || 1,
+        // If we have multiple services, ensure we use the input amounts (which include all services)
+        amount: serviceItems && serviceItems.length > 0 ? input.amount : calculatedAmount,
+        total_amount: serviceItems && serviceItems.length > 0 ? input.total_amount : calculatedTotalAmount
       };
       
-      console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(recordToInsert));
-
-      const { data, error: insertError } = await supabase
-        .from('quotations')
-        .insert(recordToInsert as Database['public']['Tables']['quotations']['Insert'])
-        .select()
-        .single();
-
-      console.log('SAVE & SEND DEBUG - Data returned from DB after insert:', JSON.stringify(data));
-
-      if (insertError) {
-         console.error('SAVE & SEND DEBUG - DB Insert error details:', {
-            message: insertError.message,
-            code: insertError.code,
-            details: insertError.details,
-            hint: insertError.hint,
-            fullError: insertError
-          });
-        throw insertError; 
+      console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(record));
+      
+      // Insert the record
+      const response = await fetch('/api/quotations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(record),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create quotation: ${errorText}`);
       }
-
-      if (data) {
-        const serviceDescription = `${serviceTypeName} - ${input.vehicle_type}`;
-        const { error: itemError } = await supabase
-          .from('quotation_items')
-          .insert({
-            quotation_id: data.id,
-            description: serviceDescription,
-            quantity: 1, 
-            unit_price: baseAmount, 
-            total_price: baseAmount, 
-            sort_order: 1
+      
+      const result = await response.json();
+      console.log('SAVE & SEND DEBUG - Data returned from DB after insert:', JSON.stringify(result));
+      
+      // If we have service items, create them
+      if (serviceItems && serviceItems.length > 0 && result.id) {
+        try {
+          // Use the bulk create endpoint
+          const itemsResponse = await fetch('/api/quotations/items/bulk-create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              quotation_id: result.id,
+              items: serviceItems.map(item => ({
+                ...item,
+                quotation_id: result.id
+              }))
+            }),
           });
-
-        if (itemError) {
-          console.error('SAVE & SEND DEBUG - Error creating quotation item:', itemError);
+          
+          if (!itemsResponse.ok) {
+            console.error('Failed to create service items:', await itemsResponse.text());
+          } else {
+            console.log('SAVE & SEND DEBUG - Successfully added service items to quotation');
+            
+            // After creating items, update the quotation with the correct total amount
+            try {
+              console.log('Updating quotation amounts in the database:', {
+                id: result.id,
+                amount: input.amount,
+                total_amount: input.total_amount
+              });
+              
+              const updateResponse = await fetch(`/api/quotations/${result.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  amount: input.amount,
+                  total_amount: input.total_amount
+                }),
+              });
+              
+              if (!updateResponse.ok) {
+                const updateErrorText = await updateResponse.text();
+                console.error('Failed to update quotation with correct amounts:', updateErrorText);
+                
+                // Try with a direct update to the database
+                console.log('Attempting direct update as fallback...');
+                const directUpdateResponse = await fetch(`/api/quotations/direct-update/${result.id}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    amount: input.amount,
+                    total_amount: input.total_amount
+                  }),
+                });
+                
+                if (directUpdateResponse.ok) {
+                  const updatedResult = await directUpdateResponse.json();
+                  console.log('SAVE & SEND DEBUG - Direct update quotation with amounts succeeded:', updatedResult);
+                  return updatedResult;
+                } else {
+                  const directErrorText = await directUpdateResponse.text();
+                  console.error('Direct update also failed:', directErrorText);
+                  console.error('Direct update request details:', {
+                    url: `/api/quotations/direct-update/${result.id}`,
+                    body: {
+                      amount: input.amount,
+                      total_amount: input.total_amount
+                    }
+                  });
+                }
+              } else {
+                const updatedResult = await updateResponse.json();
+                console.log('SAVE & SEND DEBUG - Updated quotation with correct amounts:', JSON.stringify(updatedResult));
+                return updatedResult;
+              }
+            } catch (updateError) {
+              console.error('Exception during amount update:', updateError);
+              console.error('Update request details:', {
+                id: result.id,
+                amount: input.amount,
+                total_amount: input.total_amount
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error creating service items:', error);
         }
-
-        await supabase
-          .from('quotation_activities')
-          .insert({
-            quotation_id: data.id,
-            user_id: userId,
-            action: 'created',
-            details: { status } 
-          });
       }
-
-      toast({
-        title: t('quotations.notifications.createSuccess'),
-      });
-
-      return data as unknown as Quotation;
-
-    } catch (err: any) {
-      console.error('SAVE & SEND DEBUG - Error in createQuotation function:', err);
-       const errorMessage = err.message || 'Failed to create quotation';
-       setError(errorMessage);
-
-      toast({
-        title: t('quotations.notifications.error'),
-        description: errorMessage,
-        variant: 'destructive',
-      });
-
-      return null; 
-    } finally {
-      setLoading(false);
+      
+      return result;
+    } catch (error) {
+      console.error('Error creating quotation:', error);
+      return null;
     }
   };
 
-  const updateQuotation = async (id: string, input: UpdateQuotationInput): Promise<Quotation | null> => {
+  const updateQuotation = async (id: string, data: any) => {
+    console.log('Updating quotation with ID:', id);
+    console.log('Update data:', data);
+
     try {
-      setLoading(true);
-      setError(null);
+      // Sanitize the data - remove any empty strings for UUID fields
+      const sanitizedData = { ...data };
       
-      const { data: currentQuotationData, error: fetchError } = await supabase
-        .from('quotations')
-        .select('*, service_type:service_type_id(id, name)')
-        .eq('id', id)
-        .single();
-      
-      if (fetchError) {
-        throw fetchError;
+      // Explicitly set customer_id to null if it's an empty string
+      if (sanitizedData.customer_id === '') {
+        sanitizedData.customer_id = null;
       }
       
-      const quotation = currentQuotationData as any;
-      const updateData: Partial<Database['public']['Tables']['quotations']['Row']> & {service_type_id?: string} = { ...input };
+      // Remove other empty values that might cause UUID conversion errors
+      // Make sure to do this for any field that might be a UUID
+      if (sanitizedData.service_type_id === '') {
+        sanitizedData.service_type_id = null; 
+      }
       
-      const validDays = 30;
-      updateData.expiry_date = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
+      // Log the sanitized data
+      console.log('Sanitized update data:', sanitizedData);
       
-      const needsRecalculation = 
-        input.service_type_id !== undefined || 
-        input.vehicle_type !== undefined || 
-        input.duration_hours !== undefined || 
-        input.service_days !== undefined ||
-        input.hours_per_day !== undefined ||
-        input.discount_percentage !== undefined || 
-        input.tax_percentage !== undefined;
-
-      if (needsRecalculation) {
-        const serviceTypeId = input.service_type_id || quotation.service_type_id;
-        const vehicleType = input.vehicle_type || quotation.vehicle_type;
-        
-        let serviceTypeName = quotation.service_type?.name || 'unknown_service';
-        if (input.service_type_id && input.service_type_id !== quotation.service_type_id) {
-            const { data: stData } = await supabase.from('service_types').select('name').eq('id', input.service_type_id).single();
-            if (stData) serviceTypeName = stData.name;
-        }
-
-        const isCharter = serviceTypeName.toLowerCase().includes('charter');
-        
-        let effectiveDuration: number;
-        if (isCharter) {
-          effectiveDuration = input.hours_per_day || input.duration_hours || 
-            quotation.hours_per_day || quotation.duration_hours || 1;
-          updateData.hours_per_day = effectiveDuration;
-        } else {
-          effectiveDuration = input.duration_hours || quotation.duration_hours || 1;
-        }
-        updateData.duration_hours = effectiveDuration;
-        
-        const discountPercentage = input.discount_percentage !== undefined 
-          ? input.discount_percentage 
-          : quotation.discount_percentage;
-        const taxPercentage = input.tax_percentage !== undefined 
-          ? input.tax_percentage 
-          : quotation.tax_percentage;
-        const serviceDays = input.service_days !== undefined 
-          ? input.service_days 
-          : quotation.service_days || 1;
-
-        const { baseAmount, currency, totalAmount } = await calculateQuotationAmount(
-          serviceTypeId!,
-          vehicleType,
-          effectiveDuration,
-          discountPercentage,
-          taxPercentage,
-          serviceDays
-        );
-
-        updateData.amount = baseAmount;
-        updateData.currency = currency;
-        updateData.total_amount = totalAmount;
-        
-        if (input.display_currency === undefined) {
-          updateData.display_currency = quotation.display_currency || currency;
-        }
-      } else if (input.display_currency) {
-        updateData.display_currency = input.display_currency;
-      }
-      updateData.display_currency = updateData.display_currency || null;
-
-      if (input.service_type_id || input.vehicle_type) {
-        const finalServiceTypeId = input.service_type_id || quotation.service_type_id;
-        let finalServiceTypeName = 'Service';
-        if (finalServiceTypeId) {
-            const {data: stNameData} = await supabase.from('service_types').select('name').eq('id', finalServiceTypeId).single();
-            if(stNameData) finalServiceTypeName = stNameData.name;
-        } else if (quotation.service_type) {
-             finalServiceTypeName = quotation.service_type.name;
-        }
-
-        const finalVehicleType = input.vehicle_type || quotation.vehicle_type;
-        const baseAmount = updateData.amount || quotation.amount;
-        
-        const { data: items } = await supabase
-          .from('quotation_items')
-          .select('id')
-          .eq('quotation_id', id)
-          .order('sort_order', { ascending: true })
-          .limit(1);
-
-        if (items && items.length > 0) {
-          await supabase
-            .from('quotation_items')
-            .update({
-              description: `${finalServiceTypeName} - ${finalVehicleType}`,
-              unit_price: baseAmount,
-              total_price: baseAmount
-            })
-            .eq('id', items[0].id);
-        }
-      }
-
-      const { data: updatedDbData, error } = await supabase
-        .from('quotations')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (updatedDbData) {
-        await supabase
-          .from('quotation_activities')
-          .insert({
-            quotation_id: id,
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            action: 'updated',
-            details: JSON.stringify({ changes: input })
-          });
-      }
-
-      toast({
-        title: t('quotations.notifications.updateSuccess'),
-        description: '',
+      const response = await fetch(`/api/quotations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(sanitizedData),
       });
 
-      return updatedDbData as unknown as Quotation;
-    } catch (err: any) {
-      console.error('Error updating quotation:', err);
-      setError(err.message || 'Failed to update quotation');
-      
-      toast({
-        title: t('quotations.notifications.error'),
-        description: err.message || 'Failed to update quotation',
-        variant: 'destructive',
-      });
-      
-      return null;
-    } finally {
-      setLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error updating quotation (${response.status}):`, errorText);
+        throw new Error(`Failed to update quotation: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Quotation updated successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Error updating quotation:', error);
+      throw error;
     }
   };
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
@@ -20,6 +21,7 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
+  const [quotationItems, setQuotationItems] = useState<any[]>([]);
   const { toast } = useToast();
   const { t } = useI18n();
   const router = useRouter();
@@ -28,18 +30,23 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
     async function fetchQuotation() {
       try {
         setIsLoading(true);
+        console.log(`[QUOTATION DEBUG] Fetching quotation with ID: ${id}`);
         const response = await fetch(`/api/quotations/${id}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch quotation');
+          throw new Error(`Failed to fetch quotation: ${await response.text()}`);
         }
         
         const data = await response.json();
+        console.log('[QUOTATION DEBUG] Quotation data:', data);
         setQuotation(data);
         // Initialize currency from the quotation
         setSelectedCurrency(data.display_currency || data.currency || 'JPY');
+        
+        // Fetch quotation items separately
+        await fetchQuotationItems(id);
       } catch (error) {
-        console.error('Error loading quotation:', error);
+        console.error('[QUOTATION DEBUG] Error loading quotation:', error);
         toast({
           title: 'Error',
           description: 'Failed to load quotation details. Please try again.',
@@ -52,6 +59,72 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
     
     fetchQuotation();
   }, [id, toast]);
+  
+  // Add a new function to fetch quotation items
+  async function fetchQuotationItems(quotationId: string) {
+    try {
+      console.log(`[QUOTATION DEBUG] Fetching quotation items for ID: ${quotationId}`);
+      const response = await fetch(`/api/quotations/${quotationId}/items`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch quotation items: ${await response.text()}`);
+      }
+      
+      const { data } = await response.json();
+      console.log('[QUOTATION DEBUG] Fetched quotation items:', data);
+      
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        console.log('[QUOTATION DEBUG] No quotation items returned from API');
+        // If API returns no items, try direct DB query
+        const directItems = await fetchDirectItems(quotationId);
+        if (directItems && directItems.length > 0) {
+          console.log('[QUOTATION DEBUG] Got items from direct query:', directItems);
+          setQuotationItems(directItems);
+        } else {
+          console.log('[QUOTATION DEBUG] No items found in direct query either');
+          setQuotationItems([]);
+        }
+        return;
+      }
+      
+      // Set all items, regardless of is_service_item flag
+      console.log('[QUOTATION DEBUG] Setting quotation items:', data);
+      setQuotationItems(data);
+    } catch (error) {
+      console.error('[QUOTATION DEBUG] Error loading quotation items:', error);
+      // Try direct fetch if API fails
+      const directItems = await fetchDirectItems(quotationId);
+      if (directItems && directItems.length > 0) {
+        console.log('[QUOTATION DEBUG] Got items from direct query after API error:', directItems);
+        setQuotationItems(directItems);
+      } else {
+        console.log('[QUOTATION DEBUG] No items found in direct query after API error');
+        toast({
+          title: 'Warning',
+          description: 'Could not load all quotation service details.',
+          variant: 'destructive',
+        });
+      }
+    }
+  }
+
+  // Add a direct DB query function as fallback
+  async function fetchDirectItems(quotationId: string) {
+    try {
+      console.log(`[QUOTATION DEBUG] Attempting direct DB query for quotation items: ${quotationId}`);
+      const response = await fetch('/api/quotations/direct-items?id=' + quotationId);
+      if (response.ok) {
+        const { data } = await response.json();
+        console.log('[QUOTATION DEBUG] Direct DB query results:', data);
+        return data;
+      }
+      console.log('[QUOTATION DEBUG] Direct DB query failed:', await response.text());
+      return null;
+    } catch (error) {
+      console.error('[QUOTATION DEBUG] Error in direct items fetch:', error);
+      return null;
+    }
+  }
 
   // Format currency with exchange rates
   const formatCurrency = (amount: number | string | undefined) => {
@@ -126,6 +199,14 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
     }
   };
 
+  // Filter service items - show all items regardless of any flags
+  const serviceItems = quotationItems.length > 0 
+    ? quotationItems  // Show all items from the API
+    : [];  // Empty array if no items found
+  
+  console.log('[QUOTATION DEBUG] Final service items for rendering:', serviceItems);
+  const hasMultipleServices = serviceItems.length > 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -174,31 +255,98 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
             <h3 className="text-lg font-medium mb-2">
               {t('quotations.details.serviceInfo')}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p><span className="font-medium">{t('quotations.details.fields.serviceType')}:</span> {quotation.service_type}</p>
-                <p><span className="font-medium">{t('quotations.details.fields.vehicleType')}:</span> {quotation.vehicle_type}</p>
-                {quotation.pickup_date && (
-                  <p><span className="font-medium">{t('quotations.details.fields.pickupDate')}:</span> {formatDate(quotation.pickup_date)}</p>
-                )}
-                {quotation.pickup_time && (
-                  <p><span className="font-medium">{t('quotations.details.fields.pickupTime')}:</span> {quotation.pickup_time}</p>
-                )}
+            
+            {hasMultipleServices ? (
+              // Multi-service display with more detail
+              <div className="space-y-4">
+                {serviceItems.map((item, index) => (
+                  <div key={index} className="border rounded-md p-3 bg-muted/20">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium text-base">
+                        {item.service_type_name || item.description || 'Service'}
+                      </h4>
+                      <Badge variant="outline" className="ml-2">
+                        {item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="space-y-2">
+                        <p><span className="font-medium">{t('quotations.details.fields.vehicleType')}:</span> {item.vehicle_type}</p>
+                        <p><span className="font-medium">Vehicle Category:</span> {item.vehicle_category || 'Standard'}</p>
+                        
+                        {quotation?.pickup_date && (
+                          <p><span className="font-medium">{t('quotations.details.fields.pickupDate')}:</span> {formatDate(quotation.pickup_date)}</p>
+                        )}
+                        
+                        {quotation?.pickup_time && (
+                          <p><span className="font-medium">{t('quotations.details.fields.pickupTime')}:</span> {quotation.pickup_time}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {item.service_type_name?.toLowerCase().includes('charter') ? (
+                          <>
+                            {item.service_days && (
+                              <p>
+                                <span className="font-medium">{t('quotations.details.fields.days')}:</span> {item.service_days} {t('quotations.details.days')}
+                              </p>
+                            )}
+                            
+                            {item.hours_per_day && (
+                              <p>
+                                <span className="font-medium">{t('quotations.details.fields.hoursPerDay')}:</span> {item.hours_per_day} {t('quotations.details.hours')}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p>
+                            <span className="font-medium">{t('quotations.details.fields.duration')}:</span> {item.duration_hours || 1} {t('quotations.details.hours')}
+                          </p>
+                        )}
+                        
+                        <div className="flex justify-between items-center mt-3 pt-1 border-t">
+                          <span className="font-medium">Unit Price:</span>
+                          <span>{formatCurrency(item.unit_price)}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center font-semibold">
+                          <span>Total:</span>
+                          <span>{formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="space-y-1">
-                {quotation.duration_hours && (
-                  <p>
-                    <span className="font-medium">{t('quotations.details.fields.duration')}:</span> {quotation.duration_hours} {t('quotations.details.hours')}
-                  </p>
-                )}
-                {quotation.pickup_location && (
-                  <p><span className="font-medium">{t('quotations.details.pickup')}:</span> {quotation.pickup_location}</p>
-                )}
-                {quotation.dropoff_location && (
-                  <p><span className="font-medium">{t('quotations.details.dropoff')}:</span> {quotation.dropoff_location}</p>
-                )}
+            ) : (
+              // Original single service display (keep as is)
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p><span className="font-medium">{t('quotations.details.fields.serviceType')}:</span> {quotation.service_type}</p>
+                  <p><span className="font-medium">{t('quotations.details.fields.vehicleType')}:</span> {quotation.vehicle_type}</p>
+                  {quotation.pickup_date && (
+                    <p><span className="font-medium">{t('quotations.details.fields.pickupDate')}:</span> {formatDate(quotation.pickup_date)}</p>
+                  )}
+                  {quotation.pickup_time && (
+                    <p><span className="font-medium">{t('quotations.details.fields.pickupTime')}:</span> {quotation.pickup_time}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {quotation.duration_hours && (
+                    <p>
+                      <span className="font-medium">{t('quotations.details.fields.duration')}:</span> {quotation.duration_hours} {t('quotations.details.hours')}
+                    </p>
+                  )}
+                  {quotation.pickup_location && (
+                    <p><span className="font-medium">{t('quotations.details.pickup')}:</span> {quotation.pickup_location}</p>
+                  )}
+                  {quotation.dropoff_location && (
+                    <p><span className="font-medium">{t('quotations.details.dropoff')}:</span> {quotation.dropoff_location}</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           <div>
@@ -225,26 +373,69 @@ export function QuotationDetail({ id }: QuotationDetailProps) {
               </div>
             </h3>
             <div className="p-4 bg-muted rounded-md">
-              <div className="flex justify-between items-center">
-                <span>{t('quotations.details.fields.amount')}:</span>
-                <span>{formatCurrency(quotation.amount)}</span>
-              </div>
-              {quotation.discount_percentage && quotation.discount_percentage > 0 && (
-                <div className="flex justify-between items-center text-green-600">
-                  <span>{t('quotations.details.fields.discount')} ({quotation.discount_percentage}%):</span>
-                  <span>- {formatCurrency(quotation.amount * (quotation.discount_percentage / 100))}</span>
-                </div>
+              {hasMultipleServices ? (
+                // Enhanced pricing display for multi-service quotations
+                <>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium mb-1">Services:</h4>
+                    {serviceItems.map((item, index) => (
+                      <div key={item.id} className="flex justify-between items-center text-sm pl-4 py-1">
+                        <span className="truncate max-w-[70%]">{item.description}</span>
+                        <span>{formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}</span>
+                      </div>
+                    ))}
+                    <Separator className="my-2" />
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span>{t('quotations.details.fields.amount')}:</span>
+                    <span>{formatCurrency(quotation.amount)}</span>
+                  </div>
+                  
+                  {quotation.discount_percentage && quotation.discount_percentage > 0 && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span>{t('quotations.details.fields.discount')} ({quotation.discount_percentage}%):</span>
+                      <span>- {formatCurrency(quotation.amount * (quotation.discount_percentage / 100))}</span>
+                    </div>
+                  )}
+                  
+                  {quotation.tax_percentage && quotation.tax_percentage > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span>{t('quotations.details.fields.tax')} ({quotation.tax_percentage}%):</span>
+                      <span>{formatCurrency(quotation.amount * (1 - (quotation.discount_percentage || 0) / 100) * (quotation.tax_percentage / 100))}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center font-bold mt-2 pt-2 border-t">
+                    <span>{t('quotations.details.fields.totalAmount')}:</span>
+                    <span>{formatCurrency(quotation.total_amount)}</span>
+                  </div>
+                </>
+              ) : (
+                // Original pricing display
+                <>
+                  <div className="flex justify-between items-center">
+                    <span>{t('quotations.details.fields.amount')}:</span>
+                    <span>{formatCurrency(quotation.amount)}</span>
+                  </div>
+                  {quotation.discount_percentage && quotation.discount_percentage > 0 && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span>{t('quotations.details.fields.discount')} ({quotation.discount_percentage}%):</span>
+                      <span>- {formatCurrency(quotation.amount * (quotation.discount_percentage / 100))}</span>
+                    </div>
+                  )}
+                  {quotation.tax_percentage && quotation.tax_percentage > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span>{t('quotations.details.fields.tax')} ({quotation.tax_percentage}%):</span>
+                      <span>{formatCurrency(quotation.amount * (1 - (quotation.discount_percentage || 0) / 100) * (quotation.tax_percentage / 100))}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center font-bold mt-2 pt-2 border-t">
+                    <span>{t('quotations.details.fields.totalAmount')}:</span>
+                    <span>{formatCurrency(quotation.total_amount)}</span>
+                  </div>
+                </>
               )}
-              {quotation.tax_percentage && quotation.tax_percentage > 0 && (
-                <div className="flex justify-between items-center">
-                  <span>{t('quotations.details.fields.tax')} ({quotation.tax_percentage}%):</span>
-                  <span>{formatCurrency(quotation.amount * (1 - (quotation.discount_percentage || 0) / 100) * (quotation.tax_percentage / 100))}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center font-bold mt-2 pt-2 border-t">
-                <span>{t('quotations.details.fields.totalAmount')}:</span>
-                <span>{formatCurrency(quotation.total_amount)}</span>
-              </div>
             </div>
           </div>
         </div>

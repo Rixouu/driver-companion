@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     console.log(`[SEND-REMINDER API] Fetching quotation with ID: ${id}`);
     const { data: quotationData, error } = await supabase
       .from('quotations')
-      .select('*')
+      .select('*, quotation_items (*)')
       .eq('id', id)
       .single();
     

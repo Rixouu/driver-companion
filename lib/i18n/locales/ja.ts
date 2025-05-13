@@ -363,9 +363,9 @@ export const ja: TranslationValue = {
       },
       sections: {
         vehicle: "車両情報",
-        inspection: "点検情報",
+        inspection: "検査情報",
         summary: "概要",
-        items: "点検項目",
+        items: "検査項目",
         failed: "不合格項目",
         passed: "合格項目"
       },
@@ -916,28 +916,166 @@ export const ja: TranslationValue = {
       title: "点検詳細",
       printTitle: "点検レポート",
       scheduledFor: "{date}に予定",
-      inspectionItems: "点検項目",
+      inspectionItems: "検査項目",
       sections: {
         vehicle: "車両情報",
-        inspection: "点検情報",
+        inspection: "検査情報",
         summary: "概要",
-        items: "点検項目",
-        steering_system: "ステアリングシステム",
-        brake_system: "ブレーキシステム",
-        suspension: "サスペンションシステム",
-        lighting: "ライティングシステム",
-        tires: "タイヤ",
-        engine: "エンジン",
-        transmission: "トランスミッション",
-        electrical: "電気系統",
-        safety_equipment: "安全装備",
-        brake_safety: "ブレーキ安全性",
-        scheduled_maintenance: "定期メンテナンス",
-        wear_items: "消耗品",
-        visibility: "視認性",
-        restraint_systems: "拘束システム",
-        diagnostics: "診断",
-        other: "その他"
+        items: "検査項目",
+        steering_system: {
+          title: "ステアリングシステム",
+          items: {
+            steering_wheel: { title: "ステアリングホイール", description: "ステアリングホイールの状態と遊びを確認します。" },
+            power_steering: { title: "パワーステアリング", description: "パワーステアリング液と動作を確認します。" },
+            steering_column: { title: "ステアリングコラム", description: "ステアリングコラムの緩みを点検します。" }
+          }
+        },
+        brake_system: {
+          title: "ブレーキシステム",
+          items: {
+            brake_pedal: { title: "ブレーキペダル", description: "ブレーキペダルの感触と移動量を確認します。" },
+            brake_discs: { title: "ブレーキディスク/パッド", description: "ブレーキディスクとパッドの摩耗を点検します。" },
+            brake_fluid: { title: "ブレーキフルード", description: "ブレーキフルードのレベルと状態を確認します。" },
+            brake_oil: { title: "ブレーキオイル (TRANSLATE ME)", description: "ブレーキオイルのレベルと状態を確認してください。(TRANSLATE ME)" },
+            braking_condition: { title: "ブレーキ状態 (TRANSLATE ME)", description: "全体的なブレーキ性能をテストしてください。(TRANSLATE ME)" }
+          }
+        },
+        suspension: {
+          title: "サスペンションシステム",
+          items: {
+            shock_absorbers: { title: "ショックアブソーバー", description: "ショックアブソーバーの漏れや損傷を点検します。" },
+            springs: { title: "スプリング", description: "サスペンションスプリングの損傷やたるみを点検します。" },
+            bushings: { title: "ブッシュ", description: "サスペンションブッシュの摩耗や損傷を点検します。" },
+            ball_joints: { title: "ボールジョイント", description: "ボールジョイントの摩耗や遊びを点検します。" }
+          }
+        },
+        lighting: {
+          title: "照明装置",
+          items: {
+            headlights: { title: "ヘッドライト", description: "ヘッドライトの動作と調整を確認します。" },
+            taillights: { title: "テールライト", description: "テールライトとブレーキライトの動作を確認します。" },
+            turn_indicators: { title: "方向指示器", description: "すべての方向指示器とハザードライトの動作を確認します。" },
+            back_light: { title: "バックライト (TRANSLATE ME)", description: "バック/リバースライトの動作を確認してください。(TRANSLATE ME)" },
+            brake_light: { title: "ブレーキライト (TRANSLATE ME)", description: "ブレーキライトの動作を確認してください。(TRANSLATE ME)" },
+            headlight: { title: "ヘッドライト (単数) (TRANSLATE ME)", description: "ヘッドライトの動作と調整を確認してください。(TRANSLATE ME)" },
+            blinker: { title: "ブリンカー (TRANSLATE ME)", description: "ブリンカー/方向指示器の動作を確認してください。(TRANSLATE ME)" },
+            hazard_light: { title: "ハザードライト (TRANSLATE ME)", description: "ハザードライトの動作を確認してください。(TRANSLATE ME)" }
+          }
+        },
+        tires: {
+          title: "タイヤ",
+          items: {
+            tire_pressure: { 
+              title: "タイヤ空気圧", 
+              description: "タイヤの空気圧を推奨レベルに確認・調整します。" 
+            },
+            tread_depth: { 
+              title: "トレッドの深さ", 
+              description: "タイヤのトレッドの深さを測定し、十分なグリップがあるか確認します。" 
+            },
+            wear_pattern: { 
+              title: "摩耗パターン", 
+              description: "タイヤの不均一な摩耗パターンを検査します。" 
+            }
+          }
+        },
+        engine: {
+          title: "エンジン",
+          items: {
+            oil_level: { title: "オイルレベル", description: "エンジンオイルのレベルと状態を確認します。" },
+            coolant_level: { title: "クーラントレベル", description: "エンジンクーラントのレベルと状態を確認します。" },
+            belts: { title: "ベルト", description: "エンジンベルトの摩耗と張力を点検します。" },
+            drive_belts: { title: "ドライブベルト", description: "ドライブベルトの摩耗と張力を点検します。" },
+            hoses: { title: "ホース", description: "エンジンホースの漏れや損傷を点検します。" },
+            fluid_leaks: { title: "フルード漏れ", description: "エンジンからのフルード漏れを確認します。" },
+            engine_oil: { title: "エンジンオイル (項目) (TRANSLATE ME)", description: "エンジンオイルのレベルと品質を確認してください。(TRANSLATE ME)" },
+            radiator_coolant: { title: "ラジエータークーラント (TRANSLATE ME)", description: "ラジエータークーラントのレベルと状態を確認してください。(TRANSLATE ME)" },
+            engine_starting_condition: { title: "エンジン始動状態 (TRANSLATE ME)", description: "エンジンが正しく始動し、スムーズに動作することを確認してください。(TRANSLATE ME)" }
+          }
+        },
+        transmission: {
+          title: "トランスミッション",
+          items: {
+            shifting_operation: { title: "シフト操作", description: "トランスミッションがスムーズにシフトするかテストします。" },
+            clutch_operation: { title: "クラッチ操作", description: "クラッチのエンゲージメントと操作を確認します（該当する場合）。" }
+            // ADDED Missing items from en.ts for consistency, if these were intended to be here
+            // transmission_fluid: { title: "トランスミッションフルード (TRANSLATE ME)", description: "トランスミッションフルードのレベルと状態を確認します。(TRANSLATE ME)" },
+            // leaks: { title: "漏れ (トランスミッション) (TRANSLATE ME)", description: "トランスミッションからのフルード漏れを確認します。(TRANSLATE ME)" }
+          }
+        },
+        electrical: {
+          title: "電気系統",
+          items: {
+            battery_condition: { title: "バッテリー状態", description: "バッテリー端子と全体的な状態を検査します。" },
+            alternator_output: { title: "オルタネーター出力", description: "オルタネーターの充電電圧を確認します。" },
+            starter_operation: { title: "スターター操作", description: "スターターモーターの動作をテストします。" }
+          }
+        },
+        safety_equipment: {
+          title: "安全装備",
+          items: {
+            seatbelt_operation: { title: "シートベルト操作", description: "すべてのシートベルトが適切に機能し、良好な状態であるか確認します。" },
+            airbag_system: { title: "エアバッグシステム", description: "エアバッグ警告灯の状態を確認します（アクティブな障害なし）。" },
+            wiper_operation: { title: "ワイパー操作", description: "フロントガラスワイパーとウォッシャー液の動作をテストします。" },
+            horn_operation: { title: "ホーン操作", description: "ホーンの動作をテストします。" }
+          }
+        },
+        brake_safety: {
+          title: "ブレーキ安全性",
+          items: {
+            emergency_brake: { title: "非常ブレーキ", description: "非常ブレーキの動作をテストします。" },
+            brake_lines: { title: "ブレーキライン", description: "ブレーキラインの漏れや損傷を点検します。" },
+            abs_system: { title: "ABSシステム", description: "ABS警告灯の状態を確認します。" }
+          }
+        },
+        scheduled_maintenance: {
+          title: "定期メンテナンス",
+          items: {
+            oil_change: { title: "オイル交換", description: "最後のオイル交換と次回予定を確認します。" },
+            filter_replacement: { title: "フィルター交換", description: "エア、オイル、燃料フィルターを確認します。" },
+            fluid_levels: { title: "フルードレベル", description: "すべての重要なフルードレベルを確認します。" }
+          }
+        },
+        wear_items: {
+          title: "消耗品",
+          items: {
+            brake_pads: { title: "ブレーキパッド", description: "ブレーキパッドの厚さを点検します。" },
+            tire_rotation: { title: "タイヤローテーション", description: "最後のタイヤローテーションと次回予定を確認します。" },
+            belt_condition: { title: "ベルト状態", description: "サーペンタインベルトおよびその他のベルトの状態を確認します。" }
+          }
+        },
+        visibility: {
+          title: "視認性",
+          items: {
+            windshield_condition: { title: "フロントガラス状態", description: "フロントガラスのひび割れや欠けを点検します。" },
+            mirror_condition: { title: "ミラー状態", description: "すべてのミラーの状態と調整を確認します。" },
+            window_operation: { title: "窓操作", description: "すべての窓の動作をテストします。" }
+          }
+        },
+        restraint_systems: {
+          title: "拘束システム",
+          items: {
+            seatbelt_condition: { title: "シートベルト状態", description: "シートベルトのウェビングとバックルを点検します。" },
+            airbag_indicators: { title: "エアバッグインジケーター", description: "エアバッグ警告灯の状態を確認します。" },
+            child_locks: { title: "チャイルドロック", description: "チャイルドセーフティロックの動作をテストします。" }
+          }
+        },
+        diagnostics: {
+          title: "診断",
+          items: {
+            computer_scan: { title: "コンピュータスキャン", description: "エラーコードの診断コンピュータスキャンを実行します。" },
+            sensor_check: { title: "センサーチェック", description: "主要センサーの動作を確認します。" },
+            emissions_test: { title: "排ガステスト", description: "排ガスシステムコンポーネントを確認します（該当する場合）。" }
+          }
+        },
+        exterior: {
+          title: "外装状態",
+          items: {
+            dirt_and_damage: { title: "汚れと損傷", description: "車両外装の汚れの蓄積や物理的な損傷を点検してください。" },
+            cracks_and_damage: { title: "ひび割れと損傷", description: "車両ボディのひび割れ、へこみ、その他の構造的損傷を点検してください。" }
+          }
+        },
+        other: { title: "その他" }
       },
       vehicleInfo: {
         title: "車両情報",
@@ -947,24 +1085,24 @@ export const ja: TranslationValue = {
         year: "年式",
         noImage: "画像なし"
       },
-      inspectionDetails: "点検詳細",
+      inspectionDetails: "検査詳細",
       inspector: {
         title: "検査員",
         name: "検査員名",
-        email: "検査員メールアドレス"
+        email: "検査員メール"
       },
       results: {
-        title: "点検結果",
+        title: "検査概要",
         passCount: "合格項目数: {count}",
         failCount: "不合格項目数: {count}",
         photoCount: "撮影写真数: {count}",
-        notesCount: "メモ付き項目数: {count}",
+        notesCount: "追加メモ数: {count}",
         completionRate: "完了率",
         lastUpdated: "最終更新",
-        failedItemsFound: "不合格項目あり",
-        failedItemsDescription: "以下の項目が点検基準を満たしていません。",
-        allPassed: "全項目合格",
-        noFailedItems: "この点検では不合格項目はありませんでした。",
+        failedItemsFound: "不合格項目が見つかりました",
+        failedItemsDescription: "以下の項目は検査基準を満たしていませんでした。",
+        allPassed: "すべての項目が合格しました",
+        noFailedItems: "この検査で不合格項目は見つかりませんでした。",
         passedLabel: "合格項目",
         failedLabel: "不合格項目",
         notesLabel: "追加メモ",
@@ -989,145 +1127,7 @@ export const ja: TranslationValue = {
         scheduleRepair: "修理を予定",
         scheduleRepairDescription: "不合格項目のメンテナンスタスクを作成する"
       },
-      dateLabel: "点検日"
-    },
-    notesPlaceholder: "この項目についてのメモを追加...",
-    noVehicle: "車両未割り当て",
-    dateGroup: {
-      today: "今日",
-      yesterday: "昨日",
-      thisWeek: "今週",
-      thisMonth: "今月",
-      upcoming: "近日予定",
-      older: "それ以前",
-      unknown: "不明な日付"
-    },
-    stats: {
-      count: "{{count}}件の点検",
-      vehicleCount: "{{count}}件の点検"
-    },
-    sections: {
-      lighting: {
-        title: "ライティングシステム",
-        items: {
-          taillights: { title: "テールランプ", description: "テールランプの動作と状態を確認します。" },
-          turn_indicators: { title: "方向指示器", description: "方向指示器の動作と状態を確認します。" },
-          headlights: { title: "ヘッドライト", description: "ヘッドライトの動作と状態を確認します。" },
-          brake_lights: { title: "ブレーキランプ", description: "ブレーキランプの動作と状態を確認します。" }
-        }
-      },
-      tires: {
-        title: "タイヤ",
-        items: {
-          tire_pressure: { 
-            title: "タイヤ空気圧", 
-            description: "タイヤの空気圧を推奨レベルに確認・調整します。" 
-          },
-          tread_depth: { 
-            title: "トレッドの深さ", 
-            description: "タイヤのトレッドの深さを測定し、十分なグリップがあるか確認します。" 
-          },
-          wear_pattern: { 
-            title: "摩耗パターン", 
-            description: "タイヤの不均一な摩耗パターンを検査します。" 
-          }
-        }
-      },
-      engine: {
-        title: "エンジン",
-        items: {
-          oil_level: { title: "オイルレベル", description: "エンジンオイルのレベルと状態を確認します。" },
-          coolant_level: { title: "クーラントレベル", description: "エンジンクーラントのレベルと状態を確認します。" },
-          drive_belts: { title: "ドライブベルト", description: "ドライブベルトの摩耗と張力を検査します。" },
-          fluid_leaks: { title: "液体漏れ", description: "エンジンの液体漏れがないか確認します。" }
-        }
-      },
-      transmission: {
-        title: "トランスミッション",
-        items: {
-          shifting_operation: { title: "シフト操作", description: "トランスミッションがスムーズにシフトするかテストします。" },
-          clutch_operation: { title: "クラッチ操作", description: "クラッチのエンゲージメントと操作を確認します（該当する場合）。" }
-        }
-      },
-      electrical: {
-        title: "電気系統",
-        items: {
-          battery_condition: { title: "バッテリー状態", description: "バッテリー端子と全体的な状態を検査します。" },
-          alternator_output: { title: "オルタネーター出力", description: "オルタネーターの充電電圧を確認します。" },
-          starter_operation: { title: "スターター操作", description: "スターターモーターの動作をテストします。" }
-        }
-      },
-      safety_equipment: {
-        title: "安全装備",
-        items: {
-          seatbelt_operation: { title: "シートベルト操作", description: "すべてのシートベルトが適切に機能し、良好な状態であるか確認します。" },
-          airbag_system: { title: "エアバッグシステム", description: "エアバッグ警告灯の状態を確認します（アクティブな障害なし）。" },
-          wiper_operation: { title: "ワイパー操作", description: "フロントガラスワイパーとウォッシャー液の動作をテストします。" },
-          horn_operation: { title: "ホーン操作", description: "ホーンの動作をテストします。" }
-        }
-      },
-      steering_system: {
-        title: "ステアリングシステム",
-        items: {
-          power_steering: { title: "パワーステアリング", description: "パワーステアリングフルードのレベルと漏れを確認します。動作をテストします。" },
-          steering_column: { title: "ステアリングコラム", description: "ステアリングコラムの緩みや遊びを検査します。" }
-        }
-      },
-      brake_system: {
-        title: "ブレーキシステム",
-        items: {
-          brake_pedal: { title: "ブレーキペダル", description: "ブレーキペダルの感触と遊びを確認します。" },
-          brake_discs: { title: "ブレーキディスク/パッド", description: "ブレーキディスクとパッドの摩耗を検査します。" },
-          brake_fluid: { title: "ブレーキフルード", description: "ブレーキフルードのレベルと状態を確認します。" }
-        }
-      },
-      suspension: {
-        title: "サスペンションシステム",
-        items: {
-          shock_absorbers: { title: "ショックアブソーバー", description: "ショックアブソーバーの漏れや損傷を検査します。" },
-          springs: { title: "スプリング", description: "サスペンションスプリングの損傷やたるみを検査します。" },
-          bushings: { title: "ブッシュ", description: "サスペンションブッシュの摩耗や損傷を検査します。" }
-        }
-      },
-      other: {
-        title: "その他",
-        items: {
-          lighting_device: { 
-            title: "照明装置", 
-            description: "ナンバープレートライトを含むすべての外部ライトの動作を確認" 
-          },
-          blinkers_hazards: { 
-            title: "ウインカー・ハザード", 
-            description: "方向指示器とハザードランプの動作を確認" 
-          },
-          brake_lights: { 
-            title: "ブレーキライト", 
-            description: "ペダルを踏んだときのブレーキライトの作動を確認" 
-          },
-          engine_oil: { 
-            title: "エンジンオイル", 
-            description: "ディップスティックを使用してオイルレベルと状態を確認" 
-          },
-          brake_fluid_volume: { 
-            title: "ブレーキ液量", 
-            description: "ブレーキ液リザーバー内の液量を確認" 
-          },
-          radiator_fluid: { 
-            title: "ラジエーターリザーバータンク液量", 
-            description: "リザーバータンク内の冷却水レベルを確認" 
-          },
-          liquid_leakage: { 
-            title: "液体漏れ（車両下部）", 
-            description: "流体漏れの兆候がないか車両下部を点検" 
-          }
-        }
-      },
-      items: {
-        title: "点検項目",
-        itemHeader: "項目",
-        statusHeader: "状態",
-        notesHeader: "メモ"
-      }
+      dateLabel: "検査日"
     }
   },
   dispatch: {

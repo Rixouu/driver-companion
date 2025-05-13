@@ -756,21 +756,141 @@ export const en: TranslationValue = {
       inspection: "Inspection Information",
       summary: "Summary",
       items: "Inspection Items",
-      steering_system: "Steering System",
-      brake_system: "Brake System",
-      suspension: "Suspension System",
-      lighting: "Lighting System",
-      engine: "Engine",
-      transmission: "Transmission",
-      electrical: "Electrical System",
-      safety_equipment: "Safety Equipment",
-      brake_safety: "Brake Safety",
-      scheduled_maintenance: "Scheduled Maintenance",
-      wear_items: "Wear Items",
-      visibility: "Visibility",
-      restraint_systems: "Restraint Systems",
-      diagnostics: "Diagnostics",
-      other: "Other",
+      steering_system: {
+        title: "Steering System",
+        items: {
+          steering_wheel: { title: "Steering Wheel", description: "Check steering wheel condition and play." },
+          power_steering: { title: "Power Steering", description: "Check power steering fluid and operation." },
+          steering_column: { title: "Steering Column", description: "Inspect steering column for looseness." }
+        }
+      },
+      brake_system: {
+        title: "Brake System",
+        items: {
+          brake_pedal: { title: "Brake Pedal", description: "Check brake pedal feel and travel." },
+          brake_discs: { title: "Brake Discs/Pads", description: "Inspect brake discs and pads for wear." },
+          brake_fluid: { title: "Brake Fluid", description: "Check brake fluid level and condition." },
+          brake_oil: { title: "Brake Oil", description: "Check brake oil level and condition." },
+          braking_condition: { title: "Braking Condition", description: "Test overall braking performance." }
+        }
+      },
+      suspension: {
+        title: "Suspension System",
+        items: {
+          shock_absorbers: { title: "Shock Absorbers", description: "Inspect shock absorbers for leaks or damage." },
+          springs: { title: "Springs", description: "Inspect suspension springs for damage or sagging." },
+          bushings: { title: "Bushings", description: "Inspect suspension bushings for wear or damage." },
+          ball_joints: { title: "Ball Joints", description: "Inspect ball joints for wear or play." }
+        }
+      },
+      lighting: {
+        title: "Lighting System",
+        items: {
+          headlights: { title: "Headlights", description: "Check operation and alignment of headlights." },
+          taillights: { title: "Taillights", description: "Check operation of taillights and brake lights." },
+          turn_indicators: { title: "Turn Indicators", description: "Check operation of all turn indicators and hazard lights." },
+          back_light: { title: "Back Light", description: "Check operation of back/reverse lights." },
+          brake_light: { title: "Brake Light", description: "Check operation of brake lights." },
+          headlight: { title: "Headlight", description: "Check operation and alignment of headlight." },
+          blinker: { title: "Blinker", description: "Check operation of blinkers/turn signals." },
+          hazard_light: { title: "Hazard Light", description: "Check operation of hazard lights." }
+        }
+      },
+      engine: {
+        title: "Engine",
+        items: {
+          oil_level: { title: "Oil Level", description: "Check engine oil level and condition." },
+          coolant_level: { title: "Coolant Level", description: "Check engine coolant level and condition." },
+          belts: { title: "Belts", description: "Inspect engine belts for wear and tension." },
+          drive_belts: { title: "Drive Belts", description: "Inspect drive belts for wear and tension." },
+          hoses: { title: "Hoses", description: "Inspect engine hoses for leaks or damage." },
+          fluid_leaks: { title: "Fluid Leaks", description: "Check for any fluid leaks from the engine." },
+          engine_oil: { title: "Engine Oil", description: "Check engine oil level and quality." },
+          radiator_coolant: { title: "Radiator Coolant", description: "Check radiator coolant level and condition." },
+          engine_starting_condition: { title: "Engine Starting Condition", description: "Verify engine starts correctly and runs smoothly." }
+        }
+      },
+      transmission: {
+        title: "Transmission",
+        items: {
+          transmission_fluid: { title: "Transmission Fluid", description: "Check transmission fluid level and condition." },
+          shifting_operation: { title: "Shifting Operation", description: "Test transmission for smooth shifting." },
+          clutch_operation: { title: "Clutch Operation", description: "Check clutch engagement and operation (if applicable)." },
+          leaks: { title: "Leaks", description: "Check for any fluid leaks from the transmission." }
+        }
+      },
+      electrical: {
+        title: "Electrical System",
+        items: {
+          battery_condition: { title: "Battery Condition", description: "Inspect battery terminals and overall condition." },
+          alternator_output: { title: "Alternator Output", description: "Check alternator charging voltage." },
+          starter_operation: { title: "Starter Operation", description: "Test starter motor operation." }
+        }
+      },
+      safety_equipment: {
+        title: "Safety Equipment",
+        items: {
+          seatbelt_operation: { title: "Seatbelt Operation", description: "Check all seatbelts for proper function and condition." },
+          airbag_system: { title: "Airbag System", description: "Check airbag warning light status (no active faults)." },
+          wiper_operation: { title: "Wiper Operation", description: "Test windshield wipers and washer fluid operation." }
+        }
+      },
+      brake_safety: {
+        title: "Brake Safety",
+        items: {
+          emergency_brake: { title: "Emergency Brake", description: "Test emergency brake operation." },
+          brake_lines: { title: "Brake Lines", description: "Inspect brake lines for leaks or damage." },
+          abs_system: { title: "ABS System", description: "Check ABS warning light status." }
+        }
+      },
+      scheduled_maintenance: {
+        title: "Scheduled Maintenance",
+        items: {
+          oil_change: { title: "Oil Change", description: "Verify last oil change and next due." },
+          filter_replacement: { title: "Filter Replacement", description: "Check air, oil, and fuel filters." },
+          fluid_levels: { title: "Fluid Levels", description: "Check all essential fluid levels." }
+        }
+      },
+      wear_items: {
+        title: "Wear Items",
+        items: {
+          brake_pads: { title: "Brake Pads", description: "Inspect brake pad thickness." },
+          tire_rotation: { title: "Tire Rotation", description: "Verify last tire rotation and next due." },
+          belt_condition: { title: "Belt Condition", description: "Check condition of serpentine and other belts." }
+        }
+      },
+      visibility: {
+        title: "Visibility",
+        items: {
+          windshield_condition: { title: "Windshield Condition", description: "Inspect windshield for cracks or chips." },
+          mirror_condition: { title: "Mirror Condition", description: "Check condition and adjustment of all mirrors." },
+          window_operation: { title: "Window Operation", description: "Test operation of all windows." }
+        }
+      },
+      restraint_systems: {
+        title: "Restraint Systems",
+        items: {
+          seatbelt_condition: { title: "Seatbelt Condition", description: "Inspect seatbelt webbing and buckles." },
+          airbag_indicators: { title: "Airbag Indicators", description: "Check status of airbag warning lights." },
+          child_locks: { title: "Child Locks", description: "Test operation of child safety locks." }
+        }
+      },
+      diagnostics: {
+        title: "Diagnostics",
+        items: {
+          computer_scan: { title: "Computer Scan", description: "Perform a diagnostic computer scan for error codes." },
+          sensor_check: { title: "Sensor Check", description: "Verify operation of key sensors." },
+          emissions_test: { title: "Emissions Test", description: "Check emissions system components (if applicable)." }
+        }
+      },
+      exterior: {
+        title: "Exterior Condition",
+        items: {
+          dirt_and_damage: { title: "Dirt and Damage", description: "Inspect vehicle exterior for dirt accumulation and any physical damage." },
+          cracks_and_damage: { title: "Cracks and Damage", description: "Inspect vehicle body for cracks, dents, and other structural damage." }
+        }
+      },
+      other: { title: "Other" },
       tires: {
         title: "Tires",
         items: {
@@ -808,38 +928,141 @@ export const en: TranslationValue = {
         inspection: "Inspection Information",
         summary: "Summary",
         items: "Inspection Items",
-        steering_system: "Steering System",
-        brake_system: "Brake System",
-        suspension: "Suspension System",
-        lighting: "Lighting System",
-        engine: "Engine",
-        transmission: "Transmission",
-        electrical: "Electrical System",
-        safety_equipment: "Safety Equipment",
-        brake_safety: "Brake Safety",
-        scheduled_maintenance: "Scheduled Maintenance",
-        wear_items: "Wear Items",
-        visibility: "Visibility",
-        restraint_systems: "Restraint Systems",
-        diagnostics: "Diagnostics",
-        other: "Other",
-        tires: {
-          title: "Tires",
+        steering_system: {
+          title: "Steering System",
           items: {
-            tire_pressure: { 
-              title: "Tire Pressure", 
-              description: "Check and adjust tire pressure to recommended levels." 
-            },
-            tread_depth: { 
-              title: "Tread Depth", 
-              description: "Measure tire tread depth to ensure sufficient grip." 
-            },
-            wear_pattern: { 
-              title: "Wear Pattern", 
-              description: "Inspect tires for uneven wear patterns." 
-            }
+            steering_wheel: { title: "Steering Wheel", description: "Check steering wheel condition and play." },
+            power_steering: { title: "Power Steering", description: "Check power steering fluid and operation." },
+            steering_column: { title: "Steering Column", description: "Inspect steering column for looseness." }
           }
-        }
+        },
+        brake_system: {
+          title: "Brake System",
+          items: {
+            brake_pedal: { title: "Brake Pedal", description: "Check brake pedal feel and travel." },
+            brake_discs: { title: "Brake Discs/Pads", description: "Inspect brake discs and pads for wear." },
+            brake_fluid: { title: "Brake Fluid", description: "Check brake fluid level and condition." },
+            brake_oil: { title: "Brake Oil", description: "Check brake oil level and condition." },
+            braking_condition: { title: "Braking Condition", description: "Test overall braking performance." }
+          }
+        },
+        suspension: {
+          title: "Suspension System",
+          items: {
+            shock_absorbers: { title: "Shock Absorbers", description: "Inspect shock absorbers for leaks or damage." },
+            springs: { title: "Springs", description: "Inspect suspension springs for damage or sagging." },
+            bushings: { title: "Bushings", description: "Inspect suspension bushings for wear or damage." },
+            ball_joints: { title: "Ball Joints", description: "Inspect ball joints for wear or play." }
+          }
+        },
+        lighting: {
+          title: "Lighting System",
+          items: {
+            headlights: { title: "Headlights", description: "Check operation and alignment of headlights." },
+            taillights: { title: "Taillights", description: "Check operation of taillights and brake lights." },
+            turn_indicators: { title: "Turn Indicators", description: "Check operation of all turn indicators and hazard lights." },
+            back_light: { title: "Back Light", description: "Check operation of back/reverse lights." },
+            brake_light: { title: "Brake Light", description: "Check operation of brake lights." },
+            headlight: { title: "Headlight", description: "Check operation and alignment of headlight." },
+            blinker: { title: "Blinker", description: "Check operation of blinkers/turn signals." },
+            hazard_light: { title: "Hazard Light", description: "Check operation of hazard lights." }
+          }
+        },
+        engine: {
+          title: "Engine",
+          items: {
+            oil_level: { title: "Oil Level", description: "Check engine oil level and condition." },
+            coolant_level: { title: "Coolant Level", description: "Check engine coolant level and condition." },
+            belts: { title: "Belts", description: "Inspect engine belts for wear and tension." },
+            drive_belts: { title: "Drive Belts", description: "Inspect drive belts for wear and tension." },
+            hoses: { title: "Hoses", description: "Inspect engine hoses for leaks or damage." },
+            fluid_leaks: { title: "Fluid Leaks", description: "Check for any fluid leaks from the engine." },
+            engine_oil: { title: "Engine Oil", description: "Check engine oil level and quality." },
+            radiator_coolant: { title: "Radiator Coolant", description: "Check radiator coolant level and condition." },
+            engine_starting_condition: { title: "Engine Starting Condition", description: "Verify engine starts correctly and runs smoothly." }
+          }
+        },
+        transmission: {
+          title: "Transmission",
+          items: {
+            transmission_fluid: { title: "Transmission Fluid", description: "Check transmission fluid level and condition." },
+            shifting_operation: { title: "Shifting Operation", description: "Test transmission for smooth shifting." },
+            clutch_operation: { title: "Clutch Operation", description: "Check clutch engagement and operation (if applicable)." },
+            leaks: { title: "Leaks", description: "Check for any fluid leaks from the transmission." }
+          }
+        },
+        electrical: {
+          title: "Electrical System",
+          items: {
+            battery_condition: { title: "Battery Condition", description: "Inspect battery terminals and overall condition." },
+            alternator_output: { title: "Alternator Output", description: "Check alternator charging voltage." },
+            starter_operation: { title: "Starter Operation", description: "Test starter motor operation." }
+          }
+        },
+        safety_equipment: {
+          title: "Safety Equipment",
+          items: {
+            seatbelt_operation: { title: "Seatbelt Operation", description: "Check all seatbelts for proper function and condition." },
+            airbag_system: { title: "Airbag System", description: "Check airbag warning light status (no active faults)." },
+            wiper_operation: { title: "Wiper Operation", description: "Test windshield wipers and washer fluid operation." }
+          }
+        },
+        brake_safety: {
+          title: "Brake Safety",
+          items: {
+            emergency_brake: { title: "Emergency Brake", description: "Test emergency brake operation." },
+            brake_lines: { title: "Brake Lines", description: "Inspect brake lines for leaks or damage." },
+            abs_system: { title: "ABS System", description: "Check ABS warning light status." }
+          }
+        },
+        scheduled_maintenance: {
+          title: "Scheduled Maintenance",
+          items: {
+            oil_change: { title: "Oil Change", description: "Verify last oil change and next due." },
+            filter_replacement: { title: "Filter Replacement", description: "Check air, oil, and fuel filters." },
+            fluid_levels: { title: "Fluid Levels", description: "Check all essential fluid levels." }
+          }
+        },
+        wear_items: {
+          title: "Wear Items",
+          items: {
+            brake_pads: { title: "Brake Pads", description: "Inspect brake pad thickness." },
+            tire_rotation: { title: "Tire Rotation", description: "Verify last tire rotation and next due." },
+            belt_condition: { title: "Belt Condition", description: "Check condition of serpentine and other belts." }
+          }
+        },
+        visibility: {
+          title: "Visibility",
+          items: {
+            windshield_condition: { title: "Windshield Condition", description: "Inspect windshield for cracks or chips." },
+            mirror_condition: { title: "Mirror Condition", description: "Check condition and adjustment of all mirrors." },
+            window_operation: { title: "Window Operation", description: "Test operation of all windows." }
+          }
+        },
+        restraint_systems: {
+          title: "Restraint Systems",
+          items: {
+            seatbelt_condition: { title: "Seatbelt Condition", description: "Inspect seatbelt webbing and buckles." },
+            airbag_indicators: { title: "Airbag Indicators", description: "Check status of airbag warning lights." },
+            child_locks: { title: "Child Locks", description: "Test operation of child safety locks." }
+          }
+        },
+        diagnostics: {
+          title: "Diagnostics",
+          items: {
+            computer_scan: { title: "Computer Scan", description: "Perform a diagnostic computer scan for error codes." },
+            sensor_check: { title: "Sensor Check", description: "Verify operation of key sensors." },
+            emissions_test: { title: "Emissions Test", description: "Check emissions system components (if applicable)." }
+          }
+        },
+        exterior: {
+          title: "Exterior Condition",
+          items: {
+            dirt_and_damage: { title: "Dirt and Damage", description: "Inspect vehicle exterior for dirt accumulation and any physical damage." },
+            cracks_and_damage: { title: "Cracks and Damage", description: "Inspect vehicle body for cracks, dents, and other structural damage." }
+          }
+        },
+        other: { title: "Other" }
       },
       vehicleInfo: {
         title: "Vehicle Information",

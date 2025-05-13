@@ -30,7 +30,7 @@ import { toast } from "@/components/ui/use-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 // Utility functions
-const getVehicleTypes = () => ["Sedan", "Van", "Minibus", "Bus", "Coach"];
+// const getVehicleTypes = () => ["Sedan", "Van", "Minibus", "Bus", "Coach"]; // Removed as per requirement
 
 const getDurationOptions = () => [
   { value: 1, label: "1 hour" },
@@ -51,13 +51,13 @@ interface PriceData {
 
 interface PriceRow {
   duration: number;
-  vehicleType: string;
+  // vehicleType: string; // Removed
   prices: Record<string, PriceData>;
 }
 
 interface DurationGroup {
   duration: number;
-  rows: PriceRow[];
+  rows: PriceRow[]; // Each row is now just a duration with prices for different service types
 }
 
 interface PriceTableData {
@@ -71,7 +71,7 @@ export default function PricingItemsTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string>("all");
-  const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all");
+  // const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all"); // Removed
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<Partial<PricingItem> | null>(null);
@@ -93,9 +93,11 @@ export default function PricingItemsTab() {
     try {
       const categoryToFetch = currentCategoryId === undefined ? selectedCategory : currentCategoryId;
       if (categoryToFetch) {
+        // Assuming getPricingItems can be called with (categoryId, serviceTypeId (optional))
+        // Vehicle type filter removed from API call if it was there
         const [itemsData, serviceTypesData] = await Promise.all([
-          getPricingItems(categoryToFetch, undefined, undefined),
-          getServiceTypes()
+          getPricingItems(categoryToFetch, undefined /* service_type_id filter if needed, else just categoryId */),
+          getServiceTypes() // Still needed for service type names and potentially for columns
         ]);
         setAllServiceTypes(serviceTypesData);
         const itemsWithServiceNames = itemsData.map(item => ({
@@ -121,22 +123,25 @@ export default function PricingItemsTab() {
       try {
         const categoriesData = await getPricingCategories();
         setCategories(categoriesData);
-        if (categoriesData.length > 0) {
+        if (categoriesData.length > 0 && !selectedCategory) { // Select first category if none is selected yet
           const initialCategory = categoriesData[0].id;
           setSelectedCategory(initialCategory);
-          // Items will be loaded by the useEffect watching selectedCategory
-        } else {
+        } else if (categoriesData.length === 0) {
           setItems([]); 
         }
+        // Fetch all service types once for reference
+        const serviceTypesData = await getServiceTypes();
+        setAllServiceTypes(serviceTypesData);
+
       } catch (error) {
-        console.error("Error loading initial categories:", error);
-        toast({ title: t('common.error.genericTitle'), description: t('common.error.initialLoadFailed', { context: 'pricing categories' }), variant: 'destructive' });
+        console.error("Error loading initial categories/services:", error);
+        toast({ title: t('common.error.genericTitle'), description: t('common.error.initialLoadFailed', { context: 'pricing setup' }), variant: 'destructive' });
       } finally {
-        // setIsLoading(false); // isLoading for items will handle this
+         // isLoading is for items, managed by refreshItems
       }
     };
     loadInitialData();
-  }, [getPricingCategories, t]); // Removed getServiceTypes and refreshItems as items load based on selectedCategory
+  }, [getPricingCategories, getServiceTypes, t, selectedCategory]); // Added selectedCategory to prevent re-fetch if already set
 
   useEffect(() => {
     if (selectedCategory) {
@@ -144,7 +149,7 @@ export default function PricingItemsTab() {
     } else {
       setItems([]);
     }
-  }, [selectedCategory, refreshItems]);
+  }, [selectedCategory, refreshItems]); // refreshItems dependency is important
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
@@ -152,18 +157,18 @@ export default function PricingItemsTab() {
 
   const handleOpenDialog = (item?: Partial<PricingItem>) => {
     const defaultServiceTypeId = allServiceTypes.length > 0 ? allServiceTypes[0].id : undefined;
-    if (item && 'id' in item && item.id) { // Check for id presence for editing
+    if (item && 'id' in item && item.id) {
       setCurrentItem({ ...item });
       setIsEditing(true);
     } else {
       setCurrentItem({
         category_id: selectedCategory,
         service_type_id: defaultServiceTypeId,
-        vehicle_type: getVehicleTypes()[0] || "",
         duration_hours: 1,
         price: 0,
         currency: 'JPY',
         is_active: true,
+        vehicle_type: "N/A", // Default for new items
         ...(item || {})
       });
       setIsEditing(false);
@@ -186,20 +191,28 @@ export default function PricingItemsTab() {
       return;
     }
     
-    const { service_type_name, ...itemToSave } = currentItem as PricingItem & { service_type_name?: string }; 
-
-    const payload = {
-      ...itemToSave,
-      category_id: itemToSave.category_id, // Already set in currentItem
-    };
+    const { service_type_name, vehicle_type, ...itemDataForSave } = currentItem as Partial<PricingItem> & { service_type_name?: string };
 
     try {
       let success = false;
       if (isEditing && currentItem.id) {
-        const { id, ...updatePayload } = payload as PricingItem;
-        if (id) success = !!(await updatePricingItem(id, updatePayload));
+        const { id, created_at, updated_at, category_id, service_type_id, duration_hours, vehicle_type: vtToOmit, ...updatePayloadRest } = currentItem as PricingItem;
+        const updateData = { 
+          price: updatePayloadRest.price,
+          is_active: updatePayloadRest.is_active,
+          currency: updatePayloadRest.currency,
+        };
+        success = !!(await updatePricingItem(currentItem.id, updateData));
       } else {
-        const createPayload = payload as Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'>;
+        const createPayload: Omit<PricingItem, 'id' | 'created_at' | 'updated_at' | 'service_type_name'> = {
+          category_id: currentItem.category_id!,
+          service_type_id: currentItem.service_type_id!,
+          duration_hours: currentItem.duration_hours!,
+          price: currentItem.price!,
+          currency: currentItem.currency || 'JPY',
+          is_active: currentItem.is_active ?? true,
+          vehicle_type: "N/A",
+        };
         success = !!(await createPricingItem(createPayload));
       }
 
@@ -207,7 +220,6 @@ export default function PricingItemsTab() {
         await refreshItems();
         handleCloseDialog();
       } 
-      // Error toasts are handled by useQuotationService
     } catch (error) {
       console.error("Error saving pricing item:", error);
       toast({ title: t('common.error.genericTitle'), description: t('common.error.saveFailed', { entity: 'pricing item' }), variant: 'destructive' });
@@ -231,7 +243,8 @@ export default function PricingItemsTab() {
   const handleToggleItemStatus = async (item: PricingItem) => {
     if (!item || typeof item.id === 'undefined') return;
     try {
-        const success = await updatePricingItem(item.id, { is_active: !item.is_active });
+        const updateData = { is_active: !item.is_active };
+        const success = await updatePricingItem(item.id, updateData);
         if (success) {
             await refreshItems();
             toast({ title: t('pricing.items.statusUpdateSuccess') });
@@ -257,45 +270,46 @@ export default function PricingItemsTab() {
     return Array.from(durations).sort((a, b) => a - b);
   }, [items]);
 
-  const uniqueVehicleTypes = useMemo(() => {
-    const types = new Set<string>();
-    items.forEach(item => types.add(item.vehicle_type));
-    return Array.from(types).sort();
-  }, [items]);
+  // const uniqueVehicleTypes = useMemo(() => { // Removed
+  //   const types = new Set<string>();
+  //   items.forEach(item => types.add(item.vehicle_type));
+  //   return Array.from(types).sort();
+  // }, [items]);
 
-  const uniqueServiceTypes = useMemo(() => {
-    if (!items.length) return [];
-    const serviceTypeMap = new Map<string, string>();
-    items.forEach(item => {
-      if (!serviceTypeMap.has(item.service_type_id)) {
-        const name = item.service_type_name || item.service_type_id;
-        serviceTypeMap.set(item.service_type_id, name);
-      }
-    });
-    return Array.from(serviceTypeMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [items]);
+  const activeServiceTypesForTable = useMemo<ServiceTypeInfo[]>(() => {
+    if (!selectedCategory || categories.length === 0 || allServiceTypes.length === 0) return [];
+    const currentCat = categories.find(c => c.id === selectedCategory);
+    if (!currentCat || !currentCat.service_type_ids || currentCat.service_type_ids === null) return [];
+    return allServiceTypes.filter(st => currentCat.service_type_ids!.includes(st.id))
+                         .sort((a, b) => a.name.localeCompare(b.name)); // Optional: sort columns by name
+  }, [selectedCategory, categories, allServiceTypes]);
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       if (selectedDuration !== 'all' && item.duration_hours !== Number(selectedDuration)) return false;
-      if (selectedVehicleType !== 'all' && item.vehicle_type !== selectedVehicleType) return false;
+      // Vehicle type filter removed
       return true;
     });
-  }, [items, selectedDuration, selectedVehicleType]);
+  }, [items, selectedDuration]);
 
   const priceTable = useMemo<PriceTableData>(() => {
-    if (filteredItems.length === 0) return { durations: [], serviceTypes: [], groupedRows: [] };
+    if (filteredItems.length === 0 || activeServiceTypesForTable.length === 0) return { durations: [], serviceTypes: [], groupedRows: [] };
+    
     const durations = Array.from(new Set(filteredItems.map(item => item.duration_hours))).sort((a, b) => a - b);
-    const vehicleTypes = Array.from(new Set(filteredItems.map(item => item.vehicle_type))).sort();
-    const serviceTypes = uniqueServiceTypes;
+    // const vehicleTypes = Array.from(new Set(filteredItems.map(item => item.vehicle_type))).sort(); // Removed
+    
     const rows: PriceRow[] = [];
     durations.forEach(duration => {
-      vehicleTypes.forEach(vehicleType => {
-        const row: PriceRow = { duration, vehicleType, prices: {} };
-        serviceTypes.forEach(serviceType => {
+      // vehicleTypes.forEach(vehicleType => { // Removed loop
+        const row: PriceRow = {
+          duration,
+          // vehicleType, // Removed
+          prices: {} 
+        };
+        activeServiceTypesForTable.forEach(serviceType => {
           const matchingItem = filteredItems.find(item => 
             item.duration_hours === duration && 
-            item.vehicle_type === vehicleType && 
+            // item.vehicle_type === vehicleType && // Removed
             item.service_type_id === serviceType.id
           );
           if (matchingItem) {
@@ -307,21 +321,29 @@ export default function PricingItemsTab() {
             };
           }
         });
-        if (Object.keys(row.prices).length > 0) rows.push(row);
-      });
+        if (Object.keys(row.prices).length > 0 || activeServiceTypesForTable.length > 0) { // Ensure row is added if service types exist, even if no prices yet
+            rows.push(row);
+        }
+      // }); // Removed loop
     });
+    
     const groupedRows: DurationGroup[] = durations.map(duration => ({
       duration,
       rows: rows.filter(row => row.duration === duration)
     })).filter(group => group.rows.length > 0);
-    return { durations, serviceTypes, groupedRows };
-  }, [filteredItems, uniqueServiceTypes]);
+    
+    return { 
+      durations,
+      serviceTypes: activeServiceTypesForTable,
+      groupedRows 
+    };
+  }, [filteredItems, activeServiceTypesForTable]);
   
   const currentCategoryName = useMemo(() => 
     categories.find(c => c.id === selectedCategory)?.name || 'Category'
   , [categories, selectedCategory]);
 
-  if (categories.length === 0 && isLoading) { // Initial loading for categories
+  if (categories.length === 0 && isLoading) {
     return <div className="p-4 text-center">Loading categories...</div>;
   }
   
@@ -335,7 +357,7 @@ export default function PricingItemsTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Adjusted to 2 cols */} 
             <div>
               <Label htmlFor="pricing-category-select" className="text-sm font-medium mb-1 block">Pricing Category</Label>
               <Select
@@ -379,25 +401,7 @@ export default function PricingItemsTab() {
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="vehicle-select" className="text-sm font-medium mb-1 block">Vehicle</Label>
-              <Select
-                value={selectedVehicleType}
-                onValueChange={setSelectedVehicleType}
-              >
-                <SelectTrigger id="vehicle-select">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Vehicle Types</SelectItem>
-                  {uniqueVehicleTypes.map(type => (
-                    <SelectItem key={`vehicle-${type}`} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Vehicle Select Removed */}
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t mt-4">
@@ -418,28 +422,32 @@ export default function PricingItemsTab() {
         </CardContent>
       </Card>
       
-      {isLoading && items.length === 0 ? (
+      {isLoading && items.length === 0 && selectedCategory ? (
         <div className="p-4 text-center">Loading pricing items for {currentCategoryName}...</div>
       ) : !selectedCategory ? (
         <div className="p-8 text-center text-muted-foreground border rounded-md">
           Please select a pricing category to view items.
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : filteredItems.length === 0 && activeServiceTypesForTable.length > 0 ? ( // Show message if filters result in no items but columns exist
         <div className="p-8 text-center text-muted-foreground border rounded-md">
           {items.length === 0 
             ? `No pricing items found in ${currentCategoryName}. Add your first item.`
             : `No items in ${currentCategoryName} match your current filters. Try adjusting filter settings.`
           }
         </div>
-      ) : (
+      ) : priceTable.serviceTypes.length === 0 && selectedCategory && !isLoading ? ( // Message if category selected but it has no service types linked
+         <div className="p-8 text-center text-muted-foreground border rounded-md">
+            The selected category '{currentCategoryName}' has no service types linked to it. Please edit the category to add service types.
+        </div>
+      ): (
         <div className="border rounded-md overflow-hidden">
           <ScrollArea className="w-full overflow-auto">
             <div className="min-w-full">
               <Table>
                 <TableHeader className="bg-muted/30 sticky top-0 z-10">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-24 bg-muted/80 sticky left-0 z-20">Duration</TableHead>
-                    <TableHead className="w-48 bg-muted/80 sticky left-24 z-20">Vehicle Type</TableHead>
+                    <TableHead className="w-32 bg-muted/80 sticky left-0 z-20">Duration</TableHead> {/* Increased width for duration header */} 
+                    {/* Vehicle Type Header Removed */}
                     {priceTable.serviceTypes?.map(service => (
                       <TableHead 
                         key={service.id} 
@@ -455,7 +463,7 @@ export default function PricingItemsTab() {
                     <React.Fragment key={`group-${group.duration}`}>
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
                         <TableCell 
-                          colSpan={2 + (priceTable.serviceTypes?.length ?? 0)} 
+                          colSpan={1 + (priceTable.serviceTypes?.length ?? 0)} // Adjusted colSpan
                           className="py-1.5 font-medium sticky left-0 z-10 bg-muted/20"
                         >
                           {group.duration === 1 
@@ -466,16 +474,15 @@ export default function PricingItemsTab() {
                       </TableRow>
                       
                       {group.rows.map((row, rowIndex) => (
-                        <TableRow key={`${row.duration}-${row.vehicleType}-${rowIndex}`} className="hover:bg-muted/10">
+                        <TableRow key={`${row.duration}-${rowIndex}`} className="hover:bg-muted/10 group">
                           <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10">
-                            {/* {row.duration}h */}{/* Redundant due to group header, keep for structure if needed or remove */}
+                            {/* Duration value is now in the group header, cell can be empty or for actions later */}
                           </TableCell>
-                          <TableCell className="font-medium sticky left-24 z-10 bg-background group-hover:bg-muted/10">
-                            {row.vehicleType}
-                          </TableCell>
+                          {/* Vehicle Type Cell Removed */}
                           
                           {priceTable.serviceTypes?.map(service => {
                             const priceData = row.prices[service.id];
+                            const itemForDialog = priceData ? filteredItems.find(i => i.id === priceData.itemId) : undefined;
                             return (
                               <TableCell key={service.id} className="text-center">
                                 {priceData ? (
@@ -488,19 +495,19 @@ export default function PricingItemsTab() {
                                       }).format(priceData.price)}
                                     </div>
                                     <div className="flex items-center justify-center gap-1 mt-1">
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { const item = filteredItems.find(i => i.id === priceData.itemId); if (item) handleOpenDialog(item); }}>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) handleOpenDialog(itemForDialog); }}>
                                         <Edit className="h-3 w-3" />
                                       </Button>
                                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteItem(priceData.itemId)}>
                                         <Trash className="h-3 w-3" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { const item = filteredItems.find(i => i.id === priceData.itemId); if (item) handleToggleItemStatus(item); }}>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) handleToggleItemStatus(itemForDialog); }}>
                                         {priceData.isActive ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                                       </Button>
                                     </div>
                                   </div>
                                 ) : (
-                                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { if (selectedCategory) { const newItem: Partial<PricingItem> = { category_id: selectedCategory, service_type_id: service.id, vehicle_type: row.vehicleType, duration_hours: row.duration, price: 0, currency: 'JPY', is_active: true }; handleOpenDialog(newItem); } }}>
+                                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { if (selectedCategory) { const newItem: Partial<PricingItem> = { category_id: selectedCategory, service_type_id: service.id, duration_hours: row.duration, price: 0, currency: 'JPY', is_active: true }; handleOpenDialog(newItem); } }}>
                                     <Plus className="h-3 w-3 mr-1" /> Add
                                   </Button>
                                 )}
@@ -538,40 +545,32 @@ export default function PricingItemsTab() {
               <Select
                 value={currentItem?.service_type_id ?? ""}
                 onValueChange={(value) => handleInputChange("service_type_id", value)}
+                disabled={isEditing} // Disable if editing, as service type defines the column
               >
                 <SelectTrigger id="service_type_id">
                   <SelectValue placeholder="Select service type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allServiceTypes.map((type) => (
+                  {/* Populate with service types relevant to the selected pricing category if creating new */}
+                  {/* If editing, it should be fixed. If creating, filter by currentCategory's service_type_ids */}
+                  {(isEditing && currentItem?.service_type_id ? 
+                    allServiceTypes.filter(st => st.id === currentItem.service_type_id) :
+                    activeServiceTypesForTable
+                  ).map((type) => (
                     <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="grid gap-2">
-              <Label htmlFor="vehicle_type">Vehicle Type</Label>
-              <Select
-                value={currentItem?.vehicle_type ?? ""}
-                onValueChange={(value) => handleInputChange("vehicle_type", value)}
-              >
-                <SelectTrigger id="vehicle_type">
-                  <SelectValue placeholder="Select vehicle type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getVehicleTypes().map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Vehicle Type Select Removed from Dialog */}
             
             <div className="grid gap-2">
               <Label htmlFor="duration_hours">Duration</Label>
               <Select
                 value={String(currentItem?.duration_hours ?? 1)}
                 onValueChange={(value) => handleInputChange("duration_hours", parseInt(value))}
+                disabled={isEditing} // Disable if editing, as duration defines the row
               >
                 <SelectTrigger id="duration_hours">
                   <SelectValue placeholder="Select duration" />
@@ -592,16 +591,13 @@ export default function PricingItemsTab() {
                 <Select
                   value={currentItem?.currency ?? "JPY"}
                   onValueChange={(value) => handleInputChange("currency", value)}
-                  disabled // Keep currency locked for now, can be enabled if needed
+                  disabled 
                 >
                   <SelectTrigger className="w-[100px]">
                     <SelectValue placeholder="Currency" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="JPY">JPY</SelectItem>
-                    {/* Add other currencies if supported */}
-                    {/* <SelectItem value="USD">USD</SelectItem> */}
-                    {/* <SelectItem value="EUR">EUR</SelectItem> */}
                   </SelectContent>
                 </Select>
                 <Input

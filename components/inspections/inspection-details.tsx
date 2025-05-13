@@ -23,7 +23,6 @@ import { useRealtimeRecord, useRealtimeCollection } from "@/hooks/use-realtime"
 import { idFilter } from "@/lib/services/realtime"
 import { useAuth } from "@/hooks/use-auth"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import html2pdf from "html2pdf.js"
 
 // Add extended inspection type with inspection_items
 interface ExtendedInspection extends DbInspection {
@@ -96,6 +95,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   // Use a ref to store the latest inspection data to avoid rendering loops
   const latestInspectionRef = useRef<ExtendedInspection>(initialInspection)
   
+  const processedInspectorIds = useRef(new Set<string>());
+  const fetchingInspectorIds = useRef(new Set<string>());
+  
   // Memoize the data change callback to prevent re-renders
   const handleInspectionDataChange = useCallback((data: DbInspection) => {
     try {
@@ -130,63 +132,112 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     onDataChange: handleInspectionDataChange,
   });
   
-  // Use a batched effect to handle inspection data updates
+  // Effect to fetch inspector details
   useEffect(() => {
-    // If we have realtime data, update the inspection once
-    if (realtimeInspections && realtimeInspections.length > 0) {
-      // Only update if really changed to avoid render loops
-      const updatedData = realtimeInspections[0];
-      setInspection(prevInspection => {
-        // Skip update if data is identical
-        if (JSON.stringify(prevInspection) === JSON.stringify({ ...prevInspection, ...updatedData })) {
-          return prevInspection;
-        }
-        return { ...prevInspection, ...updatedData };
-      });
-    }
-  // This dependency is stable since realtimeInspections is the result of the hook
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realtimeInspections]);
+    const currentInspectorId = inspection.created_by;
+    // console.log(`[InspectorDebug] Main useEffect triggered. Inspector ID: ${currentInspectorId}, Inspection ID: ${inspection.id}, Initial Inspection ID: ${initialInspection.id}`);
 
-  // Handle inspector data separately to avoid infinite loops
-  useEffect(() => {
-    // Skip if we've already attempted to fetch user info or there's no created_by
-    if (userFetchAttemptedRef.current || !inspection.created_by) return;
-    
-    userFetchAttemptedRef.current = true;
-    
-    // If we have a user object and it matches the creator, use its data
-    const isCurrentUserInspector = user && user.id === inspection.created_by;
-    
-    if (isCurrentUserInspector && user) {
-      // Current user is the inspector, extract their details from user metadata
-      const fullName = user.user_metadata?.full_name || 
-                      user.user_metadata?.name || 
-                      (user.email ? user.email.split('@')[0] : null) || 
-                      t('common.notAssigned');
-      
-      setInspection(prev => ({
-        ...prev,
-        inspector: {
-          id: user.id,
-          name: fullName,
-          email: user.email || ''
-        }
-      }));
-    } else if (!inspection.inspector?.name || !inspection.inspector?.email) {
-      // Make sure we always have both name and email, even if one exists and not the other
-      setInspection(prev => ({
-        ...prev,
-        inspector: {
-          id: prev.inspector?.id || inspection.created_by || '',
-          name: prev.inspector?.name || t('common.notAssigned'),
-          email: prev.inspector?.email || (user?.email || '')
-        }
-      }));
+    if (!currentInspectorId) {
+      // console.log("[InspectorDebug] No currentInspectorId. Handling default/N/A state.");
+      if (!processedInspectorIds.current.has('N/A')) {
+        // console.log("[InspectorDebug] 'N/A' not processed yet. Setting inspector to default.");
+        setInspection(prev => {
+          if (prev.inspector?.name !== t('common.notAssigned')) {
+            return {
+              ...prev,
+              inspector: { id: '', name: t('common.notAssigned'), email: '' }
+            };
+          }
+          return prev;
+        });
+        processedInspectorIds.current.add('N/A');
+        // console.log("[InspectorDebug] Marked 'N/A' as processed.");
+      } else {
+        // console.log("[InspectorDebug] 'N/A' already processed. Skipping redundant default set.");
+      }
+      // Clean up any specific (non-'N/A') inspector ID from processed/fetching sets if we are now N/A
+      // This is important if an inspector was assigned and then unassigned.
+      fetchingInspectorIds.current.forEach(id => fetchingInspectorIds.current.delete(id));
+      processedInspectorIds.current.forEach(id => { if (id !== 'N/A') processedInspectorIds.current.delete(id); });
+      return;
     }
-  }, [inspection.created_by, inspection.inspector?.name, inspection.inspector?.email, user, t]);
-  
-  // Handle vehicle data updates only when needed
+
+    // If currentInspectorId is valid, ensure 'N/A' is removed from processed set
+    // so that if it was previously 'N/A', it can be re-evaluated.
+    if (processedInspectorIds.current.has('N/A')) {
+      // console.log("[InspectorDebug] Valid inspector ID found, removing 'N/A' from processed set.");
+      processedInspectorIds.current.delete('N/A');
+    }
+
+    // console.log(`[InspectorDebug] Checking inspector ID: ${currentInspectorId}. Processed: ${processedInspectorIds.current.has(currentInspectorId)}, Fetching: ${fetchingInspectorIds.current.has(currentInspectorId)}`);
+
+    if (processedInspectorIds.current.has(currentInspectorId) || fetchingInspectorIds.current.has(currentInspectorId)) {
+      // console.log(`[InspectorDebug] Already processed or fetching ID: ${currentInspectorId}. Skipping.`);
+      return;
+    }
+
+    // console.log(`[InspectorDebug] Adding ID: ${currentInspectorId} to fetchingInspectorIds.`);
+    fetchingInspectorIds.current.add(currentInspectorId);
+
+    const fetchInspectorDetails = async (id: string) => {
+      // console.log(`[InspectorDebug] fetchInspectorDetails called for ID: ${id}`);
+      try {
+        // console.log(`[InspectorDebug] Querying 'profiles' table for id: ${id}`);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', id)
+          .single();
+
+        // Corrected console.log:
+        // console.log(`[InspectorDebug] Supabase query result for ID ${id} - Data:`, data, "Error:", error);
+
+        if (error && error.code !== 'PGRST116') {
+          // Corrected console.error:
+          console.error(`[InspectorDebug] Supabase error fetching profile for ID ${id}:`, error);
+          setInspection(prev => ({
+            ...prev,
+            inspector: { id: id, name: t('common.notAssigned'), email: '' }
+          }));
+        } else if (data) {
+          // Corrected console.log:
+          // console.log(`[InspectorDebug] Successfully fetched data for ID ${id}. Setting inspector.`);
+          setInspection(prev => ({
+            ...prev,
+            inspector: { 
+              id: id, 
+              name: data.full_name || t('common.notAssigned'),
+              email: data.email || ''
+            }
+          }));
+        } else {
+          // Corrected console.log:
+          // console.log(`[InspectorDebug] No data for inspector ID ${id} (PGRST116 or other). Setting to default.`);
+          setInspection(prev => ({
+            ...prev,
+            inspector: { id: id, name: t('common.notAssigned'), email: '' }
+          }));
+        }
+      } catch (e) {
+        // Corrected console.error:
+        console.error(`[InspectorDebug] Error in fetchInspectorDetails catch block for ID ${id}:`, e);
+        setInspection(prev => ({ 
+          ...prev,
+          inspector: { id: id, name: t('common.notAssigned'), email: '' }
+        }));
+      } finally {
+        // console.log(`[InspectorDebug] Finalizing fetch for ID: ${id}. Removing from fetching, adding to processed.`);
+        fetchingInspectorIds.current.delete(id);
+        processedInspectorIds.current.add(id);
+        // console.log(`[InspectorDebug] After fetch cleanup for ID ${id} - Fetching:`, Array.from(fetchingInspectorIds.current), "Processed:", Array.from(processedInspectorIds.current));
+      }
+    };
+    
+    fetchInspectorDetails(currentInspectorId);
+
+  }, [inspection.created_by, t, initialInspection.id]); // Dependencies: refetch if created_by, t, or initial ID changes.
+
+  // Effect to load templates and photos for inspection items
   useEffect(() => {
     // Only fetch additional vehicle data if it's incomplete
     if (!inspection.vehicle?.brand || !inspection.vehicle?.model) return;
@@ -453,7 +504,20 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       'belt condition': { section: 'wear_items', item: 'belt_condition' },
       'computer scan': { section: 'diagnostics', item: 'computer_scan' },
       'sensor check': { section: 'diagnostics', item: 'sensor_check' },
-      'emissions test': { section: 'diagnostics', item: 'emissions_test' }
+      'emissions test': { section: 'diagnostics', item: 'emissions_test' },
+      // NEW MAPPINGS FOR REPORTED MISSING TRANSLATIONS
+      'back light': { section: 'lighting', item: 'back_light' },
+      'dirt and damage': { section: 'exterior', item: 'dirt_and_damage' },
+      'cracks and damage': { section: 'exterior', item: 'cracks_and_damage' },
+      'engine oil': { section: 'engine', item: 'engine_oil' },
+      'radiator coolant': { section: 'engine', item: 'radiator_coolant' },
+      'engine starting condition': { section: 'engine', item: 'engine_starting_condition' },
+      'brake oil': { section: 'brake_system', item: 'brake_oil' },
+      'braking condition': { section: 'brake_system', item: 'braking_condition' },
+      'brake light': { section: 'lighting', item: 'brake_light' },
+      'headlight': { section: 'lighting', item: 'headlight' }, // Singular form
+      'blinker': { section: 'lighting', item: 'blinker' },
+      'hazard light': { section: 'lighting', item: 'hazard_light' }
     }
 
     const result = mappings[name];
@@ -596,12 +660,15 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   };
 
   // Function to handle exporting the report as PDF
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => { // Make the function async
     if (!isBrowser()) return; // Only run in browser environment
     
     setIsExporting(true);
     
     try {
+      // Dynamically import html2pdf.js
+      const html2pdf = (await import('html2pdf.js')).default;
+
       // Calculate counts for the PDF
       const passedItemsCount = itemsWithTemplates.filter(item => item.status === 'pass').length;
       const failedItemsCount = itemsWithTemplates.filter(item => item.status === 'fail').length;
@@ -1204,10 +1271,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
               scale: 2, 
               useCORS: true,
               letterRendering: true,
-              allowTaint: true,
-              // Add specific height to ensure full capture
-              height: pdfContainer.offsetHeight + 1000, // Add extra height to ensure all content is captured
-              windowHeight: pdfContainer.offsetHeight + 1000
+              allowTaint: true
+              // REMOVED: height: pdfContainer.offsetHeight + 1000, 
+              // REMOVED: windowHeight: pdfContainer.offsetHeight + 1000
             },
             jsPDF: { 
               unit: 'mm', 
@@ -1676,7 +1742,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   {/* Always show email field, with fallbacks */}
                   <p className="text-sm text-muted-foreground">
                     <span className="mr-1">{t("inspections.details.inspector.email")}:</span>
-                    {inspection.inspector.email || user?.email || t("common.notAssigned")}
+                    {inspection.inspector.email || t("common.notAssigned")}
                   </p>
                 </div>
               </div>

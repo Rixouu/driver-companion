@@ -9,24 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_users: {
-        Row: {
-          created_at: string
-          id: string
-          role: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          role?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: string
-        }
-        Relationships: []
-      }
       bookings: {
         Row: {
           billing_city: string | null
@@ -1007,6 +989,7 @@ export type Database = {
           id: string
           quotation_id: string | null
           service_type: string | null
+          service_type_id: string | null
         }
         Insert: {
           applied_discount?: number | null
@@ -1022,6 +1005,7 @@ export type Database = {
           id?: string
           quotation_id?: string | null
           service_type?: string | null
+          service_type_id?: string | null
         }
         Update: {
           applied_discount?: number | null
@@ -1037,8 +1021,16 @@ export type Database = {
           id?: string
           quotation_id?: string | null
           service_type?: string | null
+          service_type_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_pricing_calculation_logs_service_type"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pricing_calculation_logs_quotation_id_fkey"
             columns: ["quotation_id"]
@@ -1379,35 +1371,59 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          duration_hours: number | null
+          hours_per_day: number | null
           id: string
+          is_service_item: boolean | null
           quantity: number
           quotation_id: string
+          service_days: number | null
+          service_type_id: string | null
+          service_type_name: string | null
           sort_order: number
           total_price: number
           unit_price: number
           updated_at: string
+          vehicle_category: string | null
+          vehicle_type: string | null
         }
         Insert: {
           created_at?: string
           description: string
+          duration_hours?: number | null
+          hours_per_day?: number | null
           id?: string
+          is_service_item?: boolean | null
           quantity?: number
           quotation_id: string
+          service_days?: number | null
+          service_type_id?: string | null
+          service_type_name?: string | null
           sort_order?: number
           total_price: number
           unit_price: number
           updated_at?: string
+          vehicle_category?: string | null
+          vehicle_type?: string | null
         }
         Update: {
           created_at?: string
           description?: string
+          duration_hours?: number | null
+          hours_per_day?: number | null
           id?: string
+          is_service_item?: boolean | null
           quantity?: number
           quotation_id?: string
+          service_days?: number | null
+          service_type_id?: string | null
+          service_type_name?: string | null
           sort_order?: number
           total_price?: number
           unit_price?: number
           updated_at?: string
+          vehicle_category?: string | null
+          vehicle_type?: string | null
         }
         Relationships: [
           {
@@ -1536,6 +1552,7 @@ export type Database = {
           rejected_reason: string | null
           service_days: number | null
           service_type: string
+          service_type_id: string | null
           status: string
           tax_percentage: number | null
           title: string
@@ -1581,6 +1598,7 @@ export type Database = {
           rejected_reason?: string | null
           service_days?: number | null
           service_type: string
+          service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
           title: string
@@ -1626,6 +1644,7 @@ export type Database = {
           rejected_reason?: string | null
           service_days?: number | null
           service_type?: string
+          service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
           title?: string
@@ -1635,6 +1654,13 @@ export type Database = {
           vehicle_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_service_type"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotations_converted_to_booking_id_fkey"
             columns: ["converted_to_booking_id"]
@@ -1894,6 +1920,11 @@ export type Database = {
               p_service_type: string
               p_duration_hours: number
               p_category_id: string
+            }
+          | {
+              p_vehicle_type: string
+              p_service_type_id: string
+              p_duration_hours: number
             }
         Returns: {
           price: number

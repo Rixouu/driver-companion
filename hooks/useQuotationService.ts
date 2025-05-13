@@ -1539,15 +1539,39 @@ export const useQuotationService = () => {
   const updatePricingCategory = async (id: string, updates: Partial<Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>>): Promise<PricingCategory | null> => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/admin/pricing/categories/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+      console.log('Updating pricing category:', { id, updates });
+      
+      const response = await fetch(`/api/admin/pricing/categories/direct-update`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Admin-Request': 'true' // Add custom header for potential server-side handling
+        },
+        body: JSON.stringify({ id, updates }),
       });
+      
+      // Log detailed error info for troubleshooting
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update pricing category');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to update pricing category';
+        
+        try {
+          // Try to parse the error as JSON
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Not JSON, use text as is
+          errorMessage = errorText || errorMessage;
+        }
+        
+        console.error('API Error updating pricing category:', { 
+          status: response.status, 
+          message: errorMessage 
+        });
+        
+        throw new Error(errorMessage);
       }
+      
       const data = await response.json();
       pricingCache.categories = null; // Invalidate cache
       toast({ title: t('pricing.categories.updateSuccess') });

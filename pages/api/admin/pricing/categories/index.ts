@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           name,
           description: description || null,
           service_types: service_type_ids || [],
+          service_type_ids: service_type_ids || [],
           sort_order,
           is_active: is_active === undefined ? true : is_active,
         })

@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       .insert({
         name: body.name,
         description: body.description || null,
+        service_types: body.service_type_ids || [],
         service_type_ids: body.service_type_ids || [],
         sort_order: body.sort_order || 1,
         is_active: body.is_active !== undefined ? body.is_active : true

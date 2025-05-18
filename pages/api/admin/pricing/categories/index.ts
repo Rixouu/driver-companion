@@ -23,13 +23,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Service type IDs must be an array.' });
       }
 
+      // Get service type names for the IDs
+      let serviceTypeNames: string[] = [];
+      if (service_type_ids && service_type_ids.length > 0) {
+        const { data: serviceTypes } = await supabase
+          .from('service_types')
+          .select('id, name')
+          .in('id', service_type_ids);
+          
+        // Create a mapping of ID to name
+        const serviceTypeMap = new Map();
+        if (serviceTypes) {
+          serviceTypes.forEach(st => serviceTypeMap.set(st.id, st.name));
+        }
+        
+        // Map each ID to its name, fallback to a short ID string if name not found
+        serviceTypeNames = service_type_ids.map(id => 
+          serviceTypeMap.get(id) || `service_${id.substring(0, 8)}`
+        );
+      }
 
       const { data, error } = await supabase
         .from('pricing_categories')
         .insert({
           name,
           description: description || null,
-          service_types: service_type_ids || [],
+          service_types: serviceTypeNames,
           service_type_ids: service_type_ids || [],
           sort_order,
           is_active: is_active === undefined ? true : is_active,

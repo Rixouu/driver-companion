@@ -725,7 +725,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drivers.filters.searchPlaceholder')}
+              placeholder={t('vehicles.filters.searchPlaceholder')}
               className="pl-9 w-full"
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

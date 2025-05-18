@@ -20,6 +20,7 @@ import {
 } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
 import { Database } from '@/types/supabase';
+import { addMinutes } from 'date-fns';
 
 // Define ServiceTypeInfo here as it might be used by multiple components
 export interface ServiceTypeInfo {
@@ -68,6 +69,98 @@ export const useQuotationService = () => {
     }
   };
 
+  // Add a function to apply time-based pricing rules
+  const calculateTimeBasedPrice = async (
+    basePrice: number,
+    categoryId: string | null,
+    serviceTypeId: string | null,
+    dateTime: Date | string
+  ): Promise<number> => {
+    try {
+      // Convert string date to Date object if needed
+      const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
+      
+      // Make sure we have a valid date
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date provided for time-based pricing calculation');
+        return basePrice;
+      }
+      
+      // Get the day of week (0 = Sunday, 6 = Saturday)
+      const dayOfWeek = date.getDay();
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const day = dayNames[dayOfWeek];
+      
+      // Format time as HH:MM for comparison with rule times
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const time = `${hours}:${minutes}`;
+      
+      // Fetch active time-based pricing rules
+      let url = '/api/admin/pricing/time-based-rules?active_only=true';
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error('Failed to fetch time-based pricing rules');
+        return basePrice;
+      }
+      
+      const rules = await response.json();
+      
+      // If no rules, return the base price
+      if (!rules || rules.length === 0) {
+        return basePrice;
+      }
+      
+      // Sort rules by priority (higher priority first)
+      const sortedRules = [...rules].sort((a, b) => b.priority - a.priority);
+      
+      // Find the first matching rule
+      const matchingRule = sortedRules.find(rule => {
+        // Check if rule applies to this category
+        if (rule.category_id && rule.category_id !== categoryId) {
+          return false;
+        }
+        
+        // Check if rule applies to this service type
+        if (rule.service_type_id && rule.service_type_id !== serviceTypeId) {
+          return false;
+        }
+        
+        // Check if rule applies to this day of week
+        if (rule.days_of_week && rule.days_of_week.length > 0 && !rule.days_of_week.includes(day)) {
+          return false;
+        }
+        
+        // Check if rule applies to this time
+        // For time comparison, we need to handle overnight periods (e.g., 22:00 to 06:00)
+        if (rule.start_time && rule.end_time) {
+          if (rule.start_time < rule.end_time) {
+            // Simple case: start time is earlier than end time
+            return time >= rule.start_time && time <= rule.end_time;
+          } else {
+            // Overnight case: start time is later than end time
+            return time >= rule.start_time || time <= rule.end_time;
+          }
+        }
+        
+        return true;
+      });
+      
+      // If no matching rule, return the base price
+      if (!matchingRule) {
+        return basePrice;
+      }
+      
+      // Apply the adjustment percentage
+      const adjustmentFactor = 1 + (matchingRule.adjustment_percentage / 100);
+      return basePrice * adjustmentFactor;
+    } catch (error) {
+      console.error('Error calculating time-based price:', error);
+      return basePrice;
+    }
+  };
+
   /**
    * Calculate quotation amount based on service type and options
    */
@@ -78,7 +171,8 @@ export const useQuotationService = () => {
     discountPercentage: number = 0,
     taxPercentage: number = 0,
     serviceDays: number = 1,
-    hoursPerDay?: number
+    hoursPerDay?: number,
+    dateTime?: Date | string
   ): Promise<{
     baseAmount: number;
     discountAmount: number;
@@ -295,6 +389,34 @@ export const useQuotationService = () => {
         }
       }
       
+      // Apply time-based pricing adjustment if a dateTime is provided
+      if (dateTime) {
+        console.log('PRICE CALCULATION - Applying time-based pricing adjustment for:', {
+          dateTime: typeof dateTime === 'string' ? dateTime : dateTime.toISOString()
+        });
+        
+        // Find the pricing category for this service type
+        const { data: categoryData } = await supabase
+          .from('pricing_items')
+          .select('category_id')
+          .eq('service_type_id', serviceTypeId)
+          .limit(1);
+        
+        const categoryId = categoryData && categoryData.length > 0 ? categoryData[0].category_id : null;
+        
+        // Apply time-based pricing
+        baseAmount = await calculateTimeBasedPrice(
+          baseAmount,
+          categoryId,
+          serviceTypeId,
+          dateTime
+        );
+        
+        console.log('PRICE CALCULATION - After time-based adjustment:', {
+          baseAmount
+        });
+      }
+      
       // Apply discount and tax
       const discountAmount = baseAmount * (discountPercentage / 100);
       const amountAfterDiscount = baseAmount - discountAmount;
@@ -506,29 +628,60 @@ export const useQuotationService = () => {
       }
       
       // Calculate pricing if not provided
-      let calculatedAmount = input.amount;
-      let calculatedTotalAmount = input.total_amount;
-      
-      if (!calculatedAmount || !calculatedTotalAmount) {
-        const pricing = await calculateQuotationAmount(
+      let calculatedPricing;
+      if (input.pickup_date && input.pickup_time) {
+        try {
+          // Combine date and time
+          const dateStr = input.pickup_date;
+          const timeStr = input.pickup_time;
+          
+          // Create date object from date and time strings
+          const [year, month, day] = dateStr.split('-').map(Number);
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          
+          const dateTime = new Date(year, month - 1, day, hours, minutes);
+          
+          console.log('QUOTATION - Using time-based pricing with date/time:', {
+            pickup_date: input.pickup_date,
+            pickup_time: input.pickup_time,
+            dateTime: dateTime.toISOString()
+          });
+          
+          // Calculate with time-based pricing
+          calculatedPricing = await calculateQuotationAmount(
+            input.service_type_id,
+            input.vehicle_type,
+            input.duration_hours || 1,
+            input.discount_percentage || 0,
+            input.tax_percentage || 0,
+            input.service_days || 1,
+            input.hours_per_day,
+            dateTime
+          );
+        } catch (error) {
+          console.error('Error parsing date for time-based pricing:', error);
+          // Fallback to regular pricing if date parsing fails
+          calculatedPricing = await calculateQuotationAmount(
+            input.service_type_id,
+            input.vehicle_type,
+            input.duration_hours || 1,
+            input.discount_percentage || 0,
+            input.tax_percentage || 0,
+            input.service_days || 1,
+            input.hours_per_day
+          );
+        }
+      } else {
+        // Calculate without time-based pricing
+        calculatedPricing = await calculateQuotationAmount(
           input.service_type_id,
           input.vehicle_type,
           input.duration_hours || 1,
           input.discount_percentage || 0,
           input.tax_percentage || 0,
           input.service_days || 1,
-          input.hours_per_day || undefined
+          input.hours_per_day
         );
-        
-        calculatedAmount = pricing.baseAmount;
-        calculatedTotalAmount = pricing.totalAmount;
-        
-        console.log('SAVE & SEND DEBUG - Calculated Pricing:', pricing);
-      } else {
-        console.log('SAVE & SEND DEBUG - Using explicit amounts from input:', {
-          amount: calculatedAmount,
-          total_amount: calculatedTotalAmount
-        });
       }
       
       // Override the service_type field based on the service_type_id
@@ -544,8 +697,8 @@ export const useQuotationService = () => {
         // Add days count field for clarity in DB
         days_count: input.service_days || 1,
         // If we have multiple services, ensure we use the input amounts (which include all services)
-        amount: serviceItems && serviceItems.length > 0 ? input.amount : calculatedAmount,
-        total_amount: serviceItems && serviceItems.length > 0 ? input.total_amount : calculatedTotalAmount
+        amount: serviceItems && serviceItems.length > 0 ? input.amount : calculatedPricing.baseAmount,
+        total_amount: serviceItems && serviceItems.length > 0 ? input.total_amount : calculatedPricing.totalAmount
       };
       
       console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(record));

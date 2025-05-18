@@ -64,8 +64,8 @@ const mapDriverFromDB = (dbDriver: any): Driver => ({
   line_id: dbDriver.line_id || null,
   license_number: dbDriver.license_number || null,
   license_expiry: dbDriver.license_expiry || null,
-  status: dbDriver.status,
-  availability_status: dbDriver.availability_status || dbDriver.status,
+  status: 'available',
+  availability_status: dbDriver.availability_status || 'available',
   profile_image_url: dbDriver.profile_image_url || null,
   address: dbDriver.address || null,
   emergency_contact: dbDriver.emergency_contact || null,
@@ -158,8 +158,7 @@ export default function DispatchBoard() {
         // Fetch drivers
         const { data: driversData, error: driversError } = await supabase
           .from('drivers')
-          .select('*')
-          .in('status', ['active', 'available']); // Include both active and available drivers
+          .select('*');
 
         if (driversError) throw driversError;
 

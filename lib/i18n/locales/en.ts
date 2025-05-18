@@ -76,6 +76,8 @@ export const en: TranslationValue = {
     updateAndSend: "Update & Send",
     processing: "Processing...",
     copy: "Copy",
+    activate: "Activate",
+    deactivate: "Deactivate",
     dateFormat: {
       short: "MM/DD/YYYY",
       medium: "MMM D, YYYY",
@@ -85,7 +87,10 @@ export const en: TranslationValue = {
     formHasErrors: "Please fix the errors in the form before submitting",
     exportPDF: "Export PDF",
     exportCSV: "Export CSV",
-    notAvailable: "N/A"
+    notAvailable: "N/A",
+    recentActivity: "Recent Activity",
+    date: "Date",
+    cost: "Cost"
   },
   auth: {
     logout: "Logout"
@@ -517,7 +522,8 @@ export const en: TranslationValue = {
       active: "Active",
       inactive: "Inactive",
       maintenance: "In Maintenance"
-    }
+    },
+    noImage: "No image"
   },
   maintenance: {
     title: "Maintenance",
@@ -2071,6 +2077,7 @@ export const en: TranslationValue = {
       createSuccess: "Quotation created successfully",
       updateSuccess: "Quotation updated successfully",
       deleteSuccess: "Quotation deleted successfully",
+      deleteConfirmation: "Are you sure you want to delete this quotation?",
       error: "Error",
       sendSuccess: "Your Quotation has been sent",
       updateAndSendSuccess: "Your Updated Quotation has been sent",
@@ -2237,7 +2244,13 @@ export const en: TranslationValue = {
       updateError: "Failed to update category",
       deleteSuccess: "Category deleted successfully",
       deleteSuccessDescription: "The category has been removed",
-      deleteError: "Failed to delete category"
+      deleteError: "Failed to delete category",
+      deleteConfirmTitle: "Delete Category?",
+      deleteConfirmDescription: "This action cannot be undone. This will permanently delete this pricing category and may affect existing pricing items.",
+      activateConfirmTitle: "Activate Category?",
+      activateConfirmDescription: "This will make the category visible and available for selection.",
+      deactivateConfirmTitle: "Deactivate Category?",
+      deactivateConfirmDescription: "This will hide the category from selection in new quotations and pricing forms."
     },
     items: {
       title: "Pricing Items",
@@ -2250,7 +2263,78 @@ export const en: TranslationValue = {
       updateError: "Failed to update pricing item",
       deleteSuccess: "Pricing item deleted successfully",
       deleteSuccessDescription: "The pricing item has been removed",
-      deleteError: "Failed to delete pricing item"
+      deleteError: "Failed to delete pricing item",
+      statusUpdateSuccess: "Item status updated successfully",
+      deleteConfirmTitle: "Delete Price Item?",
+      deleteConfirmDescription: "This action cannot be undone. This will permanently delete this price item.",
+      activateConfirmTitle: "Activate Price Item?",
+      activateConfirmDescription: "This will make the price item available for selection.",
+      deactivateConfirmTitle: "Deactivate Price Item?",
+      deactivateConfirmDescription: "This will hide the price item from selection. Deactivated items will not appear in quotations.",
+      errors: {
+        categoryRequired: "Category is required",
+        serviceTypeRequired: "Service type is required",
+        priceRequired: "Price is required"
+      },
+      customDuration: "Custom Duration",
+      customDurationLabel: "Custom Duration (hours)",
+      filterBy: "Filter By",
+      timeBasedPricing: {
+        title: "Time-Based Pricing",
+        description: "Apply price adjustments based on time of day",
+        enabled: "Enable time-based pricing adjustments",
+        nightPricing: "Night Pricing",
+        nightPricingDescription: "Apply a percentage adjustment for services during night hours",
+        startTime: "Start Time",
+        endTime: "End Time",
+        adjustmentPercentage: "Adjustment Percentage (%)",
+        peakPricing: "Peak Hours Pricing",
+        peakPricingDescription: "Apply a percentage adjustment for services during peak hours",
+        weekendPricing: "Weekend Pricing",
+        weekendPricingDescription: "Apply a percentage adjustment for services during weekends",
+        holidayPricing: "Holiday Pricing",
+        holidayPricingDescription: "Apply a percentage adjustment for services during holidays",
+        addRule: "Add Rule",
+        editRule: "Edit Rule",
+        deleteRule: "Delete Rule",
+        deleteRuleConfirm: "Are you sure you want to delete this rule?",
+        ruleName: "Rule Name",
+        ruleNamePlaceholder: "Enter rule name",
+        days: {
+          all: "All Days",
+          weekdays: "Weekdays",
+          weekends: "Weekends",
+          monday: "Monday",
+          tuesday: "Tuesday",
+          wednesday: "Wednesday",
+          thursday: "Thursday",
+          friday: "Friday",
+          saturday: "Saturday",
+          sunday: "Sunday"
+        },
+        ruleType: "Rule Type",
+        ruleTypes: {
+          time: "Time of Day",
+          day: "Day of Week",
+          timeAndDay: "Time and Day"
+        },
+        surcharge: "Surcharge",
+        discount: "Discount",
+        priority: "Priority",
+        applies: "Applies To",
+        createSuccess: "Time-based pricing rule created successfully",
+        updateSuccess: "Time-based pricing rule updated successfully",
+        deleteSuccess: "Time-based pricing rule deleted successfully",
+        rules: "Pricing Rules",
+        noRules: "No rules yet. Click the 'Add Rule' button to create your first rule",
+        allCategories: "All Categories",
+        specificCategory: "Specific Category",
+        allServiceTypes: "All Service Types",
+        specificServiceType: "Specific Service Type",
+        categoryLabel: "Category",
+        serviceTypeLabel: "Service Type",
+        active: "Active"
+      }
     },
     promotions: {
       title: "Promotions",

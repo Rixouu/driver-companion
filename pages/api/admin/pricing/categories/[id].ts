@@ -21,10 +21,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const updateData: Partial<Database['public']['Tables']['pricing_categories']['Update']> = {};
       if (name !== undefined) updateData.name = name;
       if (description !== undefined) updateData.description = description;
-      if (service_type_ids !== undefined) updateData.service_type_ids = service_type_ids;
-      if (service_type_ids !== undefined) updateData.service_types = service_type_ids; // Map to service_types as well
       if (sort_order !== undefined) updateData.sort_order = sort_order;
       if (is_active !== undefined) updateData.is_active = is_active;
+      
+      // Handle service_type_ids update and map to service_types
+      if (service_type_ids !== undefined) {
+        updateData.service_type_ids = service_type_ids;
+        
+        // Get service type names for the IDs
+        if (Array.isArray(service_type_ids) && service_type_ids.length > 0) {
+          const { data: serviceTypes } = await supabase
+            .from('service_types')
+            .select('id, name')
+            .in('id', service_type_ids);
+            
+          // Create a mapping of ID to name
+          const serviceTypeMap = new Map();
+          if (serviceTypes) {
+            serviceTypes.forEach(st => serviceTypeMap.set(st.id, st.name));
+          }
+          
+          // Map each ID to its name, fallback to a short ID string if name not found
+          const serviceTypeNames = service_type_ids.map(id => 
+            serviceTypeMap.get(id) || `service_${id.substring(0, 8)}`
+          );
+          
+          updateData.service_types = serviceTypeNames;
+        } else {
+          // Empty array or null
+          updateData.service_types = [];
+        }
+      }
       
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: 'No update data provided.' });

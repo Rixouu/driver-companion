@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           billing_city: string | null
@@ -1307,6 +1328,69 @@ export type Database = {
           usage_limit?: number | null
         }
         Relationships: []
+      }
+      pricing_time_based_rules: {
+        Row: {
+          adjustment_percentage: number
+          category_id: string | null
+          created_at: string
+          days_of_week: string[] | null
+          description: string | null
+          end_time: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          service_type_id: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_percentage: number
+          category_id?: string | null
+          created_at?: string
+          days_of_week?: string[] | null
+          description?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          service_type_id?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_percentage?: number
+          category_id?: string | null
+          created_at?: string
+          days_of_week?: string[] | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          service_type_id?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_time_based_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_time_based_rules_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

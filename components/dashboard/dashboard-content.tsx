@@ -82,29 +82,11 @@ export function DashboardContent({
   const [checklistCompleted, setChecklistCompleted] = useState(false)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
   const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0)
-  const [vehicleStats, setVehicleStats] = useState({
-    fuelLevel: 75,
-    mileage: 24350,
-    weeklyChange: 125
-  })
   
   // State for upcoming bookings
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = useState(true)
   const [bookingsError, setBookingsError] = useState<string | null>(null)
-
-  // Generate random stats for each vehicle when changing
-  useEffect(() => {
-    if (vehicles.length > 0) {
-      // In a real app, these would come from the database
-      // Here we're just generating random values for demonstration
-      setVehicleStats({
-        fuelLevel: Math.floor(Math.random() * 40) + 60, // 60-100%
-        mileage: 20000 + (currentVehicleIndex * 1000) + Math.floor(Math.random() * 5000),
-        weeklyChange: 100 + Math.floor(Math.random() * 150)
-      })
-    }
-  }, [currentVehicleIndex, vehicles.length])
 
   // Fetch bookings with pending and assigned statuses
   useEffect(() => {
@@ -141,11 +123,6 @@ export function DashboardContent({
     
     fetchUpcomingBookings()
   }, [])
-
-  // Format mileage with commas
-  const formatMileage = (value: number) => {
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  }
 
   // Function to handle checkbox changes
   const handleCheckboxChange = (id: string) => {
@@ -299,36 +276,6 @@ export function DashboardContent({
                             <p className="text-sm text-muted-foreground">
                               {vehicles[currentVehicleIndex]?.brand} {vehicles[currentVehicleIndex]?.model} • {vehicles[currentVehicleIndex]?.year}
                             </p>
-                            
-                            <div className="grid grid-cols-2 gap-4 mt-4">
-                              <motion.div 
-                                className="flex flex-col"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Fuel className="h-4 w-4 text-amber-500" />
-                                  <span className="text-sm font-medium">{t("dashboard.vehicleStats.fuelLevel")}</span>
-                                </div>
-                                <Progress value={vehicleStats.fuelLevel} className="h-2 mt-2" />
-                                <span className="text-xs text-muted-foreground mt-1">{vehicleStats.fuelLevel}%</span>
-                              </motion.div>
-                              
-                              <motion.div 
-                                className="flex flex-col"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <RotateCw className="h-4 w-4 text-blue-500" />
-                                  <span className="text-sm font-medium">{t("dashboard.vehicleStats.mileage")}</span>
-                                </div>
-                                <span className="text-sm mt-2">{formatMileage(vehicleStats.mileage)} km</span>
-                                <span className="text-xs text-muted-foreground">+{vehicleStats.weeklyChange} km this week</span>
-                              </motion.div>
-                            </div>
                           </div>
                         </div>
                       </Link>

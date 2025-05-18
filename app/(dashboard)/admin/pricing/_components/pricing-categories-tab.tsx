@@ -15,6 +15,16 @@ import {
   DialogHeader, 
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +40,10 @@ export default function PricingCategoriesTab() {
   const [currentCategory, setCurrentCategory] = useState<Partial<PricingCategory> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [categoryToToggle, setCategoryToToggle] = useState<{id: string, isActive: boolean} | null>(null);
   
   const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory } = useQuotationService();
   const { t } = useI18n();
@@ -47,6 +61,41 @@ export default function PricingCategoriesTab() {
       setIsLoading(false);
     }
   }, [getPricingCategories]);
+
+  // Function to fix service types display
+  const fixServiceTypes = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/pricing/categories/fix-service-types', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fix service types');
+      }
+      
+      toast({
+        title: "Service Types Fixed",
+        description: `Successfully updated ${result.totalUpdated} categories.`,
+      });
+      
+      await refreshCategories();
+    } catch (error) {
+      console.error("Error fixing service types:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to fix service types',
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Load categories and service types on mount
   useEffect(() => {
@@ -119,18 +168,38 @@ export default function PricingCategoriesTab() {
     }
   };
   
-  const handleDeleteCategory = async (categoryId: string) => {
-    const success = await deletePricingCategory(categoryId);
+  const openDeleteConfirm = (categoryId: string) => {
+    setCategoryToDelete(categoryId);
+    setDeleteConfirmOpen(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!categoryToDelete) return;
+    
+    const success = await deletePricingCategory(categoryToDelete);
     if (success) {
       await refreshCategories();
     }
+    
+    setCategoryToDelete(null);
+    setDeleteConfirmOpen(false);
   };
   
-  const handleToggleCategoryStatus = async (categoryId: string, isActive: boolean) => {
-    const result = await updatePricingCategory(categoryId, { is_active: isActive });
+  const openStatusConfirm = (categoryId: string, isActive: boolean) => {
+    setCategoryToToggle({ id: categoryId, isActive });
+    setStatusConfirmOpen(true);
+  };
+  
+  const handleStatusConfirm = async () => {
+    if (!categoryToToggle) return;
+    
+    const result = await updatePricingCategory(categoryToToggle.id, { is_active: categoryToToggle.isActive });
     if (result) {
       await refreshCategories();
     }
+    
+    setCategoryToToggle(null);
+    setStatusConfirmOpen(false);
   };
   
   const handleInputChange = (field: string, value: any) => {
@@ -150,9 +219,14 @@ export default function PricingCategoriesTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">All Categories</h3>
+        <div className="flex space-x-2">
+          <Button onClick={fixServiceTypes} size="sm" variant="outline">
+            Fix Service Types
+          </Button>
         <Button onClick={() => handleOpenDialog()} size="sm">
           <Plus className="h-4 w-4 mr-2" /> Add Category
         </Button>
+        </div>
       </div>
       
       {categories.length === 0 ? (
@@ -201,7 +275,7 @@ export default function PricingCategoriesTab() {
                       variant={category.is_active ? "default" : "outline"}
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => handleToggleCategoryStatus(category.id, !category.is_active)}
+                      onClick={() => openStatusConfirm(category.id, !category.is_active)}
                     >
                       {category.is_active ? (
                         <Check className="h-4 w-4" />
@@ -225,7 +299,7 @@ export default function PricingCategoriesTab() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive"
-                        onClick={() => handleDeleteCategory(category.id)}
+                        onClick={() => openDeleteConfirm(category.id)}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -326,6 +400,52 @@ export default function PricingCategoriesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('pricing.categories.deleteConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('pricing.categories.deleteConfirmDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusConfirmOpen} onOpenChange={setStatusConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {categoryToToggle?.isActive
+                ? t('pricing.categories.activateConfirmTitle')
+                : t('pricing.categories.deactivateConfirmTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {categoryToToggle?.isActive
+                ? t('pricing.categories.activateConfirmDescription')
+                : t('pricing.categories.deactivateConfirmDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCategoryToToggle(null)}>
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleStatusConfirm}>
+              {categoryToToggle?.isActive ? t('common.activate') : t('common.deactivate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

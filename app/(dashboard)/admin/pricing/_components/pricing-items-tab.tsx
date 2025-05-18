@@ -39,6 +39,9 @@ const getDurationOptions = () => [
   { value: 8, label: "8 hours" },
   { value: 10, label: "10 hours" },
   { value: 12, label: "12 hours" },
+  { value: 24, label: "24 hours" },
+  { value: 48, label: "48 hours" },
+  { value: 72, label: "72 hours" },
 ];
 
 // Types for price table
@@ -77,6 +80,11 @@ export default function PricingItemsTab() {
   const [currentItem, setCurrentItem] = useState<Partial<PricingItem> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [itemToToggle, setItemToToggle] = useState<PricingItem | null>(null);
+  const [customDuration, setCustomDuration] = useState<number | null>(null);
   
   const {
     getPricingCategories,
@@ -196,11 +204,12 @@ export default function PricingItemsTab() {
     try {
       let success = false;
       if (isEditing && currentItem.id) {
-        const { id, created_at, updated_at, category_id, service_type_id, duration_hours, vehicle_type: vtToOmit, ...updatePayloadRest } = currentItem as PricingItem;
+        // Simplify update payload to only send mutable fields
         const updateData = { 
-          price: updatePayloadRest.price,
-          is_active: updatePayloadRest.is_active,
-          currency: updatePayloadRest.currency,
+          price: currentItem.price,
+          is_active: currentItem.is_active,
+          currency: currentItem.currency || 'JPY',
+          duration_hours: currentItem.duration_hours
         };
         success = !!(await updatePricingItem(currentItem.id, updateData));
       } else {
@@ -226,10 +235,15 @@ export default function PricingItemsTab() {
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!itemId) return;
+  const openDeleteConfirm = (itemId: string) => {
+    setItemToDelete(itemId);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!itemToDelete) return;
     try {
-      const success = await deletePricingItem(itemId);
+      const success = await deletePricingItem(itemToDelete);
       if (success) {
         await refreshItems();
         toast({ title: t('pricing.items.deleteSuccess') });
@@ -237,21 +251,32 @@ export default function PricingItemsTab() {
     } catch (error) {
       console.error("Error deleting pricing item:", error);
       toast({ title: t('common.error.genericTitle'), description: t('common.error.deleteFailed', { entity: 'pricing item' }), variant: 'destructive' });
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setItemToDelete(null);
     }
   };
 
-  const handleToggleItemStatus = async (item: PricingItem) => {
-    if (!item || typeof item.id === 'undefined') return;
+  const openStatusConfirm = (item: PricingItem) => {
+    setItemToToggle(item);
+    setIsStatusConfirmOpen(true);
+  };
+
+  const handleStatusToggleConfirmed = async () => {
+    if (!itemToToggle) return;
     try {
-        const updateData = { is_active: !item.is_active };
-        const success = await updatePricingItem(item.id, updateData);
-        if (success) {
-            await refreshItems();
-            toast({ title: t('pricing.items.statusUpdateSuccess') });
-        }
+      const updateData = { is_active: !itemToToggle.is_active };
+      const success = await updatePricingItem(itemToToggle.id, updateData);
+      if (success) {
+        await refreshItems();
+        toast({ title: t('pricing.items.statusUpdateSuccess') });
+      }
     } catch (error) {
-        console.error("Error toggling item status:", error);
-        toast({ title: t('common.error.genericTitle'), description: t('common.error.updateFailed', { entity: 'item status' }), variant: 'destructive' });
+      console.error("Error toggling item status:", error);
+      toast({ title: t('common.error.genericTitle'), description: t('common.error.updateFailed', { entity: 'item status' }), variant: 'destructive' });
+    } finally {
+      setIsStatusConfirmOpen(false);
+      setItemToToggle(null);
     }
   };
 
@@ -280,8 +305,15 @@ export default function PricingItemsTab() {
     if (!selectedCategory || categories.length === 0 || allServiceTypes.length === 0) return [];
     const currentCat = categories.find(c => c.id === selectedCategory);
     if (!currentCat || !currentCat.service_type_ids || currentCat.service_type_ids === null) return [];
-    return allServiceTypes.filter(st => currentCat.service_type_ids!.includes(st.id))
-                         .sort((a, b) => a.name.localeCompare(b.name)); // Optional: sort columns by name
+    
+    // Make a safer version of the filtering
+    return allServiceTypes.filter(serviceType => {
+      // Check that the service type ID is included in the category's service_type_ids array
+      if (Array.isArray(currentCat.service_type_ids)) {
+        return currentCat.service_type_ids.includes(serviceType.id);
+      }
+      return false;
+    }).sort((a, b) => a.name.localeCompare(b.name)); // Optional: sort columns by name
   }, [selectedCategory, categories, allServiceTypes]);
 
   const filteredItems = useMemo(() => {
@@ -498,10 +530,10 @@ export default function PricingItemsTab() {
                                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) handleOpenDialog(itemForDialog); }}>
                                         <Edit className="h-3 w-3" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteItem(priceData.itemId)}>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => openDeleteConfirm(priceData.itemId)}>
                                         <Trash className="h-3 w-3" />
                                       </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) handleToggleItemStatus(itemForDialog); }}>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) openStatusConfirm(itemForDialog); }}>
                                         {priceData.isActive ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                                       </Button>
                                     </div>
@@ -569,8 +601,15 @@ export default function PricingItemsTab() {
               <Label htmlFor="duration_hours">Duration</Label>
               <Select
                 value={String(currentItem?.duration_hours ?? 1)}
-                onValueChange={(value) => handleInputChange("duration_hours", parseInt(value))}
-                disabled={isEditing} // Disable if editing, as duration defines the row
+                onValueChange={(value) => {
+                  if (value === 'custom') {
+                    // Custom duration logic
+                    setCustomDuration(currentItem?.duration_hours || null);
+                  } else {
+                    handleInputChange("duration_hours", parseInt(value));
+                    setCustomDuration(null);
+                  }
+                }}
               >
                 <SelectTrigger id="duration_hours">
                   <SelectValue placeholder="Select duration" />
@@ -581,8 +620,26 @@ export default function PricingItemsTab() {
                       {option.label}
                     </SelectItem>
                   ))}
+                  <SelectItem value="custom">Custom Duration</SelectItem>
                 </SelectContent>
               </Select>
+              {customDuration !== null && (
+                <div className="mt-2">
+                  <Label htmlFor="custom_duration">Custom Duration (hours)</Label>
+                  <Input
+                    id="custom_duration"
+                    type="number"
+                    value={customDuration}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setCustomDuration(value);
+                      handleInputChange("duration_hours", value);
+                    }}
+                    min="1"
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </div>
             
             <div className="grid gap-2">
@@ -627,6 +684,43 @@ export default function PricingItemsTab() {
             </Button>
             <Button onClick={handleSaveItem}>
               {isEditing ? "Update Item" : "Create Item"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Price Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this price item? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirmed}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isStatusConfirmOpen} onOpenChange={setIsStatusConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {itemToToggle?.is_active ? 'Deactivate' : 'Activate'} Price Item
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to {itemToToggle?.is_active ? 'deactivate' : 'activate'} this price item?
+              {itemToToggle?.is_active 
+                ? ' Deactivated items will not be available for selection.'
+                : ' Activated items will be available for selection in quotations and bookings.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsStatusConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={handleStatusToggleConfirmed}>
+              {itemToToggle?.is_active ? 'Deactivate' : 'Activate'}
             </Button>
           </DialogFooter>
         </DialogContent>

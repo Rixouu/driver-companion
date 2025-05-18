@@ -6,6 +6,7 @@ import PricingItemsTab from "./_components/pricing-items-tab";
 import PricingPromotionsTab from "./_components/pricing-promotions-tab";
 import PricingPackagesTab from "./_components/pricing-packages-tab";
 import PricingServiceTypesTab from "./_components/pricing-service-types-tab";
+import TimeBasedPricingTab from "./_components/time-based-pricing-tab";
 
 export const dynamic = "force-dynamic"
 
@@ -25,10 +26,11 @@ export default function PricingManagementPage() {
       </div>
 
       <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="grid grid-cols-5 w-full md:w-[750px]">
+        <TabsList className="grid grid-cols-6 w-full md:w-[900px]">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="items">Pricing Items</TabsTrigger>
           <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
+          <TabsTrigger value="timeBasedPricing">Time-Based Pricing</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="packages">Packages</TabsTrigger>
         </TabsList>
@@ -72,6 +74,20 @@ export default function PricingManagementPage() {
               </CardHeader>
               <CardContent>
                 <PricingServiceTypesTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="timeBasedPricing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Time-Based Pricing</CardTitle>
+                <CardDescription>
+                  Apply price adjustments based on time of day, day of week, and holidays
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TimeBasedPricingTab />
               </CardContent>
             </Card>
           </TabsContent>

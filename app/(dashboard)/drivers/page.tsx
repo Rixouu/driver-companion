@@ -1,375 +1,59 @@
-"use client"
+// "use client" // Removed to make it a Server Component
 
-import React, { useState, useEffect, useMemo } from "react"
-import Link from "next/link"
-import { Plus, Search } from "lucide-react"
-import { useI18n } from "@/lib/i18n/context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ViewToggle } from "@/components/ui/view-toggle"
-import { getDrivers } from "@/lib/services/drivers"
-import { DriverCard } from "@/components/drivers/driver-card"
-import { DriverListItem } from "@/components/drivers/driver-list-item"
-import { EmptyState } from "@/components/empty-state"
-import { Skeleton } from "@/components/ui/skeleton"
-import { SearchFilterBar } from "@/components/ui/search-filter-bar"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useDebounce } from "@/hooks/use-debounce"
-// Use any type to avoid type conflicts
-import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
+import React from "react"; // Removed unnecessary client-side hooks
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { getDictionary } from "@/lib/i18n/server"; // Use server version of getDictionary
+import { Button } from "@/components/ui/button";
+import { getDrivers } from "@/lib/services/drivers";
+import { DriverClientPage } from "@/components/drivers/driver-client-page"; // Import the new client component
+import type { Driver } from "@/types/drivers"; // Ensure consistent Driver type
 
-export const dynamic = "force-dynamic";
-const ITEMS_PER_PAGE = 6
+// export const dynamic = "force-dynamic"; // Commented out to test loop C_L_FIX_LOOP
+// const ITEMS_PER_PAGE = 6; // Moved to client component
 
-export default function DriversPage() {
-  const { t } = useI18n()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [drivers, setDrivers] = useState<any[]>([])
-  const [filteredDrivers, setFilteredDrivers] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>(
-    searchParams?.get('status') || "all"
-  )
-  const debouncedSearch = useDebounce(searchQuery, 500)
-  
-  // Get current page from URL query or default to 1
-  const currentPage = searchParams?.get('page') 
-    ? parseInt(searchParams.get('page') as string) 
-    : 1
+// searchParams are passed by Next.js to Server Components
+interface DriversPageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
 
-  // Extract unique availability statuses for filters
-  const availabilityStatuses = useMemo(() => {
-    const statuses = [
-      { value: 'available', label: t("drivers.availability.statuses.available") },
-      { value: 'unavailable', label: t("drivers.availability.statuses.unavailable") },
-      { value: 'leave', label: t("drivers.availability.statuses.leave") },
-      { value: 'training', label: t("drivers.availability.statuses.training") }
-    ];
-    return statuses;
-  }, [t]);
+export default async function DriversPage({ searchParams }: DriversPageProps) {
+  const { t } = await getDictionary();
+  let initialDrivers: Driver[] = [];
+  let errorLoadingDrivers: string | null = null;
 
-  // Use a ref to track if we've already updated the URL to avoid loops
-  const urlUpdateRef = React.useRef(false);
-  
-  // Load stored view preference on component mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedView = localStorage.getItem('driverViewMode');
-      if (storedView === 'list' || storedView === 'grid') {
-        setViewMode(storedView);
-      }
-    }
-    
-    // Add CSS to improve touch interaction for mobile devices
-    const style = document.createElement('style');
-    style.textContent = `
-      @media (max-width: 640px) {
-        .driver-grid-view {
-          -webkit-tap-highlight-color: transparent;
-          touch-action: manipulation;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  try {
+    initialDrivers = await getDrivers();
+  } catch (error) {
+    console.error("Error loading drivers in Server Component:", error);
+    errorLoadingDrivers = error instanceof Error ? error.message : "Unknown error loading drivers";
+    // Optionally, you could re-throw or handle this to show a global error page
+  }
 
-  useEffect(() => {
-    // Only load drivers once when the component mounts
-    async function loadDrivers() {
-      try {
-        setIsLoading(true)
-        const data = await getDrivers()
-        setDrivers(data)
-        setFilteredDrivers(data)
-      } catch (error) {
-        console.error("Error loading drivers:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  // All client-side logic, including state based on searchParams, is now in DriverClientPage.
+  // We pass the server-fetched initialDrivers and the t function.
+  // searchParams will be read by DriverClientPage using useSearchParams hook.
 
-    loadDrivers()
-  }, []) // Empty dependency array to only run once
-
-  useEffect(() => {
-    let result = [...drivers]
-
-    // Apply status filter using availability_status
-    if (statusFilter !== "all") {
-      result = result.filter(driver => 
-         (driver.availability_status || driver.status || 'available') === statusFilter
-      )
-    }
-
-    // Apply search filter
-    if (debouncedSearch) {
-      const query = debouncedSearch.toLowerCase()
-      result = result.filter(
-        driver =>
-          driver.first_name?.toLowerCase().includes(query) ||
-          driver.last_name?.toLowerCase().includes(query) ||
-          driver.email?.toLowerCase().includes(query) ||
-          driver.license_number?.toLowerCase().includes(query)
-      )
-    }
-
-    setFilteredDrivers(result)
-  }, [drivers, statusFilter, debouncedSearch])
-
-  // Set default view based on screen size
-  useEffect(() => {
-    // Check if we're on mobile
-    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
-    if (isMobile && viewMode === "grid") {
-      setViewMode("list"); // Default to list on initial mobile load
-    }
-    
-    // Add resize listener to change view when resizing between mobile and desktop
-    const handleResize = () => {
-      const isMobileNow = window.innerWidth < 640;
-      if (isMobileNow && viewMode === "grid") {
-        // Don't force list view on mobile resize anymore
-        // This allows users to select grid view on mobile if they want
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [viewMode]);
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedDrivers = filteredDrivers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const handlePageChange = (page: number) => {
-    // Prevent re-rendering loop by checking if we're already on the desired page
-    if (page === currentPage) return;
-    
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", page.toString());
-    
-    // Use router.replace instead of push to avoid adding to history stack
-    router.replace(`/drivers?${params.toString()}`, { scroll: false });
-  };
-  
-  const handleStatusFilterChange = (status: string) => {
-    // Prevent re-rendering loop by checking if status is already set
-    if (status === statusFilter) return;
-    
-    setStatusFilter(status);
-    
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("status", status);
-    
-    // Reset to page 1 when filter changes
-    params.set("page", "1");
-    
-    // Use router.replace instead of push
-    router.replace(`/drivers?${params.toString()}`, { scroll: false });
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-  };
-
-  const handleViewChange = (value: "list" | "grid") => {
-    // Always allow view mode change regardless of device
-    setViewMode(value);
-    
-    // Store view preference in localStorage for persistence
-    try {
-      localStorage.setItem('driverViewMode', value);
-    } catch (e) {
-      console.error('Could not save view preference:', e);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("drivers.title")}</h1>
-          <p className="text-muted-foreground">
-            {t("drivers.description")}
+  if (errorLoadingDrivers) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+          <h1 className="text-2xl font-bold text-destructive mb-4">
+            {t("errors.failedToLoadData", { entity: t("drivers.title") })}
+          </h1>
+          <p className="text-muted-foreground mb-6">
+            {t("errors.pleaseTryAgainLater")}
           </p>
-        </div>
-        <Link href="/drivers/new">
-          <Button className="flex items-center">
-            <Plus className="mr-2 h-4 w-4" />
-            {t("drivers.actions.addDriver")}
-          </Button>
-        </Link>
-      </div>
-      
-      {/* Filter and search section */}
-      <div className="space-y-4">
-        <SearchFilterBar 
-          onSearchChange={handleSearchChange}
-          searchPlaceholder={t("drivers.search")}
-          totalItems={filteredDrivers.length}
-          startIndex={Math.min(startIndex + 1, filteredDrivers.length)}
-          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredDrivers.length)}
-          onBrandFilterChange={handleStatusFilterChange}
-          brandOptions={availabilityStatuses}
-          showBrandFilter={true}
-          showModelFilter={false}
-          selectedBrand={statusFilter}
-        />
-        
-        <div className="flex items-center justify-end">
-          <div className="touch-manipulation">
-            <ViewToggle
-              view={viewMode}
-              onViewChange={handleViewChange}
-            />
-          </div>
+          {/* Provide a way to retry or go back if appropriate */}
+          <Link href="/">
+            <Button variant="outline">{t("common.actions.goHome")}</Button>
+          </Link>
         </div>
       </div>
-      
-      {/* Driver list/grid */}
-      <div className="space-y-6">
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-36" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredDrivers.length === 0 ? (
-          <EmptyState
-            icon={<div className="mx-auto h-10 w-10 text-muted-foreground">👤</div>}
-            title={t("drivers.empty.title")}
-            description={
-              searchQuery
-                ? t("drivers.empty.searchResults")
-                : t("drivers.empty.description")
-            }
-            action={
-              <Link href="/drivers/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("drivers.actions.addDriver")}
-                </Button>
-              </Link>
-            }
-          />
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 driver-grid-view">
-            {paginatedDrivers.map(driver => (
-              <DriverCard key={driver.id} driver={driver} />
-            ))}
-          </div>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <div className="divide-y">
-              {paginatedDrivers.map(driver => (
-                <DriverListItem key={driver.id} driver={driver} />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {filteredDrivers.length > 0 && totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) handlePageChange(currentPage - 1);
-                  }}
-                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: totalPages }).map((_, i) => {
-                const page = i + 1;
-                
-                // Show current page, first, last, and pages around current
-                if (
-                  page === 1 || 
-                  page === totalPages || 
-                  Math.abs(page - currentPage) <= 1
-                ) {
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationLink 
-                        href="#" 
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handlePageChange(page);
-                        }}
-                        isActive={page === currentPage}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                }
-                
-                // Show ellipsis for gaps (but only once per gap)
-                if (
-                  (page === 2 && currentPage > 3) || 
-                  (page === totalPages - 1 && currentPage < totalPages - 2)
-                ) {
-                  return (
-                    <PaginationItem key={page}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  );
-                }
-                
-                return null;
-              })}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages) handlePageChange(currentPage + 1);
-                  }}
-                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
-      </div>
-    </div>
+    );
+  }
+  
+  return (
+    <DriverClientPage initialDrivers={initialDrivers} />
   );
 } 

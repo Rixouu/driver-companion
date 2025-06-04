@@ -1,26 +1,28 @@
 "use client"
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useI18n } from "@/lib/i18n/context";
 
 export function VehicleTabNavigation() {
+  const { t } = useI18n();
 
   return (
     <Tabs defaultValue="maintenance">
       <TabsList className="grid grid-cols-5 w-full">
         <TabsTrigger value="maintenance">
-          {"vehicles.management.tabs.maintenanceSchedule"}
+          {t("vehicles.management.tabs.maintenanceSchedule")}
         </TabsTrigger>
         <TabsTrigger value="inspection">
-          {"vehicles.management.tabs.inspectionHistory"}
+          {t("vehicles.management.tabs.inspectionHistory")}
         </TabsTrigger>
         <TabsTrigger value="mileage">
-          {"vehicles.management.tabs.mileageCurrent"}
+          {t("vehicles.management.tabs.mileageCurrent")}
         </TabsTrigger>
         <TabsTrigger value="fuel">
-          {"vehicles.management.tabs.fuelConsumption"}
+          {t("vehicles.management.tabs.fuelConsumption")}
         </TabsTrigger>
         <TabsTrigger value="assignment">
-          {"vehicles.management.tabs.assignmentList"}
+          {t("vehicles.management.tabs.assignmentList")}
         </TabsTrigger>
       </TabsList>
     </Tabs>

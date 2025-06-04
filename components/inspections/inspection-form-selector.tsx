@@ -1,6 +1,6 @@
 "use client"
 
-import { InspectionType } from "@/lib/types/inspections"
+import { InspectionType } from "@/types/inspections"
 import { RoutineInspectionForm } from "./forms/routine-inspection-form"
 import { SafetyInspectionForm } from "./forms/safety-inspection-form"
 import { MaintenanceInspectionForm } from "./forms/maintenance-inspection-form"

@@ -1,4 +1,4 @@
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { PostgrestError } from "@supabase/supabase-js"
 
 // Define specific error types for better error classification
@@ -124,11 +124,13 @@ export function handleError(error: unknown) {
   logError(appError);
   
   // Display toast notification
-  toast({
-    title: appError.type,
-    description: appError.message,
-    variant: "destructive",
-  });
+  if (typeof window !== "undefined") {
+    toast({
+      title: appError.type,
+      description: appError.message,
+      variant: "destructive",
+    });
+  }
   
   return appError;
 }

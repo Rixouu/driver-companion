@@ -8,17 +8,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Plus, Trash2, Pencil, Save, X, Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import {
-   getInspectionTemplates,
    addInspectionSection,
    updateInspectionSection,
    deleteInspectionSection,
    addInspectionItem,
    updateInspectionItem,
-   deleteInspectionItem 
+   deleteInspectionItem,
+   type InspectionCategory,
+   type InspectionItemTemplate
 } from "@/lib/services/inspections"
-import type { InspectionCategory, InspectionItemTemplate, InspectionType } from "@/types/inspections" 
+import type { InspectionType } from "@/types/inspections"
 import {
   Accordion,
   AccordionContent,
@@ -46,23 +47,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
 
 // Define TranslationObject type
 type TranslationObject = { [key: string]: string };
-
-// Define the structure expected for database rows (used for updates)
-// This mirrors the structure in the service layer
-interface InspectionItemTemplateRow {
-   id: string;
-   category_id: string;
-   name_translations: TranslationObject;
-   description_translations: TranslationObject | null;
-   requires_photo: boolean;
-   requires_notes: boolean;
-   order_number: number;
-   created_at: string;
-   updated_at: string;
-}
 
 interface InspectionTemplateManagerProps {
   type: InspectionType
@@ -86,7 +75,6 @@ interface EditableItem extends InspectionItemTemplate {
 
 export function InspectionTemplateManager({ type }: InspectionTemplateManagerProps) {
   const { t, locale } = useI18n()
-  const { toast } = useToast()
   const [sections, setSections] = useState<EditableSection[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -140,11 +128,16 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       setIsLoading(true)
       setError(null)
       try {
-        // Fetch the templates for the given type
-        const fetchedCategories = await getInspectionTemplates(type)
+        // Fetch the templates for the given type from the API route
+        const response = await fetch(`/api/inspection-templates/${type}`)
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.details || `Failed to fetch templates: ${response.statusText}`)
+        }
+        const fetchedCategories: InspectionCategory[] = await response.json()
         
         // Map fetched data to EditableSection, calculating locale-specific title
-        const formattedSections = fetchedCategories.map((category): EditableSection => {
+        const formattedSections = fetchedCategories.map((category: InspectionCategory): EditableSection => {
             const nameTrans = category.name_translations || { en: '', ja: '' };
             const descTrans = category.description_translations || { en: '', ja: '' };
             const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled');
@@ -158,7 +151,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                 // Ensure order_number has a default for sorting if it can be null
                 order_number: category.order_number ?? 0, 
                 // Map items similarly
-                items: (category.inspection_item_templates || []).map((item): EditableItem => {
+                items: (category.inspection_item_templates || []).map((item: InspectionItemTemplate): EditableItem => {
                    const itemNameTrans = item.name_translations || { en: '', ja: '' };
                    const itemDescTrans = item.description_translations || { en: '', ja: '' };
                    const itemTitle = itemNameTrans[locale] || itemNameTrans['en'] || t('common.untitled');
@@ -174,10 +167,10 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
                        // Ensure order_number has a default for sorting if it can be null
                       order_number: item.order_number ?? 0,
                    };
-                }).sort((a, b) => a.order_number - b.order_number), // Sort items
+                }).sort((a: EditableItem, b: EditableItem) => (a.order_number ?? 0) - (b.order_number ?? 0)), // Sort items
                 isEditing: false, // Initialize editing state if needed
             };
-        }).sort((a, b) => a.order_number - b.order_number); // Sort sections
+        }).sort((a: EditableSection, b: EditableSection) => (a.order_number ?? 0) - (b.order_number ?? 0)); // Sort sections
 
         setSections(formattedSections)
       } catch (err) {
@@ -193,7 +186,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       }
     }
     loadTemplate()
-  }, [type, t, toast, locale])
+  }, [type, t, locale])
   
   // Effect to update titles when locale changes after initial load
   useEffect(() => {
@@ -217,14 +210,12 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
   // --- Handler Functions (to be implemented) ---
 
   const handleAddSectionSubmit = async () => {
-    // Validate that at least one name (EN or JA) is provided
     if (!newSectionNameEn.trim() && !newSectionNameJa.trim()) {
       toast({ title: t("common.error"), description: t("inspections.templates.sectionNameRequired"), variant: "destructive" })
       return
     }
     setIsSavingSection(true)
 
-    // Construct translation objects, only include non-empty trimmed values
     const nameTranslations: TranslationObject = {};
     if (newSectionNameEn.trim()) nameTranslations.en = newSectionNameEn.trim();
     if (newSectionNameJa.trim()) nameTranslations.ja = newSectionNameJa.trim();
@@ -233,45 +224,53 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     if (newSectionDescEn.trim()) descriptionTranslations.en = newSectionDescEn.trim();
     if (newSectionDescJa.trim()) descriptionTranslations.ja = newSectionDescJa.trim();
     
-    // Use undefined for description if object is empty, otherwise pass the object
-    const descPayload = Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined;
+    const payload = {
+      type,
+      name_translations: nameTranslations,
+      description_translations: Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined,
+    };
 
     try {
-      // Call service function with translation objects
-      const newSectionData = await addInspectionSection(type, nameTranslations, descPayload)
+      const response = await fetch('/api/inspection-sections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Failed to add section: ${response.statusText}`);
+      }
+      const newSectionData: InspectionCategory = await response.json();
       
-      // Format the returned section data for the UI state
       const nameTrans = newSectionData.name_translations || { en: '', ja: '' };
       const descTrans = newSectionData.description_translations || { en: '', ja: '' };
-      // Calculate title based on current locale for the new item
       const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled'); 
 
       const newSectionForState: EditableSection = {
-         // Spread the data returned from the backend
          ...newSectionData, 
          name_translations: nameTrans,
          description_translations: descTrans,
          title: title,
-         items: [], // New section starts with no items
-         // Ensure order_number exists for sorting consistency
+         items: [], 
          order_number: newSectionData.order_number ?? 0, 
          isEditing: false,
       };
 
       setSections(prevSections => 
-         [...prevSections, newSectionForState].sort((a, b) => a.order_number - b.order_number)
-      ); // Add and re-sort
+         [...prevSections, newSectionForState].sort((a, b) => (a.order_number ?? 0) - (b.order_number ?? 0))
+      );
       
       toast({ title: t("common.success"), description: t("inspections.templates.addSectionSuccess") })
-      // Reset all input fields
       setNewSectionNameEn("")
       setNewSectionNameJa("")
       setNewSectionDescEn("")
       setNewSectionDescJa("")
-      setIsAddingSection(false) // Close dialog on success
+      setIsAddingSection(false) 
     } catch (err) {
-      console.error("Error adding section:", err)
-      toast({ title: t("common.error"), description: t("inspections.templates.addSectionError"), variant: "destructive" })
+      console.error("Error adding section:", err);
+      const message = err instanceof Error ? err.message : t("inspections.templates.addSectionError");
+      toast({ title: t("common.error"), description: message, variant: "destructive" });
     } finally {
       setIsSavingSection(false)
     }
@@ -307,30 +306,46 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     const descriptionTranslations: TranslationObject = {};
     if (editSectionDescEn.trim()) descriptionTranslations.en = editSectionDescEn.trim();
     if (editSectionDescJa.trim()) descriptionTranslations.ja = editSectionDescJa.trim();
-    const descPayload = Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined;
+    
+    const payload = {
+      name_translations: nameTranslations,
+      description_translations: Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined,
+      // order_number could be part of the payload if ordering is handled here
+    };
 
     try {
-      const updatedSectionData = await updateInspectionSection(editingSection.id, nameTranslations, descPayload);
+      const response = await fetch(`/api/inspection-sections/${editingSection.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      // Format the updated section data for the UI state
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Failed to update section: ${response.statusText}`);
+      }
+      const updatedSectionData: InspectionCategory = await response.json();
+
       const nameTrans = updatedSectionData.name_translations || { en: '', ja: '' };
       const descTrans = updatedSectionData.description_translations || { en: '', ja: '' };
       const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled');
 
+      const updatedSectionForState: EditableSection = {
+         ...editingSection, 
+         ...updatedSectionData, 
+         name_translations: nameTrans,
+         description_translations: descTrans,
+         title: title,
+         order_number: updatedSectionData.order_number ?? 0,
+      };
+
       setSections(prevSections =>
         prevSections.map(section => {
           if (section.id === editingSection.id) {
-            return {
-              ...section, // Keep existing items etc.
-              ...updatedSectionData, // Apply updates from backend
-              name_translations: nameTrans,
-              description_translations: descTrans,
-              title: title,
-              order_number: updatedSectionData.order_number ?? 0,
-            };
+            return updatedSectionForState;
           }
           return section;
-        }).sort((a, b) => a.order_number - b.order_number) // Re-sort just in case order changed
+        }).sort((a, b) => (a.order_number ?? 0) - (b.order_number ?? 0))
       );
 
       toast({ title: t("common.success"), description: t("inspections.templates.editSectionSuccess") });
@@ -338,26 +353,36 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       setEditingSection(null);
     } catch (err) {
       console.error("Error updating section:", err);
-      toast({ title: t("common.error"), description: t("inspections.templates.editSectionError"), variant: "destructive" });
+      const message = err instanceof Error ? err.message : t("inspections.templates.editSectionError");
+      toast({ title: t("common.error"), description: message, variant: "destructive" });
     } finally {
       setIsSavingEditedSection(false);
     }
   };
 
   const handleDeleteSection = async (sectionId: string) => {
-    // Optimistic UI update: Remove the section immediately
-    const originalSections = JSON.parse(JSON.stringify(sections)); // Deep copy for revert
+    const originalSections = JSON.parse(JSON.stringify(sections)); 
     setSections(prevSections => prevSections.filter(section => section.id !== sectionId));
 
     try {
-      await deleteInspectionSection(sectionId);
+      const response = await fetch(`/api/inspection-sections/${sectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        // If the API returns a specific code for SECTION_NOT_EMPTY, use that for a better message
+        if (errorData.code === 'SECTION_NOT_EMPTY') {
+          throw new Error(errorData.details || t("inspections.templates.deleteSectionErrorNotEmpty"));
+        } 
+        throw new Error(errorData.details || `Failed to delete section: ${response.statusText}`);
+      }
+      // No need to parse response.json() if DELETE is successful with 200/204 and no body.
       toast({ title: t("common.success"), description: t("inspections.templates.deleteSectionSuccess") })
     } catch (err) {
       console.error("Error deleting section:", err);
-      // Revert UI on error
       setSections(originalSections);
       
-      // Show more detailed error message
       const errorMessage = err instanceof Error ? err.message : t("inspections.templates.deleteSectionError");
       toast({ 
         title: t("common.error"), 
@@ -397,18 +422,29 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     const descriptionTranslations: TranslationObject = {};
     if (newItemDescEn.trim()) descriptionTranslations.en = newItemDescEn.trim();
     if (newItemDescJa.trim()) descriptionTranslations.ja = newItemDescJa.trim();
-    const descPayload = Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined;
+
+    const payload = {
+      category_id: addingItemToSectionId,
+      name_translations: nameTranslations,
+      description_translations: Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined,
+      requires_photo: newItemRequiresPhoto,
+      requires_notes: newItemRequiresNotes,
+      // order_number will be handled by backend or a subsequent update if needed
+    };
 
     try {
-       const newItemData = await addInspectionItem(
-         addingItemToSectionId,
-         nameTranslations,
-         newItemRequiresPhoto,
-         newItemRequiresNotes,
-         descPayload
-       );
+      const response = await fetch('/api/inspection-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-       // Format new item for state update
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Failed to add item: ${response.statusText}`);
+      }
+      const newItemData: InspectionItemTemplate = await response.json();
+
        const nameTrans = newItemData.name_translations || { en: '', ja: '' };
        const descTrans = newItemData.description_translations || { en: '', ja: '' };
        const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled');
@@ -424,13 +460,12 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
           isEditing: false,
        };
 
-       // Update sections state by adding the new item to the correct section
        setSections(prevSections => 
           prevSections.map(section => {
              if (section.id === addingItemToSectionId) {
                 return {
                    ...section,
-                   items: [...section.items, newItemForState].sort((a, b) => a.order_number - b.order_number)
+                   items: [...section.items, newItemForState].sort((a, b) => (a.order_number ?? 0) - (b.order_number ?? 0))
                 };
              }
              return section;
@@ -438,10 +473,11 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
        );
 
        toast({ title: t("common.success"), description: t("inspections.templates.addItemSuccess") });
-       setIsAddingItem(false); // Close dialog
+       setIsAddingItem(false); 
     } catch (err) {
        console.error("Error adding item:", err);
-       toast({ title: t("common.error"), description: t("inspections.templates.addItemError"), variant: "destructive" });
+       const message = err instanceof Error ? err.message : t("inspections.templates.addItemError");
+       toast({ title: t("common.error"), description: message, variant: "destructive" });
     } finally {
        setIsSavingItem(false);
     }
@@ -456,18 +492,18 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
 
     setEditingItem(itemToEdit);
     setEditItemSectionId(sectionId);
-    setEditItemNameEn(itemToEdit.name_translations.en || "");
-    setEditItemNameJa(itemToEdit.name_translations.ja || "");
-    setEditItemDescEn(itemToEdit.description_translations.en || "");
-    setEditItemDescJa(itemToEdit.description_translations.ja || "");
-    setEditItemRequiresPhoto(itemToEdit.requires_photo);
-    setEditItemRequiresNotes(itemToEdit.requires_notes);
+    setEditItemNameEn(itemToEdit.name_translations?.en || "");
+    setEditItemNameJa(itemToEdit.name_translations?.ja || "");
+    setEditItemDescEn(itemToEdit.description_translations?.en || "");
+    setEditItemDescJa(itemToEdit.description_translations?.ja || "");
+    setEditItemRequiresPhoto(itemToEdit.requires_photo ?? false);
+    setEditItemRequiresNotes(itemToEdit.requires_notes ?? false);
     setIsEditingItem(true);
   };
 
   // Handles the submission of the Edit Item dialog
   const handleEditItemSubmit = async () => {
-    if (!editingItem) return;
+    if (!editingItem || !editItemSectionId) return; // Ensure editItemSectionId is also checked
 
     if (!editItemNameEn.trim() && !editItemNameJa.trim()) {
       toast({ title: t("common.error"), description: t("inspections.templates.itemNameRequired", { defaultValue: "Please provide a name for the item in at least one language" }), variant: "destructive" });
@@ -482,29 +518,35 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     const descriptionTranslations: TranslationObject = {};
     if (editItemDescEn.trim()) descriptionTranslations.en = editItemDescEn.trim();
     if (editItemDescJa.trim()) descriptionTranslations.ja = editItemDescJa.trim();
-    const descPayload = Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined;
 
-    // Ensure the updates object matches the expected structure for updateInspectionItem,
-    // including the translation fields. Using Pick<InspectionItemTemplateRow, ...> aligns this.
-    const updates: Partial<Pick<InspectionItemTemplateRow, 'name_translations' | 'description_translations' | 'requires_photo' | 'requires_notes'>> = {
+    const payload: Partial<InspectionItemTemplate & { name_translations: TranslationObject, description_translations: TranslationObject | undefined }> = {
         name_translations: nameTranslations,
-        description_translations: descPayload,
+        description_translations: Object.keys(descriptionTranslations).length > 0 ? descriptionTranslations : undefined,
         requires_photo: editItemRequiresPhoto,
         requires_notes: editItemRequiresNotes,
+        // order_number: editingItem.order_number, // If order editing is implemented, pass it here
     };
 
     try {
-      // Pass the correctly typed updates object
-      const updatedItemData = await updateInspectionItem(editingItem.id, updates);
+      const response = await fetch(`/api/inspection-items/${editingItem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `Failed to update item: ${response.statusText}`);
+      }
+      const updatedItemData: InspectionItemTemplate = await response.json();
       
-      // Format updated item for state
       const nameTrans = updatedItemData.name_translations || { en: '', ja: '' };
       const descTrans = updatedItemData.description_translations || { en: '', ja: '' };
       const title = nameTrans[locale] || nameTrans['en'] || t('common.untitled');
 
       const updatedItemForState: EditableItem = {
-         ...editingItem, // Keep original fields not returned by update
-         ...updatedItemData, // Apply backend updates
+         ...editingItem, 
+         ...updatedItemData, 
          name_translations: nameTrans,
          description_translations: descTrans,
          title: title,
@@ -513,15 +555,14 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
          order_number: updatedItemData.order_number ?? 0,
       };
 
-      // Update local state
       setSections(prevSections =>
         prevSections.map(section => {
-          if (section.id === editItemSectionId) {
+          if (section.id === editItemSectionId) { // Use editItemSectionId captured when edit began
             return {
               ...section,
               items: section.items.map(item => 
                 item.id === editingItem.id ? updatedItemForState : item
-              ).sort((a, b) => a.order_number - b.order_number) // Re-sort items
+              ).sort((a, b) => (a.order_number ?? 0) - (b.order_number ?? 0))
             };
           }
           return section;
@@ -534,14 +575,14 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
       setEditItemSectionId(null);
     } catch (err) {
       console.error("Error updating item:", err);
-      toast({ title: t("common.error"), description: t("inspections.templates.editItemError"), variant: "destructive" });
+      const message = err instanceof Error ? err.message : t("inspections.templates.editItemError");
+      toast({ title: t("common.error"), description: message, variant: "destructive" });
     } finally {
       setIsSavingEditedItem(false);
     }
   };
 
   const handleDeleteItem = async (itemId: string) => {
-     // Find which section the item belongs to for UI update
      const sectionIndex = sections.findIndex(sec => sec.items.some(item => item.id === itemId));
      if (sectionIndex === -1) {
        console.error("Could not find section for item deletion");
@@ -550,8 +591,7 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
      }
      const sectionId = sections[sectionIndex].id;
 
-    // Optimistic UI update: Remove the item immediately
-    const originalSections = JSON.parse(JSON.stringify(sections)); // Deep copy for revert
+    const originalSections = JSON.parse(JSON.stringify(sections)); 
     setSections(prevSections =>
       prevSections.map(section => {
         if (section.id === sectionId) {
@@ -565,15 +605,25 @@ export function InspectionTemplateManager({ type }: InspectionTemplateManagerPro
     );
 
     try {
-      await deleteInspectionItem(itemId, forceDeleteItem);
+      const apiUrl = forceDeleteItem ? `/api/inspection-items/${itemId}?force=true` : `/api/inspection-items/${itemId}`;
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.code === 'ITEM_IN_USE') {
+          throw new Error(errorData.details || t("inspections.templates.deleteItemErrorInUse"));
+        }
+        throw new Error(errorData.details || `Failed to delete item: ${response.statusText}`);
+      }
+
       toast({ title: t("common.success"), description: t("inspections.templates.deleteItemSuccess") });
-      setForceDeleteItem(false); // Reset for next time
+      setForceDeleteItem(false); 
     } catch (err) {
       console.error("Error deleting item:", err);
-      // Revert UI on error
       setSections(originalSections);
       
-      // Show more detailed error message
       const errorMessage = err instanceof Error ? err.message : t("inspections.templates.deleteItemError");
       toast({ 
         title: t("common.error"), 

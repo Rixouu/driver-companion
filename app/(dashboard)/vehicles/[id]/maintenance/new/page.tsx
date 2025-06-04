@@ -1,7 +1,8 @@
 import { Metadata } from "next"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { notFound } from "next/navigation"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { MaintenanceForm } from "@/components/maintenance/maintenance-form"
 
@@ -32,7 +33,8 @@ export default async function NewMaintenancePage({
   params: { id: string },
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await getSupabaseServerClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
   // Fetch vehicle details
   const { data: vehicle } = await supabase
@@ -63,12 +65,13 @@ export default async function NewMaintenancePage({
           asChild
         >
           <Link
-            href={`/vehicles/${params.id}/maintenance`}
-            className="flex items-center gap-2" ><span className="flex items-center gap-2">
+            href={{ pathname: `/vehicles/${params.id}/maintenance` }}
+            className="flex items-center gap-2"
+          >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back to maintenance</span>
             <span className="sm:hidden">Back</span>
-          </span></Link>
+          </Link>
         </Button>
 
         <p className="text-muted-foreground">

@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabaseClient();
+  const supabase = await getSupabaseServerClient();
   const { t } = await getDictionary();
 
   // Check auth
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       amount: q.amount,
       currency: q.currency || 'JPY',
       wp_id: '',  // Empty string instead of null
-      created_by: session.user.id,
+      created_by: user.id,
       source: 'quotation'
     };
     
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       .from('quotation_activities')
       .insert({
         quotation_id: id,
-        user_id: session.user.id,
+        user_id: user.id,
         action: 'converted',
         details: { booking_id: booking.id }
       });

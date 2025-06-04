@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { Database } from '@/types/supabase'; // Assuming Database types are generated
+// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'; // Old
+// import { cookies } from 'next/headers'; // No longer needed directly
+import { getSupabaseServerClient } from "@/lib/supabase/server"; // Corrected import
+import { Database } from '@/types/supabase';
+import { type NextRequest } from "next/server";
 
-export async function GET() {
+export const dynamic = 'force-dynamic'; // Recommended for routes with auth or dynamic data
+
+export async function GET(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
-    const { data: { session: sessionGet }, error: sessionErrorGet } = await supabase.auth.getSession();
-    if (sessionErrorGet || !sessionGet) {
+    const supabase = await getSupabaseServerClient(); // Corrected function call
+    const { data: { user }, error: authError } = await supabase.auth.getUser(); // New auth
+    if (authError || !user) {
       console.log('[GET /api/pricing/service-types] Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -41,16 +45,16 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
-    const { data: { session: sessionPost }, error: sessionErrorPost } = await supabase.auth.getSession();
-    if (sessionErrorPost || !sessionPost) {
+    const supabase = await getSupabaseServerClient(); // New client
+    const { data: { user: postUser }, error: postAuthError } = await supabase.auth.getUser(); // New auth
+    if (postAuthError || !postUser) {
       console.log('[POST /api/pricing/service-types] Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await req.json();
     
     // Validate required fields
     if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {

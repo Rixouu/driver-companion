@@ -2,8 +2,9 @@
 
 import { useI18n } from "@/lib/i18n/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+// import { supabase } from "@/lib/supabase"; // Ensure this is not used
+import { createBrowserClient } from "@supabase/ssr"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts"
 
 interface DriverMetricsStats {
@@ -33,6 +34,13 @@ export function DriverMetrics() {
     maintenanceEfficiency: [],
     vehicleUptime: []
   })
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchStats() {
@@ -153,7 +161,7 @@ export function DriverMetrics() {
     }
 
     fetchStats()
-  }, [])
+  }, [supabase])
 
   return (
     <Card>

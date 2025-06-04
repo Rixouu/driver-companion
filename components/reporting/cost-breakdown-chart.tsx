@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+import { createBrowserClient } from "@supabase/ssr"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
@@ -29,6 +29,13 @@ const MAINTENANCE_CATEGORIES = {
 export function CostBreakdownChart({ dateRange }: CostBreakdownChartProps) {
   const [data, setData] = useState<CostData[]>([])
   const { theme } = useTheme()
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchCostData() {
@@ -101,7 +108,7 @@ export function CostBreakdownChart({ dateRange }: CostBreakdownChartProps) {
     if (dateRange.from && dateRange.to) {
       fetchCostData()
     }
-  }, [dateRange])
+  }, [dateRange, supabase])
 
   if (data.length === 0) {
     return (

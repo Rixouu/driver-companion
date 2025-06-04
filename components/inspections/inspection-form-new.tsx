@@ -7,13 +7,15 @@ import * as z from "zod"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionType } from "@/lib/types/inspections"
+import { InspectionType } from "@/types/inspections"
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { InspectionTypeSelector } from "./inspection-type-selector"
+import { Textarea } from "@/components/ui/textarea"
+import { ImagePlus, Trash2 } from "lucide-react"
 
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
@@ -30,7 +32,6 @@ interface InspectionFormProps {
 
 export function InspectionForm({ inspectionId, type = 'routine', vehicleId }: InspectionFormProps) {
   const router = useRouter()
-  const { toast } = useToast()
   const { t } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedType, setSelectedType] = useState<InspectionType>(type)

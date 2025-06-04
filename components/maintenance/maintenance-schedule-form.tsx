@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -28,26 +28,27 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { useI18n } from "@/lib/i18n/context"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, Repeat, Info } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils/styles"
-import { createMaintenanceSchedule } from "@/lib/services/schedules"
+import { createMaintenanceScheduleAction } from "@/app/(dashboard)/maintenance/actions"
 import { TaskTemplateSelector } from "./task-template-selector"
 import type { MaintenanceTaskTemplate } from "@/lib/services/maintenance-templates"
 import { Checkbox } from "@/components/ui/checkbox"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Define the form schema
+const validPriorities = ["low", "medium", "high"] as const;
+
 const maintenanceScheduleSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
   title: z.string().min(1, "Required"),
   description: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]),
+  priority: z.enum(validPriorities),
   is_recurring: z.boolean().default(false),
   frequency: z.enum([
     "daily", 
@@ -61,24 +62,15 @@ const maintenanceScheduleSchema = z.object({
   ]),
   interval_days: z.string().optional(),
   start_date: z.string().min(1, "Required").refine(
-    (date) => {
-      // Check if it's a valid date string (YYYY-MM-DD)
-      return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(new Date(date).getTime());
-    },
-    {
-      message: "Invalid date format. Please use YYYY-MM-DD format.",
-    }
+    (date) => /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(new Date(date).getTime()),
+    { message: "Invalid date format. Please use YYYY-MM-DD format." }
   ),
   end_date: z.string().optional().refine(
     (date) => {
-      // If empty, it's valid
       if (!date || date.trim() === "") return true;
-      // Otherwise, check if it's a valid date string (YYYY-MM-DD)
       return /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(new Date(date).getTime());
     },
-    {
-      message: "Invalid date format. Please use YYYY-MM-DD format.",
-    }
+    { message: "Invalid date format. Please use YYYY-MM-DD format." }
   ),
   estimated_duration: z.string().optional(),
   estimated_cost: z.string().optional(),
@@ -87,20 +79,15 @@ const maintenanceScheduleSchema = z.object({
 })
 .refine(
   (data) => {
-    // Only validate interval_days if it's a recurring task with custom frequency
     if (data.is_recurring && data.frequency === "custom") {
       return !!data.interval_days && parseInt(data.interval_days) > 0;
     }
     return true;
   },
-  {
-    message: "Interval days is required for custom frequency",
-    path: ["interval_days"],
-  }
+  { message: "Interval days is required for custom frequency", path: ["interval_days"] }
 )
 .refine(
   (data) => {
-    // Only validate end_date if it's a recurring task
     if (data.is_recurring && data.end_date && data.end_date.trim() !== "") {
       const startDate = new Date(data.start_date);
       const endDate = new Date(data.end_date);
@@ -108,10 +95,7 @@ const maintenanceScheduleSchema = z.object({
     }
     return true;
   },
-  {
-    message: "End date must be after start date",
-    path: ["end_date"],
-  }
+  { message: "End date must be after start date", path: ["end_date"] }
 );
 
 type MaintenanceScheduleFormData = z.infer<typeof maintenanceScheduleSchema>
@@ -119,19 +103,32 @@ type MaintenanceScheduleFormData = z.infer<typeof maintenanceScheduleSchema>
 export function MaintenanceScheduleForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { toast } = useToast()
   const { t } = useI18n()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("basic")
 
-  // Get prefilled data from URL if coming from an inspection
   const prefilledTitle = searchParams.get('title') || ""
   const prefilledDescription = searchParams.get('description') || ""
   const prefilledVehicleId = searchParams.get('vehicle_id') || ""
-  const prefilledPriority = searchParams.get('priority') || "medium"
-  const prefilledCreateImmediateTask = searchParams.get('create_immediate_task') === 'true'
+  const createImmediateQueryParam = searchParams.get('create_immediate_task');
+  let initialCreateImmediateTask = true; // Default to true
+  if (createImmediateQueryParam === 'false') {
+    initialCreateImmediateTask = false;
+  } else if (createImmediateQueryParam === 'true') {
+    // Explicitly true, already covered by default but good for clarity
+    initialCreateImmediateTask = true;
+  }
   const inspectionId = searchParams.get('inspection_id') || ""
+
+  const getInitialPriority = (): typeof validPriorities[number] => {
+    const prefilled = searchParams.get('priority');
+    // Explicitly check if prefilled is one of the valid priorities
+    if (prefilled === "low" || prefilled === "medium" || prefilled === "high") {
+      return prefilled;
+    }
+    return "medium";
+  };
 
   const form = useForm<MaintenanceScheduleFormData>({
     resolver: zodResolver(maintenanceScheduleSchema),
@@ -139,7 +136,7 @@ export function MaintenanceScheduleForm() {
       title: prefilledTitle,
       description: prefilledDescription,
       vehicle_id: prefilledVehicleId,
-      priority: prefilledPriority as "low" | "medium" | "high",
+      priority: getInitialPriority() as "low" | "medium" | "high",
       is_recurring: false,
       frequency: "monthly",
       interval_days: "",
@@ -148,30 +145,38 @@ export function MaintenanceScheduleForm() {
       estimated_duration: "",
       estimated_cost: "",
       notes: "",
-      create_immediate_task: prefilledCreateImmediateTask || true,
+      create_immediate_task: initialCreateImmediateTask,
     },
   })
 
-  // Update form values if URL parameters change
   useEffect(() => {
-    if (searchParams.get('title')) {
-      form.setValue('title', searchParams.get('title') || "")
-    }
-    if (searchParams.get('description')) {
-      form.setValue('description', searchParams.get('description') || "")
-    }
-    if (searchParams.get('vehicle_id')) {
-      form.setValue('vehicle_id', searchParams.get('vehicle_id') || "")
-    }
-    if (searchParams.get('priority')) {
-      form.setValue('priority', (searchParams.get('priority') as "low" | "medium" | "high") || "medium")
-    }
-    if (searchParams.get('create_immediate_task') === 'true') {
-      form.setValue('create_immediate_task', true)
-    }
-  }, [searchParams, form])
+    const urlTitle = searchParams.get('title');
+    const urlDescription = searchParams.get('description');
+    const urlVehicleId = searchParams.get('vehicle_id');
+    const urlPriority = searchParams.get('priority');
+    const urlCreateImmediate = searchParams.get('create_immediate_task');
 
-  // Handle template selection
+    if (urlTitle) form.setValue('title', urlTitle);
+    if (urlDescription) form.setValue('description', urlDescription);
+    if (urlVehicleId) form.setValue('vehicle_id', urlVehicleId);
+    
+    if (urlPriority) {
+        if (validPriorities.includes(urlPriority as any)) {
+            form.setValue('priority', urlPriority as typeof validPriorities[number]);
+        } else {
+            form.setValue('priority', 'medium');
+        }
+    } 
+
+    if (urlCreateImmediate === 'true') {
+      form.setValue('create_immediate_task', true);
+    } else if (urlCreateImmediate === 'false') {
+      form.setValue('create_immediate_task', false);
+    }
+    // If urlCreateImmediate is not present, defaultValues handles it.
+
+  }, [searchParams, form]);
+
   const handleTemplateSelect = (template: MaintenanceTaskTemplate) => {
     form.setValue('title', template.title)
     form.setValue('description', template.description)
@@ -186,218 +191,164 @@ export function MaintenanceScheduleForm() {
   }
 
   async function onSubmit(data: MaintenanceScheduleFormData) {
-    if (!user?.id) return
+    if (!user?.id) {
+      toast({ title: "Authentication Error", description: "You must be logged in to create a schedule.", variant: "destructive" });
+      return;
+    }
+    const supabaseClient = createClient();
 
+    setIsLoading(true);
     try {
-      setIsLoading(true)
-
-      // If it's not a recurring task, we don't need to create a schedule
       if (!data.is_recurring) {
-        // Create a one-time task directly
         const taskData = {
           vehicle_id: data.vehicle_id,
           title: data.title,
-          description: data.description || undefined,
+          description: data.description || null,
           priority: data.priority,
           due_date: data.start_date,
-          status: 'scheduled',
-          estimated_duration: data.estimated_duration ? parseFloat(data.estimated_duration) : undefined,
-          cost: data.estimated_cost ? parseFloat(data.estimated_cost) : undefined,
-          notes: data.notes || undefined,
+          status: 'scheduled' as const,
+          estimated_duration: data.estimated_duration ? parseFloat(data.estimated_duration) : null,
+          cost: data.estimated_cost ? parseFloat(data.estimated_cost) : null,
+          notes: data.notes || null,
           user_id: user.id,
-          inspection_id: inspectionId || undefined // Include inspection_id if it exists
+          inspection_id: inspectionId || null
         };
 
-        const { data: taskResult, error: taskError } = await supabase
+        const { error: taskError } = await supabaseClient
           .from('maintenance_tasks')
-          .insert(taskData)
-          .select()
-          .single();
+          .insert(taskData);
 
         if (taskError) {
-          console.error('Error creating task:', taskError);
-          throw taskError;
+          console.error('Error creating one-off task:', taskError);
+          toast({ title: "Error Creating Task", description: taskError.message, variant: "destructive" });
+          setIsLoading(false); // Ensure loading state is reset on error
+          return; // Stop execution if one-off task fails
         }
 
-        toast({
-          title: t('maintenance.messages.createSuccess'),
-        });
-
+        toast({ title: t('maintenance.messages.createSuccess') });
         router.push("/maintenance");
         router.refresh();
+        setIsLoading(false);
         return;
       }
 
-      // For recurring tasks, create a schedule
-      // Remove fields that don't exist in the database schema
-      const { is_recurring, create_immediate_task, ...scheduleData } = data;
+      const { is_recurring, create_immediate_task, ...schedulePayload } = data;
       
-      const formattedData = {
-        ...scheduleData,
+      const formattedData: any = {
+        ...schedulePayload,
         user_id: user.id,
-        estimated_duration: data.estimated_duration ? parseFloat(data.estimated_duration) : undefined,
-        estimated_cost: data.estimated_cost ? parseFloat(data.estimated_cost) : undefined,
-        interval_days: data.interval_days ? parseInt(data.interval_days) : undefined,
-        end_date: data.end_date && data.end_date.trim() !== "" ? data.end_date : undefined,
+        estimated_duration: data.estimated_duration ? parseFloat(data.estimated_duration) : null,
+        estimated_cost: data.estimated_cost ? parseFloat(data.estimated_cost) : null,
+        interval_days: data.interval_days ? parseInt(data.interval_days) : null,
+        end_date: data.end_date && data.end_date.trim() !== "" ? data.end_date : null,
         is_active: true,
-      }
+      };
 
-      const { schedule, error } = await createMaintenanceSchedule(formattedData)
+      const result = await createMaintenanceScheduleAction(formattedData);
       
-      if (error) {
-        throw error
+      if (result.error || !result.schedule) { // Check for error or if schedule is null/undefined
+        const errorMsg = result.error || "Failed to create schedule.";
+        console.error('Error creating recurring schedule:', errorMsg);
+        toast({ title: "Error Creating Schedule", description: errorMsg, variant: "destructive" });
+        setIsLoading(false); // Ensure loading state is reset
+        return; // Stop execution if schedule creation fails
       }
+      
+      // Safely access result.schedule as it's checked above
+      const currentSchedule = result.schedule;
 
-      // If create_immediate_task is true, create a one-time task immediately
       if (create_immediate_task) {
-        // Format recurring information for the notes
-        const recurringInfo = `
-[${t('maintenance.recurringTask')} - ${t(`schedules.frequencies.${data.frequency}`)}]
-${t('schedules.startDate')}: ${data.start_date}
-${data.end_date && data.end_date.trim() !== "" ? `${t('schedules.endDate')}: ${data.end_date}` : ''}
-${t('maintenance.schedule.id')}: ${schedule.id}
-`;
+        const schedulePriority = currentSchedule.priority;
+        const validatedPriority = validPriorities.includes(schedulePriority as any) 
+          ? schedulePriority as typeof validPriorities[number] 
+          : 'medium'; // Default to medium if priority from schedule is not valid
 
-        // Combine user notes with recurring info
-        const combinedNotes = data.notes 
-          ? `${data.notes}\n\n${recurringInfo}`
-          : recurringInfo;
-
-        const taskData = {
-          vehicle_id: data.vehicle_id,
-          title: data.title,
-          description: data.description || undefined,
-          priority: data.priority,
-          due_date: data.start_date,
-          status: 'scheduled',
-          estimated_duration: data.estimated_duration ? parseFloat(data.estimated_duration) : undefined,
-          cost: data.estimated_cost ? parseFloat(data.estimated_cost) : undefined,
-          notes: combinedNotes,
+        const immediateTaskData = {
+          vehicle_id: currentSchedule.vehicle_id,
+          title: currentSchedule.title,
+          description: currentSchedule.description,
+          priority: validatedPriority,
+          due_date: currentSchedule.start_date,
+          status: 'scheduled' as const,
+          estimated_duration: currentSchedule.estimated_duration,
+          cost: currentSchedule.estimated_cost,
+          notes: currentSchedule.notes,
           user_id: user.id,
-          inspection_id: inspectionId || undefined // Include inspection_id if it exists
+          schedule_id: currentSchedule.id,
+          inspection_id: inspectionId || null,
         };
-
-        const { data: taskResult, error: taskError } = await supabase
+        const { error: immediateTaskError } = await supabaseClient
           .from('maintenance_tasks')
-          .insert(taskData)
-          .select()
-          .single();
+          .insert(immediateTaskData);
 
-        if (taskError) {
-          console.error('Error creating immediate task:', taskError);
-          toast({
-            title: t('maintenance.messages.error'),
-            description: t('maintenance.messages.immediateTaskError'),
-            variant: "destructive",
-          });
+        if (immediateTaskError) {
+          console.warn('Failed to create immediate task for recurring schedule:', immediateTaskError);
+          toast({ title: "Warning", description: `Schedule created, but failed to create immediate task: ${immediateTaskError.message}`, variant: "default" });
+        } else {
+          toast({ title: t('maintenance.messages.createSuccess'), description: "Recurring schedule and initial task created." });
         }
+      } else {
+        toast({ title: t('maintenance.messages.createSuccess'), description: "Recurring schedule created." });
       }
 
-      toast({
-        title: t('schedules.maintenance.createSuccess'),
-      })
+      router.push("/maintenance");
+      router.refresh();
 
-      router.push("/maintenance")
-      router.refresh()
-    } catch (error) {
-      console.error('Error:', error)
-      toast({
-        title: t('schedules.maintenance.createError'),
-        variant: "destructive",
-      })
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      toast({ title: "Submission Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-20 md:pb-0">
-        <Card className="overflow-hidden">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <Repeat className="h-5 w-5 text-primary" />
-              {t('schedules.maintenance.title')}
-            </CardTitle>
-            <CardDescription>
-              {t('schedules.maintenance.description')}
-            </CardDescription>
-          </CardHeader>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <CardContent className="px-4 sm:px-6">
-              <TabsList className="grid w-full grid-cols-3 mb-6 h-auto">
-                <TabsTrigger 
-                  value="basic" 
-                  className="py-2 text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 sm:gap-2 h-auto"
-                >
-                  <span className="hidden sm:inline">1.</span>
-                  <span>{t('maintenance.form.basicInfo')}</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="schedule" 
-                  className="py-2 text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 sm:gap-2 h-auto"
-                >
-                  <span className="hidden sm:inline">2.</span>
-                  <span>{t('maintenance.form.scheduleInfo')}</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="details" 
-                  className="py-2 text-xs sm:text-sm flex flex-col sm:flex-row items-center gap-1 sm:gap-2 h-auto"
-                >
-                  <span className="hidden sm:inline">3.</span>
-                  <span>{t('maintenance.form.additionalDetails')}</span>
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="basic" className="space-y-4 mt-0">
-                <Alert className="bg-muted">
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>{t('maintenance.form.stepOneTitle')}</AlertTitle>
-                  <AlertDescription>
-                    {t('maintenance.form.stepOneDescription')}
-                  </AlertDescription>
-                </Alert>
-                
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="basic">{t('maintenance.form.basicInfo')}</TabsTrigger>
+            <TabsTrigger value="schedule">{t('maintenance.form.scheduleInfo')}</TabsTrigger>
+            <TabsTrigger value="details">{t('maintenance.form.additionalDetails')}</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basic" forceMount className={activeTab === "basic" ? "" : "hidden"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('maintenance.form.stepOneTitle')}</CardTitle>
+                <CardDescription>{t('maintenance.form.stepOneDescription')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <TaskTemplateSelector onSelect={handleTemplateSelect} />
-                
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.title')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder={t('maintenance.fields.titlePlaceholder')} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="vehicle_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
-                        <FormControl>
-                          <VehicleSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('maintenance.fields.title')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('maintenance.fields.titlePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormDescription>{t('maintenance.fields.titleDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="vehicle_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('maintenance.fields.vehicle')}</FormLabel>
+                      <VehicleSelector 
+                        value={field.value}
+                        onValueChange={(vehicleId: string) => form.setValue('vehicle_id', vehicleId)} 
+                      />
+                      <FormDescription>{t('maintenance.fields.vehicleDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="description"
@@ -405,75 +356,121 @@ ${t('maintenance.schedule.id')}: ${schedule.id}
                     <FormItem>
                       <FormLabel>{t('maintenance.fields.description')}</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder={t('maintenance.fields.descriptionPlaceholder')} 
-                          className="min-h-[120px]" 
-                          {...field} 
-                        />
+                        <Textarea placeholder={t('maintenance.fields.descriptionPlaceholder')} {...field} value={field.value || ""} />
                       </FormControl>
+                       <FormDescription>{t('maintenance.fields.descriptionDescription')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
-                <div className="flex justify-end">
-                  <Button 
-                    type="button" 
-                    onClick={() => setActiveTab("schedule")}
-                    className="hidden md:inline-flex w-24 sm:w-auto"
-                  >
-                    {t('common.next')}
-                  </Button>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="schedule" className="space-y-4 mt-0">
-                <Alert className="bg-muted">
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>{t('maintenance.form.stepTwoTitle')}</AlertTitle>
-                  <AlertDescription>
-                    {t('maintenance.form.stepTwoDescription')}
-                  </AlertDescription>
-                </Alert>
-                
                 <FormField
                   control={form.control}
-                  name="is_recurring"
+                  name="priority"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          {t('maintenance.isRecurring')}
-                        </FormLabel>
-                        <FormDescription>
-                          {t('maintenance.isRecurringDescription')}
-                        </FormDescription>
-                      </div>
+                    <FormItem>
+                      <FormLabel>{t('maintenance.fields.priority')}</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('maintenance.priority.title')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low">{t('maintenance.priority.low')}</SelectItem>
+                          <SelectItem value="medium">{t('maintenance.priority.medium')}</SelectItem>
+                          <SelectItem value="high">{t('maintenance.priority.high')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>{t('maintenance.fields.priorityDescription')}</FormDescription>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button onClick={() => setActiveTab("schedule")}>{t('common.next')}</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule" forceMount className={activeTab === "schedule" ? "" : "hidden"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('maintenance.form.stepTwoTitle')}</CardTitle>
+                <CardDescription>{t('maintenance.form.stepTwoDescription')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="start_date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>{t('maintenance.fields.dueDate')}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(new Date(field.value), "PPP")
+                              ) : (
+                                <span>{t('maintenance.fields.dueDatePlaceholder')}</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormDescription>{t('maintenance.fields.dueDateDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                    control={form.control}
+                    name="is_recurring"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                            <FormControl>
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>{t('maintenance.isRecurring')}</FormLabel>
+                                <FormDescription>
+                                    {t('maintenance.isRecurringDescription')}
+                                </FormDescription>
+                            </div>
+                        </FormItem>
+                    )}
+                />
                 {form.watch('is_recurring') && (
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <>
                     <FormField
                       control={form.control}
                       name="frequency"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('schedules.frequency')}</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            defaultValue={field.value}
-                          >
+                          <FormLabel>{t('schedules.fields.frequency')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder={t('schedules.selectFrequency')} />
+                                <SelectValue placeholder={t('schedules.placeholders.selectFrequency')} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -487,92 +484,33 @@ ${t('maintenance.schedule.id')}: ${schedule.id}
                               <SelectItem value="custom">{t('schedules.frequencies.custom')}</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormDescription>
-                            {t('schedules.frequencyDescription')}
-                          </FormDescription>
+                          <FormDescription>{t('schedules.fields.frequencyDescription')}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     {form.watch('frequency') === 'custom' && (
                       <FormField
                         control={form.control}
                         name="interval_days"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t('schedules.intervalDays')}</FormLabel>
+                            <FormLabel>{t('schedules.fields.intervalDays')}</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="number" 
-                                min="1" 
-                                placeholder={t('schedules.intervalDaysPlaceholder')} 
-                                {...field} 
-                              />
+                              <Input type="number" placeholder={t('schedules.placeholders.intervalDays')} {...field} value={field.value || ""}/>
                             </FormControl>
-                            <FormDescription>
-                              {t('schedules.intervalDaysDescription')}
-                            </FormDescription>
+                            <FormDescription>{t('schedules.fields.intervalDaysDescription')}</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     )}
-                  </div>
-                )}
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="start_date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>{t('schedules.startDate')}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(new Date(field.value), "PPP")
-                                ) : (
-                                  <span>{t('schedules.selectDate')}</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormDescription>
-                          {form.watch('is_recurring') 
-                            ? t('schedules.startDateDescription') 
-                            : t('maintenance.fields.dueDateDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch('is_recurring') && (
                     <FormField
                       control={form.control}
                       name="end_date"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>{t('schedules.endDate')}</FormLabel>
+                          <FormLabel>{t('schedules.fields.endDate')}</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -586,7 +524,7 @@ ${t('maintenance.schedule.id')}: ${schedule.id}
                                   {field.value ? (
                                     format(new Date(field.value), "PPP")
                                   ) : (
-                                    <span>{t('schedules.endDatePlaceholder')}</span>
+                                    <span>{t('schedules.placeholders.endDate')}</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                 </Button>
@@ -597,152 +535,59 @@ ${t('maintenance.schedule.id')}: ${schedule.id}
                                 mode="single"
                                 selected={field.value ? new Date(field.value) : undefined}
                                 onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
-                                initialFocus
                               />
                             </PopoverContent>
                           </Popover>
-                          <FormDescription>
-                            {t('schedules.endDateDescription')}
-                          </FormDescription>
+                          <FormDescription>{t('schedules.fields.endDateDescription')}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                </div>
-                
-                {form.watch('is_recurring') && (
-                  <FormField
-                    control={form.control}
-                    name="create_immediate_task"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            {t('maintenance.createImmediateTask')}
-                          </FormLabel>
-                          <FormDescription>
-                            {t('maintenance.createImmediateTaskDescription')}
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                  </>
                 )}
-                
-                <div className="flex justify-between">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => setActiveTab("basic")}
-                    className="hidden md:inline-flex w-24 sm:w-auto"
-                  >
-                    {t('common.back')}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    onClick={() => setActiveTab("details")}
-                    className="hidden md:inline-flex w-24 sm:w-auto"
-                  >
-                    {t('common.next')}
-                  </Button>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="details" className="space-y-4 mt-0">
-                <Alert className="bg-muted">
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>{t('maintenance.form.stepThreeTitle')}</AlertTitle>
-                  <AlertDescription>
-                    {t('maintenance.form.stepThreeDescription')}
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.priority')}</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('maintenance.fields.priority')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">{t('maintenance.priority.low')}</SelectItem>
-                            <SelectItem value="medium">{t('maintenance.priority.medium')}</SelectItem>
-                            <SelectItem value="high">{t('maintenance.priority.high')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          {t('maintenance.fields.priorityDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="estimated_duration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.estimatedDuration')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            step="0.5"
-                            placeholder={t('maintenance.fields.estimatedDurationPlaceholder')} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('maintenance.fields.estimatedDurationDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="estimated_cost"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.estimatedCost')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="0" 
-                            step="0.01"
-                            placeholder={t('maintenance.fields.estimatedCostPlaceholder')} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('maintenance.fields.estimatedCostDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={() => setActiveTab("basic")}>{t('common.previous')}</Button>
+                <Button onClick={() => setActiveTab("details")}>{t('common.next')}</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="details" forceMount className={activeTab === "details" ? "" : "hidden"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('maintenance.form.stepThreeTitle')}</CardTitle>
+                <CardDescription>{t('maintenance.form.stepThreeDescription')}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="estimated_duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('maintenance.fields.estimatedDuration')}</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder={t('maintenance.fields.estimatedDurationPlaceholder')} {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormDescription>{t('maintenance.fields.estimatedDurationDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="estimated_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('maintenance.fields.estimatedCost')}</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder={t('maintenance.fields.estimatedCostPlaceholder')} {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormDescription>{t('maintenance.fields.estimatedCostDescription')}</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="notes"
@@ -750,79 +595,51 @@ ${t('maintenance.schedule.id')}: ${schedule.id}
                     <FormItem>
                       <FormLabel>{t('maintenance.fields.notes')}</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder={t('maintenance.fields.notesPlaceholder')} 
-                          className="min-h-[120px]" 
-                          {...field} 
-                        />
+                        <Textarea placeholder={t('maintenance.fields.notesPlaceholder')} {...field} value={field.value || ""} />
                       </FormControl>
-                      <FormDescription>
-                        {t('maintenance.fields.notesDescription')}
-                      </FormDescription>
+                      <FormDescription>{t('maintenance.fields.notesDescription')}</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
-                <div className="flex justify-between">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => setActiveTab("schedule")}
-                    className="hidden md:inline-flex w-24 sm:w-auto"
-                  >
-                    {t('common.back')}
-                  </Button>
-                  <Button 
-                    type="submit"
-                    disabled={isLoading}
-                    className="hidden md:inline-flex w-24 sm:w-auto"
-                  >
-                    {isLoading ? t('common.saving') : t('common.save')}
-                  </Button>
-                </div>
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-          
-          {/* Fixed footer for mobile - only show on mobile devices */}
-          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex justify-between z-50" onClick={(e) => e.stopPropagation()}>
-            {activeTab !== "basic" && (
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab(activeTab === "schedule" ? "basic" : "schedule");
-                }}
-                className="w-24"
-              >
-                {t('common.back')}
-              </Button>
-            )}
-            {activeTab !== "details" ? (
-              <Button 
-                type="button" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveTab(activeTab === "basic" ? "schedule" : "details");
-                }}
-                className="w-24 ml-auto"
-              >
-                {t('common.next')}
-              </Button>
-            ) : (
-              <Button 
-                type="submit"
-                disabled={isLoading}
-                className="w-24 ml-auto"
-              >
-                {isLoading ? t('common.saving') : t('common.save')}
-              </Button>
-            )}
-          </div>
-        </Card>
+                <FormField
+                  control={form.control}
+                  name="create_immediate_task"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>{t('maintenance.createImmediateTask')}</FormLabel>
+                        <FormDescription>
+                          {t('maintenance.createImmediateTaskDescription')}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>{t('schedules.tooltips.immediateTaskTitle')}</AlertTitle>
+                  <AlertDescription>
+                    {t('schedules.tooltips.immediateTaskDescription')}
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={() => setActiveTab("schedule")}>{t('common.previous')}</Button>
+                <Button type="submit" disabled={isLoading || !form.formState.isDirty && !form.formState.isValid}>
+                  {isLoading ? t('common.saving') : t('maintenance.schedule.button')}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </form>
     </Form>
-  )
+  );
 } 

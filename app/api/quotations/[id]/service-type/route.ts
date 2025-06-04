@@ -1,7 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { Database } from '@/types/supabase';
+
+// Helper function to create Supabase client for Route Handlers
+async function getSupabaseClient() {
+  const cookieStore = await cookies(); // Await cookies
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set(name, value, options);
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set(name, '', options);
+        },
+      },
+    }
+  );
+}
 
 /**
  * PATCH /api/quotations/[id]/service-type
@@ -33,8 +55,7 @@ export async function PATCH(
       );
     }
 
-    // Create Supabase server client
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseClient();
 
     // Check user authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -76,14 +97,14 @@ export async function PATCH(
     // We can't use RPC with type checking if it's not in the schema
     // Try a direct update first
     try {
-      // Execute direct update - use execRaw as a workaround to bypass potential type issues
+      const serviceTypeName = await getServiceTypeName(supabase, service_type_id);
       const { data: directData, error: directError } = await supabase
         .from('quotations')
         .update({ 
           // Set both the ID and text fields to maintain consistency
           service_type_id: service_type_id, 
           // Also update service_type 
-          service_type: await getServiceTypeName(supabase, service_type_id)
+          service_type: serviceTypeName
         })
         .eq('id', quotationId)
         .select()
@@ -118,10 +139,10 @@ export async function PATCH(
 }
 
 // Helper function to check admin status
-async function checkIfUserIsAdmin(supabase: any, userId: string): Promise<boolean> {
+async function checkIfUserIsAdmin(supabaseClient: any, userId: string): Promise<boolean> {
   try {
     // Try to check admin status from admin_users if it exists
-    const { data: adminData } = await supabase
+    const { data: adminData } = await supabaseClient
       .from('admin_users')
       .select('role')
       .eq('id', userId)
@@ -133,11 +154,11 @@ async function checkIfUserIsAdmin(supabase: any, userId: string): Promise<boolea
     
     // Or check other potential admin indicators in your system
     // This is a generic function you should customize for your actual schema
-    const { data: userData } = await supabase.auth.admin.getUserById(userId);
-    if (userData?.user?.app_metadata?.role === 'admin' ||
-        userData?.user?.app_metadata?.isAdmin === true) {
-      return true;  
-    }
+    // const { data: userData } = await supabaseClient.auth.admin.getUserById(userId);
+    // if (userData?.user?.app_metadata?.role === 'admin' ||
+    //     userData?.user?.app_metadata?.isAdmin === true) {
+    //   return true;  
+    // }
     
     return false;
   } catch (error) {
@@ -147,9 +168,9 @@ async function checkIfUserIsAdmin(supabase: any, userId: string): Promise<boolea
 }
 
 // Helper function to get service type name
-async function getServiceTypeName(supabase: any, serviceTypeId: string): Promise<string> {
+async function getServiceTypeName(supabaseClient: any, serviceTypeId: string): Promise<string> {
   try {
-    const { data } = await supabase
+    const { data } = await supabaseClient
       .from('service_types')
       .select('name')
       .eq('id', serviceTypeId)

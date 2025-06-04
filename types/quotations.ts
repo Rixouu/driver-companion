@@ -8,6 +8,33 @@ export type QuotationStatus =
   | "expired"
   | "converted";
 
+// Added ServiceTypeInfo here
+export interface ServiceTypeInfo {
+  id: string;
+  name: string;
+}
+
+// Define InvoiceData and BookingData interfaces first
+export interface InvoiceData {
+  id: string;
+  status: "pending" | "sent" | "paid" | "created";
+  created_at?: Date;
+  sent_at?: Date;
+  paid_at?: Date;
+  payment_url?: string;
+  quotation_id?: string; 
+}
+
+export interface BookingData {
+  id: string;
+  status: "pending" | "confirmed" | "created";
+  service_date?: string;
+  pickup_time?: string;
+  vehicle?: string;
+  duration?: string;
+  quotation_id?: string;
+}
+
 export interface Quotation {
   id: string;
   title: string;
@@ -52,9 +79,16 @@ export interface Quotation {
   updated_at: string;
   rejected_reason?: string;
   quote_number: number;
-  expires_at: string;
-  user_id: string;
-  user_name?: string;
+
+  // Joined customer data (default Supabase behavior)
+  customers?: {
+    name: string | null;
+    email: string | null;
+  } | null; // Can be null if it's a left join or no related customer
+
+  // Add the new optional fields
+  invoice?: InvoiceData;
+  booking?: BookingData;
 }
 
 export interface QuotationItem {
@@ -93,7 +127,7 @@ export interface PricingCategory {
 export interface PricingItem {
   id: string;
   category_id: string | null;
-  service_type_id: string;
+  service_type_id: string | null;
   service_type_name?: string;
   vehicle_type: string;
   duration_hours: number;

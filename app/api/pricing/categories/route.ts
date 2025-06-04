@@ -1,30 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+// import { cookies } from 'next/headers'; // No longer needed if using getSupabaseServerClient directly
+// import { createServerClient, type CookieOptions } from '@supabase/ssr'; // No longer needed
+import { getSupabaseServerClient } from '@/lib/supabase/server'; // Use the centralized one
 import { Database } from '@/types/supabase';
+import { AppError, AuthenticationError, DatabaseError, ValidationError, NotFoundError } from '@/lib/errors/app-error';
+import { handleApiError } from '@/lib/errors/error-handler';
+
+// Helper function to create Supabase client for Route Handlers - REMOVED
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const activeOnly = searchParams.get('active_only') !== 'false';
 
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Use the centralized helper
     
-    // Verify user is authenticated and has admin role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new AuthenticationError('User not authenticated.');
     }
 
     // Check if user has admin role
-    const { data: adminUser } = await supabase
+    const { data: adminUser, error: adminCheckError } = await supabase
       .from('admin_users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (adminCheckError) {
+      throw new DatabaseError('Failed to check admin status.', { cause: adminCheckError });
+    }
+    if (!adminUser) {
+      throw new NotFoundError('Admin user record not found.');
+    }
+    if (adminUser.role !== 'admin') {
+      throw new AuthenticationError('Forbidden: Admin access required.', 403);
     }
 
     // Build the query
@@ -40,77 +51,98 @@ export async function GET(req: NextRequest) {
     // Add ordering
     query = query.order('sort_order', { ascending: true });
 
-    const { data, error } = await query;
+    const { data, error: queryError } = await query;
 
-    if (error) {
-      console.error('Error fetching pricing categories:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (queryError) {
+      throw new DatabaseError('Error fetching pricing categories.', { cause: queryError });
     }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error handling GET request for pricing categories:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    if (error instanceof AppError) {
+      return handleApiError(error);
+    }
+    return handleApiError(new AppError('An unexpected error occurred while fetching pricing categories.', 500, { cause: error instanceof Error ? error : undefined, isOperational: true }));
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Use the centralized helper
     
-    // Verify user is authenticated and has admin role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new AuthenticationError('User not authenticated.');
     }
 
     // Check if user has admin role
-    const { data: adminUser } = await supabase
+    const { data: adminUser, error: adminCheckError } = await supabase
       .from('admin_users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!adminUser || adminUser.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (adminCheckError) {
+      throw new DatabaseError('Failed to check admin status.', { cause: adminCheckError });
+    }
+    if (!adminUser) {
+      throw new NotFoundError('Admin user record not found.');
+    }
+    if (adminUser.role !== 'admin') {
+      throw new AuthenticationError('Forbidden: Admin access required.', 403);
     }
 
     // Parse request body
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      throw new ValidationError('Invalid JSON in request body.', undefined, 400, { cause: parseError as Error });
+    }
+    
 
     // Validate required fields
     if (!body.name) {
-      return NextResponse.json({ error: 'Category name is required' }, { status: 400 });
+      throw new ValidationError('Category name is required.');
     }
 
+    // Type assertion for insert payload - ensure this matches your table definition
+    type PricingCategoryInsert = Database['public']['Tables']['pricing_categories']['Insert'];
+    
+    const insertPayload: PricingCategoryInsert = {
+      name: body.name,
+      description: body.description || null,
+      service_types: body.service_type_ids || [],
+      service_type_ids: body.service_type_ids || [],
+      sort_order: body.sort_order === undefined ? 1 : Number(body.sort_order),
+      is_active: body.is_active !== undefined ? body.is_active : true,
+      // merchant_id: user.id, // Assuming merchant_id should be linked to the admin user creating it. This needs to be in your DB schema.
+    };
+
+
     // Create the category
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from('pricing_categories')
-      .insert({
-        name: body.name,
-        description: body.description || null,
-        service_types: body.service_type_ids || [],
-        service_type_ids: body.service_type_ids || [],
-        sort_order: body.sort_order || 1,
-        is_active: body.is_active !== undefined ? body.is_active : true
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating pricing category:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (insertError) {
+      // Handle potential conflict (e.g., unique name constraint)
+      if (insertError.code === '23505') { // PostgreSQL unique violation error code
+        throw new AppError('A pricing category with this name already exists.', 409, { cause: insertError, isOperational: true });
+      }
+      throw new DatabaseError('Error creating pricing category.', { cause: insertError });
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Error handling POST request for pricing category:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
-      { status: 500 }
-    );
+     if (error instanceof AppError) {
+      return handleApiError(error);
+    }
+    return handleApiError(new AppError('An unexpected error occurred while creating pricing category.', 500, { cause: error instanceof Error ? error : undefined, isOperational: true }));
   }
 } 

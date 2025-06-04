@@ -10,7 +10,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { Calendar } from "@/components/ui/calendar";
 import { DispatchEntry, DispatchEntryWithRelations } from "@/types/dispatch";
 import { cn } from "@/lib/utils/styles";
-import { getSupabaseClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
 
 interface DispatchCalendarViewProps {
@@ -375,7 +375,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
   // Handle starting a trip (changing status to in_transit)
   const handleStartTrip = async (entryId: string, bookingId: string) => {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = createClient();
       
       // Update the dispatch entry status
       const { error: dispatchError } = await supabase
@@ -431,7 +431,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
   // Handle completing a trip (changing status to completed)
   const handleCompleteTrip = async (entryId: string, bookingId: string) => {
     try {
-      const supabase = getSupabaseClient();
+      const supabase = createClient();
       
       // Update the dispatch entry status
       const { error: dispatchError } = await supabase

@@ -1,6 +1,7 @@
-import { supabase } from "@/lib/supabase"
+import { createServiceClient } from "@/lib/supabase/service-client";
 
 export async function getStats() {
+  const supabase = createServiceClient();
   const [
     { count: totalVehicles },
     { count: activeVehicles },

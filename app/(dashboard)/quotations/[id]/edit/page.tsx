@@ -1,23 +1,29 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 import LoadingSpinner from '@/components/shared/loading-spinner';
-import QuotationForm from '@/components/quotations/quotation-form';
-import { Quotation, QuotationItem } from '@/types/quotations';
+import QuotationFormClient from '../../_components/quotation-form-client';
+import { Quotation, QuotationItem, ServiceTypeInfo, PricingCategory, PricingItem } from '@/types/quotations';
+import {
+  getServerServiceTypes,
+  getServerPricingCategories,
+  getServerPricingItems
+} from '@/lib/services/quotation-data';
 
 // Define the types for dynamic params
-type Props = {
-  params: { id: string }
+type PageProps = {
+  params: Promise<{ id: string }>
 }
 
 // Generate metadata for the page
 export async function generateMetadata(
-  { params }: Props
+  { params: paramsPromise }: PageProps
 ): Promise<Metadata> {
-  // Get quotation ID from params - properly await in Next.js 15
-  const { id } = await params;
+  const params = await paramsPromise;
+  // Access params directly
+  const { id } = params;
   const { t } = await getDictionary();
   
   return {
@@ -26,24 +32,36 @@ export async function generateMetadata(
   };
 }
 
-export default async function EditQuotationPage({ params }: Props) {
-  // Get quotation ID from params - properly await in Next.js 15
-  const { id } = await params;
+export default async function EditQuotationPage({ params: paramsPromise }: PageProps) {
+  const params = await paramsPromise;
+  const { id } = params;
   const { t } = await getDictionary();
-  const supabase = await createServerSupabaseClient();
+  const supabase = await getSupabaseServerClient();
   
-  // Fetch the quotation from the database
-  const { data, error } = await supabase
-    .from('quotations')
-    .select(`
-      *,
-      quotation_items (*)
-    `)
-    .eq('id', id)
-    .single();
+  // Check auth first - crucial for server components
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    redirect('/auth/login');
+  }
+
+  // Fetch the quotation and setup data in parallel
+  const [quotationResult, serviceTypes, pricingCategories, pricingItems] = await Promise.all([
+    supabase
+      .from('quotations')
+      .select(`
+        *,
+        quotation_items (*)
+      `)
+      .eq('id', id)
+      .single(),
+    getServerServiceTypes(),
+    getServerPricingCategories(),
+    getServerPricingItems()
+  ]);
+  
+  const { data, error } = quotationResult;
   
   if (error || !data) {
-    console.error('Error fetching quotation:', error);
     notFound();
   }
   
@@ -62,15 +80,18 @@ export default async function EditQuotationPage({ params }: Props) {
     );
   }
   
-  // Type assertion for the quotation
-  const quotation = data as unknown as Quotation & {
-    quotation_items: QuotationItem[];
-  };
+  // Attempt more specific typing
+  const quotation = data as (Quotation & { quotation_items: QuotationItem[] });
   
   return (
     <div className="max-w-5xl mx-auto">
       <Suspense fallback={<LoadingSpinner />}>
-        <QuotationForm initialData={quotation} mode="edit" />
+        <QuotationFormClient 
+          quotation={quotation} 
+          serviceTypes={serviceTypes}
+          pricingCategories={pricingCategories}
+          pricingItems={pricingItems}
+        />
       </Suspense>
     </div>
   );

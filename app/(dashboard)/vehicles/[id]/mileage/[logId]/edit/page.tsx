@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getSupabaseServerClient } from "@/lib/supabase/server"
 
 import { MileageForm } from "@/components/mileage/mileage-form"
 import { PageHeader } from "@/components/page-header"
@@ -17,11 +16,11 @@ interface EditMileageLogPageProps {
 }
 
 export async function generateMetadata({ params }: EditMileageLogPageProps) {
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
 
   return {
-    title: dictionary.mileage.edit.title,
-    description: dictionary.mileage.edit.description,
+    title: t('mileage.edit.title'),
+    description: t('mileage.edit.description'),
   }
 }
 
@@ -33,10 +32,10 @@ export default async function EditMileageLogPage({ params }: EditMileageLogPageP
     console.log('Loading mileage log edit page with params:', { id, logId })
     
     // Get the user session
-    const supabase = createServerComponentClient<Database>({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await getSupabaseServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user) {
+    if (!user) {
       console.error('No authenticated user')
       notFound()
     }
@@ -50,7 +49,7 @@ export default async function EditMileageLogPage({ params }: EditMileageLogPageP
     console.log('Found vehicle:', vehicle)
 
     // Then, get the mileage log with the user ID
-    const { log } = await getMileageLog(logId, session.user.id)
+    const { log } = await getMileageLog(logId, user.id)
     if (!log) {
       console.error('Mileage log not found:', logId)
       notFound()

@@ -1,8 +1,9 @@
 // Barrel file for supabase clients and utilities
 // This exports the supabase client and other utilities
 
-export { supabase, getSupabaseClient, clearAuthState } from './supabase/client'
-export { createServiceClient } from './supabase/service-client'
-export { initStorage } from './supabase/index'
+export { createClient, createServerClient } from './supabase/index';
+export { updateSession } from './supabase/middleware';
+export { createServiceClient } from './supabase/service-client';
 
-// The Database and Json types are already defined below - no need to re-export
+// Removed exports for getSupabaseClient, clearAuthState, and initStorage
+// The Database and Json types are typically imported directly from @/types/supabase or @/types respectively, not re-exported here.

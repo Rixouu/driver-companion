@@ -4,11 +4,21 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { CameraModal } from "./camera-modal"
-import { InspectionItem } from "@/types/inspections"
 import { Check, X, Camera } from "lucide-react"
 import { cn } from "@/lib/utils/styles"
-import { supabase } from "@/lib/supabase/client"
-import { useToast } from "@/hooks/use-toast"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/components/ui/use-toast"
+
+// Define the expected item structure locally
+interface InspectionItem {
+  id: string;
+  title: string;
+  status: 'pass' | 'fail' | null | 'pending';
+  notes: string;
+  requires_photo?: boolean;
+  requires_notes?: boolean;
+}
 
 interface InspectionItemProps {
   item: InspectionItem
@@ -26,7 +36,6 @@ export function InspectionItemComponent({
   onNotesChange 
 }: InspectionItemProps) {
   const [isCameraOpen, setIsCameraOpen] = useState(false)
-  const { toast } = useToast()
 
   const handlePhotoCapture = async (photoUrl: string) => {
     try {
@@ -50,7 +59,7 @@ export function InspectionItemComponent({
   return (
     <div className="space-y-4 p-4 border rounded-lg">
       <div className="flex items-center justify-between">
-        <span className="font-medium">{item.item}</span>
+        <span className="font-medium">{item.title}</span>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

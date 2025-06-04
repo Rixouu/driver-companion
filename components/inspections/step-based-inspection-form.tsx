@@ -6,9 +6,9 @@ import { FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
-import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase"
+import { useAuth } from "@/lib/hooks/use-auth"
+import { useToast } from "@/components/ui/use-toast"
 import { Check, X, Camera, ArrowRight, ArrowLeft, ChevronDown, Search, Filter, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -20,11 +20,12 @@ import { FormField, FormItem, FormControl } from "@/components/ui/form"
 import { withErrorHandling } from "@/lib/utils/error-handler"
 import { useI18n } from "@/lib/i18n/context"
 import type { InspectionType } from "@/types/inspections"
-import { getInspectionTemplates } from "@/lib/services/inspections"
+import { fetchInspectionTemplatesAction } from "@/app/(dashboard)/inspections/actions"
 import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Database } from "@/types/supabase"
 
 // Type to capture translation field structure from inspection service
 type TranslationObject = { [key: string]: string };
@@ -60,7 +61,7 @@ interface Vehicle {
   plate_number: string;
   brand?: string;
   model?: string;
-  image_url?: string;
+  image_url?: string | null;
   year?: string;
 }
 
@@ -91,7 +92,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Step handling
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1); // -1 for vehicle selection, 0+ for sections
+  const [currentStepIndex, setCurrentStepIndex] = useState(vehicleId ? 0 : -1); // -1 for vehicle selection, 0+ for sections
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
   
   // Camera handling
@@ -208,8 +209,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Load vehicle data when vehicleId changes
   useEffect(() => {
     if (vehicleId) {
+      const supabaseClient = createClient()
       const fetchVehicle = async () => {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('vehicles')
           .select('*')
           .eq('id', vehicleId)
@@ -217,24 +219,35 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           
         if (error) {
           console.error("Error fetching vehicle:", error);
+          // Optionally, reset to vehicle selection if vehicleId is invalid
+          // setCurrentStepIndex(-1); 
           return;
         }
         
         setSelectedVehicle(data as Vehicle);
         methods.setValue('vehicle_id', vehicleId);
+        // If vehicleId is provided, and we auto-selected, ensure we are at type selection or beyond
+        // This check might be redundant if initial state is set correctly, but good for safety.
+        if (currentStepIndex === -1) {
+          setCurrentStepIndex(0);
+        }
       };
       
       fetchVehicle();
+    } else {
+      // If no vehicleId, ensure we are at the vehicle selection step
+      setCurrentStepIndex(-1);
+      setSelectedVehicle(null); // Clear any previously selected vehicle if vehicleId is removed/nullified
     }
-  }, [vehicleId, methods]);
+  }, [vehicleId, methods, currentStepIndex]); // Added currentStepIndex to dependencies
   
   // Load inspection template when type changes
   useEffect(() => {
     if (selectedType) {
       const loadInspectionTemplate = async () => {
         try {
-          // Use the inspection service instead of direct queries
-          const categories = await getInspectionTemplates(selectedType);
+          // Use the server action to fetch templates
+          const categories = await fetchInspectionTemplatesAction(selectedType);
           
           // Format the sections with their items
           const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
@@ -357,7 +370,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   };
   
   // Handle notes change
-  const handleNotesChange = (sectionId: string, itemId: string, notes: string) => {
+  const handleNotesChange = (sectionId: string, itemId: string, notesValue: string) => {
     setSections(prevSections => {
       return prevSections.map(section => {
         if (section.id === sectionId) {
@@ -367,7 +380,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               if (item.id === itemId) {
                 return {
                   ...item,
-                  notes: notes
+                  notes: notesValue
                 };
               }
               return item;
@@ -449,267 +462,300 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
+    const supabaseClient = createClient();
+
+    setIsSubmitting(true);
+
+    // Validate that we have a vehicle and at least some completed items
+    if (!selectedVehicle) {
+      toast({ title: t("inspections.errors.selectVehicle"), variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const hasCompletedItems = sections.some(section => 
+      section.items.some(item => item.status === 'pass' || item.status === 'fail')
+    );
+
+    if (!hasCompletedItems) {
+      toast({ title: t("inspections.errors.completeOneItem"), variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!user) {
+      toast({ title: t("inspections.errors.authError"), description: t("inspections.errors.mustBeLoggedIn"), variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
-      setIsSubmitting(true);
-
-      // Validate that we have a vehicle and at least some completed items
-      if (!selectedVehicle) {
-        toast({
-          title: "Please select a vehicle",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Check if any sections have been completed
-      const hasCompletedItems = sections.some(section => 
-        section.items.some(item => item.status === 'pass' || item.status === 'fail')
-      );
-
-      if (!hasCompletedItems) {
-        toast({
-          title: "Please complete at least one inspection item",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (!user) {
-        toast({
-          title: "Authentication error",
-          description: "You must be logged in to submit an inspection.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Create a folder for the user if it doesn't exist already
-      // This will verify storage access permissions
+      // Ensure user folder exists in storage
       try {
-        await supabase.storage
-          .from('inspection-photos')
-          .upload(`${user.id}/.folder_placeholder`, new File([], '.folder_placeholder'));
-      } catch (storageAccessError) {
-        // Ignore error if it's because the file already exists
-        if (!(storageAccessError instanceof Error && storageAccessError.message.includes('duplicate'))) {
-          console.error('Storage access exception:', storageAccessError);
-          toast({
-            title: "Storage access error",
-            description: "Unable to access photo storage. Please check your permissions.",
-            variant: "destructive"
-          });
+        await supabaseClient.storage.from('inspection-photos').upload(`${user.id}/.folder_placeholder`, new File([], '.folder_placeholder'));
+      } catch (storageError:any) {
+        if (!storageError.message.includes('duplicate')) {
+          console.error('Storage access error:', storageError);
+          toast({ title: t("inspections.errors.storageAccessError"), description: t("inspections.errors.unableToAccessStorage"), variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
       }
 
-      // Create the inspection record first with explicit user data
-      const { data: newInspection, error: inspectionError } = await supabase
-        .from('inspections')
-        .insert({
-          vehicle_id: selectedVehicle.id,
-          booking_id: bookingId || null,
-          type: selectedType,
-          status: 'completed',
-          date: new Date().toISOString(),
-          notes: notes,
-          created_by: user.id,
-          inspector_id: user.id,
-        })
-        .select()
-        .single();
+      let finalInspectionId: string;
+      let isEditMode = !!inspectionId;
 
-      if (inspectionError) {
-        console.error('Error creating inspection:', inspectionError);
-        toast({
-          title: "Error creating inspection",
-          description: inspectionError.message,
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
+      if (isEditMode) {
+        // Editing an existing inspection
+        const { data: updatedInspection, error: updateError } = await supabaseClient
+          .from('inspections')
+          .update({
+            status: 'completed', // Or derive this based on items
+            date: new Date().toISOString(), // Represents last modification date
+            notes: notes, // Overall inspection notes
+            // vehicle_id and type are generally not changed during an item edit session
+            // inspector_id: user.id, // Could be updated if another user modifies
+          })
+          .eq('id', inspectionId)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Error updating inspection:', updateError);
+          toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+        finalInspectionId = updatedInspection.id;
+
+        // Clean up old items and photos for this inspection
+        const { data: oldItems, error: fetchOldItemsError } = await supabaseClient
+          .from('inspection_items')
+          .select('id')
+          .eq('inspection_id', finalInspectionId);
+
+        if (fetchOldItemsError) {
+          console.error("Error fetching old item IDs for cleanup:", fetchOldItemsError);
+          // Non-fatal, but means old items/photos might not be cleaned up
+        }
+
+        if (oldItems && oldItems.length > 0) {
+          const oldItemIds = oldItems.map(it => it.id);
+
+          // Fetch photo_urls associated with old items to delete from storage
+          const { data: oldPhotos, error: fetchOldPhotosError } = await supabaseClient
+            .from('inspection_photos')
+            .select('photo_url')
+            .in('inspection_item_id', oldItemIds);
+
+          if (fetchOldPhotosError) {
+            console.error("Error fetching old photo URLs for storage deletion:", fetchOldPhotosError);
+          }
+
+          if (oldPhotos && oldPhotos.length > 0) {
+            const photoFilesToDelete = oldPhotos.map(p => {
+              try {
+                const url = new URL(p.photo_url);
+                const pathParts = url.pathname.split('/');
+                // Path: /storage/v1/object/public/inspection-photos/USER_ID/FILENAME.jpg
+                // Bucket name "inspection-photos" is at index 5. Path starts at 6.
+                return pathParts.slice(6).join('/');
+              } catch (e) {
+                console.error("Error parsing photo URL for deletion:", p.photo_url, e);
+                return null;
+              }
+            }).filter(path => path !== null) as string[];
+
+            if (photoFilesToDelete.length > 0) {
+              const { error: storageDeleteError } = await supabaseClient
+                .storage
+                .from('inspection-photos')
+                .remove(photoFilesToDelete);
+              if (storageDeleteError) {
+                console.error("Error deleting old photos from storage:", storageDeleteError);
+                // Non-fatal, log and continue.
+              }
+            }
+          }
+          // Delete old inspection_photos records (database entries)
+          const { error: deleteDbPhotosError } = await supabaseClient
+            .from('inspection_photos')
+            .delete()
+            .in('inspection_item_id', oldItemIds);
+           if (deleteDbPhotosError) {
+            console.error("Error deleting old photo DB entries:", deleteDbPhotosError);
+          }
+          
+          // Delete old inspection_items records
+          const { error: deleteItemsError } = await supabaseClient
+            .from('inspection_items')
+            .delete()
+            .eq('inspection_id', finalInspectionId);
+          if (deleteItemsError) {
+            console.error('Error deleting old inspection items:', deleteItemsError);
+            toast({ title: t("inspections.errors.genericSubmitError"), description: "Could not clean up old inspection items.", variant: "destructive" });
+            // Potentially non-fatal, but new items might conflict or be duplicated if not handled.
+            // Depending on DB constraints, this could be an issue.
+          }
+        }
+      } else {
+        // Creating a new inspection
+        const { data: newInspectionData, error: inspectionError } = await supabaseClient
+          .from('inspections')
+          .insert({
+            vehicle_id: selectedVehicle.id,
+            booking_id: bookingId || null,
+            type: selectedType,
+            status: 'completed',
+            date: new Date().toISOString(),
+            notes: notes,
+            created_by: user.id,
+            inspector_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (inspectionError) {
+          console.error('Error creating inspection:', inspectionError);
+          toast({ title: t("inspections.errors.creatingInspectionError"), description: inspectionError.message, variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+        finalInspectionId = newInspectionData.id;
       }
 
-      // Filter items to save
       const itemsToSave = sections.flatMap(section => 
         section.items
           .filter(item => item.status !== null)
           .map(item => ({
-            template_id: item.id,
-            status: item.status,
+            template_id: item.id, // This is inspection_item_template_id
+            status: item.status!,
             notes: item.notes,
-            photos: item.photos
+            photos: [...item.photos] // Operate on a copy
           }))
       );
       
-      if (itemsToSave.length === 0) {
-        // Handle edge case where no items are completed
-        toast({
-          title: "No completed items found",
-          description: "Please complete at least one inspection item before submitting.",
-          variant: "destructive"
-        });
-        
-        // Clean up the created inspection since we can't continue
-        await supabase
-          .from('inspections')
-          .delete()
-          .eq('id', newInspection.id);
-          
+      if (itemsToSave.length === 0 && !isEditMode) { // For new inspections, must have items. For edits, it could clear all.
+        toast({ title: t("inspections.errors.noCompletedItems"), description: t("inspections.errors.completeOneItemBeforeSubmit"), variant: "destructive" });
+        if (!isEditMode && finalInspectionId) { // Only delete if it was a new inspection
+            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
+        }
         setIsSubmitting(false);
         return;
       }
       
-      // Upload photos to storage and get URLs
+      // Upload photos and update URLs in itemsToSave
       for (const item of itemsToSave) {
         const uploadedPhotoUrls: string[] = [];
-        
         for (const photoUrl of item.photos) {
           if (photoUrl.startsWith('blob:')) {
-            try {
-              const response = await fetch(photoUrl);
-              const blob = await response.blob();
-              const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-              
-              // Upload to Supabase storage with better error handling
-              const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
-              const filePath = `${user.id}/${fileName}`;
-              
-              const { data, error } = await supabase.storage
-                .from('inspection-photos')
-                .upload(filePath, file);
-                
-              if (error) {
-                console.error('Photo upload error:', error);
-                throw new Error(`Photo upload failed: ${error.message}`);
-              }
-              
-              // Get public URL
-              const { data: urlData } = supabase.storage
-                .from('inspection-photos')
-                .getPublicUrl(filePath);
-                
-              uploadedPhotoUrls.push(urlData.publicUrl);
-            } catch (error) {
-              console.error('Error uploading photo:', error);
-              toast({
-                title: "Photo upload failed",
-                description: error instanceof Error ? error.message : "Unknown error during photo upload",
-                variant: "destructive"
-              });
+            const response = await fetch(photoUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+            const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(2)}.jpg`;
+            const { error: uploadError } = await supabaseClient.storage.from('inspection-photos').upload(fileName, file);
+            if (uploadError) {
+              console.error('Photo upload error:', uploadError);
+              toast({ title: t("inspections.errors.photoUploadFailed"), description: uploadError.message, variant: "destructive" });
+              // This is a critical error during submission process
               setIsSubmitting(false);
-              return;
+              throw new Error(`Photo upload failed: ${uploadError.message}`);
             }
+            const { data: urlData } = supabaseClient.storage.from('inspection-photos').getPublicUrl(fileName);
+            uploadedPhotoUrls.push(urlData.publicUrl);
           } else {
-            // Already uploaded photo
-            uploadedPhotoUrls.push(photoUrl);
+            uploadedPhotoUrls.push(photoUrl); // Keep existing URLs (e.g. if editing and photo wasn't changed)
           }
         }
-        
-        // Replace the blob URLs with the uploaded photo URLs
         item.photos = uploadedPhotoUrls;
       }
       
-      // Prepare the payload for inspection_items
-      const inspectionItemsPayload = itemsToSave
-        .filter(item => item.status === 'pass' || item.status === 'fail')
-        .map(item => ({
-          inspection_id: newInspection.id,
-          template_id: item.template_id,
-          status: item.status,
-          notes: item.notes ?? null,
-          created_by: user.id
-        }));
-      // Insert inspection items
-      const { data: newItems, error: insertItemsError } = await supabase
-        .from('inspection_items')
-        .insert(inspectionItemsPayload)
-        .select();
-      if (insertItemsError) {
-        // Detailed debug logging for RLS troubleshooting
-        console.error('[DEBUG] Error inserting inspection items:', JSON.stringify(insertItemsError, null, 2));
-        console.error('[DEBUG] Payload sent to inspection_items:', JSON.stringify(inspectionItemsPayload, null, 2));
-        console.error('[DEBUG] Current user:', JSON.stringify(user, null, 2));
-        // Try to clean up the inspection since items failed
-        await supabase
-          .from('inspections')
-          .delete()
-          .eq('id', newInspection.id);
-        toast({
-          title: "Failed to save inspection items",
-          description: "You don't have permission to create inspection items. Contact your administrator.",
-          variant: "destructive"
-        });
-        setIsSubmitting(false);
-        return;
+      const inspectionItemsPayload = itemsToSave.map(item => ({
+        inspection_id: finalInspectionId,
+        template_id: item.template_id, // Correctly mapping template_id
+        status: item.status,
+        notes: item.notes ?? null,
+        created_by: user.id // or updated_by if schema supports for edits
+      }));
+
+      let newSavedItems: any[] = [];
+      if (inspectionItemsPayload.length > 0) {
+        const { data: insertedItems, error: insertItemsError } = await supabaseClient
+          .from('inspection_items')
+          .insert(inspectionItemsPayload)
+          .select();
+
+        if (insertItemsError) {
+          console.error('[DEBUG] Error inserting inspection items:', JSON.stringify(insertItemsError, null, 2));
+          if (!isEditMode) { // Clean up inspection header if it was a new one
+            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
+          }
+          toast({ title: t("inspections.errors.failedToSaveItems"), description: t("inspections.errors.permissionOrInvalidData"), variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+        newSavedItems = insertedItems;
       }
       
-      // Insert photos for items that have them
-      const photosToInsert: { inspection_item_id: string; photo_url: string; created_by: string }[] = [];
+      const photosToInsert: Database['public']['Tables']['inspection_photos']['Insert'][] = [];
       for (let i = 0; i < itemsToSave.length; i++) {
-        const item = itemsToSave[i];
-        const newItem = newItems[i];
-        
-        if (item.photos && item.photos.length > 0) {
-          for (const photoUrl of item.photos) {
+        const processedItem = itemsToSave[i]; // item from itemsToSave, with updated photo URLs
+        const savedDbItem = newSavedItems.find(dbItem => dbItem.template_id === processedItem.template_id && dbItem.inspection_id === finalInspectionId); // find corresponding DB item
+
+        if (savedDbItem && processedItem.photos && processedItem.photos.length > 0) {
+          for (const photoUrl of processedItem.photos) {
             photosToInsert.push({
-              inspection_item_id: newItem.id,
+              inspection_item_id: savedDbItem.id, // Use the ID of the newly inserted inspection_item
               photo_url: photoUrl,
-              created_by: user.id // Add user ID for RLS policy
+              created_by: user.id
             });
           }
         }
       }
       
       if (photosToInsert.length > 0) {
-        const { error: insertPhotosError } = await supabase
-          .from('inspection_photos')
-          .insert(photosToInsert);
-          
+        const { error: insertPhotosError } = await supabaseClient.from('inspection_photos').insert(photosToInsert);
         if (insertPhotosError) {
           console.error('Error inserting inspection photos:', JSON.stringify(insertPhotosError, null, 2));
-          
-          // Try to clean up if photos insertion fails
-          // First delete the items
-          await supabase
-            .from('inspection_items')
-            .delete()
-            .eq('inspection_id', newInspection.id);
-            
-          // Then delete the inspection
-          await supabase
-            .from('inspections')
-            .delete()
-            .eq('id', newInspection.id);
-            
-          toast({
-            title: "Failed to save inspection photos",
-            description: "You don't have permission to save inspection photos. Contact your administrator.",
-            variant: "destructive"
-          });
+          // Clean up: delete items then inspection (if new)
+          if (newSavedItems.length > 0) {
+            await supabaseClient.from('inspection_items').delete().in('id', newSavedItems.map(item => item.id));
+          }
+          if (!isEditMode) {
+            await supabaseClient.from('inspections').delete().eq('id', finalInspectionId);
+          }
+          toast({ title: t("inspections.errors.failedToSavePhotos"), description: t("inspections.errors.permissionOrInvalidDataPhotos"), variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
       }
       
-      toast({
-        title: "Inspection created successfully",
-      });
+      if (bookingId) {
+        const { error: bookingUpdateError } = await supabaseClient.from('bookings').update({ status: 'completed' }).eq('id', bookingId);
+        if (bookingUpdateError) {
+          console.error('Error updating booking status:', bookingUpdateError);
+          toast({ title: t("inspections.warnings.title"), description: t("inspections.warnings.failedToUpdateBooking"), variant: "default" });
+        }
+      }
+
+      toast({ title: t("inspections.messages.submitSuccessTitle"), description: t("inspections.messages.submitSuccessDescription") });
       
-      router.push(`/inspections/${newInspection.id}`);
+      if (isEditMode) {
+        router.push('/inspections'); // Navigate to list page after edit
+      } else {
+        router.push(bookingId ? `/bookings/${bookingId}` : `/inspections/${finalInspectionId}`);
+      }
     } catch (error: any) {
-      console.error("Error submitting inspection:", JSON.stringify(error, null, 2));
-      toast({
-        title: "Failed to submit inspection",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
+        // This catch block is for unhandled errors from async operations like photo uploads if they throw
+        console.error('Unhandled error during submission:', error);
+        toast({ title: t("inspections.errors.genericSubmitError"), description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
+  };
+
+  const handleFormSubmit = () => {
+    withErrorHandling(handleSubmit, t("inspections.errors.genericSubmitError"));
   };
   
   // Render vehicle selection step
@@ -1050,7 +1096,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             </Button>
           ) : (
             <Button 
-              onClick={handleSubmit} 
+              onClick={handleFormSubmit}
               disabled={isSubmitting}
               className="bg-green-600 hover:bg-green-700"
             >
@@ -1083,7 +1129,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                     fill
                     sizes="128px"
                     className="object-cover"
-                    priority
+                    priority={currentStepIndex === -1 || currentStepIndex === 0} // Add priority if it's one of the first steps
                   />
                 </div>
               ) : (
@@ -1124,7 +1170,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                 {sections.map((section, index) => (
                   <div 
                     key={section.id} 
-                    className={`h-2.5 rounded-full flex-1 ${
+                    className={`h-2.5 rounded-full flex-1 ${ // Fixed template literal
                       index < currentSectionIndex 
                         ? 'bg-gradient-to-r from-green-500 to-green-600' 
                         : index === currentSectionIndex 

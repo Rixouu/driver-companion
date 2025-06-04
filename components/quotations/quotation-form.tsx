@@ -74,7 +74,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useQuotationService } from '@/hooks/useQuotationService';
+import { useQuotationService } from '@/lib/hooks/useQuotationService';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -84,13 +84,12 @@ import {
   PricingItem,
   QuotationStatus,
   QuotationItem,
-  ServiceItemInput
+  ServiceItemInput,
+  ServiceTypeInfo // Import from @/types/quotations
 } from '@/types/quotations';
-import { ServiceTypeInfo } from '@/hooks/useQuotationService';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/components/ui/use-toast';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -163,6 +162,10 @@ interface QuotationFormProps {
   initialData?: Quotation & { quotation_items?: QuotationItem[] };
   mode?: 'create' | 'edit';
   onSuccess?: (quotation: Quotation) => void;
+  // Add new props for pre-fetched data
+  serviceTypes: ServiceTypeInfo[];
+  pricingCategories: PricingCategory[];
+  pricingItems: PricingItem[];
 }
 
 // Define steps
@@ -174,12 +177,21 @@ const steps = [
   { id: 'preview', name: 'Preview & Send', icon: Eye },
 ];
 
-export default function QuotationForm({ initialData, mode, onSuccess }: QuotationFormProps) {
+export default function QuotationForm({ 
+  initialData, 
+  mode, 
+  onSuccess, 
+  // Destructure new props
+  serviceTypes: initialServiceTypes,
+  pricingCategories: initialPricingCategories,
+  pricingItems: initialPricingItems 
+}: QuotationFormProps) {
   const { t } = useI18n();
   const router = useRouter();
-  const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>([]);
-  const [pricingItems, setPricingItems] = useState<PricingItem[]>([]);
-  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
+  // Initialize state with pre-fetched data
+  const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>(initialPricingCategories || []);
+  const [pricingItems, setPricingItems] = useState<PricingItem[]>(initialPricingItems || []);
+  const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>(initialServiceTypes || []);
   const [baseAmount, setBaseAmount] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>(initialData?.currency || 'JPY');
@@ -200,27 +212,29 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   // Debug: Log initialData at component mount
+  /*
   useEffect(() => {
-    console.log('QuotationForm received initialData:', initialData);
+    // console.log('QuotationForm received initialData:', initialData);
     
-    if (initialData?.quotation_items) {
-      console.log('initialData includes quotation_items:', initialData.quotation_items);
-      console.log('Number of items:', initialData.quotation_items.length);
-    } else {
-      console.warn('No quotation_items in initialData');
-      console.log('initialData keys:', initialData ? Object.keys(initialData) : 'initialData is undefined');
-    }
+    // if (initialData?.quotation_items) {
+    //   // console.log('initialData includes quotation_items:', initialData.quotation_items);
+    //   // console.log('Number of items:', initialData.quotation_items.length);
+    // } else {
+    //   // console.warn('No quotation_items in initialData');
+    //   // console.log('initialData keys:', initialData ? Object.keys(initialData) : 'initialData is undefined');
+    // }
   }, [initialData]);
+  */
   
   const {
     createQuotation,
     updateQuotation,
     loading: apiLoading,
     calculateQuotationAmount,
-    getPricingCategories,
-    getPricingItems,
+    // getPricingCategories, // No longer needed here for initial load
+    // getPricingItems, // No longer needed here for initial load
     sendQuotation,
-    getServiceTypes
+    // getServiceTypes // No longer needed here for initial load
   } = useQuotationService();
 
   // Initialize form
@@ -272,65 +286,33 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     return allServiceTypes.find(st => st.id === serviceType);
   }, [allServiceTypes, serviceType]);
 
-  // Load pricing categories on mount
+  // Initialize serviceItems if initialData has quotation_items
   useEffect(() => {
-    const loadPricingData = async () => {
-      try {
-        const categories = await getPricingCategories();
-        setPricingCategories(categories);
-        
-        if (categories.length > 0) {
-          const firstCategory = categories[0];
-          setSelectedCategory(firstCategory.id);
-          
-          // If we have a quotation with existing values, try to find the matching category
-          if (initialData?.service_type_id) {
-            const matchingCategory = categories.find(c => 
-              c.service_type_ids && c.service_type_ids.includes(initialData.service_type_id)
-            );
-            if (matchingCategory) {
-              setSelectedCategory(matchingCategory.id);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load pricing categories:', error);
-        // Continue with empty categories rather than breaking the form
-      }
-    };
-    
-    loadPricingData();
-  }, [initialData, getPricingCategories]);
-
-  // Load all service types on mount
-  useEffect(() => {
-    async function loadAllServiceTypes() {
-      try {
-        const serviceTypesData = await getServiceTypes();
-        setAllServiceTypes(serviceTypesData);
-      } catch (error) {
-        console.error("Failed to load all service types:", error);
-      }
+    // This useEffect is for initializing serviceItems from initialData.quotation_items, KEEP IT.
+    if (initialData?.quotation_items && initialData.quotation_items.length > 0) {
+      const items = initialData.quotation_items.map(item => ({
+        description: item.description,
+        service_type_id: item.service_type_id || '',
+        service_type_name: item.service_type_name || '',
+        vehicle_category: item.vehicle_category || '',
+        vehicle_type: item.vehicle_type || '',
+        duration_hours: item.duration_hours || undefined,
+        service_days: item.service_days || undefined,
+        hours_per_day: item.hours_per_day || undefined,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        quantity: item.quantity,
+        sort_order: item.sort_order,
+        is_service_item: item.is_service_item ?? true, // Default to true if undefined
+        pickup_date: item.pickup_date || undefined,
+        pickup_time: item.pickup_time || undefined,
+      }));
+      setServiceItems(items);
+    } else if (initialData && !initialData.quotation_items) {
+      // If initialData exists but has no items (e.g. new quote from duplicate without items)
+      setServiceItems([]);
     }
-    loadAllServiceTypes();
-  }, [getServiceTypes]);
-
-  // Load pricing items when category changes
-  useEffect(() => {
-    const loadPricingItems = async () => {
-      if (selectedCategory) {
-        try {
-          const items = await getPricingItems(selectedCategory);
-          setPricingItems(items);
-        } catch (error) {
-          console.error('Failed to load pricing items:', error);
-          // Continue with empty items rather than breaking the form
-        }
-      }
-    };
-    
-    loadPricingItems();
-  }, [selectedCategory, getPricingItems]);
+  }, [initialData]);
 
   // Calculate pricing when relevant fields change
   useEffect(() => {
@@ -512,34 +494,6 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     }
   };
 
-  // Initialize serviceItems if initialData has quotation_items
-  useEffect(() => {
-    if (initialData?.quotation_items && Array.isArray(initialData.quotation_items)) {
-      // Filter only items marked as service items
-      const existingServiceItems = initialData.quotation_items
-        .filter(item => item.is_service_item)
-        .map(item => ({
-          description: item.description,
-          service_type_id: item.service_type_id || '',
-          service_type_name: item.service_type_name || '',
-          vehicle_category: item.vehicle_category || undefined,
-          vehicle_type: item.vehicle_type || '',
-          duration_hours: item.duration_hours || undefined,
-          service_days: item.service_days || undefined,
-          hours_per_day: item.hours_per_day || undefined,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          quantity: item.quantity,
-          sort_order: item.sort_order,
-          is_service_item: true
-        }));
-      
-      if (existingServiceItems.length > 0) {
-        setServiceItems(existingServiceItems);
-      }
-    }
-  }, [initialData]);
-
   // Add a new function to better handle tax and discount calculations
   const calculateFinalAmounts = () => {
     const baseTotal = calculateTotalServiceAmount() || 0;
@@ -612,6 +566,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
     form.setValue('tax_percentage', taxPercentage || 0);
     
     // These might be handled differently in the form submission logic
+    /*
     setFormData(prev => ({
       ...prev,
       amount: baseTotal,
@@ -620,6 +575,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
       tax_amount: taxAmount,
       total_amount: finalTotal
     }));
+    */
   };
 
   // Function to create the effective hours_per_day value with proper type handling
@@ -667,7 +623,7 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
           0, // No discount at the service item level
           0, // No tax at the service item level
           serviceDays || 1,
-          hoursPerDay
+          getEffectiveHoursPerDay(hoursPerDay === null ? undefined : hoursPerDay) // Changed: ensure null becomes undefined for first arg
         );
         
         console.log('ADD SERVICE - Price calculation result:', pricingResult);
@@ -828,13 +784,15 @@ export default function QuotationForm({ initialData, mode, onSuccess }: Quotatio
         });
         
         const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
+        const resolvedHoursPerDayForUpdate = hoursPerDay ?? selectedItem.hours_per_day;
+        const charterDuration = resolvedHoursPerDayForUpdate ?? 1; 
         const effectiveDuration = isCharter 
-          ? hoursPerDay || selectedItem.hours_per_day || 1 
+          ? charterDuration 
           : 1;
         const effectiveServiceDays = serviceDays || selectedItem.service_days || 1;
         
         // Use the helper function for proper type handling
-        const effectiveHoursPerDay = getEffectiveHoursPerDay(hoursPerDay, selectedItem.hours_per_day);
+        const effectiveHoursPerDay = getEffectiveHoursPerDay(hoursPerDay ?? undefined, selectedItem.hours_per_day); // Ensure first arg is number | undefined
         
         // Calculate pricing for this service item
         const pricingResult = await calculateQuotationAmount(

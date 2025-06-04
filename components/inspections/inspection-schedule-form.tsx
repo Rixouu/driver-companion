@@ -26,12 +26,14 @@ import { cn } from "@/lib/utils/styles"
 import { format } from "date-fns"
 import { ja } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase/client"
+import { toast } from "@/components/ui/use-toast"
+import { createClient } from "@/lib/supabase"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { DbVehicle } from "@/types"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useMediaQuery } from "@/lib/hooks/use-media-query"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 const scheduleSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
@@ -48,9 +50,9 @@ interface InspectionScheduleFormProps {
 export function InspectionScheduleForm({ vehicles }: InspectionScheduleFormProps) {
   const { t, language } = useI18n()
   const router = useRouter()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isMobile = useMediaQuery("(max-width: 640px)")
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),

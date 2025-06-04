@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { assignMultipleVehiclesToDriver, getDriverById, unassignVehicleFromDriver } from "@/lib/services/drivers"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MultiVehicleSelector } from "@/components/vehicles/multi-vehicle-selector"
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
@@ -29,6 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
 import type { Driver } from "@/types"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 // Define the Vehicle type
 interface Vehicle {
@@ -44,7 +45,6 @@ export default function AssignVehiclePage() {
   const { id } = useParams()
   const router = useRouter()
   const { t } = useI18n()
-  const { toast } = useToast()
   const [driver, setDriver] = useState<Driver | null>(null)
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([])
   const [vehiclesToUnassign, setVehiclesToUnassign] = useState<string[]>([])

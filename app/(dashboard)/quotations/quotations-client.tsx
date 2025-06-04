@@ -14,16 +14,19 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import QuotationList from '@/components/quotations/quotation-list';
-import { useQuotationService } from '@/hooks/useQuotationService';
-import { Quotation } from '@/types/quotations';
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
+import { Quotation, QuotationStatus } from "@/types/quotations";
 import { SendReminderDialog } from '@/components/quotations/send-reminder-dialog';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlusCircle, Filter, Edit, Eye, Copy, Trash, Send, FileText, RefreshCw, Download, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 
 interface QuotationsTableClientProps {
   initialQuotations: Quotation[];
+  totalCount: number;
   isOrganizationMember?: boolean;
 }
 
-export default function QuotationsTableClient({ initialQuotations, isOrganizationMember = true }: QuotationsTableClientProps) {
+export default function QuotationsTableClient({ initialQuotations, totalCount, isOrganizationMember = true }: QuotationsTableClientProps) {
   const { t } = useI18n();
   const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
   const [isLoading, setIsLoading] = useState(false);

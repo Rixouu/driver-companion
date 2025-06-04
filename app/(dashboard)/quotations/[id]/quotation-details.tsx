@@ -6,7 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -29,10 +29,10 @@ import {
   X
 } from 'lucide-react';
 import { Quotation, QuotationItem, QuotationStatus } from '@/types/quotations';
-import { useQuotationService } from '@/hooks/useQuotationService';
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
-import { useQuotationMessages } from '@/hooks/useQuotationMessages';
+import { useQuotationMessages } from '@/lib/hooks/useQuotationMessages';
 import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
 import { QuotationMessageBlock } from '@/components/quotations/quotation-message-block';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Import the componentized parts
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
@@ -176,7 +177,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
   // Go back to quotations list
   const handleBack = () => {
-    router.push('/quotations' as any);
+    router.push('/quotations');
   };
 
   // Send the quotation to the customer
@@ -192,7 +193,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         router.refresh();
       }
     } catch (error) {
-      console.error('Error sending quotation:', error);
       toast({
         title: t('quotations.notifications.error'),
         description: 'Failed to send quotation',
@@ -238,42 +238,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     
     window.addEventListener('scroll', handleScroll);
     
-    // Load debug script
-    const loadDebugScript = () => {
-      const script = document.createElement('script');
-      script.src = '/js/debug-quotation.js';
-      script.async = true;
-      script.onload = () => {
-        console.log('[QUOTATION DEBUG] Debug script loaded.');
-        console.log('[QUOTATION DEBUG] Call debugQuotation("' + quotation.id + '") to analyze this quotation.');
-        
-        // Add detailed logging for quotation items
-        console.log('[QUOTATION ITEMS DEBUG] Quotation ID:', quotation.id);
-        console.log('[QUOTATION ITEMS DEBUG] Items count:', quotation.quotation_items?.length || 0);
-        console.log('[QUOTATION ITEMS DEBUG] Full items array:', JSON.stringify(quotation.quotation_items, null, 2));
-        
-        // Log individual items for easier debugging
-        if (quotation.quotation_items && quotation.quotation_items.length > 0) {
-          console.log('[QUOTATION ITEMS DEBUG] First few items:');
-          quotation.quotation_items.slice(0, 3).forEach((item, index) => {
-            console.log(`[QUOTATION ITEMS DEBUG] Item ${index + 1}:`, item);
-          });
-        } else {
-          console.log('[QUOTATION ITEMS DEBUG] No items found in quotation');
-        }
-      };
-      document.body.appendChild(script);
-    };
-    
-    loadDebugScript();
-    
-    return () => { 
+    return () => {
       window.removeEventListener('scroll', handleScroll);
-      // Remove debug script if needed
-      const debugScript = document.querySelector('script[src="/js/debug-quotation.js"]');
-      if (debugScript) {
-        document.body.removeChild(debugScript);
-      }
     };
   }, [quotation.id]);
 
@@ -354,10 +320,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <h2 className="text-xl font-semibold">{t('quotations.details.customerInfo')}</h2>
                   </div>
                   <div className="flex-shrink-0">
-                    <img 
+                    <Image 
                       src="/img/driver-quotation-logo.png" 
                       alt="Driver Quotation Logo" 
-                      className="h-12 w-auto"
+                      height={48}
+                      width={48}
                     />
                   </div>
                 </div>
@@ -708,20 +675,22 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           </Card>
           
           {/* Message Block */}
-          <Card className="mt-24">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl font-semibold tracking-tight">
-                {t('quotations.messageBlock.title') || 'Conversation'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <QuotationMessageBlock 
-                messages={messages}
-                isLoading={isLoadingMessages}
-                onSendMessage={sendMessage}
-              />
-            </CardContent>
-          </Card>
+          {quotation.status !== 'approved' && (
+            <Card className="mt-24">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xl font-semibold tracking-tight">
+                  {t('quotations.messageBlock.title') || 'Conversation'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QuotationMessageBlock 
+                  messages={messages}
+                  isLoading={isLoadingMessages}
+                  onSendMessage={sendMessage}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
         
         {/* Sidebar - Wider with 1 column */}

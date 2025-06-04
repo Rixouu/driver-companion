@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+// import { supabase } from "@/lib/supabase"; // Ensure this is not used
+import { createBrowserClient } from "@supabase/ssr"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
@@ -27,6 +28,13 @@ const COLORS = {
 export function FleetEfficiencyChart({ dateRange }: FleetEfficiencyChartProps) {
   const [data, setData] = useState<VehicleEfficiency[]>([])
   const { theme } = useTheme()
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchFleetData() {
@@ -113,7 +121,7 @@ export function FleetEfficiencyChart({ dateRange }: FleetEfficiencyChartProps) {
     if (dateRange.from && dateRange.to) {
       fetchFleetData()
     }
-  }, [dateRange])
+  }, [dateRange, supabase])
 
   if (data.length === 0) {
     return (

@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { type NextRequest, NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { handleApiError } from "@/lib/errors/error-handler";
+import { DatabaseError, ValidationError, AppError } from "@/lib/errors/app-error";
 
 // Update the item type interface
 interface QuotationItem {
@@ -23,23 +25,20 @@ interface QuotationItem {
   [key: string]: any; // Allow for additional properties
 }
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
     // Parse the quotation ID from the query parameters
-    const url = new URL(request.url);
+    const url = new URL(req.url);
     const quotationId = url.searchParams.get('id');
     
     if (!quotationId) {
-      return NextResponse.json(
-        { error: 'Missing quotation ID' },
-        { status: 400 }
-      );
+      throw new ValidationError('Missing quotation ID');
     }
     
     console.log('[QUOTATION DEBUG] Debug API route called for quotation:', quotationId);
     
     // Create the Supabase client using the helper that properly handles cookies
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     
     // First get the basic quotation info
     const { data: quotation, error: quotationError } = await supabase
@@ -50,10 +49,7 @@ export async function GET(request: Request) {
     
     if (quotationError) {
       console.error('[QUOTATION DEBUG] Error fetching quotation:', quotationError);
-      return NextResponse.json(
-        { error: 'Failed to fetch quotation', details: quotationError },
-        { status: 500 }
-      );
+      throw new DatabaseError('Failed to fetch quotation', { cause: quotationError as Error });
     }
     
     // Now get all items for this quotation
@@ -65,10 +61,7 @@ export async function GET(request: Request) {
     
     if (itemsError) {
       console.error('[QUOTATION DEBUG] Error fetching items:', itemsError);
-      return NextResponse.json(
-        { error: 'Failed to fetch items', details: itemsError },
-        { status: 500 }
-      );
+      throw new DatabaseError('Failed to fetch items', { cause: itemsError as Error });
     }
     
     console.log(`[QUOTATION DEBUG] Successfully fetched ${items?.length || 0} items for quotation ${quotationId}`);
@@ -90,9 +83,11 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[QUOTATION DEBUG] Unexpected error in debug endpoint:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred', details: error },
-      { status: 500 }
-    );
+    if (error instanceof AppError) {
+      return handleApiError(error);
+    }
+    // Ensure 'error' is treated as Error or undefined for the cause
+    const cause = error instanceof Error ? error : undefined;
+    return handleApiError(new AppError('An unexpected error occurred in debug endpoint', 500, { cause, isOperational: true }));
   }
 } 

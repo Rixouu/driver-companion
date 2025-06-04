@@ -1,6 +1,9 @@
 // Basic inspection type (for UI purposes)
 export type InspectionType = 'routine' | 'safety' | 'maintenance'
 
+// Define TranslationObject type if not already present
+export type TranslationObject = { [key: string]: string };
+
 // Driver interface
 export interface Driver {
   id: string
@@ -85,16 +88,34 @@ export interface DbInspectionTemplate {
   deleted_at?: string
 }
 
-export interface DbInspectionSection {
+export interface DbInspectionSection { // Corresponds to inspection_categories table
   id: string
-  template_id: string
-  title: string
-  description?: string
-  order_index: number
+  template_id: string | null // Mapped from master_template_id
+  type: InspectionType; // Added: type of inspection this category belongs to
+  title: string // Localized title, derived from name_translations by services/components
+  description?: string // Localized description, derived by services/components
+  name_translations: TranslationObject | null; // Changed to TranslationObject | null
+  description_translations?: TranslationObject | null;
+  order_number: number | null; // Changed to number | null
   metadata?: Record<string, any>
-  created_at: string
-  updated_at: string
+  created_at: string | null; // Allow null
+  updated_at: string | null; // Allow null
   deleted_at?: string
+}
+
+// New interface for individual items within an inspection template section/category
+// This is a better representation of `inspection_item_templates` table rows
+export interface DbInspectionTemplateItem {
+  id: string;
+  category_id: string | null; // Allow null to match potential DB/Supabase type
+  name_translations: TranslationObject | null; // Changed to TranslationObject | null
+  description_translations?: TranslationObject | null;
+  order_number: number | null; // Changed to number | null
+  requires_photo: boolean | null; // Changed to boolean | null
+  requires_notes: boolean | null; // Changed to boolean | null
+  created_at: string | null; // Allow null
+  updated_at: string | null; // Allow null
+  // Localized title & description will be derived by components/services as needed
 }
 
 export interface DbInspectionItem {

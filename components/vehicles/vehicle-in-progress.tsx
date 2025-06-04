@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useI18n } from "@/lib/i18n/context"
 import { DbVehicle, MaintenanceTask, Inspection } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Play, ClipboardCheck, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils/formatting"
-import { supabase } from "@/lib/supabase/client"
+import { useSupabase } from "@/components/providers/supabase-provider";
 import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -17,15 +17,17 @@ interface VehicleInProgressProps {
   vehicle: DbVehicle
 }
 
-type InProgressItem = 
-  | (MaintenanceTask & { record_type: 'maintenance' })
-  | (Inspection & { record_type: 'inspection' });
+// Simpler InProgressItem types
+type InProgressMaintenanceTask = MaintenanceTask & { record_type: 'maintenance' };
+type InProgressInspection = Inspection & { record_type: 'inspection' };
+
+type InProgressItem = InProgressMaintenanceTask | InProgressInspection;
 
 // Helper function to safely get the timestamp for sorting
-function getItemTimestamp(item: any): number {
+function getItemTimestamp(item: InProgressItem): number {
   if (item.record_type === 'maintenance') {
     return new Date(item.created_at).getTime();
-  } else {
+  } else { // Inspection
     return new Date(item.updated_at).getTime();
   }
 }
@@ -36,6 +38,19 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  const supabase = useSupabase();
+
+  // Memoize filtered items
+  const maintenanceItems = useMemo(() => 
+    inProgressItems.filter((item): item is InProgressMaintenanceTask => item.record_type === 'maintenance'),
+    [inProgressItems]
+  );
+
+  const inspectionItems = useMemo(() =>
+    inProgressItems.filter((item): item is InProgressInspection => item.record_type === 'inspection'),
+    [inProgressItems]
+  );
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -43,7 +58,7 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
       // Get in-progress inspections
       const { data: inspections, error: inspectionsError } = await supabase
         .from('inspections')
-        .select('*')
+        .select<'*', Inspection>('*') // Explicitly type the selection
         .eq('vehicle_id', vehicle.id)
         .eq('status', 'in_progress')
         .order('updated_at', { ascending: false })
@@ -52,29 +67,26 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
         console.error('Error fetching in-progress inspections:', inspectionsError);
         throw inspectionsError;
       }
-      console.log('In-progress inspections:', inspections);
       
       // Get in-progress maintenance tasks
       const { data: maintenanceTasks, error: maintenanceError } = await supabase
         .from('maintenance_tasks')
-        .select('*')
+        .select<'*', MaintenanceTask>('*') // Explicitly type the selection
         .eq('vehicle_id', vehicle.id)
         .eq('status', 'in_progress')
-        .order('created_at', { ascending: false })
 
       if (maintenanceError) {
         console.error('Error fetching in-progress maintenance tasks:', maintenanceError);
         throw maintenanceError;
       }
-      console.log('In-progress maintenance tasks:', maintenanceTasks);
       
       // Format the data with record types
-      const formattedInspections = (inspections || []).map(inspection => ({
+      const formattedInspections: InProgressInspection[] = (inspections || []).map(inspection => ({
         ...inspection,
         record_type: 'inspection' as const
       }));
       
-      const formattedMaintenance = (maintenanceTasks || []).map(task => ({
+      const formattedMaintenance: InProgressMaintenanceTask[] = (maintenanceTasks || []).map(task => ({
         ...task,
         record_type: 'maintenance' as const
       }));
@@ -83,7 +95,6 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
       const combined = [...formattedInspections, ...formattedMaintenance]
         .sort((a, b) => getItemTimestamp(b) - getItemTimestamp(a));
       
-      console.log('Combined in-progress items:', combined);
       setInProgressItems(combined)
     } catch (error) {
       console.error('Error loading in-progress items:', error)
@@ -94,7 +105,7 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
 
   useEffect(() => {
     loadData()
-  }, [vehicle.id])
+  }, [vehicle.id, supabase])
 
   // Function to navigate to the appropriate page based on item type
   const handleItemClick = (item: InProgressItem) => {
@@ -120,10 +131,9 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
             </div>
-          ) : inProgressItems.filter(item => item.record_type === 'maintenance').length > 0 ? (
+          ) : maintenanceItems.length > 0 ? (
             <div className="space-y-4">
-              {inProgressItems
-                .filter(item => item.record_type === 'maintenance')
+              {maintenanceItems
                 .map((item) => (
                   <div 
                     key={`${item.record_type}-${item.id}`} 
@@ -139,11 +149,8 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatDate(
-                          (item as any).record_type === 'maintenance' 
-                            ? (item as any).created_at 
-                            : (item as any).updated_at
-                        )}
+                        {/* Use created_at directly for maintenance */}
+                        {formatDate(item.created_at)}
                       </div>
                     </div>
                   </div>
@@ -170,10 +177,9 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
             </div>
-          ) : inProgressItems.filter(item => item.record_type === 'inspection').length > 0 ? (
+          ) : inspectionItems.length > 0 ? (
             <div className="space-y-4">
-              {inProgressItems
-                .filter(item => item.record_type === 'inspection')
+              {inspectionItems
                 .map((item) => (
                   <div 
                     key={`${item.record_type}-${item.id}`} 
@@ -184,18 +190,16 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
                       <div className="flex items-center gap-2">
                         <ClipboardCheck className="h-4 w-4 text-primary" />
                         <span className="font-medium">
-                          {(item as any).type || t('inspections.defaultType')}
+                          {/* Use item.type directly from Inspection type */}
+                          {item.type ? t(`inspections.type.${item.type}`) : t('inspections.defaultType')}
                         </span>
                         <Badge variant="warning">
                           {t('inspections.status.in_progress')}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatDate(
-                          (item as any).record_type === 'maintenance' 
-                            ? (item as any).created_at 
-                            : (item as any).updated_at
-                        )}
+                         {/* Use updated_at directly for inspection */}
+                        {formatDate(item.updated_at)}
                       </div>
                     </div>
                   </div>

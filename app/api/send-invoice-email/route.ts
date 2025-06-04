@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { mapSupabaseBookingToBooking } from '@/lib/api/bookings-service'
+import { handleApiError } from '@/lib/errors/error-handler'
+import { ValidationError, NotFoundError, DatabaseError, ExternalServiceError, AppError } from '@/lib/errors/app-error'
 
 // Email translations for different languages
 const translations = {
@@ -100,50 +102,57 @@ japandriver.com`
 }
 
 export async function POST(request: Request) {
-  // Create a formdata object
-  const formData = await request.formData()
-  
-  // Get email address and booking_id from the form data
-  const email = formData.get('email') as string
-  const bookingId = formData.get('booking_id') as string
-  const includeDetails = formData.get('include_details') === 'true'
-  const language = (formData.get('language') as string) || 'en' // Default to English if not specified
-  
-  // Get the PDF file from the form data
-  const pdfFile = formData.get('invoice_pdf') as File
-  
-  if (!email || !pdfFile) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
-  
-  // Use only supported languages, default to English for unsupported ones
-  const lang = language === 'ja' ? 'ja' : 'en'
-  const t = translations[lang]
-  
   try {
+    // Create a formdata object
+    const formData = await request.formData()
+    
+    // Get email address and booking_id from the form data
+    const email = formData.get('email') as string
+    const bookingId = formData.get('booking_id') as string
+    const includeDetails = formData.get('include_details') === 'true'
+    const language = (formData.get('language') as string) || 'en' // Default to English if not specified
+    
+    // Get the PDF file from the form data
+    const pdfFile = formData.get('invoice_pdf') as File
+    
+    if (!email || !pdfFile || !bookingId) {
+      throw new ValidationError('Missing required fields: email, booking_id, and invoice_pdf are required.')
+    }
+    
+    // Use only supported languages, default to English for unsupported ones
+    const lang = language === 'ja' ? 'ja' : 'en'
+    const t = translations[lang]
+    
     // Get the real booking data from the database
     const supabase = createServiceClient()
     
     // First try to find by internal UUID
-    let { data: bookingData } = await supabase
+    let { data: bookingData, error: initialFetchError } = await supabase
       .from('bookings')
       .select('*')
       .eq('id', bookingId)
       .maybeSingle()
     
+    if (initialFetchError) {
+      throw new DatabaseError('Error fetching booking by internal ID.', { cause: initialFetchError })
+    }
+    
     // If not found, try to find by WordPress ID
     if (!bookingData) {
-      const { data } = await supabase
+      const { data, error: wpIdError } = await supabase
         .from('bookings')
         .select('*')
         .eq('wp_id', bookingId)
         .maybeSingle()
       
+      if (wpIdError) {
+        throw new DatabaseError('Error fetching booking by WordPress ID.', { cause: wpIdError })
+      }
       bookingData = data
     }
     
     if (!bookingData) {
-      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      throw new NotFoundError(`Booking with ID or WordPress ID '${bookingId}' not found.`)
     }
     
     // Map to Booking type to use in the email
@@ -159,6 +168,10 @@ export async function POST(request: Request) {
     
     // Initialize Resend with API key
     const resend = new Resend(process.env.RESEND_API_KEY)
+    
+    if (!process.env.RESEND_API_KEY) {
+      throw new AppError("Email service (Resend) is not configured. Missing API key.", 500, false);
+    }
     
     // Get email domain from env or fallback
     const emailDomain = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com'
@@ -250,272 +263,104 @@ ${t.totalAmount}: ${formattedAmount}` :
       .replace('{dropoffLocation}', booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A'))
       .replace('{priceBreakdown}', priceBreakdownText)
     
-    // Send the email using Resend API
-    const { data, error } = await resend.emails.send({
-      from: `Driver Japan <booking@${emailDomain}>`,
-      to: [email],
-      subject: `${t.subject} - #${bookingId}`,
-      text: emailText,
-      html: `<!DOCTYPE html>
-<html lang="${lang}">
+    // HTML Email Content (ensure this part is correctly structured and populated)
+    const emailHtml = `<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${t.subject}</title>
   <style>
-    body, table, td, a {
-      -webkit-text-size-adjust:100%;
-      -ms-text-size-adjust:100%;
-      font-family: Work Sans, sans-serif;
-    }
-    table, td { mso-table-lspace:0; mso-table-rspace:0; }
-    img {
-      border:0;
-      line-height:100%;
-      outline:none;
-      text-decoration:none;
-      -ms-interpolation-mode:bicubic;
-    }
-    table { border-collapse:collapse!important; }
-    body {
-      margin:0;
-      padding:0;
-      width:100%!important;
-      background:#F2F4F6;
-    }
-    .greeting {
-      color:#32325D;
-      margin:24px 24px 16px;
-      line-height:1.4;
-    }
-    @media only screen and (max-width:600px) {
-      .container { width:100%!important; }
-      .stack { display:block!important; width:100%!important; text-align:center!important; }
-      .timeline { padding-left:0!important; }
-    }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
+    .container { background-color: #ffffff; padding: 30px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header img { max-width: 150px; }
+    h1 { color: #333; font-size: 22px; margin-top: 0; }
+    p { line-height: 1.6; }
+    .details-section { margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 4px; }
+    .details-section strong { display: inline-block; width: 150px; color: #555; }
+    .payment-summary { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+    .button-container { text-align: center; margin-top: 30px; }
+    .button { background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; }
+    .footer { text-align: center; margin-top: 30px; font-size: 0.9em; color: #777; }
   </style>
 </head>
-<body style="background:#F2F4F6; margin:0; padding:0;">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-    <tr>
-      <td align="center" style="padding:24px;">
-        <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
-               style="background:#FFFFFF; border-radius:8px; overflow:hidden;">
-          
-          <!-- HEADER with white-circle badge -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
-              <table width="100%" role="presentation">
-                <tr>
-                  <td align="center" style="padding:24px;">
-                    <!-- white circular badge -->
-                    <table cellpadding="0" cellspacing="0" style="
-                      background:#FFFFFF;
-                      border-radius:50%;
-                      width:64px;
-                      height:64px;
-                      margin:0 auto 12px;
-                    ">
-                      <tr>
-                        <td align="center" valign="middle" style="text-align:center;">
-                          <img src="${logoUrl}" width="48" height="48" alt="Japan Driver logo" style="display:block; margin:0 auto;">
-                        </td>
-                      </tr>
-                    </table>
-                    <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">${t.subject}</h1>
-                    <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                      ${lang === 'ja' ? '領収書番号' : 'Receipt'} #${bookingId}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- GREETING -->
-          <tr>
-            <td>
-              <p class="greeting">
-                ${t.greeting} ${customerName},<br><br>
-                ${t.thankYou}
-              </p>
-            </td>
-          </tr>
-          
-          <!-- DETAIL BLOCK -->
-          <tr>
-            <td style="padding:24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                     style="background:#F8FAFC; border-radius:8px;">
-                <tr>
-                  <td style="width:30%; padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.serviceType}</span>
-                  </td>
-                  <td style="padding:16px 0;">
-                    <span style="font-size:14px; color:#32325D;">${serviceType}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.vehicle}</span>
-                  </td>
-                  <td style="padding:16px 0;">
-                    <span style="font-size:14px; color:#32325D;">${vehicleInfo}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.pickupDate}</span>
-                  </td>
-                  <td style="padding:16px 0;">
-                    <span style="font-size:14px; color:#32325D;">${bookingDate}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 16px 8px 16px;">
-                    <span style="font-size:14px; color:#8898AA; text-transform:uppercase;">${t.pickupTime}</span>
-                  </td>
-                  <td style="padding:16px 0;">
-                    <span style="font-size:14px; color:#32325D;">${pickupTimeFormatted}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- ROUTE TIMELINE -->
-          <tr>
-            <td style="padding:0 24px 24px; color:#32325D;">
-              <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif;">${t.route}</h3>
-              <table width="100%" role="presentation">
-                <tr>
-                  <td class="timeline" width="24" valign="top" style="padding-right:12px;">
-                    <table cellpadding="0" cellspacing="0" role="presentation">
-                      <tr><td width="8" height="8" style="background:#E03E2D; border-radius:4px;"></td></tr>
-                      <tr><td width="2" height="32" style="background:#D9E2EC;"></td></tr>
-                      <tr><td width="8" height="8" style="background:#32325D; border-radius:4px;"></td></tr>
-                    </table>
-                  </td>
-                  <td valign="top" style="font-size:14px; line-height:1.4; font-family: Work Sans, sans-serif;">
-                    <p style="margin:0 0 8px;"><strong>${t.pickup}:</strong> ${booking.pickup_location || (lang === 'ja' ? '記載なし' : 'N/A')}<br>
-                      <small style="color:#8898AA;">${booking.time || (lang === 'ja' ? '時間の記載なし' : 'N/A')}</small></p>
-                    <p style="margin:0;"><strong>${t.dropoff}:</strong> ${booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A')}<br>
-                      <small style="color:#8898AA;">${booking.duration ? `${t.estimatedDuration}: ${booking.duration} ${t.minutes}` : (lang === 'ja' ? '所要時間の記載なし' : 'N/A')}</small></p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-          <!-- PAYMENT SUMMARY CARD -->
-          <tr>
-            <td style="padding:24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                     style="background:#F8FAFC; border-radius:8px;">
-                ${hasDiscount ? `
-                <tr>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    ${t.originalPrice}
-                  </td>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
-                    ${formattedOriginalPrice}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    ${t.couponCode}
-                  </td>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
-                    ${booking.coupon_code}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    ${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}
-                  </td>
-                  <td style="padding:16px 16px 8px 16px; font-size:14px; color:#32325D; text-align:right; font-family: Work Sans, sans-serif;">
-                    -${formattedDiscountAmount}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    ${t.totalAmount}
-                  </td>
-                  <td style="padding:16px; font-size:16px; color:#32325D; font-weight:bold; text-align:right; font-family: Work Sans, sans-serif;">
-                    ${formattedAmount}
-                  </td>
-                </tr>
-                ` : `
-                <tr>
-                  <td style="padding:16px; font-size:14px; color:#8898AA; text-transform:uppercase; font-family: Work Sans, sans-serif;">
-                    ${t.paymentSummary}
-                  </td>
-                  <td style="padding:16px; font-size:16px; color:#32325D; font-weight:bold; text-align:right; font-family: Work Sans, sans-serif;">
-                    ${formattedAmount}
-                  </td>
-                </tr>
-                `}
-              </table>
-            </td>
-          </tr>
-          
-          <!-- CTA -->
-          <tr>
-            <td align="center" style="padding:0 24px 24px;">
-              <a href="${paymentLink}"
-                 style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                        text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                        font-size:16px; font-weight:600;">
-                ${t.viewBookingDetails}
-              </a>
-            </td>
-          </tr>
-          
-          <!-- FOOTER -->
-          <tr>
-            <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-              <p style="margin:0 0 8px;">
-                ${t.questions}<br>
-                <a href="mailto:booking@japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                  booking@japandriver.com
-                </a>
-              </p>
-              <p style="margin:0 0 4px;">${t.company}</p>
-              <p style="margin:0;">
-                <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                  japandriver.com
-                </a>
-              </p>
-            </td>
-          </tr>
-          
-        </table>
-      </td>
-    </tr>
-  </table>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="${logoUrl}" alt="${t.company} Logo">
+      <h1>${t.greeting} ${customerName},</h1>
+    </div>
+    <p>${t.thankYou}</p>
+    
+    ${includeDetails ? `
+    <div class="details-section">
+      <p><strong>${t.serviceType}:</strong> ${serviceType}</p>
+      <p><strong>${t.vehicle}:</strong> ${vehicleInfo}</p>
+      <p><strong>${t.pickupDate}:</strong> ${bookingDate}</p>
+      <p><strong>${t.pickupTime}:</strong> ${pickupTimeFormatted}</p>
+      <p><strong>${t.route}:</strong></p>
+      <p style="margin-left: 20px;"><strong>${t.pickup}:</strong> ${booking.pickup_location || (lang === 'ja' ? '記載なし' : 'N/A')}</p>
+      <p style="margin-left: 20px;"><strong>${t.dropoff}:</strong> ${booking.dropoff_location || (lang === 'ja' ? '記載なし' : 'N/A')}</p>
+      ${booking.duration ? `<p><strong>${t.estimatedDuration}:</strong> ${booking.duration} ${t.minutes}</p>` : ''}
+    </div>` : ''}
+
+    <div class="payment-summary">
+      <h2>${t.paymentSummary}</h2>
+      ${hasDiscount ? `
+        <p><strong>${t.originalPrice}:</strong> ${formattedOriginalPrice}</p>
+        ${booking.coupon_code ? `<p><strong>${t.couponCode}:</strong> ${booking.coupon_code}</p>` : ''}
+        <p><strong>${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}:</strong> -${formattedDiscountAmount}</p>
+      ` : ''}
+      <p><strong>${t.totalAmount}:</strong> ${formattedAmount}</p>
+    </div>
+
+    <div class="button-container">
+      <a href="${paymentLink}" class="button">${t.viewBookingDetails}</a>
+    </div>
+
+    <div class="footer">
+      <p>${t.questions} <a href="mailto:booking@${emailDomain}">booking@${emailDomain}</a></p>
+      <p>&copy; ${new Date().getFullYear()} ${t.company}</p>
+    </div>
+  </div>
 </body>
-</html>`,
+</html>`;
+
+    // Send the email using Resend
+    const { data: emailData, error: resendError } = await resend.emails.send({
+      from: `Japan Driver <noreply@${emailDomain}>`,
+      to: [email],
+      subject: t.subject,
+      html: emailHtml,
+      text: emailText, // Plain text version
       attachments: [
         {
-          filename: `invoice-${bookingId}.pdf`,
-          content: buffer.toString('base64')
+          filename: pdfFile.name || 'invoice.pdf',
+          content: buffer
         }
       ]
     })
-    
-    if (error) {
-      console.error('❌ [SEND-INVOICE-EMAIL] Resend API error:', error);
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+
+    if (resendError) {
+      const errorMessage = resendError.message || 'Failed to send email via Resend.';
+      const causeError = new Error(typeof resendError === 'string' ? resendError : resendError.message);
+      if (typeof resendError === 'object' && resendError !== null && 'name' in resendError) {
+        // Copying the name is good practice if it exists, e.g. for specific Resend error types
+        causeError.name = (resendError as any).name;
+      }
+      // ExternalServiceError(message: string, statusCode: number = 502, options?: { cause?: Error, stack?: string })
+      // The original resendError object will be part of the 'causeError's context or Sentry will pick it up when the ExternalServiceError is captured.
+      const serviceError = new ExternalServiceError(errorMessage, 503, { cause: causeError });
+      // Add the original Resend error object as a non-standard property for Sentry to potentially pick up more details.
+      (serviceError as any).originalExternalError = resendError;
+      throw serviceError;
     }
-    
-    console.log(`✅ [SEND-INVOICE-EMAIL] Email sent successfully to ${email} with invoice #${bookingId}`);
-    
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('❌ [SEND-INVOICE-EMAIL] Error sending email:', error);
-    if (error instanceof Error && error.stack) {
-      console.error('❌ [SEND-INVOICE-EMAIL] Error stack:', error.stack);
-    }
-    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 })
+
+    console.log('[SEND-INVOICE-EMAIL] Email sent successfully:', emailData);
+    return NextResponse.json({ success: true, data: { message: 'Email sent successfully', emailId: emailData?.id } });
+
+  } catch (error: unknown) {
+    return handleApiError(error, { apiRoute: '/api/send-invoice-email', method: 'POST' });
   }
 } 

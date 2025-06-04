@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServiceClient } from '@/lib/supabase/service-client';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
 
@@ -218,20 +218,28 @@ export async function POST(request: NextRequest) {
     console.log('Approve route - Getting translations');
     const { t } = await getDictionary();
 
-    // Create service client (doesn't rely on cookies)
-    console.log('Approve route - Creating Supabase service client');
+    // Create server client (relies on cookies for auth)
+    console.log('Approve route - Creating Supabase server client');
     let supabase;
     try {
-      supabase = createServiceClient();
-      console.log('Approve route - Supabase service client created successfully');
-    } catch (serviceClientError) {
-      console.error('Approve route - Error creating service client:', serviceClientError);
+      supabase = await getSupabaseServerClient();
+      console.log('Approve route - Supabase server client created successfully');
+    } catch (serverClientError) {
+      console.error('Approve route - Error creating server client:', serverClientError);
       return NextResponse.json(
         { error: 'Error connecting to database' },
         { status: 500 }
       );
     }
-    
+
+    // Authenticate user (staff member performing the approval)
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser) {
+      console.error('Approve route - Authentication error', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.log('Approve route - User authenticated:', authUser.id);
+
     // Fetch the quotation
     console.log(`Approve route - Fetching quotation with ID: ${id}`);
     let quotation;
@@ -287,27 +295,19 @@ export async function POST(request: NextRequest) {
       
       console.log('Approve route - Quotation status updated to approved');
       
-      // Add activity log - only create activity log when status changes to avoid duplication
-      try {
-        const { error: activityError } = await supabase
-          .from('quotation_activities')
-          .insert({
-            quotation_id: id,
-            user_id: customerId || '00000000-0000-0000-0000-000000000000', // System user
-            action: 'approved',
-            details: { notes: notes || null }
-          });
-          
-        if (activityError) {
-          console.log(`Approve route - Error creating activity log: ${activityError.message}`);
-          // Non-blocking error, continue processing
-        } else {
-          console.log('Approve route - Activity log created');
-        }
-      } catch (activityError) {
-        console.error('Approve route - Exception creating activity log:', activityError);
-        // Non-blocking error, continue processing
-      }
+      // Log activity
+      await supabase
+        .from('quotation_activities')
+        .insert({
+          quotation_id: id,
+          user_id: authUser.id,
+          action: 'approved',
+          details: {
+            notes: notes || null,
+            approved_by_customer_id: customerId,
+            approved_by_staff_id: authUser.id
+          }
+        });
     }
     
     // Skip email if explicitly requested

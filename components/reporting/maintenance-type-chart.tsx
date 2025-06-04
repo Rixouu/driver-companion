@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+"use client";
+
+import { useEffect, useState, useMemo } from "react"
+import { createBrowserClient } from "@supabase/ssr"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useTheme } from "next-themes"
@@ -27,6 +29,13 @@ export function MaintenanceTypeChart({ dateRange }: MaintenanceTypeChartProps) {
   const textColor = isDark ? "#9CA3AF" : "#6B7280"
   const backgroundColor = isDark ? "#18181B" : "#FFFFFF"
   const borderColor = isDark ? "#374151" : "#E5E7EB"
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchMaintenanceData() {
@@ -66,7 +75,7 @@ export function MaintenanceTypeChart({ dateRange }: MaintenanceTypeChartProps) {
     }
 
     fetchMaintenanceData()
-  }, [dateRange])
+  }, [dateRange, supabase])
 
   return (
     <Card>

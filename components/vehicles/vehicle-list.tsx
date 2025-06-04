@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
 import { DbVehicle } from "@/types"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useDebounce } from "@/lib/hooks/use-debounce"
 import Image from "next/image"
 import { useI18n } from "@/lib/i18n/context"
 import {
@@ -36,110 +36,133 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { Car } from "lucide-react"
 
 interface VehicleListProps {
-  vehicles: DbVehicle[]
-  currentPage?: number
-  totalPages?: number
+  vehicles: DbVehicle[];
+  currentPage?: number;
+  totalPages?: number;
+  initialFilters?: {
+    query?: string;
+    status?: string;
+    brand?: string;
+    model?: string;
+  };
+  brandOptions?: { value: string; label: string }[];
+  modelOptions?: { value: string; label: string }[];
 }
 
-const ITEMS_PER_PAGE = 9
+const ITEMS_PER_PAGE = 9;
 
-export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: VehicleListProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [view, setView] = useState<"list" | "grid">("grid")
-  const debouncedSearch = useDebounce(search, 500)
-  const { t } = useI18n()
+export function VehicleList({ 
+  vehicles = [], 
+  currentPage = 1, 
+  totalPages = 1, 
+  initialFilters, 
+  brandOptions = [], 
+  modelOptions = [] 
+}: VehicleListProps) {
+  const router = useRouter();
+  const currentSearchParams = useSearchParams();
+
+  const [search, setSearch] = useState(initialFilters?.query || '');
+  const [statusFilterState, setStatusFilterState] = useState(initialFilters?.status || 'all');
+  const [brandFilterState, setBrandFilterState] = useState(initialFilters?.brand || 'all');
+  const [modelFilterState, setModelFilterState] = useState(initialFilters?.model || 'all');
+  const [view, setView] = useState<"list" | "grid">("list"); // Default to list view
+  const debouncedSearch = useDebounce(search, 500);
+  const { t } = useI18n();
+
+  // Update local state if initialFilters prop changes
+  useEffect(() => {
+    setSearch(initialFilters?.query || '');
+    setStatusFilterState(initialFilters?.status || 'all');
+    setBrandFilterState(initialFilters?.brand || 'all');
+    setModelFilterState(initialFilters?.model || 'all');
+  }, [initialFilters]);
+
+  // Effect to navigate when debounced search or filters change
+  useEffect(() => {
+    const params = new URLSearchParams(currentSearchParams?.toString() || '');
+    if (debouncedSearch) params.set('query', debouncedSearch);
+    else params.delete('query');
+
+    if (statusFilterState !== 'all') params.set('status', statusFilterState);
+    else params.delete('status');
+
+    if (brandFilterState !== 'all') params.set('brand', brandFilterState);
+    else params.delete('brand');
+
+    if (modelFilterState !== 'all') params.set('model', modelFilterState);
+    else params.delete('model');
+    
+    // Only reset to page 1 if filters actually changed, not on initial load
+    const currentParams = new URLSearchParams(currentSearchParams?.toString() || '');
+    const hasFilterChanges = (
+      (debouncedSearch !== (currentParams.get('query') || '')) ||
+      (statusFilterState !== (currentParams.get('status') || 'all')) ||
+      (brandFilterState !== (currentParams.get('brand') || 'all')) ||
+      (modelFilterState !== (currentParams.get('model') || 'all'))
+    );
+    
+    if (hasFilterChanges) {
+      params.set("page", "1"); // Reset to page 1 only on filter change
+    }
+    
+    // Only push if params actually changed to avoid redundant navigation
+    if (params.toString() !== currentParams.toString()) {
+       router.push(`/vehicles?${params.toString()}`);
+    }
+  }, [debouncedSearch, statusFilterState, brandFilterState, modelFilterState, router, currentSearchParams]);
 
   // Extract unique brands and models for filters
   const brands = Array.from(new Set(vehicles.filter(v => v.brand).map(v => v.brand as string)))
     .map(brand => ({ value: brand, label: brand }))
   
-  const [brandFilter, setBrandFilter] = useState("all")
-  const [modelFilter, setModelFilter] = useState("all")
-  
   // Get models based on selected brand
   const models = useMemo(() => {
-    if (brandFilter === "all") return []
+    if (brandFilterState === "all") return []
     
     return Array.from(new Set(
       vehicles
-        .filter(v => v.model && v.brand === brandFilter)
+        .filter(v => v.model && v.brand === brandFilterState)
         .map(v => v.model as string)
     )).map(model => ({ value: model, label: model }))
-  }, [vehicles, brandFilter])
-
-  // Set default view based on screen size
-  useEffect(() => {
-    // Check if we're on mobile
-    const isMobile = window.innerWidth < 640; // sm breakpoint in Tailwind
-    if (isMobile) {
-      setView("list");
-    }
-    
-    // Add resize listener to change view when resizing between mobile and desktop
-    const handleResize = () => {
-      const isMobileNow = window.innerWidth < 640;
-      if (isMobileNow && view === "grid") {
-        setView("list");
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [view]);
-
-  // Reset to page 1 when search or filter changes
-  useEffect(() => {
-    if (debouncedSearch || filter !== 'all') {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("page", "1");
-      router.push(`/vehicles?${params.toString()}`);
-    }
-  }, [debouncedSearch, filter, router, searchParams]);
-
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesStatusFilter = filter === 'all' || vehicle.status === filter
-    const matchesBrandFilter = brandFilter === 'all' || vehicle.brand === brandFilter
-    const matchesModelFilter = modelFilter === 'all' || vehicle.model === modelFilter
-    const matchesSearch = !debouncedSearch || 
-      vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())
-    
-    return matchesStatusFilter && matchesBrandFilter && matchesModelFilter && matchesSearch
-  })
+  }, [vehicles, brandFilterState])
 
   // Calculate pagination
-  const totalFilteredPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE)
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const paginatedVehicles = filteredVehicles.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  const paginatedVehicles = vehicles;
+  const displayTotalPages = totalPages;
+  const displayCurrentPage = currentPage;
+  
+  const serverTotalItems = totalPages * ITEMS_PER_PAGE;
+  const displayStartIndex = Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, serverTotalItems);
+  const displayEndIndex = Math.min(currentPage * ITEMS_PER_PAGE, serverTotalItems);
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", page.toString())
-    router.push(`/vehicles?${params.toString()}`)
-  }
+    const params = new URLSearchParams(currentSearchParams?.toString() || '');
+    params.set("page", page.toString());
+    router.push(`/vehicles?${params.toString()}`);
+  };
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-  }
+  };
 
-  const handleFilterChange = (newFilter: string) => {
-    setFilter(newFilter);
-    // Page reset will be handled by the useEffect above
+  const handleStatusFilterChange = (newFilter: string) => {
+    setStatusFilterState(newFilter);
   };
 
   const handleBrandFilterChange = (value: string) => {
-    setBrandFilter(value)
-    setModelFilter("all")
-  }
+    setBrandFilterState(value);
+    setModelFilterState("all");
+  };
 
   const handleModelFilterChange = (value: string) => {
-    setModelFilter(value)
-  }
+    setModelFilterState(value);
+  };
 
   function getStatusVariant(status: string) {
     switch (status) {
@@ -154,29 +177,58 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
     }
   }
 
+  // Get colored status button class
+  function getStatusButtonClass(status: string, isSelected: boolean) {
+    if (isSelected) {
+      switch (status) {
+        case "active":
+          return "bg-green-600 text-white hover:bg-green-700 border-green-600"
+        case "maintenance":
+          return "bg-orange-600 text-white hover:bg-orange-700 border-orange-600"
+        case "inactive":
+          return "bg-gray-600 text-white hover:bg-gray-700 border-gray-600"
+        default:
+          return "bg-primary text-primary-foreground hover:bg-primary/90"
+      }
+    } else {
+      switch (status) {
+        case "active":
+          return "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+        case "maintenance":
+          return "border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
+        case "inactive":
+          return "border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-950"
+        default:
+          return "border-border text-foreground hover:bg-accent"
+      }
+    }
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <SearchFilterBar 
           onSearchChange={handleSearchChange}
           onBrandFilterChange={handleBrandFilterChange}
           onModelFilterChange={handleModelFilterChange}
           searchPlaceholder={t("vehicles.searchPlaceholder")}
-          brandOptions={brands}
-          modelOptions={models}
-          totalItems={filteredVehicles.length}
-          startIndex={Math.min(startIndex + 1, filteredVehicles.length)}
-          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredVehicles.length)}
-          selectedBrand={brandFilter}
-          selectedModel={modelFilter}
+          brandOptions={brandOptions}
+          modelOptions={modelFilterState === 'all' && brandFilterState === 'all' ? [] : modelOptions}
+          totalItems={serverTotalItems}
+          startIndex={displayStartIndex}
+          endIndex={displayEndIndex}
+          selectedBrand={brandFilterState}
+          selectedModel={modelFilterState}
+          currentSearchValue={search}
+          showingTranslationKey="vehicles.pagination.showing"
         />
         
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-2">
             <div className="sm:hidden">
               <Select
-                value={filter}
-                onValueChange={handleFilterChange}
+                value={statusFilterState}
+                onValueChange={handleStatusFilterChange}
               >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder={t("common.filter")} />
@@ -191,26 +243,32 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             </div>
             <div className="hidden sm:flex flex-wrap gap-2">
               <Button 
-                variant={filter === 'all' ? 'default' : 'outline'}
-                onClick={() => handleFilterChange('all')}
+                variant={statusFilterState === 'all' ? 'default' : 'outline'}
+                onClick={() => handleStatusFilterChange('all')}
+                className={cn(
+                  statusFilterState === 'all' ? '' : 'border-border text-foreground hover:bg-accent'
+                )}
               >
                 {t("common.all")}
               </Button>
               <Button 
-                variant={filter === 'active' ? 'default' : 'outline'}
-                onClick={() => handleFilterChange('active')}
+                variant="outline"
+                onClick={() => handleStatusFilterChange('active')}
+                className={cn(getStatusButtonClass('active', statusFilterState === 'active'))}
               >
                 {t("vehicles.status.active")}
               </Button>
               <Button 
-                variant={filter === 'maintenance' ? 'default' : 'outline'}
-                onClick={() => handleFilterChange('maintenance')}
+                variant="outline"
+                onClick={() => handleStatusFilterChange('maintenance')}
+                className={cn(getStatusButtonClass('maintenance', statusFilterState === 'maintenance'))}
               >
                 {t("vehicles.status.maintenance")}
               </Button>
               <Button 
-                variant={filter === 'inactive' ? 'default' : 'outline'}
-                onClick={() => handleFilterChange('inactive')}
+                variant="outline"
+                onClick={() => handleStatusFilterChange('inactive')}
+                className={cn(getStatusButtonClass('inactive', statusFilterState === 'inactive'))}
               >
                 {t("vehicles.status.inactive")}
               </Button>
@@ -219,8 +277,10 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
+      
       {paginatedVehicles.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 border rounded-lg">
+          <Car className="h-12 w-12 text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground text-center">
             {t("vehicles.noVehicles")}
           </p>
@@ -230,34 +290,42 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedVehicles.map((vehicle) => (
-                <Card key={vehicle.id}>
-                  <Link href={`/vehicles/${vehicle.id}`} ><span className="flex items-center gap-2">
+                <Card key={vehicle.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <Link href={`/vehicles/${vehicle.id}`}>
                     <div className="relative aspect-video w-full">
                       {vehicle.image_url ? (
                         <Image
                           src={vehicle.image_url}
                           alt={vehicle.name}
                           fill
-                          className="object-cover"
+                          className="object-cover rounded-t-lg"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
                       ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <p className="text-muted-foreground">{t('vehicles.noImage')}</p>
+                        <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-lg">
+                          <Car className="h-12 w-12 text-muted-foreground/30" />
                         </div>
                       )}
                     </div>
-                  </span></Link>
-                  <CardContent className="p-6">
-                    <div className="flex flex-col space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">{vehicle.name}</h3>
-                        <p className="text-sm text-muted-foreground">{vehicle.plate_number}</p>
+                  </Link>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col space-y-3">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">{vehicle.name}</h3>
+                        <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Badge variant={getStatusVariant(vehicle.status)}>
+                        <Badge 
+                          className={cn(
+                            "font-medium border-0",
+                            vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+                            vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+                            vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                          )}
+                        >
                           {t(`vehicles.status.${vehicle.status}`)}
                         </Badge>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="text-xs">
                           {vehicle.brand} {vehicle.model}
                         </Badge>
                       </div>
@@ -268,40 +336,70 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             </div>
           ) : (
             <>
-              {/* Desktop Table View - Hidden on Mobile */}
-              <div className="hidden sm:block rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("vehicles.fields.name")}</TableHead>
-                      <TableHead>{t("vehicles.fields.plateNumber")}</TableHead>
-                      <TableHead>{t("vehicles.fields.type")}</TableHead>
-                      <TableHead>{t("vehicles.fields.status")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedVehicles.map((vehicle) => (
-                      <TableRow 
-                        key={vehicle.id}
-                        className="cursor-pointer hover:bg-accent"
-                        onClick={() => router.push(`/vehicles/${vehicle.id}`)}
-                      >
-                        <TableCell className="font-medium">{vehicle.name}</TableCell>
-                        <TableCell>{vehicle.plate_number}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
+              {/* Desktop List View with Thumbnails */}
+              <div className="hidden sm:block space-y-3">
+                {paginatedVehicles.map((vehicle) => (
+                  <Card 
+                    key={vehicle.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                    onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+                  >
+                    <div className="flex items-center p-4">
+                      {/* Vehicle Thumbnail - Medium size */}
+                      <div className="w-24 h-16 relative flex-shrink-0 mr-6">
+                        {vehicle.image_url ? (
+                          <Image
+                            src={vehicle.image_url}
+                            alt={vehicle.name}
+                            fill
+                            sizes="96px"
+                            className="object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center rounded-md">
+                            <Car className="h-6 w-6 text-muted-foreground/30" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Vehicle Info - Flexbox layout */}
+                      <div className="flex-1 grid grid-cols-4 items-center gap-4">
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{vehicle.name}</h3>
+                          <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-sm">
                             {vehicle.brand} {vehicle.model}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusVariant(vehicle.status)}>
+                          {vehicle.year && (
+                            <span className="text-sm text-muted-foreground">({vehicle.year})</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <Badge 
+                            className={cn(
+                              "font-medium border-0",
+                              vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+                              vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                            )}
+                          >
                             {t(`vehicles.status.${vehicle.status}`)}
                           </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                        
+                        <div className="flex justify-end">
+                          <Button variant="outline" size="sm">
+                            {t("common.view")}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
 
               {/* Mobile Card View */}
@@ -309,45 +407,53 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
                 {paginatedVehicles.map((vehicle) => (
                   <Card 
                     key={vehicle.id} 
-                    className="overflow-hidden cursor-pointer relative"
+                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => router.push(`/vehicles/${vehicle.id}`)}
                   >
-                    {/* Status Badge - Top Right Corner */}
-                    <Badge 
-                      variant={getStatusVariant(vehicle.status)}
-                      className="absolute top-2 right-2 z-10"
-                    >
-                      {t(`vehicles.status.${vehicle.status}`)}
-                    </Badge>
-                    
                     <div className="flex">
                       {/* Vehicle Thumbnail */}
-                      <div className="w-32 h-[100px] relative flex-shrink-0">
+                      <div className="w-28 h-20 relative flex-shrink-0">
                         {vehicle.image_url ? (
                           <Image
                             src={vehicle.image_url}
                             alt={vehicle.name}
                             fill
-                            sizes="128px"
+                            sizes="112px"
                             className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <p className="text-xs text-muted-foreground">No Image</p>
+                            <Car className="h-6 w-6 text-muted-foreground/30" />
                           </div>
                         )}
                       </div>
                       
                       {/* Vehicle Info */}
-                      <div className="flex-1 p-3">
-                        <h3 className="font-medium text-base mb-1">{vehicle.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{vehicle.plate_number}</p>
+                      <div className="flex-1 p-3 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-base">{vehicle.name}</h3>
+                            <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
+                          </div>
+                          <Badge 
+                            className={cn(
+                              "text-xs font-medium border-0",
+                              vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+                              vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                            )}
+                          >
+                            {t(`vehicles.status.${vehicle.status}`)}
+                          </Badge>
+                        </div>
                         
-                        <div className="flex items-center justify-between mt-auto">
+                        <div className="flex items-center justify-between">
                           <Badge variant="outline" className="text-xs">
                             {vehicle.brand} {vehicle.model}
                           </Badge>
-                          <span className="text-xs font-medium">{vehicle.year}</span>
+                          {vehicle.year && (
+                            <span className="text-xs text-muted-foreground">{vehicle.year}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -357,46 +463,108 @@ export function VehicleList({ vehicles = [], currentPage = 1, totalPages = 1 }: 
             </>
           )}
 
-          <Pagination>
-            <PaginationContent>
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(currentPage - 1);
-                    }}
-                  />
-                </PaginationItem>
-              )}
-              {[...Array(totalPages)].map((_, i) => (
-                <PaginationItem key={i + 1}>
-                  <PaginationLink
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(i + 1);
-                    }}
-                    isActive={currentPage === i + 1}
-                  >
-                    {i + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(currentPage + 1);
-                    }}
-                  />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
+          {/* Improved Pagination */}
+          {displayTotalPages > 1 && (
+            <div className="flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  {displayCurrentPage > 1 && (
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(displayCurrentPage - 1);
+                        }}
+                      />
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Show first page */}
+                  {displayCurrentPage > 3 && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(1);
+                          }}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                      {displayCurrentPage > 4 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Show pages around current */}
+                  {Array.from({ length: Math.min(5, displayTotalPages) }, (_, i) => {
+                    const startPage = Math.max(1, displayCurrentPage - 2);
+                    const endPage = Math.min(displayTotalPages, startPage + 4);
+                    const adjustedStartPage = Math.max(1, endPage - 4);
+                    const pageNumber = adjustedStartPage + i;
+                    
+                    if (pageNumber <= endPage) {
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(pageNumber);
+                            }}
+                            isActive={displayCurrentPage === pageNumber}
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  {/* Show last page */}
+                  {displayCurrentPage < displayTotalPages - 2 && (
+                    <>
+                      {displayCurrentPage < displayTotalPages - 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(displayTotalPages);
+                          }}
+                        >
+                          {displayTotalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                  
+                  {displayCurrentPage < displayTotalPages && (
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(displayCurrentPage + 1);
+                        }}
+                      />
+                    </PaginationItem>
+                  )}
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </>
       )}
     </div>

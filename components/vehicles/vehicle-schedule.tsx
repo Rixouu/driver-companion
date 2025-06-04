@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useI18n } from "@/lib/i18n/context"
-import { DbVehicle, DbInspection, MaintenanceTask, Inspection } from "@/types"
+import { DbVehicle, MaintenanceTask, Inspection } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, ClipboardCheck, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDate } from "@/lib/utils/formatting"
-import { supabase } from "@/lib/supabase/client"
+import { useSupabase } from "@/components/providers/supabase-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -17,9 +17,20 @@ interface VehicleScheduleProps {
   vehicle: DbVehicle
 }
 
-type ScheduledItem = 
-  | (MaintenanceTask & { record_type: 'maintenance' })
-  | (Inspection & { record_type: 'inspection' });
+// Refined ScheduledItem types
+type ScheduledMaintenanceTask = MaintenanceTask & { record_type: 'maintenance' };
+type ScheduledInspection = Inspection & { record_type: 'inspection' }; // Assuming Inspection type has a 'date' field for scheduled items
+type ScheduledItem = ScheduledMaintenanceTask | ScheduledInspection;
+
+// Helper function to get the date for sorting
+function getItemSortDate(item: ScheduledItem): number {
+  if (item.record_type === 'inspection') {
+    // Ensure item.date is valid; might need a check or rely on type guarantees
+    return new Date(item.date || Date.now()).getTime(); // Fallback to Date.now() if item.date is null/undefined - review if this is intended for sorting past items without dates
+  } else { // MaintenanceTask
+    return new Date(item.due_date).getTime();
+  }
+}
 
 export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
   const { t } = useI18n()
@@ -27,14 +38,26 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
+  const supabase = useSupabase()
+
+  // Memoize filtered items
+  const scheduledMaintenance = useMemo(() => 
+    scheduledItems.filter((item): item is ScheduledMaintenanceTask => item.record_type === 'maintenance'),
+    [scheduledItems]
+  );
+
+  const scheduledInspections = useMemo(() =>
+    scheduledItems.filter((item): item is ScheduledInspection => item.record_type === 'inspection'),
+    [scheduledItems]
+  );
+
   const loadData = async () => {
     try {
       setLoading(true)
       
-      // Get scheduled inspections
       const { data: inspections, error: inspectionsError } = await supabase
         .from('inspections')
-        .select('*')
+        .select<'*', Inspection>('*')
         .eq('vehicle_id', vehicle.id)
         .eq('status', 'scheduled')
         .order('date', { ascending: true })
@@ -43,12 +66,10 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
         console.error('Error fetching scheduled inspections:', inspectionsError);
         throw inspectionsError;
       }
-      console.log('Scheduled inspections:', inspections);
       
-      // Get scheduled maintenance tasks
       const { data: maintenanceTasks, error: maintenanceError } = await supabase
         .from('maintenance_tasks')
-        .select('*')
+        .select<'*', MaintenanceTask>('*')
         .eq('vehicle_id', vehicle.id)
         .eq('status', 'scheduled')
         .order('due_date', { ascending: true })
@@ -57,32 +78,20 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
         console.error('Error fetching scheduled maintenance tasks:', maintenanceError);
         throw maintenanceError;
       }
-      console.log('Scheduled maintenance tasks:', maintenanceTasks);
       
-      // Format the data with record types
-      const formattedInspections = (inspections || []).map(inspection => ({
-        ...inspection,
+      const formattedInspections: ScheduledInspection[] = (inspections || []).map(i => ({
+        ...i,
         record_type: 'inspection' as const
       }));
       
-      const formattedMaintenance = (maintenanceTasks || []).map(task => ({
+      const formattedMaintenance: ScheduledMaintenanceTask[] = (maintenanceTasks || []).map(task => ({
         ...task,
         record_type: 'maintenance' as const
       }));
       
-      // Combine and sort by date
       const combined = [...formattedInspections, ...formattedMaintenance]
-        .sort((a, b) => {
-          const dateA = a.record_type === 'inspection' 
-            ? new Date((a as any).date || Date.now()).getTime() 
-            : new Date(a.due_date).getTime();
-          const dateB = b.record_type === 'inspection' 
-            ? new Date((b as any).date || Date.now()).getTime() 
-            : new Date(b.due_date).getTime();
-          return dateA - dateB;
-        });
+        .sort((a, b) => getItemSortDate(a) - getItemSortDate(b));
       
-      console.log('Combined scheduled items:', combined);
       setScheduledItems(combined)
     } catch (error) {
       console.error('Error loading scheduled items:', error)
@@ -93,9 +102,9 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
 
   useEffect(() => {
     loadData()
-  }, [vehicle.id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicle.id, supabase])
 
-  // Function to navigate to the appropriate page based on item type
   const handleItemClick = (item: ScheduledItem) => {
     if (item.record_type === 'maintenance') {
       router.push(`/maintenance/${item.id}`)
@@ -124,10 +133,9 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
             </div>
-          ) : scheduledItems.filter(item => item.record_type === 'maintenance').length > 0 ? (
+          ) : scheduledMaintenance.length > 0 ? (
             <div className="space-y-4">
-              {scheduledItems
-                .filter(item => item.record_type === 'maintenance')
+              {scheduledMaintenance
                 .map((item) => (
                   <div 
                     key={`${item.record_type}-${item.id}`} 
@@ -143,7 +151,7 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {t('maintenance.details.scheduledFor', { date: formatDate((item as any).due_date) })}
+                        {t('maintenance.details.scheduledFor', { date: formatDate(item.due_date) })}
                       </div>
                     </div>
                   </div>
@@ -174,10 +182,9 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
             </div>
-          ) : scheduledItems.filter(item => item.record_type === 'inspection').length > 0 ? (
+          ) : scheduledInspections.length > 0 ? (
             <div className="space-y-4">
-              {scheduledItems
-                .filter(item => item.record_type === 'inspection')
+              {scheduledInspections
                 .map((item) => (
                   <div 
                     key={`${item.record_type}-${item.id}`} 
@@ -188,17 +195,14 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
                       <div className="flex items-center gap-2">
                         <ClipboardCheck className="h-4 w-4 text-primary" />
                         <span className="font-medium">
-                          {(item as any).type || t('inspections.defaultType')}
+                          {item.type ? t(`inspections.type.${item.type}`) : t('inspections.defaultType')}
                         </span>
                         <Badge variant="secondary">
                           {t('inspections.status.scheduled')}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {item.record_type === 'inspection'
-                          ? t('inspections.details.scheduledFor', { date: formatDate((item as any).date) })
-                          : t('maintenance.details.scheduledFor', { date: formatDate((item as any).due_date) })
-                        }
+                        {t('inspections.details.scheduledFor', { date: formatDate(item.date) })}
                       </div>
                     </div>
                   </div>

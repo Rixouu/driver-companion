@@ -71,8 +71,8 @@ export function DriverStatusBadge({ status, isBooking, notes }: DriverStatusBadg
       className={getCustomStyles()}
     >
       {isBookingStatus 
-        ? t("Booking", { defaultValue: "Booking" }) 
+        ? t("common.booking") 
         : t(`drivers.status.${getTranslationKey()}`)}
     </Badge>
-  )
-} 
+  );
+}

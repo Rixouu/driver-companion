@@ -1,377 +1,135 @@
-"use client"
+import { notFound } from "next/navigation";
+import { getDictionary } from "@/lib/i18n/server";
+import { getDriverById, getDriverInspections } from "@/lib/services/drivers";
+import { getDriverAvailability } from "@/lib/services/driver-availability";
+import { DriverDetailsContent } from "@/components/drivers/driver-details-content";
+import type { Driver, DriverAvailability } from "@/types/drivers";
+import type { DbInspection as Inspection } from "@/types/inspections"; // Or a more specific type for the details page if needed
+import { Skeleton } from "@/components/ui/skeleton"; // For server-side initial loading state
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { User, ArrowLeft } from "lucide-react";
+import { format as formatDate, parseISO } from "date-fns"; // For processing availability on server
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft, Edit, User, Key, Car, FileText, Clock, Calendar, MapPin, IdCard, Phone, Mail, MessageSquare } from "lucide-react"
-import { useI18n } from "@/lib/i18n/context"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { getDriverById, getDriverInspections } from "@/lib/services/drivers"
-import { getDriverAvailability, isDriverAvailable } from "@/lib/services/driver-availability"
-import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
-import { DriverVehicles } from "@/components/drivers/driver-vehicles"
-import { DriverInspectionsList } from "@/components/drivers/driver-inspections-list"
-import { DriverActivityFeed } from "@/components/drivers/driver-activity-feed"
-import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-bookings"
-import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
-import { DriverAvailabilitySection } from "@/components/drivers/driver-availability-section"
-import { Skeleton } from "@/components/ui/skeleton"
-import { format as formatDate, parseISO } from "date-fns"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useTheme } from "next-themes"
-import type { Driver } from "@/types/drivers"
+interface DriverDetailsPageProps {
+  params: { id: string };
+}
 
-export default function DriverDetailsPage() {
-  const { id } = useParams()
-  const router = useRouter()
-  const { t } = useI18n()
-  const { theme } = useTheme()
-  const [driver, setDriver] = useState<Driver | null>(null)
-  const [inspections, setInspections] = useState<any[]>([])
-  const [currentAvailabilityStatus, setCurrentAvailabilityStatus] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("overview")
+// Helper function to process availability, can be co-located or imported
+function processAvailabilityForDisplay(driver: Driver | null, availabilityRecords: DriverAvailability[]) {
+  if (!driver) return { currentAvailabilityStatus: 'unknown', processedDriver: driver };
 
-  // Function to load driver data that can be called on demand
-  const loadDriverDataAndAvailability = async () => {
-    try {
-      setIsLoading(true)
-      const driverData = await getDriverById(id as string)
-      setDriver(driverData as Driver)
-      
-      // Fetch current availability status
-      const today = formatDate(new Date(), "yyyy-MM-dd");
-      const availabilityRecords = await getDriverAvailability(id as string);
-      
-      // First look for booking-related unavailability (current ongoing booking)
-      const now = new Date();
-      const currentBookingAvailability = availabilityRecords.find((record) => {
-        const startDate = new Date(record.start_date);
-        const endDate = new Date(record.end_date);
-        const isNowBetweenDates = now >= startDate && now <= endDate;
-        const isBookingRelated = record.notes?.includes('Assigned to booking');
-        return isNowBetweenDates && isBookingRelated;
-      });
-      
-      // Store booking information to pass to the status badge
-      const isBooking = !!currentBookingAvailability?.notes?.includes('Assigned to booking');
-      const bookingNotes = currentBookingAvailability?.notes;
-      
-      // If there's a booking-related unavailability, prioritize that
-      if (currentBookingAvailability) {
-        setCurrentAvailabilityStatus(currentBookingAvailability.status);
-        
-        // Store booking information in the driver object for the status badge
-        if (driverData) {
-          (driverData as any).isBooking = isBooking;
-          (driverData as any).bookingNotes = bookingNotes;
-        }
-      } else {
-        const currentRecord = availabilityRecords.find(
-          (record) => record.start_date <= today && record.end_date >= today
-        );
-        setCurrentAvailabilityStatus(currentRecord?.status || 'available'); // Default to available
-      }
+  const today = formatDate(new Date(), "yyyy-MM-dd");
+  const now = new Date();
+  let currentStatus = driver.status || 'available'; // Default to driver record status or available
+  let isBooking = false;
+  let bookingNotes: string | undefined = undefined;
 
-      // Try to get inspections but handle the case where driver_id column doesn't exist
-      try {
-        const inspectionsData = await getDriverInspections(id as string)
-        setInspections(inspectionsData)
-      } catch (inspectionError) {
-        console.error("Error loading driver inspections:", inspectionError)
-        setInspections([])
-      }
-    } catch (error) {
-      console.error("Error loading driver data:", error)
-      setDriver(null)
-      setCurrentAvailabilityStatus(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Reverted to original logic for checking if on a booking, relying on notes
+  const currentBookingAvailability = availabilityRecords.find(record => {
+    if (!record.start_date || !record.end_date) return false;
+    const startDate = parseISO(record.start_date);
+    const endDate = parseISO(record.end_date);
+    const isNowBetweenDates = now >= startDate && now <= endDate;
+    // Original logic relied on notes for booking identification
+    const isBookingRelatedNote = record.notes?.toLowerCase().includes('assigned to booking') || record.notes?.toLowerCase().includes('on booking');
+    return isNowBetweenDates && isBookingRelatedNote;
+  });
 
-  useEffect(() => {
-    if (id) {
-      loadDriverDataAndAvailability()
-      
-      // No auto-refresh interval
-      
-      // No cleanup needed since no interval is set
-    }
-  }, [id])
-
-  // Function to reload data, passed to DriverVehicles
-  const refreshDriverData = async () => {
-    await loadDriverDataAndAvailability()
-  }
-
-  const handleViewFullSchedule = () => {
-    setActiveTab("availability")
-  }
-
-  // Card styles based on theme - matching the Recent Activity block
-  const getCardClasses = () => {
-    // Use the standard Card component styling without custom background
-    return "";
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-24" />
-        </div>
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-16 w-16 rounded-full" />
-          <div>
-            <Skeleton className="h-8 w-40 mb-2" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-        </div>
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+  if (currentBookingAvailability) {
+    currentStatus = currentBookingAvailability.status; // Keep status from the record if found
+    isBooking = true;
+    bookingNotes = currentBookingAvailability.notes;
+  } else {
+    // Check for general availability if not on a specific booking now
+    const generalCurrentRecord = availabilityRecords.find(
+      record => record.start_date <= today && record.end_date >= today
     );
+    if (generalCurrentRecord) {
+      currentStatus = generalCurrentRecord.status;
+    }
+  }
+  // Augment driver object, ensure not to mutate original if it's from a cache
+  const processedDriver = {
+     ...driver, 
+     isBooking, 
+     bookingNotes, 
+     // Ensure currentAvailabilityStatus in the driver object reflects the most accurate status for display consistency
+     // This might be redundant if the client component re-evaluates, but good for initial prop consistency
+     status: currentStatus 
+    };
+
+  return { currentAvailabilityStatus: currentStatus, processedDriver };
+}
+
+export default async function DriverDetailsPageServer({ params }: DriverDetailsPageProps) {
+  // Ensure getDictionary is awaited before accessing params
+  const dict = await getDictionary();
+  const awaitedParams = await params; // Explicitly await params
+  const id = awaitedParams?.id;
+
+  if (!id || typeof id !== 'string') {
+    console.error(dict.t("drivers.errors.consoleDriverIdError"));
+    notFound();
   }
 
-  if (!driver) {
+  try {
+    // Fetch all data in parallel if possible, or sequentially if dependent
+    // Note: Adjust service functions if they need to be more specific for server usage or return types
+    const driverData = await getDriverById(id);
+
+    if (!driverData) {
+      notFound();
+    }
+
+    // Fetch availability and inspections
+    const availabilityRecordsRaw = await getDriverAvailability(id);
+    const inspectionsData = await getDriverInspections(id);
+    
+    // Process availability to determine current status and augment driver data for initial display
+    const { processedDriver, currentAvailabilityStatus } = processAvailabilityForDisplay(driverData, availabilityRecordsRaw);
+
+    return (
+      <DriverDetailsContent
+        initialDriver={processedDriver} // Pass the processed driver
+        initialAvailability={availabilityRecordsRaw} // Pass raw for client to re-process if needed, or pass processed
+        initialInspections={inspectionsData as any} // Still casting, as data structure for inspections is complex
+        driverId={id}
+        // currentAvailabilityStatus is now part of initialDriver or can be derived by client from initialAvailability
+      />
+    );
+  } catch (error) {
+    console.error(dict.t("drivers.errors.consoleLoadError", { driverId: id }), error);
+    // Render a user-friendly error message
+    // This could be a more sophisticated error component
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
-          <Link href="/drivers" ><span className="flex items-center gap-2">
+          <Link href="/drivers">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
-              {t("common.backTo")} {t("drivers.title")}
+              {dict.t("common.backTo")} {dict.t("drivers.title")}
             </Button>
-          </span></Link>
+          </Link>
         </div>
         <div className="text-center py-12">
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
-          <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
-          <Link href="/drivers" passHref>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              {t("common.backTo")} {t("drivers.title")}
-            </Button>
+          <h2 className="text-2xl font-semibold mb-2">
+            {dict.t("drivers.errors.loadFailed.title")}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {dict.t("drivers.errors.loadFailed.description", { driverId: id })}
+          </p>
+          <Link href="/drivers">
+            <Button variant="outline">{dict.t("common.actions.tryAgain")}</Button>
           </Link>
         </div>
       </div>
     );
   }
+}
 
-  // Calculate driver since date
-  const driverSinceDate = driver.created_at ? 
-    `Driver since ${formatDate(new Date(driver.created_at), "MMMM yyyy")}` : 
-    "";
-
-  return (
-    <div className="container px-4 py-6 mx-auto w-full max-w-screen-2xl">
-      <div className="flex flex-wrap items-center justify-between mb-6">
-        <Link href="/drivers" passHref>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2 mb-2 sm:mb-0">
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.backTo")} {t("drivers.title")}
-          </Button>
-        </Link>
-        <Link href={`/drivers/${id}/edit`} passHref>
-          <Button size="sm" className="flex items-center gap-2">
-            <Edit className="h-4 w-4" />
-            {t("drivers.actions.editDriver")}
-          </Button>
-        </Link>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 space-y-6">
-          {/* Driver Info Card */}
-          <Card className={getCardClasses()}>
-            <CardContent className="p-6 flex flex-col items-center">
-              <Avatar className="h-20 w-20 bg-primary mb-4 mt-2">
-                <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                <AvatarFallback className="text-lg font-bold text-white">
-                  {driver.first_name?.[0]}{driver.last_name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-xl font-semibold mb-1">{driver.full_name}</h2>
-              <p className="text-sm text-muted-foreground mb-6">{t("drivers.since", { date: formatDate(new Date(driver.created_at), "MMMM yyyy") })}</p>
-              
-              <div className="w-full space-y-4">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm text-muted-foreground">{t("drivers.fields.email")}</p>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm break-all">{driver.email}</p>
-                  </div>
-                </div>
-                
-                {driver.phone && (
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm text-muted-foreground">{t("drivers.fields.phone")}</p>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm">{driver.phone}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2 w-full mt-5">
-                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800 text-xs sm:text-sm px-1 sm:px-2">
-                  <Phone className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.call")}
-                </Button>
-                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800 text-xs sm:text-sm px-1 sm:px-2">
-                  <Mail className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.text")}
-                </Button>
-                <Button variant="outline" className="flex items-center justify-center gap-1 border-gray-700 hover:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-800 text-xs sm:text-sm px-1 sm:px-2">
-                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.line")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Driver Details Card */}
-          <Card className={getCardClasses()}>
-            <CardContent className="p-4 sm:p-6">
-              <h3 className="text-xl font-bold mb-4">{t("drivers.driverDetails")}</h3>
-              
-              {driver.license_number && (
-                <div className="space-y-1 mb-4">
-                  <p className="text-sm text-muted-foreground">{t("drivers.fields.licenseNumber")}</p>
-                  <div className="flex items-center gap-2">
-                    <IdCard className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm">{driver.license_number}</p>
-                  </div>
-                  {driver.license_expiry && (
-                    <p className="text-xs text-muted-foreground">
-                      {t("drivers.fields.expires")}: {formatDate(new Date(driver.license_expiry), "MMMM do, yyyy")}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {driver.address && (
-                <div className="space-y-1 mb-4">
-                  <p className="text-sm text-muted-foreground">{t("drivers.fields.address")}</p>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400 mt-1" />
-                    <p className="text-sm whitespace-pre-wrap">{driver.address}</p>
-                  </div>
-                </div>
-              )}
-              
-              {driver.emergency_contact && (
-                <div className="space-y-1 mb-4">
-                  <p className="text-sm text-muted-foreground">{t("drivers.fields.emergencyContact")}</p>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm">{driver.emergency_contact}</p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">{t("drivers.fields.status")}</p>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <DriverStatusBadge 
-                    status={currentAvailabilityStatus || driver.status} 
-                    isBooking={(driver as any).isBooking}
-                    notes={(driver as any).bookingNotes}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Availability Section - Pass the handler */}
-          <DriverAvailabilitySection 
-            driverId={driver.id} 
-            onViewFullSchedule={handleViewFullSchedule} 
-          />
-        </div>
-
-        <div className="lg:col-span-8">
-          <Tabs 
-            defaultValue="overview" 
-            value={activeTab} 
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 w-full border-b">
-              <TabsList className="h-auto grid grid-cols-4 p-0 w-full rounded-none bg-transparent">
-                <TabsTrigger 
-                  value="overview" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                  <User className="h-5 w-5" />
-                  <span className="text-[10px] sm:text-xs">{t("drivers.tabs.overview")}</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="availability" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                  <Calendar className="h-5 w-5" />
-                  <span className="text-[10px] sm:text-xs">{t("drivers.tabs.availability")}</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="activity" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                  <Clock className="h-5 w-5" />
-                  <span className="text-[10px] sm:text-xs">{t("drivers.tabs.activity")}</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="inspections" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-                >
-                  <FileText className="h-5 w-5" />
-                  <span className="text-[10px] sm:text-xs">{t("drivers.tabs.inspections")}</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <TabsContent value="overview" className="mt-4 space-y-6">
-              <DriverVehicles 
-                driverId={driver.id} 
-                assignedVehicles={driver.assigned_vehicles} 
-                onUnassignSuccess={refreshDriverData}
-              />
-              <DriverUpcomingBookings driverId={driver.id} />
-              <DriverActivityFeed driverId={driver.id} />
-            </TabsContent>
-
-            <TabsContent value="availability" className="space-y-6">
-              {driver && (
-                <DriverAvailabilityManager 
-                  driver={driver} 
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="activity" className="mt-4">
-              <DriverActivityFeed driverId={driver.id} />
-            </TabsContent>
-
-            <TabsContent value="inspections" className="mt-4">
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <CardTitle>{t("drivers.inspections.title")}</CardTitle>
-                      <CardDescription>{t("drivers.inspections.description")}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0">
-                  <DriverInspectionsList inspections={inspections} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    </div>
-  );
-} 
+// Note: The Skeleton for loading state previously in the client component might not be directly applicable 
+// if the server component handles the initial load fully. Next.js Suspense with a loading.tsx file 
+// in the route segment would be the standard way to handle initial loading UI for server components.
+// For client-side transitions (e.g. in DriverDetailsContent's refreshData), its own Skeleton is fine. 

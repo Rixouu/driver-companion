@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { ShieldX } from 'lucide-react';
-import { supabase } from "@/lib/supabase/client";
+import { createBrowserClient } from "@supabase/ssr";
 import { Icons } from "@/components/icons";
 import { useRouter } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -14,6 +14,11 @@ export default function NotAuthorizedPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { t } = useI18n();
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   async function handleGoogleLogin() {
     try {

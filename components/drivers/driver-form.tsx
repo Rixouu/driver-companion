@@ -101,7 +101,7 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
               <FormItem>
                 <FormLabel>{t("drivers.fields.phone")}</FormLabel>
                 <FormControl>
-                  <Input placeholder={t("drivers.placeholders.phone")} {...field} />
+                  <Input type="tel" placeholder={t("drivers.placeholders.phone")} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

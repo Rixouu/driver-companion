@@ -14,7 +14,7 @@ import { useI18n } from "@/lib/i18n/context";
 import { Booking } from "@/types/bookings";
 import { Driver, DriverAvailabilityStatus } from "@/types/drivers";
 import { Vehicle } from "@/types/vehicles";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 import { Database } from "@/types/supabase";
 import { parseISO } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
@@ -52,7 +52,10 @@ async function fetchAssignmentDetails(supabase: any, driverId: string | null, ve
 
 export default function BookingAssignment({ booking, onAssignmentComplete }: BookingAssignmentProps) {
   const { t } = useI18n();
-  const supabase = createClientComponentClient<Database>();
+  const supabase = createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   
   // State for current data
   const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
@@ -81,32 +84,46 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
       setIsLoading(true);
       try {
         console.log("[DEBUG] Fetching fresh booking data from database...");
-        const { data: freshBooking, error } = await supabase
+        const { data: freshBookingData, error } = await supabase
           .from('bookings')
-          .select('id, driver_id, vehicle_id')
+          .select(`
+            id,
+            driver_id,
+            vehicle_id,
+            vehicles (id, make, model, year, license_plate, name, brand) 
+          `)
           .eq('id', booking.supabase_id)
           .single();
           
         if (error) throw error;
         
-        console.log("[DEBUG] Fresh booking data:", freshBooking);
+        const freshVehicle = freshBookingData?.vehicles as import('@/types/vehicles').Vehicle | null;
+
+        console.log("[DEBUG] Fresh booking data:", freshBookingData);
+        console.log("[DEBUG] Fresh vehicle data from join:", freshVehicle);
         
-        // Only update these specific fields
         setCurrentBooking({
           ...booking,
-          driver_id: freshBooking.driver_id || null,
-          vehicle: freshBooking.vehicle_id ? { id: freshBooking.vehicle_id } : null
+          driver_id: freshBookingData.driver_id || undefined,
+          vehicle: freshVehicle 
+            ? { 
+                id: freshVehicle.id,
+                make: freshVehicle.make || freshVehicle.brand || 'N/A', 
+                model: freshVehicle.model || freshVehicle.name || 'N/A', 
+                year: String(freshVehicle.year || '0000'), 
+                registration: freshVehicle.license_plate
+              } as import('@/types/bookings').Vehicle 
+            : undefined
         });
         
-        // Set the initial selection values based on the fresh data
-        setSelectedDriverId(freshBooking.driver_id || null);
-        setSelectedVehicleId(freshBooking.vehicle_id || null);
+        setSelectedDriverId(freshBookingData.driver_id || null);
+        setSelectedVehicleId(freshBookingData.vehicle_id || null);
         
         // Get the names for display
         const { driverName, vehicleName } = await fetchAssignmentDetails(
           supabase, 
-          freshBooking.driver_id, 
-          freshBooking.vehicle_id
+          freshBookingData.driver_id, 
+          freshBookingData.vehicle_id
         );
         
         console.log("[DEBUG] Display names from fresh data:", { driverName, vehicleName });
@@ -114,7 +131,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         setCurrentVehicleName(vehicleName);
         
         // Set edit mode only if we don't have both driver and vehicle
-        setIsEditing(!(freshBooking.driver_id && freshBooking.vehicle_id));
+        setIsEditing(!(freshBookingData.driver_id && freshBookingData.vehicle_id));
         
         setHasInitialized(true);
       } catch (error) {
@@ -137,6 +154,11 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
     if (!hasInitialized || !currentBooking) return;
     
     async function loadAvailabilityData() {
+      if (!currentBooking) {
+        console.warn("[DEBUG] loadAvailabilityData called with null currentBooking, returning.");
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         // Fetch booking date and time for availability check
@@ -163,13 +185,14 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         console.log("[DEBUG] Availability check window:", { 
           start: startTimeISO, 
           end: endTimeISO,
-          bookingId: currentBooking.supabase_id
+          bookingId: currentBooking!.supabase_id
         });
 
         // Fetch ALL drivers to display in the dropdown
         const { data: allDriversData, error: driversError } = await supabase
           .from('drivers')
-          .select('*');
+          .select('*')
+          .returns<import('@/types/drivers').Driver[]>();
 
         if (driversError) throw driversError;
         
@@ -260,7 +283,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         // Filter available drivers
         const availableDriversList = allDriversData?.filter(driver => 
           // Driver is available if not in the unavailable set and is active
-          !unavailableDriverIds.has(driver.id) && driver.status === 'available'
+          driver.status && driver.status === 'available'
         );
         
         // Filter available vehicles
@@ -270,7 +293,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         );
 
         // Check if the booking has an original vehicle
-        let bookingVehicleId = currentBooking.vehicle?.id;
+        let bookingVehicleId = currentBooking!.vehicle?.id;
         
         if (bookingVehicleId) {
           // Find the original vehicle in all vehicles
@@ -658,7 +681,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         return {
           ...prev,
           driver_id: driver_id,
-          vehicle: vehicle_id ? { id: vehicle_id } : null
+          vehicle: vehicle_id ? { id: vehicle_id } : undefined
         } as any; // Type assertion to avoid TypeScript errors
       });
       

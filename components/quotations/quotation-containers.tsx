@@ -5,7 +5,9 @@ import { QuotationMessage, QuotationActivity } from '@/types/quotations';
 import { QuotationMessageBlock } from '@/components/quotations/quotation-message-block';
 import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
 import { useToast } from '@/components/ui/use-toast';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'; // Old client
+// import { createBrowserClient } from '@supabase/ssr'; // REMOVED
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser-client"; // ADDED
 
 export function QuotationMessageContainer({ id }: { id: string }) {
   const [messages, setMessages] = useState<QuotationMessage[]>([]);
@@ -52,7 +54,12 @@ export function QuotationMessageContainer({ id }: { id: string }) {
   const sendMessage = async (message: string): Promise<boolean> => {
     try {
       // Get the current user ID from Supabase
-      const supabase = createClientComponentClient();
+      // const supabase = createClientComponentClient(); // Old client
+      // const supabase = createBrowserClient( // REMOVED
+      //   process.env.NEXT_PUBLIC_SUPABASE_URL!, // REMOVED
+      //   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // REMOVED
+      // ); // REMOVED
+      const supabase = getSupabaseBrowserClient(); // ADDED
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {

@@ -6,7 +6,9 @@ import { Clock, Car, Wrench, FileText, ExternalLink } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase/client"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { createClient } from "@/lib/supabase"
+import { Database } from "@/types/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Activity {
@@ -27,6 +29,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
   const { t } = useI18n()
   const [activities, setActivities] = useState<Activity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClient();
 
   useEffect(() => {
     async function loadActivities() {
@@ -162,7 +165,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
             {activities.map((activity) => (
               <Link
                 key={activity.id}
-                href={activity.link} passHref
+                href={{pathname: activity.link}} passHref
                 className="block p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" 
               >
                 <div className="flex items-start gap-3 justify-between">

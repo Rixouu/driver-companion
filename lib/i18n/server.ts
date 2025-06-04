@@ -9,8 +9,6 @@ const locales = {
   ja
 } as const
 
-export const dynamic = 'force-dynamic'
-
 export async function getDictionary() {
   // In Next.js, pass cookies directly
   const cookieStore = await cookies()
@@ -26,10 +24,6 @@ export async function getDictionary() {
     t,
     dictionary: translations as TranslationValue
   }
-}
-
-export function getCookieStore() {
-  return cookies()
 }
 
 export type Locale = keyof typeof locales

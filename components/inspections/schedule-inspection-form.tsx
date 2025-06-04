@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,12 +22,14 @@ import {
 } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionType } from "@/lib/types/inspections"
+import { InspectionType } from "@/types/inspections"
 import { cn } from "@/lib/utils/styles"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase/client"
+import { toast } from "@/components/ui/use-toast"
+import { createClient } from "@/lib/supabase"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 const scheduleSchema = z.object({
   type: z.enum(['routine', 'safety', 'maintenance']),
@@ -43,8 +45,10 @@ interface ScheduleInspectionFormProps {
 export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProps) {
   const { t } = useI18n()
   const router = useRouter()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Get Supabase client instance
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof scheduleSchema>>({
     resolver: zodResolver(scheduleSchema),
@@ -60,7 +64,8 @@ export function ScheduleInspectionForm({ vehicleId }: ScheduleInspectionFormProp
           vehicle_id: vehicleId,
           type: data.type,
           date: data.date.toISOString(),
-          status: 'scheduled'
+          status: 'scheduled',
+          created_by: (await supabase.auth.getUser()).data.user?.id
         })
         .select()
         .single()

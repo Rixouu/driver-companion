@@ -6,7 +6,12 @@ import { InspectionList } from "@/components/inspections/inspection-list"
 import { redirect } from "next/navigation"
 import type { DbInspection, Inspection } from "@/types"
 import type { DbVehicle } from "@/types"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { Suspense } from "react"
+
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 
 const ITEMS_PER_PAGE = 9
 
@@ -17,31 +22,26 @@ export const metadata = {
 
 export const dynamic = "force-dynamic"
 
-export default async function InspectionsPage() {
-  // Use the updated Supabase client that properly handles cookies in Next.js
-  const supabase = await createServerSupabaseClient()
+export default async function InspectionsPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
+  const supabase = await getSupabaseServerClient()
 
-  // Fetch user session
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-  // If no user, redirect to login
-  if (!session) {
+  if (userError || !user) {
+    console.error("User not authenticated, redirecting to login.")
     redirect('/login')
   }
 
-  // Fetch inspections
   const { data: inspectionsData, error: inspectionsError } = await supabase
     .from('inspections')
     .select('*')
     .order('date', { ascending: false })
 
-  // Fetch vehicles
   const { data: vehiclesData, error: vehiclesError } = await supabase
     .from('vehicles')
     .select('*')
     .order('name')
 
-  // Handle potential errors
   if (inspectionsError) {
     console.error("Error fetching inspections:", inspectionsError.message)
   }
@@ -49,7 +49,6 @@ export default async function InspectionsPage() {
     console.error("Error fetching vehicles:", vehiclesError.message)
   }
 
-  // Cast data to the expected types using intermediate unknown cast
   const inspections = ((inspectionsData || []) as unknown) as Inspection[]
   const vehicles = ((vehiclesData || []) as unknown) as DbVehicle[]
 

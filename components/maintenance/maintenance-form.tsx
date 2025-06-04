@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -31,7 +31,7 @@ import { maintenanceSchema } from "@/lib/validations/maintenance"
 import type { MaintenanceFormData } from "@/lib/validations/maintenance"
 import { Wrench, Sparkles, Info } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/lib/hooks/use-auth"
 import { createMaintenanceTask, updateMaintenanceTask } from "@/lib/services/maintenance"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -51,64 +51,127 @@ interface MaintenanceFormProps {
 export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { toast } = useToast()
   const { t } = useI18n()
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<string>("template")
 
-  // Get prefilled data from URL if coming from an inspection
-  const prefilledTitle = searchParams.get('title') || initialData?.title || ""
-  const prefilledDescription = searchParams.get('description') || initialData?.description || ""
-  const prefilledVehicleId = searchParams.get('vehicle_id') || initialData?.vehicle_id || ""
+  // DEBUG: Log raw searchParams
+  console.log("[MaintenanceForm] Raw searchParams:", searchParams.toString());
+
+  // Get prefilled data from URL
+  const inspectionId = searchParams.get('inspection_id') || ""
+
+  let prefilledTitle = initialData?.title || ""
+  let prefilledDescription = initialData?.description || ""
+  const prefilledVehicleId = searchParams.get('vehicleId') || initialData?.vehicle_id || ""
+  // DEBUG: Log prefilledVehicleId at definition
+  console.log("[MaintenanceForm] Top-level prefilledVehicleId:", prefilledVehicleId, "from searchParams:", searchParams.get('vehicleId'), "from initialData:", initialData?.vehicle_id);
+
   const prefilledPriority = searchParams.get('priority') || initialData?.priority || "medium"
   const prefilledStatus = searchParams.get('status') || initialData?.status || "scheduled"
-  const inspectionId = searchParams.get('inspection_id') || ""
+
+  if (inspectionId) {
+    // If coming from an inspection, set generic title and description
+    // Vehicle ID will still be prefilled from the URL if available
+    prefilledTitle = t('maintenance.newTask'); // Or a more specific title like "Post-Inspection Repair"
+    prefilledDescription = t('inspections.messages.defaultRepairDescription'); // Or leave empty
+  } else {
+    // If not from inspection, use title/description from URL params if they exist
+    prefilledTitle = searchParams.get('title') || prefilledTitle;
+    prefilledDescription = searchParams.get('description') || prefilledDescription;
+  }
   
   // Set a default due date for 7 days from now if creating a new task
   const defaultDueDate = mode === 'create' 
     ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     : initialData?.due_date || ""
 
+  // DEBUG: Log defaultValues before passing to useForm
+  const defaultVals = {
+    title: prefilledTitle,
+    description: prefilledDescription,
+    vehicle_id: prefilledVehicleId,
+    due_date: defaultDueDate,
+    priority: prefilledPriority as "low" | "medium" | "high",
+    status: prefilledStatus as "scheduled" | "in_progress" | "completed",
+    estimated_duration: initialData?.estimated_duration?.toString() || "",
+    cost: initialData?.cost?.toString() || "",
+    notes: initialData?.notes || "",
+  };
+  console.log("[MaintenanceForm] DefaultValues for useForm:", defaultVals);
+
   const form = useForm<MaintenanceFormData>({
     resolver: zodResolver(maintenanceSchema),
-    defaultValues: {
-      title: prefilledTitle,
-      description: prefilledDescription,
-      vehicle_id: prefilledVehicleId,
-      due_date: defaultDueDate,
-      priority: prefilledPriority as "low" | "medium" | "high",
-      status: prefilledStatus as "scheduled" | "in_progress" | "completed",
-      estimated_duration: initialData?.estimated_duration?.toString() || "",
-      cost: initialData?.cost?.toString() || "",
-      notes: initialData?.notes || "",
-    },
+    defaultValues: defaultVals,
   })
 
   // Update form values if URL parameters change
   useEffect(() => {
-    if (searchParams.get('title')) {
-      form.setValue('title', searchParams.get('title') || "")
+    console.log("[MaintenanceForm] useEffect triggered. searchParams:", searchParams.toString());
+    const currentInspectionId = searchParams.get('inspection_id');
+    const urlVehicleId = searchParams.get('vehicleId');
+    // DEBUG: Log urlVehicleId from inside useEffect
+    console.log("[MaintenanceForm useEffect] urlVehicleId from searchParams:", urlVehicleId);
+
+    const urlTitle = searchParams.get('title');
+    const urlDescription = searchParams.get('description');
+    const urlPriorityParam = searchParams.get('priority');
+    const urlStatusParam = searchParams.get('status');
+
+    if (currentInspectionId) {
+      form.setValue('title', t('maintenance.newTask'));
+      form.setValue('description', t('inspections.messages.defaultRepairDescription'));
+      if (urlVehicleId) {
+        console.log("[MaintenanceForm useEffect] In currentInspectionId block, setting vehicle_id to:", urlVehicleId);
+        form.setValue('vehicle_id', urlVehicleId);
+      }
+    } else {
+      if (urlTitle) {
+        form.setValue('title', urlTitle);
+      }
+      if (urlDescription) {
+        form.setValue('description', urlDescription);
+      }
+      if (urlVehicleId && !initialData?.vehicle_id) {
+         console.log("[MaintenanceForm useEffect] In ELSE block, setting vehicle_id to:", urlVehicleId, "because initialData.vehicle_id is:", initialData?.vehicle_id);
+         form.setValue('vehicle_id', urlVehicleId);
+      }
     }
-    if (searchParams.get('description')) {
-      form.setValue('description', searchParams.get('description') || "")
+
+    const validPriorities = ["low", "medium", "high"] as const;
+    type PriorityType = typeof validPriorities[number];
+    if (urlPriorityParam && validPriorities.includes(urlPriorityParam as PriorityType)) {
+      const validatedPriority = urlPriorityParam as PriorityType;
+      form.setValue('priority', validatedPriority);
+    } else if (!form.getValues('priority')) { 
+      form.setValue('priority', 'medium');
     }
-    if (searchParams.get('vehicle_id')) {
-      form.setValue('vehicle_id', searchParams.get('vehicle_id') || "")
+
+    const validStatuses = ["scheduled", "in_progress", "completed"] as const;
+    type StatusType = typeof validStatuses[number];
+    if (urlStatusParam && validStatuses.includes(urlStatusParam as StatusType)) {
+      const validatedStatus = urlStatusParam as StatusType;
+      form.setValue('status', validatedStatus);
+    } else if (!form.getValues('status')) { 
+      form.setValue('status', 'scheduled');
     }
-    if (searchParams.get('priority')) {
-      form.setValue('priority', (searchParams.get('priority') as "low" | "medium" | "high") || "medium")
+
+    if (initialData?.vehicle_id && !urlVehicleId) {
+      console.log("[MaintenanceForm useEffect] Setting vehicle_id from initialData:", initialData.vehicle_id, "because urlVehicleId is null/empty.");
+      form.setValue('vehicle_id', initialData.vehicle_id);
     }
-    if (searchParams.get('status')) {
-      form.setValue('status', (searchParams.get('status') as "scheduled" | "in_progress" | "completed") || "scheduled")
-    }
-  }, [searchParams, form])
+
+    // DEBUG: Log form's vehicle_id at the end of useEffect
+    console.log("[MaintenanceForm useEffect] Form vehicle_id at end of useEffect:", form.getValues('vehicle_id'));
+
+  }, [searchParams, form, t, initialData?.vehicle_id]);
 
   // Handle template selection
   const handleTemplateSelect = (template: MaintenanceTaskTemplate) => {
     form.setValue('title', template.title)
     form.setValue('description', template.description)
-    form.setValue('priority', template.priority)
+    form.setValue('priority', template.priority as "low" | "medium" | "high")
     form.setValue('estimated_duration', template.estimated_duration.toString())
     form.setValue('cost', template.estimated_cost.toString())
     
@@ -140,13 +203,15 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
         await updateMaintenanceTask(initialData.id, formattedData)
         toast({
           title: t('maintenance.messages.updateSuccess'),
+          // Consider adding description: t('maintenance.messages.updateSuccessDescription')
         })
       } else {
-        const { data, error } = await createMaintenanceTask(formattedData)
-        if (error) {
-          console.error('Error:', error)
+        const { data: createdData, error: createError } = await createMaintenanceTask(formattedData) // Renamed to avoid conflict with error variable from outer scope
+        if (createError) {
+          console.error('Error:', createError)
           toast({
-            title: t('maintenance.messages.error'),
+            title: t('maintenance.messages.error'), // Generic error
+            description: createError.message || t('maintenance.messages.createErrorDescription'), // More specific if available
             variant: "destructive",
           })
           return
@@ -154,6 +219,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
         
         toast({
           title: t('maintenance.messages.createSuccess'),
+          // Consider adding description: t('maintenance.messages.createSuccessDescription')
         })
       }
 
@@ -214,22 +280,26 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                     <FormField
                       control={form.control}
                       name="vehicle_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
-                          <FormControl>
-                            <VehicleSelector
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {t('maintenance.fields.vehicleDescription')}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        // DEBUG: Log props passed to VehicleSelector
+                        console.log("[MaintenanceForm] VehicleSelector render props (field):", field);
+                        return (
+                          <FormItem>
+                            <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
+                            <FormControl>
+                              <VehicleSelector
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {t('maintenance.fields.vehicleDescription')}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     
                     <FormField
@@ -302,22 +372,26 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                     <FormField
                       control={form.control}
                       name="vehicle_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
-                          <FormControl>
-                            <VehicleSelector
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {t('maintenance.fields.vehicleDescription')}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        // DEBUG: Log props passed to VehicleSelector (manual tab)
+                        console.log("[MaintenanceForm] VehicleSelector (manual tab) render props (field):", field);
+                        return (
+                          <FormItem>
+                            <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
+                            <FormControl>
+                              <VehicleSelector
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              {t('maintenance.fields.vehicleDescription')}
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
 
@@ -494,42 +568,50 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
                   <FormField
                     control={form.control}
                     name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.title')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder={t('maintenance.fields.titlePlaceholder')} 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('maintenance.fields.titleDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // DEBUG: Log props passed to Input
+                      console.log("[MaintenanceForm] Input render props (field):", field);
+                      return (
+                        <FormItem>
+                          <FormLabel>{t('maintenance.fields.title')}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder={t('maintenance.fields.titlePlaceholder')} 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('maintenance.fields.titleDescription')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
                     control={form.control}
                     name="vehicle_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
-                        <FormControl>
-                          <VehicleSelector
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('maintenance.fields.vehicleDescription')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // DEBUG: Log props passed to VehicleSelector (edit mode)
+                      console.log("[MaintenanceForm] VehicleSelector (edit mode) render props (field):", field);
+                      return (
+                        <FormItem>
+                          <FormLabel>{t('maintenance.fields.selectVehicle')}</FormLabel>
+                          <FormControl>
+                            <VehicleSelector
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder={t('maintenance.fields.selectVehiclePlaceholder')}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t('maintenance.fields.vehicleDescription')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 

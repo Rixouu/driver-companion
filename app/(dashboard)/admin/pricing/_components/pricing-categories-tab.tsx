@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PricingCategory } from "@/types/quotations";
-import { useQuotationService } from "@/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,8 +29,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash, Check, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
-import { ServiceTypeInfo } from "@/hooks/useQuotationService";
+import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 export default function PricingCategoriesTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
@@ -44,6 +47,9 @@ export default function PricingCategoriesTab() {
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
   const [categoryToToggle, setCategoryToToggle] = useState<{id: string, isActive: boolean} | null>(null);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [selectedServiceTypesForLink, setSelectedServiceTypesForLink] = useState<Set<string>>(new Set());
+  const [categoryToLink, setCategoryToLink] = useState<PricingCategory | null>(null);
   
   const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory } = useQuotationService();
   const { t } = useI18n();
@@ -80,16 +86,16 @@ export default function PricingCategoriesTab() {
       }
       
       toast({
-        title: "Service Types Fixed",
-        description: `Successfully updated ${result.totalUpdated} categories.`,
+        title: t("pricing.categories.toast.serviceTypesFixedTitle"),
+        description: t("pricing.categories.toast.serviceTypesFixedDescription", { count: result.totalUpdated }),
       });
       
       await refreshCategories();
     } catch (error) {
       console.error("Error fixing service types:", error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to fix service types',
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : t("pricing.categories.toast.fixServiceTypesError"),
         variant: "destructive",
       });
     } finally {
@@ -145,7 +151,7 @@ export default function PricingCategoriesTab() {
 
     // Basic validation (can be enhanced)
     if (!currentCategory.name?.trim()) {
-      toast({ title: "Validation Error", description: "Category name is required", variant: "destructive" });
+      toast({ title: t("common.error.validationError"), description: t("pricing.categories.toast.nameRequiredError"), variant: "destructive" });
       return;
     }
 
@@ -211,241 +217,326 @@ export default function PricingCategoriesTab() {
     }
   };
   
+  const handleServiceTypeToggle = (serviceId: string, isActive: boolean) => {
+    if (currentCategory) {
+      const currentSelectedIds = currentCategory.service_type_ids || [];
+      const newSelectedIds = isActive
+        ? [...currentSelectedIds, serviceId]
+        : currentSelectedIds.filter(id => id !== serviceId);
+      handleInputChange("service_type_ids", newSelectedIds);
+    }
+  };
+  
+  const handleOpenLinkDialog = (category: PricingCategory) => {
+    setCategoryToLink(category);
+    setIsLinkDialogOpen(true);
+  };
+  
+  const handleSaveLinks = async () => {
+    if (!categoryToLink) return;
+
+    const newServiceTypes = selectedServiceTypesForLink.map(id => allServiceTypes.find(st => st.id === id));
+    const result = await updatePricingCategory(categoryToLink.id, {
+      service_type_ids: newServiceTypes.map(st => st?.id)
+    });
+
+    if (result) {
+      await refreshCategories();
+      handleCloseDialog();
+    } else {
+      // Error toast is handled by the hook, keep dialog open
+    }
+  };
+  
   if (isLoading) {
     return <div className="p-4 text-center">Loading pricing categories...</div>;
   }
   
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">All Categories</h3>
-        <div className="flex space-x-2">
-          <Button onClick={fixServiceTypes} size="sm" variant="outline">
-            Fix Service Types
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>{t("pricing.categories.title")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("pricing.categories.description")}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={fixServiceTypes} variant="outline">Fix Service Types</Button>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="mr-2 h-4 w-4" /> {t("common.addNew")}
           </Button>
-        <Button onClick={() => handleOpenDialog()} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Add Category
-        </Button>
         </div>
-      </div>
-      
-      {categories.length === 0 ? (
-        <div className="p-8 text-center text-muted-foreground border rounded-md">
-          No pricing categories found. Create your first category.
-        </div>
-      ) : (
-        <div className="border rounded-md">
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p>{t("common.loading")}</p>
+        ) : categories.length === 0 ? (
+          <p>No categories found. Click 'Add New' to create one.</p>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Services</TableHead>
-                <TableHead className="w-[100px] text-center">Status</TableHead>
-                <TableHead className="w-[100px] text-center">Order</TableHead>
-                <TableHead className="w-[120px] text-right">Actions</TableHead>
+                <TableHead className="w-[50px]">{t("pricing.categories.table.id")}</TableHead>
+                <TableHead>{t("pricing.categories.table.details")}</TableHead>
+                <TableHead>{t("pricing.categories.table.services")}</TableHead>
+                <TableHead className="w-[100px] text-center">{t("pricing.categories.table.status")}</TableHead>
+                <TableHead className="w-[100px] text-center">{t("pricing.categories.table.order")}</TableHead>
+                <TableHead className="w-[120px] text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {categories.map((category) => (
                 <TableRow key={category.id}>
-                  <TableCell className="font-mono text-xs">{category.id.substring(0, 8)}...</TableCell>
+                  <TableCell>{category.id}</TableCell>
+                  <TableCell>{category.name}</TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{category.name}</div>
-                      {category.description && (
-                        <div className="text-sm text-muted-foreground">{category.description}</div>
-                      )}
-                    </div>
+                    {category.service_type_ids && category.service_type_ids.length > 0 
+                      ? category.service_type_ids.map(id => allServiceTypes.find(st => st.id === id)?.name || id).join(', ') 
+                      : t("common.notAssigned")}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {category.service_type_ids && category.service_type_ids.map((serviceId) => {
-                        const serviceType = allServiceTypes.find(st => st.id === serviceId);
-                        return (
-                          <Badge key={serviceId} variant="outline">
-                            {serviceType ? serviceType.name : serviceId}
-                          </Badge>
-                        );
-                      })}
-                    </div>
+                    <Badge variant={category.is_active ? "default" : "outline"}>
+                      {category.is_active ? t("common.status.active") : t("common.status.inactive")}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell>{category.sort_order}</TableCell>
+                  <TableCell className="text-right">
                     <Button
                       variant={category.is_active ? "default" : "outline"}
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => openStatusConfirm(category.id, !category.is_active)}
+                      title={category.is_active ? t("common.deactivate") : t("common.activate")}
                     >
-                      {category.is_active ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <X className="h-4 w-4" />
-                      )}
+                      {category.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                     </Button>
-                  </TableCell>
-                  <TableCell className="text-center">{category.sort_order}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleOpenDialog(category)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => openDeleteConfirm(category.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenLinkDialog(category)} title="Link Service Types">
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleOpenDialog(category)}
+                      title={t("common.edit")}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => openDeleteConfirm(category.id)}
+                      title={t("common.delete")}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
-      )}
-      
-      {/* Edit/Create Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {isEditing ? "Edit Category" : "Add New Category"}
-            </DialogTitle>
-            <DialogDescription>
-              {isEditing 
-                ? "Edit the details of this pricing category"
-                : "Create a new pricing category for your services"
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Category Name</Label>
-              <Input
-                id="name"
-                value={currentCategory?.name || ""}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-              />
-            </div>
+        )}
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {isEditing ? t("pricing.categories.editDialog.title") : t("pricing.categories.createDialog.title")}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing 
+                  ? t("pricing.categories.editDialog.description")
+                  : t("pricing.categories.createDialog.description")
+                }
+              </DialogDescription>
+            </DialogHeader>
             
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={currentCategory?.description || ""}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="sort_order">Display Order</Label>
-              <Input
-                id="sort_order"
-                type="number"
-                value={currentCategory?.sort_order || 0}
-                onChange={(e) => handleInputChange("sort_order", parseInt(e.target.value))}
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_active"
-                checked={currentCategory?.is_active ?? true}
-                onCheckedChange={(checked) => handleInputChange("is_active", checked === true)}
-              />
-              <Label htmlFor="is_active">Active</Label>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label>Service Types</Label>
-              <div className="p-2 border rounded-md grid grid-cols-2 gap-2 h-32 overflow-y-auto">
-                {allServiceTypes.map((serviceType) => (
-                  <div key={serviceType.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`service-${serviceType.id}`}
-                      checked={currentCategory?.service_type_ids?.includes(serviceType.id) ?? false}
-                      onCheckedChange={(checked) => {
-                        const currentSelectedIds = currentCategory?.service_type_ids || [];
-                        handleInputChange(
-                          "service_type_ids",
-                          checked
-                            ? [...currentSelectedIds, serviceType.id]
-                            : currentSelectedIds.filter(id => id !== serviceType.id)
-                        );
-                      }}
-                    />
-                    <Label htmlFor={`service-${serviceType.id}`}>{serviceType.name}</Label>
-                  </div>
-                ))}
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">{t("pricing.categories.fields.name")}</Label>
+                <Input
+                  id="name"
+                  value={currentCategory?.name || ""}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder={t("pricing.categories.placeholders.name")}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description">{t("pricing.categories.fields.descriptionOptional")}</Label>
+                <Textarea
+                  id="description"
+                  value={currentCategory?.description || ""}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  placeholder={t("pricing.categories.placeholders.description")}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="sort_order">{t("pricing.categories.fields.sortOrder")}</Label>
+                <Input
+                  id="sort_order"
+                  type="number"
+                  value={currentCategory?.sort_order || 0}
+                  onChange={(e) => handleInputChange("sort_order", parseInt(e.target.value))}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="is_active"
+                  checked={currentCategory?.is_active ?? true}
+                  onCheckedChange={(checked) => handleInputChange("is_active", checked === true)}
+                />
+                <Label htmlFor="is_active">{t("pricing.categories.fields.isActive")}</Label>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label>{t("pricing.categories.fields.serviceTypes")}</Label>
+                <div className="p-2 border rounded-md grid grid-cols-2 gap-2 h-32 overflow-y-auto">
+                  {allServiceTypes.map(st => (
+                    <div key={st.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`st-${st.id}`}
+                        checked={currentCategory?.service_type_ids?.includes(st.id) || false}
+                        onCheckedChange={(checked) => handleServiceTypeToggle(st.id, !!checked)}
+                      />
+                      <label htmlFor={`st-${st.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {st.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveCategory}>
-              {isEditing ? "Update" : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog}>
+                {t("common.cancel")}
+              </Button>
+              <Button onClick={handleSaveCategory}>
+                {isEditing ? t("common.update") : t("common.create")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("pricing.categories.deleteDialog.title")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t("pricing.categories.deleteDialog.description")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>
+                {t("common.cancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
+                {t("common.delete")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('pricing.categories.deleteConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('pricing.categories.deleteConfirmDescription')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive hover:bg-destructive/90">
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog open={statusConfirmOpen} onOpenChange={setStatusConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {categoryToToggle?.isActive
+                  ? t("pricing.categories.activateDialog.title")
+                  : t("pricing.categories.deactivateDialog.title")}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {categoryToToggle?.isActive
+                  ? t("pricing.categories.activateDialog.description")
+                  : t("pricing.categories.deactivateDialog.description")}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setCategoryToToggle(null)}>
+                {t("common.cancel")}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleStatusConfirm}>
+                {categoryToToggle?.isActive ? t("common.activate") : t("common.deactivate")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      {/* Status Change Confirmation Dialog */}
-      <AlertDialog open={statusConfirmOpen} onOpenChange={setStatusConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {categoryToToggle?.isActive
-                ? t('pricing.categories.activateConfirmTitle')
-                : t('pricing.categories.deactivateConfirmTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {categoryToToggle?.isActive
-                ? t('pricing.categories.activateConfirmDescription')
-                : t('pricing.categories.deactivateConfirmDescription')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCategoryToToggle(null)}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleStatusConfirm}>
-              {categoryToToggle?.isActive ? t('common.activate') : t('common.deactivate')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        {/* Dialog for linking service types */}
+        <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{t("pricing.categories.linkDialog.title", { categoryName: categoryToLink?.name || '' })}</DialogTitle>
+              <DialogDescription>
+                {t("pricing.categories.linkDialog.description")}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <Label>{t("pricing.categories.linkDialog.available")}</Label>
+                <ScrollArea className="h-72 rounded-md border">
+                  <div className="p-4">
+                    {allServiceTypes.map(st => (
+                      <div key={st.id} className="flex items-center space-x-2 mb-1 p-1 hover:bg-muted rounded">
+                        <Checkbox
+                          id={`link-available-${st.id}`}
+                          checked={selectedServiceTypesForLink.has(st.id)}
+                          onCheckedChange={(checked) => {
+                            const newSelection = new Set(selectedServiceTypesForLink);
+                            if (checked) newSelection.add(st.id);
+                            else newSelection.delete(st.id);
+                            setSelectedServiceTypesForLink(newSelection);
+                          }}
+                        />
+                        <label htmlFor={`link-available-${st.id}`} className="text-sm leading-none">{st.name}</label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("pricing.categories.linkDialog.linked")}</Label>
+                <ScrollArea className="h-72 rounded-md border">
+                   <div className="p-4">
+                    {selectedServiceTypesForLink.size > 0 ? (
+                      Array.from(selectedServiceTypesForLink).map(id => {
+                        const serviceType = allServiceTypes.find(st => st.id === id);
+                        return (
+                          <div key={id} className="flex items-center justify-between space-x-2 mb-1 p-1">
+                            <span className="text-sm">{serviceType?.name || id}</span>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                                onClick={() => {
+                                    const newSelection = new Set(selectedServiceTypesForLink);
+                                    newSelection.delete(id);
+                                    setSelectedServiceTypesForLink(newSelection);
+                                }}
+                                title={t("pricing.categories.linkDialog.unlink")}
+                              >
+                               <X className="h-4 w-4" />
+                             </Button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-muted-foreground p-2">{t("pricing.categories.linkDialog.noSelectedServiceTypes")}</p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>{t("common.cancel")}</Button>
+              <Button onClick={handleSaveLinks}>{t("pricing.categories.linkDialog.saveLinks")}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+      </CardContent>
+    </Card>
   );
 } 

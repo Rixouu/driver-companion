@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
-import { supabase } from "@/lib/supabase/client"
+import { useSupabase } from "@/components/providers/supabase-provider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Car, Search } from "lucide-react"
@@ -10,16 +10,7 @@ import { Input } from "@/components/ui/input"
 import { useI18n } from "@/lib/i18n/context"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
-
-interface Vehicle {
-  id: string
-  name: string
-  plate_number: string
-  brand?: string
-  model?: string
-  image_url?: string
-  driver_id?: string | null
-}
+import { DbVehicle } from "@/types"
 
 interface MultiVehicleSelectorProps {
   value: string[]
@@ -37,39 +28,38 @@ export function MultiVehicleSelector({
   maxHeight = 400
 }: MultiVehicleSelectorProps) {
   const { t } = useI18n()
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([])
+  const [vehicles, setVehicles] = useState<DbVehicle[]>([])
+  const [filteredVehicles, setFilteredVehicles] = useState<DbVehicle[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+
+  const supabase = useSupabase()
 
   useEffect(() => {
     async function loadVehicles() {
       try {
         setIsLoading(true)
-        const { data, error } = await supabase
+        let query = supabase
           .from("vehicles")
-          .select("*")
+          .select<'*', DbVehicle>('*')
           .order("name", { ascending: true })
+
+        if (showAvailableOnly) {
+          query = query.is("driver_id", null)
+        }
+
+        if (excludedVehicleIds.length > 0) {
+          query = query.not("id", "in", `(${excludedVehicleIds.join(',')})`)
+        }
+
+        const { data, error } = await query
 
         if (error) throw error
 
-        // Filter out excluded vehicles and apply showAvailableOnly filter
-        let filteredData = (data as Vehicle[]) || []
-        
-        if (excludedVehicleIds.length > 0) {
-          filteredData = filteredData.filter(
-            (vehicle) => !excludedVehicleIds.includes(vehicle.id)
-          )
-        }
-        
-        if (showAvailableOnly) {
-          filteredData = filteredData.filter(
-            (vehicle) => !vehicle.driver_id
-          )
-        }
+        const loadedVehicles = (data as DbVehicle[]) || []
 
-        setVehicles(filteredData)
-        setFilteredVehicles(filteredData)
+        setVehicles(loadedVehicles)
+        setFilteredVehicles(loadedVehicles)
       } catch (error) {
         console.error("Error loading vehicles:", error)
       } finally {
@@ -78,7 +68,8 @@ export function MultiVehicleSelector({
     }
 
     loadVehicles()
-  }, [excludedVehicleIds, showAvailableOnly])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [excludedVehicleIds.join(','), showAvailableOnly, supabase])
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -90,7 +81,7 @@ export function MultiVehicleSelector({
     const filtered = vehicles.filter(
       (vehicle) =>
         vehicle.name.toLowerCase().includes(query) ||
-        vehicle.plate_number.toLowerCase().includes(query) ||
+        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(query)) ||
         vehicle.brand?.toLowerCase().includes(query) ||
         vehicle.model?.toLowerCase().includes(query)
     )
@@ -164,7 +155,7 @@ export function MultiVehicleSelector({
                   <div className="relative h-12 w-12 rounded-md overflow-hidden">
                     <Image
                       src={vehicle.image_url}
-                      alt={vehicle.name}
+                      alt={vehicle.name ?? 'Vehicle image'}
                       fill
                       className="object-cover"
                     />

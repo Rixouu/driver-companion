@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+import { createBrowserClient } from "@supabase/ssr"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
 import { format, parseISO } from "date-fns"
 
-interface MaintenanceData {
+interface MaintenanceDataPoint {
   name: string
   scheduled: number
   unscheduled: number
@@ -16,6 +16,7 @@ interface MaintenanceData {
 
 interface MaintenanceFrequencyChartProps {
   dateRange: DateRange
+  initialData?: MaintenanceDataPoint[]
 }
 
 const COLORS = {
@@ -32,9 +33,16 @@ const SCHEDULED_KEYWORDS = [
   'planned'
 ]
 
-export function MaintenanceFrequencyChart({ dateRange }: MaintenanceFrequencyChartProps) {
-  const [data, setData] = useState<MaintenanceData[]>([])
+export function MaintenanceFrequencyChart({ dateRange, initialData }: MaintenanceFrequencyChartProps) {
+  const [data, setData] = useState<MaintenanceDataPoint[]>(initialData || [])
   const { theme } = useTheme()
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchMaintenanceData() {
@@ -56,7 +64,7 @@ export function MaintenanceFrequencyChart({ dateRange }: MaintenanceFrequencyCha
         if (maintenanceError) throw maintenanceError
 
         // Calculate maintenance frequency for each vehicle
-        const maintenanceData = vehicles.map(vehicle => {
+        const maintenanceFrequencyResult = vehicles.map(vehicle => {
           const vehicleTasks = maintenanceTasks.filter(task => task.vehicle_id === vehicle.id)
           
           const scheduled = vehicleTasks.filter(task => 
@@ -69,7 +77,7 @@ export function MaintenanceFrequencyChart({ dateRange }: MaintenanceFrequencyCha
           const unscheduled = total - scheduled
 
           return {
-            name: vehicle.name,
+            name: vehicle.name || `Vehicle ${vehicle.id}`,
             scheduled,
             unscheduled,
             total
@@ -77,17 +85,19 @@ export function MaintenanceFrequencyChart({ dateRange }: MaintenanceFrequencyCha
         }).filter(v => v.total > 0)
           .sort((a, b) => b.total - a.total)
 
-        setData(maintenanceData)
+        setData(maintenanceFrequencyResult)
       } catch (error) {
         console.error('Error fetching maintenance data:', error)
         setData([])
       }
     }
 
-    if (dateRange.from && dateRange.to) {
+    if (!initialData && dateRange.from && dateRange.to) {
+      fetchMaintenanceData()
+    } else if (initialData && dateRange.from && dateRange.to) {
       fetchMaintenanceData()
     }
-  }, [dateRange])
+  }, [dateRange, supabase, initialData])
 
   if (data.length === 0) {
     return (

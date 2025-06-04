@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase"
+// import { supabase } from "@/lib/supabase"
 import { handleError } from "@/lib/utils/error-handler"
-import type { RealtimeChannel } from "@supabase/supabase-js"
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js"
 
 // Supported tables for realtime subscriptions
 export enum RealtimeTable {
@@ -51,7 +51,8 @@ type SubscriptionCallback = (status: string) => void
  */
 export function subscribeToRecord<T extends Record<string, any>>(
   config: SubscriptionConfig,
-  callback: RealtimeCallback<T>
+  callback: RealtimeCallback<T>,
+  supabaseClient: SupabaseClient
 ): () => void {
   const { table, event = "*", filter, schema = "public" } = config
 
@@ -72,7 +73,7 @@ export function subscribeToRecord<T extends Record<string, any>>(
     const uniqueChannelName = `${channelName}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
     // Set up subscription
-    const channel = supabase.channel(uniqueChannelName);
+    const channel = supabaseClient.channel(uniqueChannelName);
     
     // Use type assertion to avoid TypeScript errors with channel subscription
     const subscription = channel
@@ -112,7 +113,7 @@ export function subscribeToRecord<T extends Record<string, any>>(
         // Properly clean up subscription and channel
         channel.unsubscribe();
         // After unsubscribing, remove the channel from Supabase client
-        supabase.removeChannel(channel);
+        supabaseClient.removeChannel(channel);
       } catch (error) {
         console.error(`Error unsubscribing from channel ${uniqueChannelName}:`, error);
       }
@@ -129,9 +130,10 @@ export function subscribeToRecord<T extends Record<string, any>>(
  */
 export function subscribeToCollection<T extends Record<string, any>>(
   config: SubscriptionConfig,
-  onInsert?: (record: T) => void,
-  onUpdate?: (record: T, oldRecord: T) => void,
-  onDelete?: (record: T) => void
+  onInsert: ((record: T) => void) | undefined,
+  onUpdate: ((record: T, oldRecord: T) => void) | undefined,
+  onDelete: ((record: T) => void) | undefined,
+  supabaseClient: SupabaseClient
 ): () => void {
   const { table, event = "*", filter, schema = "public" } = config
 
@@ -152,7 +154,7 @@ export function subscribeToCollection<T extends Record<string, any>>(
     const uniqueChannelName = `${channelName}_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
     // Set up subscription
-    const channel = supabase.channel(uniqueChannelName);
+    const channel = supabaseClient.channel(uniqueChannelName);
     
     // Use type assertion to avoid TypeScript errors with channel subscription
     const subscription = channel
@@ -199,7 +201,7 @@ export function subscribeToCollection<T extends Record<string, any>>(
         // Properly clean up subscription and channel
         channel.unsubscribe();
         // After unsubscribing, remove the channel from Supabase client
-        supabase.removeChannel(channel);
+        supabaseClient.removeChannel(channel);
       } catch (error) {
         console.error(`Error unsubscribing from channel ${uniqueChannelName}:`, error);
       }

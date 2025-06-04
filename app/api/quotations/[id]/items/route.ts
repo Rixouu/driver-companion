@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'; // No longer needed
+// import { cookies } from 'next/headers'; // No longer needed for GET if using createSupabaseServerClient which handles cookies
 
 export async function POST(
   request: Request,
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     // Create the Supabase client
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     
     // Ensure user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
@@ -97,13 +97,13 @@ export async function GET(
   const quotationId = params.id;
   console.log(`GET Request - Quotation Items for ID: ${quotationId}`);
   
-  const cookieStore = cookies();
-  const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
+  // const cookieStore = cookies(); // No longer needed
+  const supabase = await getSupabaseServerClient();
   
   try {
     // Verify auth status
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'You must be logged in to access this resource' },
         { status: 401 }

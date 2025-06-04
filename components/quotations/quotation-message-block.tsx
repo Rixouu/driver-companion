@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { Send, User } from 'lucide-react';
 import { format } from 'date-fns';

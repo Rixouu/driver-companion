@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import dynamic from 'next/dynamic';
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
 import {
@@ -24,44 +25,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ImageUpload } from "@/components/ui/image-upload"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/context"
 import { vehicleSchema, type VehicleFormData } from "@/lib/validations/vehicle"
-import { supabase } from "@/lib/supabase/client"
-import { decode } from "@/lib/utils"
+import { useSupabase } from "@/components/providers/supabase-provider"
 import { Car } from "lucide-react"
 import { useState, useEffect } from "react"
-import { z } from "zod"
 import { useAuth } from "@/components/providers/auth-provider"
+import type { Database } from '@/types/supabase';
 
 interface VehicleFormProps {
-  vehicle?: {
-    id: string
-    name: string
-    plate_number: string
-    brand?: string
-    model?: string
-    year?: number
-    color?: string
-    vin?: string
-    image_url?: string
-  }
+  vehicle?: Partial<VehicleFormData> & { id?: string };
 }
 
-// Storage bucket name - make sure this matches what's in your Supabase project
 const STORAGE_BUCKET = 'vehicles-images';
+
+const ImageUpload = dynamic(() => import('@/components/ui/image-upload').then(mod => mod.ImageUpload), {
+  ssr: false,
+  loading: () => {
+    return <div className="h-[150px] w-full flex items-center justify-center bg-muted rounded-md text-sm text-muted-foreground">Loading...</div>
+  }
+});
 
 export function VehicleForm({ vehicle }: VehicleFormProps) {
   const { t } = useI18n()
   const router = useRouter()
-  const { toast } = useToast()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(vehicle?.image_url || null)
 
-  const form = useForm<z.infer<typeof vehicleSchema>>({
+  const supabase = useSupabase();
+
+  const form = useForm<VehicleFormData>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
       name: vehicle?.name || "",
@@ -70,23 +65,37 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       model: vehicle?.model || "",
       year: vehicle?.year || undefined,
       vin: vehicle?.vin || "",
+      status: vehicle?.status || "active",
+      image_url: vehicle?.image_url || null,
     },
   })
 
-  // Create the storage bucket if it doesn't exist
+  useEffect(() => {
+    if (vehicle) {
+      form.reset({
+        name: vehicle.name || "",
+        plate_number: vehicle.plate_number || "",
+        brand: vehicle.brand || "",
+        model: vehicle.model || "",
+        year: vehicle.year || undefined,
+        vin: vehicle.vin || "",
+        status: vehicle.status || "active",
+        image_url: vehicle.image_url || null,
+      });
+    }
+  }, [vehicle, form.reset]);
+
   useEffect(() => {
     async function createBucketIfNeeded() {
       try {
-        // Check if bucket exists
         const { data: buckets } = await supabase.storage.listBuckets();
         const bucketExists = buckets?.some(bucket => bucket.name === STORAGE_BUCKET);
         
         if (!bucketExists) {
-          // Create the bucket if it doesn't exist
           console.log(`Creating storage bucket: ${STORAGE_BUCKET}`);
           await supabase.storage.createBucket(STORAGE_BUCKET, {
             public: true,
-            fileSizeLimit: 5242880, // 5MB
+            fileSizeLimit: 5 * 1024 * 1024, // 5MB
           });
         }
       } catch (error) {
@@ -95,9 +104,9 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     }
     
     createBucketIfNeeded();
-  }, []);
+  }, [supabase]);
 
-  async function onSubmit(data: z.infer<typeof vehicleSchema>) {
+  async function onSubmit(data: VehicleFormData) {
     if (!user) {
       toast({
         title: t('common.error'),
@@ -110,27 +119,16 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     try {
       setIsSubmitting(true)
 
-      let imageUrl = vehicle?.image_url || null
+      let finalImageUrl = data.image_url;
 
-      // Upload image if a new one was selected
       if (imageFile) {
         try {
-          // First, ensure the bucket exists
-          const { data: buckets } = await supabase.storage.listBuckets();
-          const bucketExists = buckets?.some(bucket => bucket.name === STORAGE_BUCKET);
-          
-          if (!bucketExists) {
-            // Create the bucket if it doesn't exist
-            await supabase.storage.createBucket(STORAGE_BUCKET, {
-              public: true,
-              fileSizeLimit: 5242880, // 5MB
-            });
-          }
-          
-          // Upload the file
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from(STORAGE_BUCKET)
-            .upload(`${Date.now()}-${imageFile.name}`, imageFile)
+            .upload(`${user.id}/${Date.now()}-${imageFile.name}`, imageFile, {
+              cacheControl: '3600',
+              upsert: false,
+            })
 
           if (uploadError) throw uploadError
 
@@ -138,7 +136,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             .from(STORAGE_BUCKET)
             .getPublicUrl(uploadData.path)
 
-          imageUrl = urlData.publicUrl
+          finalImageUrl = urlData.publicUrl
         } catch (error) {
           console.error('Image upload error:', error);
           toast({
@@ -146,37 +144,68 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             description: error instanceof Error ? error.message : String(error),
             variant: "destructive",
           });
-          // Continue with form submission even if image upload fails
         }
       }
 
-      // Prepare vehicle data
-      const vehicleData = {
-        ...data,
-        image_url: imageUrl,
-        user_id: user.id,
-      }
+      type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];
+      type VehicleUpdate = Database['public']['Tables']['vehicles']['Update'];
+
+      const vehicleDbData = {
+        name: data.name,
+        plate_number: data.plate_number,
+        brand: data.brand || "",
+        model: data.model || "",
+        year: data.year ? String(data.year) : "",
+        vin: data.vin || "",
+        status: data.status || 'active',
+        image_url: finalImageUrl || null,
+      };
 
       let result;
       
       if (vehicle?.id) {
-        // Update existing vehicle
+        const updatePayload: VehicleUpdate = {};
+        if (data.name !== undefined) updatePayload.name = data.name;
+        if (data.plate_number !== undefined) updatePayload.plate_number = data.plate_number;
+        if (data.brand !== undefined) updatePayload.brand = data.brand || "";
+        if (data.model !== undefined) updatePayload.model = data.model || "";
+        if (data.year !== undefined) updatePayload.year = String(data.year) ;
+        if (data.vin !== undefined) updatePayload.vin = data.vin || "";
+        if (data.status !== undefined) updatePayload.status = data.status;
+        if (finalImageUrl !== undefined) updatePayload.image_url = finalImageUrl || null;
+        
+        if (Object.keys(updatePayload).length === 0) {
+            toast({ title: t('common.noChanges') });
+            setIsSubmitting(false);
+            return;
+        }
+
         result = await supabase
           .from('vehicles')
-          .update(vehicleData)
+          .update(updatePayload)
           .eq('id', vehicle.id)
           .select()
           .single()
       } else {
-        // Create new vehicle
+        const insertPayload: VehicleInsert = {
+            name: vehicleDbData.name,
+            plate_number: vehicleDbData.plate_number,
+            brand: vehicleDbData.brand,
+            model: vehicleDbData.model,
+            year: vehicleDbData.year,
+            vin: vehicleDbData.vin,
+            user_id: user.id,
+            image_url: vehicleDbData.image_url,
+            status: vehicleDbData.status,
+        };
         result = await supabase
           .from('vehicles')
-          .insert(vehicleData)
+          .insert(insertPayload)
           .select()
           .single()
       }
 
-      const { error } = result
+      const { error, data: dbVehicle } = result;
       if (error) throw error
 
       toast({
@@ -185,15 +214,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
           : t('vehicles.messages.createSuccess'),
       })
 
-      // Redirect to the vehicle details page or vehicles list
-      if (vehicle?.id) {
-        router.push(`/vehicles/${vehicle.id}`)
-      } else {
-        router.push('/vehicles')
-      }
+      router.push(dbVehicle?.id ? `/vehicles/${dbVehicle.id}` : '/vehicles')
       router.refresh()
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error submitting form:', error)
       toast({
         title: t('vehicles.messages.error'),
         description: error instanceof Error ? error.message : String(error),
@@ -204,24 +228,10 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setImageFile(file)
-
-    // Create preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>{t('vehicles.form.basicInfo')}</CardTitle>
@@ -234,7 +244,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                   <FormItem>
                     <FormLabel>{t('vehicles.fields.name')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.placeholders.name')} {...field} />
+                      <Input placeholder={t('vehicles.fields.namePlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,128 +257,141 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                   <FormItem>
                     <FormLabel>{t('vehicles.fields.plateNumber')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.placeholders.plateNumber')} {...field} />
+                      <Input placeholder={t('vehicles.fields.plateNumberPlaceholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="brand"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('vehicles.fields.brand')}</FormLabel>
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.brand')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('vehicles.fields.brandPlaceholder')} {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.model')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('vehicles.fields.modelPlaceholder')} {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.year')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder={t('vehicles.fields.yearPlaceholder')} {...field} value={field.value || undefined} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="vin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.vin')}</FormLabel>
+                    <FormControl>
+                      <Input placeholder={t('vehicles.fields.vinPlaceholder')} {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.status')}</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <Input placeholder={t('vehicles.placeholders.brand')} {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('vehicles.fields.statusPlaceholder')} />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('vehicles.fields.model')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('vehicles.placeholders.model')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <SelectContent>
+                        <SelectItem value="active">{t('vehicles.status.active')}</SelectItem>
+                        <SelectItem value="maintenance">{t('vehicles.status.maintenance')}</SelectItem>
+                        <SelectItem value="inactive">{t('vehicles.status.inactive')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('vehicles.form.additionalInfo')}</CardTitle>
+              <CardTitle>{t('vehicles.form.imageUpload')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="year"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('vehicles.fields.year')}</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder={t('vehicles.placeholders.year')} 
-                          {...field}
-                          onChange={(e) => {
-                            const value = e.target.value === '' ? undefined : parseInt(e.target.value, 10)
-                            field.onChange(value)
-                          }}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="vin"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('vehicles.fields.vin')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('vehicles.placeholders.vin')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div>
-                <FormLabel>{t('vehicles.fields.image')}</FormLabel>
-                <div className="mt-2 space-y-4">
-                  {imagePreview && (
-                    <div className="relative aspect-video w-full rounded-lg overflow-hidden">
-                      <img
-                        src={imagePreview}
-                        alt={form.getValues('name')}
-                        className="object-cover w-full h-full"
+              <FormField
+                control={form.control}
+                name="image_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        initialValue={field.value}
+                        onChange={(file) => {
+                          setImageFile(file);
+                          if (!file) {
+                            form.setValue('image_url', null);
+                          }
+                        }}
+                        buttonText={t('vehicles.form.uploadImageButton')}
+                        sizeLimit={t('vehicles.form.uploadImageSizeLimit')}
+                        aspectRatio="video"
                       />
-                    </div>
-                  )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('vehicles.fields.imageDescription')}
-                  </p>
-                </div>
-              </div>
+                    </FormControl>
+                    <FormDescription>
+                      {t('vehicles.fields.imageDescription')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
         </div>
-
-        <div className="flex flex-col-reverse sm:flex-row gap-4 sm:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="w-full sm:w-auto"
+        
+        <div className="flex justify-end gap-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => router.back()} 
             disabled={isSubmitting}
           >
             {t('common.cancel')}
           </Button>
-          <Button 
-            type="submit"
-            className="w-full sm:w-auto"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t('common.saving') : vehicle?.id ? t('common.update') : t('common.create')}
+          <Button type="submit" disabled={isSubmitting} className="min-w-[100px]">
+            {isSubmitting ? (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            ) : vehicle?.id ? (
+              t('common.saveChanges')
+            ) : (
+              t('common.create')
+            )}
           </Button>
         </div>
       </form>

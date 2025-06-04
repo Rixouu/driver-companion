@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ViewToggle } from "@/components/ui/view-toggle"
 import Link from "next/link"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   Select,
   SelectContent,
@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import Image from "next/image"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import {
   Pagination,
   PaginationContent,
@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/pagination"
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 import { EmptyState } from "@/components/empty-state"
-import { Wrench } from "lucide-react"
+import { Wrench, PlusCircle, Filter, Edit, Trash2, Eye, Search } from "lucide-react"
 
 interface MaintenanceListProps {
   tasks: MaintenanceTask[]
@@ -58,6 +58,7 @@ export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, to
   const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
   const { t, language } = useI18n()
+  const supabase = createClient()
   const [tasksWithVehicles, setTasksWithVehicles] = useState(tasks)
   const [brandFilter, setBrandFilter] = useState("all")
   const [modelFilter, setModelFilter] = useState("all")

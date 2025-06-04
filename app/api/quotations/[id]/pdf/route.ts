@@ -1,5 +1,5 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import html2pdf from 'html2pdf.js'
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
     const id = context.params.id
     
     // Create Supabase client
-    const supabase = await createServerSupabaseClient()
+    const supabase = await getSupabaseServerClient()
     
     // Fetch the quotation data from the database
     const { data: quotation, error } = await supabase

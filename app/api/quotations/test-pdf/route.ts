@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import puppeteer from 'puppeteer';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+// import puppeteer from 'puppeteer'; // Puppeteer was uninstalled
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -10,14 +10,26 @@ export async function GET(request: NextRequest) {
   
   try {
     // Check authentication
-    const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const supabase = await getSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (!session) {
+    if (authError || !user) {
       console.log('🔍 [TEST PDF API] Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
+    // PDF Generation with Puppeteer is disabled as Puppeteer was uninstalled.
+    console.warn('🔍 [TEST PDF API] PDF generation with Puppeteer is currently disabled.');
+    return NextResponse.json(
+      { 
+        error: 'Test PDF generation is disabled.', 
+        message: 'Puppeteer has been uninstalled. To re-enable, reinstall puppeteer and update the route.'
+      },
+      { status: 503 } // Service Unavailable
+    );
+
+    // The original code for PDF generation is commented out below
+    /*
     // Get a sample quotation for testing PDF generation
     const { data: quotation, error } = await supabase
       .from('quotations')
@@ -40,7 +52,7 @@ export async function GET(request: NextRequest) {
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="UTF-8">
+      <meta charset=\"UTF-8\">
       <title>PDF Test</title>
       <style>
         body {
@@ -66,11 +78,11 @@ export async function GET(request: NextRequest) {
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class=\"container\">
         <h1>PDF Generation Test</h1>
         <p>This is a test PDF generated at: ${new Date().toISOString()}</p>
         <p>Environment: ${process.env.NODE_ENV}</p>
-        <p>User: ${session.user.email}</p>
+        <p>User: ${user.email}</p>
         
         <h2>Sample Quotation Data</h2>
         <pre>${JSON.stringify(quotation, null, 2)}</pre>
@@ -84,53 +96,53 @@ export async function GET(request: NextRequest) {
     
     let browser: any = null;
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox', 
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu'
-        ]
-      });
+      // browser = await puppeteer.launch({
+      //   headless: true,
+      //   args: [
+      //     '--no-sandbox',
+      //     '--disable-setuid-sandbox', 
+      //     '--disable-dev-shm-usage',
+      //     '--disable-accelerated-2d-canvas',
+      //     '--no-first-run',
+      //     '--no-zygote',
+      //     '--single-process',
+      //     '--disable-gpu'
+      //   ]
+      // });
       
       console.log('🔍 [TEST PDF API] Browser launched successfully');
       
-      const page = await browser.newPage();
-      page.setDefaultNavigationTimeout(30000);
+      // const page = await browser.newPage();
+      // page.setDefaultNavigationTimeout(30000);
       
       // Log browser information
-      const version = await browser.version();
-      console.log(`🔍 [TEST PDF API] Browser version: ${version}`);
+      // const version = await browser.version();
+      // console.log(`🔍 [TEST PDF API] Browser version: ${version}`);
       
-      await page.setContent(htmlContent, { 
-        waitUntil: ['domcontentloaded', 'networkidle0'],
-        timeout: 30000 
-      });
+      // await page.setContent(htmlContent, { 
+      //   waitUntil: ['domcontentloaded', 'networkidle0'],
+      //   timeout: 30000 
+      // });
       
       console.log('🔍 [TEST PDF API] Content loaded, generating PDF');
       
       // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' }
-      });
+      // const pdfBuffer = await page.pdf({
+      //   format: 'A4',
+      //   printBackground: true,
+      //   margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' }
+      // });
       
-      await browser.close();
-      console.log(`🔍 [TEST PDF API] PDF generation successful. Size: ${pdfBuffer.length / 1024}KB`);
+      // await browser.close();
+      // console.log(`🔍 [TEST PDF API] PDF generation successful. Size: ${pdfBuffer.length / 1024}KB`);
       
       // Return the PDF directly for download
-      return new NextResponse(pdfBuffer, {
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="test-pdf-${Date.now()}.pdf"`
-        }
-      });
+      // return new NextResponse(pdfBuffer, {
+      //   headers: {
+      //     'Content-Type': 'application/pdf',
+      //     'Content-Disposition': `attachment; filename=\"test-pdf-${Date.now()}.pdf\"`
+      //   }
+      // });
     } catch (error) {
       console.error('🔍 [TEST PDF API] Error during PDF generation:', error);
       return NextResponse.json({
@@ -139,14 +151,15 @@ export async function GET(request: NextRequest) {
         stack: error instanceof Error ? error.stack : undefined
       }, { status: 500 });
     } finally {
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.error('🔍 [TEST PDF API] Error closing browser:', closeError);
-        }
-      }
+      // if (browser) {
+      //   try {
+      //     await browser.close();
+      //   } catch (closeError) {
+      //     console.error('🔍 [TEST PDF API] Error closing browser:', closeError);
+      //   }
+      // }
     }
+    */
   } catch (error) {
     console.error('🔍 [TEST PDF API] Unexpected error:', error);
     return NextResponse.json({

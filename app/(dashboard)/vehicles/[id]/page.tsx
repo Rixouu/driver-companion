@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { getDictionary } from "@/lib/i18n/server"
-import { getVehicles } from "@/lib/services/vehicles"
+import { getVehicle } from "@/lib/services/vehicles"
 import type { DbVehicle } from "@/types"
 
 interface VehiclePageProps {
@@ -15,35 +15,34 @@ interface VehiclePageProps {
 }
 
 export async function generateMetadata({ params }: VehiclePageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const vehicleId = resolvedParams.id;
   try {
     const { t } = await getDictionary()
-    const { vehicles } = await getVehicles()
-    const awaitedParams = await params;
-    const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
-    const vehicle = vehicles.find(v => v.id === vehicleId)
+    const { vehicle } = await getVehicle(vehicleId)
     
     return {
-      title: vehicle ? `${vehicle.name} - ${t('vehicles.title') || "Vehicles"}` : (t('vehicles.title') || "Vehicle Details"),
-      description: t('vehicles.description') || "View vehicle details",
+      title: vehicle ? `${vehicle.name} - ${t('vehicles.title')}` : t('vehicles.detailsPage.titleFallback'),
+      description: t('vehicles.detailsPage.descriptionFallback'),
     }
   } catch (error) {
     console.error("Error generating metadata:", error)
+    const { t } = await getDictionary(); 
     return {
-      title: "Vehicle Details",
-      description: "View vehicle details",
+      title: t('vehicles.detailsPage.titleFallback'),
+      description: t('vehicles.detailsPage.descriptionFallback'),
     }
   }
 }
 
 export default async function VehiclePage({ params }: VehiclePageProps) {
-  const { t } = await getDictionary()
-  const { vehicles } = await getVehicles()
-  const awaitedParams = await params;
-  const vehicleId = Array.isArray(awaitedParams.id) ? awaitedParams.id[0] : awaitedParams.id;
-  const vehicle = vehicles.find(v => v.id === vehicleId)
+  const resolvedParams = await params;
+  const vehicleId = resolvedParams.id;
+  const { vehicle, error } = await getVehicle(vehicleId);
 
-  if (!vehicle) {
-    return notFound()
+  if (error || !vehicle) {
+    console.error(`Error fetching vehicle ${vehicleId}:`, error);
+    return notFound();
   }
 
   return (

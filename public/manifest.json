@@ -1,0 +1,25 @@
+{
+  "name": "Vehicle Inspection App",
+  "short_name": "InspectionApp",
+  "description": "Vehicle inspection and reporting application.",
+  "icons": [
+    {
+      "src": "/placeholder-logo.png", 
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder-logo.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#336699", 
+  "scope": "/",
+  "orientation": "portrait-primary"
+} 

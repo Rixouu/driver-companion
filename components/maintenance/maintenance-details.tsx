@@ -10,11 +10,14 @@ import { formatDate, formatCurrency, formatCurrencyJP } from "@/lib/utils/format
 import { useI18n } from "@/lib/i18n/context"
 import type { MaintenanceTask } from "@/types"
 import Image from "next/image"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 
 interface MaintenanceDetailsProps {
   task: MaintenanceTask
@@ -33,7 +36,7 @@ interface ExtendedVehicle {
 export function MaintenanceDetails({ task: initialTask }: MaintenanceDetailsProps) {
   const { t, language } = useI18n()
   const router = useRouter()
-  const { toast } = useToast()
+  const supabase = createClient()
   const [task, setTask] = useState({
     ...initialTask,
     vehicle: initialTask.vehicle as unknown as ExtendedVehicle

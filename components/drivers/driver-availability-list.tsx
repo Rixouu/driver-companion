@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { useI18n } from "@/lib/i18n/context"
 
 import { DriverAvailabilityForm } from "./driver-availability-form"
@@ -201,7 +201,6 @@ const AvailabilityTableRow = ({ record, index, totalRecords, onEdit, onDelete }:
 };
 
 export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) {
-  const { toast } = useToast()
   const { t } = useI18n()
   const [availabilityRecords, setAvailabilityRecords] = useState<DriverAvailability[]>([])
   const [isLoading, setIsLoading] = useState(true)

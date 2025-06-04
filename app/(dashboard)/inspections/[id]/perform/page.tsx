@@ -1,7 +1,8 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
-import { InspectionForm } from "@/components/inspections/inspection-form"
+import { Suspense } from "react"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { StepBasedInspectionForm } from "@/components/inspections/step-based-inspection-form"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -17,9 +18,9 @@ export const metadata: Metadata = {
   description: "Perform a vehicle inspection",
 }
 
-export default async function PerformInspectionPage(props: PerformInspectionPageProps) {
-  const supabase = await createServerSupabaseClient()
-  const id = props.params.id
+export default async function PerformInspectionPage({ params }: PerformInspectionPageProps) {
+  const supabase = await getSupabaseServerClient()
+  const { id } = await params;
   
   const { data: inspection } = await supabase
     .from('inspections')
@@ -66,10 +67,11 @@ export default async function PerformInspectionPage(props: PerformInspectionPage
           </div>
         </div>
 
-        <InspectionForm 
-          inspectionId={inspection.id} 
-          type={inspection.type} 
-          vehicleId={inspection.vehicle.id} 
+        <StepBasedInspectionForm 
+          inspectionId={inspection.id}
+          vehicleId={inspection.vehicle.id}
+          vehicles={[inspection.vehicle]}
+          // bookingId={inspection.booking_id} // Assuming bookingId might be needed from inspection data
         />
       </div>
     </div>

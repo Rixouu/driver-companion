@@ -1,26 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm, FormProvider } from "react-hook-form"
+import { useForm, FormProvider, Controller, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CameraModal } from "@/components/inspections/camera-modal"
 import { useRouter } from "next/navigation"
-import { toast, useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { Check, X, Camera, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils/styles"
 import { Textarea } from "@/components/ui/textarea"
-import { supabase } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
-import { InspectionType } from "@/lib/types/inspections"
+import { useAuth } from "@/lib/hooks/use-auth"
+import { InspectionType } from "@/types/inspections"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form"
 import { VehicleSelector } from "@/components/vehicle-selector"
 import { InspectionTypeSelector } from "./inspection-type-selector"
 import { useTranslations } from 'next-intl'
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Database } from "@/types/supabase"
 
 interface InspectionFormProps {
   inspectionId?: string

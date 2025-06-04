@@ -2,15 +2,10 @@
 
 import { useI18n } from "@/lib/i18n/context"
 import { ScheduleInspectionForm } from "@/components/inspections/schedule-inspection-form"
-
-interface Vehicle {
-  id: string
-  name: string
-  // Add other vehicle properties as needed
-}
+import type { DbVehicle } from "@/types"
 
 interface ScheduleInspectionContentProps {
-  vehicle: Vehicle
+  vehicle: DbVehicle
 }
 
 export function ScheduleInspectionContent({ vehicle }: ScheduleInspectionContentProps) {

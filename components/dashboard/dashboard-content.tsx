@@ -114,7 +114,7 @@ export function DashboardContent({
         setBookingsError(null)
       } catch (error) {
         console.error('Error fetching bookings:', error)
-        setBookingsError('Failed to load upcoming bookings')
+        setBookingsError(t('dashboard.bookings.loadError'))
         setUpcomingBookings([])
       } finally {
         setIsLoadingBookings(false)
@@ -193,7 +193,7 @@ export function DashboardContent({
             <Link href="/quotations/create" className="col-span-1">
               <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
                 <FileText className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.createQuotation") || "Create Quotation"}</span>
+                <span className="text-center">{t("dashboard.quickActions.createQuotation")}</span>
               </Button>
             </Link>
           </div>
@@ -222,14 +222,14 @@ export function DashboardContent({
                       <button 
                         onClick={prevVehicle}
                         className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
-                        aria-label="Previous vehicle"
+                        aria-label={t("dashboard.vehicleStats.previousVehicle")}
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
                       <button 
                         onClick={nextVehicle}
                         className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
-                        aria-label="Next vehicle"
+                        aria-label={t("dashboard.vehicleStats.nextVehicle")}
                       >
                         <ChevronRight className="h-5 w-5" />
                       </button>

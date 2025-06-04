@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateCharterServiceType } from '@/lib/api/quotations-service';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await getSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const result = await updateCharterServiceType();
     
     if (!result.success) {

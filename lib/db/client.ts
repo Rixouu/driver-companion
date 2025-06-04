@@ -1,8 +1,9 @@
-import { supabase as supabaseClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/index';
 
-// Re-export the client from the singleton implementation
-export const supabase = supabaseClient
-
+// This function now directly calls the actual createClient from the new central location.
 export function getSupabaseClient() {
-  return supabase
-} 
+  return createClient();
+}
+
+// Remove the re-export of the no-longer-existing 'supabase' instance.
+// export const supabase = supabaseClient; // supabaseClient is no longer imported as 'supabase' from client.ts 

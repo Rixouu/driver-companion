@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+// import { supabase } from "@/lib/supabase"; // No longer needed for fetching
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
@@ -16,34 +16,36 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/context"
+import { VehiclePerformanceDataPoint } from "@/app/(dashboard)/reporting/page"; // Import shared type
 
-// Exchange rate: 1 USD = approximately 150 JPY (as of 2023)
+// Exchange rate: 1 USD = approximately 150 JPY (as of 2023) - This might be needed if currency conversion is done client-side for display
 const USD_TO_JPY_RATE = 150;
 
-interface VehiclePerformanceData {
-  id: string
-  name: string
-  brand: string
-  utilization: number
-  distance: number
-  fuelUsed: number
-  efficiency: number
-  costPerKm: number
-}
+// interface VehiclePerformanceData { // Use VehiclePerformanceDataPoint from server page
+//   id: string
+//   name: string
+//   brand: string
+//   utilization: number
+//   distance: number
+//   fuelUsed: number
+//   efficiency: number
+//   costPerKm: number
+// }
 
 interface VehiclePerformanceProps {
-  dateRange: DateRange | undefined
+  dateRange: DateRange | undefined // Keep for potential client-side interactions if any
+  initialData?: VehiclePerformanceDataPoint[] // New prop for server-fetched data
 }
 
-interface MileageEntry {
-  reading: number | string
-  date: string
-}
+// interface MileageEntry { // Not needed if data is processed on server
+//   reading: number | string
+//   date: string
+// }
 
-export function VehiclePerformance({ dateRange }: VehiclePerformanceProps) {
+export function VehiclePerformance({ dateRange, initialData }: VehiclePerformanceProps) {
   const { t, language } = useI18n()
-  const [vehicles, setVehicles] = useState<VehiclePerformanceData[]>([])
-  const [filteredVehicles, setFilteredVehicles] = useState<VehiclePerformanceData[]>([])
+  const [vehicles, setVehicles] = useState<VehiclePerformanceDataPoint[]>(initialData || [])
+  const [filteredVehicles, setFilteredVehicles] = useState<VehiclePerformanceDataPoint[]>(initialData || [])
   const [searchQuery, setSearchQuery] = useState("")
   const [sortField, setSortField] = useState<string>("name")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
@@ -51,161 +53,17 @@ export function VehiclePerformance({ dateRange }: VehiclePerformanceProps) {
   const [availableBrands, setAvailableBrands] = useState<string[]>([])
 
   useEffect(() => {
-    async function fetchVehicleData() {
-      const endDate = dateRange?.to || new Date()
-      const startDate = dateRange?.from || addMonths(endDate, -6)
-
-      // Format dates consistently
-      const startDateStr = startOfDay(startDate).toISOString()
-      const endDateStr = endOfDay(endDate).toISOString()
-
-      try {
-        // First, fetch vehicles
-        const { data: vehiclesData, error: vehiclesError } = await supabase
-          .from('vehicles')
-          .select('id, name, brand')
-          .eq('status', 'active')
-
-        if (vehiclesError) {
-          throw new Error(`Error fetching vehicles: ${vehiclesError.message}`)
-        }
-
-        // Then fetch related data separately
-        const vehiclePromises = vehiclesData.map(async (vehicle) => {
-          const [maintenanceData, fuelData, mileageData] = await Promise.all([
-            supabase
-              .from('maintenance_tasks')
-              .select('cost, completed_date')
-              .eq('vehicle_id', vehicle.id)
-              .gte('completed_date', startDateStr)
-              .lte('completed_date', endDateStr)
-              .not('completed_date', 'is', null),
-            supabase
-              .from('fuel_entries')
-              .select('vehicle_id, fuel_amount, fuel_cost, date')
-              .gte('date', startDateStr)
-              .lte('date', endDateStr),
-            supabase
-              .from('mileage_entries')
-              .select('vehicle_id, reading, date')
-              .eq('vehicle_id', vehicle.id)
-              .gte('date', startDateStr)
-              .lte('date', endDateStr)
-              .order('date')
-          ])
-
-          // Calculate total distance using the first and last valid readings
-          let totalDistance = 0
-          if (mileageData.data && mileageData.data.length >= 2) {
-            const validReadings = mileageData.data
-              .map(entry => typeof entry.reading === 'string' ? parseFloat(entry.reading) : entry.reading)
-              .filter(reading => !isNaN(reading))
-              .sort((a, b) => a - b)
-
-            if (validReadings.length >= 2) {
-              totalDistance = validReadings[validReadings.length - 1] - validReadings[0]
-            }
-          }
-
-          // Calculate fuel metrics
-          const totalFuel = fuelData.data?.reduce((sum, entry) => {
-            const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
-            return sum + (liters || 0)
-          }, 0) || 0
-
-          const fuelCosts = fuelData.data?.reduce((sum, entry) => {
-            const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
-            return sum + (cost || 0)
-          }, 0) || 0
-
-          // Calculate maintenance costs
-          const maintenanceCosts = maintenanceData.data?.reduce((sum, task) => {
-            const cost = typeof task.cost === 'string' ? parseFloat(task.cost) : task.cost
-            return sum + (cost || 0)
-          }, 0) || 0
-
-          // Calculate efficiency and cost metrics
-          const efficiency = totalFuel > 0 ? totalDistance / totalFuel : 0
-          const totalCosts = maintenanceCosts + fuelCosts
-          
-          // Apply currency conversion if language is Japanese
-          const conversionRate = language === 'ja' ? USD_TO_JPY_RATE : 1;
-          const costPerKm = totalDistance > 0 ? (totalCosts / totalDistance) * conversionRate : 0
-
-          // Calculate utilization
-          const maintenanceDays = new Set(
-            maintenanceData.data
-              ?.map(task => task.completed_date?.split('T')[0])
-              .filter(Boolean)
-          ).size
-
-          const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-          const utilization = ((totalDays - maintenanceDays) / totalDays) * 100
-
-          return {
-            id: vehicle.id,
-            name: vehicle.name,
-            brand: vehicle.brand,
-            utilization,
-            distance: totalDistance,
-            fuelUsed: totalFuel,
-            efficiency,
-            costPerKm
-          }
-        })
-
-        const performanceData = await Promise.all(vehiclePromises)
-        
-        // Extract unique brands for filtering
-        const brands = [...new Set(performanceData.map(vehicle => vehicle.brand))].sort()
-        setAvailableBrands(brands)
-        
-        setVehicles(performanceData)
-        setFilteredVehicles(performanceData)
-      } catch (error) {
-        console.error('Error fetching vehicle performance data:', error)
-        
-        // Generate sample data if there's an error
-        const sampleVehicles = [
-          { id: '1', name: 'V-Class JD1', brand: 'Mercedes' },
-          { id: '2', name: 'Vellfire JD1', brand: 'Toyota' },
-          { id: '3', name: 'Alphard Executive JD1', brand: 'Toyota' },
-          { id: '4', name: 'Alphard Z-Class JD1', brand: 'Toyota' },
-          { id: '5', name: 'Grand Cabin JD1', brand: 'Toyota' }
-        ]
-        
-        const sampleData = sampleVehicles.map(vehicle => {
-          const distance = Math.floor(Math.random() * 4500) + 500
-          const efficiency = Math.random() * 5 + 10
-          const fuelUsed = distance / efficiency
-          
-          // Apply currency conversion if language is Japanese
-          const conversionRate = language === 'ja' ? USD_TO_JPY_RATE : 1;
-          const costPerKm = (Math.random() * 0.1 + 0.1) * conversionRate
-          
-          return {
-            id: vehicle.id,
-            name: vehicle.name,
-            brand: vehicle.brand,
-            utilization: Math.floor(Math.random() * 20) + 80, // 80-100%
-            distance,
-            fuelUsed,
-            efficiency,
-            costPerKm
-          }
-        })
-        
-        // Extract unique brands for filtering
-        const brands = [...new Set(sampleData.map(vehicle => vehicle.brand))].sort()
-        setAvailableBrands(brands)
-        
-        setVehicles(sampleData)
-        setFilteredVehicles(sampleData)
-      }
+    // Set vehicles from prop and derive available brands
+    const currentData = initialData || [];
+    setVehicles(currentData);
+    setFilteredVehicles(currentData); // Initialize filteredVehicles as well
+    if (currentData.length > 0) {
+      const brands = [...new Set(currentData.map(vehicle => vehicle.brand))].sort();
+      setAvailableBrands(brands);
+    } else {
+      setAvailableBrands([]);
     }
-
-    fetchVehicleData()
-  }, [dateRange, language])
+  }, [initialData]);
 
   // Apply filters and sorting whenever the source data or filter criteria change
   useEffect(() => {

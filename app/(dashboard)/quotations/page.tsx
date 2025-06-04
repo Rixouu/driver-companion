@@ -1,61 +1,75 @@
 export const dynamic = 'force-dynamic'
 
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter, usePathname, useSearchParams as useNextSearchParams } from 'next/navigation';
 import { getDictionary } from '@/lib/i18n/server';
 import { PageHeader } from '@/components/page-header';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import QuotationsTableClient from '@/app/(dashboard)/quotations/quotations-client';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Quotation } from '@/types/quotations';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-async function getQuotations() {
-  // Use the updated Supabase client that handles cookies properly in Next.js 15
-  const supabase = await createServerSupabaseClient();
+async function getQuotations({ query: searchTerm, status: statusFilter }: { query?: string; status?: string }) {
+  const supabase = await getSupabaseServerClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  // Check auth - redirect to login if not authenticated
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
+  if (userError || !user) {
     redirect('/auth/login');
   }
   
-  // Organization domain for access control
   const ORGANIZATION_DOMAIN = 'japandriver.com';
+  const isOrganizationMember = user.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
   
-  // Check if user is from the organization
-  const isOrganizationMember = session.user.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
-  
-  // Build query based on user type
-  let query = supabase
+  let queryBuilder = supabase
     .from('quotations')
-    .select('*', { count: 'exact' });
-  
-  // If not org member, only show quotations linked to this user by email
-  if (!isOrganizationMember && session.user.email) {
-    // Only filter by customer_email since customer_user_id doesn't exist
-    query = query.eq('customer_email', session.user.email);
+    .select('*, customers(name, email)', { count: 'exact' });
+
+  if (searchTerm) {
+    queryBuilder = queryBuilder.or(
+      `quote_number.ilike.%${searchTerm}%,` +
+      `title.ilike.%${searchTerm}%,` +
+      `customers.name.ilike.%${searchTerm}%,` +
+      `customers.email.ilike.%${searchTerm}%`
+    );
+  }
+  if (statusFilter) {
+    queryBuilder = queryBuilder.eq('status', statusFilter);
   }
   
-  // Execute the query with ordering
-  const { data, error, count } = await query.order('created_at', { ascending: false });
+  if (!isOrganizationMember && user.email) {
+    queryBuilder = queryBuilder.eq('customer_email', user.email);
+  }
+  
+  const { data, error, count } = await queryBuilder.order('created_at', { ascending: false });
   
   if (error) {
     console.error('Error fetching quotations:', error);
     return { quotations: [], count: 0, isOrganizationMember };
   }
   
-  // Cast the fetched data to align with the expected Quotation[] type
   const typedQuotations = (data || []) as unknown as Quotation[];
   return { quotations: typedQuotations, count: count || 0, isOrganizationMember };
 }
 
-export default async function QuotationsPage() {
+interface QuotationsPageProps {
+  searchParams: { 
+    query?: string;
+    status?: string; 
+  };
+}
+
+export default async function QuotationsPage({ searchParams }: QuotationsPageProps) {
   const { t } = await getDictionary();
-  const { quotations, count, isOrganizationMember } = await getQuotations();
+  
+  const resolvedSearchParams = await searchParams;
+  const pageQuery = resolvedSearchParams.query ? String(resolvedSearchParams.query) : undefined;
+  const pageStatus = resolvedSearchParams.status ? String(resolvedSearchParams.status) : undefined;
+
+  const { quotations, count, isOrganizationMember } = await getQuotations({ query: pageQuery, status: pageStatus });
   
   return (
     <div className="space-y-6">
@@ -76,6 +90,7 @@ export default async function QuotationsPage() {
         <Suspense fallback={<LoadingSpinner />}>
           <QuotationsTableClient 
             initialQuotations={quotations} 
+            totalCount={count || 0}
             isOrganizationMember={isOrganizationMember}
           />
         </Suspense>

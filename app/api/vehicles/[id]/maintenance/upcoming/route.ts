@@ -1,14 +1,37 @@
-import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { Database } from '@/types/supabase'
 import { isAfter, isBefore, addDays } from "date-fns"
 
+// Helper function to create Supabase client for Route Handlers
+async function getSupabaseClient() {
+  const cookieStore = await cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set(name, value, options)
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set(name, '', options)
+        },
+      },
+    }
+  )
+}
+
 export async function GET(
-  _request: Request,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await getSupabaseClient()
     
     const { data: tasks } = await supabase
       .from("maintenance_tasks")

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { CloudSun, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import { formatDate } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -201,7 +202,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="w-12 h-12 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center mr-3">
-              <img 
+              <Image 
                 src={`https:${forecastDay.day.condition.icon}`} 
                 alt={forecastDay.day.condition.text}
                 width={32}

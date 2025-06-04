@@ -14,17 +14,18 @@ export function NewVehiclePageContent() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <Link href="/vehicles" className="flex items-center gap-2" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
-              >
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-fit -ml-2 text-muted-foreground hover:text-foreground inline-flex items-center gap-2"
+              asChild
+            >
+              <Link href="/vehicles">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">{t('common.backTo').replace('{page}', t('navigation.vehicles'))}</span>
                 <span className="sm:hidden">{t('common.back')}</span>
-              </Button>
-            </span></span></Link>
+              </Link>
+            </Button>
           </div>
 
           <div className="space-y-1">

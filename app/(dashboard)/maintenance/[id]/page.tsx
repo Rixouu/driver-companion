@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { MaintenanceDetails } from "@/components/maintenance/maintenance-details"
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import type { MaintenanceTask } from "@/types"
 
 interface MaintenancePageProps {
   params: {
@@ -13,9 +14,10 @@ export default async function MaintenancePage(props: MaintenancePageProps) {
     return notFound()
   }
 
-  const supabase = await createServerSupabaseClient()
+  const supabase = await getSupabaseServerClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-  const { data: task } = await supabase
+  const { data: task, error: taskError } = await supabase
     .from('maintenance_tasks')
     .select(`
       *,
@@ -28,13 +30,19 @@ export default async function MaintenancePage(props: MaintenancePageProps) {
     .eq('id', props.params.id)
     .single()
 
-  if (!task) {
+  if (taskError || !task) {
     return notFound()
   }
 
+  const taskData = {
+    ...task,
+    description: task.description === null ? undefined : task.description,
+    vehicle: task.vehicle ? { ...task.vehicle } : undefined,
+  } as MaintenanceTask;
+
   return (
     <div className="space-y-6">
-      <MaintenanceDetails task={task} />
+      <MaintenanceDetails task={taskData} />
     </div>
   )
 } 

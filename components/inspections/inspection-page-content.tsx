@@ -1,19 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionList } from "@/components/inspections/inspection-list"
-import { supabase } from "@/lib/supabase/client"
+import { InspectionList } from "./inspection-list"
+import { InspectionForm } from "./inspection-form"
+import { createClient } from "@/lib/supabase"
 import type { Inspection, DbVehicle } from "@/types"
+import { Database } from "@/types/supabase"
 
 export function InspectionPageContent() {
   const { t } = useI18n()
   const [inspections, setInspections] = useState<Inspection[]>([])
   const [vehicles, setVehicles] = useState<DbVehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function loadData() {
@@ -41,7 +45,7 @@ export function InspectionPageContent() {
     }
 
     loadData()
-  }, [])
+  }, [supabase])
 
   if (isLoading) {
     return <div>Loading...</div>

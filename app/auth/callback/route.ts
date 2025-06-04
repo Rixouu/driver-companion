@@ -1,10 +1,11 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   console.log("[Auth Callback] Received request");
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -52,19 +53,15 @@ export async function GET(request: Request) {
 
   if (code) {
     console.log("[Auth Callback] Code found, attempting exchange...");
-    // Initialize Supabase client with direct cookies reference for Next.js 15
-    // Make sure to properly await the cookie store in Next.js 15
-    const supabase = createRouteHandlerClient({ 
-      cookies 
-    });
+    const supabase = await getSupabaseServerClient();
     
     try {
-      await supabase.auth.exchangeCodeForSession(code)
-      console.log("[Auth Callback] Code exchange successful.");
+      await supabase.auth.exchangeCodeForSession(code);
+      console.log("[Auth Callback] Code exchanged for session successfully.");
     } catch (error) {
       console.error("[Auth Callback] Error exchanging code for session:", error);
-      // Redirect to an error page with details
-      return NextResponse.redirect(new URL(`/auth/error?message=${encodeURIComponent('Authentication failed. Please try again.')}`, origin));
+      // It's often better to redirect to an error page or show a message
+      // For now, just redirecting to origin which might show a login page again
     }
   } else {
     console.log("[Auth Callback] No code found in request.");
@@ -86,8 +83,8 @@ export async function GET(request: Request) {
     
     console.log(`[Auth Callback] Final Redirect URL: ${finalRedirectUrl.toString()}`);
     return NextResponse.redirect(finalRedirectUrl.toString());
-  } catch (error) {
-    console.error(`[Auth Callback] Error constructing redirect URL:`, error);
+  } catch (error: any) {
+    console.error(`[Auth Callback] Error constructing redirect URL:`, error.message);
     // Fallback to dashboard
     return NextResponse.redirect(new URL('/dashboard', origin));
   }

@@ -23,42 +23,6 @@ export function DriverCard({ driver }: DriverCardProps) {
   const handleCardClick = () => {
     router.push(`/drivers/${driver.id}` as any);
   };
-  
-  // Helper function to get status badge style
-  const getStatusBadge = () => {
-    if (!driver.status) return null;
-    
-    let colorClass = '';
-    let bgClass = '';
-    
-    switch (driver.status.toLowerCase()) {
-      case 'available':
-        colorClass = "bg-green-100 text-green-800 border-green-200";
-        bgClass = "bg-green-50";
-        break;
-      case 'unavailable':
-        colorClass = "bg-red-100 text-red-800 border-red-200";
-        bgClass = "bg-red-50";
-        break;
-      case 'leave':
-        colorClass = "bg-amber-100 text-amber-800 border-amber-200";
-        bgClass = "bg-amber-50";
-        break;
-      case 'training':
-        colorClass = "bg-blue-100 text-blue-800 border-blue-200";
-        bgClass = "bg-blue-50";
-        break;
-      default:
-        colorClass = "bg-gray-100 text-gray-800 border-gray-200";
-        bgClass = "bg-gray-50";
-    }
-    
-    return (
-      <Badge className={colorClass}>
-        {t(`drivers.availability.statuses.${driver.status.toLowerCase()}`)}
-      </Badge>
-    );
-  };
 
   return (
     <Card 

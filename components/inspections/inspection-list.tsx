@@ -4,10 +4,15 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Search, Calendar, Clipboard, Car, BarChart3, Filter, ListFilter, X } from "lucide-react"
-import { ViewToggle } from "@/components/ui/view-toggle"
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3 } from "lucide-react"
 import Link from "next/link"
-import { useDebounce } from "@/hooks/use-debounce"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { useI18n } from "@/lib/i18n/context"
+import type { Inspection, DbVehicle } from "@/types"
+import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, addWeeks, subWeeks, startOfDay, endOfDay } from "date-fns"
+import { cn } from "@/lib/utils"
+import { useDebounce } from "@/lib/hooks/use-debounce"
 import {
   Select,
   SelectContent,
@@ -15,11 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { formatDate } from "@/lib/utils/formatting"
-import { useI18n } from "@/lib/i18n/context"
-import type { Inspection, DbVehicle } from "@/types"
 import {
   Table,
   TableBody,
@@ -28,48 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import Image from "next/image"
-import { supabase } from "@/lib/supabase"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import { format, parseISO, isToday, isThisWeek, isThisMonth, isFuture, isPast, isYesterday, isValid, isWithinInterval, startOfDay, endOfDay } from "date-fns"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon } from "lucide-react"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
-import type { DateRange } from "react-day-picker"
-import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 
 interface InspectionListProps {
   inspections: Inspection[]
@@ -78,109 +36,39 @@ interface InspectionListProps {
   totalPages?: number
 }
 
-const ITEMS_PER_PAGE = 6
+type CalendarView = "month" | "week"
 
-// Add a new grouping mode type
-type GroupingMode = "vehicle" | "date" | "none"
-
-// Simple Date Range Picker Component
-function DateRangePicker({
-  date,
-  onDateChange,
-}: {
-  date: DateRange | undefined
-  onDateChange: (range: DateRange | undefined) => void
-}) {
-  const { t } = useI18n()
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id="date"
-          variant={"outline"}
-          className={cn(
-            "w-full sm:w-[260px] justify-start text-left font-normal h-9",
-            !date && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date?.from ? (
-            date.to ? (
-              <>
-                {format(date.from, "LLL dd, y")} -{" "}
-                {format(date.to, "LLL dd, y")}
-              </>
-            ) : (
-              format(date.from, "LLL dd, y")
-            )
-          ) : (
-            <span>{t("schedules.selectDate")}</span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <CalendarComponent
-          initialFocus
-          mode="range"
-          defaultMonth={date?.from}
-          selected={date}
-          onSelect={(newDate) => {
-            onDateChange(newDate)
-            if (newDate?.from && newDate?.to) {
-              setIsOpen(false)
-            }
-          }}
-          numberOfMonths={2}
-        />
-      </PopoverContent>
-    </Popover>
-  )
+interface QuickStat {
+  title: string
+  value: number | string
+  icon: React.ElementType
+  color: string
+  bgColor: string
 }
 
 export function InspectionList({ inspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [view, setView] = useState<"list" | "grid">("grid")
-  const [groupingMode, setGroupingMode] = useState<GroupingMode>("date")
-  const [filterVehicleId, setFilterVehicleId] = useState<string | null>(null)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
-  const debouncedSearch = useDebounce(search, 500)
-  const { t, language } = useI18n()
+  const { t } = useI18n()
   const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
-  const isMobile = useMediaQuery("(max-width: 640px)")
-  const [brandFilter, setBrandFilter] = useState("all")
-  const [modelFilter, setModelFilter] = useState("all")
+  const [calendarView, setCalendarView] = useState<CalendarView>("month")
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
+  const [search, setSearch] = useState(searchParams.get("search") || "")
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all")
+  const debouncedSearch = useDebounce(search, 500)
 
-  // Extract unique brands and models for filters
-  const brands = useMemo(() => {
-    const uniqueBrands = Array.from(new Set(
-      vehicles.filter(v => v.brand).map(v => v.brand as string)
-    )).map(brand => ({ value: brand, label: brand }))
-    return uniqueBrands
-  }, [vehicles])
-  
-  // Get models based on selected brand
-  const models = useMemo(() => {
-    if (brandFilter === "all") return []
-    
-    return Array.from(new Set(
-      vehicles
-        .filter(v => v.model && v.brand === brandFilter)
-        .map(v => v.model as string)
-    )).map(model => ({ value: model, label: model }))
-  }, [vehicles, brandFilter])
-
-  // Set default view based on screen size
+  // Update URL params when filters change
   useEffect(() => {
-    // If on mobile, default to list view
-    if (isMobile) {
-      setView("list");
-    }
-  }, [isMobile]);
+    const params = new URLSearchParams()
+    if (debouncedSearch) params.set("search", debouncedSearch)
+    if (statusFilter !== "all") params.set("status", statusFilter)
+    if (viewMode !== "calendar") params.set("view", viewMode)
+    
+    const newUrl = params.toString() ? `?${params.toString()}` : ""
+    router.replace(newUrl as any, { scroll: false })
+  }, [debouncedSearch, statusFilter, viewMode, router])
 
   useEffect(() => {
     async function loadVehicleData() {
@@ -192,8 +80,11 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               if (vehicle) {
                 return {
                   ...inspection,
-                  vehicle
-                }
+                  vehicle: {
+                    ...vehicle,
+                    image_url: vehicle.image_url === null ? undefined : vehicle.image_url
+                  }
+                } as Inspection
               }
             }
             return inspection
@@ -202,770 +93,554 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         // Sort inspections by date (most recent first)
         const sortedInspections = updatedInspections.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
-        )
+        ) as Inspection[]
         setInspectionsWithVehicles(sortedInspections)
       } catch (error) {
-        console.error('Error loading vehicle data:', error)
+        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error)
       }
     }
 
     loadVehicleData()
-  }, [inspections, vehicles])
+  }, [inspections, vehicles, t])
 
+  // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
-    return inspectionsWithVehicles.filter(inspection => {
-      if (!inspection) return false
-      
-      const matchesStatusFilter = filter === 'all' || inspection.status === filter
-      
+    return inspectionsWithVehicles.filter((inspection) => {
       const matchesSearch = !debouncedSearch || 
-        (inspection.vehicle?.name && 
-         inspection.vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
-        (inspection.vehicle?.plate_number &&
-         inspection.vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
-        (inspection.type &&
-         inspection.type.toLowerCase().includes(debouncedSearch.toLowerCase()))
-         
-      const matchesVehicleFilter = !filterVehicleId || inspection.vehicle_id === filterVehicleId
+        (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
+        (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
+        (inspection.type && inspection.type.toLowerCase().includes(debouncedSearch.toLowerCase()))
       
-      // Brand and Model Filters
-      const matchesBrandFilter = brandFilter === 'all' || 
-        (inspection.vehicle && 'brand' in inspection.vehicle && 
-          inspection.vehicle.brand === brandFilter)
+      const matchesStatus = statusFilter === "all" || inspection.status === statusFilter
       
-      const matchesModelFilter = modelFilter === 'all' || 
-        (inspection.vehicle && 'model' in inspection.vehicle && 
-          inspection.vehicle.model === modelFilter)
-      
-      // Date Range Filter Logic
-      let matchesDateRange = true;
-      if (groupingMode === 'date' && dateRange?.from) {
-          const inspectionDate = parseISO(inspection.date);
-          if (isValid(inspectionDate)) {
-              const start = startOfDay(dateRange.from);
-              const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-              matchesDateRange = isWithinInterval(inspectionDate, { start, end });
-          } else {
-              matchesDateRange = false;
-          }
-      }
-      
-      return matchesStatusFilter && matchesSearch && matchesVehicleFilter && 
-             matchesBrandFilter && matchesModelFilter && matchesDateRange
+      return matchesSearch && matchesStatus
     })
-  }, [inspectionsWithVehicles, filter, debouncedSearch, filterVehicleId, 
-      brandFilter, modelFilter, groupingMode, dateRange])
+  }, [inspectionsWithVehicles, debouncedSearch, statusFilter])
 
-  // Calculate pagination for non-grouped view
-  const currentItems = useMemo(() => {
-    if (groupingMode !== 'none') return []
-    
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
-    return filteredInspections.slice(startIndex, endIndex)
-  }, [filteredInspections, currentPage, groupingMode])
+  // Calculate quick stats
+  const quickStats = useMemo((): QuickStat[] => {
+    const today = new Date()
+    const startOfToday = startOfDay(today)
+    const endOfToday = endOfDay(today)
+    const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 })
+    const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 })
 
-  // Adjust pagination logic - only applies when grouping is 'none'
-  const paginatedInspections = useMemo(() => {
-    if (groupingMode !== 'none') return filteredInspections; // Return all filtered if grouping
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredInspections.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredInspections, groupingMode, currentPage]);
+    const todaysInspections = filteredInspections.filter(inspection => {
+      const inspectionDate = parseISO(inspection.date)
+      return isValid(inspectionDate) && 
+             inspectionDate >= startOfToday && 
+             inspectionDate <= endOfToday
+    }).length
 
-  const totalFilteredPages = useMemo(() => {
-    // Pagination only active when not grouping
-    return groupingMode === 'none' ? Math.ceil(filteredInspections.length / ITEMS_PER_PAGE) : 1;
-  }, [filteredInspections, groupingMode]);
+    const pendingInspections = filteredInspections.filter(
+      inspection => inspection.status === 'scheduled'
+    ).length
 
-  // Group inspections by vehicle (uses already filtered inspections)
-  const groupedByVehicle = useMemo(() => {
-    if (groupingMode !== 'vehicle') return {};
-    const groups: Record<string, Inspection[]> = {}
-    filteredInspections.forEach(inspection => {
-      const key = inspection.vehicle_id || 'no-vehicle';
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(inspection);
-    });
-    // Sort groups by vehicle name
-    return Object.entries(groups)
-      .sort(([vehicleIdA], [vehicleIdB]) => {
-        const vehicleA = vehicles.find(v => v.id === vehicleIdA);
-        const vehicleB = vehicles.find(v => v.id === vehicleIdB);
-        const nameA = vehicleA?.name || t("inspections.noVehicle");
-        const nameB = vehicleB?.name || t("inspections.noVehicle");
-        return nameA.localeCompare(nameB);
-      })
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, Inspection[]>);
-  }, [filteredInspections, groupingMode, vehicles, t])
+    const weeklyCompleted = filteredInspections.filter(inspection => {
+      const inspectionDate = parseISO(inspection.date)
+      return isValid(inspectionDate) && 
+             inspectionDate >= startOfThisWeek && 
+             inspectionDate <= endOfThisWeek &&
+             inspection.status === 'completed'
+    }).length
 
-  // Group inspections by date (uses already filtered inspections)
-  const groupedByDate = useMemo(() => {
-    if (groupingMode !== 'date') return {};
-    const groups: Record<string, Inspection[]> = {}
-    filteredInspections.forEach(inspection => {
-      let dateKey = 'unknown';
-      try {
-          const inspectionDate = parseISO(inspection.date);
-          if (isValid(inspectionDate)) {
-              if (isToday(inspectionDate)) dateKey = 'today';
-              else if (isYesterday(inspectionDate)) dateKey = 'yesterday';
-              else if (isThisWeek(inspectionDate, { weekStartsOn: 1 })) dateKey = 'this-week';
-              else if (isThisMonth(inspectionDate)) dateKey = 'this-month';
-              else if (isFuture(inspectionDate)) dateKey = 'upcoming';
-              else dateKey = 'older';
-          }
-      } catch (e) {
-          console.error("Error parsing inspection date:", inspection.date, e);
-      }
+    const failedInspections = filteredInspections.filter(
+      inspection => inspection.status === 'cancelled'
+    ).length
 
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(inspection);
-    });
-
-    // Sort inspections within each date group (most recent first)
-    for (const key in groups) {
-        groups[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }
-
-    return groups;
-  }, [filteredInspections, groupingMode])
-
-  // Define getInspectionType function before it is used in inspectionStats
-  const getInspectionType = (type: string | null | undefined) => {
-    if (!type) return 'unspecified'
-    const baseType = type.toLowerCase().includes('routine') ? 'routine'
-                   : type.toLowerCase().includes('safety') ? 'safety'
-                   : type.toLowerCase().includes('maintenance') ? 'maintenance'
-                   : type.toLowerCase().includes('daily') ? 'daily'
-                   : 'unspecified';
-    return baseType;
-  }
-
-  // Generate stats for the inspections
-  const inspectionStats = useMemo(() => {
-    const stats = {
-      total: filteredInspections.length,
-      byStatus: {
-        scheduled: filteredInspections.filter(i => i.status === 'scheduled').length,
-        in_progress: filteredInspections.filter(i => i.status === 'in_progress').length,
-        completed: filteredInspections.filter(i => i.status === 'completed').length
+    return [
+      {
+        title: t("inspections.quickStats.todaysInspections"),
+        value: todaysInspections,
+        icon: CalendarIcon,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50 dark:bg-blue-900/20"
       },
-      byVehicle: {} as Record<string, number>,
-      byType: {} as Record<string, number>
-    }
-    
-    // Count by vehicle
-    filteredInspections.forEach(inspection => {
-      const vehicleName = inspection.vehicle?.name || t("inspections.noVehicle")
-      if (!stats.byVehicle[vehicleName]) stats.byVehicle[vehicleName] = 0
-      stats.byVehicle[vehicleName]++
-      
-      // Count by type
-      const typeKey = getInspectionType(inspection.type)
-      const typeName = t(`inspections.type.${typeKey}` as any)
+      {
+        title: t("inspections.quickStats.pendingInspections"),
+        value: pendingInspections,
+        icon: Clock,
+        color: "text-yellow-600",
+        bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
+      },
+      {
+        title: t("inspections.quickStats.weeklyCompleted"),
+        value: weeklyCompleted,
+        icon: CheckCircle,
+        color: "text-green-600",
+        bgColor: "bg-green-50 dark:bg-green-900/20"
+      },
+      {
+        title: t("inspections.quickStats.failedInspections"),
+        value: failedInspections,
+        icon: AlertTriangle,
+        color: "text-red-600",
+        bgColor: "bg-red-50 dark:bg-red-900/20"
+      }
+    ]
+  }, [filteredInspections, t])
 
-      if (!stats.byType[typeName]) stats.byType[typeName] = 0
-      stats.byType[typeName]++
+  // Status filter options
+  const statusOptions = useMemo(() => [
+    { value: "all", label: t("common.all") },
+    { value: "scheduled", label: t("inspections.status.scheduled") },
+    { value: "in_progress", label: t("inspections.status.inProgress") },
+    { value: "completed", label: t("inspections.status.completed") },
+    { value: "cancelled", label: t("inspections.status.failed") },
+  ], [t])
+
+  // Get calendar dates based on view
+  const calendarDates = useMemo(() => {
+    switch (calendarView) {
+      case "month":
+        return eachDayOfInterval({
+          start: startOfMonth(currentDate),
+          end: endOfMonth(currentDate)
+        })
+      case "week":
+        return eachDayOfInterval({
+          start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+          end: endOfWeek(currentDate, { weekStartsOn: 1 })
+        })
+      default:
+        return []
+    }
+  }, [calendarView, currentDate])
+
+  // Get inspections for a specific date
+  const getInspectionsForDate = (date: Date) => {
+    return filteredInspections.filter(inspection => {
+      const inspectionDate = parseISO(inspection.date)
+      return isValid(inspectionDate) && isSameDay(inspectionDate, date)
     })
-    
-    return stats
-  }, [filteredInspections, t, getInspectionType])
+  }
 
-  const formatScheduledDate = (date: string) => {
-    try {
-      return t("inspections.details.scheduledFor", {
-        date: formatDate(date)
-      })
-    } catch (e) {
-      console.error("Error formatting date:", date, e);
-      return "Invalid Date";
+  // Get selected date inspections
+  const selectedDateInspections = selectedDate ? getInspectionsForDate(selectedDate) : []
+
+  // Navigation functions
+  const navigatePrevious = () => {
+    switch (calendarView) {
+      case "month":
+        setCurrentDate(subMonths(currentDate, 1))
+        break
+      case "week":
+        setCurrentDate(subWeeks(currentDate, 1))
+        break
     }
   }
 
-  const getDateGroupTitle = (key: string) => {
-    switch (key) {
-      case 'today': return t("inspections.dateGroup.today")
-      case 'yesterday': return t("inspections.dateGroup.yesterday")
-      case 'this-week': return t("inspections.dateGroup.thisWeek")
-      case 'this-month': return t("inspections.dateGroup.thisMonth")
-      case 'upcoming': return t("inspections.dateGroup.upcoming")
-      case 'older': return t("inspections.dateGroup.older")
-      default: return t("inspections.dateGroup.unknown")
+  const navigateNext = () => {
+    switch (calendarView) {
+      case "month":
+        setCurrentDate(addMonths(currentDate, 1))
+        break
+      case "week":
+        setCurrentDate(addWeeks(currentDate, 1))
+        break
     }
   }
 
-  const handlePageChange = (page: number) => {
-       const params = new URLSearchParams(searchParams.toString())
-       params.set("page", page.toString())
-    router.push(`/inspections?${params.toString()}`)
+  const goToToday = () => {
+    setCurrentDate(new Date())
   }
 
-  // Add handlers for brand and model filters
-  const handleSearchChange = (value: string) => {
-    setSearch(value)
+  // Get calendar title
+  const getCalendarTitle = () => {
+    switch (calendarView) {
+      case "month":
+        return format(currentDate, "MMMM yyyy")
+      case "week":
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
+        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
+        return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
+      default:
+        return ""
+    }
   }
 
-  const handleBrandFilterChange = (value: string) => {
-    setBrandFilter(value)
-    setModelFilter("all")
-  }
-
-  const handleModelFilterChange = (value: string) => {
-    setModelFilter(value)
-  }
-
-  // Function to determine Badge variant based on status
-  function getStatusVariant(status: string): "success" | "warning" | "secondary" | "default" {
+  // Get status color
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed": return "success";
-      case "in_progress": return "warning";
-      case "scheduled": return "secondary";
-      default: return "default";
+      case "completed":
+        return "bg-green-500"
+      case "in_progress":
+        return "bg-yellow-500"
+      case "cancelled":
+        return "bg-red-500"
+      case "scheduled":
+        return "bg-blue-500"
+      default:
+        return "bg-blue-500"
     }
   }
 
-  // Render inspections in different views depending on grouping mode
-  const renderInspectionsContent = () => {
-    // Use paginatedInspections only when groupingMode is 'none'
-    const inspectionsForView = groupingMode === 'none' ? paginatedInspections : filteredInspections;
-
-    if (filteredInspections.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center p-8 border rounded-lg mt-4 text-center">
-          <Clipboard className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">{t("inspections.noInspections")}</p>
-          <p className="text-muted-foreground">
-            {debouncedSearch || filterVehicleId || dateRange?.from
-              ? t("drivers.empty.searchResults")
-              : t("inspections.addNew")
-            }
-          </p>
-          <Button variant="outline" className="mt-4" onClick={() => {
-              setSearch('');
-              setFilterVehicleId(null);
-              setDateRange(undefined);
-              setGroupingMode('date');
-          }}>
-            {t("reporting.filters.reset")}
-          </Button>
-        </div>
-      );
-    }
-
-    if (groupingMode === 'none') {
-      return (
-        <>
-          {view === "grid" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {inspectionsForView.map((inspection) => (
-                <InspectionCard 
-                  key={inspection.id} 
-                  inspection={inspection} 
-                  getStatusVariant={getStatusVariant}
-                  formatScheduledDate={formatScheduledDate}
-                  getInspectionType={getInspectionType}
-                />
-              ))}
-            </div>
-          ) : (
-            <InspectionTable 
-              inspections={inspectionsForView}
-              getStatusVariant={getStatusVariant} 
-              formatScheduledDate={formatScheduledDate}
-              getInspectionType={getInspectionType}
-            />
-          )}
-          {totalFilteredPages > 1 && (
-            <Pagination className="mt-4 w-full flex justify-center">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={(e) => { e.preventDefault(); handlePageChange(Math.max(1, currentPage - 1)); }}
-                    aria-disabled={currentPage === 1}
-                    className={cn(
-                      "cursor-pointer",
-                      currentPage === 1 && "pointer-events-none opacity-50"
-                    )}
-                  />
-                </PaginationItem>
-                {(() => {
-                  const pageNumbers: React.ReactNode[] = [];
-                  const maxPagesToShow = 5;
-                  const halfMaxPages = Math.floor(maxPagesToShow / 2);
-
-                  let startPage = Math.max(1, currentPage - halfMaxPages);
-                  let endPage = Math.min(totalFilteredPages, currentPage + halfMaxPages);
-
-                  if (currentPage <= halfMaxPages) {
-                      endPage = Math.min(totalFilteredPages, maxPagesToShow);
-                  }
-                  if (currentPage + halfMaxPages >= totalFilteredPages) {
-                      startPage = Math.max(1, totalFilteredPages - maxPagesToShow + 1);
-                  }
-
-                  if (startPage > 1) {
-                      pageNumbers.push(
-                          <PaginationItem key="start-ellipsis">
-                              <PaginationEllipsis />
-                          </PaginationItem>
-                      );
-                  }
-
-                  for (let i = startPage; i <= endPage; i++) {
-                      pageNumbers.push(
-                          <PaginationItem key={i}>
-                              <PaginationLink
-                                  href="#"
-                                  onClick={(e) => { e.preventDefault(); handlePageChange(i); }}
-                                  isActive={i === currentPage}
-                                  className="cursor-pointer"
-                              >
-                                  {i}
-                              </PaginationLink>
-                          </PaginationItem>
-                      );
-                  }
-
-                  if (endPage < totalFilteredPages) {
-                      pageNumbers.push(
-                          <PaginationItem key="end-ellipsis">
-                              <PaginationEllipsis />
-                          </PaginationItem>
-                      );
-                  }
-
-                  return pageNumbers;
-                })()}
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={(e) => { e.preventDefault(); handlePageChange(Math.min(totalFilteredPages, currentPage + 1)); }}
-                    aria-disabled={currentPage === totalFilteredPages}
-                    className={cn(
-                      "cursor-pointer",
-                      currentPage === totalFilteredPages && "pointer-events-none opacity-50"
-                    )}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </>
-      )
-    }
-
-    if (groupingMode === 'vehicle') {
-      return (
-        <div className="space-y-8 mt-6">
-          {Object.entries(groupedByVehicle).map(([vehicleId, vehicleInspections]) => {
-            if (vehicleInspections.length === 0) return null; 
-            
-            const vehicle = vehicles.find(v => v.id === vehicleId)
-            const vehicleName = vehicle?.name || t("inspections.noVehicle")
-            const vehicleBadge = vehicle?.plate_number || ""
-            
-            return (
-              <div key={vehicleId} className="space-y-2">
-                <div className="flex items-center justify-between border-b pb-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Car className="h-5 w-5 text-muted-foreground" />
-                    <h2 className="text-xl font-semibold">{vehicleName}</h2>
-                    {vehicleBadge && (
-                      <Badge variant="outline">{vehicleBadge}</Badge>
-                    )}
-                  </div>
-                  <Badge variant="outline">{t("inspections.stats.vehicleCount", { count: String(vehicleInspections.length) })}</Badge>
-                </div>
-                {view === "grid" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {vehicleInspections.map(inspection => (
-                      <InspectionCard 
-                        key={inspection.id} 
-                        inspection={inspection} 
-                        getStatusVariant={getStatusVariant}
-                        formatScheduledDate={formatScheduledDate}
-                        getInspectionType={getInspectionType}
-                        compact={false}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <InspectionTable 
-                    inspections={vehicleInspections}
-                    getStatusVariant={getStatusVariant} 
-                    formatScheduledDate={formatScheduledDate}
-                    getInspectionType={getInspectionType}
-                    hideVehicleColumn={true}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )
-    }
-
-    if (groupingMode === 'date') {
-      const dateGroupOrder = ['today', 'yesterday', 'this-week', 'this-month', 'upcoming', 'older', 'unknown'];
-      const nonEmptyDateGroups = dateGroupOrder.filter(key => groupedByDate[key]?.length > 0);
-
-      return (
-        <div className="space-y-8 mt-6">
-          {nonEmptyDateGroups.map(dateKey => {
-            const dateInspections = groupedByDate[dateKey];
-            if (dateInspections.length === 0) return null; 
-            
-            return (
-              <div key={dateKey} className="space-y-2">
-                <div className="flex items-center justify-between border-b pb-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                    <h2 className="text-xl font-semibold">{getDateGroupTitle(dateKey)}</h2>
-                  </div>
-                  <Badge variant="outline">{t("inspections.stats.count", { count: String(dateInspections.length) })}</Badge>
-                </div>
-                
-                {view === "grid" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {dateInspections.map(inspection => (
-                      <InspectionCard 
-                        key={inspection.id} 
-                        inspection={inspection} 
-                        getStatusVariant={getStatusVariant}
-                        formatScheduledDate={formatScheduledDate}
-                        getInspectionType={getInspectionType}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <InspectionTable 
-                    inspections={dateInspections}
-                    getStatusVariant={getStatusVariant} 
-                    formatScheduledDate={formatScheduledDate}
-                    getInspectionType={getInspectionType}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
+  // Handle day click
+  const handleDayClick = (date: Date) => {
+    setSelectedDate(date)
   }
 
-  // Separate Inspection Card component for reuse
-  const InspectionCard = ({ 
-    inspection, 
-    getStatusVariant, 
-    formatScheduledDate,
-    getInspectionType,
-    compact = false
-  }: { 
-    inspection: Inspection,
-    getStatusVariant: (status: string) => "success" | "warning" | "secondary" | "default",
-    formatScheduledDate: (date: string) => string,
-    getInspectionType: (type: string | null | undefined) => string,
-    compact?: boolean 
-  }) => (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col">
-      <CardHeader className={cn("p-4 sm:p-4", compact && "p-3")}>
-        <div className="flex justify-between items-start gap-2">
-          <div className="flex-1 min-w-0">
-            <CardTitle className={cn("text-base sm:text-lg truncate", compact && "text-sm sm:text-base")}>
-              {inspection.vehicle?.name || t("inspections.noVehicle")}
-            </CardTitle>
-            {!compact && inspection.vehicle?.plate_number && (
-              <CardDescription>
-                {inspection.vehicle.plate_number}
-              </CardDescription>
+  // Render calendar day
+  const renderCalendarDay = (date: Date) => {
+    const dayInspections = getInspectionsForDate(date)
+    const isCurrentDay = isToday(date)
+    const isSelected = selectedDate && isSameDay(date, selectedDate)
+    const inspectionCount = dayInspections.length
+
+    return (
+      <div
+        key={date.toISOString()}
+        className={cn(
+          "min-h-[80px] border border-border p-2 bg-background cursor-pointer hover:bg-muted/50 transition-colors",
+          isCurrentDay && "bg-blue-50 dark:bg-blue-900/20",
+          isSelected && "ring-2 ring-primary",
+          calendarView === "month" && "aspect-square"
+        )}
+        onClick={() => handleDayClick(date)}
+      >
+        <div className={cn(
+          "flex items-center justify-between mb-2",
+          isCurrentDay && "font-semibold text-blue-600"
+        )}>
+          <span className="text-sm">
+            {format(date, calendarView === "month" ? "d" : "EEE d")}
+          </span>
+          {inspectionCount > 0 && (
+            <Badge variant="secondary" className="text-xs h-5 w-5 rounded-full p-0 flex items-center justify-center">
+              {inspectionCount}
+            </Badge>
+          )}
+        </div>
+        
+        {/* Status dots for quick visual overview */}
+        {inspectionCount > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {dayInspections.slice(0, 4).map((inspection, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  getStatusColor(inspection.status)
+                )}
+                title={`${inspection.vehicle?.name || 'Unnamed'} - ${inspection.status}`}
+              />
+            ))}
+            {inspectionCount > 4 && (
+              <span className="text-xs text-muted-foreground">+{inspectionCount - 4}</span>
             )}
           </div>
-          <Badge variant={getStatusVariant(inspection.status || 'scheduled')} className="flex-shrink-0 whitespace-nowrap">
-            {t(`inspections.status.${inspection.status || 'scheduled'}`)}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className={cn("p-4 flex-grow", compact && "px-3 py-2")}>
-        {inspection.vehicle?.image_url && !compact && (
-          <div className="relative aspect-video w-full mb-4 rounded-md overflow-hidden bg-muted">
-            <Image
-              src={inspection.vehicle.image_url}
-              alt={inspection.vehicle.name || t("common.noImage")}
-              className="object-cover"
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          </div>
         )}
-        <div className={`space-y-${compact ? "1" : "2"}`}>
-          <div className="flex items-center">
-            <Calendar className={cn("mr-2 h-4 w-4 text-muted-foreground flex-shrink-0", compact && "h-3 w-3")} />
-            <span className={cn("text-xs sm:text-sm", compact && "text-xs")}>{formatScheduledDate(inspection.date)}</span>
-          </div>
-          
-          <div className="flex items-center">
-            <Clipboard className={cn("mr-2 h-4 w-4 text-muted-foreground flex-shrink-0", compact && "h-3 w-3")} />
-            <span className={cn("text-xs sm:text-sm capitalize", compact && "text-xs")}>
-              {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
-            </span>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className={cn("p-4 pt-0 mt-auto", compact && "p-3 pt-0")}>
-        <Button variant="secondary" size="sm" className="w-full text-xs sm:text-sm" asChild>
-          <Link href={`/inspections/${inspection.id}`}>
-            {t("common.viewDetails")}
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
-  )
-
-  // Separate Inspection Table component for reuse
-  const InspectionTable = ({ 
-    inspections, 
-    getStatusVariant, 
-    formatScheduledDate,
-    getInspectionType,
-    hideVehicleColumn = false
-  }: { 
-    inspections: Inspection[],
-    getStatusVariant: (status: string) => "success" | "warning" | "secondary" | "default",
-    formatScheduledDate: (date: string) => string,
-    getInspectionType: (type: string | null | undefined) => string,
-    hideVehicleColumn?: boolean
-  }) => {
-    // Use media query hook inside the component
-    const isMobile = useMediaQuery("(max-width: 640px)");
-    
-    // Keep this variable outside the return statement so it's available in both branches
-    const showVehicleColumn = !hideVehicleColumn && !isMobile;
-
-    return isMobile ? (
-      // Mobile-optimized table as cards
-      <div className="space-y-3">
-        {inspections.map((inspection) => (
-          <Card key={inspection.id} className="overflow-hidden">
-            <div className="p-3 flex items-center justify-between border-b">
-              <div className="flex items-center gap-2">
-                {inspection.vehicle?.image_url && (
-                  <div className="relative h-10 w-14 rounded-sm overflow-hidden bg-muted flex-shrink-0">
-                    <Image
-                      src={inspection.vehicle.image_url}
-                      alt={inspection.vehicle.name || t("common.noImage")}
-                      className="object-cover"
-                      fill
-                      sizes="56px"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                )}
-                <div>
-                  <div className="font-medium text-sm">{inspection.vehicle?.name || t("inspections.noVehicle")}</div>
-                  {inspection.vehicle?.plate_number && (
-                    <div className="text-xs text-muted-foreground">{inspection.vehicle.plate_number}</div>
-                  )}
-                </div>
-              </div>
-              <Badge variant={getStatusVariant(inspection.status || 'scheduled')}>
-                {t(`inspections.status.${inspection.status || 'scheduled'}`)}
-              </Badge>
-            </div>
-            <div className="p-3 space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs">{formatDate(inspection.date)}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clipboard className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs capitalize">
-                    {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
-                  </span>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" asChild>
-                <Link href={`/inspections/${inspection.id}`}>
-                  {t("common.view")}
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        ))}
       </div>
-    ) : (
-      // Regular table for larger screens
-      <div className="border rounded-md overflow-x-auto"> 
+    )
+  }
+
+  // Clear search
+  const clearSearch = () => {
+    setSearch("")
+  }
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearch("")
+    setStatusFilter("all")
+  }
+
+  // Render list view
+  const renderListView = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("inspections.title")}</CardTitle>
+      </CardHeader>
+      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              {/* Conditionally render vehicle column */} 
-              {showVehicleColumn && <TableHead>{t("vehicles.title")}</TableHead>}
-              <TableHead>{t("inspections.fields.date")}</TableHead>
+              <TableHead>{t("inspections.fields.vehicle")}</TableHead>
               <TableHead>{t("inspections.fields.type")}</TableHead>
+              <TableHead>{t("inspections.fields.date")}</TableHead>
               <TableHead>{t("inspections.fields.status")}</TableHead>
-              <TableHead className="w-[100px] text-right">{t("common.actions")}</TableHead>
+              <TableHead className="w-[100px]">{t("common.actions.default")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {inspections.map((inspection) => (
-              <TableRow key={inspection.id} className="hover:bg-muted/50">
-                {/* Conditionally render vehicle cell */} 
-                {showVehicleColumn && (
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {inspection.vehicle?.image_url && (
-                        <div className="relative h-8 w-12 rounded-sm overflow-hidden bg-muted flex-shrink-0">
-                          <Image
-                            src={inspection.vehicle.image_url}
-                            alt={inspection.vehicle.name || t("common.noImage")}
-                            className="object-cover"
-                            fill
-                            sizes="48px"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-medium">{inspection.vehicle?.name || t("inspections.noVehicle")}</div>
-                        {inspection.vehicle?.plate_number && (
-                          <div className="text-xs text-muted-foreground">{inspection.vehicle.plate_number}</div>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                )}
-                <TableCell>{formatDate(inspection.date)}</TableCell>
-                <TableCell className="capitalize">
-                  {t(`inspections.type.${getInspectionType(inspection.type)}` as any)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(inspection.status || 'scheduled')}>
-                    {t(`inspections.status.${inspection.status || 'scheduled'}`)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/inspections/${inspection.id}`}>
-                      {t("common.view")}
-                    </Link>
-                  </Button>
+            {filteredInspections.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  {debouncedSearch || statusFilter !== "all" 
+                    ? t("common.noResults")
+                    : t("inspections.noInspections")
+                  }
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredInspections.map((inspection) => (
+                <TableRow key={inspection.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">
+                        {inspection.vehicle?.name || t("inspections.noVehicle")}
+                      </div>
+                      {inspection.vehicle?.plate_number && (
+                        <div className="text-sm text-muted-foreground">
+                          {inspection.vehicle.plate_number}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {inspection.type ? t(`inspections.type.${inspection.type.toLowerCase()}`) || inspection.type : t("inspections.type.unspecified")}
+                  </TableCell>
+                  <TableCell>
+                    {format(parseISO(inspection.date), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("text-xs", {
+                        "border-green-500 text-green-700": inspection.status === "completed",
+                        "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
+                        "border-red-500 text-red-700": inspection.status === "cancelled",
+                        "border-blue-500 text-blue-700": inspection.status === "scheduled"
+                      })}
+                    >
+                      {t(`inspections.status.${inspection.status}` as any)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/inspections/${inspection.id}`}>
+                        <Eye className="h-3 w-3" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
-      </div>
-    );
-  }
-
-  // Add filter controls
-  const filterControls = () => {
-    return (
-        <div className="flex flex-col gap-4">
-          <SearchFilterBar 
-            onSearchChange={handleSearchChange}
-            onBrandFilterChange={handleBrandFilterChange}
-            onModelFilterChange={handleModelFilterChange}
-            searchPlaceholder={t("inspections.searchPlaceholder")}
-            brandOptions={brands}
-            modelOptions={models}
-            totalItems={filteredInspections.length}
-            startIndex={groupingMode === 'none' ? Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredInspections.length) : 1}
-            endIndex={groupingMode === 'none' ? Math.min(currentPage * ITEMS_PER_PAGE, filteredInspections.length) : filteredInspections.length}
-            selectedBrand={brandFilter}
-            selectedModel={modelFilter}
-          />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-black p-2 rounded-md gap-2">
-            <div className="flex flex-wrap items-center space-x-1 sm:space-x-2 w-full sm:w-auto">
-              <div className="flex flex-wrap space-x-1">
-                <Button
-                  size="sm"
-                  variant={filter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setFilter('all')}
-                  className="text-xs sm:text-sm mb-1 sm:mb-0"
-                >
-                  {t('common.all')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filter === 'pending' ? 'default' : 'outline'}
-                  onClick={() => setFilter('pending')}
-                  className="text-xs sm:text-sm mb-1 sm:mb-0"
-                >
-                  {t('inspections.status.pending')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filter === 'completed' ? 'default' : 'outline'}
-                  onClick={() => setFilter('completed')}
-                  className="text-xs sm:text-sm mb-1 sm:mb-0"
-                >
-                  {t('inspections.status.completed')}
-                </Button>
-              </div>
-
-              {/* Date Range Picker - Always visible in the filter bar */}
-              {groupingMode === 'date' && (
-                <div className="w-full sm:w-auto sm:ml-2 mt-2 sm:mt-0">
-                  <DateRangePicker
-                    date={dateRange}
-                    onDateChange={setDateRange}
-                />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
-              <span className="text-sm text-white whitespace-nowrap">
-                {t('inspections.groupBy')}:
-              </span>
-              <Select
-                value={groupingMode}
-                onValueChange={(value: GroupingMode) => setGroupingMode(value)}
-              >
-                <SelectTrigger className="h-8 w-[140px] text-xs sm:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t('inspections.groupByOptions.none')}</SelectItem>
-                  <SelectItem value="date">{t('inspections.groupByOptions.date')}</SelectItem>
-                  <SelectItem value="vehicle">{t('inspections.groupByOptions.vehicle')}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <ViewToggle view={view} onViewChange={setView} />
-            </div>
-          </div>
-        </div>
-      )
-    }
+      </CardContent>
+    </Card>
+  )
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("inspections.title")}</h1>
-          <p className="text-muted-foreground">
-            {t("inspections.description")}
-          </p>
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Page Header */}
+      <div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{t("inspections.title")}</h1>
+            <p className="text-muted-foreground">{t("inspections.description")}</p>
           </div>
-        <Button asChild size="sm">
-          <Link href="/inspections/create">
-             <Plus className="mr-2 h-4 w-4" />
-             {t("inspections.createInspection")}
-           </Link>
-        </Button>
+          <Button asChild>
+            <Link href="/inspections/create">
+              <Plus className="mr-2 h-4 w-4" />
+              {t("inspections.createInspection")}
+            </Link>
+          </Button>
         </div>
 
-      <div className="space-y-4">
-        {filterControls()}
+        {/* Search and Filters */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder={t("inspections.searchPlaceholder")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={clearSearch}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        {renderInspectionsContent()}
+            {(search || statusFilter !== "all") && (
+              <Button variant="outline" onClick={clearFilters}>
+                <Filter className="mr-2 h-4 w-4" />
+                Clear
+              </Button>
+            )}
+
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "calendar" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("calendar")}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {quickStats.map((stat, index) => {
+          const Icon = stat.icon
+          return (
+            <Card key={index} className="overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className={cn("p-3 rounded-lg", stat.bgColor)}>
+                    <Icon className={cn("h-6 w-6", stat.color)} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {stat.value}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Main Content - Calendar or List View */}
+      {viewMode === "calendar" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Calendar */}
+          <div className={cn("space-y-4", selectedDate ? "lg:col-span-3" : "lg:col-span-4")}>
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle>{t("inspections.calendar.title")}</CardTitle>
+                  <div className="flex items-center gap-4">
+                    <Select value={calendarView} onValueChange={(value) => setCalendarView(value as CalendarView)}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="month">{t("inspections.calendar.month")}</SelectItem>
+                        <SelectItem value="week">{t("inspections.calendar.week")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={navigatePrevious}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={goToToday}>
+                        {t("inspections.calendar.today")}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={navigateNext}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-lg font-semibold">{getCalendarTitle()}</div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-0 border border-border rounded-lg overflow-hidden">
+                  {/* Week headers */}
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                    <div key={day} className="p-3 text-center font-medium bg-muted text-sm">
+                      {day}
+                    </div>
+                  ))}
+                  {/* Calendar days */}
+                  {calendarDates.map((date) => renderCalendarDay(date))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar - Details Panel */}
+          {selectedDate && (
+            <div className="lg:col-span-1">
+              <Card className="sticky top-6">
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {format(selectedDate, "EEEE, MMMM d, yyyy")}
+                  </CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {t("inspections.calendar.inspectionsOnDate", { 
+                      count: selectedDateInspections.length,
+                      date: format(selectedDate, "MMMM d")
+                    })}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {selectedDateInspections.length > 0 ? (
+                    selectedDateInspections.map((inspection) => (
+                      <div key={inspection.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-sm">
+                            {inspection.vehicle?.name || t("inspections.unnamedInspection")}
+                          </h4>
+                          <Badge 
+                            variant="outline" 
+                            className={cn("text-xs", {
+                              "border-green-500 text-green-700": inspection.status === "completed",
+                              "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
+                              "border-red-500 text-red-700": inspection.status === "cancelled",
+                              "border-blue-500 text-blue-700": inspection.status === "scheduled"
+                            })}
+                          >
+                            {t(`inspections.status.${inspection.status}` as any)}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>Vehicle: {inspection.vehicle?.plate_number || t("inspections.noVehicle")}</div>
+                          <div>Type: {inspection.type || t("inspections.type.unspecified")}</div>
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full" asChild>
+                          <Link href={`/inspections/${inspection.id}`}>
+                            <Eye className="mr-2 h-3 w-3" />
+                            {t("inspections.calendar.viewInspection")}
+                          </Link>
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      {t("inspections.calendar.noInspectionsOnDate")}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      ) : (
+        renderListView()
+      )}
     </div>
   )
 } 

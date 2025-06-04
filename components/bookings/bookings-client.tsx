@@ -30,7 +30,7 @@ import {
   CheckCircle,
   Download
 } from "lucide-react"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useDebounce } from "@/lib/hooks/use-debounce"
 import { useI18n } from '@/lib/i18n/context'
 import {
   Pagination,
@@ -122,23 +122,23 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   const router = useRouter()
   const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState(searchParams.get('status') || 'all')
+  const [filter, setFilter] = useState(searchParams?.get('status') || 'all')
   const [view, setView] = useState<"list" | "grid">(() => {
     // Try to get view from URL params first
-    const urlView = searchParams.get('view') as "list" | "grid" | null
+    const urlView = searchParams?.get('view') as "list" | "grid" | null
     if (urlView === "grid" || urlView === "list") {
       return urlView
     }
     // Default to list view
     return "list"
   })
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') || '1'))
+  const [currentPage, setCurrentPage] = useState(Number(searchParams?.get('page') || '1'))
   const debouncedSearch = useDebounce(search, 500)
   const { t } = useI18n()
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     // Initialize from URL params if available
-    const fromDate = searchParams.get('from')
-    const toDate = searchParams.get('to')
+    const fromDate = searchParams?.get('from')
+    const toDate = searchParams?.get('to')
     if (fromDate) {
       return {
         from: new Date(fromDate),
@@ -174,8 +174,8 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   const [bookingSelectedChanges, setBookingSelectedChanges] = useState<Record<string, Record<string, boolean>>>({});
   
   // Add more advanced filter states
-  const [customerFilter, setCustomerFilter] = useState(searchParams.get('customer') || '')
-  const [driverFilter, setDriverFilter] = useState(searchParams.get('driver') || 'all')
+  const [customerFilter, setCustomerFilter] = useState(searchParams?.get('customer') || '')
+  const [driverFilter, setDriverFilter] = useState(searchParams?.get('driver') || 'all')
   
   // Auto-dismiss sync result message after 5 seconds
   useEffect(() => {
@@ -242,7 +242,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
       driver?: string
     }
   ) => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() || '')
     
     // Handle status filter
     if (statusFilter && statusFilter !== 'all') {
@@ -294,7 +294,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() || '')
     params.set("page", page.toString())
     // @ts-ignore - Route string types are not matching but this works
     router.push(`/bookings?${params.toString()}`)
@@ -602,7 +602,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
       // Only force list view when screen size changes from desktop to mobile
       if (!wasMobile && width < mobileBreakpoint && view === "grid") {
         setView("list");
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString() || '');
         params.set("view", "list");
         // @ts-ignore - Route string types are not matching but this works
         router.push(`/bookings?${params.toString()}`);

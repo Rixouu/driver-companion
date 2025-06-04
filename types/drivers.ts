@@ -23,6 +23,8 @@ export interface Driver {
   created_at: string;
   updated_at?: string;
   deleted_at?: string | null;
+  isBooking?: boolean;
+  bookingNotes?: string;
 }
 
 export interface DriverAvailability {

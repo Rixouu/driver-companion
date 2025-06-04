@@ -4,9 +4,12 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { en } from "./locales/en"
 import { ja } from "./locales/ja"
 import { getCookie, setCookie } from "cookies-next"
+import type { TranslationPaths } from "./types"
 
 type Language = "en" | "ja"
-type Translations = typeof en
+
+// Define the type for a single translation key, generated from the structure of 'en' locale
+export type AppTranslationKey = TranslationPaths<typeof en>
 
 const languages = {
   en,
@@ -17,7 +20,7 @@ interface I18nContextType {
   language: Language
   locale: Language
   setLanguage: (lang: Language) => void
-  t: (key: string, params?: Record<string, string | undefined>) => string
+  t: (key: AppTranslationKey, params?: Record<string, string | number | undefined>) => string
 }
 
 const I18nContext = createContext<I18nContextType | null>(null)
@@ -50,7 +53,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setCookie('NEXT_LOCALE', lang, { maxAge: 60 * 60 * 24 * 30 }) // 30 days
   }
 
-  const t = (key: string, params?: Record<string, string | undefined>) => {
+  const t = (key: AppTranslationKey, params?: Record<string, string | number | undefined>) => {
     const keys = key.split(".")
     let value: any = languages[language]
     let fallbackValue: any = languages["en"] // Use English as fallback
@@ -97,7 +100,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     if (params && result !== undefined) {
       return Object.entries(params).reduce((acc, [paramKey, paramVal]) => {
         if (paramKey === 'defaultValue') return acc // Skip the defaultValue parameter
-        return acc.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), paramVal || '')
+        // Ensure paramVal is a string for replacement
+        const replacementValue = typeof paramVal === 'number' ? String(paramVal) : (paramVal || '');
+        return acc.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), replacementValue)
       }, result)
     }
 

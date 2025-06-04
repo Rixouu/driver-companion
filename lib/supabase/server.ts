@@ -1,59 +1,42 @@
 // lib/supabase/server.ts
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { Database } from '@/types/supabase'; // Adjusted path
-import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase'; // Ensure this path is correct
+import { createServerClient as createActualServerClient } from '@/lib/supabase/index'; // Import the new centralized server client
 
-export const dynamic = "force-dynamic";
+// Removed local supabaseUrl and supabaseAnonKey as they are handled by the centralized client
 
-// This function is async to match the pattern required by Next.js
-export async function createServerSupabaseClient() {
-  try {
-    console.log('Creating server Supabase client');
-    
-    // Create the Supabase client with the correct pattern for Next.js 15
-    // In Next.js 15, cookies() should not be called directly but passed as a function
-    // to avoid the "cookies() should be awaited" error
-    const client = createServerComponentClient<Database>({ 
-      cookies // Pass the cookies function directly
-    });
-    
-    // Test the client connection with a simple query
-    try {
-      const { data: { session } } = await client.auth.getSession();
-      console.log('Session check result:', session ? 'Active session found' : 'No active session');
-    } catch (sessionError) {
-      console.error('Error checking session:', sessionError);
-    }
-    
-    console.log('Server Supabase client created successfully');
-    return client;
-  } catch (error) {
-    console.error('Error creating server Supabase client:', error);
-    throw error;
-  }
-}
+// Removed local createServerSupabaseClient function as it's replaced by the import
 
-// Function to get the current user without using auth.getUser()
-// This avoids the cookie issue in Next.js 15 by using the client that's already been created
-export async function getCurrentUser(supabase: any) {
-  try {
-    // Since supabase client is already created and passed in with proper cookie handling,
-    // we just need to use it correctly without re-accessing cookies
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      return { user: null };
-    }
-    
-    return { user: session.user };
-  } catch (error) {
-    console.error('Error in getCurrentUser:', error);
-    return { user: null };
-  }
-}
-
-// Deprecated - use createServerSupabaseClient instead
+// Renamed function to avoid confusion and to better describe its purpose
 export async function getSupabaseServerClient() {
-  return createServerComponentClient<Database>({ cookies });
-} 
+  const cookieStore = await cookies(); // Await the cookies() call
+  // Pass the cookie store to the actual client creator from lib/supabase/index.ts
+  return createActualServerClient(cookieStore); 
+}
+
+export async function getCurrentUser() {
+  // Use the renamed helper to get the client
+  const supabase = await getSupabaseServerClient(); 
+  try {
+    // .auth.getUser() is the recommended way to get the current user securely on the server.
+    // It validates the session against the Supabase Auth server.
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error) {
+      // Log the error but don't throw, allow calling code to handle user: null
+      console.error('[SupabaseServerClient] Error getting user in getCurrentUser:', error.message);
+      return { user: null, error };
+    }
+    return { user, error: null };
+  } catch (error: any) {
+    // Catch any unexpected exceptions during the process
+    console.error('[SupabaseServerClient] Exception in getCurrentUser:', error.message);
+    const typedError = error instanceof Error ? error : new Error(String(error));
+    return { user: null, error: typedError };
+  }
+}
+
+// Removed deprecated getSupabaseServerClient function 

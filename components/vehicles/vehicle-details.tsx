@@ -3,11 +3,10 @@
 import { Button } from "@/components/ui/button"
 import { DbVehicle } from "@/types"
 import { useI18n } from "@/lib/i18n/context"
-import { useState } from "react"
-import { Edit, ArrowLeft } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase/client"
+import { toast } from "@/components/ui/use-toast"
+import { useSupabase } from "@/components/providers/supabase-provider"
 import { VehicleTabs } from "./vehicle-tabs"
 import {
   AlertDialog,
@@ -19,8 +18,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import Link from "next/link"
-import { Card, CardHeader } from "@/components/ui/card"
+import { useQueryClient } from "@tanstack/react-query"
+
+async function fetchMileageLogsPage1(vehicleId: string) {
+  const pageSize = 5; // Default page size used in VehicleMileageLogs
+  const response = await fetch(`/api/vehicles/${vehicleId}/mileage?page=1&pageSize=${pageSize}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: "Failed to prefetch mileage logs" }));
+    throw new Error(errorData.message || "vehicles.messages.prefetchMileageError");
+  }
+  return response.json();
+}
+
+async function fetchFuelLogsPage1(vehicleId: string) {
+  const pageSize = 5; // Default page size used in VehicleFuelLogs
+  const response = await fetch(`/api/vehicles/${vehicleId}/fuel?page=1&pageSize=${pageSize}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: "Failed to prefetch fuel logs" }));
+    throw new Error(errorData.message || "vehicles.messages.prefetchFuelError");
+  }
+  return response.json();
+}
 
 interface VehicleDetailsProps {
   vehicle: DbVehicle
@@ -29,9 +47,28 @@ interface VehicleDetailsProps {
 export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
   const { t } = useI18n()
   const router = useRouter()
-  const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+  const supabase = useSupabase()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (vehicle?.id) {
+      // Prefetch mileage logs (page 1) using options object
+      queryClient.prefetchQuery({
+        queryKey: ["mileageLogs", vehicle.id, 1, 5],
+        queryFn: () => fetchMileageLogsPage1(vehicle.id),
+        staleTime: 1000 * 60 * 5, // 5 minutes, same as default in QueryProvider
+      });
+      // Prefetch fuel logs (page 1) using options object
+      queryClient.prefetchQuery({
+        queryKey: ["fuelLogs", vehicle.id, 1, 5],
+        queryFn: () => fetchFuelLogsPage1(vehicle.id),
+        staleTime: 1000 * 60 * 5, // 5 minutes
+      });
+    }
+  }, [vehicle?.id, queryClient]);
 
   const handleDelete = async () => {
     try {
@@ -49,11 +86,17 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
 
       router.push("/vehicles")
       router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error)
+      let errorMessage = t("vehicles.messages.hasAssociatedRecords");
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
       toast({
         title: t("vehicles.messages.deleteError"),
-        description: error?.message || t("vehicles.messages.hasAssociatedRecords"),
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -64,33 +107,6 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
 
   return (
     <div className="space-y-6 mt-6">
-      {/* Header Card */}
-      <Card className="shadow-sm print-hide">
-        <CardHeader className="space-y-0 p-4 sm:p-6">
-          <div className="flex items-center justify-between">
-            <Link href="/vehicles" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                {t('common.backToList')}
-              </Button>
-            </span></span></Link>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
-              className="gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              {t('common.edit')}
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
       {/* Vehicle Tabs */}
       <VehicleTabs vehicle={vehicle} />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

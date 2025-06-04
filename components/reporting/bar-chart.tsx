@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import React, { useEffect, useState, useMemo } from "react"
+import { createBrowserClient } from "@supabase/ssr"
 import {
   ComposedChart,
   Line,
@@ -31,6 +31,7 @@ interface FuelEntry {
   fuel_amount: string | number
   fuel_cost: string | number
   vehicle_id: string
+  date?: string
 }
 
 interface VehiclePerformance {
@@ -46,11 +47,18 @@ interface BarChartProps {
   dateTo?: string
 }
 
-export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps) {
+function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps) {
   const [data, setData] = useState<VehiclePerformance[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const { theme } = useTheme()
+
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }, [])
 
   useEffect(() => {
     async function fetchPerformanceData() {
@@ -86,14 +94,20 @@ export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps
           mileageQuery = mileageQuery.lte('date', dateTo)
         }
 
-        const { data: mileageEntries, error: mileageError } = await mileageQuery
+        const { data: mileageEntriesData, error: mileageError } = await mileageQuery
+        const mileageEntries = mileageEntriesData as MileageEntry[] | null;
 
         if (mileageError) throw mileageError
+        if (!mileageEntries) {
+          setData([]);
+          setIsLoading(false);
+          return;
+        }
 
         // Fetch fuel data
         let fuelQuery = supabase
           .from('fuel_entries')
-          .select('fuel_amount, fuel_cost, vehicle_id')
+          .select('fuel_amount, fuel_cost, vehicle_id, date')
           .eq('vehicle_id', vehicleId)
         
         if (dateFrom) {
@@ -104,18 +118,22 @@ export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps
           fuelQuery = fuelQuery.lte('date', dateTo)
         }
 
-        const { data: fuelEntries, error: fuelError } = await fuelQuery
+        const { data: fuelEntriesData, error: fuelError } = await fuelQuery
+        const fuelEntries = fuelEntriesData as FuelEntry[] | null;
 
-        if (fuelError) throw fuelError
+        if (fuelError) throw fuelError;
+        if (!fuelEntries) {
+            setData([]);
+            setIsLoading(false);
+            return;
+        }
 
         // Calculate performance metrics for each vehicle
         const performanceData = vehicles.map((vehicle: Vehicle) => {
-          // Get vehicle's mileage entries
           const vehicleMileageEntries = mileageEntries
             .filter(entry => String(entry.vehicle_id) === String(vehicle.id))
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) as MileageEntry[];
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           
-          // Calculate total distance
           let totalDistance = 0;
           if (vehicleMileageEntries.length >= 2) {
             const firstReading = Number(vehicleMileageEntries[0].reading);
@@ -123,7 +141,6 @@ export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps
             totalDistance = lastReading - firstReading;
           }
 
-          // Calculate fuel metrics
           const vehicleFuel = fuelEntries
             .filter(entry => String(entry.vehicle_id) === String(vehicle.id))
             .reduce((acc, entry) => {
@@ -154,7 +171,7 @@ export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps
     }
 
     fetchPerformanceData()
-  }, [vehicleId, dateFrom, dateTo])
+  }, [vehicleId, dateFrom, dateTo, supabase])
 
   if (isLoading) {
     return (
@@ -204,6 +221,7 @@ export function BarChartComponent({ vehicleId, dateFrom, dateTo }: BarChartProps
     </div>
   )
 }
+BarChartComponent.displayName = 'BarChartComponent';
 
 // Memoize the component to prevent unnecessary re-renders
 export const BarChart = React.memo(BarChartComponent, (prevProps, nextProps) => {
@@ -212,5 +230,8 @@ export const BarChart = React.memo(BarChartComponent, (prevProps, nextProps) => 
     prevProps.vehicleId === nextProps.vehicleId &&
     prevProps.dateFrom === nextProps.dateFrom &&
     prevProps.dateTo === nextProps.dateTo
-  )
-}) 
+  );
+});
+// The displayName for the memoized component should ideally be set if needed,
+// but React DevTools can usually infer it. If explicit naming for the HOC is desired:
+// BarChart.displayName = 'Memo(BarChartComponent)'; 

@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { type NextRequest, NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
     // Create the Supabase client
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     
     // Ensure user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
     
     // Get the request body with quotation_id and items
-    const body = await request.json();
+    const body = await req.json();
     const { quotation_id, items } = body;
     
     if (!quotation_id || !items || !Array.isArray(items) || items.length === 0) {

@@ -22,7 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "@/components/ui/use-toast"
+import { useI18n } from "@/lib/i18n/context"
 import { format } from "date-fns"
 
 interface Inspection {
@@ -38,7 +40,7 @@ interface UpcomingInspectionsProps {
 
 export function UpcomingInspections({ vehicleId }: UpcomingInspectionsProps) {
   const router = useRouter()
-  const { toast } = useToast()
+  const { t, language } = useI18n()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null)
   const [showCancelDialog, setShowCancelDialog] = useState(false)

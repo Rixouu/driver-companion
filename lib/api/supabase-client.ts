@@ -1,16 +1,16 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import { NextResponse } from 'next/server';
-
-export const dynamic = "force-dynamic";
+import { createServerClient } from '@/lib/supabase/index';
+import { handleApiError } from '@/lib/errors/error-handler';
+import { AppError } from '@/lib/errors/app-error';
 
 /**
- * Creates a typed Supabase client for use in API routes
+ * Creates a typed Supabase client for use in API routes (Route Handlers)
  */
 export async function createAPIClient() {
-  // In Next.js 15, pass cookies directly to avoid the "cookies() should be awaited" error
-  return createRouteHandlerClient<Database>({ cookies });
+  const cookieStore = await cookies();
+  return createServerClient(cookieStore);
 }
 
 /**
@@ -66,26 +66,22 @@ export async function withErrorHandling<T>(
 ): Promise<NextResponse> {
   try {
     const result = await operation();
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error(`API Error: ${errorMessage}`, error);
-    
-    // Handle Supabase errors specifically
-    if (error?.code && error?.message) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: 400 }
-      );
+    return NextResponse.json({ success: true, data: result });
+  } catch (error: unknown) {
+    let additionalInfo: Record<string, any> | undefined;
+    if (errorMessage !== "An error occurred while processing your request") {
+      additionalInfo = { defaultUserMessage: errorMessage };
     }
     
-    // Handle generic errors
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    if (error && typeof error === 'object' && 'code' in error && 'message' in error && !(error instanceof AppError)) {
+        // Potentially create a DatabaseError or a generic AppError here
+        // For now, let handleApiError manage this, it will create a generic AppError
+    }
+
+    return handleApiError(error, additionalInfo);
   }
 }
 
-export function getCookieStore() {
-  return cookies();
-} 
+// Removed problematic getCookieStore function
+// Callers in server contexts should use 'await cookies()' from 'next/headers' directly
+// or ensure they are in a context where the cookies function reference is passed (e.g. to createRouteHandlerClient). 

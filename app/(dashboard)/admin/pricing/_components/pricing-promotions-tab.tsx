@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PricingPromotion, DiscountType } from "@/types/quotations";
-import { useQuotationService } from "@/hooks/useQuotationService";
+import { PricingPromotion, DiscountType, ServiceTypeInfo } from "@/types/quotations";
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -48,7 +48,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
-import { ServiceTypeInfo } from "@/hooks/useQuotationService";
 
 export default function PricingPromotionsTab() {
   const [promotions, setPromotions] = useState<PricingPromotion[]>([]);

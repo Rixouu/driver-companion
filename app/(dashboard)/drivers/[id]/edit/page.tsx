@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DriverForm } from "@/components/drivers/driver-form"
 import { getDriverById, updateDriver } from "@/lib/services/drivers"
-import { useToast } from "@/hooks/use-toast"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Driver, DriverFormData } from "@/types"
 
@@ -17,7 +19,6 @@ export default function EditDriverPage() {
   const { id } = useParams()
   const router = useRouter()
   const { t } = useI18n()
-  const { toast } = useToast()
   const [driver, setDriver] = useState<Driver | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)

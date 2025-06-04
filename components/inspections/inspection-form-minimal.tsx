@@ -6,7 +6,7 @@ import * as z from "zod"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { InspectionTypeSelector } from "./inspection-type-selector"
 import { useI18n } from "@/lib/i18n/context"
-import { InspectionType } from "@/lib/types/inspections"
+import { InspectionType } from "@/types/inspections"
 
 const schema = z.object({
   type: z.enum(["routine", "safety", "maintenance"]).default("routine"),

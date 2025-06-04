@@ -2,7 +2,9 @@ import { UserRole } from "@/types/next-auth"
 import { NextAuthOptions, AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
-import { supabase } from "../supabase"
+import { createServiceClient } from "@/lib/supabase"
+
+const supabase = createServiceClient()
 
 interface User {
   id: string

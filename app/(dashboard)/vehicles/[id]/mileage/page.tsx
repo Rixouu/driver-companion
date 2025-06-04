@@ -13,11 +13,11 @@ interface MileageLogsPageProps {
 }
 
 export async function generateMetadata({ params }: MileageLogsPageProps) {
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
 
   return {
-    title: dictionary.mileage.title,
-    description: dictionary.mileage.description,
+    title: t('mileage.title') || "Mileage Logs",
+    description: t('mileage.description') || "View mileage logs",
   }
 }
 

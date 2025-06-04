@@ -62,18 +62,19 @@ export function TimeInput({
   const handleBlur = () => {
     const formattedTime = formatTime(inputValue);
     setInputValue(formattedTime);
+    // When using type="time", the browser usually handles formatting.
+    // onChange is called directly with the valid time string from the picker.
+    // The blur logic might still be useful if direct text input is possible and bypasses the picker.
     onChange(formattedTime);
   };
 
   return (
     <Input
       id={id}
-      type="text"
+      type="time"
       value={inputValue}
       onChange={handleChange}
       onBlur={handleBlur}
-      placeholder="00:00"
-      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
       disabled={disabled}
       className={className}
     />

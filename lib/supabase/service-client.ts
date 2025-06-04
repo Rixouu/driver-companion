@@ -46,6 +46,7 @@ export function createServiceClient() {
     )
     
     // Test the client with a simple query to make sure it's working
+    /* // Temporarily commented out to prevent loops and console noise
     if (typeof window === 'undefined') { // Only on server-side
       (async () => {
         try {
@@ -63,6 +64,7 @@ export function createServiceClient() {
         }
       })();
     }
+    */
     
     return serviceClient
   } catch (error) {

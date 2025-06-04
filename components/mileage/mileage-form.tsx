@@ -16,11 +16,11 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/lib/hooks/use-auth"
 import { createMileageLog, updateMileageLog } from "@/lib/services/mileage"
 import type { MileageLog } from "@/types"
 import { mileageLogSchema } from "@/lib/validations/mileage"
-import type { z } from "zod"
+import * as z from "zod"
 
 interface MileageFormProps {
   vehicleId: string

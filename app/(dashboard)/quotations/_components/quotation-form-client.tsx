@@ -5,16 +5,22 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
 import QuotationForm from '@/components/quotations/quotation-form';
-import { Quotation, QuotationItem } from '@/types/quotations';
+import { Quotation, QuotationItem, ServiceTypeInfo, PricingCategory, PricingItem } from '@/types/quotations';
 
 interface QuotationFormClientProps {
   quotation?: Quotation;
   duplicateFrom?: (Quotation & { quotation_items?: QuotationItem[] }) | null;
+  serviceTypes: ServiceTypeInfo[];
+  pricingCategories: PricingCategory[];
+  pricingItems: PricingItem[];
 }
 
 export default function QuotationFormClient({
   quotation,
-  duplicateFrom
+  duplicateFrom,
+  serviceTypes,
+  pricingCategories,
+  pricingItems
 }: QuotationFormClientProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -59,10 +65,10 @@ export default function QuotationFormClient({
 
   // Enhanced debugging on component mount to see the incoming data
   useEffect(() => {
-    console.log('QuotationFormClient mounted with duplicateFrom:', duplicateFrom);
-    console.log('Original quotation items present?', duplicateFrom?.quotation_items ? `Yes, count: ${duplicateFrom.quotation_items.length}` : 'No');
-    console.log('Initial preparedQuotation:', preparedQuotation);
-    console.log('preparedQuotation items present?', preparedQuotation?.quotation_items ? `Yes, count: ${preparedQuotation.quotation_items.length}` : 'No');
+    // console.log('QuotationFormClient mounted with duplicateFrom:', duplicateFrom); // Removed console.log
+    // console.log('Original quotation items present?', duplicateFrom?.quotation_items ? `Yes, count: ${duplicateFrom.quotation_items.length}` : 'No'); // Removed console.log
+    // console.log('Initial preparedQuotation:', preparedQuotation); // Removed console.log
+    // console.log('preparedQuotation items present?', preparedQuotation?.quotation_items ? `Yes, count: ${preparedQuotation.quotation_items.length}` : 'No'); // Removed console.log
   }, []);
 
   const handleSuccess = (quotation: Quotation) => {
@@ -83,6 +89,9 @@ export default function QuotationFormClient({
     <QuotationForm
       initialData={preparedQuotation}
       onSuccess={handleSuccess}
+      serviceTypes={serviceTypes}
+      pricingCategories={pricingCategories}
+      pricingItems={pricingItems}
     />
   );
 } 

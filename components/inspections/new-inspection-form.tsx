@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -14,25 +14,36 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 import { VehicleSelector } from "@/components/vehicle-selector"
-import { supabase } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
+import { createClient } from "@/lib/supabase"
+import { useAuth } from "@/lib/hooks/use-auth"
+import { useI18n } from "@/lib/i18n/context"
 
-const inspectionSchema = z.object({
-  vehicle_id: z.string().min(1, "Required"),
-})
+// Moved schema outside to use t() from useI18n in the component scope
+// const inspectionSchema = z.object({
+// vehicle_id: z.string().min(1, "Required"),
+// });
 
-type InspectionFormData = z.infer<typeof inspectionSchema>
+type InspectionFormData = z.infer<ReturnType<typeof getSchema>>;
+
+function getSchema(t: (key: string) => string) {
+  return z.object({
+    vehicle_id: z.string().min(1, t('common.forms.required')),
+  });
+}
 
 export function NewInspectionForm() {
   const router = useRouter()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
+  const { t } = useI18n()
+
+  // Get Supabase client instance
+  const supabase = useMemo(() => createClient(), []);
 
   const form = useForm<InspectionFormData>({
-    resolver: zodResolver(inspectionSchema),
+    resolver: zodResolver(getSchema(t)),
     defaultValues: {
       vehicle_id: "",
     },
@@ -62,8 +73,8 @@ export function NewInspectionForm() {
       if (error) throw error
 
       toast({
-        title: "Success",
-        description: "Inspection created successfully",
+        title: t('common.notifications.success'),
+        description: t('inspections.notifications.createSuccess'),
       })
 
       router.push(`/inspections/${inspection.id}/perform`)
@@ -71,8 +82,8 @@ export function NewInspectionForm() {
     } catch (error) {
       console.error('Error:', error)
       toast({
-        title: "Error",
-        description: "Failed to create inspection",
+        title: t('common.notifications.error'),
+        description: t('inspections.notifications.createError'),
         variant: "destructive",
       })
     } finally {
@@ -89,10 +100,11 @@ export function NewInspectionForm() {
             name="vehicle_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Vehicle</FormLabel>
+                <FormLabel>{t('inspections.fields.vehicle')}</FormLabel>
                 <VehicleSelector
                   value={field.value}
                   onValueChange={field.onChange}
+                  placeholder={t('inspections.fields.selectVehiclePlaceholder')}
                 />
                 <FormMessage />
               </FormItem>
@@ -107,10 +119,10 @@ export function NewInspectionForm() {
             onClick={() => router.back()}
             disabled={isSubmitting}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Inspection"}
+            {isSubmitting ? t('common.creating') : t('inspections.createInspection')}
           </Button>
         </div>
       </form>

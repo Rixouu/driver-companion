@@ -32,7 +32,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "@/components/ui/use-toast"
 
 import type { DriverAvailability, DriverAvailabilityStatus } from "@/types/drivers"
 import { createDriverAvailability, updateDriverAvailability } from "@/lib/services/driver-availability"
@@ -83,7 +83,6 @@ export function DriverAvailabilityForm({
   onSuccess,
   onCancel
 }: DriverAvailabilityFormProps) {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Parse initial dates and times if available

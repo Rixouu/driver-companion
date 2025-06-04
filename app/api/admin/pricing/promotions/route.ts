@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'; // No longer needed
+// import { createClient } from '@supabase/supabase-js'; // Unused import
+// import { cookies } from 'next/headers'; // No longer needed
+import { getSupabaseServerClient } from '@/lib/supabase/server'; // Correct import
 import { Database } from '@/types/supabase';
 
 export const dynamic = "force-dynamic"
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   const activeOnly = searchParams.get('active_only') !== 'false';
 
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Changed client creation
     
     // Verify user is authenticated and has admin role
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Changed client creation
     
     // Verify user is authenticated and has admin role
     const { data: { user } } = await supabase.auth.getUser();

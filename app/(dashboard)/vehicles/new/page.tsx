@@ -1,56 +1,42 @@
 import { Metadata } from "next"
+// import dynamic from "next/dynamic" // No longer needed here
 import { getDictionary } from "@/lib/i18n/server"
-import { VehicleForm } from "@/components/vehicles/vehicle-form"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { NewVehicleLoader } from "./new-vehicle-loader"; // Import the new client component
+// import { Button } from "@/components/ui/button"
+// import Link from "next/link"
+// import { ArrowLeft } from "lucide-react"
+// import { PageHeader } from "@/components/layout/page-header"
+
+// Remove dynamic import of VehicleForm if NewVehiclePageContent handles it
+// const VehicleForm = dynamic(() => 
+//   import("@/components/vehicles/vehicle-form").then(mod => mod.VehicleForm),
+//   { 
+//     ssr: false,
+//     loading: () => <p>Loading form...</p>
+//   }
+// );
+
+// Dynamically import NewVehiclePageContent - this is the primary content for the page
+// const NewVehiclePageContent = dynamic(() => 
+//   import("@/components/vehicles/new-vehicle-page-content").then(mod => mod.NewVehiclePageContent),
+//   {
+//     ssr: false, 
+//     loading: () => (
+//       <div className=\"container mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center\">
+//         <p>Loading...</p>
+//       </div>
+//     )
+//   }
+// );
 
 export async function generateMetadata(): Promise<Metadata> {
-  try {
-  const { dictionary } = await getDictionary()
-  
+  const { t } = await getDictionary()
   return {
-      title: dictionary?.vehicles?.newVehicle || "New Vehicle",
-      description: dictionary?.vehicles?.description || "Add a new vehicle to your fleet",
-    }
-  } catch (error) {
-    console.error("Error generating metadata:", error)
-    return {
-      title: "New Vehicle",
-      description: "Add a new vehicle to your fleet",
-    }
+    title: t('vehicles.addNewMetaTitle') || "Add New Vehicle",
+    description: t('vehicles.addNewMetaDescription') || "Add a new vehicle to your fleet",
   }
 }
 
-// Force dynamic rendering to handle cookies
-export const dynamic = 'force-dynamic'
-
 export default async function NewVehiclePage() {
-  const { t } = await getDictionary()
-
-  return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Button
-            variant="link"
-            className="pl-0 text-muted-foreground"
-            asChild
-          >
-            <Link href="/vehicles" >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t("common.backTo")} {t("vehicles.title")}
-            </Link>
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t("vehicles.newVehicle")}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("vehicles.description")}
-          </p>
-        </div>
-      </div>
-      <VehicleForm />
-    </div>
-  );
+  return <NewVehicleLoader />;
 } 

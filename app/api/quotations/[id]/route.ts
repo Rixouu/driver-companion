@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force dynamic rendering to avoid cookie issues
@@ -6,15 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
+  const params = await paramsPromise;
   // Create server-side Supabase client with auth cookies
-  const supabase = await createServerSupabaseClient();
+  const supabase = await getSupabaseServerClient();
   
   try {
     // Check authorization
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -49,11 +50,12 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
+  const params = await paramsPromise;
   try {
     // Create the Supabase client
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     
     // Ensure user is authenticated
     const { data: { user } } = await supabase.auth.getUser();

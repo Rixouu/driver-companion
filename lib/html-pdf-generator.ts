@@ -35,9 +35,9 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     <!DOCTYPE html>
     <html>
     <head>
-      <meta charset="utf-8">
+      <meta charset=\"utf-8\">
       <title>PDF Export</title>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap">
+      <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap\">
       <style>
         body {
           font-family: 'Work Sans', sans-serif;
@@ -65,7 +65,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
-        headless: true
+        headless: chromium.headless, // Use chromium.headless for serverless
       });
     } else {
       // Use regular Puppeteer for local development
@@ -101,8 +101,11 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw error;
+    // It's often better to throw a custom error or re-throw if you can't handle it
+    throw new Error(`PDF generation failed: ${(error as Error).message}`);
   }
+  // console.warn("PDF generation with Puppeteer is currently disabled due to missing dependencies.");
+  // return Promise.reject(new Error("PDF generation (Puppeteer) is disabled."));
 }
 
 /**

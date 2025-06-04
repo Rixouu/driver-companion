@@ -20,6 +20,7 @@ import BookingAssignment from '@/components/bookings/booking-assignment'
 import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Database } from '@/types/supabase'
+import Image from 'next/image'
 
 // Avatar component for client display
 function AvatarInitials({ name }: { name: string }) {
@@ -626,10 +627,12 @@ export default function BookingDetailsContent({
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="md:w-1/4 flex justify-center">
                   {(booking.customer as any)?.avatar ? (
-                    <img 
+                    <Image 
                       src={(booking.customer as any).avatar} 
                       alt={booking.customer?.name || 'Client'} 
-                      className="w-24 h-24 rounded-full object-cover"
+                      width={96}
+                      height={96}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <AvatarInitials name={booking.customer?.name || booking.customer_name || 'Unknown'} />

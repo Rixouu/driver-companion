@@ -6,20 +6,29 @@ import { Plus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { VehicleList } from "@/components/vehicles/vehicle-list"
 import { DbVehicle } from "@/types"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 interface VehiclesPageContentProps {
   vehicles: DbVehicle[]
   currentPage: number
   totalPages: number
+  initialFilters?: {
+    query?: string
+    status?: string
+    brand?: string
+    model?: string
+  }
+  brandOptions?: { value: string; label: string }[]
+  modelOptions?: { value: string; label: string }[]
 }
 
-export function VehiclesPageContent({ vehicles, currentPage, totalPages }: VehiclesPageContentProps) {
+export function VehiclesPageContent({ 
+  vehicles, 
+  currentPage, 
+  totalPages, 
+  initialFilters, 
+  brandOptions, 
+  modelOptions 
+}: VehiclesPageContentProps) {
   const { t } = useI18n()
 
   return (
@@ -31,17 +40,20 @@ export function VehiclesPageContent({ vehicles, currentPage, totalPages }: Vehic
             {t("vehicles.description")}
           </p>
         </div>
-        <Link href="/vehicles/new" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
+        <Link href="/vehicles/new">
           <Button className="sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             {t("vehicles.addVehicle")}
           </Button>
-        </span></span></Link>
+        </Link>
       </div>
       <VehicleList
         vehicles={vehicles}
         currentPage={currentPage}
         totalPages={totalPages}
+        initialFilters={initialFilters}
+        brandOptions={brandOptions}
+        modelOptions={modelOptions}
       />
     </div>
   );

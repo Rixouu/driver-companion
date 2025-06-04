@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { getSupabaseServerClient } from "@/lib/supabase/server"
 
 import { FuelForm } from "@/components/fuel/fuel-form"
 import { PageHeader } from "@/components/page-header"
@@ -17,11 +16,11 @@ interface EditFuelLogPageProps {
 }
 
 export async function generateMetadata({ params }: EditFuelLogPageProps) {
-  const { dictionary } = await getDictionary()
+  const { t } = await getDictionary()
 
   return {
-    title: dictionary.fuel.edit.title,
-    description: dictionary.fuel.edit.description,
+    title: t('fuel.edit.title'),
+    description: t('fuel.edit.description'),
   }
 }
 
@@ -33,10 +32,10 @@ export default async function EditFuelLogPage({ params }: EditFuelLogPageProps) 
     console.log('Loading fuel log edit page with params:', { id, logId })
     
     // Get the user session
-    const supabase = createServerComponentClient<Database>({ cookies })
-    const { data: { session } } = await supabase.auth.getSession()
+    const supabase = await getSupabaseServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (!session?.user) {
+    if (!user) {
       console.error('No authenticated user')
       notFound()
     }
@@ -50,7 +49,7 @@ export default async function EditFuelLogPage({ params }: EditFuelLogPageProps) 
     console.log('Found vehicle:', vehicle)
 
     // Then, get the fuel log with the user ID
-    const { log } = await getFuelLog(logId, session.user.id)
+    const { log } = await getFuelLog(logId, user.id)
     if (!log) {
       console.error('Fuel log not found:', logId)
       notFound()

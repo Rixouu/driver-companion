@@ -7,14 +7,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n/context"
-
-export type MileageLog = {
-  id: string
-  date: string
-  reading: number
-  notes: string | null
-  vehicle_id: string
-}
+import type { MileageLog } from "@/types"
 
 export const columns: ColumnDef<MileageLog>[] = [
   {

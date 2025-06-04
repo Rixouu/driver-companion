@@ -2,9 +2,10 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { User, AuthError } from "@supabase/supabase-js"
-import { supabase, getSupabaseClient, clearAuthState } from "@/lib/supabase/client"
-import { useToast } from "@/hooks/use-toast"
+import { User, AuthError, SupabaseClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/index"
+import { useToast } from "@/components/ui/use-toast"
+import type { Database } from "@/types/supabase"
 
 interface AuthContextType {
   user: User | null
@@ -35,89 +36,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authInitialized, setAuthInitialized] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const [supabaseClient] = useState<SupabaseClient<Database>>(() => createClient())
 
   useEffect(() => {
-    const supabase = getSupabaseClient()
-    let initialCheckDone = false; // Flag to track if initial check completed
-    let retryCount = 0;
-    const MAX_RETRIES = 2;
+    let initialCheckDone = false
+    let retryCount = 0
+    const MAX_RETRIES = 2
     
-    // Call getUser once on initial load to attempt session fetch
     const getUser = async () => {
-      console.log("[AuthProvider] Attempting initial getUser()...");
+      console.log("[AuthProvider] Attempting initial getUser()...")
       try {
-        const { data, error } = await supabase.auth.getUser()
-        console.log("[AuthProvider] getUser() result:", data);
+        const { data, error: getUserError } = await supabaseClient.auth.getUser()
+        console.log("[AuthProvider] getUser() result:", data)
 
-        if (!initialCheckDone) { // Only update state based on initial getUser if listener hasn't fired yet
-             if (error) {
-                 console.error("[AuthProvider] Initial getUser() error:", error.message);
-                 // Don't set user to null here yet, wait for listener
-                 setError(error.message);
+        if (!initialCheckDone) { 
+             if (getUserError) {
+                 console.error("[AuthProvider] Initial getUser() error:", getUserError.message)
+                 setError(getUserError.message)
                  
-                 // If we get "Auth session missing" specifically, we may need to recover
-                 if (error.message.includes("Auth session missing") && retryCount < MAX_RETRIES) {
-                   console.log(`[AuthProvider] Attempting recovery (${retryCount + 1}/${MAX_RETRIES})...`);
-                   retryCount++;
-                   // Try to refresh the session
-                   const { error: refreshError } = await supabase.auth.refreshSession();
+                 if (getUserError.message.includes("Auth session missing") && retryCount < MAX_RETRIES) {
+                   console.log(`[AuthProvider] Attempting recovery (${retryCount + 1}/${MAX_RETRIES})...`)
+                   retryCount++
+                   const { error: refreshError } = await supabaseClient.auth.refreshSession()
                    if (refreshError) {
-                     console.error("[AuthProvider] Session refresh failed:", refreshError);
+                     console.error("[AuthProvider] Session refresh failed:", refreshError)
                    } else {
-                     console.log("[AuthProvider] Session refresh successful");
-                     // Retry getUser
-                     setTimeout(getUser, 500);
-                     return;
+                     console.log("[AuthProvider] Session refresh successful")
+                     setTimeout(getUser, 500)
+                     return
                    }
                  }
              } else if (data.user) {
-                 console.log("[AuthProvider] Initial getUser() success:", data.user);
-                 setUser(data.user);
-                 setError(null);
+                 console.log("[AuthProvider] Initial getUser() success:", data.user)
+                 setUser(data.user)
+                 setError(null)
              }
         }
       } catch (err) {
         console.error("[AuthProvider] Unexpected error in initial getUser():", err)
-        setError("An unexpected authentication error occurred");
+        setError("An unexpected authentication error occurred")
       } finally {
-        setAuthInitialized(true);
+        setAuthInitialized(true)
       }
     }
     
-    getUser(); // Call it immediately
+    getUser()
 
-    // Listener handles subsequent changes and definitive initial state
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log("[AuthProvider] onAuthStateChange event:", event, "session:", session);
-        setUser(session?.user ?? null);
-        setError(null); // Clear previous errors on auth change
-        initialCheckDone = true; // Mark that the listener has given us the state
-        setLoading(false); // Set loading false once we get the definitive state from the listener
-        setAuthInitialized(true);
+    const { data: authListener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log("[AuthProvider] onAuthStateChange event:", event, "session:", session)
+        setUser(session?.user ?? null)
+        setError(null) 
+        initialCheckDone = true 
+        setLoading(false) 
+        setAuthInitialized(true)
 
         if (event === 'SIGNED_IN') {
             toast({
               title: "Signed in successfully",
               description: `Welcome${session?.user?.email ? ` ${session.user.email}` : ''}!`,
             })
-            // router.refresh(); // Might not be needed if state update triggers re-render
         } else if (event === 'SIGNED_OUT') {
             toast({
               title: "Signed out",
               description: "You have been signed out successfully.",
             })
-             // Redirect to login on sign out
-             router.push('/auth/login');
+             router.push('/auth/login')
         }
-    });
+    })
 
-    // Initial loading state - set true at the start
-    setLoading(true);
+    setLoading(true)
 
     return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, [router, toast]); // Keep dependencies
+      authListener?.subscription.unsubscribe()
+    }
+  }, [router, toast, supabaseClient])
 
   const handleAuthError = (error: AuthError | Error | unknown): string => {
     if ((error as AuthError)?.message) {
@@ -127,23 +119,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const clearAuthAndRedirect = async () => {
-    await clearAuthState();
-    router.push('/auth/login');
-    router.refresh();
-  };
+    try {
+      await supabaseClient.auth.signOut({ scope: 'local' })
+      setUser(null)
+    } catch (err) {
+      console.error("Error during local sign out:", err)
+    }
+    router.push('/auth/login')
+    router.refresh()
+  }
 
   const signIn = async (email: string, password: string) => {
-    const supabase = getSupabaseClient()
     try {
       setLoading(true)
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
       })
 
-      if (error) {
-        setError(error.message)
-        return { success: false, error: error.message }
+      if (signInError) {
+        setError(signInError.message)
+        return { success: false, error: signInError.message }
       }
 
       setUser(data.user)
@@ -159,18 +155,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
-    const supabase = getSupabaseClient()
     try {
       setLoading(true)
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabaseClient.auth.signUp({
         email,
         password,
         options: { data: metadata }
       })
 
-      if (error) {
-        setError(error.message)
-        return { success: false, error: error.message }
+      if (signUpError) {
+        setError(signUpError.message)
+        return { success: false, error: signUpError.message }
       }
 
       return { success: true }
@@ -184,10 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    const supabase = getSupabaseClient()
     try {
       setLoading(true)
-      await supabase.auth.signOut()
+      await supabaseClient.auth.signOut()
       setUser(null)
     } catch (err) {
       console.error("Error signing out:", err)
@@ -198,16 +192,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const resetPassword = async (email: string) => {
-    const supabase = getSupabaseClient()
     try {
       setLoading(true)
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
-      if (error) {
-        setError(error.message)
-        return { success: false, error: error.message }
+      if (resetError) {
+        setError(resetError.message)
+        return { success: false, error: resetError.message }
       }
 
       toast({
@@ -224,16 +217,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Display an error message if there are auth initialization issues
   useEffect(() => {
     if (authInitialized && error && error.includes("Auth session missing")) {
       toast({
         title: "Authentication error",
         description: "Please sign in again to continue.",
         variant: "destructive",
-      });
+      })
     }
-  }, [authInitialized, error, toast]);
+  }, [authInitialized, error, toast])
 
   return (
     <AuthContext.Provider 
@@ -254,5 +246,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useAuth = () => {
-  return useContext(AuthContext)
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
 } 

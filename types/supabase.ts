@@ -436,6 +436,7 @@ export type Database = {
           created_at: string | null
           description_translations: Json | null
           id: string
+          master_template_id: string | null
           name_translations: Json | null
           order_number: number | null
           type: string
@@ -445,6 +446,7 @@ export type Database = {
           created_at?: string | null
           description_translations?: Json | null
           id?: string
+          master_template_id?: string | null
           name_translations?: Json | null
           order_number?: number | null
           type: string
@@ -454,12 +456,21 @@ export type Database = {
           created_at?: string | null
           description_translations?: Json | null
           id?: string
+          master_template_id?: string | null
           name_translations?: Json | null
           order_number?: number | null
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_inspection_categories_master_template"
+            columns: ["master_template_id"]
+            isOneToOne: false
+            referencedRelation: "master_inspection_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inspection_item_templates: {
         Row: {
@@ -917,6 +928,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      master_inspection_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          status: Database["public"]["Enums"]["template_status_type"]
+          title: string
+          updated_at: string
+          vehicle_type_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["template_status_type"]
+          title: string
+          updated_at?: string
+          vehicle_type_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: Database["public"]["Enums"]["template_status_type"]
+          title?: string
+          updated_at?: string
+          vehicle_type_id?: string | null
+        }
+        Relationships: []
       }
       mileage_entries: {
         Row: {
@@ -2039,7 +2089,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      template_status_type: "draft" | "active" | "inactive" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2154,6 +2204,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      template_status_type: ["draft", "active", "inactive", "archived"],
+    },
   },
 } as const

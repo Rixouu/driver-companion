@@ -1,18 +1,24 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
 // Organization domain for access control
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res })
-  const { data: { session } } = await supabase.auth.getSession()
+  // updateSession now returns the response, Supabase client, and user
+  const { response, supabase, user: sessionUser } = await updateSession(request)
+
+  // If Supabase client couldn't be initialized (e.g., missing env vars), sessionUser might be null
+  // and supabase might be a placeholder. Handle critical errors or proceed cautiously.
+  if (!supabase?.auth) { // Basic check if supabase client is valid
+      console.error("Middleware: Supabase client not initialized correctly. Check environment variables.")
+      // Depending on the application's needs, might return response early or throw error
+      return response
+  }
 
   // Check if user is authenticated
-  const isAuth = !!session
+  const isAuth = !!sessionUser
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
   const isPublicPage = request.nextUrl.pathname === '/'
   const isNotAuthorizedPage = request.nextUrl.pathname === '/not-authorized'
@@ -23,7 +29,7 @@ export async function middleware(request: NextRequest) {
   
   // Check if user is from the organization
   const isOrganizationMember = isAuth && 
-    session.user.email?.endsWith(`@${ORGANIZATION_DOMAIN}`)
+    sessionUser.email?.endsWith(`@${ORGANIZATION_DOMAIN}`)
 
   // Redirect rules
   if (isAuthPage) {
@@ -33,14 +39,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     // Allow access to auth pages for non-authenticated users
-    return res
+    return response
   }
   
   // Special handling for quotation details pages
   if (isQuotationDetailsPage) {
     if (isAuth) {
       // If user is authenticated, continue - we'll check organization status in the page component
-      return res
+      return response
     } else {
       // If not authenticated, redirect to login
       return NextResponse.redirect(
@@ -65,7 +71,7 @@ export async function middleware(request: NextRequest) {
   
   // Allow authenticated users to access the not-authorized page regardless of organization
   if (isAuth && isNotAuthorizedPage) {
-    return res
+    return response
   }
   
   // Check for non-organization members accessing protected areas
@@ -75,7 +81,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/not-authorized', request.url))
   }
 
-  return res
+  return response
 }
 
 // Configure which paths should be handled by this middleware

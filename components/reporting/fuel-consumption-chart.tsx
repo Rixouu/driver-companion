@@ -1,73 +1,88 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+// import { supabase } from "@/lib/supabase"; // Ensure this is not used
+// import { createBrowserClient } from "@supabase/ssr" // No longer needed for fetching
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
-import { format, parseISO } from "date-fns"
+// import { format, parseISO } from "date-fns" // No longer needed for processing if data is pre-formatted
+import { FuelChartDataPoint } from "@/app/(dashboard)/reporting/page"; // Import the shared type
 
-interface FuelData {
-  date: string
-  consumption: number
-  cost: number
-}
+// interface FuelData { // Use FuelChartDataPoint instead
+//   date: string
+//   consumption: number
+//   cost: number
+// }
 
 interface FuelConsumptionChartProps {
-  dateRange?: DateRange | undefined
+  dateRange?: DateRange | undefined // Keep for potential future client-side filtering, though primary data is from props
+  initialData?: FuelChartDataPoint[] // New prop for server-fetched data
 }
 
-export function FuelConsumptionChart({ dateRange }: FuelConsumptionChartProps) {
-  const [data, setData] = useState<FuelData[]>([])
+export function FuelConsumptionChart({ dateRange, initialData }: FuelConsumptionChartProps) {
+  const [data, setData] = useState<FuelChartDataPoint[]>(initialData || [])
   const { theme } = useTheme()
 
+  // const supabase = useMemo(() => { // Remove Supabase client instantiation
+  //   return createBrowserClient(
+  //     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  //     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  //   )
+  // }, [])
+
   useEffect(() => {
-    async function fetchFuelData() {
-      try {
-        const { data: fuelEntries, error } = await supabase
-          .from('fuel_entries')
-          .select('date, fuel_amount, fuel_cost')
-          .gte('date', dateRange?.from?.toISOString())
-          .lte('date', dateRange?.to?.toISOString())
-          .order('date')
+    // Set data from prop when it changes
+    setData(initialData || []);
+  }, [initialData]);
 
-        if (error) throw error
+  // useEffect(() => { // Remove old data fetching logic
+  //   async function fetchFuelData() {
+  //     try {
+  //       const { data: fuelEntries, error } = await supabase
+  //         .from('fuel_entries')
+  //         .select('date, fuel_amount, fuel_cost')
+  //         .gte('date', dateRange?.from?.toISOString())
+  //         .lte('date', dateRange?.to?.toISOString())
+  //         .order('date')
+  //
+  //       if (error) throw error
+  //
+  //       // Group fuel data by date
+  //       const fuelByDate = fuelEntries.reduce((acc: { [key: string]: { liters: number; cost: number } }, entry) => {
+  //         const date = format(parseISO(entry.date), 'MMM d')
+  //         if (!acc[date]) {
+  //           acc[date] = { liters: 0, cost: 0 }
+  //         }
+  //         const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
+  //         const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
+  //         acc[date].liters += liters || 0
+  //         acc[date].cost += cost || 0
+  //         return acc
+  //       }, {})
+  //
+  //       // Convert to chart data format
+  //       const chartData = Object.entries(fuelByDate)
+  //         .map(([date, { liters, cost }]) => ({
+  //           date,
+  //           consumption: Math.round(liters),
+  //           cost: Math.round(cost)
+  //         }))
+  //         .sort((a, b) => a.date.localeCompare(b.date))
+  //
+  //       setData(chartData)
+  //     } catch (error) {
+  //       console.error('Error fetching fuel data:', error)
+  //       setData([])
+  //     }
+  //   }
+  //
+  //   if (dateRange?.from && dateRange?.to) {
+  //     fetchFuelData()
+  //   }
+  // }, [dateRange, supabase])
 
-        // Group fuel data by date
-        const fuelByDate = fuelEntries.reduce((acc: { [key: string]: { liters: number; cost: number } }, entry) => {
-          const date = format(parseISO(entry.date), 'MMM d')
-          if (!acc[date]) {
-            acc[date] = { liters: 0, cost: 0 }
-          }
-          const liters = typeof entry.fuel_amount === 'string' ? parseFloat(entry.fuel_amount) : entry.fuel_amount
-          const cost = typeof entry.fuel_cost === 'string' ? parseFloat(entry.fuel_cost) : entry.fuel_cost
-          acc[date].liters += liters || 0
-          acc[date].cost += cost || 0
-          return acc
-        }, {})
-
-        // Convert to chart data format
-        const chartData = Object.entries(fuelByDate)
-          .map(([date, { liters, cost }]) => ({
-            date,
-            consumption: Math.round(liters),
-            cost: Math.round(cost)
-          }))
-          .sort((a, b) => a.date.localeCompare(b.date))
-
-        setData(chartData)
-      } catch (error) {
-        console.error('Error fetching fuel data:', error)
-        setData([])
-      }
-    }
-
-    if (dateRange?.from && dateRange?.to) {
-      fetchFuelData()
-    }
-  }, [dateRange])
-
-  if (data.length === 0) {
+  if (!data || data.length === 0) { // Check if data is null or empty
     return (
       <div className="flex h-[300px] items-center justify-center">
         <p className="text-muted-foreground">No fuel consumption data available for the selected period</p>

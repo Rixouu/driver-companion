@@ -15,6 +15,16 @@ body {
     touch-action: manipulation;
   }
 
+  /* Hide scrollbars while keeping functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
   /* Improve touch targets on mobile */
   @media (max-width: 768px) {
     .touch-target {

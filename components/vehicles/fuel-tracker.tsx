@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import type { FuelEntry } from "@/types/vehicles"
+import { useI18n } from "@/lib/i18n/context";
 
 interface FuelTrackerProps {
   vehicleId: string
@@ -27,6 +28,7 @@ export function FuelTracker({
   fuelHistory,
   onAddEntry,
 }: FuelTrackerProps) {
+  const { t } = useI18n();
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -45,14 +47,14 @@ export function FuelTracker({
       })
 
       toast({
-        title: "vehicles.fuel.success",
-        description: "vehicles.fuel.successDescription",
+        title: t("vehicles.fuel.success"),
+        description: t("vehicles.fuel.successDescription"),
       })
       setIsOpen(false)
     } catch (error) {
       toast({
-        title: "vehicles.fuel.error",
-        description: "vehicles.fuel.errorDescription",
+        title: t("vehicles.fuel.error"),
+        description: t("vehicles.fuel.errorDescription"),
         variant: "destructive",
       })
     } finally {
@@ -63,20 +65,20 @@ export function FuelTracker({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>{"vehicles.fuel.title"}</CardTitle>
+        <CardTitle>{t("vehicles.fuel.title")}</CardTitle>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button variant="outline">
-              {"vehicles.fuel.addEntry"}
+              {t("vehicles.fuel.addEntry")}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{"vehicles.fuel.addEntry"}</DialogTitle>
+              <DialogTitle>{t("vehicles.fuel.addEntry")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="liters">{"vehicles.fuel.liters"}</Label>
+                <Label htmlFor="liters">{t("vehicles.fuel.liters")}</Label>
                 <Input
                   id="liters"
                   name="liters"
@@ -86,7 +88,7 @@ export function FuelTracker({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cost">{"vehicles.fuel.cost"}</Label>
+                <Label htmlFor="cost">{t("vehicles.fuel.cost")}</Label>
                 <Input
                   id="cost"
                   name="cost"
@@ -96,7 +98,7 @@ export function FuelTracker({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mileage">{"vehicles.fuel.mileage"}</Label>
+                <Label htmlFor="mileage">{t("vehicles.fuel.mileage")}</Label>
                 <Input
                   id="mileage"
                   name="mileage"
@@ -105,33 +107,49 @@ export function FuelTracker({
                 />
               </div>
               <Button type="submit" disabled={isLoading} className="w-full">
-                {isLoading ? "common.saving" : "common.save"}
+                {isLoading ? t("common.saving") : t("common.save")}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </CardHeader>
       <CardContent>
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={fuelHistory}>
-              <XAxis
-                dataKey="date"
-                tickFormatter={(date) => new Date(date).toLocaleDateString()}
-              />
-              <YAxis />
-              <Tooltip
-                labelFormatter={(date) => new Date(date).toLocaleDateString()}
-              />
-              <Line
-                type="monotone"
-                dataKey="liters"
-                stroke="#2563eb"
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {fuelHistory && fuelHistory.length > 0 ? (
+          <div className="h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={fuelHistory}>
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${value}`}
+                />
+                <Tooltip
+                  labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="liters"
+                  stroke="#2563eb"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center">
+            <p className="text-muted-foreground">{t("vehicles.fuel.noHistory")}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

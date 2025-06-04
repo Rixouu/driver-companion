@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState, useMemo } from "react"
+import { getSupabaseClient } from "@/lib/supabase/client"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
 import { differenceInDays } from "date-fns"
 
-interface AvailabilityData {
+interface AvailabilityDataPoint {
   name: string
   available: number
   maintenance: number
@@ -16,6 +16,7 @@ interface AvailabilityData {
 
 interface VehicleAvailabilityChartProps {
   dateRange: DateRange
+  initialData?: AvailabilityDataPoint[]
 }
 
 const COLORS = {
@@ -24,9 +25,10 @@ const COLORS = {
   availability: '#6366F1'
 }
 
-export function VehicleAvailabilityChart({ dateRange }: VehicleAvailabilityChartProps) {
-  const [data, setData] = useState<AvailabilityData[]>([])
+export function VehicleAvailabilityChart({ dateRange, initialData }: VehicleAvailabilityChartProps) {
+  const [data, setData] = useState<AvailabilityDataPoint[]>(initialData || [])
   const { theme } = useTheme()
+  const supabase = useMemo(() => getSupabaseClient(), [])
 
   useEffect(() => {
     async function fetchAvailabilityData() {
@@ -66,7 +68,7 @@ export function VehicleAvailabilityChart({ dateRange }: VehicleAvailabilityChart
           const availabilityPercentage = (availableDays / totalDays) * 100
 
           return {
-            name: vehicle.name,
+            name: vehicle.name || `Vehicle ${vehicle.id}`,
             available: availableDays,
             maintenance: maintenanceDays,
             availability: Math.round(availabilityPercentage * 10) / 10
@@ -80,10 +82,16 @@ export function VehicleAvailabilityChart({ dateRange }: VehicleAvailabilityChart
       }
     }
 
-    if (dateRange.from && dateRange.to) {
-      fetchAvailabilityData()
+    if (!initialData || (initialData && initialData.length === 0)) {
+      if (dateRange.from && dateRange.to) {
+        fetchAvailabilityData()
+      }
+    } else if (initialData && initialData.length > 0) {
+      if (dateRange.from && dateRange.to) {
+        fetchAvailabilityData()
+      }
     }
-  }, [dateRange])
+  }, [dateRange, supabase, initialData])
 
   if (data.length === 0) {
     return (

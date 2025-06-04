@@ -1,12 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { Car, ChevronRight, MapPin, Phone, Clock, Shield } from "lucide-react"
+import { Car, ChevronRight, MapPin, Phone, Clock, Shield, Mail } from "lucide-react"
 import { DriverStatusBadge } from "./driver-status-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useI18n } from "@/lib/i18n/context"
 import { Badge } from "@/components/ui/badge"
-import type { Driver } from "@/types"
+import type { Driver } from "@/types/drivers"
+import { useRouter } from "next/navigation"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 interface DriverListItemProps {
   driver: Driver
@@ -14,6 +17,7 @@ interface DriverListItemProps {
 
 export function DriverListItem({ driver }: DriverListItemProps) {
   const { t } = useI18n()
+  const router = useRouter()
   const currentDriver = driver as any; // Temporary cast
   const currentAvailability = currentDriver.availability_status || currentDriver.status || 'available';
   
@@ -33,69 +37,76 @@ export function DriverListItem({ driver }: DriverListItemProps) {
     }
   };
 
+  // Handle click for better mobile touch support
+  const handleItemClick = () => {
+    router.push(`/drivers/${driver.id}`);
+  };
+
   return (
-    <Link
-      href={`/drivers/${currentDriver.id}`}
-      // Apply border color and keep other text black/muted
-      className={`flex items-center justify-between p-4 hover:bg-muted/50 transition-colors border-l-4 ${getAvailabilityColorClass()}`}>
-      <div className="flex items-center gap-4 flex-grow">
-        <Avatar className="h-12 w-12 border-2 border-primary/10">
-          <AvatarImage src={currentDriver.profile_image_url || ""} alt={currentDriver.full_name || ""} />
-          <AvatarFallback className="text-base font-bold bg-primary text-primary-foreground">
-            {currentDriver.first_name?.[0]}{currentDriver.last_name?.[0]}
+    <Card 
+      className="hover:shadow-md transition-shadow w-full active:bg-muted/50"
+      onClick={handleItemClick} // Added onClick handler
+      role="button" // Added role for accessibility
+      tabIndex={0} // Added tabIndex for accessibility
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleItemClick(); }} // Keyboard accessibility
+    >
+      <div className="flex items-center p-4">
+        <Avatar className="h-12 w-12 mr-4 border">
+          <AvatarImage 
+            src={driver.profile_image_url || ""} 
+            alt={driver.full_name || t("drivers.emptyState.title") } 
+          />
+          <AvatarFallback className="text-md font-bold bg-primary text-primary-foreground">
+            {driver.first_name?.[0]}{driver.last_name?.[0]}
           </AvatarFallback>
         </Avatar>
-        
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
-          <div>
-            <h3 className="font-medium text-foreground">{currentDriver.full_name}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              {currentDriver.license_number && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Shield className="h-3 w-3" />
-                  <span>ID: {currentDriver.license_number}</span>
-                </div>
-              )}
-            </div>
+
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
+          {/* Column 1: Name & ID */}
+          <div className="truncate">
+            <p className="font-medium text-base">{driver.full_name || t("drivers.emptyState.title")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("drivers.fields.idLabel")}: {driver.id}
+            </p>
           </div>
-          
+
+          {/* Column 2: Contact Info */}
+          <div className="truncate text-sm">
+            <div className="flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="truncate">{driver.email || t("common.notAvailableShort")}</span>
+            </div>
+            {driver.phone && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span>{driver.phone || t("common.notAvailableShort")}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Column 3: License Info */}
+          <div className="text-sm">
+            {driver.license_number ? (
+              <>
+                {driver.license_number}
+                {driver.license_expiry && (
+                  <span className="text-xs text-muted-foreground ml-1">({t("drivers.fields.expires")}: {new Date(driver.license_expiry).toLocaleDateString()})</span>
+                )}
+              </>
+            ) : t("common.notAvailableShort")}
+          </div>
+
+          {/* Column 4: Status Badge */}
           <div className="hidden md:block">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Phone className="h-4 w-4" />
-              <span>{currentDriver.phone || 'N/A'}</span>
-            </div>
-            {/* Commented out: Location */}
-            {/* {currentDriver.location && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <MapPin className="h-3 w-3" />
-                <span className="truncate max-w-[200px]">{currentDriver.location}</span>
-              </div>
-            )} */}
-          </div>
-          
-          <div className="hidden md:flex flex-col">
-            {/* Commented out: Assigned Vehicles */}
-            {/* {currentDriver.assigned_vehicles && currentDriver.assigned_vehicles.length > 0 && (
-              <div className="flex items-center gap-1 text-sm">
-                <Car className="h-4 w-4 text-muted-foreground" />
-                <span>{currentDriver.assigned_vehicles.map(v => v.name).join(", ")}</span>
-              </div>
-            )} */}
-            {/* Commented out: Upcoming Booking */}
-            {/* {currentDriver.upcoming_booking && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <Clock className="h-3 w-3" />
-                <span>Next: {new Date(currentDriver.upcoming_booking.date).toLocaleDateString()}</span>
-              </div>
-            )} */}
+            <DriverStatusBadge status={driver.availability_status || driver.status || 'available'} />
           </div>
         </div>
+
+        <Link href={`/drivers/${driver.id}`} passHref legacyBehavior>
+          <Button variant="outline" size="sm" className="ml-4 hidden md:inline-flex">{t("drivers.actions.viewDetails")}</Button>
+        </Link>
+        <ChevronRight className="h-5 w-5 text-muted-foreground ml-2 md:hidden" />
       </div>
-      
-      <div className="flex items-center gap-3">
-        <DriverStatusBadge status={currentAvailability} />
-        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-      </div>
-    </Link>
+    </Card>
   );
 } 

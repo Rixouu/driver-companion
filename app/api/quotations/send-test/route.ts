@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   console.log('📧 [TEST EMAIL API] Starting test email route');
   
   try {
     // Check authentication
-    const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const supabase = await getSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (!session) {
+    if (authError || !user) {
       console.log('📧 [TEST EMAIL API] Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,10 +36,10 @@ export async function GET(request: NextRequest) {
     const emailDomain = (process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com').replace(/%$/, '');
     
     // Send test email
-    console.log('📧 [TEST EMAIL API] Sending test email to:', session.user.email);
+    console.log('📧 [TEST EMAIL API] Sending test email to:', user.email);
     const { data: emailData, error } = await resend.emails.send({
       from: `Driver Japan <booking@${emailDomain}>`,
-      to: [session.user.email || ''],
+      to: [user.email || ''],
       subject: 'Test Email from Vehicle Inspection App',
       text: 'This is a test email to verify the Resend API is working correctly in the app.',
       html: `
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
           <h1 style="color: #e03e2d;">Email Test from Driver Japan</h1>
           <p>This is a test email sent at: ${new Date().toISOString()}</p>
           <p>If you're seeing this, the email sending system is working correctly.</p>
-          <p>Your user ID: ${session.user.id}</p>
+          <p>Your user ID: ${user.id}</p>
         </div>
       `
     });

@@ -1,12 +1,17 @@
 'use server'
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+// import { createServerComponentClient } from '@supabase/auth-helpers-nextjs' // Old
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 import type { InspectionInsert } from "@/types"
+import { createServerClient } from '@/lib/supabase/index' // Use the new centralized client
 
 export async function createInspection(data: InspectionInsert) {
-  const supabase = createServerComponentClient<Database>({ cookies })
+  // const supabase = createServerComponentClient<Database>({ cookies }) // Old
+  const cookieStore = await cookies() // Await cookies()
+
+  // New: Initialize Supabase client using createServerClient from @supabase/ssr
+  const supabase = createServerClient(cookieStore) // Use the centralized helper
   
   try {
     // First create the inspection

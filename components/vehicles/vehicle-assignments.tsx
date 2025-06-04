@@ -134,12 +134,15 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
           <CardTitle>{t("vehicles.assignments.title")}</CardTitle>
           <CardDescription>{t("vehicles.assignments.description")}</CardDescription>
         </div>
-        <Link href={`/vehicles/${vehicleId}/assign-driver`} ><span className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" asChild>
+          <Link 
+            href={{ pathname: '/vehicles/[id]/assign-driver', query: { id: vehicleId } }} 
+            className="inline-flex items-center gap-2"
+          >
             <UserPlus className="mr-2 h-4 w-4" />
             {t("vehicles.actions.assignDriver")}
-          </Button>
-        </span></Link>
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {assignments.length === 0 ? (
@@ -151,12 +154,15 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               {t("vehicles.assignments.noAssignmentsDesc")}
             </p>
-            <Link href={`/vehicles/${vehicleId}/assign-driver`} ><span className="flex items-center gap-2">
-              <Button className="mt-4">
+            <Button className="mt-4" asChild>
+              <Link 
+                href={{ pathname: '/vehicles/[id]/assign-driver', query: { id: vehicleId } }} 
+                className="inline-flex items-center gap-2"
+              >
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t("vehicles.actions.assignDriver")}
-              </Button>
-            </span></Link>
+              </Link>
+            </Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -168,7 +174,10 @@ export function VehicleAssignments({ vehicleId }: VehicleAssignmentsProps) {
                   {assignment.driver && (
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={assignment.driver.profile_image_url || ''} alt={`${assignment.driver.first_name} ${assignment.driver.last_name}`} />
-                      <AvatarFallback>{assignment.driver.first_name.charAt(0)}{assignment.driver.last_name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>
+                        {assignment.driver.first_name ? assignment.driver.first_name.charAt(0) : ''}
+                        {assignment.driver.last_name ? assignment.driver.last_name.charAt(0) : ''}
+                      </AvatarFallback>
                     </Avatar>
                   )}
                   <div className="flex-1">

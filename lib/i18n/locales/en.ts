@@ -10,7 +10,11 @@ export const en: TranslationValue = {
       inactive: "Inactive",
       completed: "Completed",
       scheduled: "Scheduled",
-      type: "Type"
+      type: "Type",
+      pass: "Pass",
+      fail: "Fail",
+      pending: "Pending",
+      booking: "Booking"
     },
     loading: "Loading...",
     error: "Error",
@@ -28,7 +32,11 @@ export const en: TranslationValue = {
     all: "All",
     noResults: "No results found",
     details: "Details",
-    actions: "Actions",
+    actions: {
+      default: "Actions",
+      goHome: "Go Home",
+      tryAgain: "Try Again"
+    },
     viewDetails: "View details",
     addNew: "Add new",
     backTo: "Back to",
@@ -38,6 +46,7 @@ export const en: TranslationValue = {
     create: "Create",
     created: "Created",
     deleting: "Deleting...",
+    creating: "Creating...",
     menu: "Menu",
     login: "Login",
     logout: "Logout",
@@ -70,7 +79,6 @@ export const en: TranslationValue = {
     week: "Week",
     month: "Month",
     today: "Today",
-    booking: "Booking",
     unassign: "Unassign",
     cannotBeUndone: "This action cannot be undone.",
     updateAndSend: "Update & Send",
@@ -88,9 +96,17 @@ export const en: TranslationValue = {
     exportPDF: "Export PDF",
     exportCSV: "Export CSV",
     notAvailable: "N/A",
+    notAvailableShort: "N/A",
     recentActivity: "Recent Activity",
     date: "Date",
-    cost: "Cost"
+    cost: "Cost",
+    forms: {
+      required: "Required"
+    },
+    notifications: {
+      success: "Success",
+      error: "Error"
+    }
   },
   auth: {
     logout: "Logout"
@@ -115,6 +131,7 @@ export const en: TranslationValue = {
   drivers: {
     title: "Drivers",
     description: "Manage your drivers information",
+    backToDriver: "Back to Driver",
     search: "Search drivers...",
     filters: {
       status: "Status",
@@ -152,7 +169,8 @@ export const en: TranslationValue = {
       status: "Status",
       address: "Address",
       emergencyContact: "Emergency Contact",
-      notes: "Notes"
+      notes: "Notes",
+      idLabel: "ID"
     },
     placeholders: {
       firstName: "Enter first name",
@@ -167,137 +185,15 @@ export const en: TranslationValue = {
       notes: "Enter additional notes"
     },
     status: {
+      title: "Status",
       active: "Active",
       inactive: "Inactive",
       on_leave: "On Leave",
+      training: "Training",
       available: "Available",
       unavailable: "Unavailable",
-      leave: "On Leave",
-      training: "Training"
+      leave: "On Leave"
     },
-    driverDetails: "Driver Details",
-    editDriver: {
-      description: "Update driver information"
-    },
-    newDriver: {
-      description: "Enter information for the new driver"
-    },
-    unassignVehicle: {
-      selectedVehicles: "Selected vehicles to unassign",
-      noVehicles: "No assigned vehicles",
-      noVehiclesDescription: "This driver doesn't have any vehicles assigned yet.",
-      confirm: "Unassign vehicle?",
-      confirmMultiple: "Unassign {count} vehicles?",
-      confirmDescription: "This will unassign the selected vehicle(s) from this driver. This action can be undone later if needed.",
-    },
-    assignVehicle: {
-      description: "Choose one or more vehicles to assign to this driver.",
-      selectedVehicles: "Selected vehicles"
-    },
-    manageVehicles: {
-      description: "Assign new vehicles or unassign existing ones from this driver."
-    },
-    empty: {
-      title: "No Drivers Found",
-      description: "No drivers have been added yet. Add a new driver to get started.",
-      searchResults: "No drivers match your search criteria. Try modifying your search."
-    },
-    activity: {
-      empty: {
-        title: "No Activity Found",
-        description: "This driver has no recorded activity yet."
-      },
-      title: "Driver Activity"
-    },
-    activityHistory: {
-      title: "Activity History",
-      description: "View all activities for this driver",
-      empty: {
-        title: "No History Found",
-        description: "There is no activity history for this driver."
-      }
-    },
-    recentActivity: {
-      title: "Recent Activity",
-      description: "Latest activities for this driver",
-      empty: {
-        title: "No Recent Activity",
-        description: "This driver has no recent activity."
-      }
-    },
-    upcomingBookings: {
-      title: "Upcoming Bookings",
-      description: "Scheduled bookings for this driver",
-      empty: {
-        title: "No Upcoming Bookings",
-        description: "This driver has no upcoming bookings scheduled.",
-        message: "No upcoming bookings"
-      },
-      booking: "Booking",
-      unassign: "Unassign",
-      unassignSuccess: "Booking unassigned",
-      unassignSuccessDescription: "The booking has been removed from this driver.",
-      unassignError: "Failed to unassign booking"
-    },
-    messages: {
-      createSuccess: "Driver created successfully",
-      createSuccessDescription: "The driver has been created and is now available in the system.",
-      updateSuccess: "Driver updated successfully",
-      updateSuccessDescription: "The driver details have been updated.",
-      deleteSuccess: "Driver deleted successfully",
-      createError: "Error creating driver",
-      createErrorDescription: "There was a problem creating the driver. Please try again.",
-      updateError: "Error updating driver",
-      updateErrorDescription: "There was a problem updating the driver details. Please try again.",
-      deleteError: "Error deleting driver",
-      loadError: "Error loading driver",
-      loadErrorDescription: "Could not load driver details. Please try again.",
-      assignSuccess: "Vehicle assigned successfully",
-      assignSuccessDescription: "The vehicle has been assigned to this driver.",
-      multipleAssignSuccessDescription: "{count} vehicles have been assigned to this driver.",
-      assignError: "Error assigning vehicle",
-      assignErrorDescription: "There was a problem assigning the vehicle. Please try again.",
-      unassignSuccess: "Vehicle unassigned successfully",
-      unassignSuccessDescription: "The vehicle has been unassigned from this driver.",
-      multipleUnassignSuccessDescription: "{count} vehicles have been unassigned from this driver.",
-      unassignError: "Error unassigning vehicle",
-      unassignErrorDescription: "There was a problem unassigning the vehicle. Please try again.",
-      noVehicleSelected: "No vehicle selected",
-      noVehicleSelectedDescription: "Please select a vehicle to assign to this driver.",
-      noVehicleSelectedToUnassign: "Please select a vehicle to unassign from this driver."
-    },
-    assignedVehicles: {
-      title: "Assigned Vehicles",
-      description: "Vehicles assigned to this driver",
-      count: "{count} vehicles",
-      noVehicles: "No vehicles assigned"
-    },
-    notFound: {
-      title: "Driver Not Found",
-      description: "The specified driver does not exist or has been deleted"
-    },
-    tabs: {
-      overview: "Overview",
-      activity: "Activity",
-      inspections: "Inspections",
-      availability: "Availability",
-      assignVehicles: "Assign New",
-      unassignVehicles: "Unassign Existing"
-    },
-    inspections: {
-      title: "Driver Inspections",
-      description: "View inspection history for this driver",
-      noInspections: "No inspections found",
-      viewInspection: "View Inspection",
-      empty: {
-        title: "No Inspections Found",
-        description: "This driver has no inspection records yet."
-      },
-      inspectionDate: "Inspection Date",
-      inspectionType: "Inspection Type",
-      status: "Status"
-    },
-    since: "Driver since {date}",
     availability: {
       title: "Driver Availability",
       description: "Manage availability periods for this driver. Set when they are available, on leave, or in training.",
@@ -364,11 +260,18 @@ export const en: TranslationValue = {
     },
     vehicles: {
       title: "Assigned Vehicles",
-      description: "Vehicles assigned to this driver",
-      noVehicles: "No vehicles assigned to this driver"
+      description: "Vehicles assigned to this driver"
     },
     pagination: {
       showing: "Showing {start}-{end} of {total} items",
+    },
+    errors: {
+      loadFailed: {
+        title: "Could Not Load Driver",
+        description: "We couldn\'t retrieve the details for driver ID {driverId}. Please try again or contact support if the issue persists."
+      },
+      consoleDriverIdError: "Driver ID is missing or invalid in server component.",
+      consoleLoadError: "Error loading driver data for ID {driverId} in server component:"
     }
   },
   vehicles: {
@@ -377,6 +280,7 @@ export const en: TranslationValue = {
     addVehicle: "Add Vehicle",
     newVehicle: "New Vehicle",
     editVehicle: "Edit Vehicle",
+    backToVehicle: "Back to Vehicle",
     searchPlaceholder: "Search vehicles...",
     noVehicles: "No vehicles found",
     filters: {
@@ -400,17 +304,27 @@ export const en: TranslationValue = {
       nameDescription: "A friendly name to identify this vehicle",
       namePlaceholder: "e.g., Family SUV",
       plateNumber: "License Plate",
+      plateNumberLabel: "Plate Number",
       brand: "Brand",
+      brandLabel: "Brand",
       brandDescription: "The manufacturer of the vehicle",
       brandPlaceholder: "e.g., Toyota",
       model: "Model",
+      modelLabel: "Model",
       modelPlaceholder: "e.g., Camry",
       year: "Year",
+      yearLabel: "Year",
       yearPlaceholder: "e.g., 2024",
       vin: "VIN",
+      vinLabel: "VIN",
       vinDescription: "17-character vehicle identification number",
       status: "Status",
+      statusLabel: "Status",
       statusDescription: "Current operational status of the vehicle",
+      addedOnLabel: "Added On",
+      passengerCapacityLabel: "Passenger Capacity",
+      luggageCapacityLabel: "Luggage Capacity",
+      nameLabel: "Name",
       image: "Vehicle Image",
       imageDescription: "PNG, JPG or WEBP (MAX. 800x400px)",
       modelDescription: "The model name of the vehicle",
@@ -428,7 +342,13 @@ export const en: TranslationValue = {
       uploadImageButton: "Upload Image",
       uploadImageDragText: "Drag and drop an image here, or click to select",
       uploadImageSizeLimit: "Maximum file size: 5MB",
-      type: "Vehicle Type"
+      type: "Vehicle Type",
+      luggageCapacity: "Luggage Capacity",
+      luggageCapacityDescription: "Maximum number of luggage pieces",
+      luggageCapacityPlaceholder: "e.g., 4",
+      passengerCapacity: "Passenger Capacity", 
+      passengerCapacityDescription: "Maximum number of passengers",
+      passengerCapacityPlaceholder: "e.g., 8"
     },
     placeholders: {
       name: "Enter vehicle name",
@@ -440,32 +360,35 @@ export const en: TranslationValue = {
     },
     form: {
       basicInfo: "Basic Information",
-      additionalInfo: "Additional Information"
+      additionalInfo: "Additional Information",
+      imageUpload: "Vehicle Image",
+      uploadImageButton: "Upload Image",
+      uploadImageDragText: "Drag and drop an image here, or click to select",
+      uploadImageSizeLimit: "Maximum file size: 5MB"
     },
     tabs: {
       info: "Information",
-      schedule: "Scheduled",
-      inProgress: "In Progress",
       history: "History",
-      costs: "Costs",
-      reminders: "Reminders",
-      scheduleEmpty: "No scheduled tasks",
+      bookings: "Bookings",
+      inspections: "Inspections",
       historyEmpty: "No history available",
-      costsEmpty: "No cost records",
-      remindersEmpty: "No reminders set",
-      upcomingMaintenance: "Upcoming Maintenance",
-      scheduledInspections: "Scheduled Inspections",
-      addMaintenanceTask: "Add Task",
-      scheduleInspection: "Schedule Inspection",
+      bookingsEmpty: "No bookings found",
+      inspectionsEmpty: "No inspections found",
+      allHistory: "All History",
       maintenanceHistory: "Maintenance History",
       inspectionHistory: "Inspection History",
-      completedOn: "Completed on {date}",
-      totalCosts: "Total Costs",
-      maintenanceCosts: "Maintenance Costs",
-      fuelCosts: "Fuel Costs",
-      otherCosts: "Other Costs",
-      addReminder: "Add Reminder",
-      noReminders: "No reminders set for this vehicle"
+      bookingHistory: "Booking History",
+      filterBy: "Filter by",
+      allTypes: "All Types",
+      maintenance: "Maintenance",
+      inspection: "Inspection",
+      booking: "Booking",
+      vehicleBookings: "Vehicle Bookings",
+      vehicleInspections: "Vehicle Inspections",
+      noBookingsForVehicle: "No bookings found for this vehicle",
+      noInspectionsForVehicle: "No inspections found for this vehicle",
+      dailyInspections: "Daily Inspections",
+      routineInspections: "Routine Inspections"
     },
     messages: {
       createSuccess: "Vehicle created successfully",
@@ -474,13 +397,24 @@ export const en: TranslationValue = {
       error: "An error occurred",
       deleteError: "Cannot delete vehicle",
       hasAssociatedRecords: "This vehicle has associated inspections or maintenance tasks and cannot be deleted",
-      imageUploadError: "Failed to upload image"
+      imageUploadError: "Failed to upload image",
+      prefetchMileageError: "Failed to prefetch mileage logs",
+      prefetchFuelError: "Failed to prefetch fuel logs"
     },
     addNewTitle: "Add New Vehicle",
     addNewDescription: "Add a new vehicle to the fleet",
     vehicleInformation: "Vehicle Information",
     vehicleDetails: "Vehicle Details",
     vehicleStatus: "Vehicle Status",
+    basicInformation: "Basic Information",
+    specifications: "Specifications",
+    quickActions: "Quick Actions",
+    actions: {
+      viewAllHistory: "View All History",
+      viewBookings: "View Bookings", 
+      viewInspections: "View Inspections",
+      editVehicle: "Edit Vehicle"
+    },
     edit: {
       title: "Edit Vehicle",
       description: "Update vehicle information"
@@ -523,7 +457,11 @@ export const en: TranslationValue = {
       inactive: "Inactive",
       maintenance: "In Maintenance"
     },
-    noImage: "No image"
+    noImage: "No image",
+    detailsPage: { // New object for details page specific translations
+      titleFallback: "Vehicle Details",
+      descriptionFallback: "View vehicle details"
+    }
   },
   maintenance: {
     title: "Maintenance",
@@ -647,10 +585,13 @@ export const en: TranslationValue = {
     },
     messages: {
       createSuccess: "Maintenance task created successfully",
+      createSuccessDescription: "The new maintenance task has been added.",
       updateSuccess: "Maintenance task updated successfully",
+      updateSuccessDescription: "The maintenance task details have been updated.",
       deleteSuccess: "Maintenance task deleted successfully",
       taskStarted: "Maintenance task started",
       error: "An error occurred",
+      createErrorDescription: "There was a problem creating the maintenance task. Please try again.",
       immediateTaskError: "Error creating immediate task",
       nextTaskCreated: "Next recurring task created",
       nextTaskScheduled: "Next task scheduled for {date}"
@@ -666,19 +607,121 @@ export const en: TranslationValue = {
   },
   inspections: {
     title: "Inspections",
-    description: "Manage vehicle inspections",
-    addInspection: "Add Inspection",
-    newInspection: "New Inspection",
-    createNewInspection: "Create New Inspection",
-    createNewInspectionDescription: "Create a new inspection by filling out the form below",
-    editInspection: "Edit Inspection",
-    searchPlaceholder: "Search inspections...",
-    noInspections: "No inspections found",
+    description: "Manage and track vehicle inspections.",
+    searchPlaceholder: "Search inspections by vehicle or type...",
     createInspection: "Create Inspection",
+    createNewInspection: "Create New Inspection",
+    createNewInspectionDescription: "Fill in the details to create a new inspection record.",
+    viewDetails: "View Details",
+    performInspection: "Perform Inspection",
+    noInspections: "No inspections found.",
+    addNew: "Add a new inspection to get started.",
+    unnamedInspection: "Unnamed Inspection",
+    noVehicle: "No Vehicle Assigned",
+    noVehicleAssigned: "No Vehicle Assigned",
+    overallNotes: "Overall Notes",
+    selectDate: "Select Date Range",
+    groupBy: "Group By",
     defaultType: "Routine",
-    groupBy: "Group by",
-    addNew: "Click the button above to create your first inspection",
-    noVehicle: "No vehicle assigned",
+    typeLabel: "Type",
+    statusLabel: "Status",
+    inspectorLabel: "Inspector",
+    inspectorEmailLabel: "Inspector Email",
+    groupByOptions: {
+      date: "Date",
+      vehicle: "Vehicle",
+      none: "None"
+    },
+    quickStats: {
+      title: "Inspection Overview",
+      todaysInspections: "Today's Inspections",
+      pendingInspections: "Pending Inspections", 
+      weeklyCompleted: "Completed This Week",
+      failedInspections: "Failed Inspections",
+      totalInspections: "Total Inspections",
+      averageCompletionTime: "Avg. Completion Time",
+      passRate: "Pass Rate",
+      upcomingInspections: "Upcoming Inspections"
+    },
+    calendar: {
+      title: "Inspection Calendar",
+      viewMode: "View Mode",
+      month: "Month",
+      week: "Week",
+      day: "Day",
+      today: "Today",
+      previousMonth: "Previous Month",
+      nextMonth: "Next Month",
+      previousWeek: "Previous Week",
+      nextWeek: "Next Week",
+      previousDay: "Previous Day",
+      nextDay: "Next Day",
+      noInspectionsOnDate: "No inspections scheduled for this date",
+      inspectionsOnDate: "{count} inspection(s) on {date}",
+      scheduleInspection: "Schedule Inspection",
+      viewInspection: "View Inspection"
+    },
+    status: {
+      pending: "Pending",
+      inProgress: "In Progress",
+      completed: "Completed",
+      failed: "Failed",
+      scheduled: "Scheduled"
+    },
+    type: {
+      routine: "Routine",
+      safety: "Safety",
+      maintenance: "Maintenance",
+      daily: "Daily",
+      unspecified: "Unspecified",
+      description: {
+        routine: "Comprehensive check of vehicle systems.",
+        safety: "Focused check on safety-critical components.",
+        maintenance: "Detailed mechanical system inspection.",
+        daily: "Quick daily inspection of essential components."
+      }
+    },
+    typeValues: {
+      routine: "Routine",
+      safety: "Safety",
+      maintenance: "Maintenance",
+      daily: "Daily",
+      unspecified: "Unspecified"
+    },
+    statusValues: {
+      pass: "Pass",
+      fail: "Fail",
+      pending: "Pending",
+      inProgress: "In Progress",
+      completed: "Completed",
+      failed: "Failed",
+      scheduled: "Scheduled"
+    },
+    fields: {
+      vehicle: "Vehicle",
+      selectVehiclePlaceholder: "Select a vehicle",
+      date: "Date",
+      type: "Type",
+      status: "Status",
+      inspector: "Inspector",
+      inspectorEmail: "Inspector Email",
+      notes: "Notes",
+      notesPlaceholder: "Add notes about this item...",
+      photos: "Photos",
+      photo: "Photo"
+    },
+    notifications: {
+      createSuccess: "Inspection created successfully.",
+      createError: "Failed to create inspection.",
+      updateSuccess: "Inspection updated successfully.",
+      updateError: "Failed to update inspection.",
+      deleteSuccess: "Inspection deleted successfully.",
+      deleteError: "Failed to delete inspection."
+    },
+    meta: {
+      createTitle: "Create Inspection",
+      createDescription: "Create a new vehicle inspection."
+    },
     dateGroup: {
       today: "Today",
       yesterday: "Yesterday",
@@ -690,11 +733,6 @@ export const en: TranslationValue = {
     stats: {
       count: "{{count}} inspections",
       vehicleCount: "{{count}} inspections"
-    },
-    groupByOptions: {
-      none: "None",
-      date: "Date",
-      vehicle: "Vehicle"
     },
     steps: {
       selectVehicle: "Select Vehicle",
@@ -725,37 +763,13 @@ export const en: TranslationValue = {
       photos: "{{count}} Photos",
       needsRepair: "Items Need Repair",
       scheduleRepair: "Schedule Repair",
-      scheduleRepairDescription: "Create a maintenance task for the failed items"
-    },
-    status: {
-      pending: "Pending",
-      inProgress: "In Progress",
-      completed: "Completed",
-      failed: "Failed"
-    },
-    type: {
-      routine: "Routine",
-      safety: "Safety",
-      maintenance: "Maintenance",
-      daily: "Daily",
-      description: {
-        routine: "Comprehensive check of vehicle systems.",
-        safety: "Focused check on safety-critical components.",
-        maintenance: "Detailed mechanical system inspection.",
-        daily: "Quick daily inspection of essential components."
-      }
-    },
-    fields: {
-      date: "Date",
-      type: "Type",
-      status: "Status",
-      vehicle: "Vehicle",
-      inspector: "Inspector",
-      inspectorEmail: "Inspector Email",
-      notes: "Notes",
-      notesPlaceholder: "Add notes about this item...",
-      photos: "Photos",
-      photo: "Photo"
+      scheduleRepairDescription: "Create a maintenance task for the failed items",
+      start: "Start Inspection",
+      continueEditing: "Continue Editing",
+      markAsCompleted: "Mark as Completed",
+      printReport: "Print Report",
+      exportHtml: "Export HTML",
+      exportPdf: "Export PDF"
     },
     sections: {
       vehicle: "Vehicle Information",
@@ -922,153 +936,60 @@ export const en: TranslationValue = {
       exportError: "Error exporting inspection",
       completeSuccess: "Inspection marked as complete",
       completeError: "Error completing inspection",
-      printStarted: "Print started"
+      printStarted: "Print started",
+      errorLoadingTemplate: "Error loading inspection template",
+      defaultRepairDescription: "Repair task for items that failed inspection.",
+      unknownItem: "Unknown Item",
+      repairNeededFor: "Repair needed for",
+      andMoreItems: "and {count} more items",
+      pdfDownloaded: "PDF downloaded successfully",
+      csvDownloaded: "CSV downloaded successfully"
     },
     details: {
       title: "Inspection Details",
       printTitle: "Inspection Report",
       scheduledFor: "Scheduled for {date}",
       inspectionItems: "Inspection Items",
-      sections: {
-        vehicle: "Vehicle Information",
-        inspection: "Inspection Information",
-        summary: "Summary",
-        items: "Inspection Items",
-        steering_system: {
-          title: "Steering System",
-          items: {
-            steering_wheel: { title: "Steering Wheel", description: "Check steering wheel condition and play." },
-            power_steering: { title: "Power Steering", description: "Check power steering fluid and operation." },
-            steering_column: { title: "Steering Column", description: "Inspect steering column for looseness." }
-          }
-        },
-        brake_system: {
-          title: "Brake System",
-          items: {
-            brake_pedal: { title: "Brake Pedal", description: "Check brake pedal feel and travel." },
-            brake_discs: { title: "Brake Discs/Pads", description: "Inspect brake discs and pads for wear." },
-            brake_fluid: { title: "Brake Fluid", description: "Check brake fluid level and condition." },
-            brake_oil: { title: "Brake Oil", description: "Check brake oil level and condition." },
-            braking_condition: { title: "Braking Condition", description: "Test overall braking performance." }
-          }
-        },
-        suspension: {
-          title: "Suspension System",
-          items: {
-            shock_absorbers: { title: "Shock Absorbers", description: "Inspect shock absorbers for leaks or damage." },
-            springs: { title: "Springs", description: "Inspect suspension springs for damage or sagging." },
-            bushings: { title: "Bushings", description: "Inspect suspension bushings for wear or damage." },
-            ball_joints: { title: "Ball Joints", description: "Inspect ball joints for wear or play." }
-          }
-        },
-        lighting: {
-          title: "Lighting System",
-          items: {
-            headlights: { title: "Headlights", description: "Check operation and alignment of headlights." },
-            taillights: { title: "Taillights", description: "Check operation of taillights and brake lights." },
-            turn_indicators: { title: "Turn Indicators", description: "Check operation of all turn indicators and hazard lights." },
-            back_light: { title: "Back Light", description: "Check operation of back/reverse lights." },
-            brake_light: { title: "Brake Light", description: "Check operation of brake lights." },
-            headlight: { title: "Headlight", description: "Check operation and alignment of headlight." },
-            blinker: { title: "Blinker", description: "Check operation of blinkers/turn signals." },
-            hazard_light: { title: "Hazard Light", description: "Check operation of hazard lights." }
-          }
-        },
-        engine: {
-          title: "Engine",
-          items: {
-            oil_level: { title: "Oil Level", description: "Check engine oil level and condition." },
-            coolant_level: { title: "Coolant Level", description: "Check engine coolant level and condition." },
-            belts: { title: "Belts", description: "Inspect engine belts for wear and tension." },
-            drive_belts: { title: "Drive Belts", description: "Inspect drive belts for wear and tension." },
-            hoses: { title: "Hoses", description: "Inspect engine hoses for leaks or damage." },
-            fluid_leaks: { title: "Fluid Leaks", description: "Check for any fluid leaks from the engine." },
-            engine_oil: { title: "Engine Oil", description: "Check engine oil level and quality." },
-            radiator_coolant: { title: "Radiator Coolant", description: "Check radiator coolant level and condition." },
-            engine_starting_condition: { title: "Engine Starting Condition", description: "Verify engine starts correctly and runs smoothly." }
-          }
-        },
-        transmission: {
-          title: "Transmission",
-          items: {
-            transmission_fluid: { title: "Transmission Fluid", description: "Check transmission fluid level and condition." },
-            shifting_operation: { title: "Shifting Operation", description: "Test transmission for smooth shifting." },
-            clutch_operation: { title: "Clutch Operation", description: "Check clutch engagement and operation (if applicable)." },
-            leaks: { title: "Leaks", description: "Check for any fluid leaks from the transmission." }
-          }
-        },
-        electrical: {
-          title: "Electrical System",
-          items: {
-            battery_condition: { title: "Battery Condition", description: "Inspect battery terminals and overall condition." },
-            alternator_output: { title: "Alternator Output", description: "Check alternator charging voltage." },
-            starter_operation: { title: "Starter Operation", description: "Test starter motor operation." }
-          }
-        },
-        safety_equipment: {
-          title: "Safety Equipment",
-          items: {
-            seatbelt_operation: { title: "Seatbelt Operation", description: "Check all seatbelts for proper function and condition." },
-            airbag_system: { title: "Airbag System", description: "Check airbag warning light status (no active faults)." },
-            wiper_operation: { title: "Wiper Operation", description: "Test windshield wipers and washer fluid operation." }
-          }
-        },
-        brake_safety: {
-          title: "Brake Safety",
-          items: {
-            emergency_brake: { title: "Emergency Brake", description: "Test emergency brake operation." },
-            brake_lines: { title: "Brake Lines", description: "Inspect brake lines for leaks or damage." },
-            abs_system: { title: "ABS System", description: "Check ABS warning light status." }
-          }
-        },
-        scheduled_maintenance: {
-          title: "Scheduled Maintenance",
-          items: {
-            oil_change: { title: "Oil Change", description: "Verify last oil change and next due." },
-            filter_replacement: { title: "Filter Replacement", description: "Check air, oil, and fuel filters." },
-            fluid_levels: { title: "Fluid Levels", description: "Check all essential fluid levels." }
-          }
-        },
-        wear_items: {
-          title: "Wear Items",
-          items: {
-            brake_pads: { title: "Brake Pads", description: "Inspect brake pad thickness." },
-            tire_rotation: { title: "Tire Rotation", description: "Verify last tire rotation and next due." },
-            belt_condition: { title: "Belt Condition", description: "Check condition of serpentine and other belts." }
-          }
-        },
-        visibility: {
-          title: "Visibility",
-          items: {
-            windshield_condition: { title: "Windshield Condition", description: "Inspect windshield for cracks or chips." },
-            mirror_condition: { title: "Mirror Condition", description: "Check condition and adjustment of all mirrors." },
-            window_operation: { title: "Window Operation", description: "Test operation of all windows." }
-          }
-        },
-        restraint_systems: {
-          title: "Restraint Systems",
-          items: {
-            seatbelt_condition: { title: "Seatbelt Condition", description: "Inspect seatbelt webbing and buckles." },
-            airbag_indicators: { title: "Airbag Indicators", description: "Check status of airbag warning lights." },
-            child_locks: { title: "Child Locks", description: "Test operation of child safety locks." }
-          }
-        },
-        diagnostics: {
-          title: "Diagnostics",
-          items: {
-            computer_scan: { title: "Computer Scan", description: "Perform a diagnostic computer scan for error codes." },
-            sensor_check: { title: "Sensor Check", description: "Verify operation of key sensors." },
-            emissions_test: { title: "Emissions Test", description: "Check emissions system components (if applicable)." }
-          }
-        },
-        exterior: {
-          title: "Exterior Condition",
-          items: {
-            dirt_and_damage: { title: "Dirt and Damage", description: "Inspect vehicle exterior for dirt accumulation and any physical damage." },
-            cracks_and_damage: { title: "Cracks and Damage", description: "Inspect vehicle body for cracks, dents, and other structural damage." }
-          }
-        },
-        other: { title: "Other" }
+      vehicleInfoTitle: "Vehicle Information",
+      overviewTitle: "Inspection Overview",
+      summaryTitle: "Inspection Summary",
+      summaryPassed: "Passed Items",
+      summaryFailed: "Failed Items",
+      summaryNotes: "Items with Notes",
+      summaryPhotos: "Photos Taken",
+      passRate: "Pass Rate",
+      attentionRequired: "Attention Required",
+      itemsNeedAttention: "{count} item{plural} need{pluralVerb} attention",
+      allItemsTitle: "All Inspection Items ({count})",
+      failedItemsTitle: "Failed Items ({count})",
+      passedItemsTitle: "Passed Items ({count})",
+      repairNeededTitle: "Items Need Repair",
+      repairNeededDescription: "The following items failed inspection and require attention. Click below to schedule a maintenance task.",
+      repairTaskTitle: "Post-Inspection Repair for {inspectionName} ({vehicleName})",
+      photosTitle: "Photos ({count})",
+      photosTabDescription: "View all photos taken during this inspection.",
+      noPhotosMessage: "No photos were taken for this inspection.",
+      viewPhotoAria: "View photo for {itemName}",
+      photoItemAlt: "Photo for {itemName}",
+      inspectionInfo: {
+        title: "Inspection Information"
+      },
+      summary: {
+        title: "Summary",
+        passedItems: "Passed Items",
+        failedItems: "Failed Items",
+        itemsWithNotes: "Items with Notes",
+        photosTaken: "Photos Taken"
+      },
+      items: {
+        title: "Inspection Items",
+        itemHeader: "Item",
+        statusHeader: "Status",
+        notesHeader: "Notes"
+      },
+      pdfFooter: {
+        generatedOn: "Generated on {date}",
+        vehicleName: "Vehicle: {name}"
       },
       vehicleInfo: {
         title: "Vehicle Information",
@@ -1078,7 +999,6 @@ export const en: TranslationValue = {
         year: "Year",
         noImage: "No image available"
       },
-      inspectionDetails: "Inspection Details",
       inspector: {
         title: "Inspector",
         name: "Inspector Name",
@@ -1086,20 +1006,20 @@ export const en: TranslationValue = {
       },
       results: {
         title: "Inspection Summary",
+        passedLabel: "Passed Items",
+        failedLabel: "Failed Items",
+        notesLabel: "Items with Notes",
+        photosLabel: "Photos Taken",
         passCount: "Passed Items: {count}",
         failCount: "Failed Items: {count}",
-        photoCount: "Photos Taken: {count}",
         notesCount: "Notes Added: {count}",
+        photoCount: "Photos Taken: {count}",
         completionRate: "Completion Rate",
         lastUpdated: "Last Updated",
         failedItemsFound: "Failed Items Found",
         failedItemsDescription: "The following items did not meet inspection standards.",
         allPassed: "All Items Passed",
-        noFailedItems: "No failed items found in this inspection.",
-        passedLabel: "Items Passed",
-        failedLabel: "Items Failed",
-        notesLabel: "Notes Added",
-        photosLabel: "Photos Taken"
+        noFailedItems: "No failed items found in this inspection."
       },
       tabs: {
         details: "Details",
@@ -1108,19 +1028,19 @@ export const en: TranslationValue = {
         photos: "Photos",
         notes: "Notes"
       },
-      photos: {
-        title: "Photos",
-        downloadPhoto: "Download Photo"
+      photosModal: {
+        altText: "Inspection photo {index}",
+        downloadPhoto: "Download Photo",
+        counter: "{current} of {total}"
       },
-      vehicleDetails: "Vehicle Details",
-      exportResult: "Export Result",
-      actions: {
-        exportResult: "Export Result",
-        needsRepair: "Items Need Repair",
-        scheduleRepair: "Schedule Repair",
-        scheduleRepairDescription: "Create a maintenance task for the failed items"
+      notes: {
+        title: "Overall Inspection Notes"
       },
-      dateLabel: "Inspection Date"
+      dateLabel: "Inspection Date",
+      isScheduled: "Is Scheduled",
+      isScheduledDescription: "Indicates if the inspection is part of a recurring schedule.",
+      overallNotes: "Overall Notes",
+      overallNotesPlaceholder: "Enter any overall notes for the inspection..."
     },
     dateLabel: "Inspection Date",
     templates: {
@@ -1154,7 +1074,8 @@ export const en: TranslationValue = {
       sectionDescriptionPlaceholderJa: "セクションの説明を入力（日本語）",
       noSections: "No sections found. Add a section to get started.",
       addItemError: "Error adding inspection item"
-    }
+    },
+    photoForItem: "Photo for {itemName}"
   },
   dashboard: {
     title: "Dashboard",
@@ -1194,22 +1115,23 @@ export const en: TranslationValue = {
         visualInspection: "Perform visual inspection"
       }
     },
-    upcomingBookings: {
-      title: "Upcoming Bookings",
-      description: "Bookings pending review and assignment",
-      viewAll: "View All Bookings",
-      empty: {
-        title: "No Upcoming Bookings",
-        description: "There are no bookings pending review or assignment.",
-        message: "No upcoming bookings"
-      }
-    },
     vehicleStats: {
       title: "Vehicle Overview",
       description: "Quick stats about your vehicles",
       fuelLevel: "Fuel Level",
       mileage: "Mileage",
-      viewAllVehicles: "View all vehicles"
+      viewAllVehicles: "View all vehicles",
+      previousVehicle: "Previous vehicle",
+      nextVehicle: "Next vehicle"
+    },
+    upcomingBookings: {
+      title: "Upcoming Bookings",
+      description: "Bookings pending review and assignment",
+      viewAll: "View All Bookings",
+      loadError: "Failed to load upcoming bookings",
+      empty: {
+        message: "No upcoming bookings"
+      }
     },
     maintenance: {
       title: "Maintenance",
@@ -1314,7 +1236,8 @@ export const en: TranslationValue = {
       deleted: "Fuel log deleted successfully",
       error: "Something went wrong"
     },
-    noData: "No fuel log data available"
+    noData: "No fuel log data available",
+    loadingLogs: "Loading Fuel Logs..." // New key
   },
   mileage: {
     title: "Mileage Logs",
@@ -1340,7 +1263,8 @@ export const en: TranslationValue = {
       updated: "Mileage log updated successfully",
       deleted: "Mileage log deleted successfully",
       error: "Something went wrong"
-    }
+    },
+    loadingLogs: "Loading Mileage Logs..." // New key
   },
   reporting: {
     title: "Reports & Analytics",
@@ -1370,19 +1294,39 @@ export const en: TranslationValue = {
         costDescription: "Detailed breakdown of all vehicle-related costs",
         downloadCSV: "Download CSV",
         downloadPDF: "Download PDF",
-        customReport: "Custom Report",
-        customReportDescription: "Combine data from multiple sources into a single report",
-        recentReports: "Recent Reports",
-        createCustomReport: "Create Custom Report",
-        generateReport: "Generate Report",
-        reportName: "Report Name",
-        reportType: "Report Type",
-        includeData: "Include Data",
-        vehicleInformation: "Vehicle Information",
-        maintenanceData: "Maintenance Data",
-        fuelData: "Fuel Data",
-        costAnalysis: "Cost Analysis",
-        cancel: "Cancel"
+        generate: {
+          title: "Generate Custom Report",
+          description: "Configure and generate a custom report.",
+          button: "Generate Report",
+          dialog: {
+            title: "Create Custom Report",
+            description: "Select options for your custom report.",
+            createButton: "Create and Generate Report"
+          }
+        },
+        customReport: {
+          nameLabel: "Report Name",
+          namePlaceholder: "Enter a name for your report",
+          reportTypeLabel: "Report Type",
+          selectTypePlaceholder: "Select report type",
+          typeCombined: "Combined Summary",
+          typeVehicleSummary: "Vehicle Summary",
+          typeMaintenanceDetail: "Maintenance Details",
+          typeFuelLog: "Fuel Usage",
+          typeCostAnalysis: "Cost Breakdown",
+          includeDataLabel: "Include Data Sections",
+          includeVehiclesLabel: "Vehicle Information",
+          includeMaintenanceLabel: "Maintenance Records",
+          includeFuelLabel: "Fuel Logs",
+          includeCostsLabel: "Cost Analysis",
+          cancel: "Cancel"
+        },
+        recent: {
+          title: "Recent Reports",
+          description: "Recently generated and downloaded reports.",
+          empty: "No recent reports found.",
+          viewAll: "View All Reports"
+        }
       },
       fleetOverview: {
         title: "Fleet Overview",
@@ -1470,9 +1414,17 @@ export const en: TranslationValue = {
     },
     noData: "No data available for the selected filters"
   },
+  schedules: {
+    selectDate: "Select Date",
+    tooltips: {
+      immediateTaskTitle: "Create Immediate Task",
+      immediateTaskDescription: "Create this task immediately, in addition to any recurring schedule."
+    }
+  },
   bookings: {
     title: "Bookings",
     description: "View and manage your vehicle bookings",
+    backToBooking: "Back to Booking",
     search: {
       text: "Search bookings...",
       placeholder: "Search bookings..."
@@ -1754,7 +1706,10 @@ export const en: TranslationValue = {
       updateSuccess: "Booking updated successfully",
       deleteSuccess: "Booking deleted successfully",
       syncSuccess: "Bookings synced successfully",
-      error: "An error occurred"
+      error: "An error occurred",
+      confirmSuccess: "Booking confirmed successfully",
+      confirmError: "Error confirming booking",
+      createError: "Error creating booking"
     },
     sync: {
       title: "Sync Bookings",
@@ -1785,7 +1740,19 @@ export const en: TranslationValue = {
       importedBy: "Imported By"
     },
     calculateRoute: "Calculate Route Distance & Duration",
-    autoCalculateAvailable: "Auto-calculate available"
+    autoCalculateAvailable: "Auto-calculate available",
+    bookingManagement: "Booking Management",
+    createBooking: "Create Booking",
+    confirmBooking: "Confirm Booking",
+    messageCustomer: "Message Customer",
+    youCanNowCreateBooking: "You can now create a booking for this service",
+    invoiceMustBePaidBeforeCreatingBooking: "The invoice must be paid before creating a booking",
+    createdOn: "Created on {date}",
+    confirmedOn: "Confirmed on {date}",
+    serviceDate: "Service Date",
+    pickupTime: "Pickup Time",
+    vehicle: "Vehicle",
+    duration: "Duration"
   },
   dispatch: {
     title: "Dispatch Board",
@@ -1892,22 +1859,6 @@ export const en: TranslationValue = {
       zoomIn: "Zoom In",
       zoomOut: "Zoom Out"
     }
-  },
-  schedules: {
-    title: "Schedule",
-    createSchedule: "Create Schedule",
-    frequency: "Frequency",
-    selectFrequency: "Select Frequency",
-    frequencyDescription: "How often this task should be performed",
-    intervalDays: "Interval (Days)",
-    intervalDaysPlaceholder: "Enter number of days",
-    intervalDaysDescription: "Number of days between each occurrence",
-    startDate: "Start Date",
-    startDateDescription: "When to start generating tasks",
-    endDate: "End Date (Optional)",
-    endDatePlaceholder: "No end date",
-    endDateDescription: "When to stop generating tasks",
-    selectDate: "Select Date"
   },
   settings: {
     title: "Settings",
@@ -2016,7 +1967,7 @@ export const en: TranslationValue = {
     create: "Create Quotation",
     edit: "Edit Quotation",
     view: "View Quotation",
-    duplicate: "Duplicate Quotation",
+    duplicate: "Duplicate",
     placeholder: "No quotations found",
     list: "All Quotations",
     listDescription: "Manage and track your customer quotations",
@@ -2195,7 +2146,8 @@ export const en: TranslationValue = {
       edit: "Edit",
       delete: "Delete",
       send: "Send",
-      copy: "Duplicate",
+      copy: "Copy",
+      duplicate: "Duplicate",
       remind: "Send Reminder",
       print: "Print",
       download: "Download PDF",
@@ -2250,90 +2202,148 @@ export const en: TranslationValue = {
       activateConfirmTitle: "Activate Category?",
       activateConfirmDescription: "This will make the category visible and available for selection.",
       deactivateConfirmTitle: "Deactivate Category?",
-      deactivateConfirmDescription: "This will hide the category from selection in new quotations and pricing forms."
+      deactivateConfirmDescription: "This will hide the category from selection in new quotations and pricing forms.",
+      toast: {
+        serviceTypesFixedTitle: "Service Types Fixed",
+        serviceTypesFixedDescription: "Successfully updated {count} categories.",
+        fixServiceTypesError: "Failed to fix service types",
+        nameRequiredError: "Category name is required"
+      },
+      buttons: {
+        fixServiceTypes: "Fix Service Types",
+        addCategory: "Add Category"
+      },
+      emptyState: "No pricing categories found. Create your first category.",
+      table: {
+        id: "ID",
+        details: "Details",
+        services: "Services",
+        status: "Status",
+        order: "Order",
+      },
+      editDialog: {
+        title: "Edit Category",
+        description: "Edit the details of this pricing category"
+      },
+      createDialog: {
+        title: "Add New Category",
+        description: "Create a new pricing category for your services"
+      },
+      deleteDialog: {
+        title: "Delete Category?",
+        description: "This action cannot be undone. This will permanently delete this pricing category and may affect existing pricing items."
+      },
+      activateDialog: {
+        title: "Activate Category?",
+        description: "This will make the category visible and available for selection."
+      },
+      deactivateDialog: {
+        title: "Deactivate Category?",
+        description: "This will hide the category from selection in new quotations and pricing forms."
+      },
+      fields: {
+        name: "Category Name",
+        descriptionOptional: "Description (Optional)",
+        sortOrder: "Display Order",
+        isActive: "Active",
+        serviceTypes: "Service Types"
+      },
+      placeholders: {
+        name: "Enter category name",
+        description: "Enter category description"
+      },
+      linkDialog: {
+        title: "Manage Service Types for {categoryName}",
+        description: "Link or unlink service types from this category.",
+        available: "Available Service Types",
+        linked: "Linked Service Types",
+        unlink: "Unlink",
+        saveLinks: "Save Links",
+        noLinkedServiceTypes: "No service types linked yet.",
+        noSelectedServiceTypes: "No service types selected."
+      }
     },
     items: {
       title: "Pricing Items",
-      description: "Manage individual pricing items",
-      createSuccess: "Pricing item created successfully",
-      createSuccessDescription: "The new pricing item has been added",
-      createError: "Failed to create pricing item",
-      updateSuccess: "Pricing item updated successfully",
-      updateSuccessDescription: "The pricing item has been updated",
-      updateError: "Failed to update pricing item",
-      deleteSuccess: "Pricing item deleted successfully",
-      deleteSuccessDescription: "The pricing item has been removed",
-      deleteError: "Failed to delete pricing item",
-      statusUpdateSuccess: "Item status updated successfully",
-      deleteConfirmTitle: "Delete Price Item?",
-      deleteConfirmDescription: "This action cannot be undone. This will permanently delete this price item.",
-      activateConfirmTitle: "Activate Price Item?",
-      activateConfirmDescription: "This will make the price item available for selection.",
-      deactivateConfirmTitle: "Deactivate Price Item?",
-      deactivateConfirmDescription: "This will hide the price item from selection. Deactivated items will not appear in quotations.",
-      errors: {
-        categoryRequired: "Category is required",
-        serviceTypeRequired: "Service type is required",
-        priceRequired: "Price is required"
+      description: "Manage individual pricing items for selected category",
+      active: "Active",
+      inactive: "Inactive",
+      toast: {
+        fetchFailed: "Failed to fetch pricing items",
+        initialLoadFailed: "Failed to load initial categories/services for pricing setup",
+        saveFailed: "Failed to save pricing item",
+        deleteFailed: "Failed to delete pricing item",
+        statusToggleFailed: "Failed to toggle item status",
+        deleteSuccess: "Pricing item deleted successfully",
+        statusUpdateSuccess: "Item status updated successfully"
       },
-      customDuration: "Custom Duration",
-      customDurationLabel: "Custom Duration (hours)",
-      filterBy: "Filter By",
-      timeBasedPricing: {
-        title: "Time-Based Pricing",
-        description: "Apply price adjustments based on time of day",
-        enabled: "Enable time-based pricing adjustments",
-        nightPricing: "Night Pricing",
-        nightPricingDescription: "Apply a percentage adjustment for services during night hours",
-        startTime: "Start Time",
-        endTime: "End Time",
-        adjustmentPercentage: "Adjustment Percentage (%)",
-        peakPricing: "Peak Hours Pricing",
-        peakPricingDescription: "Apply a percentage adjustment for services during peak hours",
-        weekendPricing: "Weekend Pricing",
-        weekendPricingDescription: "Apply a percentage adjustment for services during weekends",
-        holidayPricing: "Holiday Pricing",
-        holidayPricingDescription: "Apply a percentage adjustment for services during holidays",
-        addRule: "Add Rule",
-        editRule: "Edit Rule",
-        deleteRule: "Delete Rule",
-        deleteRuleConfirm: "Are you sure you want to delete this rule?",
-        ruleName: "Rule Name",
-        ruleNamePlaceholder: "Enter rule name",
-        days: {
-          all: "All Days",
-          weekdays: "Weekdays",
-          weekends: "Weekends",
-          monday: "Monday",
-          tuesday: "Tuesday",
-          wednesday: "Wednesday",
-          thursday: "Thursday",
-          friday: "Friday",
-          saturday: "Saturday",
-          sunday: "Sunday"
-        },
-        ruleType: "Rule Type",
-        ruleTypes: {
-          time: "Time of Day",
-          day: "Day of Week",
-          timeAndDay: "Time and Day"
-        },
-        surcharge: "Surcharge",
-        discount: "Discount",
-        priority: "Priority",
-        applies: "Applies To",
-        createSuccess: "Time-based pricing rule created successfully",
-        updateSuccess: "Time-based pricing rule updated successfully",
-        deleteSuccess: "Time-based pricing rule deleted successfully",
-        rules: "Pricing Rules",
-        noRules: "No rules yet. Click the 'Add Rule' button to create your first rule",
-        allCategories: "All Categories",
-        specificCategory: "Specific Category",
-        allServiceTypes: "All Service Types",
-        specificServiceType: "Specific Service Type",
-        categoryLabel: "Category",
+      errors: {
+        categoryRequired: "Category is required for pricing item",
+        serviceTypeRequired: "Service type is required for pricing item",
+        priceRequired: "Price is required and must be a valid number"
+      },
+      filters: {
+        title: "Filters & Actions",
+        categoryLabel: "Pricing Category",
+        categoryPlaceholder: "Select category",
+        noCategoriesAvailable: "No categories available",
+        selectCategoryPrompt: "Please select a category to see items.",
+        noCategoriesFound: "No pricing categories exist. Please create one first.",
+        durationLabel: "Duration",
+        durationPlaceholder: "Filter by duration",
+        allDurations: "All Durations",
+        customDuration: "Custom Duration",
+        customDurationLabel: "Custom Duration (hours)",
+        customDurationPlaceholder: "Enter hours"
+      },
+      buttons: {
+        addNew: "Add New Pricing Item",
+        addItemToCategory: "Add Item to {categoryName}"
+      },
+      emptyState: {
+        selectCategory: "Please select a pricing category to view or add items.",
+        selectCategoryPrompt: "Select a category above to manage its pricing items.",
+        noItemsFound: "No pricing items found for the selected category/filters."
+      },
+      loadingItemsFor: "Loading pricing items for {categoryName}...",
+      table: {
+        serviceType: "Service Type",
+        durationHours: "Duration (hrs)",
+        price: "Price",
+        status: "Status"
+      },
+      dialog: {
+        createTitle: "Create New Pricing Item",
+        editTitle: "Edit Pricing Item",
+        descriptionCreate: "Add a new pricing item to the selected category.",
+        descriptionEdit: "Edit the details of this pricing item.",
         serviceTypeLabel: "Service Type",
-        active: "Active"
+        serviceTypePlaceholder: "Select service type",
+        noServiceTypesInCategory: "Selected category has no service types. Edit category to add them.",
+        durationLabel: "Duration (Hours)",
+        durationPlaceholder: "Select or enter duration",
+        customDurationLabel: "Custom Duration (Hours)",
+        priceLabel: "Price",
+        currencyLabel: "Currency",
+        statusLabel: "Status",
+        commentsLabel: "Comments (Optional)",
+        commentsPlaceholder: "Internal notes about this pricing item"
+      },
+      deleteDialog: {
+        title: "Delete Pricing Item?",
+        description: "This action cannot be undone. This will permanently delete this pricing item."
+      },
+      statusDialog: {
+        activateTitle: "Activate Pricing Item?",
+        activateDescription: "This item will become available for use in quotations.",
+        deactivateTitle: "Deactivate Pricing Item?",
+        deactivateDescription: "This item will be hidden and cannot be used in new quotations."
+      },
+      durations: { // For dynamic duration options
+        hour: "{count} hour",
+        hours: "{count} hours",
+        day: "{count} day",
+        days: "{count} days" 
       }
     },
     promotions: {
@@ -2362,6 +2372,132 @@ export const en: TranslationValue = {
       deleteSuccessDescription: "The package has been removed",
       deleteError: "Failed to delete package"
     }
+  },
+  invoices: {
+    title: "Invoices",
+    description: "Manage and track customer invoices",
+    invoiceManagement: "Invoice Management",
+    createInvoice: "Create Invoice",
+    noInvoiceCreatedYet: "No Invoice Created Yet",
+    createInvoiceToSendPayment: "Create an invoice to send to the customer for payment",
+    sendInvoiceWithPaymentLink: "Send Invoice with Payment Link",
+    downloadPDF: "Download PDF",
+    markAsPaid: "Mark as Paid",
+    status: {
+      created: "Created",
+      sent: "Sent",
+      paid: "Paid",
+      payment_failed: "Payment Failed",
+      payment_expired: "Payment Expired",
+      payment_cancelled: "Payment Cancelled"
+    },
+    messages: {
+      createSuccess: "Invoice created successfully",
+      createError: "Error creating invoice",
+      sendSuccess: "Invoice sent successfully",
+      sendError: "Error sending invoice",
+      markPaidSuccess: "Invoice marked as paid",
+      markPaidError: "Error marking invoice as paid"
+    }
+  },
+  
+  payments: {
+    title: "Payments",
+    description: "Track and process customer payments",
+    paymentLinkGenerated: "Payment Link Generated",
+    shareWithCustomer: "Share this link with your customer to collect payment",
+    regeneratePaymentLink: "Regenerate Payment Link",
+    paymentRequired: "Payment Required",
+    paymentConfirmed: "Payment Confirmed",
+    messages: {
+      regenerateSuccess: "Payment link regenerated successfully",
+      regenerateError: "Error regenerating payment link"
+    }
+  },
+  tabs: {
+    overview: "Overview",
+    assignedVehicles: "Assigned Vehicles",
+    inspections: "Inspections",
+    activityLog: "Activity Log",
+    notes: "Notes",
+    settings: "Settings"
+  },
+  activityLog: {
+    title: "Activity Log",
+    description: "View all activities for this driver"
+  },
+  timeBasedPricing: { // Keys for time-based-pricing-tab.tsx
+    title: "Time-Based Pricing Rules",
+    description: "Define rules to adjust pricing based on time of day or week.",
+    allCategories: "All Categories", 
+    toast: {
+      fetchFailed: "Failed to load time-based pricing rules",
+      saveSuccess: "Rule saved successfully",
+      saveFailed: "Failed to save rule",
+      deleteSuccess: "Rule deleted successfully",
+      deleteFailed: "Failed to delete rule"
+    },
+    filters: {
+      categoryLabel: "Filter by Category",
+      allCategoriesPlaceholder: "All Categories",
+      allCategories: "All Categories"
+    },
+    buttons: {
+      addRule: "Add New Rule"
+    },
+    emptyState: {
+      noRulesForCategory: "No time-based rules found for this category.",
+      selectCategoryOrAddRule: "Select a category to view rules, or add a new global rule."
+    },
+    table: {
+      ruleName: "Rule Name",
+      appliesTo: "Applies To",
+      timeRange: "Time Range",
+      days: "Days",
+      adjustment: "Adjustment",
+      priority: "Priority",
+      status: "Status"
+    },
+    dialog: {
+      addTitle: "Add New Time-Based Rule",
+      editTitle: "Edit Time-Based Rule",
+      description: "Configure the details of your time-based pricing adjustment.",
+      ruleNameLabel: "Rule Name",
+      ruleNamePlaceholder: "e.g., Night Surcharge",
+      categoryLabel: "Category (Optional)",
+      categoryPlaceholder: "All Categories",
+      serviceTypeLabel: "Service Type (Optional)",
+      serviceTypePlaceholder: "All Service Types in Category",
+      startTimeLabel: "Start Time",
+      endTimeLabel: "End Time",
+      daysOfWeekLabel: "Days of Week",
+      adjustmentPercentageLabel: "Adjustment Percentage (%)",
+      priorityLabel: "Priority",
+      priorityDescription: "Lower numbers run first. Rules with same priority run unpredictably.",
+      activeLabel: "Active",
+      descriptionOptionalLabel: "Description (Optional)",
+      descriptionPlaceholder: "Notes about this rule"
+    },
+    deleteDialog: {
+      title: "Delete Rule?",
+      description: "Are you sure you want to delete this time-based pricing rule? This action cannot be undone."
+    },
+    days: {
+      sunday: "Sunday",
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
+      all: "All Days",
+      weekdays: "Weekdays",
+      weekends: "Weekends"
+    }
+  },
+  errors: {
+    failedToLoadData: "Failed to load {entity}",
+    pleaseTryAgainLater: "Please try again later."
   }
 }
 

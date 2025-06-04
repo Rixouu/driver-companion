@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+// import { cookies } from 'next/headers'; // No longer needed
+// import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'; // No longer needed
+import { getSupabaseServerClient } from '@/lib/supabase/server'; // Correct import
 import { Database } from '@/types/supabase';
 
 // GET all time-based pricing rules
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Changed client creation
     
     // Verify user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
 // POST a new time-based pricing rule
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient<Database>({ cookies });
+    const supabase = await getSupabaseServerClient(); // Changed client creation
     
     // Verify user is authenticated
     const { data: { user } } = await supabase.auth.getUser();

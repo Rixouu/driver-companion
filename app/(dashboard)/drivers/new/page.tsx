@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DriverForm } from "@/components/drivers/driver-form"
 import { createDriver } from "@/lib/services/drivers"
-import { useToast } from "@/hooks/use-toast"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/components/ui/use-toast"
 import type { DriverFormData } from "@/types"
 
 export default function NewDriverPage() {
   const router = useRouter()
   const { t } = useI18n()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function onSubmit(data: DriverFormData) {
@@ -32,7 +33,7 @@ export default function NewDriverPage() {
       
       router.push(`/drivers/${driver.id}`)
     } catch (error) {
-      console.error("Error creating driver:", error)
+      console.error(t("drivers.messages.consoleGenericCreateError"), error)
       toast({
         title: t("drivers.messages.createError"),
         description: t("drivers.messages.createErrorDescription"),

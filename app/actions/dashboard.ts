@@ -1,12 +1,12 @@
 'use server'
 
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { getSupabaseServerClient } from "@/lib/supabase/server"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
 
 export async function getDashboardData() {
   try {
     // Create supabase client with proper handling of cookies
-    const supabase = await createServerSupabaseClient()
+    const supabase = await getSupabaseServerClient()
     
     // Fetch vehicles data
     const { data: vehiclesData } = await supabase

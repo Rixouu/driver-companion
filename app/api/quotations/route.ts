@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     // Make sure to properly await the Supabase client creation
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     const { t } = await getDictionary();
 
     // Check auth
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Make sure to properly await the Supabase client creation
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     const { t } = await getDictionary();
 
     // Check auth

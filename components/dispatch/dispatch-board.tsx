@@ -48,11 +48,9 @@ import LoadingSpinner from "@/components/shared/loading-spinner";
 import { DispatchEntry, DispatchFilter, DispatchStatus, DispatchEntryWithRelations } from "@/types/dispatch";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "@/components/ui/use-toast";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { Database } from "@/types/supabase";
+import { createClient } from "@/lib/supabase";
+import { Driver, Vehicle } from "@/types";
 import { Booking } from "@/types/bookings";
-import { Driver } from "@/types/drivers";
-import { Vehicle } from "@/types/vehicles";
 
 // Type adapters to convert database types to component types
 const mapDriverFromDB = (dbDriver: any): Driver => ({
@@ -130,7 +128,7 @@ export default function DispatchBoard() {
   // Load dispatch entries and related data
   useEffect(() => {
     const loadDispatchData = async () => {
-      const supabase = getSupabaseClient();
+      const supabase = createClient();
       setIsLoading(true);
       try {
         console.log('[Dispatch Board] Fetching latest dispatch data');
@@ -427,7 +425,7 @@ export default function DispatchBoard() {
   };
 
   const handleAssignDriver = async (dispatchId: string, driverId: string) => {
-    const supabase = getSupabaseClient();
+    const supabase = createClient();
     try {
       const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
       if (!entryToUpdate) throw new Error("Dispatch entry not found");
@@ -556,7 +554,7 @@ export default function DispatchBoard() {
   };
 
   const handleUnassignVehicle = async (dispatchId: string) => {
-    const supabase = getSupabaseClient();
+    const supabase = createClient();
     try {
       const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
       if (!entryToUpdate) throw new Error("Dispatch entry not found");
@@ -661,7 +659,7 @@ export default function DispatchBoard() {
   };
 
   const handleAssignVehicle = async (dispatchId: string, vehicleId: string) => {
-    const supabase = getSupabaseClient();
+    const supabase = createClient();
     try {
       const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
       if (!entryToUpdate) throw new Error("Dispatch entry not found");

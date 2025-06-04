@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/lib/hooks/use-auth"
 import { createFuelLog, updateFuelLog } from "@/lib/services/fuel"
 import type { FuelLog } from "@/types"
 import { fuelLogSchema } from "@/lib/validations/fuel"

@@ -5,9 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Image } from "@/components/shared/image"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
-import { supabase } from "@/lib/supabase/client"
-import { clearAuthState } from "@/lib/supabase/client"
-import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase/index"
+import { useToast } from "@/components/ui/use-toast"
 import {
   Card,
   CardContent,
@@ -23,14 +22,14 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [isRecovering, setIsRecovering] = React.useState(false)
   const { toast } = useToast()
+  const supabase = React.useMemo(() => createClient(), []);
 
-  // Check for error parameter
-  const errorParam = searchParams.get("error")
+  const errorParam = searchParams?.get("error")
   const [error, setError] = React.useState<string | null>(
     errorParam === "no_code" ? "Authentication failed. Please try again." : null
   )
 
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard"
+  const redirectTo = searchParams?.get("redirectTo") || "/dashboard"
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : ''
 
   async function handleGoogleLogin() {
@@ -38,35 +37,30 @@ export function LoginForm() {
       setIsLoading(true)
       setError(null)
       
-      // Get the default callback URL for the current environment
       let callbackUrl: URL
       
       try {
-        // Determine base URL - first try environment variable
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
                        (process.env.NODE_ENV === 'development' 
                           ? 'http://localhost:3000' 
-                          : currentOrigin) // fallback to current origin
+                          : currentOrigin)
         
         if (!baseUrl) {
           throw new Error('Could not determine site URL')
         }
         
         callbackUrl = new URL('/auth/callback', baseUrl)
-        
-        // Add the current origin and redirect path as parameters
         callbackUrl.searchParams.set('origin', currentOrigin)
         callbackUrl.searchParams.set('redirect_to', redirectTo)
       } catch (urlError) {
         console.error('Error creating callback URL:', urlError)
-        // Fallback to absolute URL for the current origin
         callbackUrl = new URL(`${currentOrigin}/auth/callback`)
         callbackUrl.searchParams.set('redirect_to', redirectTo)
       }
       
       console.log('Auth callback URL:', callbackUrl.toString())
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: callbackUrl.toString(),
@@ -77,31 +71,28 @@ export function LoginForm() {
         },
       })
 
-      if (error) throw error
-    } catch (error) {
-      console.error('Login error:', error)
-      setError(error instanceof Error ? error.message : 'Failed to sign in. Please try again.')
+      if (signInError) throw signInError
+    } catch (loginError) {
+      console.error('Login error:', loginError)
+      setError(loginError instanceof Error ? loginError.message : 'Failed to sign in. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Recovery function for persistent auth issues
   async function handleRecovery() {
     try {
       setIsRecovering(true)
-      // Clear all auth state
-      await clearAuthState()
+      await supabase.auth.signOut({ scope: 'local' });
       
       toast({
         title: "Recovery complete",
         description: "Authentication state has been cleared. Please try signing in again.",
       })
       
-      // Reload the page to ensure a fresh state
       window.location.reload()
-    } catch (error) {
-      console.error('Recovery error:', error)
+    } catch (recoveryErr) {
+      console.error('Recovery error:', recoveryErr)
       setError('Recovery failed. Please try again or contact support.')
     } finally {
       setIsRecovering(false)

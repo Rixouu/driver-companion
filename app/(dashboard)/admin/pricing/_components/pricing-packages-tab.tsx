@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { PricingPackage, PackageType, PackageItemType, PricingPackageItem, PricingCategory, PricingItem } from "@/types/quotations";
-import { useQuotationService } from "@/hooks/useQuotationService";
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

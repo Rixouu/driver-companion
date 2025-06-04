@@ -26,8 +26,9 @@ import {
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/lib/hooks/use-auth"
 
 // Organization domain for access control
 const ORGANIZATION_DOMAIN = 'japandriver.com'
@@ -81,17 +82,23 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [menuSettings, setMenuSettings] = useState<MenuSettings>(defaultMenuSettings)
   const [isOrganizationMember, setIsOrganizationMember] = useState(false)
+  const { user } = useAuth()
   
   // Check if user is from the organization
   useEffect(() => {
+    const supabase = createClient()
+    if (!supabase) {
+        console.warn("[Sidebar] Supabase client not available in useEffect for org check.");
+        setIsOrganizationMember(false); // Sensible default
+        return;
+    }
     const checkOrganizationStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
       const isOrgMember = user?.email?.endsWith(`@${ORGANIZATION_DOMAIN}`) || false
       setIsOrganizationMember(isOrgMember)
     }
     
     checkOrganizationStatus()
-  }, [])
+  }, [user])
   
   // Load menu settings from local storage
   useEffect(() => {
@@ -143,6 +150,7 @@ export function Sidebar() {
   }, [collapsed])
 
   const handleLogout = async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/auth/login')
     router.refresh()
@@ -219,7 +227,7 @@ export function Sidebar() {
       "fixed left-0 top-0 h-screen bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] transition-width duration-300 ease-in-out",
       collapsed ? "w-16" : "w-64"
     )}>
-      <div className="flex h-full flex-col justify-between overflow-y-auto">
+      <div className="flex h-full flex-col justify-between">
         {/* Header with logo and collapse button aligned horizontally */}
         <div className="flex items-center justify-between p-4 border-b border-[hsl(var(--border))] h-14">
           {!collapsed ? (
@@ -251,7 +259,7 @@ export function Sidebar() {
         </div>
         
         {/* Main navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-4 scrollbar-hide">
           <TooltipProvider delayDuration={300}>
             {filteredMenuGroups.map((group) => {
               // Filter items based on menu settings
@@ -276,7 +284,7 @@ export function Sidebar() {
                     </div>
                   )}
                   {visibleItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))) : false;
                     
                     const menuItem = (
                       <Button

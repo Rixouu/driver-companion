@@ -9,7 +9,7 @@ import { useEffect, useState } from "react"
 import { ClientThemeSelector } from "@/components/theme-selector"
 import { LanguageSelector } from "@/components/language-selector"
 import { useI18n } from "@/lib/i18n/context"
-import type { Session } from '@supabase/auth-helpers-nextjs'
+import type { Session } from '@supabase/supabase-js'
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import {
@@ -62,8 +62,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { supabase } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { createClient } from "@/lib/supabase"
+import { toast } from "@/components/ui/use-toast"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -96,7 +96,6 @@ export default function SettingsPage() {
     settings: { desktop: true, mobile: true }
   })
   const [isSaving, setIsSaving] = useState(false)
-  const { toast } = useToast()
   
   // State for new template type
   const [newTemplateNameEn, setNewTemplateNameEn] = useState("")
@@ -115,16 +114,21 @@ export default function SettingsPage() {
   ]
 
   useEffect(() => {
-    async function getSession() {
+    async function getSessionAndSettings() {
+      const client = createClient();
+      if (!client) {
+        console.warn("[SettingsPage] Supabase client not available in getSessionAndSettings.");
+        return;
+      }
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        const { data: { session: currentSession }, error } = await client.auth.getSession()
         
         if (error) {
           console.error("Error getting session:", error.message)
           return
         }
         
-        setSession(session)
+        setSession(currentSession)
         
         // Load menu settings from local storage if available
         const savedMenuSettings = localStorage.getItem('menuSettings')
@@ -167,7 +171,7 @@ export default function SettingsPage() {
     }
     
     if (typeof window !== 'undefined') {
-      getSession()
+      getSessionAndSettings()
     }
   }, [])
 
@@ -211,6 +215,17 @@ export default function SettingsPage() {
   
   // Handle creating a new template type
   const handleCreateTemplateSubmit = async () => {
+    const supabase = createClient();
+    if (!supabase) {
+      console.warn("[SettingsPage] Supabase client not available for handleCreateTemplateSubmit.");
+      toast({
+        title: t("common.error"),
+        description: "Action failed: Connection issue. Please try again.",
+        variant: "destructive"
+      });
+      setIsSavingTemplate(false);
+      return;
+    }
     // Validate inputs
     if (!newTemplateNameEn.trim() && !newTemplateNameJa.trim()) {
       toast({

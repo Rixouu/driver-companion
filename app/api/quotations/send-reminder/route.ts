@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service-client'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
@@ -75,19 +75,27 @@ export async function POST(request: NextRequest) {
     const lang = language === 'ja' ? 'ja' : 'en';
     const template = reminderTemplates[lang];
     
-    // Create service client (doesn't rely on cookies)
-    console.log('[SEND-REMINDER API] Creating Supabase service client');
+    // Create server client (relies on cookies for auth)
+    console.log('[SEND-REMINDER API] Creating Supabase server client');
     let supabase;
     try {
-      supabase = createServiceClient();
-      console.log('[SEND-REMINDER API] Supabase service client created successfully');
-    } catch (serviceClientError) {
-      console.error('[SEND-REMINDER API] Error creating service client:', serviceClientError);
+      supabase = await getSupabaseServerClient();
+      console.log('[SEND-REMINDER API] Supabase server client created successfully');
+    } catch (serverClientError) {
+      console.error('[SEND-REMINDER API] Error creating server client:', serverClientError);
       return NextResponse.json(
         { error: 'Error connecting to database' },
         { status: 500 }
       );
     }
+
+    // Authenticate user
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser) {
+      console.error('[SEND-REMINDER API] Authentication error', authError);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.log('[SEND-REMINDER API] User authenticated:', authUser.id);
     
     // Fetch quotation data
     console.log(`[SEND-REMINDER API] Fetching quotation with ID: ${id}`);
@@ -216,12 +224,11 @@ export async function POST(request: NextRequest) {
         .eq('id', id);
       
       // Log activity
-      const userId = '00000000-0000-0000-0000-000000000000'; // System user for reminders
       await supabase
         .from('quotation_activities')
         .insert({
           quotation_id: id,
-          user_id: userId,
+          user_id: authUser.id,
           action: 'reminder_sent',
           details: { 
             email: customerEmail,

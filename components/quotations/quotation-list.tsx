@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { 
   Table, 
   TableBody, 
@@ -42,6 +42,7 @@ import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationStatusFilter } from './quotation-status-filter';
+import { cn } from '@/lib/utils';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -64,33 +65,56 @@ export default function QuotationList({
 }: QuotationListProps) {
   const { t } = useI18n();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>('all');
-  const [filteredQuotations, setFilteredQuotations] = useState<Quotation[]>(quotations);
+  const pathname = usePathname() ?? '';
+  const currentSearchParams = useSearchParams() ?? new URLSearchParams();
 
-  // Apply filters when search query, status filter, or quotations list changes
+  const initialSearchQuery = currentSearchParams.get('query') || '';
+  const initialStatusFilter = (currentSearchParams.get('status') as QuotationStatus | 'all') || 'all';
+
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>(initialStatusFilter);
+
+  const debouncedUpdateUrlQuery = useCallback(
+    (newQuery: string) => {
+      const params = new URLSearchParams(currentSearchParams.toString());
+      if (newQuery.trim() !== '') {
+        params.set('query', newQuery.trim());
+      } else {
+        params.delete('query');
+      }
+      if (pathname) router.push(`${pathname}?${params.toString()}` as any, { scroll: false });
+    },
+    [currentSearchParams, pathname, router]
+  );
+
   useEffect(() => {
-    let filtered = [...quotations];
+    setSearchQuery(initialSearchQuery);
+    setStatusFilter(initialStatusFilter);
+  }, [initialSearchQuery, initialStatusFilter]);
 
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(quote => quote.status === statusFilter);
-    }
-
-    // Apply search filter - search in title, customer name, and email
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(quote => 
-        (quote.title && quote.title.toLowerCase().includes(query)) ||
-        (quote.customer_name && quote.customer_name.toLowerCase().includes(query)) ||
-        (quote.customer_email && quote.customer_email.toLowerCase().includes(query)) ||
-        (quote.quote_number && quote.quote_number.toString().includes(query))
-      );
-    }
-
-    setFilteredQuotations(filtered);
-  }, [quotations, searchQuery, statusFilter]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchQuery !== initialSearchQuery) {
+        debouncedUpdateUrlQuery(searchQuery);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery, debouncedUpdateUrlQuery, initialSearchQuery]);
   
+  const handleStatusFilterChange = useCallback(
+    (newStatus: QuotationStatus | 'all') => {
+      setStatusFilter(newStatus);
+      const params = new URLSearchParams(currentSearchParams.toString());
+      if (newStatus !== 'all') {
+        params.set('status', newStatus);
+      } else {
+        params.delete('status');
+      }
+      if (pathname) router.push(`${pathname}?${params.toString()}` as any, { scroll: false });
+    },
+    [currentSearchParams, pathname, router, setStatusFilter]
+  );
+
   // Format currency
   const formatCurrency = (amount: number, currency: string) => {
     // Always use JPY currency format with ¥ symbol and no decimal places
@@ -99,6 +123,7 @@ export default function QuotationList({
 
   // Check if quotation is expired
   const isExpired = (expiryDate: string) => {
+    if (!expiryDate) return false;
     return new Date(expiryDate) < new Date();
   };
 
@@ -128,7 +153,7 @@ export default function QuotationList({
   // Get status badge
   const getStatusBadge = (status: QuotationStatus, expiryDate: string) => {
     // If status is draft or sent and the quotation is expired, show expired badge
-    if ((status === 'draft' || status === 'sent') && isExpired(expiryDate)) {
+    if ((status === 'draft' || status === 'sent') && expiryDate && isExpired(expiryDate)) {
       return (
         <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">
           {t('quotations.status.expired')}
@@ -179,19 +204,19 @@ export default function QuotationList({
 
   // Handle clicking on a row
   const handleRowClick = (id: string) => {
-    router.push(`/quotations/${id}` as any);
+    router.push(`/quotations/${id}`);
   };
 
   // Handle edit click
   const handleEditClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    router.push(`/quotations/${id}/edit` as any);
+    router.push(`/quotations/${id}/edit`);
   };
 
   // Handle view click
   const handleViewClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    router.push(`/quotations/${id}` as any);
+    router.push(`/quotations/${id}`);
   };
 
   // Handle delete click
@@ -213,7 +238,7 @@ export default function QuotationList({
   // Handle duplicate click
   const handleDuplicateClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    router.push(`/quotations/create?duplicate=${id}` as any);
+    router.push(`/quotations/create?duplicate=${id}`);
   };
 
   // Handle reminder click
@@ -232,6 +257,24 @@ export default function QuotationList({
     );
   }
 
+  if (quotations.length === 0 && (initialSearchQuery || initialStatusFilter !== 'all')) {
+    return (
+      <EmptyState
+        icon={<SearchIcon className="h-10 w-10 text-muted-foreground" />}
+        title={t('quotations.empty.noResultsTitle')}
+        description={t('quotations.empty.noResultsDescription')}
+        action={
+          <Button variant="outline" onClick={() => {
+            setSearchQuery('');
+            handleStatusFilterChange('all');
+          }}>
+            {t('quotations.empty.clearFilters')}
+          </Button>
+        }
+      />
+    );
+  }
+
   if (quotations.length === 0) {
     return (
       <EmptyState
@@ -239,10 +282,12 @@ export default function QuotationList({
         title={t('quotations.empty.title')}
         description={t('quotations.empty.description')}
         action={
-          <Button onClick={() => router.push('/quotations/create' as any)}>
-            <PlusIcon className="mr-2 h-4 w-4" />
-            {t('quotations.empty.cta')}
-          </Button>
+          isOrganizationMember ? (
+            <Button onClick={() => router.push('/quotations/create')}>
+              <PlusIcon className="mr-2 h-4 w-4" />
+              {t('quotations.empty.cta')}
+            </Button>
+          ) : null
         }
       />
     );
@@ -251,7 +296,6 @@ export default function QuotationList({
   return (
     <Card className="w-full">
       <CardContent className="p-0">
-        {/* Search Bar Section */}
         <div className="p-4 border-b">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -264,250 +308,251 @@ export default function QuotationList({
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={onRefresh}
-              className="h-9 w-9"
-            >
-              <RefreshCwIcon className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSearchQuery('')}
-              className="whitespace-nowrap"
-            >
-              {t('quotations.filters.clearFilters')}
-            </Button>
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={onRefresh}
+                className="h-9 w-9 shrink-0"
+                disabled={isLoading}
+              >
+                <RefreshCwIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
           </div>
         </div>
         
-        {/* Filters Section */}
         <div className="p-4 bg-muted/10 border-b">
           <QuotationStatusFilter 
             currentStatus={statusFilter}
-            onChange={(value) => setStatusFilter(value)}
+            onChange={handleStatusFilterChange}
           />
         </div>
 
         <div className="p-4">
-          {filteredQuotations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <AlertCircleIcon className="mx-auto h-8 w-8 mb-2" />
-              <p>{t('quotations.filters.noResults')}</p>
-            </div>
-          ) : (
-            <>
-              {/* Card view for mobile */}
-              <div className="md:hidden space-y-4">
-                {filteredQuotations.map((quotation) => (
-                  <div 
-                    key={quotation.id}
-                    className="rounded-lg border bg-card shadow-sm hover:bg-accent/10 cursor-pointer transition-colors"
-                    onClick={() => handleRowClick(quotation.id)}
-                  >
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="font-mono text-xs">#{quotation.quote_number}</div>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(quotation.status, quotation.expiry_date)}
-                          {needsReminder(quotation) && (
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                              <AlertCircleIcon className="h-3 w-3 mr-1" />
-                              {t('quotations.actions.remind')}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="font-medium mb-1">{quotation.customer_name || '—'}</div>
-                      <div className="text-xs text-muted-foreground mb-3 truncate">{quotation.customer_email}</div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs text-muted-foreground">
-                          {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
-                        </div>
-                        <div className="font-semibold text-right">
-                          {formatCurrency(quotation.total_amount, 'JPY')}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+          <div className="md:hidden space-y-4">
+            {quotations.map((quotation) => (
+              <div 
+                key={quotation.id}
+                className="rounded-lg border bg-card shadow-sm hover:bg-accent/10 cursor-pointer transition-colors"
+                onClick={() => handleRowClick(quotation.id)}
+              >
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-mono text-xs">#{quotation.quote_number}</div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(quotation.status, quotation.expiry_date)}
+                      {needsReminder(quotation) && (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                          <AlertCircleIcon className="h-3 w-3 mr-1" />
+                          {t('quotations.actions.remind')}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="font-medium mb-1">{quotation.customers?.name || '—'}</div>
+                  <div className="text-xs text-muted-foreground mb-3 truncate">{quotation.customers?.email}</div>
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs text-muted-foreground">
+                      {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
+                    </div>
+                    <div className="font-semibold text-right">
+                      {formatCurrency(quotation.total_amount, quotation.currency || 'JPY')}
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                      title={t('quotations.actions.view')}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
+                    
+                    {isOrganizationMember && (
+                      <>
+                        {quotation.status === 'sent' && quotation.expiry_date && !isExpired(quotation.expiry_date) && onRemind && (
+                          <Button 
+                            variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
+                            title={t('quotations.actions.remind')}
+                          >
+                            <BellIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
                         <Button 
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8"
-                          onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
-                          title={t('quotations.actions.view')}
+                          onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                          title={t('quotations.actions.copy')}
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <CopyIcon className="h-4 w-4" />
                         </Button>
                         
-                        {isOrganizationMember && (
+                        {['draft', 'rejected'].includes(quotation.status) && onDelete && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-red-600 hover:text-red-600"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
+                            title={t('quotations.actions.delete')}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {quotation.status === 'draft' && (
                           <>
-                            {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                              <Button 
-                                variant={needsReminder(quotation) ? "secondary" : "ghost"} 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
-                                title={t('quotations.actions.remind')}
-                              >
-                                <BellIcon className="h-4 w-4" />
-                              </Button>
-                            )}
-                            
                             <Button 
                               variant="ghost" 
                               size="icon"
                               className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
-                              title={t('quotations.actions.copy')}
+                              onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
+                              title={t('quotations.actions.edit')}
                             >
-                              <CopyIcon className="h-4 w-4" />
+                              <FileEditIcon className="h-4 w-4" />
                             </Button>
-                            
-                            {['draft', 'rejected', 'expired'].includes(quotation.status) && (
+                           {onSend && (
                               <Button 
                                 variant="ghost" 
                                 size="icon"
-                                className="h-8 w-8 text-red-600 hover:text-red-600"
-                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                                title={t('quotations.actions.delete')}
+                                className="h-8 w-8"
+                                onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }}
+                                title={t('quotations.actions.send')}
                               >
-                                <TrashIcon className="h-4 w-4" />
+                                <MailIcon className="h-4 w-4" />
                               </Button>
-                            )}
-                            
-                            {quotation.status === 'draft' && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
-                                >
-                                  <FileEditIcon className="h-4 w-4" />
-                                </Button>
-                              </>
                             )}
                           </>
                         )}
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
-              
-              {/* Table view for desktop */}
-              <div className="hidden md:block rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      <TableHead className="w-[90px]">{t('quotations.listColumns.id')}</TableHead>
-                      <TableHead>{t('quotations.listColumns.customer')}</TableHead>
-                      <TableHead>{t('quotations.listColumns.date')}</TableHead>
-                      <TableHead>{t('quotations.listColumns.amount')}</TableHead>
-                      <TableHead>{t('quotations.listColumns.status')}</TableHead>
-                      <TableHead>{t('quotations.listColumns.expiresOn')}</TableHead>
-                      {isOrganizationMember && <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredQuotations.map((quotation) => (
-                      <TableRow 
-                        key={quotation.id} 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleRowClick(quotation.id)}
+            ))}
+          </div>
+          
+          <div className="hidden md:block rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow>
+                  <TableHead className="w-[90px] text-left">{t('quotations.listColumns.id')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.customer')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.date')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.amount')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.status')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.expiresOn')}</TableHead>
+                  <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {quotations.map((quotation) => (
+                  <TableRow 
+                    key={quotation.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleRowClick(quotation.id)}
+                  >
+                    <TableCell className="font-mono text-xs sm:text-sm text-left">#{quotation.quote_number}</TableCell>
+                    <TableCell className="text-left">
+                      {isOrganizationMember ? (
+                        quotation.customers?.name || t('common.notAvailableShort')
+                      ) : (
+                        t('common.confidential')
+                      )}
+                    </TableCell>
+                    <TableCell className="text-left">
+                      {format(parseISO(quotation.created_at), 'dd MMM yyyy')}
+                    </TableCell>
+                    <TableCell className="text-left">
+                      {formatCurrency(quotation.total_amount, quotation.currency)}
+                    </TableCell>
+                    <TableCell className="text-left">
+                      {getStatusBadge(quotation.status, quotation.expiry_date)}
+                    </TableCell>
+                    <TableCell className="text-left">
+                      {quotation.expiry_date ? format(parseISO(quotation.expiry_date), 'dd MMM yyyy') : t('common.notAvailableShort')}
+                    </TableCell>
+                    <TableCell className="space-x-1 text-left">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => handleViewClick(e, quotation.id)}
+                        title={t('quotations.actions.view')}
                       >
-                        <TableCell className="font-mono text-xs sm:text-sm">#{quotation.quote_number}</TableCell>
-                        <TableCell>
-                          <div className="font-medium text-sm sm:text-base">{quotation.customer_name || '—'}</div>
-                          <div className="text-xs sm:text-sm text-muted-foreground truncate max-w-[150px] md:max-w-none">{quotation.customer_email}</div>
-                        </TableCell>
-                        <TableCell>
-                          {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(quotation.total_amount, 'JPY')}
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(quotation.status, quotation.expiry_date)}
-                        </TableCell>
-                        <TableCell>
-                          {quotation.expiry_date && (
-                            <div className={isExpired(quotation.expiry_date) ? 'text-red-500' : ''}>
-                              {format(parseISO(quotation.expiry_date), 'MMM d, yyyy')}
-                              {needsReminder(quotation) && (
-                                <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1 flex items-center">
-                                  <BellIcon className="h-3 w-3 mr-1" />
-                                  {t('quotations.actions.remind')}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                        {isOrganizationMember && (
-                          <TableCell className="p-2">
-                            <div className="flex justify-start items-center space-x-1">
-                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }} className="h-8 w-8">
-                                <EyeIcon className="h-4 w-4" />
-                              </Button>
-                              
-                              {quotation.status === 'draft' && (
-                                <>
-                                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }} className="h-8 w-8">
-                                    <FileEditIcon className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }} className="h-8 w-8">
-                                    <MailIcon className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {quotation.status === 'sent' && !isExpired(quotation.expiry_date) && (
-                                <Button 
-                                  variant={needsReminder(quotation) ? "secondary" : "ghost"} 
-                                  size="icon" 
-                                  onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }} 
-                                  className="h-8 w-8"
-                                >
-                                  <BellIcon className="h-4 w-4" />
-                                </Button>
-                              )}
-                              
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }} 
-                                className="h-8 w-8"
-                                title={t('quotations.actions.copy')}
-                              >
-                                <CopyIcon className="h-4 w-4" />
-                              </Button>
-                              
-                              {['draft', 'rejected', 'expired'].includes(quotation.status) && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                                  className="h-8 w-8 text-red-600 hover:text-red-600"
-                                  title={t('quotations.actions.delete')}
-                                >
-                                  <TrashIcon className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
-          )}
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+
+                      {isOrganizationMember && quotation.status === 'draft' && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleEditClick(e, quotation.id)}
+                          title={t('quotations.actions.edit')}
+                        >
+                          <FileEditIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+
+                      {isOrganizationMember && quotation.status === 'draft' && onSend && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleSendClick(e, quotation.id)}
+                          title={t('quotations.actions.send')}
+                        >
+                          <MailIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      {isOrganizationMember && needsReminder(quotation) && onRemind && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleRemindClick(e, quotation.id)}
+                          title={t('quotations.actions.remind')}
+                        >
+                          <BellIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+
+                      {isOrganizationMember && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleDuplicateClick(e, quotation.id)}
+                          title={t('quotations.actions.duplicate')}
+                        >
+                          <CopyIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+
+                      {isOrganizationMember && quotation.status === 'draft' && onDelete && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => handleDeleteClick(e, quotation.id)}
+                          title={t('quotations.actions.delete')}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </CardContent>
     </Card>

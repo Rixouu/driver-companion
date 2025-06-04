@@ -40,9 +40,13 @@ import { getDrivers } from '@/lib/services/drivers'
 import { getVehicles } from '@/lib/services/vehicles'
 import type { Driver } from '@/types/drivers'
 import type { Vehicle } from '@/types/vehicles'
+import type { DbVehicle } from '@/types'
 import { useI18n } from '@/lib/i18n/context'
 import BookingAssignment from '@/components/bookings/booking-assignment'
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useMediaQuery } from '@/lib/hooks/use-media-query'
+import { format, parseISO } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
+import Image from 'next/image';
 
 export default function EditBookingPage() {
   const router = useRouter()
@@ -57,6 +61,9 @@ export default function EditBookingPage() {
     terminal?: string; 
     driver_id?: string | null; 
     vehicle_id?: string | null; 
+    customer_name?: string;
+    customer_email?: string;
+    customer_phone?: string;
   }>>({})
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('summary')
@@ -106,16 +113,16 @@ export default function EditBookingPage() {
           date: loadedBooking.date,
           time: loadedBooking.time,
           status: loadedBooking.status,
-          customer_name: loadedBooking.customer_name,
-          customer_email: loadedBooking.customer_email,
-          customer_phone: loadedBooking.customer_phone,
+          customer_name: loadedBooking.customer_name || loadedBooking.customer?.name || '',
+          customer_email: loadedBooking.customer_email || loadedBooking.customer?.email || '',
+          customer_phone: loadedBooking.customer_phone || loadedBooking.customer?.phone || '',
           pickup_location: loadedBooking.pickup_location,
           dropoff_location: loadedBooking.dropoff_location,
           distance: loadedBooking.distance?.toString() || '',
           duration: loadedBooking.duration?.toString() || '',
           notes: loadedBooking.notes,
           driver_id: loadedBooking.driver_id,
-          vehicle_id: loadedBooking.vehicle?.id || null,
+          vehicle_id: loadedBooking.vehicle?.id || undefined,
           flight_number: flightNumber,
           terminal: terminal,
           // Billing information
@@ -129,7 +136,7 @@ export default function EditBookingPage() {
           billing_country: loadedBooking.billing_country || '',
           // Coupon information
           coupon_code: loadedBooking.coupon_code || '',
-          coupon_discount_percentage: loadedBooking.coupon_discount_percentage || ''
+          coupon_discount_percentage: loadedBooking.coupon_discount_percentage?.toString() || ''
         })
 
         // Fetch Drivers
@@ -137,9 +144,9 @@ export default function EditBookingPage() {
         setAvailableDrivers(drivers);
 
         // Fetch Vehicles
-        const vehiclesResult = await getVehicles(); 
-        // Extract the vehicles array from the result and cast to expected type
-        setAvailableVehicles(vehiclesResult.vehicles as unknown as Vehicle[]);
+        const vehiclesResult = await getVehicles({}); 
+        // vehiclesResult is DbVehicle[], cast to Vehicle[] for state
+        setAvailableVehicles(vehiclesResult as Vehicle[]);
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data')
@@ -234,25 +241,27 @@ export default function EditBookingPage() {
         throw new Error("Booking not found")
       }
 
-      // Extract specific fields for meta
       const { 
         flight_number, 
         terminal, 
-        service_type
+        service_type,
       } = formData
       
-      // Create meta object
       const metaData = { 
         ...(booking.meta || {}), 
         chbs_flight_number: flight_number,
         chbs_terminal: terminal,
         chbs_service_type: service_type
       }
-      
-      // Prepare data for update with properly constructed object
-      // to avoid TypeScript property access errors
-      const dataToUpdate: Partial<Booking> = {
+
+      // Ensure coupon_discount_percentage is string | undefined to match Booking type if it's string there
+      // If Booking type's coupon_discount_percentage is number, then parse it here.
+      // From types/bookings.ts: coupon_discount_percentage?: string
+      const couponDiscount = formData.coupon_discount_percentage?.toString() || undefined;
+
+      const dataToSave: Partial<Booking> = {
         service_name: formData.service_name,
+        service_type: formData.service_type,
         date: formData.date,
         time: formData.time,
         status: formData.status,
@@ -261,11 +270,12 @@ export default function EditBookingPage() {
         customer_phone: formData.customer_phone,
         pickup_location: formData.pickup_location,
         dropoff_location: formData.dropoff_location,
-        distance: formData.distance,
-        duration: formData.duration,
+        distance: formData.distance || undefined, // string | undefined, matches Booking type if it's string | number
+        duration: formData.duration || undefined, // string | undefined, matches Booking type if it's string | number
         notes: formData.notes,
+        driver_id: formData.driver_id === '' || formData.driver_id === null ? undefined : formData.driver_id,
+        vehicle_id: formData.vehicle_id === '' || formData.vehicle_id === null ? undefined : formData.vehicle_id,
         meta: metaData,
-        // Billing information
         billing_company_name: formData.billing_company_name,
         billing_tax_number: formData.billing_tax_number,
         billing_street_name: formData.billing_street_name,
@@ -274,30 +284,11 @@ export default function EditBookingPage() {
         billing_state: formData.billing_state,
         billing_postal_code: formData.billing_postal_code,
         billing_country: formData.billing_country,
-        // Coupon information
         coupon_code: formData.coupon_code,
-        coupon_discount_percentage: formData.coupon_discount_percentage
+        coupon_discount_percentage: couponDiscount
       }
-      
-      // Always use the Supabase UUID for updates
-      let updateId = booking.supabase_id || booking.id;
-      
-      // Check if updateId is a numeric string and convert it to the UUID if needed
-      if (updateId && !updateId.includes('-')) {
-        if (booking.supabase_id && booking.supabase_id.includes('-')) {
-          updateId = booking.supabase_id;
-        } else {
-          throw new Error(`No valid UUID found for booking: ${id}`);
-        }
-      }
-      
-      // Validate UUID format for booking ID
-      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidPattern.test(updateId)) {
-        throw new Error(`Invalid booking ID format: ${updateId}`);
-      }
-      
-      const result = await updateBookingAction(updateId, dataToUpdate)
+
+      const result = await updateBookingAction(id, dataToSave)
       setSaveResult(result)
       
       if (result.success) {
@@ -782,11 +773,12 @@ export default function EditBookingPage() {
                         ) : (
                           <div>
                             {mapPreviewUrl ? (
-                              <div className="relative">
-                                <img 
+                              <div className="relative aspect-[16/9]">
+                                <Image 
                                   src={mapPreviewUrl} 
                                   alt="Route Map" 
-                                  className="w-full h-auto" 
+                                  fill
+                                  className="object-contain rounded-md"
                                 />
                               </div>
                             ) : (

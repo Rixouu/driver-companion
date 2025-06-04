@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getDictionary } from '@/lib/i18n/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Suspense } from 'react';
 
 import { QuotationDetails } from './quotation-details';
@@ -21,10 +21,11 @@ type Props = {
 
 // Generate metadata for the page
 export async function generateMetadata(
-  { params }: Props
+  { params: awaitedParams }: Props
 ): Promise<Metadata> {
-  // Make sure to await the params
-  const { id } = await params;
+  const params = await awaitedParams;
+  // Access params directly
+  const { id } = params;
   const { t } = await getDictionary();
   
   return {
@@ -33,17 +34,34 @@ export async function generateMetadata(
   };
 }
 
-export default async function QuotationDetailsPage({ params }: Props) {
-  // Make sure to await the params
-  const { id } = await params;
+export default async function QuotationDetailsPage({ params: awaitedParams }: Props) {
+  const params = await awaitedParams;
+  // Access params directly
+  const { id } = params;
   const { t } = await getDictionary();
   
   // Create the Supabase client with properly awaited cookies
-  const supabase = await createServerSupabaseClient();
+  const supabase = await getSupabaseServerClient();
   
   // Check if the user is authenticated and part of the organization
-  const { data: { session } } = await supabase.auth.getSession();
-  const isOrganizationMember = session?.user?.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError) {
+    // Handle error, maybe redirect or show an error message
+    // For now, let's log it and potentially redirect or show notFound
+    // console.error("Error fetching user:", userError); // Removed console.error
+    // Depending on the error, you might want to redirect to login or show a generic error
+    // For simplicity, if there's a user error, we might notFound() or redirect('/auth/login')
+    // For now, we'll allow it to proceed to check !user next, which handles the redirect
+  }
+
+  if (!user) {
+    // If no user session, redirect to login
+    // This also covers the case where userError was null but user was also null
+    redirect('/auth/login'); 
+  }
+  
+  const isOrganizationMember = user?.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
   
   // Get the quotation with expanded selection to include billing details
   const { data, error } = await supabase
@@ -75,31 +93,31 @@ export default async function QuotationDetailsPage({ params }: Props) {
   
   // Add better logging
   if (error) {
-    console.error('[QUOTATION DEBUG] Error fetching quotation:', error);
+    // console.error('[QUOTATION DEBUG] Error fetching quotation:', error); // Removed console.error
     notFound();
   }
 
   if (!data) {
-    console.error('[QUOTATION DEBUG] No quotation data found for ID:', id);
+    // console.error('[QUOTATION DEBUG] No quotation data found for ID:', id); // Removed console.error
     notFound();
   }
 
-  // Log the received data to debug
-  console.log(`[QUOTATION DEBUG] Retrieved quotation with ID ${id}`);
-  console.log('[QUOTATION DEBUG] Quotation data preview:', {
-    id: data.id,
-    title: data.title,
-    items_count: data.quotation_items?.length || 0
-  });
+  // Log the received data to debug - All console.logs removed from here down
+  // console.log(`[QUOTATION DEBUG] Retrieved quotation with ID ${id}`);
+  // console.log('[QUOTATION DEBUG] Quotation data preview:', {
+  //   id: data.id,
+  //   title: data.title,
+  //   items_count: data.quotation_items?.length || 0
+  // });
 
-  if (data.quotation_items && data.quotation_items.length > 0) {
-    console.log('[QUOTATION DEBUG] First item preview:', data.quotation_items[0]);
-  } else {
-    console.log('[QUOTATION DEBUG] No quotation items found in the database query');
-  }
+  // if (data.quotation_items && data.quotation_items.length > 0) {
+  //   console.log('[QUOTATION DEBUG] First item preview:', data.quotation_items[0]);
+  // } else {
+  //   console.log('[QUOTATION DEBUG] No quotation items found in the database query');
+  // }
 
-  // Use a type assertion - we know this format works with our component
-  const quotation = data as any;
+  // Attempt to use proper typing instead of 'as any'
+  const quotation = data as Quotation & { quotation_items: QuotationItem[], customers: any }; // More specific typing
 
   // Use the same QuotationDetails component for both organization and non-organization members,
   // but pass the isOrganizationMember flag to control permissions and actions

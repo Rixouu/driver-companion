@@ -6,9 +6,9 @@ export const vehicleSchema = z.object({
   brand: z.string().optional(),
   model: z.string().optional(),
   year: z.number().int().positive().optional(),
-  color: z.string().optional(),
   vin: z.string().optional(),
   status: z.enum(["active", "maintenance", "inactive"]).optional(),
+  image_url: z.string().url({ message: "Invalid URL format" }).optional().nullable(),
 })
 
 export type VehicleFormData = z.infer<typeof vehicleSchema>

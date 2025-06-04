@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { PricingItem, PricingCategory } from "@/types/quotations";
-import { useQuotationService, ServiceTypeInfo } from "@/hooks/useQuotationService";
+import { PricingItem, PricingCategory, ServiceTypeInfo } from "@/types/quotations";
+import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,16 +32,16 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 // Utility functions
 // const getVehicleTypes = () => ["Sedan", "Van", "Minibus", "Bus", "Coach"]; // Removed as per requirement
 
-const getDurationOptions = () => [
-  { value: 1, label: "1 hour" },
-  { value: 4, label: "4 hours" },
-  { value: 6, label: "6 hours" },
-  { value: 8, label: "8 hours" },
-  { value: 10, label: "10 hours" },
-  { value: 12, label: "12 hours" },
-  { value: 24, label: "24 hours" },
-  { value: 48, label: "48 hours" },
-  { value: 72, label: "72 hours" },
+const getDurationOptions = (t: Function) => [
+  { value: 1, label: t("pricing.items.durations.hour", { count: 1 }) },
+  { value: 4, label: t("pricing.items.durations.hours", { count: 4 }) },
+  { value: 6, label: t("pricing.items.durations.hours", { count: 6 }) },
+  { value: 8, label: t("pricing.items.durations.hours", { count: 8 }) },
+  { value: 10, label: t("pricing.items.durations.hours", { count: 10 }) },
+  { value: 12, label: t("pricing.items.durations.hours", { count: 12 }) },
+  { value: 24, label: t("pricing.items.durations.day", { count: 1 }) },
+  { value: 48, label: t("pricing.items.durations.days", { count: 2 }) },
+  { value: 72, label: t("pricing.items.durations.days", { count: 3 }) },
 ];
 
 // Types for price table
@@ -94,31 +94,31 @@ export default function PricingItemsTab() {
     updatePricingItem,
     deletePricingItem
   } = useQuotationService();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  
+  const durationOptions = useMemo(() => getDurationOptions(t), [t]);
   
   const refreshItems = useCallback(async (currentCategoryId?: string | null) => {
     setIsLoading(true);
     try {
       const categoryToFetch = currentCategoryId === undefined ? selectedCategory : currentCategoryId;
       if (categoryToFetch) {
-        // Assuming getPricingItems can be called with (categoryId, serviceTypeId (optional))
-        // Vehicle type filter removed from API call if it was there
         const [itemsData, serviceTypesData] = await Promise.all([
-          getPricingItems(categoryToFetch, undefined /* service_type_id filter if needed, else just categoryId */),
-          getServiceTypes() // Still needed for service type names and potentially for columns
+          getPricingItems(categoryToFetch, undefined),
+          getServiceTypes()
         ]);
         setAllServiceTypes(serviceTypesData);
         const itemsWithServiceNames = itemsData.map(item => ({
           ...item,
-          service_type_name: serviceTypesData.find(st => st.id === item.service_type_id)?.name || item.service_type_id
+          service_type_name: serviceTypesData.find(st => st.id === item.service_type_id)?.name // Fallback to undefined if not found
         }));        
-        setItems(itemsWithServiceNames);
+        setItems(itemsWithServiceNames as PricingItem[]); // Explicit cast if needed, or ensure map result matches type
       } else {
         setItems([]);
       }
     } catch (error) {
-      console.error("Error refreshing pricing items:", error);
-      toast({ title: t('common.error.genericTitle'), description: t('common.error.fetchFailed', { entity: 'pricing items' }), variant: 'destructive' });
+      console.error(t("pricing.items.errors.refreshError"), error);
+      toast({ title: t('common.error'), description: t('pricing.items.toast.fetchFailed'), variant: 'destructive' });
       setItems([]);
     } finally {
       setIsLoading(false);
@@ -136,6 +136,7 @@ export default function PricingItemsTab() {
           setSelectedCategory(initialCategory);
         } else if (categoriesData.length === 0) {
           setItems([]); 
+          toast({ title: t('pricing.categories.toast.noCategoriesTitle'), description: t('pricing.categories.toast.noCategoriesDescription'), variant: 'default' });
         }
         // Fetch all service types once for reference
         const serviceTypesData = await getServiceTypes();
@@ -143,7 +144,7 @@ export default function PricingItemsTab() {
 
       } catch (error) {
         console.error("Error loading initial categories/services:", error);
-        toast({ title: t('common.error.genericTitle'), description: t('common.error.initialLoadFailed', { context: 'pricing setup' }), variant: 'destructive' });
+        toast({ title: t('common.error'), description: t('pricing.items.toast.initialLoadFailed'), variant: 'destructive' });
       } finally {
          // isLoading is for items, managed by refreshItems
       }
@@ -172,12 +173,12 @@ export default function PricingItemsTab() {
       setCurrentItem({
         category_id: selectedCategory,
         service_type_id: defaultServiceTypeId,
-        duration_hours: 1,
+        duration_hours: customDuration !== null ? customDuration : (durationOptions.length > 0 ? durationOptions[0].value : 1),
         price: 0,
-        currency: 'JPY',
+        currency: 'JPY', // Default currency
         is_active: true,
-        vehicle_type: "N/A", // Default for new items
-        ...(item || {})
+        vehicle_type: "N/A", // Default for new items, this field is not actively used
+        ...(item || {currency: 'JPY'}) // Ensure currency is set for new items
       });
       setIsEditing(false);
     }
@@ -196,6 +197,14 @@ export default function PricingItemsTab() {
     }
     if (!currentItem.service_type_id) {
       toast({ title: t('common.error.validationError'), description: t('pricing.items.errors.serviceTypeRequired'), variant: 'destructive' });
+      return;
+    }
+    if (currentItem.price === undefined || currentItem.price === null || isNaN(Number(currentItem.price)) ) {
+      toast({ title: t('common.error.validationError'), description: t('pricing.items.errors.priceRequired'), variant: 'destructive' });
+      return;
+    }
+    if (currentItem.duration_hours === undefined || currentItem.duration_hours === null || isNaN(Number(currentItem.duration_hours)) || Number(currentItem.duration_hours) <= 0) {
+      toast({ title: t('common.error.validationError'), description: t('pricing.items.errors.durationRequired'), variant: 'destructive' });
       return;
     }
     
@@ -220,18 +229,19 @@ export default function PricingItemsTab() {
           price: currentItem.price!,
           currency: currentItem.currency || 'JPY',
           is_active: currentItem.is_active ?? true,
-          vehicle_type: "N/A",
+          vehicle_type: "N/A", // This field is not actively used per current understanding
         };
         success = !!(await createPricingItem(createPayload));
       }
 
       if (success) {
+        toast({ title: isEditing ? t('pricing.items.toast.updateSuccessTitle') : t('pricing.items.toast.createSuccessTitle') });
         await refreshItems();
         handleCloseDialog();
       } 
     } catch (error) {
-      console.error("Error saving pricing item:", error);
-      toast({ title: t('common.error.genericTitle'), description: t('common.error.saveFailed', { entity: 'pricing item' }), variant: 'destructive' });
+      console.error(t("pricing.items.errors.saveError"), error);
+      toast({ title: t('common.error'), description: t('pricing.items.toast.saveFailed'), variant: 'destructive' });
     }
   };
 
@@ -250,7 +260,7 @@ export default function PricingItemsTab() {
       }
     } catch (error) {
       console.error("Error deleting pricing item:", error);
-      toast({ title: t('common.error.genericTitle'), description: t('common.error.deleteFailed', { entity: 'pricing item' }), variant: 'destructive' });
+      toast({ title: t("common.error"), description: t("pricing.items.toast.deleteFailed"), variant: "destructive" });
     } finally {
       setIsDeleteConfirmOpen(false);
       setItemToDelete(null);
@@ -265,28 +275,33 @@ export default function PricingItemsTab() {
   const handleStatusToggleConfirmed = async () => {
     if (!itemToToggle) return;
     try {
-      const updateData = { is_active: !itemToToggle.is_active };
-      const success = await updatePricingItem(itemToToggle.id, updateData);
+      const success = await updatePricingItem(itemToToggle.id, { is_active: !itemToToggle.is_active });
       if (success) {
+        toast({ title: t('pricing.items.toast.statusUpdateSuccessTitle') });
         await refreshItems();
-        toast({ title: t('pricing.items.statusUpdateSuccess') });
       }
     } catch (error) {
-      console.error("Error toggling item status:", error);
-      toast({ title: t('common.error.genericTitle'), description: t('common.error.updateFailed', { entity: 'item status' }), variant: 'destructive' });
-    } finally {
-      setIsStatusConfirmOpen(false);
-      setItemToToggle(null);
+      console.error(t("pricing.items.errors.statusToggleError"), error);
+      toast({ title: t('common.error'), description: t('pricing.items.toast.statusUpdateFailed'), variant: 'destructive' });
     }
+    setIsStatusConfirmOpen(false);
+    setItemToToggle(null);
   };
 
   const handleInputChange = (field: string, value: any) => {
-    if (currentItem) {
-      setCurrentItem({
-        ...currentItem,
-        [field]: value
-      });
-    }
+    setCurrentItem(prev => {
+      if (!prev) return null;
+      let processedValue = value;
+      if (field === 'price' || field === 'duration_hours') {
+        processedValue = value === '' ? null : Number(value);
+        if (isNaN(processedValue as number)) {
+            // If user clears the input or types non-numeric, keep it as null or current input
+            // to allow them to correct, rather than reverting. Validation will catch it on save.
+            processedValue = value === '' ? null : prev[field as keyof PricingItem];
+        }
+      }
+      return { ...prev, [field]: processedValue };
+    });
   };
 
   const uniqueDurations = useMemo(() => {
@@ -318,11 +333,11 @@ export default function PricingItemsTab() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      if (selectedDuration !== 'all' && item.duration_hours !== Number(selectedDuration)) return false;
-      // Vehicle type filter removed
-      return true;
+      const matchesDuration = selectedDuration === "all" || item.duration_hours === parseInt(selectedDuration);
+      // const matchesVehicleType = selectedVehicleType === "all" || item.vehicle_type === selectedVehicleType; // Removed
+      return matchesDuration; // && matchesVehicleType; // Removed
     });
-  }, [items, selectedDuration]);
+  }, [items, selectedDuration]); // selectedVehicleType removed
 
   const priceTable = useMemo<PriceTableData>(() => {
     if (filteredItems.length === 0 || activeServiceTypesForTable.length === 0) return { durations: [], serviceTypes: [], groupedRows: [] };
@@ -380,24 +395,24 @@ export default function PricingItemsTab() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <Filter className="h-5 w-5 mr-2 text-muted-foreground" /> 
-            Filters & Actions
+            {t("pricing.items.filters.title")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Adjusted to 2 cols */} 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
             <div>
-              <Label htmlFor="pricing-category-select" className="text-sm font-medium mb-1 block">Pricing Category</Label>
+              <Label htmlFor="pricing-category-select" className="text-sm font-medium mb-1 block">{t("pricing.items.filters.categoryLabel")}</Label>
               <Select
                 value={selectedCategory || ""}
                 onValueChange={handleCategoryChange}
               >
                 <SelectTrigger id="pricing-category-select">
-                  <SelectValue placeholder="Select categories" />
+                  <SelectValue placeholder={t("pricing.items.filters.categoryPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.length > 0 ? (
@@ -407,28 +422,33 @@ export default function PricingItemsTab() {
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="disabled" disabled>No categories available</SelectItem>
+                    <SelectItem value="disabled" disabled>{t("pricing.items.filters.noCategoriesAvailable")}</SelectItem>
                   )}
                 </SelectContent>
               </Select>
+              {!selectedCategory && categories.length > 0 && (
+                 <p className="text-xs text-muted-foreground mt-1">{t("pricing.items.filters.selectCategoryPrompt")}</p>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="duration-select" className="text-sm font-medium mb-1 block">Duration</Label>
+              <Label htmlFor="duration-select" className="text-sm font-medium mb-1 block">{t("pricing.items.filters.durationLabel")}</Label>
               <Select
                 value={selectedDuration}
                 onValueChange={setSelectedDuration}
+                disabled={!selectedCategory}
               >
                 <SelectTrigger id="duration-select">
-                  <SelectValue placeholder="All" />
+                  <SelectValue placeholder={t("pricing.items.filters.allDurations")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Durations</SelectItem>
+                  <SelectItem value="all">{t("pricing.items.filters.allDurations")}</SelectItem>
                   {uniqueDurations.map(duration => (
                     <SelectItem key={`duration-${duration}`} value={String(duration)}>
-                      {duration}h
+                      {t("pricing.items.durations.hours", { count: duration })}
                     </SelectItem>
                   ))}
+                  {/* Add option for custom duration if needed */}
                 </SelectContent>
               </Select>
             </div>
@@ -438,123 +458,81 @@ export default function PricingItemsTab() {
 
           <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t mt-4">
             <div className="flex gap-2 mb-3 sm:mb-0">
-              <Button variant="outline" size="sm">
+              {/* <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
                 More filters
               </Button>
               <Button variant="outline" size="sm">
                 <Search className="h-4 w-4 mr-2" />
                 Search
-              </Button>
+              </Button> */} 
             </div>
             <Button onClick={() => handleOpenDialog()} size="sm" disabled={!selectedCategory} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" /> Add Item to {currentCategoryName}
+              <Plus className="h-4 w-4 mr-2" /> {t("pricing.items.buttons.addItemToCategory", { categoryName: currentCategoryName || '...' })}
             </Button>
           </div>
         </CardContent>
       </Card>
       
       {isLoading && items.length === 0 && selectedCategory ? (
-        <div className="p-4 text-center">Loading pricing items for {currentCategoryName}...</div>
+        <div className="p-4 text-center">{t("pricing.items.loadingItemsFor", { categoryName: currentCategoryName || '...' })}</div>
       ) : !selectedCategory ? (
         <div className="p-8 text-center text-muted-foreground border rounded-md">
-          Please select a pricing category to view items.
+          {t("pricing.items.emptyState.selectCategoryPrompt")}
         </div>
-      ) : filteredItems.length === 0 && activeServiceTypesForTable.length > 0 ? ( // Show message if filters result in no items but columns exist
+      ) : filteredItems.length === 0 && activeServiceTypesForTable.length > 0 ? (
         <div className="p-8 text-center text-muted-foreground border rounded-md">
-          {items.length === 0 
-            ? `No pricing items found in ${currentCategoryName}. Add your first item.`
-            : `No items in ${currentCategoryName} match your current filters. Try adjusting filter settings.`
-          }
+          {t("pricing.items.emptyState.noItemsFound")}
         </div>
-      ) : priceTable.serviceTypes.length === 0 && selectedCategory && !isLoading ? ( // Message if category selected but it has no service types linked
-         <div className="p-8 text-center text-muted-foreground border rounded-md">
-            The selected category '{currentCategoryName}' has no service types linked to it. Please edit the category to add service types.
-        </div>
-      ): (
-        <div className="border rounded-md overflow-hidden">
-          <ScrollArea className="w-full overflow-auto">
-            <div className="min-w-full">
-              <Table>
-                <TableHeader className="bg-muted/30 sticky top-0 z-10">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-32 bg-muted/80 sticky left-0 z-20">Duration</TableHead> {/* Increased width for duration header */} 
-                    {/* Vehicle Type Header Removed */}
-                    {priceTable.serviceTypes?.map(service => (
-                      <TableHead 
-                        key={service.id} 
-                        className="text-center min-w-36 bg-muted/50 font-medium"
+      ) : (
+        <ScrollArea className="whitespace-nowrap rounded-md border">
+          <Table className="min-w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">{t("pricing.items.table.serviceType")}</TableHead>
+                <TableHead className="w-[120px]">{t("pricing.items.table.durationHours")}</TableHead>
+                <TableHead className="w-[120px]">{t("pricing.items.table.price")}</TableHead>
+                <TableHead className="w-[100px] text-center">{t("pricing.items.table.status")}</TableHead>
+                <TableHead className="w-[120px] text-right">{t("common.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
+                    {item.service_type_name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
+                    {item.duration_hours}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
+                    {item.currency} {item.price.toLocaleString(undefined, { style: 'currency', currency: item.currency, minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex flex-col items-center">
+                      <span
+                        className={`font-semibold cursor-pointer hover:underline ${item.is_active ? '' : 'text-red-500 line-through'}`}
+                        onClick={() => handleOpenDialog(item)}
                       >
-                        {service.name}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {priceTable.groupedRows?.map(group => (
-                    <React.Fragment key={`group-${group.duration}`}>
-                      <TableRow className="bg-muted/20 hover:bg-muted/20">
-                        <TableCell 
-                          colSpan={1 + (priceTable.serviceTypes?.length ?? 0)} // Adjusted colSpan
-                          className="py-1.5 font-medium sticky left-0 z-10 bg-muted/20"
-                        >
-                          {group.duration === 1 
-                            ? "Hourly Rate" 
-                            : `${group.duration} hours`
-                          }
-                        </TableCell>
-                      </TableRow>
-                      
-                      {group.rows.map((row, rowIndex) => (
-                        <TableRow key={`${row.duration}-${rowIndex}`} className="hover:bg-muted/10 group">
-                          <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10">
-                            {/* Duration value is now in the group header, cell can be empty or for actions later */}
-                          </TableCell>
-                          {/* Vehicle Type Cell Removed */}
-                          
-                          {priceTable.serviceTypes?.map(service => {
-                            const priceData = row.prices[service.id];
-                            const itemForDialog = priceData ? filteredItems.find(i => i.id === priceData.itemId) : undefined;
-                            return (
-                              <TableCell key={service.id} className="text-center">
-                                {priceData ? (
-                                  <div className="flex flex-col items-center">
-                                    <div className={`font-medium ${!priceData.isActive ? 'text-muted-foreground line-through' : ''}`}>
-                                      {new Intl.NumberFormat('ja-JP', { 
-                                        style: 'currency', 
-                                        currency: priceData.currency,
-                                        minimumFractionDigits: 0
-                                      }).format(priceData.price)}
-                                    </div>
-                                    <div className="flex items-center justify-center gap-1 mt-1">
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) handleOpenDialog(itemForDialog); }}>
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => openDeleteConfirm(priceData.itemId)}>
-                                        <Trash className="h-3 w-3" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { if (itemForDialog) openStatusConfirm(itemForDialog); }}>
-                                        {priceData.isActive ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => { if (selectedCategory) { const newItem: Partial<PricingItem> = { category_id: selectedCategory, service_type_id: service.id, duration_hours: row.duration, price: 0, currency: 'JPY', is_active: true }; handleOpenDialog(newItem); } }}>
-                                    <Plus className="h-3 w-3 mr-1" /> Add
-                                  </Button>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </ScrollArea>
-        </div>
+                        {item.is_active ? t('pricing.items.active') : t('pricing.items.inactive')}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openStatusConfirm(item)}>
+                        {item.is_active ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openDeleteConfirm(item.id)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
       )}
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -580,7 +558,7 @@ export default function PricingItemsTab() {
                 disabled={isEditing} // Disable if editing, as service type defines the column
               >
                 <SelectTrigger id="service_type_id">
-                  <SelectValue placeholder="Select service type" />
+                  <SelectValue placeholder={t("pricing.items.fields.serviceTypePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {/* Populate with service types relevant to the selected pricing category if creating new */}
@@ -615,7 +593,7 @@ export default function PricingItemsTab() {
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getDurationOptions().map((option) => (
+                  {getDurationOptions(t).map((option) => (
                     <SelectItem key={option.value} value={String(option.value)}>
                       {option.label}
                     </SelectItem>
@@ -646,12 +624,12 @@ export default function PricingItemsTab() {
               <Label htmlFor="price">Price</Label>
               <div className="flex space-x-2">
                 <Select
-                  value={currentItem?.currency ?? "JPY"}
+                  value={currentItem?.currency || "JPY"}
                   onValueChange={(value) => handleInputChange("currency", value)}
                   disabled 
                 >
                   <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Currency" />
+                    <SelectValue placeholder={t("pricing.items.fields.currencyPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="JPY">JPY</SelectItem>

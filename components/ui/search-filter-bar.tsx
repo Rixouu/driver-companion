@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, XCircle, Filter } from "lucide-react"
+import { Search, XCircle } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import {
   Select,
@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useDebounce } from "@/hooks/use-debounce"
 
 interface FilterOption {
   value: string
@@ -21,20 +20,25 @@ interface FilterOption {
 
 interface SearchFilterBarProps {
   onSearchChange: (value: string) => void
-  onBrandFilterChange?: (value: string) => void
-  onModelFilterChange?: (value: string) => void
+  onBrandFilterChange: (value: string) => void
+  onModelFilterChange: (value: string) => void
+  
+  currentSearchValue?: string
+  selectedBrand: string
+  selectedModel: string
+  
   searchPlaceholder?: string
   brandOptions?: FilterOption[]
   modelOptions?: FilterOption[]
+  
   showItemCount?: boolean
   totalItems?: number
   startIndex?: number
   endIndex?: number
+  
   className?: string
   showBrandFilter?: boolean
   showModelFilter?: boolean
-  selectedBrand?: string
-  selectedModel?: string
   showingTranslationKey?: string
 }
 
@@ -42,6 +46,9 @@ export function SearchFilterBar({
   onSearchChange,
   onBrandFilterChange,
   onModelFilterChange,
+  currentSearchValue,
+  selectedBrand,
+  selectedModel,
   searchPlaceholder,
   brandOptions = [],
   modelOptions = [],
@@ -52,59 +59,21 @@ export function SearchFilterBar({
   className = "",
   showBrandFilter = true,
   showModelFilter = true,
-  selectedBrand = "all",
-  selectedModel = "all",
-  showingTranslationKey = "drivers.pagination.showing"
+  showingTranslationKey = "drivers.pagination.showing",
 }: SearchFilterBarProps) {
   const { t } = useI18n()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [brandFilter, setBrandFilter] = useState(selectedBrand)
-  const [modelFilter, setModelFilter] = useState(selectedModel)
-  
-  const debouncedSearch = useDebounce(searchQuery, 500)
-  
-  // Pass debounced search to parent component
-  useEffect(() => {
-    onSearchChange(debouncedSearch)
-  }, [debouncedSearch, onSearchChange])
-  
-  // Reset model filter when brand filter changes
-  useEffect(() => {
-    if (brandFilter !== selectedBrand) {
-      setModelFilter("all")
-      if (onModelFilterChange) {
-        onModelFilterChange("all")
-      }
-    }
-  }, [brandFilter, selectedBrand, onModelFilterChange])
-  
-  // Notify parent of brand filter change
-  useEffect(() => {
-    if (onBrandFilterChange) {
-      onBrandFilterChange(brandFilter)
-    }
-  }, [brandFilter, onBrandFilterChange])
-  
-  // Notify parent of model filter change
-  useEffect(() => {
-    if (onModelFilterChange) {
-      onModelFilterChange(modelFilter)
-    }
-  }, [modelFilter, onModelFilterChange])
-  
-  const resetFilters = () => {
-    setSearchQuery("")
-    setBrandFilter("all")
-    setModelFilter("all")
+
+  const resetAllFilters = () => {
     onSearchChange("")
-    if (onBrandFilterChange) onBrandFilterChange("all")
-    if (onModelFilterChange) onModelFilterChange("all")
+    onBrandFilterChange("all")
+    onModelFilterChange("all")
   }
   
-  const showClearButton = searchQuery !== "" || brandFilter !== "all" || modelFilter !== "all"
+  const showClearButton = currentSearchValue || selectedBrand !== "all" || selectedModel !== "all"
 
   // Ensure endIndex is never less than startIndex for display purposes
-  const displayEndIndex = totalItems === 0 ? 0 : Math.max(endIndex, startIndex)
+  const displayEndIndex = totalItems === 0 ? 0 : Math.max(endIndex, startIndex || 0)
+  const displayStartIndex = totalItems === 0 ? 0 : startIndex || 0
 
   return (
     <div className={`bg-muted/30 p-4 rounded-lg space-y-4 ${className}`}>
@@ -112,21 +81,22 @@ export function SearchFilterBar({
         {/* Search input */}
         <div className="flex-1 relative">
           <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            type="search"
             placeholder={searchPlaceholder || t('drivers.filters.searchPlaceholder')}
+            value={currentSearchValue || ''}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9 w-full"
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          {searchQuery && (
+          {currentSearchValue && (
             <Button 
               variant="ghost" 
               size="sm" 
               className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0" 
-              onClick={() => setSearchQuery("")}
+              onClick={() => onSearchChange("")}
             >
               <XCircle className="h-4 w-4" />
-              <span className="sr-only">Clear search</span>
+              <span className="sr-only">{t('common.clearSearch')}</span>
             </Button>
           )}
         </div>
@@ -134,7 +104,7 @@ export function SearchFilterBar({
         {/* Brand filter */}
         {showBrandFilter && brandOptions.length > 0 && (
           <div className="w-full sm:w-48">
-            <Select value={brandFilter} onValueChange={setBrandFilter}>
+            <Select value={selectedBrand} onValueChange={onBrandFilterChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('drivers.filters.brand')} />
               </SelectTrigger>
@@ -148,10 +118,10 @@ export function SearchFilterBar({
           </div>
         )}
         
-        {/* Model filter - only show if brand is selected */}
-        {showModelFilter && brandFilter !== "all" && modelOptions.length > 0 && (
+        {/* Model filter - only show if brand is selected and model options exist */}
+        {showModelFilter && selectedBrand !== "all" && modelOptions.length > 0 && (
           <div className="w-full sm:w-48">
-            <Select value={modelFilter} onValueChange={setModelFilter}>
+            <Select value={selectedModel} onValueChange={onModelFilterChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('drivers.filters.model')} />
               </SelectTrigger>
@@ -171,7 +141,7 @@ export function SearchFilterBar({
             variant="outline" 
             size="sm" 
             className="sm:self-end" 
-            onClick={resetFilters}
+            onClick={resetAllFilters}
           >
             {t('drivers.filters.clearFilters')}
           </Button>
@@ -182,7 +152,7 @@ export function SearchFilterBar({
       {showItemCount && (
         <div className="text-sm text-muted-foreground">
           {t(showingTranslationKey, {
-            start: String(totalItems === 0 ? 0 : startIndex),
+            start: String(displayStartIndex),
             end: String(displayEndIndex),
             total: String(totalItems)
           })}

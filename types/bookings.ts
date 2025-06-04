@@ -1,17 +1,5 @@
-export interface Vehicle {
-  id: string
-  make: string
-  model: string
-  year: string
-  registration?: string
-}
-
-export interface Customer {
-  id?: string
-  name?: string
-  email?: string
-  phone?: string
-}
+import type { Vehicle } from '@/types/vehicles';
+import type { Customer } from '@/types/customers';
 
 export interface Booking {
   id: string
@@ -24,10 +12,13 @@ export interface Booking {
   service_type?: string
   service_id?: string
   customer_id?: string
-  customer_name?: string
-  customer_email?: string
-  customer_phone?: string
   driver_id?: string
+  vehicle_id?: string;
+  
+  // Direct customer fields for consistency with DB and forms
+  customer_name?: string; 
+  customer_email?: string;
+  customer_phone?: string;
   
   // Billing address fields
   billing_company_name?: string
@@ -50,8 +41,8 @@ export interface Booking {
   
   // Additional fields from WordPress
   customer?: Customer
-  email?: string
-  phone?: string
+  // email?: string // Redundant if customer_email is used consistently
+  // phone?: string // Redundant if customer_phone is used consistently
   
   // Vehicle details
   vehicle?: Vehicle

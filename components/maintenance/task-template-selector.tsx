@@ -40,11 +40,11 @@ export function TaskTemplateSelector({ onSelect }: TaskTemplateSelectorProps) {
     async function loadTemplates() {
       setIsLoading(true)
       try {
-        const { templates } = await getMaintenanceTaskTemplates()
-        const { categories } = await getMaintenanceTaskTemplateCategories()
+        const fetchedTemplates = await getMaintenanceTaskTemplates()
+        const fetchedCategories = await getMaintenanceTaskTemplateCategories()
         
-        setTemplates(templates)
-        setCategories(categories)
+        setTemplates(fetchedTemplates)
+        setCategories(fetchedCategories)
       } catch (error) {
         console.error("Error loading maintenance task templates:", error)
       } finally {

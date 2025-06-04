@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 export async function DELETE(
   request: Request,
@@ -7,7 +7,7 @@ export async function DELETE(
 ) {
   try {
     // Create the Supabase client
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseServerClient();
     
     // Ensure user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
@@ -18,7 +18,8 @@ export async function DELETE(
       );
     }
     
-    const quotationId = params.id;
+    const resolvedParams = await params; // Await params
+    const quotationId = resolvedParams.id;
     
     // Verify the quotation exists
     const { data: quotation, error: quotationError } = await supabase

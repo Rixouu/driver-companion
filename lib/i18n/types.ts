@@ -1039,4 +1039,17 @@ export interface TranslationSchema {
 // Utility type for deeply nested translation objects
 export type RecursiveStringRecord = {
   [key: string]: string | RecursiveStringRecord
-} 
+}
+
+// Utility type to generate dot-notation paths for a nested object
+// Represents a path in the object, e.g., "common.status.active"
+// From: https://stackoverflow.com/a/58436959/2970825
+type DotPrefix<T extends string> = T extends "" ? "" : `.${T}`;
+
+export type TranslationPaths<T> = T extends Record<string, any>
+  ? {
+      [K in keyof T]-?: K extends string | number // Allow number for array indices if any
+        ? `${K}${DotPrefix<TranslationPaths<T[K]>>}`
+        : never;
+    }[keyof T]
+  : ""; // If T is not an object (e.g., a string), it has no further paths. 

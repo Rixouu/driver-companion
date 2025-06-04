@@ -8,3 +8,6 @@ scripts
 .env.production.local
 .DS_Store
 .vercel
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getBookingByIdFromDatabase } from '@/lib/api/bookings-service'
+import { handleApiError } from '@/lib/errors/error-handler';
+import { AppError, DatabaseError, NotFoundError, ValidationError } from '@/lib/errors/app-error';
 
 export const dynamic = 'force-dynamic'
 
@@ -8,25 +10,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get the booking ID from the URL
     const id = params.id
     
     console.log(`[API] Fetching booking with ID: ${id}`)
     
     if (!id) {
-      return NextResponse.json(
-        { error: 'Booking ID is required' },
-        { status: 400 }
-      )
+      throw new ValidationError('Booking ID is required');
     }
     
-    // Fetch the booking from the database
-    const { booking, error } = await getBookingByIdFromDatabase(id)
+    const { booking, error: dbError } = await getBookingByIdFromDatabase(id)
     
-    // Log the raw booking data for debugging
     console.log(`[API] Booking data for ID ${id}:`, booking ? 'FOUND' : 'NOT FOUND')
     
-    // Check specific fields we're interested in
     if (booking) {
       console.log(`[API] Billing fields for ${id}:`, {
         billing_company_name: booking.billing_company_name,
@@ -45,15 +40,19 @@ export async function GET(
       })
     }
     
-    if (error || !booking) {
-      console.log(`[API] Error fetching booking ${id}:`, error)
-      return NextResponse.json(
-        { error: error || 'Booking not found' },
-        { status: 404 }
-      )
+    if (dbError) {
+      // Create a new Error object to pass as cause, using the message from dbError.
+      const errorMessage = ((dbError as any)?.message && typeof (dbError as any).message === 'string')
+                           ? (dbError as any).message
+                           : 'Unknown database error details.';
+      const cause = new Error(errorMessage);
+      throw new DatabaseError('Failed to fetch booking from database.', { cause });
+    }
+
+    if (!booking) {
+      throw new NotFoundError('Booking not found');
     }
     
-    // Return the booking data with no-cache headers
     return NextResponse.json(booking, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -62,10 +61,7 @@ export async function GET(
       }
     })
   } catch (error) {
-    console.error('[API] Error in booking API route:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    // console.error('[API] Error in booking API route:', error) // Replaced by handleApiError
+    return handleApiError(error);
   }
 } 

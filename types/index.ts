@@ -4,71 +4,74 @@ import type { Database } from './supabase'
 // Define the base types from the database schema
 type DbTables = Database['public']['Tables']
 
-export type DbVehicle = {
+export interface DbVehicle {
   id: string
   name: string
   plate_number: string
-  brand?: string
-  model?: string
-  year?: string
-  status: 'active' | 'maintenance' | 'inactive'
-  image_url?: string
-  vin?: string
+  brand?: string | null
+  model?: string | null
+  year?: string | null
+  status: string
+  image_url?: string | null
+  vin?: string | null
   created_at: string
   updated_at: string
   user_id: string
-  maintenance_tasks?: DbMaintenanceTask[]
-  inspections?: DbInspection[]
-  driver_id?: string
+  luggage_capacity?: number | null
+  passenger_capacity?: number | null
+  maintenance_tasks?: DbMaintenanceTask[] | null
+  inspections?: DbInspection[] | null
+  driver_id?: string | null
 }
 
-export type DbDriver = {
+export interface DbDriver {
   id: string
   first_name: string
   last_name: string
   email: string
-  phone?: string
-  line_id?: string
-  license_number?: string
-  license_expiry?: string
+  phone?: string | null
+  line_id?: string | null
+  license_number?: string | null
+  license_expiry?: string | null
   status: 'available' | 'unavailable' | 'leave' | 'training'
-  profile_image_url?: string
-  address?: string
-  emergency_contact?: string
-  notes?: string
+  profile_image_url?: string | null
+  address?: string | null
+  emergency_contact?: string | null
+  notes?: string | null
   created_at: string
   updated_at: string
   user_id: string
-  assigned_vehicles?: DbVehicle[]
+  assigned_vehicles?: DbVehicle[] | null
 }
 
-export type DbInspection = {
+export interface DbInspection {
   id: string
   vehicle_id: string
-  vehicle?: DbVehicle
+  vehicle?: DbVehicle | null
   type: 'routine' | 'safety' | 'maintenance'
   date: string
-  status: 'scheduled' | 'in_progress' | 'completed'
+  status: 'scheduled' | 'in_progress' | 'completed' | 'pending' | 'draft' | 'cancelled'
+  notes?: string | null
   created_at: string
   updated_at: string
-  user_id: string
-  created_by?: string
-  driver_id?: string
+  user_id?: string | null
+  created_by?: string | null
+  driver_id?: string | null
 }
 
-export type DbMaintenanceTask = {
+export interface DbMaintenanceTask {
   id: string
   vehicle_id: string
-  vehicle?: DbVehicle
+  vehicle?: DbVehicle | null
   title: string
-  description?: string
+  description?: string | null
   status: 'in_progress' | 'completed' | 'scheduled' | 'overdue'
   priority: 'low' | 'medium' | 'high'
   due_date: string
-  completed_date?: string
-  started_at?: string
+  completed_date?: string | null
+  started_at?: string | null
   created_at: string
-  updated_at: string
+  updated_at?: string | null
   user_id: string
 }
 
@@ -102,9 +105,10 @@ export type VehicleWithRelations = DbVehicle & {
   maintenance_tasks?: DbMaintenance[]
 }
 
-export type InspectionWithVehicle = DbInspection & {
-  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number' | 'image_url'>
-}
+// Corrected definition for InspectionWithVehicle
+export type InspectionWithVehicle = Omit<DbInspection, 'vehicle'> & {
+  vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number' | 'image_url'>;
+};
 
 export type MaintenanceWithVehicle = DbMaintenance & {
   vehicle: Pick<DbVehicle, 'id' | 'name' | 'plate_number' | 'image_url'>
@@ -170,8 +174,9 @@ export interface MaintenanceTask {
 
 export interface Inspection {
   id: string
+  name?: string
   vehicle_id: string
-  inspector_id: string
+  inspector_id: string | null
   type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
   date: string
@@ -206,6 +211,7 @@ export interface FuelLog {
   fuel_amount: number
   fuel_cost: number
   full_tank: boolean
+  notes: string | null
   created_at: string
   vehicle?: DbVehicle
 }
@@ -284,7 +290,11 @@ export type DriverFormData = {
   notes?: string
 }
 
-// Add Driver instance to the exports
+export type { Driver, DriverAvailability, DriverAvailabilityStatus, DriverWithAvailability } from './drivers';
+export type { Vehicle } from './vehicles';
+
+// REMOVE the local Driver interface definition from lines 290-313 in types/index.ts
+/*
 export interface Driver {
   id: string
   first_name: string
@@ -299,7 +309,7 @@ export interface Driver {
   emergency_contact?: string
   notes?: string
   created_at: string
-  updated_at: string
+  updated_at: string // Problematic field
   user_id: string
   full_name?: string
   assigned_vehicles?: {
@@ -311,3 +321,4 @@ export interface Driver {
     model?: string
   }[]
 } 
+*/ 

@@ -16,14 +16,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase"
 import { useI18n } from "@/lib/i18n/context"
-
-interface Vehicle {
-  id: string
-  name: string
-  plate_number: string
-}
+import type { DbVehicle } from "@/types"
 
 interface VehicleSelectorProps {
   value: string
@@ -40,8 +35,9 @@ export function VehicleSelector({
 }: VehicleSelectorProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [vehicles, setVehicles] = useState<DbVehicle[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const supabase = createClient()
 
   useEffect(() => {
     async function fetchVehicles() {

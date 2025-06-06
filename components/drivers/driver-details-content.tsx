@@ -3,19 +3,20 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin } from "lucide-react"
+import { Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin, Settings, MoreVertical, CheckCircle, Clock, Truck } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
 import { DriverVehicles } from "@/components/drivers/driver-vehicles"
 import { DriverInspectionsList } from "@/components/drivers/driver-inspections-list"
 import { DriverActivityFeed } from "@/components/drivers/driver-activity-feed"
 import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-bookings"
 import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
-import { DriverAvailabilitySection } from "@/components/drivers/driver-availability-section"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { format as formatDate, parseISO } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -126,13 +127,24 @@ export function DriverDetailsContent({
   // Loading skeleton
   if (isLoading && !driver) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-        <Skeleton className="h-10 w-24" />
-        <Skeleton className="h-16 w-16 rounded-full" />
-        <Skeleton className="h-8 w-40 mb-2" />
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="min-h-screen bg-background">
+        <div className="border-b bg-card">
+          <div className="container max-w-7xl mx-auto px-6 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+        </div>
+        <div className="container max-w-7xl mx-auto px-6 py-8">
+          <Skeleton className="h-64 w-full" />
+        </div>
       </div>
     )
   }
@@ -140,13 +152,13 @@ export function DriverDetailsContent({
   // Driver not found
   if (!driver) {
     return (
-      <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center py-12">
           <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
           <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
           <Link href="/drivers" passHref>
-            <Button variant="ghost" size="sm">{t("common.backTo")} {t("drivers.title")}</Button>
+            <Button variant="outline">{t("common.backTo")} {t("drivers.title")}</Button>
           </Link>
         </div>
       </div>
@@ -154,154 +166,210 @@ export function DriverDetailsContent({
   }
   
   return (
-    <div className="container px-4 py-6 mx-auto w-full max-w-screen-2xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <Link href="/drivers" passHref>
-          <Button variant="ghost" size="sm" className="flex items-center gap-2 self-start">
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.backTo")} {t("drivers.title")}
-          </Button>
-        </Link>
-        {id && (
-          <Link href={`/drivers/${id}/edit`} passHref>
-            <Button size="sm" className="flex items-center gap-2 self-end sm:self-auto">
-              <Edit className="h-4 w-4" />
-              {t("drivers.actions.editDriver")}
-            </Button>
-          </Link>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Driver Profile Card */}
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center">
-              <Avatar className="h-20 w-20 bg-primary mb-4 mt-2">
+    <div className="min-h-screen bg-background">
+      {/* Header Section */}
+      <div className="border-b bg-card">
+        <div className="container max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-12 w-12 border-2 border-primary/20">
                 <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                <AvatarFallback className="text-lg font-bold text-white">
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                   {driver.first_name?.[0]}{driver.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-2xl font-semibold tracking-tight text-center mb-1">{driver.full_name}</h2>
-              <p className="text-sm text-muted-foreground text-center mb-1">{driver.email}</p>
-              {driver.phone && <p className="text-sm text-muted-foreground text-center mb-4">{driver.phone}</p>}
-              
-              <div className="w-full space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("drivers.fields.email")}</p>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-sm break-all">{driver.email}</p>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">{driver.full_name}</h1>
+                <div className="flex items-center space-x-3 mt-1">
+                  <p className="text-muted-foreground">{driver.email}</p>
+                  <DriverStatusBadge status={currentAvailabilityStatus || driver.status || "unavailable"} />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                <Phone className="h-4 w-4 mr-2" />
+                {t("common.call")}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/drivers/${id}/edit`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      {t("drivers.actions.editDriver")}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Mail className="h-4 w-4 mr-2" />
+                    {t("common.email")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {t("common.actions.chat")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* Left Column - Driver Info */}
+                                <div className="xl:col-span-4 space-y-6">
+             {/* Driver Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  {t("drivers.keyInformation.title")}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">{t("drivers.fields.phone")}</p>
+                      <p className="text-sm text-muted-foreground">{driver.phone || t("common.notSet")}</p>
+                    </div>
                   </div>
                 </div>
                 
-                {driver.phone && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{t("drivers.fields.phone")}</p>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm">{driver.phone}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <IdCard className="h-4 w-4 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">{t("drivers.fields.licenseNumber")}</p>
+                      <p className="text-sm text-muted-foreground">{driver.license_number || t("common.notSet")}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {driver.license_expiry && (
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">{t("drivers.fields.licenseExpiry")}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(parseISO(driver.license_expiry), "PPP")}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2 w-full mt-5">
-                <Button variant="outline" size="sm" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-1 sm:px-2">
-                  <Phone className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.call")}
-                </Button>
-                <Button variant="outline" size="sm" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-1 sm:px-2">
-                  <Mail className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.text")}
-                </Button>
-                <Button variant="outline" size="sm" className="flex items-center justify-center gap-1 text-xs sm:text-sm px-1 sm:px-2">
-                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" /> {t("common.actions.chat")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Current Status Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("drivers.currentStatus.title")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DriverStatusBadge status={currentAvailabilityStatus || driver.status || "unavailable"} />
-              {driver.isBooking && driver.bookingNotes && (
-                <p className="text-sm text-muted-foreground mt-2">{driver.bookingNotes}</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Key Information Card */}
-          <Card>
-            <CardHeader>
-                <CardTitle>{t("drivers.keyInformation.title")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                    <IdCard className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                        <p className="text-xs text-muted-foreground">{t("drivers.fields.licenseNumber")}</p>
-                        <p className="text-sm font-medium">{driver.license_number || t("common.notSet")}</p>
-                    </div>
-                </div>
-                {driver.license_expiry && (
-                    <div className="flex items-center gap-3">
-                        <Calendar className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                            <p className="text-xs text-muted-foreground">{t("drivers.fields.licenseExpiry")}</p>
-                            <p className="text-sm font-medium">{formatDate(parseISO(driver.license_expiry), "PPP")}</p>
-                        </div>
-                    </div>
-                )}
+                
                 {driver.address && (
-                    <div className="flex items-center gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                            <p className="text-xs text-muted-foreground">{t("drivers.fields.address")}</p>
-                            <p className="text-sm font-medium">{driver.address}</p>
-                        </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">{t("drivers.fields.address")}</p>
+                        <p className="text-sm text-muted-foreground">{driver.address}</p>
+                      </div>
                     </div>
+                  </div>
                 )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Main Content */}
-        <div className="lg:col-span-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4">
-              <TabsTrigger value="overview">{t("drivers.tabs.overview")}</TabsTrigger>
-              <TabsTrigger value="availability">{t("drivers.tabs.availability")}</TabsTrigger>
-              <TabsTrigger value="vehicles">{t("drivers.tabs.assignedVehicles")}</TabsTrigger>
-              <TabsTrigger value="activity">{t("drivers.tabs.activityLog")}</TabsTrigger>
-            </TabsList>
+                {driver.emergency_contact && (
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-4 w-4 text-red-500 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">{t("drivers.fields.emergencyContact")}</p>
+                        <p className="text-sm text-muted-foreground">{driver.emergency_contact}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            <TabsContent value="overview" className="space-y-6">
-              <DriverAvailabilitySection 
-                driverId={id!} 
-                onViewFullSchedule={handleViewFullSchedule} 
-              />
-              <DriverUpcomingBookings driverId={id!} />
-              <DriverInspectionsList inspections={inspections as any} />
-            </TabsContent>
+            {/* Current Availability */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("drivers.currentStatus.title")}</CardTitle>
+                <CardDescription>
+                  {driver.isBooking && driver.bookingNotes ? driver.bookingNotes : 
+                   currentAvailabilityStatus === 'available' ? 
+                   "This driver is currently available for booking assignments." :
+                   `This driver is currently ${currentAvailabilityStatus}.`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="w-full" onClick={handleViewFullSchedule}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {t("drivers.availability.viewFullSchedule")}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-            <TabsContent value="availability">
-              {id && driver && <DriverAvailabilityManager driver={driver} />}
-            </TabsContent>
-            
-            <TabsContent value="vehicles">
-              {id && driver && <DriverVehicles driverId={id} assignedVehicles={driver.assigned_vehicles} onUnassignSuccess={refreshData} />}
-            </TabsContent>
+          {/* Right Column - Main Content */}
+          <div className="xl:col-span-8">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsTrigger value="overview">{t("drivers.tabs.overview")}</TabsTrigger>
+                <TabsTrigger value="availability">{t("drivers.tabs.availability")}</TabsTrigger>
+                <TabsTrigger value="vehicles">{t("drivers.tabs.assignedVehicles")}</TabsTrigger>
+                <TabsTrigger value="activity">{t("drivers.tabs.activityLog")}</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="activity">
-              {id && <DriverActivityFeed driverId={id} />}
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="overview" className="space-y-6">
+                {/* Upcoming Bookings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Truck className="h-5 w-5 mr-2" />
+                      {t("drivers.upcomingBookings.title")}
+                    </CardTitle>
+                    <CardDescription>
+                      {t("drivers.upcomingBookings.description")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <DriverUpcomingBookings driverId={id!} />
+                  </CardContent>
+                </Card>
+
+                {/* Recent Inspections */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Recent Inspections
+                    </CardTitle>
+                    <CardDescription>
+                      Latest vehicle inspections performed by this driver
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <DriverInspectionsList inspections={inspections as any} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="availability">
+                {id && driver && <DriverAvailabilityManager driver={driver} />}
+              </TabsContent>
+              
+              <TabsContent value="vehicles">
+                {id && driver && <DriverVehicles driverId={id} assignedVehicles={driver.assigned_vehicles} onUnassignSuccess={refreshData} />}
+              </TabsContent>
+
+              <TabsContent value="activity">
+                {id && <DriverActivityFeed driverId={id} />}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
     </div>

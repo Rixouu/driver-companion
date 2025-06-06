@@ -35,7 +35,8 @@ export const en: TranslationValue = {
     actions: {
       default: "Actions",
       goHome: "Go Home",
-      tryAgain: "Try Again"
+      tryAgain: "Try Again",
+      chat: "Chat"
     },
     viewDetails: "View details",
     addNew: "Add new",
@@ -106,7 +107,8 @@ export const en: TranslationValue = {
     notifications: {
       success: "Success",
       error: "Error"
-    }
+    },
+
   },
   auth: {
     logout: "Logout"
@@ -260,7 +262,48 @@ export const en: TranslationValue = {
     },
     vehicles: {
       title: "Assigned Vehicles",
-      description: "Vehicles assigned to this driver"
+      description: "Vehicles assigned to this driver",
+      noVehicles: "No vehicles assigned to this driver"
+    },
+    upcomingBookings: {
+      title: "Upcoming Bookings",
+      description: "Scheduled bookings for this driver",
+      unassign: "Unassign",
+      unassignSuccess: "Booking unassigned",
+      unassignSuccessDescription: "The booking has been removed from this driver.",
+      unassignError: "Failed to unassign booking",
+      empty: {
+        title: "No Upcoming Bookings",
+        description: "This driver has no upcoming bookings scheduled."
+      }
+    },
+    inspections: {
+      empty: {
+        title: "No Recent Inspections",
+        description: "This driver hasn't performed any inspections recently."
+      }
+    },
+    currentStatus: {
+      title: "Current Status"
+    },
+    keyInformation: {
+      title: "Key Information"
+    },
+    tabs: {
+      overview: "Overview",
+      availability: "Availability",
+      assignedVehicles: "Assigned Vehicles",
+      activityLog: "Activity Log"
+    },
+    recentActivity: {
+      title: "Recent Activity",
+      description: "Latest activities and assignments"
+    },
+    activity: {
+      empty: {
+        title: "No Recent Activity",
+        description: "This driver has no recent activity to display."
+      }
     },
     pagination: {
       showing: "Showing {start}-{end} of {total} items",
@@ -272,6 +315,11 @@ export const en: TranslationValue = {
       },
       consoleDriverIdError: "Driver ID is missing or invalid in server component.",
       consoleLoadError: "Error loading driver data for ID {driverId} in server component:"
+    },
+    messages: {
+      refreshError: "Failed to refresh driver data",
+      consoleRefreshError: "Error refreshing driver data",
+      couldNotSaveViewPreference: "Could not save view preference"
     }
   },
   vehicles: {

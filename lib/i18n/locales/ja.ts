@@ -35,7 +35,8 @@ export const ja: TranslationValue = {
     actions: {
       default: "アクション",
       goHome: "ホームに戻る",
-      tryAgain: "再試行"
+      tryAgain: "再試行",
+      chat: "チャット"
     },
     viewDetails: "詳細を表示",
     addNew: "新規追加",
@@ -541,7 +542,48 @@ export const ja: TranslationValue = {
     },
     vehicles: {
       title: "割り当て車両",
-      description: "このドライバーに割り当てられた車両"
+      description: "このドライバーに割り当てられた車両",
+      noVehicles: "このドライバーに割り当てられた車両はありません"
+    },
+    upcomingBookings: {
+      title: "今後の予約",
+      description: "このドライバーに予定されている予約",
+      unassign: "割り当て解除",
+      unassignSuccess: "予約の割り当てが解除されました",
+      unassignSuccessDescription: "予約がこのドライバーから削除されました。",
+      unassignError: "予約の割り当て解除に失敗しました",
+      empty: {
+        title: "今後の予約はありません",
+        description: "このドライバーには今後の予約がありません。"
+      }
+    },
+    inspections: {
+      empty: {
+        title: "最近の点検はありません",
+        description: "このドライバーは最近点検を行っていません。"
+      }
+    },
+    currentStatus: {
+      title: "現在のステータス"
+    },
+    keyInformation: {
+      title: "基本情報"
+    },
+    tabs: {
+      overview: "概要",
+      availability: "対応可能時間",
+      assignedVehicles: "割り当て車両",
+      activityLog: "アクティビティログ"
+    },
+    recentActivity: {
+      title: "最近のアクティビティ",
+      description: "最新のアクティビティと割り当て"
+    },
+    activity: {
+      empty: {
+        title: "最近のアクティビティはありません",
+        description: "このドライバーには表示する最近のアクティビティがありません。"
+      }
     },
     pagination: {
       showing: "{total}項目中{start}-{end}項目を表示中"
@@ -553,6 +595,11 @@ export const ja: TranslationValue = {
       },
       consoleDriverIdError: "サーバーコンポーネントでドライバーIDが見つからないか無効です。",
       consoleLoadError: "サーバーコンポーネントでドライバーID {driverId}のデータ読み込みエラー:"
+    },
+    messages: {
+      refreshError: "ドライバーデータの更新に失敗しました",
+      consoleRefreshError: "ドライバーデータ更新エラー",
+      couldNotSaveViewPreference: "ビュー設定を保存できませんでした"
     }
   },
   vehicles: {

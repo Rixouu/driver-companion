@@ -111,7 +111,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
       case "confirmed":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "in_transit":
+      case "en_route":
         return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
       case "completed":
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";

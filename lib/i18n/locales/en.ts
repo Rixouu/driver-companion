@@ -319,7 +319,22 @@ export const en: TranslationValue = {
     messages: {
       refreshError: "Failed to refresh driver data",
       consoleRefreshError: "Error refreshing driver data",
-      couldNotSaveViewPreference: "Could not save view preference"
+      couldNotSaveViewPreference: "Could not save view preference",
+      loadError: "Failed to load driver data",
+      loadErrorDescription: "Could not retrieve driver information. Please try again.",
+      noVehicleSelected: "No vehicle selected",
+      noVehicleSelectedDescription: "Please select at least one vehicle to assign.",
+      noVehicleSelectedToUnassign: "Please select at least one vehicle to unassign.",
+      assignSuccess: "Vehicle assigned successfully",
+      assignSuccessDescription: "The vehicle has been assigned to this driver.",
+      multipleAssignSuccessDescription: "{count} vehicles have been assigned to this driver.",
+      assignError: "Failed to assign vehicle",
+      assignErrorDescription: "Could not assign vehicle to driver. Please try again.",
+      unassignSuccess: "Vehicle unassigned successfully",
+      unassignSuccessDescription: "The vehicle has been unassigned from this driver.",
+      multipleUnassignSuccessDescription: "{count} vehicles have been unassigned from this driver.",
+      unassignError: "Failed to unassign vehicle",
+      unassignErrorDescription: "Could not unassign vehicle from driver. Please try again."
     }
   },
   vehicles: {
@@ -461,7 +476,8 @@ export const en: TranslationValue = {
       viewAllHistory: "View All History",
       viewBookings: "View Bookings", 
       viewInspections: "View Inspections",
-      editVehicle: "Edit Vehicle"
+      editVehicle: "Edit Vehicle",
+      viewDetails: "View Details"
     },
     edit: {
       title: "Edit Vehicle",
@@ -1803,19 +1819,95 @@ export const en: TranslationValue = {
     duration: "Duration"
   },
   dispatch: {
-    title: "Dispatch Board",
-    description: "Manage driver and vehicle assignments for bookings",
+    title: "Real-Time Dispatch Center",
+    description: "Manage assignments and track vehicles in real-time",
     search: "Search dispatch entries...",
+    assignments: {
+      title: "Driver & Vehicle Assignments",
+      description: "Manage driver and vehicle assignments for bookings"
+    },
+    board: {
+      view: "Board View",
+      title: "Dispatch Board",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      assigned: "Assigned",
+      enRoute: "En Route",
+      arrived: "Arrived",
+      inProgress: "In Progress",
+      completed: "Completed",
+      cancelled: "Cancelled",
+      addEntry: "Add Assignment"
+    },
+    mapView: {
+      title: "Map View",
+      showList: "Show List",
+      todaysBookings: "Today's Bookings", 
+      manage: "Manage",
+      satellite: "Satellite",
+      roadmap: "Roadmap",
+      hybrid: "Hybrid",
+      terrain: "Terrain",
+      traffic: "Traffic",
+      showTraffic: "Show Traffic",
+      hideTraffic: "Hide Traffic",
+      centerMap: "Center Map",
+      fullscreen: "Fullscreen",
+      exitFullscreen: "Exit Fullscreen",
+      zoomIn: "Zoom In",
+      zoomOut: "Zoom Out"
+    },
+    realTimeTracking: {
+      title: "Live Vehicle Tracking",
+      description: "Real-time location and status of all vehicles",
+      lastUpdate: "Last Update",
+      batteryLevel: "Battery",
+      speed: "Speed",
+      heading: "Heading",
+      accuracy: "Accuracy",
+      moving: "Moving",
+      stationary: "Stationary",
+      offline: "Offline",
+      online: "Online",
+      noLocation: "No location data",
+      deviceOffline: "Device offline",
+      trackingEnabled: "Real-time tracking enabled",
+      trackingDisabled: "Real-time tracking disabled"
+    },
+    assignment: {
+      title: "Assignment Management",
+      quick: "Quick Assign",
+      bulk: "Bulk Assignment",
+      auto: "Auto Assignment",
+      manual: "Manual Assignment",
+      assignDriver: "Assign Driver",
+      assignVehicle: "Assign Vehicle", 
+      assignBooking: "Assign Booking",
+      unassign: "Unassign",
+      reassign: "Reassign",
+      assignmentHistory: "Assignment History",
+      currentAssignments: "Current Assignments",
+      availableDrivers: "Available Drivers",
+      availableVehicles: "Available Vehicles",
+      pendingBookings: "Pending Bookings",
+      assignmentConflict: "Assignment Conflict",
+      resolveConflict: "Resolve Conflict",
+      autoAssignmentRules: "Auto Assignment Rules"
+    },
     filters: {
       status: "Status",
       date: "Date",
-      driver: "Driver",
+      driver: "Driver", 
       vehicle: "Vehicle",
-      all: "All Entries"
+      all: "All Entries",
+      location: "Location",
+      zone: "Zone",
+      priority: "Priority"
     },
     actions: {
       assignDriver: "Assign Driver",
       assignVehicle: "Assign Vehicle",
+      assignBooking: "Assign Booking",
       updateStatus: "Update Status",
       addNote: "Add Note",
       viewDetails: "View Details",
@@ -1823,15 +1915,26 @@ export const en: TranslationValue = {
       editEntry: "Edit Entry",
       deleteEntry: "Delete Entry",
       assignDriverTo: "Assign Driver to Booking #{id}",
-      assignVehicleTo: "Assign Vehicle to Booking #{id}"
+      assignVehicleTo: "Assign Vehicle to Booking #{id}",
+      startTrip: "Start Trip",
+      endTrip: "End Trip",
+      markArrived: "Mark as Arrived",
+      sendNotification: "Send Notification",
+      viewOnMap: "View on Map",
+      trackVehicle: "Track Vehicle",
+      contactDriver: "Contact Driver",
+      emergencyAlert: "Emergency Alert"
     },
     status: {
       pending: "Pending",
       assigned: "Assigned",
       confirmed: "Confirmed",
-      in_transit: "In Transit",
+      en_route: "En Route",
+      arrived: "Arrived",
+      in_progress: "In Progress", 
       completed: "Completed",
-      cancelled: "Cancelled"
+      cancelled: "Cancelled",
+      emergency: "Emergency"
     },
     fields: {
       booking: "Booking",
@@ -1843,32 +1946,57 @@ export const en: TranslationValue = {
       duration: "Duration",
       notes: "Notes",
       createdAt: "Created At",
-      updatedAt: "Updated At"
+      updatedAt: "Updated At",
+      assignedBy: "Assigned By",
+      estimatedArrival: "Estimated Arrival",
+      actualArrival: "Actual Arrival",
+      pickupLocation: "Pickup Location",
+      dropoffLocation: "Dropoff Location",
+      distance: "Distance",
+      priority: "Priority",
+      deviceId: "Device ID",
+      lastSeen: "Last Seen",
+      batteryLevel: "Battery Level"
     },
     placeholders: {
       selectDriver: "Select a driver",
       selectVehicle: "Select a vehicle",
+      selectBooking: "Select a booking",
       selectStatus: "Select a status",
       enterNotes: "Enter notes about this dispatch",
       startTime: "Select start time",
       endTime: "Select end time"
     },
     messages: {
-      createSuccess: "Dispatch entry created successfully",
-      updateSuccess: "Dispatch entry updated successfully",
-      deleteSuccess: "Dispatch entry deleted successfully",
-      createError: "Error creating dispatch entry",
-      updateError: "Error updating dispatch entry",
-      deleteError: "Error deleting dispatch entry",
+      createSuccess: "Dispatch assignment created successfully",
+      updateSuccess: "Dispatch assignment updated successfully",
+      deleteSuccess: "Dispatch assignment deleted successfully",
+      createError: "Error creating dispatch assignment",
+      updateError: "Error updating dispatch assignment",
+      deleteError: "Error deleting dispatch assignment",
       driverAssigned: "Driver assigned successfully",
       vehicleAssigned: "Vehicle assigned successfully",
+      vehicleUnassigned: "Vehicle unassigned successfully",
+      bookingAssigned: "Booking assigned successfully",
       statusUpdated: "Status updated successfully",
-      notesAdded: "Notes added successfully"
+      notesAdded: "Notes added successfully",
+      tripStarted: "Trip started successfully",
+      tripEnded: "Trip completed successfully",
+      arrivedAtDestination: "Marked as arrived at destination",
+      locationUpdated: "Location updated",
+      trackingError: "Error updating tracking data",
+      assignmentConflict: "Assignment conflict detected",
+      noAvailableDrivers: "No available drivers",
+      noAvailableVehicles: "No available vehicles",
+      deviceConnected: "Tracking device connected",
+      deviceDisconnected: "Tracking device disconnected"
     },
     empty: {
-      title: "No Dispatch Entries Found",
-      description: "There are no dispatch entries for the selected filters.",
-      searchResults: "No dispatch entries match your search criteria. Try modifying your search."
+      title: "No Dispatch Assignments Found",
+      description: "There are no dispatch assignments for the selected filters.",
+      searchResults: "No dispatch assignments match your search criteria.",
+      noVehiclesOnline: "No vehicles are currently online",
+      noActiveAssignments: "No active assignments"
     },
     calendar: {
       view: "Calendar View",
@@ -1879,24 +2007,17 @@ export const en: TranslationValue = {
       day: "Day",
       list: "List"
     },
-    board: {
-      view: "Board View",
-      title: "Dispatch Board",
-      pending: "Pending",
-      confirmed: "Confirmed",
-      assigned: "Assigned",
-      inTransit: "In Transit",
-      completed: "Completed",
-      cancelled: "Cancelled",
-      addEntry: "Add Entry"
-    },
     details: {
-      title: "Dispatch Details",
+      title: "Assignment Details",
       bookingDetails: "Booking Details",
       driverDetails: "Driver Details",
       vehicleDetails: "Vehicle Details",
+      trackingDetails: "Tracking Details",
       statusHistory: "Status History",
-      notes: "Dispatch Notes"
+      notes: "Assignment Notes",
+      timeline: "Trip Timeline",
+      route: "Route Information",
+      performance: "Performance Metrics"
     },
     timelineView: {
       title: "Dispatch Timeline",
@@ -1906,6 +2027,28 @@ export const en: TranslationValue = {
       week: "Week",
       zoomIn: "Zoom In",
       zoomOut: "Zoom Out"
+    },
+    notifications: {
+      newAssignment: "New assignment created",
+      statusChanged: "Assignment status changed",
+      vehicleArrived: "Vehicle arrived at destination",
+      tripStarted: "Trip started",
+      tripCompleted: "Trip completed",
+      emergencyAlert: "Emergency alert",
+      deviceOffline: "Tracking device offline",
+      deviceOnline: "Tracking device online",
+      assignmentOverdue: "Assignment overdue"
+    },
+    tracking: {
+      devices: "Tracking Devices",
+      setupDevice: "Setup Device",
+      deviceStatus: "Device Status",
+      lastLocation: "Last Location",
+      route: "Route",
+      geofence: "Geofence",
+      alerts: "Tracking Alerts",
+      history: "Location History",
+      playback: "Route Playback"
     }
   },
   settings: {

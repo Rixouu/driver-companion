@@ -14,7 +14,7 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -117,6 +117,7 @@ export function DriverVehicleList({ vehicles, driverId }: DriverVehicleListProps
                         src={vehicle.image_url}
                         alt={vehicle.name}
                         fill
+                        sizes="40px"
                         className="object-cover"
                       />
                     ) : (

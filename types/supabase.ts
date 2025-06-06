@@ -225,6 +225,103 @@ export type Database = {
         }
         Relationships: []
       }
+      dispatch_assignments: {
+        Row: {
+          actual_arrival: string | null
+          actual_duration_minutes: number | null
+          arrived_at: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          booking_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          distance_km: number | null
+          driver_id: string | null
+          dropoff_location: Json | null
+          estimated_arrival: string | null
+          estimated_duration_minutes: number | null
+          id: string
+          notes: string | null
+          pickup_location: Json | null
+          priority: number | null
+          route_data: Json | null
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          actual_arrival?: string | null
+          actual_duration_minutes?: number | null
+          arrived_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff_location?: Json | null
+          estimated_arrival?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          pickup_location?: Json | null
+          priority?: number | null
+          route_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          actual_arrival?: string | null
+          actual_duration_minutes?: number | null
+          arrived_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          distance_km?: number | null
+          driver_id?: string | null
+          dropoff_location?: Json | null
+          estimated_arrival?: string | null
+          estimated_duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          pickup_location?: Json | null
+          priority?: number | null
+          route_data?: Json | null
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_assignments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_entries: {
         Row: {
           booking_id: string
@@ -282,6 +379,47 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_notifications: {
+        Row: {
+          assignment_id: string | null
+          created_at: string | null
+          created_for: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          title: string | null
+          type: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string | null
+          created_for?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title?: string | null
+          type: string
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string | null
+          created_for?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          title?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_notifications_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "dispatch_assignments"
             referencedColumns: ["id"]
           },
         ]
@@ -1859,6 +1997,60 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_devices: {
+        Row: {
+          battery_level: number | null
+          created_at: string | null
+          device_id: string
+          device_name: string | null
+          driver_id: string | null
+          id: string
+          is_active: boolean | null
+          last_seen: string | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          battery_level?: number | null
+          created_at?: string | null
+          device_id: string
+          device_name?: string | null
+          driver_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          battery_level?: number | null
+          created_at?: string | null
+          device_id?: string
+          device_name?: string | null
+          driver_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen?: string | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_devices_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_assignments: {
         Row: {
           created_at: string | null
@@ -1910,6 +2102,82 @@ export type Database = {
           },
         ]
       }
+      vehicle_locations: {
+        Row: {
+          accuracy: number | null
+          address: string | null
+          altitude: number | null
+          battery_level: number | null
+          bearing: number | null
+          created_at: string | null
+          device_id: string
+          driver_id: string | null
+          id: string
+          is_moving: boolean | null
+          latitude: number
+          longitude: number
+          speed: number | null
+          timestamp: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          address?: string | null
+          altitude?: number | null
+          battery_level?: number | null
+          bearing?: number | null
+          created_at?: string | null
+          device_id: string
+          driver_id?: string | null
+          id?: string
+          is_moving?: boolean | null
+          latitude: number
+          longitude: number
+          speed?: number | null
+          timestamp: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          address?: string | null
+          altitude?: number | null
+          battery_level?: number | null
+          bearing?: number | null
+          created_at?: string | null
+          device_id?: string
+          driver_id?: string | null
+          id?: string
+          is_moving?: boolean | null
+          latitude?: number
+          longitude?: number
+          speed?: number | null
+          timestamp?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_locations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_devices"
+            referencedColumns: ["device_id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           brand: string
@@ -1918,11 +2186,13 @@ export type Database = {
           image_url: string | null
           last_inspection: string | null
           last_inspection_date: string | null
+          luggage_capacity: number | null
           mileage: number | null
           model: string
           name: string
           next_inspection: string | null
           next_inspection_date: string | null
+          passenger_capacity: number | null
           plate_number: string
           status: string
           updated_at: string
@@ -1938,11 +2208,13 @@ export type Database = {
           image_url?: string | null
           last_inspection?: string | null
           last_inspection_date?: string | null
+          luggage_capacity?: number | null
           mileage?: number | null
           model: string
           name: string
           next_inspection?: string | null
           next_inspection_date?: string | null
+          passenger_capacity?: number | null
           plate_number: string
           status?: string
           updated_at?: string
@@ -1958,11 +2230,13 @@ export type Database = {
           image_url?: string | null
           last_inspection?: string | null
           last_inspection_date?: string | null
+          luggage_capacity?: number | null
           mileage?: number | null
           model?: string
           name?: string
           next_inspection?: string | null
           next_inspection_date?: string | null
+          passenger_capacity?: number | null
           plate_number?: string
           status?: string
           updated_at?: string

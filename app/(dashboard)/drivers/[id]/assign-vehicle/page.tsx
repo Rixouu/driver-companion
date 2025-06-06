@@ -337,6 +337,7 @@ export default function AssignVehiclePage() {
                               src={vehicle.image_url}
                               alt={vehicle.name}
                               fill
+                              sizes="48px"
                               className="object-cover"
                             />
                           </div>

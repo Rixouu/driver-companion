@@ -1,11 +1,26 @@
 "use client";
 
-import { useI18n } from '@/lib/i18n/context';
-import { CreditCard, Globe } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QuotationItem } from '@/types/quotations';
 import { Separator } from '@/components/ui/separator';
+import { Globe, Clock, Timer } from 'lucide-react';
+import { QuotationItem } from '@/types/quotations';
 import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+
+interface TimeBasedRule {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  adjustment_percentage: number;
+  applicable_days: number[];
+  priority: number;
+  is_active: boolean;
+  category_id?: string;
+  service_type_id?: string;
+}
 
 interface PriceDetailsProps {
   amount: number | string;
@@ -23,6 +38,14 @@ interface PriceDetailsProps {
   calculateSubtotalAmount: (amount: number | string, discountPercentage: number) => number;
   calculateTaxAmount: (subtotalAmount: number | string, taxPercentage: number) => number;
   quotation_items?: QuotationItem[];
+  time_based_adjustment?: number;
+  package_discount?: number;
+  promotion_discount?: number;
+  selectedPackage?: any;
+  selectedPromotion?: any;
+  appliedTimeBasedRules?: TimeBasedRule[];
+  pickup_date?: string;
+  pickup_time?: string;
 }
 
 export function PriceDetails({
@@ -30,188 +53,381 @@ export function PriceDetails({
   discount_percentage = 0,
   tax_percentage = 0,
   total_amount,
-  vehicle_type = 'Mercedes Benz V Class',
-  hours_per_day,
-  duration_hours,
-  service_days = 1,
   selectedCurrency,
   onCurrencyChange,
   formatCurrency,
-  calculateDiscountAmount,
-  calculateSubtotalAmount,
-  calculateTaxAmount,
-  quotation_items = []
+  quotation_items = [],
+  time_based_adjustment = 0,
+  package_discount = 0,
+  promotion_discount = 0,
+  selectedPackage,
+  selectedPromotion,
+  appliedTimeBasedRules = [],
+  pickup_date,
+  pickup_time
 }: PriceDetailsProps) {
-  const { t } = useI18n();
   
-  console.log('[PRICE DETAILS] Rendering with items:', quotation_items?.length || 0);
-  if (quotation_items && quotation_items.length > 0) {
-    console.log('[PRICE DETAILS] First item:', quotation_items[0]);
-  }
-  
-  const hasMultipleItems = quotation_items && quotation_items.length > 0;
-  
-  return (
-    <div data-price-details>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <CreditCard className="h-5 w-5 mr-2 text-primary" />
-          <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails') || 'Price Details'}</h2>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <Select 
-            value={selectedCurrency}
-            onValueChange={onCurrencyChange}
-          >
-            <SelectTrigger className="w-[110px] h-8">
-              <SelectValue placeholder="Currency" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JPY">JPY (¥)</SelectItem>
-              <SelectItem value="USD">USD ($)</SelectItem>
-              <SelectItem value="EUR">EUR (€)</SelectItem>
-              <SelectItem value="THB">THB (฿)</SelectItem>
-              <SelectItem value="CNY">CNY (¥)</SelectItem>
-              <SelectItem value="SGD">SGD ($)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+  const calculateFinalAmounts = () => {
+    let serviceTotal = 0;
+    let packageTotal = 0;
+    let serviceTimeAdjustment = 0;
+    
+    // Calculate service total with individual time-based adjustments
+    if (quotation_items.length > 0) {
+      serviceTotal = quotation_items.reduce((total, item) => {
+        const itemBasePrice = item.total_price || item.unit_price || 0;
+        
+        // Apply time-based adjustment to this specific service item
+        let itemTimeAdjustment = 0;
+        if (item.pickup_date && item.pickup_time && appliedTimeBasedRules.length > 0) {
+          const itemDate = new Date(item.pickup_date);
+          const [hours, minutes] = item.pickup_time.split(':').map(Number);
+          itemDate.setHours(hours, minutes, 0, 0);
+          
+          const dayOfWeek = itemDate.getDay();
+          const timeOfDay = hours * 60 + minutes;
+          
+          const applicableRules = appliedTimeBasedRules.filter(rule => {
+            if (!rule.is_active) return false;
+            
+            // Check if rule applies to this day
+            const applicableDays = rule.applicable_days || [];
+            if (applicableDays.length > 0 && !applicableDays.includes(dayOfWeek)) {
+              return false;
+            }
+            
+            // Check if rule applies to this time
+            if (rule.start_time && rule.end_time) {
+              const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+              const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+              
+              const startTime = startHours * 60 + startMinutes;
+              const endTime = endHours * 60 + endMinutes;
+              
+              // Handle overnight time ranges
+              if (startTime > endTime) {
+                return timeOfDay >= startTime || timeOfDay <= endTime;
+              } else {
+                return timeOfDay >= startTime && timeOfDay <= endTime;
+              }
+            }
+            
+            return true;
+          });
+          
+          itemTimeAdjustment = applicableRules.reduce((adjTotal, rule) => {
+            return adjTotal + (itemBasePrice * (rule.adjustment_percentage || 0) / 100);
+          }, 0);
+        }
+        
+        serviceTimeAdjustment += itemTimeAdjustment;
+        return total + itemBasePrice + itemTimeAdjustment;
+      }, 0);
+    } else {
+      serviceTotal = typeof amount === 'string' ? parseFloat(amount) : amount;
       
-      <div className="rounded-md bg-muted/30 border p-4 space-y-3">
-        <div className="flex justify-between font-medium mb-2">
-          <div>Description</div>
-          <div>Price</div>
-        </div>
+      // Apply time-based adjustment to the base service if pickup date/time exists
+      if (pickup_date && pickup_time && appliedTimeBasedRules.length > 0) {
+        const pickupDate = new Date(pickup_date);
+        const [hours, minutes] = pickup_time.split(':').map(Number);
+        pickupDate.setHours(hours, minutes, 0, 0);
         
-        {hasMultipleItems ? (
-          <>
-            {quotation_items.map((item, index) => (
-              <div key={item.id || index} className={`flex justify-between py-2 px-2 mb-2 ${index !== quotation_items.length - 1 ? 'border-b' : ''} rounded-sm hover:bg-muted/20 transition-colors`}>
-                <div className="text-sm flex-1 pr-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={cn(
-                      "text-xs py-0.5 px-1.5 rounded-sm font-medium",
-                      item.service_type_name?.toLowerCase().includes('charter') 
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" 
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                    )}>
-                      {item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
-                    </div>
-                    <span className="font-medium">{item.description}</span>
-                  </div>
-                  
-                  {item.is_service_item && (
-                    <div className="text-xs text-muted-foreground mt-1 grid grid-cols-[70px_1fr] gap-y-1">
-                      <span>Vehicle:</span>
-                      <span>{item.vehicle_type}</span>
+        const dayOfWeek = pickupDate.getDay();
+        const timeOfDay = hours * 60 + minutes;
+        
+        const applicableRules = appliedTimeBasedRules.filter(rule => {
+          if (!rule.is_active) return false;
+          
+          const applicableDays = rule.applicable_days || [];
+          if (applicableDays.length > 0 && !applicableDays.includes(dayOfWeek)) {
+            return false;
+          }
+          
+          if (rule.start_time && rule.end_time) {
+            const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+            const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+            
+            const startTime = startHours * 60 + startMinutes;
+            const endTime = endHours * 60 + endMinutes;
+            
+            if (startTime > endTime) {
+              return timeOfDay >= startTime || timeOfDay <= endTime;
+            } else {
+              return timeOfDay >= startTime && timeOfDay <= endTime;
+            }
+          }
+          
+          return true;
+        });
+        
+        serviceTimeAdjustment = applicableRules.reduce((adjTotal, rule) => {
+          return adjTotal + (serviceTotal * (rule.adjustment_percentage || 0) / 100);
+        }, 0);
+        
+        serviceTotal += serviceTimeAdjustment;
+      }
+    }
+    
+    // Add package price separately (packages don't get time-based adjustments)
+    if (selectedPackage) {
+      packageTotal = selectedPackage.base_price || 0;
+    }
+    
+    const baseTotal = serviceTotal + packageTotal;
+    const discountPercentageValue = discount_percentage || 0;
+    const taxPercentageValue = tax_percentage || 0;
+    
+    // Calculate promotion discount
+    const promotionDiscountAmount = selectedPromotion 
+      ? (selectedPromotion.discount_type === 'percentage' 
+          ? baseTotal * (selectedPromotion.discount_value || 0) / 100
+          : selectedPromotion.discount_value || 0)
+      : 0;
+    
+    // Calculate regular discount
+    const regularDiscountAmount = baseTotal * (discountPercentageValue / 100);
+    
+    // Total discount is promotion + regular discount
+    const totalDiscountAmount = promotionDiscountAmount + regularDiscountAmount;
+    
+    const subtotal = Math.max(0, baseTotal - totalDiscountAmount);
+    const taxAmount = subtotal * (taxPercentageValue / 100);
+    const finalTotal = subtotal + taxAmount;
+    
+    return {
+      serviceTotal: serviceTotal - serviceTimeAdjustment, // Services without time adjustment
+      serviceTimeAdjustment,
+      packageTotal,
+      baseTotal,
+      promotionDiscount: promotionDiscountAmount,
+      regularDiscountAmount,
+      totalDiscountAmount,
+      subtotal,
+      taxAmount,
+      finalTotal
+    };
+  };
+
+  const { 
+    serviceTotal,
+    serviceTimeAdjustment,
+    packageTotal,
+    baseTotal, 
+    promotionDiscount, 
+    regularDiscountAmount, 
+    subtotal, 
+    taxAmount, 
+    finalTotal 
+  } = calculateFinalAmounts();
+
+  return (
+    <Card className="bg-muted/40">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-medium">Price Details</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Detailed breakdown of your quotation
+            </CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedCurrency} onValueChange={onCurrencyChange}>
+              <SelectTrigger className="w-[120px] h-8">
+                <SelectValue placeholder="Currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="JPY">JPY (¥)</SelectItem>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="THB">THB (฿)</SelectItem>
+                <SelectItem value="CNY">CNY (¥)</SelectItem>
+                <SelectItem value="SGD">SGD ($)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {quotation_items.length > 0 || selectedPackage ? (
+            <>
+              {/* Services */}
+              {quotation_items.length > 0 && (
+                <>
+                  <div className="text-sm font-medium mb-2">Services:</div>
+                  {quotation_items.map((item, index) => {
+                    // Calculate time-based adjustment for this specific item
+                    const baseItemPrice = (item.unit_price || 0) * (item.service_days || 1);
+                    
+                    // Check if this item has time-based adjustments
+                    let itemTimeAdjustment = 0;
+                    if (item.pickup_date && item.pickup_time && appliedTimeBasedRules.length > 0) {
+                      // Calculate adjustment for this specific item's date/time
+                      const itemDate = new Date(item.pickup_date);
+                      const [hours, minutes] = item.pickup_time.split(':').map(Number);
+                      itemDate.setHours(hours, minutes, 0, 0);
                       
-                      {item.service_type_name?.toLowerCase().includes('charter') ? (
-                        <>
-                          <span>Service:</span>
-                          <span>{item.service_days || 1} day(s) × {item.hours_per_day || 1} hour(s)/day</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Service:</span>
-                          <span>{item.duration_hours || 1} hour(s)</span>
-                        </>
-                      )}
-                    </div>
-                  )}
+                      const dayOfWeek = itemDate.getDay();
+                      const timeOfDay = hours * 60 + minutes;
+                      
+                      const applicableRules = appliedTimeBasedRules.filter(rule => {
+                        if (!rule.is_active) return false;
+                        
+                        // Check if rule applies to this day
+                        const applicableDays = rule.applicable_days || [];
+                        if (applicableDays.length > 0 && !applicableDays.includes(dayOfWeek)) {
+                          return false;
+                        }
+                        
+                        // Check if rule applies to this time
+                        if (rule.start_time && rule.end_time) {
+                          const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+                          const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+                          
+                          const startTime = startHours * 60 + startMinutes;
+                          const endTime = endHours * 60 + endMinutes;
+                          
+                          // Handle overnight time ranges
+                          if (startTime > endTime) {
+                            return timeOfDay >= startTime || timeOfDay <= endTime;
+                          } else {
+                            return timeOfDay >= startTime && timeOfDay <= endTime;
+                          }
+                        }
+                        
+                        return true;
+                      });
+                      
+                      itemTimeAdjustment = applicableRules.reduce((total, rule) => {
+                        return total + (baseItemPrice * (rule.adjustment_percentage || 0) / 100);
+                      }, 0);
+                    }
+                    
+                    return (
+                      <div key={index} className="pl-4 space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="truncate max-w-[60%]">{item.description}</span>
+                          <span>{formatCurrency(item.total_price || item.unit_price)}</span>
+                        </div>
+                        
+                        {/* Show time-based adjustment for this item */}
+                        {itemTimeAdjustment !== 0 && (
+                          <div className="flex justify-between text-xs pl-4">
+                            <span className={cn(
+                              "flex items-center gap-1",
+                              itemTimeAdjustment > 0 ? "text-red-600" : "text-green-600"
+                            )}>
+                              <Timer className="h-3 w-3" />
+                              Time adjustment
+                            </span>
+                            <span className={cn(
+                              itemTimeAdjustment > 0 ? "text-red-600" : "text-green-600"
+                            )}>
+                              {itemTimeAdjustment > 0 ? '+' : ''}{formatCurrency(itemTimeAdjustment)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Show pickup date/time for this item */}
+                        {(item.pickup_date || item.pickup_time) && (
+                          <div className="text-xs text-muted-foreground pl-4">
+                            {item.pickup_date && format(parseISO(item.pickup_date), 'MMM d, yyyy')}
+                            {item.pickup_date && item.pickup_time && ' at '}
+                            {item.pickup_time}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+              
+              {/* Package (if selected) */}
+              {selectedPackage && (
+                <div className="flex justify-between text-sm font-medium text-purple-600">
+                  <span>Package: {selectedPackage.name}</span>
+                  <span>{formatCurrency(selectedPackage.base_price)}</span>
                 </div>
-                <div className="font-medium text-right">
-                  {formatCurrency(item.total_price || item.unit_price)}
+              )}
+              
+              <Separator className="my-2" />
+              
+              {/* Service Subtotal */}
+              {serviceTotal > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Services Subtotal</span>
+                  <span>{formatCurrency(serviceTotal)}</span>
                 </div>
+              )}
+              
+              {/* Package Subtotal */}
+              {packageTotal > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span>Package Subtotal</span>
+                  <span>{formatCurrency(packageTotal)}</span>
+                </div>
+              )}
+              
+              {/* Base Total */}
+              <div className="flex justify-between text-sm font-medium">
+                <span>Total Amount</span>
+                <span>{formatCurrency(baseTotal)}</span>
               </div>
-            ))}
-          </>
-        ) : (
-          <>
-            <div className="flex justify-between">
-              <div className="text-sm grid grid-cols-[100px_1fr]">
-                <span>Vehicle:</span>
-                <span>{vehicle_type}</span>
+              
+              {/* Time-based Service Adjustments */}
+              {serviceTimeAdjustment !== 0 && (
+                <div className="flex justify-between text-sm font-medium text-amber-600">
+                  <span>Service Time Adjustments</span>
+                  <span>{serviceTimeAdjustment > 0 ? '+' : ''}{formatCurrency(serviceTimeAdjustment)}</span>
+                </div>
+              )}
+              
+              {/* Promotion Discount (if applied) */}
+              {promotionDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Promotion Discount ({selectedPromotion?.name})</span>
+                  <span>-{formatCurrency(promotionDiscount)}</span>
+                </div>
+              )}
+              
+              {/* Regular Discount (if applied) */}
+              {regularDiscountAmount > 0 && (
+                <div className="flex justify-between text-sm text-red-600">
+                  <span>Regular Discount ({discount_percentage || 0}%)</span>
+                  <span>-{formatCurrency(regularDiscountAmount)}</span>
+                </div>
+              )}
+              
+              <Separator className="my-1" />
+              
+              <div className="flex justify-between text-sm font-medium">
+                <span>Subtotal</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
+              
+              {(tax_percentage || 0) > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Tax ({tax_percentage || 0}%)</span>
+                  <span>+{formatCurrency(taxAmount)}</span>
+                </div>
+              )}
+              
+              <Separator className="my-2" />
+              
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>{formatCurrency(finalTotal)}</span>
+              </div>
+            </>
+          ) : (
+            // Show message when no services or packages selected
+            <div className="text-center py-4 text-muted-foreground">
+              <p>No services or packages to display pricing</p>
             </div>
-            
-            <div className="flex justify-between">
-              <div className="text-sm">
-                Hourly Rate ({hours_per_day || duration_hours || 8} hours / day)
-              </div>
-              <div className="font-medium">
-                {formatCurrency(typeof amount === 'string' ? parseFloat(amount) / service_days : amount / service_days)}
-              </div>
-            </div>
-            
-            {service_days > 1 && (
-              <div className="flex justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Number of Days
-                </div>
-                <div>
-                  × {service_days}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        
-        <div className="flex justify-between pt-2 border-t">
-          <div className="font-medium">
-            Base Amount
-          </div>
-          <div className="font-medium">
-            {formatCurrency(amount)}
-          </div>
+          )}
         </div>
-        
-        {Number(discount_percentage) > 0 && (
-          <div className="flex justify-between text-red-500">
-            <div>
-              Discount ({discount_percentage}%)
-            </div>
-            <div>
-              -{formatCurrency(calculateDiscountAmount(amount, discount_percentage))}
-            </div>
-          </div>
-        )}
-        
-        {(Number(discount_percentage) > 0 || Number(tax_percentage) > 0) && (
-          <div className="flex justify-between pt-2 border-t">
-            <div className="font-medium">
-              Subtotal
-            </div>
-            <div className="font-medium">
-              {formatCurrency(calculateSubtotalAmount(amount, discount_percentage))}
-            </div>
-          </div>
-        )}
-        
-        {Number(tax_percentage) > 0 && (
-          <div className="flex justify-between text-muted-foreground">
-            <div>
-              Tax ({tax_percentage}%)
-            </div>
-            <div>
-              +{formatCurrency(calculateTaxAmount(
-                calculateSubtotalAmount(amount, discount_percentage),
-                tax_percentage
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <div className="flex justify-between font-semibold pt-2 border-t">
-          <div>
-            Total Amount
-          </div>
-          <div>
-            {formatCurrency(total_amount)}
-          </div>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 } 

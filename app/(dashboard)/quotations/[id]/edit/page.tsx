@@ -71,9 +71,9 @@ export default async function EditQuotationPage({ params: paramsPromise }: PageP
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="bg-muted p-4 rounded-md text-center">
-          <h2 className="text-lg font-medium">{t('quotations.edit.notEditable')}</h2>
+          <h2 className="text-lg font-medium">{t('quotations.editSection.notEditable')}</h2>
           <p className="text-muted-foreground mt-2">
-            {t('quotations.edit.notEditableDescription')}
+            {t('quotations.editSection.notEditableDescription')}
           </p>
         </div>
       </div>

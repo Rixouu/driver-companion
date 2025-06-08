@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
-import QuotationForm from '@/components/quotations/quotation-form';
+import QuotationFormRefactored from '@/components/quotations/quotation-form-refactored';
 import { Quotation, QuotationItem, ServiceTypeInfo, PricingCategory, PricingItem } from '@/types/quotations';
 
 interface QuotationFormClientProps {
@@ -86,7 +86,7 @@ export default function QuotationFormClient({
   };
 
   return (
-    <QuotationForm
+    <QuotationFormRefactored
       initialData={preparedQuotation}
       onSuccess={handleSuccess}
       serviceTypes={serviceTypes}

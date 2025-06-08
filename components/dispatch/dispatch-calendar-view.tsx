@@ -227,7 +227,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                             className={`p-2 text-xs rounded-md shadow-sm border hover:shadow-md transition-shadow ${
                               entry.status === 'completed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'cancelled' ? 'border-red-200 bg-red-50/90 dark:bg-red-950/40' :
-                              entry.status === 'in_transit' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
+                              entry.status === 'en_route' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
                               entry.status === 'confirmed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'assigned' ? 'border-blue-200 bg-blue-50/90 dark:bg-blue-950/40' :
                               'border-yellow-200 bg-yellow-50/90 dark:bg-yellow-950/40'
@@ -337,7 +337,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                             className={`p-2 text-xs rounded-md shadow-sm border hover:shadow-md transition-shadow ${
                               entry.status === 'completed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'cancelled' ? 'border-red-200 bg-red-50/90 dark:bg-red-950/40' :
-                              entry.status === 'in_transit' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
+                              entry.status === 'en_route' ? 'border-purple-200 bg-purple-50/90 dark:bg-purple-950/40' :
                               entry.status === 'confirmed' ? 'border-green-200 bg-green-50/90 dark:bg-green-950/40' :
                               entry.status === 'assigned' ? 'border-blue-200 bg-blue-50/90 dark:bg-blue-950/40' :
                               'border-yellow-200 bg-yellow-50/90 dark:bg-yellow-950/40'
@@ -372,7 +372,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
     );
   };
 
-  // Handle starting a trip (changing status to in_transit)
+  // Handle starting a trip (changing status to en_route)
   const handleStartTrip = async (entryId: string, bookingId: string) => {
     try {
       const supabase = createClient();
@@ -381,7 +381,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
       const { error: dispatchError } = await supabase
         .from('dispatch_entries')
         .update({ 
-          status: 'in_transit',
+          status: 'en_route',
           updated_at: new Date().toISOString()
         })
         .eq('id', entryId);
@@ -603,7 +603,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                         "text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md truncate cursor-pointer border shadow-sm hover:shadow transition-shadow",
                                         entry.status === 'completed' ? 'bg-green-500/10 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300' :
                                         entry.status === 'cancelled' ? 'bg-red-500/10 border-red-200 text-red-700 dark:border-red-800 dark:text-red-300' :
-                                        entry.status === 'in_transit' ? 'bg-purple-500/10 border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300' :
+                                        entry.status === 'en_route' ? 'bg-purple-500/10 border-purple-200 text-purple-700 dark:border-purple-800 dark:text-purple-300' :
                                         entry.status === 'confirmed' ? 'bg-green-500/10 border-green-200 text-green-700 dark:border-green-800 dark:text-green-300' :
                                         'bg-yellow-500/10 border-yellow-200 text-yellow-700 dark:border-yellow-800 dark:text-yellow-300'
                                       )}
@@ -690,7 +690,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                               "rounded-md border p-3 hover:shadow-sm transition-shadow",
                               entry.status === 'completed' ? 'border-green-200 dark:border-green-700/50' :
                               entry.status === 'cancelled' ? 'border-red-200 dark:border-red-700/50' :
-                              entry.status === 'in_transit' ? 'border-purple-200 dark:border-purple-700/50' :
+                              entry.status === 'en_route' ? 'border-purple-200 dark:border-purple-700/50' :
                               entry.status === 'confirmed' ? 'border-green-200 dark:border-green-700/50' :
                               'border-yellow-200 dark:border-yellow-700/50'
                             )}
@@ -804,7 +804,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                   </Button>
                                 )}
                                 
-                                {entry.status === 'in_transit' && (
+                                {entry.status === 'en_route' && (
                                   // Determine if we should show the Complete button based on time
                                   (() => {
                                     const now = new Date();

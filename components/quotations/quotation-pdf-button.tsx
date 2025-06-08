@@ -3,7 +3,7 @@
 import { FileText, Mail } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { useState } from 'react'
-import html2pdf from 'html2pdf.js'
+// Dynamic import for html2pdf to avoid SSR issues
 import { toast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -411,6 +411,94 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       
       pdfContainer.appendChild(customerSection)
       
+      // Add package and promotion information section if available
+      const hasPackageOrPromotion = latestQuotation?.selected_package_name || latestQuotation?.selected_promotion_name;
+      if (hasPackageOrPromotion) {
+        const featuresSection = document.createElement('div')
+        featuresSection.style.marginBottom = '32px'
+        featuresSection.style.width = '100%'
+        
+        const featuresTitle = document.createElement('h3')
+        featuresTitle.textContent = docLanguage === 'ja' ? '適用された特典' : 'Applied Features'
+        featuresTitle.style.margin = '0 0 12px 0'
+        featuresTitle.style.color = '#333'
+        featuresTitle.style.fontSize = '14px'
+        featuresTitle.style.fontWeight = 'bold'
+        featuresTitle.style.borderBottom = '1px solid #e0e0e0'
+        featuresTitle.style.paddingBottom = '5px'
+        
+        featuresSection.appendChild(featuresTitle)
+        
+        // Package information
+        if (latestQuotation?.selected_package_name) {
+          const packageDiv = document.createElement('div')
+          packageDiv.style.padding = '12px'
+          packageDiv.style.marginBottom = '8px'
+          packageDiv.style.borderLeft = '4px solid #3b82f6'
+          packageDiv.style.backgroundColor = '#f8fafc'
+          packageDiv.style.borderRadius = '4px'
+          
+          const packageTitle = document.createElement('div')
+          packageTitle.style.fontWeight = 'bold'
+          packageTitle.style.fontSize = '13px'
+          packageTitle.style.color = '#1e40af'
+          packageTitle.style.marginBottom = '4px'
+          packageTitle.textContent = `📦 ${docLanguage === 'ja' ? 'パッケージ' : 'Package'}: ${latestQuotation.selected_package_name}`
+          
+          packageDiv.appendChild(packageTitle)
+          
+          if (latestQuotation.selected_package_description) {
+            const packageDesc = document.createElement('div')
+            packageDesc.style.fontSize = '12px'
+            packageDesc.style.color = '#64748b'
+            packageDesc.textContent = latestQuotation.selected_package_description
+            packageDiv.appendChild(packageDesc)
+          }
+          
+          featuresSection.appendChild(packageDiv)
+        }
+        
+        // Promotion information
+        if (latestQuotation?.selected_promotion_name) {
+          const promotionDiv = document.createElement('div')
+          promotionDiv.style.padding = '12px'
+          promotionDiv.style.marginBottom = '8px'
+          promotionDiv.style.borderLeft = '4px solid #10b981'
+          promotionDiv.style.backgroundColor = '#f0fdf4'
+          promotionDiv.style.borderRadius = '4px'
+          
+          const promotionTitle = document.createElement('div')
+          promotionTitle.style.fontWeight = 'bold'
+          promotionTitle.style.fontSize = '13px'
+          promotionTitle.style.color = '#047857'
+          promotionTitle.style.marginBottom = '4px'
+          promotionTitle.textContent = `🎁 ${docLanguage === 'ja' ? 'プロモーション' : 'Promotion'}: ${latestQuotation.selected_promotion_name}`
+          
+          promotionDiv.appendChild(promotionTitle)
+          
+          if (latestQuotation.selected_promotion_description) {
+            const promotionDesc = document.createElement('div')
+            promotionDesc.style.fontSize = '12px'
+            promotionDesc.style.color = '#64748b'
+            promotionDesc.textContent = latestQuotation.selected_promotion_description
+            promotionDiv.appendChild(promotionDesc)
+          }
+          
+          if (latestQuotation.selected_promotion_code) {
+            const promotionCode = document.createElement('div')
+            promotionCode.style.fontSize = '11px'
+            promotionCode.style.color = '#059669'
+            promotionCode.style.marginTop = '4px'
+            promotionCode.textContent = `${docLanguage === 'ja' ? 'コード' : 'Code'}: ${latestQuotation.selected_promotion_code}`
+            promotionDiv.appendChild(promotionCode)
+          }
+          
+          featuresSection.appendChild(promotionDiv)
+        }
+        
+        pdfContainer.appendChild(featuresSection)
+      }
+      
       // Price details section - With service type and vehicle type in description
       const priceSection = document.createElement('div')
       priceSection.style.marginBottom = '15px'
@@ -503,7 +591,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       // Check if we have quotation items (multiple services)
       if (latestQuotation?.quotation_items && Array.isArray(latestQuotation.quotation_items) && latestQuotation.quotation_items.length > 0) {
         // Display each service item individually
-        latestQuotation.quotation_items.forEach((item, index) => {
+        latestQuotation.quotation_items.forEach((item: any, index: number) => {
           const serviceRow = document.createElement('div')
           serviceRow.style.display = 'flex'
           serviceRow.style.justifyContent = 'space-between'
@@ -669,6 +757,77 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         baseAmountRow.appendChild(baseAmountLabel)
         baseAmountRow.appendChild(baseAmountValue)
         priceDetailsContainer.appendChild(baseAmountRow)
+      }
+      
+      // Add time-based pricing adjustment if available
+      const timeBasedAdjustment = latestQuotation?.time_based_adjustment || 0;
+      if (timeBasedAdjustment !== 0) {
+        const baseAmount = latestQuotation?.amount || 0;
+        const adjustmentPercentage = baseAmount !== 0 ? ((timeBasedAdjustment / baseAmount) * 100).toFixed(1) : '0';
+        const isPositive = timeBasedAdjustment > 0;
+        
+        const timeBasedRow = document.createElement('div')
+        timeBasedRow.style.display = 'flex'
+        timeBasedRow.style.justifyContent = 'space-between'
+        timeBasedRow.style.marginBottom = '8px'
+        timeBasedRow.style.color = isPositive ? '#3b82f6' : '#10b981'
+        timeBasedRow.style.padding = '3px 0'
+        
+        const timeBasedLabel = document.createElement('div')
+        timeBasedLabel.textContent = `Time-based Adjustment (${isPositive ? '+' : ''}${adjustmentPercentage}%)`
+        timeBasedLabel.style.fontSize = '13px'
+        
+        const timeBasedValue = document.createElement('div')
+        timeBasedValue.textContent = `${isPositive ? '+' : ''}${formatCurrencyValue(timeBasedAdjustment)}`
+        timeBasedValue.style.fontSize = '13px'
+        
+        timeBasedRow.appendChild(timeBasedLabel)
+        timeBasedRow.appendChild(timeBasedValue)
+        priceDetailsContainer.appendChild(timeBasedRow)
+      }
+      
+      // Add package discount if available
+      if (latestQuotation?.package_discount && latestQuotation.package_discount > 0) {
+        const packageDiscountRow = document.createElement('div')
+        packageDiscountRow.style.display = 'flex'
+        packageDiscountRow.style.justifyContent = 'space-between'
+        packageDiscountRow.style.marginBottom = '8px'
+        packageDiscountRow.style.color = '#3b82f6'
+        packageDiscountRow.style.padding = '3px 0'
+        
+        const packageDiscountLabel = document.createElement('div')
+        packageDiscountLabel.textContent = 'Package Discount'
+        packageDiscountLabel.style.fontSize = '13px'
+        
+        const packageDiscountValue = document.createElement('div')
+        packageDiscountValue.textContent = `-${formatCurrencyValue(latestQuotation.package_discount)}`
+        packageDiscountValue.style.fontSize = '13px'
+        
+        packageDiscountRow.appendChild(packageDiscountLabel)
+        packageDiscountRow.appendChild(packageDiscountValue)
+        priceDetailsContainer.appendChild(packageDiscountRow)
+      }
+      
+      // Add promotion discount if available
+      if (latestQuotation?.promotion_discount && latestQuotation.promotion_discount > 0) {
+        const promotionDiscountRow = document.createElement('div')
+        promotionDiscountRow.style.display = 'flex'
+        promotionDiscountRow.style.justifyContent = 'space-between'
+        promotionDiscountRow.style.marginBottom = '8px'
+        promotionDiscountRow.style.color = '#10b981'
+        promotionDiscountRow.style.padding = '3px 0'
+        
+        const promotionDiscountLabel = document.createElement('div')
+        promotionDiscountLabel.textContent = 'Promotion Discount'
+        promotionDiscountLabel.style.fontSize = '13px'
+        
+        const promotionDiscountValue = document.createElement('div')
+        promotionDiscountValue.textContent = `-${formatCurrencyValue(latestQuotation.promotion_discount)}`
+        promotionDiscountValue.style.fontSize = '13px'
+        
+        promotionDiscountRow.appendChild(promotionDiscountLabel)
+        promotionDiscountRow.appendChild(promotionDiscountValue)
+        priceDetailsContainer.appendChild(promotionDiscountRow)
       }
       
       // Calculate discount and tax
@@ -895,6 +1054,9 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
           },
           pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
+        
+        // Dynamic import of html2pdf to avoid SSR issues
+        const html2pdf = await import('html2pdf.js').then((module: any) => module.default);
         
         if (!email) {
           // Generate and save PDF directly if not sending email

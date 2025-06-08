@@ -1836,18 +1836,28 @@ export type Database = {
           id: string
           merchant_id: string | null
           merchant_notes: string | null
+          package_discount: number | null
           passenger_count: number | null
           pickup_date: string | null
           pickup_location: string | null
           pickup_time: string | null
+          promotion_discount: number | null
           quote_number: number
           reference_code: string | null
           rejected_reason: string | null
+          selected_package_description: string | null
+          selected_package_id: string | null
+          selected_package_name: string | null
+          selected_promotion_code: string | null
+          selected_promotion_description: string | null
+          selected_promotion_id: string | null
+          selected_promotion_name: string | null
           service_days: number | null
           service_type: string
           service_type_id: string | null
           status: string
           tax_percentage: number | null
+          time_based_adjustment: number | null
           title: string
           total_amount: number
           updated_at: string
@@ -1882,18 +1892,28 @@ export type Database = {
           id?: string
           merchant_id?: string | null
           merchant_notes?: string | null
+          package_discount?: number | null
           passenger_count?: number | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
+          promotion_discount?: number | null
           quote_number?: number
           reference_code?: string | null
           rejected_reason?: string | null
+          selected_package_description?: string | null
+          selected_package_id?: string | null
+          selected_package_name?: string | null
+          selected_promotion_code?: string | null
+          selected_promotion_description?: string | null
+          selected_promotion_id?: string | null
+          selected_promotion_name?: string | null
           service_days?: number | null
           service_type: string
           service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
+          time_based_adjustment?: number | null
           title: string
           total_amount: number
           updated_at?: string
@@ -1928,18 +1948,28 @@ export type Database = {
           id?: string
           merchant_id?: string | null
           merchant_notes?: string | null
+          package_discount?: number | null
           passenger_count?: number | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
+          promotion_discount?: number | null
           quote_number?: number
           reference_code?: string | null
           rejected_reason?: string | null
+          selected_package_description?: string | null
+          selected_package_id?: string | null
+          selected_package_name?: string | null
+          selected_promotion_code?: string | null
+          selected_promotion_description?: string | null
+          selected_promotion_id?: string | null
+          selected_promotion_name?: string | null
           service_days?: number | null
           service_type?: string
           service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
+          time_based_adjustment?: number | null
           title?: string
           total_amount?: number
           updated_at?: string

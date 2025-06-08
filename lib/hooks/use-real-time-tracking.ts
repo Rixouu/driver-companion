@@ -90,9 +90,16 @@ export function useRealTimeTracking(options: UseRealTimeTrackingOptions = {}) {
     setIsTracking(true);
     await fetchTrackingData();
 
-    // Set up real-time subscription for vehicle locations
+    // Clean up any existing subscription first
+    if (subscriptionRef.current) {
+      supabase.removeChannel(subscriptionRef.current);
+      subscriptionRef.current = null;
+    }
+
+    // Set up real-time subscription for vehicle locations with unique channel name
+    const channelName = `vehicle_locations_realtime_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     subscriptionRef.current = supabase
-      .channel('vehicle_locations_realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

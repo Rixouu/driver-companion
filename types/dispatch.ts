@@ -11,8 +11,7 @@ export type DispatchStatus =
   | 'arrived'
   | 'in_progress'
   | 'completed'
-  | 'cancelled'
-  | 'emergency';
+  | 'cancelled';
 
 export interface DispatchEntry {
   id: string;

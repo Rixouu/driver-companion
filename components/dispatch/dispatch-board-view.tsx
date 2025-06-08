@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
-import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, PhoneIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, PhoneIcon, MoreVerticalIcon, EditIcon, EyeIcon, UserXIcon, Zap } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils/styles";
 import { Driver } from "@/types/drivers";
@@ -25,12 +25,20 @@ import {
 } from '@hello-pangea/dnd';
 import { createClient } from "@/lib/supabase";
 import { toast } from "@/components/ui/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DispatchBoardViewProps {
   entries: DispatchEntryWithRelations[];
   onAssignDriver?: (dispatchId: string, driverId: string) => void;
   onAssignVehicle?: (dispatchId: string, vehicleId: string) => void;
   onUnassignVehicle?: (dispatchId: string) => void;
+  onQuickAssign?: (dispatchId: string) => void;
+  onUnassign?: (dispatchId: string) => void;
   availableDrivers?: Driver[];
   availableVehicles?: Vehicle[];
   onStatusChange?: (entryId: string, newStatus: DispatchStatus) => void;
@@ -43,34 +51,80 @@ interface ColumnProps {
   count: number;
   emptyMessage: string;
   onCardClick: (entry: DispatchEntryWithRelations) => void;
+  onQuickAssign?: (dispatchId: string) => void;
+  onUnassign?: (dispatchId: string) => void;
 }
 
 function getStatusColor(status: DispatchStatus): string {
   const colors: Record<DispatchStatus, string> = {
-    pending: "border-l-amber-400",
-    assigned: "border-l-blue-400", 
-    confirmed: "border-l-emerald-400",
-    en_route: "border-l-purple-400",
-    arrived: "border-l-indigo-400",
-    in_progress: "border-l-cyan-400",
-    completed: "border-l-green-400",
-    cancelled: "border-l-red-400",
-    emergency: "border-l-rose-400"
+    pending: "border-l-amber-500 dark:border-l-amber-400",
+    assigned: "border-l-blue-500 dark:border-l-blue-400", 
+    confirmed: "border-l-emerald-500 dark:border-l-emerald-400",
+    en_route: "border-l-purple-500 dark:border-l-purple-400",
+    arrived: "border-l-indigo-500 dark:border-l-indigo-400",
+    in_progress: "border-l-cyan-500 dark:border-l-cyan-400",
+    completed: "border-l-green-500 dark:border-l-green-400",
+    cancelled: "border-l-red-500 dark:border-l-red-400"
   };
   
-  return colors[status] || "border-l-gray-400";
+  return colors[status] || "border-l-gray-400 dark:border-l-gray-500";
+}
+
+function getStatusBadgeStyle(status: DispatchStatus): string {
+  const styles: Record<DispatchStatus, string> = {
+    pending: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
+    assigned: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700", 
+    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
+    en_route: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
+    arrived: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700",
+    in_progress: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700",
+    completed: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
+    cancelled: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
+  };
+  
+  return styles[status] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
 }
 
 function DispatchCard({ 
   entry, 
   onClick,
-  index 
+  index,
+  onQuickAssign,
+  onUnassign
 }: { 
   entry: DispatchEntryWithRelations; 
   onClick: () => void;
   index: number;
+  onQuickAssign?: (dispatchId: string) => void;
+  onUnassign?: (dispatchId: string) => void;
 }) {
   const formattedTime = format(parseISO(entry.start_time), "HH:mm");
+  const router = useRouter();
+  const isAssigned = entry.driver_id && entry.vehicle_id;
+  
+  const handleQuickAssign = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onQuickAssign) {
+      onQuickAssign(entry.id);
+    }
+  };
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/bookings/${entry.booking.id}`);
+  };
+
+  const handleEditBooking = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/bookings/${entry.booking.id}/edit`);
+  };
+
+  const handleUnassign = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onUnassign) {
+      onUnassign(entry.id);
+    }
+  };
   
   return (
     <Draggable draggableId={entry.id} index={index}>
@@ -80,41 +134,88 @@ function DispatchCard({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={cn(
-            "cursor-pointer transition-all duration-200 mb-3 border-l-4 hover:shadow-md bg-card hover:bg-muted/50",
+            "cursor-pointer transition-all duration-200 mb-3 border-l-4 hover:shadow-md bg-card hover:bg-muted/50 border border-border/50",
             getStatusColor(entry.status),
-            snapshot.isDragging && "shadow-lg scale-105",
-            "border border-border/50"
+            snapshot.isDragging && "shadow-lg scale-105 rotate-2"
           )}
           onClick={onClick}
         >
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-medium text-sm">
-                #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-foreground">
+                  #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
+                </span>
+                <Badge className={cn("text-xs", getStatusBadgeStyle(entry.status))}>
+                  {entry.status.replace('_', ' ')}
+                </Badge>
+              </div>
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <ClockIcon className="h-3 w-3" />
+                {formattedTime}
               </span>
-              <span className="text-xs text-muted-foreground">{formattedTime}</span>
             </div>
             
-            <div className="space-y-1">
-              <p className="text-sm font-medium truncate">
+            <div className="space-y-2 mb-3">
+              <p className="text-sm font-medium truncate text-foreground">
                 {entry.booking.customer_name || "Unknown Customer"}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {entry.booking.service_name || "Service"}
               </p>
+              {entry.booking.pickup_location && (
+                <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                  <MapPinIcon className="h-3 w-3" />
+                  {entry.booking.pickup_location}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between mt-3">
-              <Badge 
-                variant="outline" 
-                className="text-xs border-current"
-              >
-                {entry.status.replace('_', ' ')}
-              </Badge>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                {entry.driver_id && <UserIcon className="h-3 w-3 text-emerald-600" />}
-                {entry.vehicle_id && <CarIcon className="h-3 w-3 text-blue-600" />}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                {entry.driver_id && (
+                  <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full text-xs">
+                    <UserIcon className="h-3 w-3" />
+                    Driver
+                  </div>
+                )}
+                {entry.vehicle_id && (
+                  <div className="flex items-center gap-1 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-xs">
+                    <CarIcon className="h-3 w-3" />
+                    Vehicle
+                  </div>
+                )}
               </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVerticalIcon className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleViewDetails}>
+                    <EyeIcon className="h-4 w-4 mr-2" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEditBooking}>
+                    <EditIcon className="h-4 w-4 mr-2" />
+                    Edit Booking
+                  </DropdownMenuItem>
+                  {!isAssigned && onQuickAssign && (
+                    <DropdownMenuItem onClick={handleQuickAssign}>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Quick Assign
+                    </DropdownMenuItem>
+                  )}
+                  {isAssigned && onUnassign && (
+                    <DropdownMenuItem onClick={handleUnassign}>
+                      <UserXIcon className="h-4 w-4 mr-2" />
+                      Unassign All
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardContent>
         </Card>
@@ -123,14 +224,14 @@ function DispatchCard({
   );
 }
 
-function Column({ title, status, entries, count, emptyMessage, onCardClick }: ColumnProps) {
+function Column({ title, status, entries, count, emptyMessage, onCardClick, onQuickAssign, onUnassign }: ColumnProps) {
   const filteredEntries = entries.filter((entry) => entry.status === status);
   
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 sticky top-0 bg-background z-10 pb-2">
+      <div className="flex items-center justify-between mb-4 sticky top-0 bg-background z-10 pb-2 border-b border-border/50">
         <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
           {count}
         </Badge>
       </div>
@@ -141,12 +242,12 @@ function Column({ title, status, entries, count, emptyMessage, onCardClick }: Co
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 min-h-0 transition-colors",
-              snapshot.isDraggingOver && "bg-muted/30 rounded-lg"
+              "flex-1 min-h-0 transition-colors rounded-lg",
+              snapshot.isDraggingOver && "bg-muted/30 border-2 border-dashed border-primary/50"
             )}
           >
             {filteredEntries.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-lg">
+              <div className="flex items-center justify-center h-32 text-center text-muted-foreground text-sm border-2 border-dashed border-border/30 rounded-lg">
                 <span className="p-4">{emptyMessage}</span>
               </div>
             ) : (
@@ -156,6 +257,8 @@ function Column({ title, status, entries, count, emptyMessage, onCardClick }: Co
                     key={entry.id} 
                     entry={entry} 
                     onClick={() => onCardClick(entry)}
+                    onQuickAssign={onQuickAssign}
+                    onUnassign={onUnassign}
                     index={index}
                   />
                 ))}
@@ -194,10 +297,10 @@ function DispatchDetailsPanel({
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-lg font-semibold text-foreground">
             #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
           </h2>
-          <Badge className={cn("text-sm", getStatusColor(entry.status).replace('border-l-','bg-').replace('-400', '-100'))}>
+          <Badge className={cn("text-sm", getStatusBadgeStyle(entry.status))}>
             {entry.status.replace('_', ' ')}
           </Badge>
         </div>
@@ -208,18 +311,18 @@ function DispatchDetailsPanel({
 
       {/* Customer Info */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm">Customer Information</h3>
+        <h3 className="font-medium text-sm text-foreground">Customer Information</h3>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <UserIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">{entry.booking.customer_name || "Unknown Customer"}</span>
+            <span className="text-sm text-foreground">{entry.booking.customer_name || "Unknown Customer"}</span>
           </div>
           {entry.booking.customer_phone && (
             <div className="flex items-center gap-2">
               <PhoneIcon className="h-4 w-4 text-muted-foreground" />
               <a 
                 href={`tel:${entry.booking.customer_phone}`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
                 {entry.booking.customer_phone}
               </a>
@@ -230,24 +333,24 @@ function DispatchDetailsPanel({
 
       {/* Service Details */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm">Service Details</h3>
+        <h3 className="font-medium text-sm text-foreground">Service Details</h3>
         <div className="space-y-2">
-          <p className="text-sm">{entry.booking.service_name || "Vehicle Service"}</p>
+          <p className="text-sm text-foreground">{entry.booking.service_name || "Vehicle Service"}</p>
           {entry.booking.pickup_location && (
             <div className="flex items-start gap-2">
-              <MapPinIcon className="h-4 w-4 text-green-600 mt-0.5" />
+              <MapPinIcon className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">From:</p>
-                <p className="text-sm">{entry.booking.pickup_location}</p>
+                <p className="text-sm text-foreground">{entry.booking.pickup_location}</p>
               </div>
             </div>
           )}
           {entry.booking.dropoff_location && (
             <div className="flex items-start gap-2">
-              <MapPinIcon className="h-4 w-4 text-red-600 mt-0.5" />
+              <MapPinIcon className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">To:</p>
-                <p className="text-sm">{entry.booking.dropoff_location}</p>
+                <p className="text-sm text-foreground">{entry.booking.dropoff_location}</p>
               </div>
             </div>
           )}
@@ -256,22 +359,24 @@ function DispatchDetailsPanel({
 
       {/* Actions */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm">Actions</h3>
+        <h3 className="font-medium text-sm text-foreground">Actions</h3>
         <div className="space-y-2">
           <Button
             variant="outline"
             className="w-full justify-start"
             onClick={() => router.push(`/bookings/${entry.booking.id}`)}
           >
+            <EyeIcon className="h-4 w-4 mr-2" />
             View Full Details
           </Button>
           
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => router.push(`/dispatch/assignments?booking=${entry.booking.id}`)}
+            onClick={() => router.push(`/bookings/${entry.booking.id}/edit`)}
           >
-            Manage Assignments
+            <EditIcon className="h-4 w-4 mr-2" />
+            Edit Booking
           </Button>
 
           {entry.booking.customer_phone && (
@@ -295,6 +400,8 @@ export default function DispatchBoardView({
   onAssignDriver,
   onAssignVehicle,
   onUnassignVehicle,
+  onQuickAssign,
+  onUnassign,
   availableDrivers = [],
   availableVehicles = [],
   onStatusChange
@@ -377,6 +484,8 @@ export default function DispatchBoardView({
     assigned: entries.filter(e => e.status === 'assigned').length,
     confirmed: entries.filter(e => e.status === 'confirmed').length,
     en_route: entries.filter(e => e.status === 'en_route').length,
+    arrived: entries.filter(e => e.status === 'arrived').length,
+    in_progress: entries.filter(e => e.status === 'in_progress').length,
     completed: entries.filter(e => e.status === 'completed').length,
     cancelled: entries.filter(e => e.status === 'cancelled').length,
   };
@@ -384,7 +493,7 @@ export default function DispatchBoardView({
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-6 gap-6 h-full overflow-hidden">
+        <div className="grid grid-cols-4 lg:grid-cols-5 gap-4 h-full overflow-hidden">
           <Column
             title="Pending"
             status="pending"
@@ -392,6 +501,8 @@ export default function DispatchBoardView({
             count={statusCounts.pending}
             emptyMessage="No pending bookings"
             onCardClick={handleCardClick}
+            onQuickAssign={onQuickAssign}
+            onUnassign={onUnassign}
           />
           <Column
             title="Assigned"
@@ -400,6 +511,8 @@ export default function DispatchBoardView({
             count={statusCounts.assigned}
             emptyMessage="No assigned bookings"
             onCardClick={handleCardClick}
+            onQuickAssign={onQuickAssign}
+            onUnassign={onUnassign}
           />
           <Column
             title="Confirmed"
@@ -408,14 +521,8 @@ export default function DispatchBoardView({
             count={statusCounts.confirmed}
             emptyMessage="No confirmed bookings"
             onCardClick={handleCardClick}
-          />
-          <Column
-            title="En Route"
-            status="en_route"
-            entries={entries}
-            count={statusCounts.en_route}
-            emptyMessage="No active trips"
-            onCardClick={handleCardClick}
+            onQuickAssign={onQuickAssign}
+            onUnassign={onUnassign}
           />
           <Column
             title="Completed"
@@ -424,6 +531,8 @@ export default function DispatchBoardView({
             count={statusCounts.completed}
             emptyMessage="No completed trips"
             onCardClick={handleCardClick}
+            onQuickAssign={onQuickAssign}
+            onUnassign={onUnassign}
           />
           <Column
             title="Cancelled"
@@ -432,6 +541,8 @@ export default function DispatchBoardView({
             count={statusCounts.cancelled}
             emptyMessage="No cancelled bookings"
             onCardClick={handleCardClick}
+            onQuickAssign={onQuickAssign}
+            onUnassign={onUnassign}
           />
         </div>
       </DragDropContext>

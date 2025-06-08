@@ -26,9 +26,13 @@ import {
   Edit,
   Globe,
   Check,
-  X
+  X,
+  Package,
+  Gift,
+  Timer,
+  Percent
 } from 'lucide-react';
-import { Quotation, QuotationItem, QuotationStatus } from '@/types/quotations';
+import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromotion, PackageType } from '@/types/quotations';
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
@@ -59,6 +63,20 @@ interface QuotationDetailsProps {
   isOrganizationMember?: boolean;
 }
 
+// Interface for time-based rules
+interface TimeBasedRule {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  adjustment_percentage: number;
+  applicable_days: number[];
+  priority: number;
+  is_active: boolean;
+  category_id?: string;
+  service_type_id?: string;
+}
+
 export function QuotationDetails({ quotation, isOrganizationMember = true }: QuotationDetailsProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -68,7 +86,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [shouldMoveToMainContent, setShouldMoveToMainContent] = useState(false);
   const approvalPanelRef = useRef<HTMLDivElement>(null);
   const priceDetailsRef = useRef<HTMLDivElement>(null);
-  const { approveQuotation, rejectQuotation, sendQuotation, updateQuotation } = useQuotationService();
+  
+  // Add state for packages, promotions, and time-based pricing
+  const [selectedPackage, setSelectedPackage] = useState<PricingPackage | null>(null);
+  const [selectedPromotion, setSelectedPromotion] = useState<PricingPromotion | null>(null);
+  const [appliedTimeBasedRules, setAppliedTimeBasedRules] = useState<TimeBasedRule[]>([]);
+  const [loadingPricingDetails, setLoadingPricingDetails] = useState(true);
+  
+  const { approveQuotation, rejectQuotation, sendQuotation, updateQuotation, getPricingPackages, getPricingPromotions } = useQuotationService();
 
   // Add the messages hook
   const {
@@ -80,6 +105,134 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     refreshActivities,
     refreshMessages
   } = useQuotationMessages(quotation.id);
+
+  // Load packages, promotions, and time-based pricing data
+  useEffect(() => {
+    const loadPricingDetails = async () => {
+      setLoadingPricingDetails(true);
+      try {
+        // Check if quotation has a package ID or promotion code
+        const packageId = (quotation as any).package_id || (quotation as any).pricing_package_id || (quotation as any).selected_package_id;
+        const promotionCode = (quotation as any).promotion_code || (quotation as any).applied_promotion_code || (quotation as any).selected_promotion_code;
+        
+        // Load package if available
+        if (packageId) {
+          try {
+            const packages = await getPricingPackages(false, true);
+            const foundPackage = packages.find(pkg => pkg.id === packageId);
+            if (foundPackage) {
+              setSelectedPackage(foundPackage);
+            }
+          } catch (error) {
+            console.error('Error loading package:', error);
+          }
+        } else if ((quotation as any).selected_package_name) {
+          // Create a temporary package object from stored data
+          setSelectedPackage({
+            id: (quotation as any).selected_package_id || 'stored-package',
+            name: (quotation as any).selected_package_name,
+            description: (quotation as any).selected_package_description || '',
+            package_type: 'bundle' as PackageType,
+            base_price: (quotation as any).package_discount || 0,
+            currency: 'JPY',
+            is_featured: false,
+            is_active: true,
+            sort_order: 0,
+            created_at: '',
+            updated_at: '',
+            items: []
+          } as any);
+        }
+        
+        // Load promotion if available
+        if (promotionCode) {
+          try {
+            const promotions = await getPricingPromotions(false);
+            const foundPromotion = promotions.find(promo => promo.code === promotionCode);
+            if (foundPromotion) {
+              setSelectedPromotion(foundPromotion);
+            }
+          } catch (error) {
+            console.error('Error loading promotion:', error);
+          }
+        } else if ((quotation as any).selected_promotion_name) {
+          // Create a temporary promotion object from stored name
+          setSelectedPromotion({
+            id: (quotation as any).selected_promotion_id || 'stored-promotion',
+            name: (quotation as any).selected_promotion_name,
+            code: (quotation as any).selected_promotion_code || 'APPLIED',
+            description: (quotation as any).selected_promotion_description || '',
+            discount_type: 'percentage',
+            discount_value: 0,
+            is_active: true,
+            created_at: '',
+            updated_at: ''
+          } as any);
+        }
+        
+        // Load time-based pricing rules if pickup date and time are available
+        if (quotation.pickup_date && quotation.pickup_time) {
+          try {
+            const response = await fetch('/api/admin/pricing/time-based-rules?active_only=true');
+            if (response.ok) {
+              const allRules = await response.json();
+              
+              // Filter rules that would apply to this quotation
+              const pickupDateTime = new Date(`${quotation.pickup_date}T${quotation.pickup_time}`);
+              const dayOfWeek = pickupDateTime.getDay();
+              const timeOfDay = pickupDateTime.getHours() * 60 + pickupDateTime.getMinutes();
+              
+              const applicableRules = allRules.filter((rule: TimeBasedRule) => {
+                if (!rule.is_active) return false;
+                
+                // Check if rule applies to this day
+                const applicableDays = rule.applicable_days || [];
+                if (applicableDays.length > 0 && !applicableDays.includes(dayOfWeek)) {
+                  return false;
+                }
+                
+                // Check if rule applies to this time
+                if (rule.start_time && rule.end_time) {
+                  const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+                  const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+                  
+                  const startTime = startHours * 60 + startMinutes;
+                  const endTime = endHours * 60 + endMinutes;
+                  
+                  // Handle overnight time ranges
+                  if (startTime > endTime) {
+                    return timeOfDay >= startTime || timeOfDay <= endTime;
+                  } else {
+                    return timeOfDay >= startTime && timeOfDay <= endTime;
+                  }
+                }
+                
+                return true;
+              });
+              
+              setAppliedTimeBasedRules(applicableRules);
+            }
+          } catch (error) {
+            console.error('Error loading time-based rules:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading pricing details:', error);
+      } finally {
+        setLoadingPricingDetails(false);
+      }
+    };
+    
+    loadPricingDetails();
+  }, [
+    quotation.id, 
+    (quotation as any).package_id, 
+    (quotation as any).promotion_code, 
+    (quotation as any).selected_package_name, 
+    (quotation as any).selected_promotion_name, 
+    quotation.pickup_date, 
+    quotation.pickup_time
+  ]);
 
   // Format quotation number with JPDR prefix and padding
   const formattedQuoteNumber = `JPDR-${quotation?.quote_number?.toString().padStart(4, '0') || 'N/A'}`;
@@ -555,6 +708,170 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               
               <Separator className="my-6" />
               
+              {/* Packages, Promotions, and Time-based Pricing Section */}
+              {(selectedPackage || selectedPromotion || appliedTimeBasedRules.length > 0) && (
+                <>
+                  <div className="mb-6">
+                    <div className="flex items-center mb-4">
+                      <CreditCard className="h-5 w-5 mr-2 text-primary" />
+                      <h2 className="text-xl font-semibold">{t('quotations.details.pricingFeatures') || 'Pricing Features'}</h2>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Package Information */}
+                      {selectedPackage && (
+                        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-900/10 dark:border-purple-800">
+                          <CardContent className="pt-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-md">
+                                <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+                                    {t('quotations.details.packageSelected') || 'Package Selected'}
+                                  </h3>
+                                  <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+                                    {selectedPackage.package_type}
+                                  </Badge>
+                                </div>
+                                <h4 className="font-medium text-sm mb-1">{selectedPackage.name}</h4>
+                                <p className="text-sm text-muted-foreground mb-2">{selectedPackage.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">
+                                    {t('quotations.details.packagePrice') || 'Package Price'}:
+                                  </span>
+                                  <span className="font-semibold text-purple-700 dark:text-purple-300">
+                                    {formatCurrency(selectedPackage.base_price)}
+                                  </span>
+                                </div>
+                                {selectedPackage.items && selectedPackage.items.length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800">
+                                    <p className="text-xs font-medium text-purple-800 dark:text-purple-200 mb-2">
+                                      {t('quotations.details.includedServices') || 'Included Services'}:
+                                    </p>
+                                    <div className="space-y-1">
+                                      {selectedPackage.items.slice(0, 3).map((item, index) => (
+                                        <div key={index} className="text-xs text-purple-700 dark:text-purple-300 flex justify-between">
+                                          <span>• {item.name}</span>
+                                          <span>{formatCurrency(item.price)}</span>
+                                        </div>
+                                      ))}
+                                      {selectedPackage.items.length > 3 && (
+                                        <p className="text-xs text-purple-600 dark:text-purple-400">
+                                          +{selectedPackage.items.length - 3} {t('quotations.details.moreServices') || 'more services'}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Promotion Information */}
+                      {selectedPromotion && (
+                        <Card className="border-green-200 bg-green-50/50 dark:bg-green-900/10 dark:border-green-800">
+                          <CardContent className="pt-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
+                                <Gift className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h3 className="font-semibold text-green-900 dark:text-green-100">
+                                    {t('quotations.details.promotionApplied') || 'Promotion Applied'}
+                                  </h3>
+                                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                                    {selectedPromotion.code}
+                                  </Badge>
+                                </div>
+                                <h4 className="font-medium text-sm mb-1">{selectedPromotion.name}</h4>
+                                <p className="text-sm text-muted-foreground mb-2">{selectedPromotion.description}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">
+                                    {t('quotations.details.discount') || 'Discount'}:
+                                  </span>
+                                  <span className="font-semibold text-green-700 dark:text-green-300 flex items-center gap-1">
+                                    <Percent className="h-3 w-3" />
+                                    {selectedPromotion.discount_type === 'percentage' 
+                                      ? `${selectedPromotion.discount_value}%`
+                                      : formatCurrency(selectedPromotion.discount_value)
+                                    }
+                                  </span>
+                                </div>
+                                                                 {((selectedPromotion as any).valid_from || selectedPromotion.start_date || (selectedPromotion as any).valid_to || selectedPromotion.end_date) && (
+                                   <div className="mt-2 text-xs text-green-700 dark:text-green-300">
+                                     {(selectedPromotion.start_date && selectedPromotion.end_date) ? (
+                                       <>Valid: {format(new Date(selectedPromotion.start_date), 'MMM d')} - {format(new Date(selectedPromotion.end_date), 'MMM d, yyyy')}</>
+                                     ) : selectedPromotion.end_date ? (
+                                       <>Valid until: {format(new Date(selectedPromotion.end_date), 'MMM d, yyyy')}</>
+                                     ) : null}
+                                   </div>
+                                 )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Time-based Pricing Rules */}
+                      {appliedTimeBasedRules.length > 0 && (
+                        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-800">
+                          <CardContent className="pt-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-md">
+                                <Timer className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                                  {t('quotations.details.timeBasedPricing') || 'Time-based Pricing Applied'}
+                                </h3>
+                                <div className="space-y-2">
+                                  {appliedTimeBasedRules.map((rule, index) => (
+                                    <div key={rule.id || index} className="flex items-center justify-between py-2 px-3 bg-amber-100/50 dark:bg-amber-900/20 rounded-md">
+                                      <div>
+                                        <div className="font-medium text-sm text-amber-900 dark:text-amber-100">
+                                          {rule.name}
+                                        </div>
+                                        <div className="text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                          <Clock className="h-3 w-3" />
+                                          {rule.start_time} - {rule.end_time}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className={cn(
+                                          "font-semibold text-sm flex items-center gap-1",
+                                          rule.adjustment_percentage > 0 
+                                            ? "text-red-600 dark:text-red-400" 
+                                            : "text-green-600 dark:text-green-400"
+                                        )}>
+                                          <Percent className="h-3 w-3" />
+                                          {rule.adjustment_percentage > 0 ? '+' : ''}{rule.adjustment_percentage}%
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          {t('quotations.details.adjustment') || 'adjustment'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800 text-xs text-amber-700 dark:text-amber-300">
+                                  {t('quotations.details.timeBasedNote') || 'These adjustments are automatically applied based on your pickup date and time.'}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </div>
+                  <Separator className="my-6" />
+                </>
+              )}
+              
               {/* Price Details */}
               <div ref={priceDetailsRef}>
                 <PriceDetails 
@@ -562,10 +879,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   discount_percentage={quotation.discount_percentage}
                   tax_percentage={quotation.tax_percentage}
                   total_amount={quotation.total_amount}
-                  vehicle_type={quotation.vehicle_type}
-                  hours_per_day={quotation.hours_per_day}
-                  duration_hours={quotation.duration_hours}
-                  service_days={quotation.service_days}
                   selectedCurrency={selectedCurrency}
                   onCurrencyChange={handleCurrencyChange}
                   formatCurrency={formatCurrency}
@@ -573,6 +886,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   calculateSubtotalAmount={calculateSubtotalAmount}
                   calculateTaxAmount={calculateTaxAmount}
                   quotation_items={quotation.quotation_items}
+                  time_based_adjustment={(quotation as any).time_based_adjustment || 0}
+                  package_discount={(quotation as any).package_discount || 0}
+                  promotion_discount={(quotation as any).promotion_discount || 0}
+                  selectedPackage={selectedPackage}
+                  selectedPromotion={selectedPromotion}
+                  appliedTimeBasedRules={appliedTimeBasedRules}
+                  pickup_date={quotation.pickup_date}
+                  pickup_time={quotation.pickup_time}
                 />
               </div>
               

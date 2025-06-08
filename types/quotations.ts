@@ -80,6 +80,18 @@ export interface Quotation {
   rejected_reason?: string;
   quote_number: number;
 
+  // Package and Promotion fields
+  selected_package_id?: string | null;
+  selected_package_name?: string | null;
+  selected_package_description?: string | null;
+  package_discount?: number;
+  selected_promotion_id?: string | null;
+  selected_promotion_name?: string | null;
+  selected_promotion_description?: string | null;
+  selected_promotion_code?: string | null;
+  promotion_discount?: number;
+  time_based_adjustment?: number;
+
   // Joined customer data (default Supabase behavior)
   customers?: {
     name: string | null;
@@ -203,6 +215,18 @@ export interface CreateQuotationInput {
   display_currency?: string;
   amount?: number;
   total_amount?: number;
+  
+  // Package and Promotion fields
+  selected_package_id?: string | null;
+  selected_package_name?: string | null;
+  selected_package_description?: string | null;
+  package_discount?: number;
+  selected_promotion_id?: string | null;
+  selected_promotion_name?: string | null;
+  selected_promotion_description?: string | null;
+  selected_promotion_code?: string | null;
+  promotion_discount?: number;
+  time_based_adjustment?: number;
 }
 
 export interface UpdateQuotationInput {
@@ -239,6 +263,18 @@ export interface UpdateQuotationInput {
   amount?: number;
   total_amount?: number;
   expiry_date?: string;
+  
+  // Package and Promotion fields
+  selected_package_id?: string | null;
+  selected_package_name?: string | null;
+  selected_package_description?: string | null;
+  package_discount?: number;
+  selected_promotion_id?: string | null;
+  selected_promotion_name?: string | null;
+  selected_promotion_description?: string | null;
+  selected_promotion_code?: string | null;
+  promotion_discount?: number;
+  time_based_adjustment?: number;
 }
 
 export interface QuotationResponse {

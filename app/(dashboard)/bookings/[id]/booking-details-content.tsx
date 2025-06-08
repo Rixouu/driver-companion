@@ -210,8 +210,8 @@ export default function BookingDetailsContent({
       switch (dispatchStatus.toLowerCase()) {
         case 'assigned':
           return <Badge className="bg-green-600 text-white font-medium">{t('dispatch.status.assigned')}</Badge>;
-        case 'in_transit':
-          return <Badge className="bg-purple-600 text-white font-medium">{t('dispatch.status.in_transit')}</Badge>;
+                    case 'en_route':
+              return <Badge className="bg-purple-600 text-white font-medium">{t('dispatch.status.en_route')}</Badge>;
         case 'completed':
           return <Badge className="bg-blue-600 text-white font-medium">{t('dispatch.status.completed')}</Badge>;
         case 'cancelled':

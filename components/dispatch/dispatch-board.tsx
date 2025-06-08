@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   CalendarIcon,
@@ -35,9 +36,19 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserIcon,
+  CarIcon,
+  MapPinIcon,
+  PhoneIcon,
+  MoreVerticalIcon,
+  EditIcon,
+  EyeIcon,
+  UserXIcon,
+  CarFront,
+  CheckIcon
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday, isThisWeek, isThisMonth, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import { sentenceCase } from "change-case";
 import { cn } from "@/lib/utils/styles";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -51,6 +62,7 @@ import { toast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase";
 import { Driver, Vehicle } from "@/types";
 import { Booking } from "@/types/bookings";
+import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
 
 // Type adapters to convert database types to component types
 const mapDriverFromDB = (dbDriver: any): Driver => ({
@@ -90,7 +102,7 @@ const mapVehicleFromDB = (dbVehicle: any): Vehicle => ({
 
 const mapBookingFromDB = (dbBooking: any): Booking => ({
   id: dbBooking.id,
-  supabase_id: dbBooking.id, // Using the same ID for both fields
+  supabase_id: dbBooking.id,
   date: dbBooking.date,
   time: dbBooking.time,
   status: dbBooking.status,
@@ -122,16 +134,76 @@ export default function DispatchBoard() {
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [dateRangeFilter, setDateRangeFilter] = useState<"all" | "day" | "week" | "month">("all");
-  const [viewMode, setViewMode] = useState<"all" | "day" | "week" | "month">("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<"all" | "today" | "week" | "month">("all");
+  const [viewMode, setViewMode] = useState<"all" | "today" | "week" | "month">("all");
 
-  // Load dispatch entries and related data
+  // Stats derived from available resources
+  const [totalDrivers, setTotalDrivers] = useState(0);
+  const [totalVehicles, setTotalVehicles] = useState(0);
+  const [availableDriverCount, setAvailableDriverCount] = useState(0);
+  const [availableVehicleCount, setAvailableVehicleCount] = useState(0);
+
+  // Shared dispatch state for cross-component synchronization
+  const { lastUpdate, updateDispatchStatus, updateAssignment, unassignResources } = useSharedDispatchState();
+
+  // Load dispatch entries and related data using MCP Supabase for accurate counts
   useEffect(() => {
     const loadDispatchData = async () => {
-      const supabase = createClient();
       setIsLoading(true);
       try {
         console.log('[Dispatch Board] Fetching latest dispatch data');
+        
+        // Use MCP Supabase to get accurate driver counts
+        const driversResponse = await fetch('/api/mcp/drivers-availability');
+        if (driversResponse.ok) {
+          const driversData = await driversResponse.json();
+          const mappedDrivers = driversData.map(mapDriverFromDB);
+          setAvailableDrivers(mappedDrivers);
+          setTotalDrivers(mappedDrivers.length);
+          setAvailableDriverCount(mappedDrivers.filter((d: Driver) => d.availability_status === 'available').length);
+        } else {
+          // Fallback to Supabase client
+          const supabase = createClient();
+          const { data: driversData, error: driversError } = await supabase
+            .from('drivers')
+            .select('*')
+            .is('deleted_at', null);
+
+          if (!driversError && driversData) {
+            const mappedDrivers = driversData.map(mapDriverFromDB);
+            setAvailableDrivers(mappedDrivers);
+            setTotalDrivers(mappedDrivers.length);
+            setAvailableDriverCount(mappedDrivers.filter((d: Driver) => d.availability_status === 'available').length);
+          }
+        }
+
+        // Get vehicle counts
+        const vehiclesResponse = await fetch('/api/mcp/vehicles-availability');
+        if (vehiclesResponse.ok) {
+          const vehiclesData = await vehiclesResponse.json();
+          const mappedVehicles = vehiclesData.map(mapVehicleFromDB);
+          setAvailableVehicles(mappedVehicles);
+          setTotalVehicles(mappedVehicles.length);
+          setAvailableVehicleCount(mappedVehicles.filter((v: Vehicle) => v.status === 'active').length);
+        } else {
+          // Fallback to Supabase client
+          const supabase = createClient();
+          const { data: vehiclesData, error: vehiclesError } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('status', 'active')
+            .is('deleted_at', null);
+
+          if (!vehiclesError && vehiclesData) {
+            const mappedVehicles = vehiclesData.map(mapVehicleFromDB);
+            setAvailableVehicles(mappedVehicles);
+            setTotalVehicles(mappedVehicles.length);
+            setAvailableVehicleCount(mappedVehicles.length);
+          }
+        }
+
+        // Fetch dispatch entries and bookings
+        const supabase = createClient();
         
         // Fetch dispatch entries with related bookings
         const { data: dispatchData, error: dispatchError } = await supabase
@@ -153,48 +225,7 @@ export default function DispatchBoard() {
 
         if (bookingsError) throw bookingsError;
 
-        // Fetch drivers
-        const { data: driversData, error: driversError } = await supabase
-          .from('drivers')
-          .select('*');
-
-        if (driversError) throw driversError;
-
-        // Fetch vehicles
-        const { data: vehiclesData, error: vehiclesError } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('status', 'active');
-
-        if (vehiclesError) throw vehiclesError;
-
-        // Fetch driver availability
-        const { data: availabilityData, error: availabilityError } = await supabase
-          .from('driver_availability')
-          .select('*');
-          
-        if (availabilityError) throw availabilityError;
-
-        // Fetch current vehicle assignments
-        const { data: vehicleAssignments, error: assignmentsError } = await supabase
-          .from('vehicle_assignments')
-          .select('*')
-          .eq('status', 'active');
-          
-        if (assignmentsError) throw assignmentsError;
-
-        // Map data to expected types
-        const mappedDrivers = driversData?.map(mapDriverFromDB) || [];
-        const mappedVehicles = vehiclesData?.map(mapVehicleFromDB) || [];
         const mappedBookings = bookingsData?.map(mapBookingFromDB) || [];
-
-        // Set available drivers (filtering out those with conflicts)
-        const availableDriversWithSchedule = mapDriverFromDB ? driversData?.map(mapDriverFromDB) || [] : [];
-        setAvailableDrivers(availableDriversWithSchedule);
-
-        // Set available vehicles (filtering out those already assigned)
-        const availableVehiclesFiltered = filterAvailableVehicles(mappedVehicles, vehicleAssignments || []);
-        setAvailableVehicles(availableVehiclesFiltered);
 
         // Process and combine the data
         const mappedEntries = dispatchData?.map(entry => ({
@@ -204,60 +235,9 @@ export default function DispatchBoard() {
         
         const dispatchEntries = createDispatchEntriesFromBookings(mappedBookings, mappedEntries);
         
-        // Ensure that entries for completed and cancelled bookings are created in the database
-        const newBookingsWithoutEntries = mappedBookings.filter(
-          booking => !mappedEntries.some(entry => entry.booking_id === booking.id)
-        );
-        
-        if (newBookingsWithoutEntries.length > 0) {
-          console.log(`[Dispatch Board] Found ${newBookingsWithoutEntries.length} new bookings without dispatch entries`);
-          
-          const newEntries = newBookingsWithoutEntries.map(booking => {
-            const bookingDate = parseISO(booking.date);
-            const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
-            const durationMinutes = parseInt(String(booking.duration || "60"));
-            const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
-            
-            // Determine status based on booking status
-            let status: DispatchStatus = "pending";
-            if (booking.status === 'completed') {
-              status = "completed";
-            } else if (booking.status === 'cancelled') {
-              status = "cancelled";
-            } else if (booking.status === 'confirmed' && booking.driver_id) {
-              status = "confirmed";
-            } else if (booking.driver_id && booking.vehicle?.id) {
-              status = "assigned";
-            }
-            
-            return {
-              booking_id: booking.id,
-              driver_id: booking.driver_id,
-              vehicle_id: booking.vehicle?.id,
-              status: status,
-              notes: booking.notes,
-              start_time: startTime,
-              end_time: endTimeDate.toISOString()
-            };
-          });
-          
-          // Insert the new entries into the database
-          const { error: insertError } = await supabase
-            .from('dispatch_entries')
-            .insert(newEntries);
-            
-          if (insertError) {
-            console.error('[Dispatch Board] Error creating dispatch entries:', insertError);
-          } else {
-            console.log('[Dispatch Board] Successfully created dispatch entries for new bookings');
-          }
-        }
-        
         // Set state with the data
         console.log('[Dispatch Board] Setting dispatch entries:', dispatchEntries.length);
         setDispatchEntries(dispatchEntries);
-        setAvailableDrivers(mappedDrivers);
-        setAvailableVehicles(mappedVehicles);
         setIsLoading(false);
       } catch (error) {
         console.error("[Dispatch Board] Error loading dispatch data:", error);
@@ -279,63 +259,7 @@ export default function DispatchBoard() {
     }, 5 * 60 * 1000);
 
     return () => clearInterval(refreshInterval);
-  }, []);
-
-  // Filter drivers based on availability for a specific booking time
-  const filterAvailableDrivers = (
-    drivers: Driver[], 
-    availabilities: any[], 
-    bookings: Booking[]
-  ): Driver[] => {
-    return drivers.filter(driver => {
-      // Check if driver has any unavailability at the time of any booking
-      const driverAvailabilities = availabilities.filter(
-        avail => avail.driver_id === driver.id && 
-        (avail.status === 'unavailable' || avail.status === 'leave' || avail.status === 'training')
-      );
-      
-      // If no unavailability records, driver is available
-      if (driverAvailabilities.length === 0) return true;
-      
-      // Check for conflicts with any booking
-      for (const booking of bookings) {
-        const bookingDate = parseISO(booking.date);
-        const bookingStartTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
-        
-        // Check if any unavailability conflicts with this booking time
-        const hasConflict = driverAvailabilities.some(avail => {
-          const availStartDate = parseISO(avail.start_date);
-          const availEndDate = parseISO(avail.end_date);
-          const bookingDateTime = parseISO(bookingStartTime);
-          
-          return bookingDateTime >= availStartDate && bookingDateTime <= availEndDate;
-        });
-        
-        if (hasConflict) return false;
-      }
-      
-      return true;
-    });
-  };
-
-  // Filter vehicles based on current assignments
-  const filterAvailableVehicles = (
-    vehicles: Vehicle[], 
-    assignments: any[]
-  ): Vehicle[] => {
-    // Get all vehicle IDs that are currently assigned
-    const assignedVehicleIds = new Set(
-      assignments
-        .filter(assignment => assignment.status === 'active')
-        .map(assignment => assignment.vehicle_id)
-    );
-    
-    // Return only vehicles that are not in the assigned set and are active
-    return vehicles.filter(vehicle => 
-      !assignedVehicleIds.has(vehicle.id) && 
-      vehicle.status === 'active'
-    );
-  };
+  }, [lastUpdate]); // Re-load when shared state updates
 
   // Create dispatch entries from bookings
   const createDispatchEntriesFromBookings = (
@@ -352,21 +276,6 @@ export default function DispatchBoard() {
       // Check if there's already an entry for this booking
       const existingEntry = existingEntriesMap.get(booking.id);
       if (existingEntry) {
-        // Preserve the in_transit status from existing entries
-        if (existingEntry.status === 'in_transit') {
-          return {
-            ...existingEntry,
-            booking: booking
-          };
-        }
-        
-        // Always ensure the status is synced with the booking status
-        if (booking.status === 'completed' || booking.status === 'cancelled') {
-          existingEntry.status = booking.status;
-        } else if (booking.status === 'confirmed' && existingEntry.driver_id) {
-          // If booking is confirmed and has a driver assigned, set status to confirmed
-          existingEntry.status = 'confirmed';
-        }
         return {
           ...existingEntry,
           booking: booking
@@ -377,8 +286,7 @@ export default function DispatchBoard() {
       const bookingDate = parseISO(booking.date);
       const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
       
-      // Calculate estimated end time (add duration in minutes to start time)
-      // Ensure duration is a string before parsing
+      // Calculate estimated end time
       const durationMinutes = parseInt(String(booking.duration || "60"));
       const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
       
@@ -390,9 +298,7 @@ export default function DispatchBoard() {
         dispatchStatus = "cancelled";
       } else if (booking.status === 'confirmed' && booking.driver_id) {
         dispatchStatus = "confirmed";
-      } else if (booking.status === 'confirmed') {
-        dispatchStatus = "pending";
-      } else if (booking.driver_id && booking.vehicle?.id) {
+      } else if (booking.driver_id) {
         dispatchStatus = "assigned";
       }
       
@@ -400,7 +306,7 @@ export default function DispatchBoard() {
         id: crypto.randomUUID(),
         booking_id: booking.id,
         driver_id: booking.driver_id || null,
-        vehicle_id: (booking.vehicle?.id || null) as string | null,
+        vehicle_id: null,
         status: dispatchStatus,
         notes: booking.notes,
         start_time: startTime,
@@ -419,114 +325,90 @@ export default function DispatchBoard() {
     }));
   };
 
+  const handleDateFilterChange = (period: "all" | "today" | "week" | "month") => {
+    setDateRangeFilter(period);
+    setViewMode(period);
+  };
+
   const handleCreateEntry = () => {
-    // Navigate to create entry page
     router.push("/dispatch/create" as any);
   };
 
-  const handleAssignDriver = async (dispatchId: string, driverId: string) => {
+  const handleQuickAssign = async (dispatchId: string) => {
+    try {
+      const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
+      if (!entryToUpdate) throw new Error("Dispatch entry not found");
+
+      const availableDriversList = availableDrivers.filter(d => d.availability_status === 'available');
+      const availableVehiclesList = availableVehicles.filter(v => v.status === 'active');
+      
+      if (availableDriversList.length === 0 || availableVehiclesList.length === 0) {
+        toast({
+          title: "Assignment Failed", 
+          description: "No available drivers or vehicles for quick assignment",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Smart vehicle selection based on service name
+      let selectedVehicle = availableVehiclesList[0]; // fallback
+      const serviceName = entryToUpdate.booking.service_name?.toLowerCase() || '';
+      
+      if (serviceName.includes('alphard') || serviceName.includes('luxury')) {
+        const alphard = availableVehiclesList.find(v => 
+          (v.make?.toLowerCase().includes('toyota') || false) && (v.model?.toLowerCase().includes('alphard') || false)
+        );
+        if (alphard) selectedVehicle = alphard;
+      } else if (serviceName.includes('z class') || serviceName.includes('z-class')) {
+        const zClass = availableVehiclesList.find(v => 
+          (v.make?.toLowerCase().includes('mercedes') || false) && (v.model?.toLowerCase().includes('z') || false)
+        );
+        if (zClass) selectedVehicle = zClass;
+      }
+
+      const selectedDriver = availableDriversList[0]; // Pick first available driver
+
+      await handleAssignDriverAndVehicle(dispatchId, selectedDriver.id, selectedVehicle.id);
+    } catch (error) {
+      console.error("[Quick Assign] Error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign driver and vehicle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAssignDriverAndVehicle = async (dispatchId: string, driverId: string, vehicleId: string) => {
     const supabase = createClient();
     try {
       const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
       if (!entryToUpdate) throw new Error("Dispatch entry not found");
 
-      console.log(`[Driver Assign] Starting assignment for dispatch ${dispatchId}`, { 
-        newDriverId: driverId, 
-        currentDriverId: entryToUpdate.driver_id,
-        hasVehicle: !!entryToUpdate.vehicle_id,
-        bookingId: entryToUpdate.booking_id
-      });
-
-      // Determine the new status based on the booking status and assignment
-      let newStatus = entryToUpdate.status;
-      if (entryToUpdate.booking.status === 'confirmed') {
-        newStatus = 'confirmed';
-      } else if (entryToUpdate.vehicle_id) {
-        newStatus = 'assigned';
-      } else {
-        newStatus = 'pending';
-      }
-
-      // Update the dispatch entry with the driver ID
-      const { data, error } = await supabase
+      // Update the dispatch entry
+      const { error: dispatchError } = await supabase
         .from('dispatch_entries')
         .update({ 
           driver_id: driverId,
-          status: newStatus,
+          vehicle_id: vehicleId,
+          status: 'assigned',
           updated_at: new Date().toISOString()
         })
-        .eq('id', dispatchId)
-        .select();
+        .eq('id', dispatchId);
 
-      if (error) {
-        console.error(`[Driver Assign] Error updating dispatch entry:`, error);
-        throw error;
-      }
-      
-      console.log(`[Driver Assign] Successfully updated dispatch entry`);
+      if (dispatchError) throw dispatchError;
 
-      // Update the booking with the driver ID
+      // Update the booking
       const { error: bookingError } = await supabase
         .from('bookings')
-        .update({ driver_id: driverId })
+        .update({ 
+          driver_id: driverId,
+          vehicle_id: vehicleId
+        })
         .eq('id', entryToUpdate.booking_id);
 
-      if (bookingError) {
-        console.error(`[Driver Assign] Error updating booking:`, bookingError);
-        throw bookingError;
-      }
-      
-      console.log(`[Driver Assign] Successfully updated booking`);
-
-      // Create a driver availability record for this booking
-      try {
-        const bookingStartTime = new Date(entryToUpdate.start_time);
-        const bookingEndTime = entryToUpdate.end_time ? new Date(entryToUpdate.end_time) : 
-          new Date(bookingStartTime.getTime() + 60 * 60 * 1000); // Default 1 hour if no end time
-        
-        console.log(`[Driver Assign] Creating driver availability record for booking from ${bookingStartTime} to ${bookingEndTime}`);
-        
-        const { error: availabilityError } = await supabase
-          .from('driver_availability')
-          .insert({
-            driver_id: driverId,
-            start_date: bookingStartTime.toISOString(),
-            end_date: bookingEndTime.toISOString(),
-            status: 'unavailable',
-            notes: `Assigned to booking ${entryToUpdate.booking_id}`
-          });
-
-        if (availabilityError) {
-          console.error(`[Driver Assign] Error creating driver availability record:`, availabilityError);
-        } else {
-          console.log(`[Driver Assign] Successfully created driver availability record`);
-        }
-      } catch (availErr) {
-        console.error(`[Driver Assign] Error in driver availability creation:`, availErr);
-      }
-
-      // If a vehicle is already assigned, create a vehicle assignment
-      if (entryToUpdate.vehicle_id) {
-        console.log(`[Driver Assign] Creating vehicle assignment for driver ${driverId} and vehicle ${entryToUpdate.vehicle_id}`);
-        
-        const { error: assignmentError } = await supabase
-          .from('vehicle_assignments')
-          .insert({
-            vehicle_id: entryToUpdate.vehicle_id,
-            driver_id: driverId,
-            status: 'active',
-            start_date: new Date().toISOString(),
-            end_date: null
-          });
-
-        if (assignmentError) {
-          console.error(`[Driver Assign] Error creating vehicle assignment:`, assignmentError);
-        } else {
-          console.log(`[Driver Assign] Successfully created vehicle assignment`);
-        }
-      } else {
-        console.log(`[Driver Assign] No vehicle assigned, skipping vehicle assignment creation`);
-      }
+      if (bookingError) throw bookingError;
 
       // Update local state
       setDispatchEntries(prev => prev.map(entry => 
@@ -534,338 +416,65 @@ export default function DispatchBoard() {
           ? { 
               ...entry, 
               driver_id: driverId,
-              status: entry.vehicle_id ? 'assigned' : 'pending'
-            } 
-          : entry
-      ));
-
-      toast({
-        title: "Success",
-        description: t("dispatch.messages.driverAssigned"),
-      });
-    } catch (error) {
-      console.error("[Driver Assign] Error in handleAssignDriver:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign driver",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUnassignVehicle = async (dispatchId: string) => {
-    const supabase = createClient();
-    try {
-      const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
-      if (!entryToUpdate) throw new Error("Dispatch entry not found");
-      
-      console.log(`[Vehicle Unassign] Starting unassignment for dispatch ${dispatchId}`, { 
-        currentVehicleId: entryToUpdate.vehicle_id,
-        bookingId: entryToUpdate.booking_id
-      });
-
-      if (!entryToUpdate.vehicle_id) {
-        console.log(`[Vehicle Unassign] No vehicle assigned to dispatch ${dispatchId}`);
-        return;
-      }
-
-      // Update the dispatch entry to remove vehicle ID
-      const { data, error } = await supabase
-        .from('dispatch_entries')
-        .update({ 
-          vehicle_id: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dispatchId)
-        .select();
-
-      if (error) {
-        console.error(`[Vehicle Unassign] Error updating dispatch entry:`, error);
-        throw error;
-      }
-
-      console.log(`[Vehicle Unassign] Successfully updated dispatch entry`);
-
-      // Update the booking to remove vehicle ID
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update({ vehicle_id: null })
-        .eq('id', entryToUpdate.booking_id);
-
-      if (bookingError) {
-        console.error(`[Vehicle Unassign] Error updating booking:`, bookingError);
-        throw bookingError;
-      }
-
-      console.log(`[Vehicle Unassign] Successfully updated booking`);
-
-      // If there's an active vehicle assignment, end it
-      if (entryToUpdate.driver_id) {
-        console.log(`[Vehicle Unassign] Checking for active vehicle assignments with vehicle_id: ${entryToUpdate.vehicle_id}`);
-        
-        const { data: assignments, error: assignmentQueryError } = await supabase
-          .from('vehicle_assignments')
-          .select('*')
-          .eq('vehicle_id', entryToUpdate.vehicle_id)
-          .eq('status', 'active');
-        
-        if (assignmentQueryError) {
-          console.error(`[Vehicle Unassign] Error querying vehicle assignments:`, assignmentQueryError);
-        } else if (assignments && assignments.length > 0) {
-          console.log(`[Vehicle Unassign] Found ${assignments.length} active assignments to end`);
-          
-          for (const assignment of assignments) {
-            const { error: assignmentError } = await supabase
-              .from('vehicle_assignments')
-              .update({
-                status: 'inactive',
-                end_date: new Date().toISOString()
-              })
-              .eq('id', assignment.id);
-
-            if (assignmentError) {
-              console.error(`[Vehicle Unassign] Error ending vehicle assignment ${assignment.id}:`, assignmentError);
-            } else {
-              console.log(`[Vehicle Unassign] Successfully ended vehicle assignment ${assignment.id}`);
-            }
-          }
-        } else {
-          console.log(`[Vehicle Unassign] No active vehicle assignments found`);
-        }
-      }
-
-      // Update local state
-      setDispatchEntries(prev => prev.map(entry => 
-        entry.id === dispatchId 
-          ? { 
-              ...entry, 
-              vehicle_id: null
-            } 
-          : entry
-      ));
-
-      toast({
-        title: "Success",
-        description: t("dispatch.messages.vehicleUnassigned", { defaultValue: "Vehicle has been unassigned" }),
-      });
-    } catch (error) {
-      console.error("[Vehicle Unassign] Error in handleUnassignVehicle:", error);
-      toast({
-        title: "Error",
-        description: "Failed to unassign vehicle",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAssignVehicle = async (dispatchId: string, vehicleId: string) => {
-    const supabase = createClient();
-    try {
-      const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
-      if (!entryToUpdate) throw new Error("Dispatch entry not found");
-
-      console.log(`[Vehicle Assign] Starting assignment for dispatch ${dispatchId}`, { 
-        newVehicleId: vehicleId, 
-        currentVehicleId: entryToUpdate.vehicle_id,
-        bookingId: entryToUpdate.booking_id,
-        hasDriver: !!entryToUpdate.driver_id
-      });
-
-      // If there's already a vehicle assigned, unassign it first
-      if (entryToUpdate.vehicle_id && entryToUpdate.vehicle_id !== vehicleId) {
-        console.log(`[Vehicle Assign] Unassigning previous vehicle ${entryToUpdate.vehicle_id} before assigning new one`);
-        await handleUnassignVehicle(dispatchId);
-      }
-
-      // Update the dispatch entry with the vehicle ID
-      const { data, error } = await supabase
-        .from('dispatch_entries')
-        .update({ 
-          vehicle_id: vehicleId,
-          status: entryToUpdate.driver_id ? 'assigned' : 'pending',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dispatchId)
-        .select();
-
-      if (error) {
-        console.error(`[Vehicle Assign] Error updating dispatch entry:`, error);
-        throw error;
-      }
-
-      console.log(`[Vehicle Assign] Successfully updated dispatch entry`);
-
-      // Update the booking with the vehicle ID
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update({ vehicle_id: vehicleId })
-        .eq('id', entryToUpdate.booking_id);
-
-      if (bookingError) {
-        console.error(`[Vehicle Assign] Error updating booking:`, bookingError);
-        throw bookingError;
-      }
-
-      console.log(`[Vehicle Assign] Successfully updated booking`);
-
-      // Create vehicle assignment record if a driver is assigned
-      if (entryToUpdate.driver_id) {
-        console.log(`[Vehicle Assign] Creating vehicle assignment record for driver ${entryToUpdate.driver_id} and vehicle ${vehicleId}`);
-        
-        const { error: assignmentError } = await supabase
-          .from('vehicle_assignments')
-          .insert({
-            vehicle_id: vehicleId,
-            driver_id: entryToUpdate.driver_id,
-            status: 'active',
-            start_date: new Date().toISOString(),
-            end_date: null
-          });
-
-        if (assignmentError) {
-          console.error(`[Vehicle Assign] Error creating vehicle assignment:`, assignmentError);
-          throw assignmentError;
-        }
-        
-        console.log(`[Vehicle Assign] Successfully created vehicle assignment`);
-      } else {
-        console.log(`[Vehicle Assign] No driver assigned, skipping vehicle assignment creation`);
-      }
-
-      // Update local state
-      setDispatchEntries(prev => prev.map(entry => 
-        entry.id === dispatchId 
-          ? { 
-              ...entry, 
               vehicle_id: vehicleId,
-              status: entry.driver_id ? 'assigned' : 'pending'
+              status: 'assigned' as DispatchStatus
             } 
           : entry
       ));
 
       toast({
         title: "Success",
-        description: t("dispatch.messages.vehicleAssigned"),
+        description: "Driver and vehicle assigned successfully",
       });
     } catch (error) {
-      console.error("[Vehicle Assign] Error in handleAssignVehicle:", error);
+      console.error("[Assign] Error:", error);
+      throw error;
+    }
+  };
+
+  const handleUnassign = async (dispatchId: string) => {
+    try {
+      const entryToUpdate = dispatchEntries.find(entry => entry.id === dispatchId);
+      if (!entryToUpdate) throw new Error("Dispatch entry not found");
+
+      // Use shared state handler for synchronization
+      await unassignResources(dispatchId, entryToUpdate.booking_id);
+
+      toast({
+        title: "Success",
+        description: "Driver and vehicle unassigned successfully",
+      });
+    } catch (error) {
+      console.error("[Unassign] Error:", error);
       toast({
         title: "Error",
-        description: "Failed to assign vehicle",
+        description: "Failed to unassign driver and vehicle",
         variant: "destructive",
       });
     }
   };
 
   const filterDispatchByDateRange = (entries: DispatchEntryWithRelations[]) => {
-    if (viewMode === "all") {
+    if (dateRangeFilter === "all") {
       return entries;
     }
 
-    if (viewMode === "day") {
-      const startOfDay = new Date(currentDate);
-      startOfDay.setHours(0, 0, 0, 0);
+    const now = new Date();
+    
+    return entries.filter(entry => {
+      const entryDate = new Date(entry.start_time);
       
-      const endOfDay = new Date(currentDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      return entries.filter(entry => {
-        const entryDate = new Date(entry.start_time);
-        return entryDate >= startOfDay && entryDate <= endOfDay;
-      });
-    }
-
-    if (viewMode === "week") {
-      const startOfWeek = new Date(currentDate);
-      const day = startOfWeek.getDay();
-      const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Adjust for week starting on Monday
-      startOfWeek.setDate(diff);
-      startOfWeek.setHours(0, 0, 0, 0);
-      
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      endOfWeek.setHours(23, 59, 59, 999);
-      
-      return entries.filter(entry => {
-        const entryDate = new Date(entry.start_time);
-        return entryDate >= startOfWeek && entryDate <= endOfWeek;
-      });
-    }
-
-    if (viewMode === "month") {
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999);
-      
-      return entries.filter(entry => {
-        const entryDate = new Date(entry.start_time);
-        return entryDate >= startOfMonth && entryDate <= endOfMonth;
-      });
-    }
-
-    return entries;
-  };
-
-  // Navigation functions
-  const navigatePrevious = () => {
-    if (viewMode === "month") {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(newDate.getMonth() - 1);
-      setCurrentDate(newDate);
-    } else if (viewMode === "week") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() - 7);
-      setCurrentDate(newDate);
-    } else if (viewMode === "day") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() - 1);
-      setCurrentDate(newDate);
-    }
-  };
-
-  const navigateNext = () => {
-    if (viewMode === "month") {
-      const newDate = new Date(currentDate);
-      newDate.setMonth(newDate.getMonth() + 1);
-      setCurrentDate(newDate);
-    } else if (viewMode === "week") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() + 7);
-      setCurrentDate(newDate);
-    } else if (viewMode === "day") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() + 1);
-      setCurrentDate(newDate);
-    }
-  };
-
-  const navigateToday = () => {
-    setCurrentDate(new Date());
-  };
-
-  // Format current date range for display
-  const getDateRangeDisplay = () => {
-    if (viewMode === "day") {
-      return format(currentDate, "MMMM d, yyyy");
-    } else if (viewMode === "week") {
-      const startOfWeek = new Date(currentDate);
-      const day = startOfWeek.getDay();
-      const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-      startOfWeek.setDate(diff);
-      
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      
-      if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
-        return `${format(startOfWeek, "MMMM d")} - ${format(endOfWeek, "d, yyyy")}`;
-      } else if (startOfWeek.getFullYear() === endOfWeek.getFullYear()) {
-        return `${format(startOfWeek, "MMMM d")} - ${format(endOfWeek, "MMMM d, yyyy")}`;
-      } else {
-        return `${format(startOfWeek, "MMMM d, yyyy")} - ${format(endOfWeek, "MMMM d, yyyy")}`;
+      switch (dateRangeFilter) {
+        case "today":
+          return isToday(entryDate);
+        case "week":
+          return isThisWeek(entryDate);
+        case "month":
+          return isThisMonth(entryDate);
+        default:
+          return true;
       }
-    } else if (viewMode === "month") {
-      return format(currentDate, "MMMM yyyy");
-    }
-    return "All Dates";
+    });
   };
 
   const filteredEntries = filterDispatchByDateRange(dispatchEntries.filter((entry) => {
@@ -874,11 +483,11 @@ export default function DispatchBoard() {
 
     if (searchQuery) {
       const lowerCaseQuery = searchQuery.toLowerCase();
-      const idMatch = entry.id.toLowerCase().includes(lowerCaseQuery);
-      const bookingMatch = entry.booking_id.toLowerCase().includes(lowerCaseQuery);
-      const notesMatch = entry.notes ? entry.notes.toLowerCase().includes(lowerCaseQuery) : false;
+      const customerMatch = entry.booking.customer_name?.toLowerCase().includes(lowerCaseQuery);
+      const serviceMatch = entry.booking.service_name?.toLowerCase().includes(lowerCaseQuery);
+      const idMatch = entry.booking.wp_id?.toLowerCase().includes(lowerCaseQuery);
       
-      matchesSearch = idMatch || bookingMatch || notesMatch;
+      matchesSearch = customerMatch || serviceMatch || idMatch || false;
     }
     
     if (filters.status) {
@@ -888,13 +497,18 @@ export default function DispatchBoard() {
     return matchesSearch && matchesStatus;
   }));
 
-  const hasFilters = !!Object.values(filters).some(Boolean) || !!searchQuery || viewMode !== "all";
+  const hasFilters = !!Object.values(filters).some(Boolean) || !!searchQuery || dateRangeFilter !== "all";
 
   const clearFilters = () => {
     setFilters({});
     setSearchQuery("");
+    setDateRangeFilter("all");
     setViewMode("all");
   };
+
+  // Calculate counts for the summary cards
+  const pendingCount = filteredEntries.filter(e => e.status === 'pending').length;
+  const assignedCount = filteredEntries.filter(e => e.status === 'assigned' || e.status === 'confirmed').length;
 
   if (isLoading) {
     return (
@@ -905,24 +519,90 @@ export default function DispatchBoard() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+    <div className="h-full flex flex-col space-y-6 p-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="border border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <UserIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-foreground">{availableDriverCount}/{totalDrivers}</p>
+                <p className="text-sm text-muted-foreground">Available Drivers</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <CarIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-foreground">{availableVehicleCount}/{totalVehicles}</p>
+                <p className="text-sm text-muted-foreground">Available Vehicles</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <CheckIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-foreground">{assignedCount}</p>
+                <p className="text-sm text-muted-foreground">Assigned</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-auto">
             <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search dispatch entries..."
-              className="w-full sm:w-[250px] pl-8"
+              placeholder="Search by customer, service, or booking ID..."
+              className="w-full sm:w-[300px] pl-8 bg-background border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
+          {/* Date Filter */}
+          <Select value={dateRangeFilter} onValueChange={handleDateFilterChange}>
+            <SelectTrigger className="w-full sm:w-auto bg-background border-border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Status Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full sm:w-auto">
-                {filters.status ? sentenceCase(filters.status) : 'All Entries'}
+              <Button variant="outline" className="w-full sm:w-auto bg-background border-border">
+                {filters.status ? sentenceCase(filters.status) : 'All Status'}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -930,11 +610,11 @@ export default function DispatchBoard() {
               <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuRadioGroup value={filters.status || 'all'} onValueChange={(value) => handleStatusFilterChange(value === 'all' ? undefined : value as DispatchStatus)}>
-                <DropdownMenuRadioItem value="all">All Entries</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="all">All Status</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="pending">Pending</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="confirmed">Confirmed</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="assigned">Assigned</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="in_transit">In Transit</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="en_route">En Route</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="completed">Completed</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="cancelled">Cancelled</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
@@ -971,76 +651,35 @@ export default function DispatchBoard() {
         </div>
       </div>
       
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <Tabs 
-          value={view} 
-          onValueChange={(value) => setView(value as "board" | "calendar")} 
-          className="flex-1 flex flex-col"
+      {/* Main Content */}
+      <Tabs 
+        value={view} 
+        onValueChange={(value) => setView(value as "board" | "calendar")} 
+        className="flex-1 flex flex-col"
+      >
+        <TabsContent 
+          value="board" 
+          className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
         >
-          <TabsContent 
-            value="board" 
-            className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
-          >
-            <div className="flex items-center justify-between mb-4 bg-card rounded-md p-2 border">
-              <select
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value as "all" | "day" | "week" | "month")}
-                className="bg-background border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                aria-label="View mode"
-              >
-                <option value="all">All Dates</option>
-                <option value="day">Day</option>
-                <option value="week">Week</option>
-                <option value="month">Month</option>
-              </select>
-              
-              {viewMode !== "all" && (
-                <div className="flex items-center gap-1 ml-2">
-                  <Button variant="outline" size="icon" onClick={navigatePrevious} className="h-8 w-8">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" onClick={navigateToday} className="h-8 px-2 text-xs sm:text-sm">Today</Button>
-                  <Button variant="outline" size="icon" onClick={navigateNext} className="h-8 w-8">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              
-              {viewMode !== "all" && (
-                <h2 className="text-sm sm:text-base font-medium flex items-center gap-1 whitespace-nowrap ml-1">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>{getDateRangeDisplay()}</span>
-                </h2>
-              )}
-              
-              <div className="flex-1"></div>
-            </div>
-            
-            <DispatchBoardView 
-              entries={filteredEntries} 
-              onAssignDriver={handleAssignDriver}
-              onAssignVehicle={handleAssignVehicle}
-              onUnassignVehicle={handleUnassignVehicle}
-              availableDrivers={availableDrivers}
-              availableVehicles={availableVehicles}
-            />
-          </TabsContent>
-          <TabsContent 
-            value="calendar" 
-            className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
-          >
-            <DispatchCalendarView 
-              entries={filteredEntries} 
-              currentDate={currentDate} 
-              setCurrentDate={setCurrentDate} 
-            />
-          </TabsContent>
-        </Tabs>
-      )}
+          <DispatchBoardView 
+            entries={filteredEntries} 
+            onQuickAssign={handleQuickAssign}
+            onUnassign={handleUnassign}
+            availableDrivers={availableDrivers}
+            availableVehicles={availableVehicles}
+          />
+        </TabsContent>
+        <TabsContent 
+          value="calendar" 
+          className="flex-1 data-[state=active]:flex data-[state=active]:flex-col mt-0"
+        >
+          <DispatchCalendarView 
+            entries={filteredEntries} 
+            currentDate={currentDate} 
+            setCurrentDate={setCurrentDate} 
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 } 

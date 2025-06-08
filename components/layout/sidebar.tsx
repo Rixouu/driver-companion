@@ -34,7 +34,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'reporting' | 'settings'
 
 // Interface for menu items
 interface MenuItem {
@@ -54,6 +54,7 @@ interface MenuSettings {
   quotations: { desktop: boolean; mobile: boolean };
   pricing: { desktop: boolean; mobile: boolean };
   dispatch: { desktop: boolean; mobile: boolean };
+  assignments: { desktop: boolean; mobile: boolean };
   maintenance: { desktop: boolean; mobile: boolean };
   inspections: { desktop: boolean; mobile: boolean };
   reporting: { desktop: boolean; mobile: boolean };
@@ -69,6 +70,7 @@ const defaultMenuSettings: MenuSettings = {
   quotations: { desktop: true, mobile: true },
   pricing: { desktop: true, mobile: true },
   dispatch: { desktop: true, mobile: true },
+  assignments: { desktop: true, mobile: true },
   maintenance: { desktop: true, mobile: true },
   inspections: { desktop: true, mobile: true },
   reporting: { desktop: true, mobile: true },
@@ -190,6 +192,7 @@ export function Sidebar() {
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" } as MenuItem,
+        { icon: ClipboardCheck, label: "Assignments", href: "/dispatch/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
         { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" } as MenuItem

@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   MapIcon,
   Grid3X3Icon,
   SearchIcon,
@@ -36,10 +36,14 @@ import {
   ClockIcon,
   MapPinIcon,
   SettingsIcon,
-  ListIcon
+  ListIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FilterIcon
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { toast } from '@/components/ui/use-toast';
+import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
 import { cn } from '@/lib/utils/styles';
 import { createClient } from '@/lib/supabase';
 import { format, parseISO } from 'date-fns';
@@ -51,14 +55,18 @@ import { useRouter } from 'next/navigation';
 interface BookingListItemProps {
   booking: any;
   isSelected: boolean;
+  isExpanded: boolean;
   onClick: () => void;
+  onToggleExpand: () => void;
 }
 
-function BookingListItem({ booking, isSelected, onClick }: BookingListItemProps) {
+function BookingListItem({ booking, isSelected, isExpanded, onClick, onToggleExpand }: BookingListItemProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'assigned': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'confirmed': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'en_route': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -68,20 +76,35 @@ function BookingListItem({ booking, isSelected, onClick }: BookingListItemProps)
   return (
     <div 
       className={cn(
-        "p-3 border-l-4 cursor-pointer hover:bg-muted/50 transition-colors",
-        isSelected ? "bg-primary/5 border-l-primary" : "border-l-transparent",
-        getStatusColor(booking.status)
+        "border-l-4 cursor-pointer hover:bg-muted/50 transition-colors rounded-r-md",
+        isSelected ? "bg-primary/5 border-l-primary" : "border-l-transparent"
       )}
-      onClick={onClick}
     >
-      <div className="space-y-2">
+      <div className="p-3 space-y-2" onClick={onClick}>
         <div className="flex items-center justify-between">
           <span className="font-medium text-sm">
             #{booking.wp_id || booking.id.substring(0, 8)}
           </span>
-          <span className="text-xs text-muted-foreground">
-            {format(parseISO(`${booking.date}T${booking.time}`), "HH:mm")}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {format(parseISO(`${booking.date}T${booking.time}`), "HH:mm")}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDownIcon className="h-3 w-3" />
+              ) : (
+                <ChevronRightIcon className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
         </div>
         
         <div>
@@ -91,7 +114,7 @@ function BookingListItem({ booking, isSelected, onClick }: BookingListItemProps)
 
         <div className="flex items-center justify-between">
           <Badge variant="outline" className={cn("text-xs", getStatusColor(booking.status))}>
-            {booking.status}
+            {booking.status.replace('_', ' ')}
           </Badge>
           <div className="flex items-center gap-1">
             {booking.driver_id && <UserIcon className="h-3 w-3 text-green-600" />}
@@ -99,6 +122,40 @@ function BookingListItem({ booking, isSelected, onClick }: BookingListItemProps)
           </div>
         </div>
       </div>
+
+      {isExpanded && (
+        <div className="px-3 pb-3 pt-0 space-y-2 border-t bg-muted/20">
+          {booking.pickup_location && (
+            <div className="flex items-center gap-2 text-xs">
+              <MapPinIcon className="h-3 w-3 text-muted-foreground" />
+              <span className="truncate">{booking.pickup_location}</span>
+            </div>
+          )}
+          {booking.customer_phone && (
+            <div className="flex items-center gap-2 text-xs">
+              <PhoneIcon className="h-3 w-3 text-muted-foreground" />
+              <span>{booking.customer_phone}</span>
+            </div>
+          )}
+          {booking.notes && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Notes:</span> {booking.notes}
+            </div>
+          )}
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" className="h-6 text-xs flex-1">
+              <EyeIcon className="h-3 w-3 mr-1" />
+              View
+            </Button>
+            {booking.customer_phone && (
+              <Button size="sm" variant="outline" className="h-6 text-xs flex-1">
+                <PhoneIcon className="h-3 w-3 mr-1" />
+                Call
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -110,20 +167,61 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
 }) {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [sidebarFilter, setSidebarFilter] = useState<'all' | 'pending' | 'assigned' | 'confirmed' | 'en_route' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [selectedAssignment, setSelectedAssignment] = useState<DispatchEntryWithRelations | null>(null);
   const router = useRouter();
 
   const handleBookingSelect = (booking: any) => {
     if (!booking) return;
     setSelectedBookingId(booking.id);
-    // Find the assignment for this booking
+    // Find the assignment and trigger route display
     const assignment = assignments.find(a => a.booking_id === booking.id);
     if (assignment) {
+      setSelectedAssignment(assignment);
       onAssignmentSelect(assignment);
+      toast({
+        title: "Route Display",
+        description: `Showing route for booking #${booking.wp_id || booking.id?.substring(0, 8)}`,
+      });
     }
   };
 
-  // Convert assignments to bookings for the sidebar
-  const bookings = assignments.filter(a => a.booking).map(a => a.booking!);
+  const toggleCardExpansion = (bookingId: string) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bookingId)) {
+        newSet.delete(bookingId);
+      } else {
+        newSet.add(bookingId);
+      }
+      return newSet;
+    });
+  };
+
+  // Convert assignments to bookings for the sidebar, ensuring unique entries
+  const allBookings = assignments
+    .filter(a => a.booking)
+    .reduce((unique, assignment) => {
+      const booking = assignment.booking!;
+      if (!unique.find(b => b.id === booking.id)) {
+        unique.push({ ...booking, status: assignment.status }); // Use dispatch status
+      }
+      return unique;
+    }, [] as any[]);
+
+  // Filter bookings based on search and status filter
+  const bookings = allBookings.filter(booking => {
+    const matchesSearch = !searchQuery || 
+      booking.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.wp_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.service_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = sidebarFilter === 'all' || booking.status === sidebarFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="flex h-full">
@@ -133,7 +231,36 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">Today's Bookings</h3>
-              <Badge variant="secondary">{bookings.length}</Badge>
+              <Badge variant="secondary">{bookings.length} / {allBookings.length}</Badge>
+            </div>
+            
+            {/* Search */}
+            <div className="relative mb-3">
+              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search bookings..."
+                className="pl-8 h-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            {/* Filter */}
+            <div className="mb-3">
+              <Select value={sidebarFilter} onValueChange={(value: any) => setSidebarFilter(value)}>
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="assigned">Assigned</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="en_route">En Route</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="flex gap-2">
@@ -144,14 +271,15 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
                 onClick={() => router.push('/dispatch/assignments')}
               >
                 <SettingsIcon className="h-4 w-4 mr-1" />
-                Manage
+                Assignments
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setShowSidebar(false)}
+                title="Hide Panel"
               >
-                <ListIcon className="h-4 w-4" />
+                <ChevronRightIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -163,7 +291,9 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
                   key={booking.id}
                   booking={booking}
                   isSelected={selectedBookingId === booking.id}
+                  isExpanded={expandedCards.has(booking.id)}
                   onClick={() => handleBookingSelect(booking)}
+                  onToggleExpand={() => toggleCardExpansion(booking.id)}
                 />
               ))}
             </div>
@@ -177,8 +307,9 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
           <Button
             size="sm"
             variant="outline"
-            className="absolute top-4 left-4 z-10"
+            className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-sm border-2 dark:bg-gray-900/90 shadow-lg"
             onClick={() => setShowSidebar(true)}
+            title="Show Panel"
           >
             <ListIcon className="h-4 w-4 mr-1" />
             Show List
@@ -187,6 +318,7 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
         
         <DispatchMap
           assignments={assignments}
+          selectedAssignment={selectedAssignment}
           onAssignmentSelect={onAssignmentSelect}
           onVehicleSelect={onVehicleSelect}
           className="h-full"
@@ -205,6 +337,9 @@ export default function RealTimeDispatchCenter() {
   const [statusFilter, setStatusFilter] = useState<DispatchStatus | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Shared dispatch state for cross-component synchronization
+  const { lastUpdate, updateDispatchStatus, updateAssignment, unassignResources } = useSharedDispatchState();
 
   const loadDispatchData = async () => {
     setIsLoading(true);
@@ -316,6 +451,28 @@ export default function RealTimeDispatchCenter() {
     }
   };
 
+  const handleUnassign = async (dispatchId: string) => {
+    try {
+      const entry = assignments.find(e => e.id === dispatchId);
+      if (!entry) throw new Error("Dispatch entry not found");
+
+      // Use shared state handler for synchronization
+      await unassignResources(dispatchId, entry.booking_id);
+
+      toast({
+        title: "Success",
+        description: "Driver and vehicle unassigned successfully",
+      });
+    } catch (error) {
+      console.error('Error unassigning:', error);
+      toast({
+        title: "Error",
+        description: "Failed to unassign driver and vehicle",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredAssignments = assignments.filter(assignment => {
     const booking = assignment.booking;
     if (!booking) return false;
@@ -337,7 +494,7 @@ export default function RealTimeDispatchCenter() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [lastUpdate]); // Re-load when shared state updates
 
   return (
     <div className="flex flex-col h-full">
@@ -417,12 +574,17 @@ export default function RealTimeDispatchCenter() {
             <DispatchBoardView
               entries={filteredAssignments}
               onStatusChange={handleUpdateStatus}
+              onUnassign={handleUnassign}
             />
           </div>
         ) : (
           <MapViewWithSidebar
             assignments={filteredAssignments}
-            onAssignmentSelect={(assignment) => handleViewDetails(assignment.id)}
+            onAssignmentSelect={(assignment) => {
+              // For map view, just show a toast - the route will be handled by the map component
+              // when booking markers are clicked (if they were implemented with geocoding)
+              console.log('Assignment selected for route display:', assignment);
+            }}
             onVehicleSelect={(vehicleId) => {
               toast({
                 title: "Vehicle Selected",

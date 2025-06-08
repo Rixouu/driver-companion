@@ -503,6 +503,18 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                                 <td>${serviceDays}</td>
                               </tr>
                               ` : ''}
+                              ${quotation.selected_package_name ? `
+                              <tr>
+                                <th>${isJapanese ? 'パッケージ:' : 'PACKAGE'}</th>
+                                <td>${quotation.selected_package_name}</td>
+                              </tr>
+                              ` : ''}
+                              ${quotation.selected_promotion_name ? `
+                              <tr>
+                                <th>${isJapanese ? 'プロモーション:' : 'PROMOTION'}</th>
+                                <td>${quotation.selected_promotion_name}</td>
+                              </tr>
+                              ` : ''}
                             </table>`
                         }
                       </td>
@@ -569,6 +581,54 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '基本料金' : 'Base Amount'}</td>
                             <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(baseAmount)}</td>
                           </tr>
+                          ${(() => {
+                            // Time-based pricing adjustment
+                            const timeBasedAdjustment = quotation.time_based_adjustment || 0;
+                            if (timeBasedAdjustment !== 0) {
+                              const adjustmentPercentage = baseAmount !== 0 ? ((timeBasedAdjustment / baseAmount) * 100).toFixed(1) : '0';
+                              const isPositive = timeBasedAdjustment > 0;
+                              return `
+                              <tr>
+                                <td style="color: ${isPositive ? '#3b82f6' : '#10b981'};">
+                                  ${isJapanese ? `時間帯調整 (${isPositive ? '+' : ''}${adjustmentPercentage}%)` : `Time-based Adjustment (${isPositive ? '+' : ''}${adjustmentPercentage}%)`}
+                                </td>
+                                <td align="right" style="color: ${isPositive ? '#3b82f6' : '#10b981'};">
+                                  ${isPositive ? '+' : ''}${formatCurrency(timeBasedAdjustment)}
+                                </td>
+                              </tr>`;
+                            }
+                            return '';
+                          })()}
+                          ${(() => {
+                            // Package discount
+                            if (quotation.selected_package_id && quotation.package_discount) {
+                              return `
+                              <tr>
+                                <td style="color: #3b82f6;">
+                                  ${isJapanese ? 'パッケージ割引' : 'Package Discount'}
+                                </td>
+                                <td align="right" style="color: #3b82f6;">
+                                  -${formatCurrency(quotation.package_discount)}
+                                </td>
+                              </tr>`;
+                            }
+                            return '';
+                          })()}
+                          ${(() => {
+                            // Promotion discount
+                            if (quotation.selected_promotion_id && quotation.promotion_discount) {
+                              return `
+                              <tr>
+                                <td style="color: #10b981;">
+                                  ${isJapanese ? 'プロモーション割引' : 'Promotion Discount'}
+                                </td>
+                                <td align="right" style="color: #10b981;">
+                                  -${formatCurrency(quotation.promotion_discount)}
+                                </td>
+                              </tr>`;
+                            }
+                            return '';
+                          })()}
                           ${hasDiscount ? `
                           <tr>
                             <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>

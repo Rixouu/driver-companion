@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { GoogleMap, useLoadScript, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,7 @@ const libraries: Array<"places" | "geometry" | "drawing"> = ["places", "geometry
 
 interface DispatchMapProps {
   assignments: DispatchEntryWithRelations[];
+  selectedAssignment?: DispatchEntryWithRelations | null;
   onAssignmentSelect: (assignment: DispatchEntryWithRelations) => void;
   onVehicleSelect: (vehicleId: string) => void;
   className?: string;
@@ -71,7 +72,8 @@ interface MarkerData {
 }
 
 export default function DispatchMap({ 
-  assignments, 
+  assignments,
+  selectedAssignment,
   onAssignmentSelect, 
   onVehicleSelect,
   className 
@@ -104,6 +106,9 @@ export default function DispatchMap({
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<google.maps.DirectionsResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Ref to track current route request to prevent race conditions
+  const currentRouteRequest = useRef<string | null>(null);
   
   // Real-time tracking
   const { 
@@ -206,15 +211,26 @@ export default function DispatchMap({
     if (marker.type === 'vehicle' && marker.data.vehicle_id) {
       onVehicleSelect(marker.data.vehicle_id);
     } else if ((marker.type === 'pickup' || marker.type === 'dropoff') && marker.data) {
-      onAssignmentSelect(marker.data);
+      // Show route for this assignment instead of navigating
+      showRoute(marker.data);
     }
   };
 
-  // Show route between pickup and dropoff
+  // This will be moved after showRoute definition
+
+  // Show route between pickup and dropoff with smooth animation
   const showRoute = useCallback(async (assignment: DispatchEntryWithRelations) => {
     if (!map || !assignment.booking?.pickup_location || !assignment.booking?.dropoff_location) return;
 
+    // Create unique request ID to prevent race conditions
+    const requestId = assignment.id;
+    currentRouteRequest.current = requestId;
+
     setIsLoading(true);
+    
+    // Clear any existing route immediately to prevent flickering
+    setSelectedRoute(null);
+    
     try {
       const directionsService = new google.maps.DirectionsService();
       
@@ -223,21 +239,67 @@ export default function DispatchMap({
         destination: assignment.booking.dropoff_location,
         travelMode: google.maps.TravelMode.DRIVING,
         avoidHighways: false,
-        avoidTolls: false
+        avoidTolls: false,
+        optimizeWaypoints: true
       });
 
-      setSelectedRoute(result);
+      // Only set the route if this is still the current request
+      if (currentRouteRequest.current === requestId) {
+        setSelectedRoute(result);
+        
+        // Small delay before fitting bounds to ensure route is rendered
+        requestAnimationFrame(() => {
+          if (currentRouteRequest.current === requestId && result.routes[0]?.bounds) {
+            map.fitBounds(result.routes[0].bounds, {
+              top: 50,
+              right: 50,
+              bottom: 50,
+              left: 50
+            });
+          }
+        });
+        
+        // Show success message
+        toast({
+          title: "Route Displayed",
+          description: `Route from ${assignment.booking.pickup_location} to ${assignment.booking.dropoff_location}`,
+        });
+      }
+
     } catch (error) {
       console.error('Error calculating route:', error);
-      toast({
-        title: "Route Error",
-        description: "Failed to calculate route",
-        variant: "destructive",
-      });
+      if (currentRouteRequest.current === requestId) {
+        toast({
+          title: "Route Error",
+          description: "Unable to calculate route between the specified locations",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (currentRouteRequest.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [map]);
+
+  // Handle assignment selection from sidebar
+  useEffect(() => {
+    if (selectedAssignment && selectedAssignment.booking?.pickup_location && selectedAssignment.booking?.dropoff_location) {
+      // Show route for the selected assignment
+      showRoute(selectedAssignment);
+    } else if (selectedAssignment && (!selectedAssignment.booking?.pickup_location || !selectedAssignment.booking?.dropoff_location)) {
+      // Clear route if assignment doesn't have valid locations
+      setSelectedRoute(null);
+      toast({
+        title: "Route Unavailable", 
+        description: "This booking doesn't have pickup and dropoff locations specified",
+        variant: "destructive",
+      });
+    } else if (!selectedAssignment) {
+      // Clear route when no assignment is selected
+      setSelectedRoute(null);
+    }
+  }, [selectedAssignment, showRoute]);
 
   // Auto-center map to show all markers
   const centerMapToMarkers = useCallback(() => {
@@ -310,13 +372,14 @@ export default function DispatchMap({
     <div className={cn("relative h-full", className)}>
       {/* Map Controls */}
       <div className="absolute top-4 left-4 z-10 space-y-2">
-        <Card className="p-2">
+        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={centerMapToMarkers}
               disabled={markers.length === 0}
+              className="bg-background/90 backdrop-blur-sm border-primary/30"
             >
               <NavigationIcon className="h-4 w-4" />
             </Button>
@@ -327,7 +390,7 @@ export default function DispatchMap({
                 setMapSettings(prev => ({ ...prev, map_type: value as any }))
               }
             >
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-24 bg-background/90 backdrop-blur-sm border-primary/30">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -338,12 +401,12 @@ export default function DispatchMap({
               </SelectContent>
             </Select>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-3">
+        <div className="border-2 border-primary/20 rounded-lg p-3 backdrop-blur-sm">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="traffic" className="text-sm">Traffic</Label>
+              <Label htmlFor="traffic" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.traffic')}</Label>
               <Switch
                 id="traffic"
                 checked={mapSettings.show_traffic}
@@ -354,7 +417,7 @@ export default function DispatchMap({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="vehicles" className="text-sm">Vehicles</Label>
+              <Label htmlFor="vehicles" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.vehicles')}</Label>
               <Switch
                 id="vehicles"
                 checked={mapSettings.show_vehicle_icons}
@@ -365,7 +428,7 @@ export default function DispatchMap({
             </div>
             
             <div className="flex items-center justify-between">
-              <Label htmlFor="routes" className="text-sm">Routes</Label>
+              <Label htmlFor="routes" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.routes')}</Label>
               <Switch
                 id="routes"
                 checked={mapSettings.show_routes}
@@ -376,7 +439,7 @@ export default function DispatchMap({
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="auto-center" className="text-sm">Auto Center</Label>
+              <Label htmlFor="auto-center" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.autoCenter')}</Label>
               <Switch
                 id="auto-center"
                 checked={mapSettings.auto_center}
@@ -386,23 +449,45 @@ export default function DispatchMap({
               />
             </div>
           </div>
-        </Card>
+        </div>
+
+        {/* Route Controls */}
+        {selectedRoute && (
+          <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                currentRouteRequest.current = null;
+                setSelectedRoute(null);
+                toast({
+                  title: "Route Cleared",
+                  description: "Route has been removed from the map",
+                });
+              }}
+              className="bg-background/90 backdrop-blur-sm border-primary/30 text-foreground"
+            >
+              <EyeOffIcon className="h-4 w-4 mr-1" />
+              Clear Route
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Map Status */}
       <div className="absolute top-4 right-4 z-10">
-        <Card className="p-2">
-          <div className="flex items-center gap-2 text-sm">
+        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             <div className={cn(
               "w-2 h-2 rounded-full",
               isTracking ? "bg-green-500" : "bg-gray-400"
             )} />
-            <span>{isTracking ? 'Live Tracking' : 'Offline'}</span>
-            <Badge variant="outline">
+            <span>{isTracking ? t('dispatch.mapView.liveTracking') : t('dispatch.mapView.offline')}</span>
+            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/30">
               {markers.filter(m => m.type === 'vehicle').length} vehicles
             </Badge>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Google Map */}
@@ -491,11 +576,18 @@ export default function DispatchMap({
           <DirectionsRenderer
             directions={selectedRoute}
             options={{
-              suppressMarkers: true,
+              suppressMarkers: false,
+              suppressInfoWindows: false,
+              draggable: false,
               polylineOptions: {
-                strokeColor: '#2563eb',
-                strokeWeight: 4,
-                strokeOpacity: 0.8
+                strokeColor: '#3b82f6',
+                strokeWeight: 5,
+                strokeOpacity: 0.8,
+                geodesic: true
+              },
+              markerOptions: {
+                draggable: false,
+                clickable: true
               }
             }}
           />

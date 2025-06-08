@@ -1362,43 +1362,106 @@ export type Database = {
           description: string | null
           id: string
           is_included_in_base: boolean
+          is_optional: boolean | null
           item_type: string
           name: string
           package_id: string
           price: number
+          price_override: number | null
+          pricing_item_id: string | null
           quantity: number
+          service_type_id: string | null
           sort_order: number
           updated_at: string
+          vehicle_type: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
           is_included_in_base?: boolean
+          is_optional?: boolean | null
           item_type: string
           name: string
           package_id: string
           price: number
+          price_override?: number | null
+          pricing_item_id?: string | null
           quantity?: number
+          service_type_id?: string | null
           sort_order?: number
           updated_at?: string
+          vehicle_type?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
           is_included_in_base?: boolean
+          is_optional?: boolean | null
           item_type?: string
           name?: string
           package_id?: string
           price?: number
+          price_override?: number | null
+          pricing_item_id?: string | null
           quantity?: number
+          service_type_id?: string | null
           sort_order?: number
           updated_at?: string
+          vehicle_type?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "fk_pricing_item_id"
+            columns: ["pricing_item_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_items"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pricing_package_items_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_package_services: {
+        Row: {
+          duration_hours: number | null
+          id: string
+          included_price: number | null
+          package_id: string
+          service_type_id: string
+          service_type_name: string
+          sort_order: number | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          duration_hours?: number | null
+          id?: string
+          included_price?: number | null
+          package_id: string
+          service_type_id: string
+          service_type_name: string
+          sort_order?: number | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          duration_hours?: number | null
+          id?: string
+          included_price?: number | null
+          package_id?: string
+          service_type_id?: string
+          service_type_name?: string
+          sort_order?: number | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_package_services_package_id_fkey"
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "pricing_packages"

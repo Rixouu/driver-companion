@@ -119,110 +119,93 @@ export function QuotationActivityFeed({
   const hasMoreEntries = filteredActivities.length > visibleActivities.length;
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-center mb-4">
-          <CardTitle className="text-xl font-medium">
-            {t('quotations.details.activities') || 'Activity Feed'}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onRefresh}
-            title={t('quotations.activities.refresh') || "Refresh"}
-            className="h-8 w-8"
+    <div className="space-y-4">
+      <div className="flex justify-between space-x-2 py-2">
+        <div className="flex space-x-2">
+          <Button 
+            variant={filterType === 'all' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setFilterType('all')}
+            className="text-sm px-3 h-9"
           >
-            <RefreshCw className="h-4 w-4" />
+            {t('quotations.activities.filters.all') || "All Activities"}
+          </Button>
+          <Button 
+            variant={filterType === 'updates' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setFilterType('updates')}
+            className="text-sm px-3 h-9"
+          >
+            {t('quotations.activities.filters.updates') || "Updates"}
+          </Button>
+          <Button 
+            variant={filterType === 'messages' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setFilterType('messages')}
+            className="text-sm px-3 h-9"
+          >
+            {t('quotations.activities.filters.messages') || "Messages"}
           </Button>
         </div>
-        <div className="flex justify-between space-x-2 py-2">
-          <div className="flex space-x-2">
-            <Button 
-              variant={filterType === 'all' ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setFilterType('all')}
-              className="text-sm px-3 h-9"
-            >
-              {t('quotations.activities.filters.all') || "All Activities"}
-            </Button>
-            <Button 
-              variant={filterType === 'updates' ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setFilterType('updates')}
-              className="text-sm px-3 h-9"
-            >
-              {t('quotations.activities.filters.updates') || "Updates"}
-            </Button>
-            <Button 
-              variant={filterType === 'messages' ? "default" : "outline"} 
-              size="sm" 
-              onClick={() => setFilterType('messages')}
-              className="text-sm px-3 h-9"
-            >
-              {t('quotations.activities.filters.messages') || "Messages"}
-            </Button>
+      </div>
+      
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[200px]" />
+                  <Skeleton className="h-3 w-[100px]" />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <Skeleton className="h-6 w-6 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[200px]" />
-                    <Skeleton className="h-3 w-[100px]" />
-                  </div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="py-6 text-center text-muted-foreground text-sm">
+            <AlertCircle className="h-5 w-5 mx-auto mb-2 opacity-50" />
+            <p>{filterType === 'all' 
+              ? (t('quotations.activities.empty.all') || 'No activities recorded yet') 
+              : filterType === 'updates'
+                ? (t('quotations.activities.empty.updates') || 'No updates found')
+                : (t('quotations.activities.empty.messages') || 'No messages found')}
+            </p>
+          </div>
+        ) : (
+          <>
+            {visibleActivities.map((activity) => (
+              <div key={activity.id} className="flex items-start gap-3 pb-4 mb-2 border-b last:border-b-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                  {getActivityIcon(activity.action)}
                 </div>
-              ))}
-            </div>
-          ) : filteredActivities.length === 0 ? (
-            <div className="py-6 text-center text-muted-foreground text-sm">
-              <AlertCircle className="h-5 w-5 mx-auto mb-2 opacity-50" />
-              <p>{filterType === 'all' 
-                ? (t('quotations.activities.empty.all') || 'No activities recorded yet') 
-                : filterType === 'updates'
-                  ? (t('quotations.activities.empty.updates') || 'No updates found')
-                  : (t('quotations.activities.empty.messages') || 'No messages found')}
-              </p>
-            </div>
-          ) : (
-            <>
-              {visibleActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 pb-4 mb-2 border-b last:border-b-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                    {getActivityIcon(activity.action)}
-                  </div>
-                  <div className="grid gap-1">
-                    <p className="text-sm font-medium leading-none">
-                      {getActivityText(activity)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    {getActivityText(activity)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                  </p>
                 </div>
-              ))}
-              
-              {hasMoreEntries && (
-                <div className="pt-4 text-center">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleLoadMore}
-                    className="text-sm"
-                  >
-                    {t('quotations.activities.loadMore', { count: (filteredActivities.length - visibleActivities.length).toString() }) || 
-                      `Load More (${filteredActivities.length - visibleActivities.length} more)`}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              </div>
+            ))}
+            
+            {hasMoreEntries && (
+              <div className="pt-4 text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleLoadMore}
+                  className="text-sm"
+                >
+                  {t('quotations.activities.loadMore', { count: (filteredActivities.length - visibleActivities.length).toString() }) || 
+                    `Load More (${filteredActivities.length - visibleActivities.length} more)`}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 } 

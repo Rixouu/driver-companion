@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 
 // Import types
@@ -73,6 +74,7 @@ export function ServiceSelectionStep({
   const [isCalculating, setIsCalculating] = useState(false);
   const [isEditingService, setIsEditingService] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
 
   // Watch form values
   const serviceType = form.watch('service_type');
@@ -138,6 +140,39 @@ export function ServiceSelectionStep({
     return `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
+  // Calculate time-based adjustment function
+  const calculateTimeBasedAdjustment = (pickupTime: string, pickupDate?: Date) => {
+    if (!pickupTime) return { adjustment: 0, ruleName: null };
+    
+    const hour = parseInt(pickupTime.split(':')[0]);
+    const minute = parseInt(pickupTime.split(':')[1] || '0');
+    const timeInMinutes = hour * 60 + minute;
+    
+    // Convert pickup date to day of week
+    const dayOfWeek = pickupDate ? 
+      ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][pickupDate.getDay()] :
+      'monday'; // default to monday if no date
+    
+    // Check Overtime rule: 22:00-06:00, all days, +25%
+    const overtimeStart = 22 * 60; // 22:00 in minutes
+    const overtimeEnd = 6 * 60; // 06:00 in minutes
+    
+    if (timeInMinutes >= overtimeStart || timeInMinutes <= overtimeEnd) {
+      return { adjustment: 25, ruleName: 'Overtime' };
+    }
+    
+    // Check Morning Happy Hours: 06:00-08:00, weekdays, -25%
+    const morningStart = 6 * 60; // 06:00 in minutes
+    const morningEnd = 8 * 60; // 08:00 in minutes
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    
+    if (timeInMinutes >= morningStart && timeInMinutes < morningEnd && weekdays.includes(dayOfWeek)) {
+      return { adjustment: -25, ruleName: 'Morning Happy Hours' };
+    }
+    
+    return { adjustment: 0, ruleName: null };
+  };
+
   // Handle package selection
   const handlePackageSelect = (pkg: PricingPackage) => {
     if (selectedPackage?.id === pkg.id) {
@@ -164,6 +199,19 @@ export function ServiceSelectionStep({
     try {
       setIsCalculating(true);
 
+      // No time-based pricing for packages
+      const { adjustment: timeBasedAdjustment, ruleName } = { adjustment: 0, ruleName: null };
+      const adjustedPackagePrice = pkg.base_price;
+
+      // Create description with included services
+      let packageDescription = `Package: ${pkg.name}`;
+      if (pkg.items && pkg.items.length > 0) {
+        const serviceNames = pkg.items.map(item => item.name).join(', ');
+        packageDescription = `${pkg.name} (${serviceNames})`;
+      } else if (pkg.description) {
+        packageDescription = `${pkg.name} - ${pkg.description}`;
+      }
+
       const newPackageItem: ServiceItemInput = {
         service_type_id: pkg.id,
         service_type_name: pkg.name,
@@ -172,14 +220,16 @@ export function ServiceSelectionStep({
         duration_hours: 1,
         unit_price: pkg.base_price,
         quantity: 1,
-        total_price: pkg.base_price,
-        service_days: 1,
-        hours_per_day: 1,
-        description: `Package: ${pkg.name}`,
+        total_price: adjustedPackagePrice,
+        service_days: undefined,
+        hours_per_day: undefined,
+        description: packageDescription,
         sort_order: serviceItems.length,
         is_service_item: false,
         pickup_date: format(pickupDate, 'yyyy-MM-dd'),
         pickup_time: pickupTime,
+        time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
+        time_based_rule_name: ruleName || undefined,
       };
 
       setServiceItems([...serviceItems, newPackageItem]);
@@ -189,7 +239,7 @@ export function ServiceSelectionStep({
 
       toast({
         title: t('quotations.notifications.success'),
-        description: 'Package added successfully',
+        description: `Package added${ruleName ? ` with ${ruleName} pricing` : ''} successfully`,
       });
     } catch (error) {
       console.error('Error adding package:', error);
@@ -227,7 +277,14 @@ export function ServiceSelectionStep({
       
       const pickupDate = form.watch('pickup_date');
       const pickupTime = form.watch('pickup_time');
+      
+      // Calculate time-based adjustment using actual rules
+      const { adjustment: timeBasedAdjustment, ruleName } = serviceTimeBasedPricing 
+        ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
+        : { adjustment: 0, ruleName: null };
+      
       const baseServicePrice = pricingResult.baseAmount * (serviceDays || 1);
+      const adjustedPrice = baseServicePrice * (1 + timeBasedAdjustment / 100);
 
       const newItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
@@ -237,7 +294,7 @@ export function ServiceSelectionStep({
         duration_hours: effectiveDuration,
         unit_price: pricingResult.baseAmount,
         quantity: 1,
-        total_price: baseServicePrice,
+        total_price: adjustedPrice,
         service_days: serviceDays || 1,
         hours_per_day: effectiveDuration,
         description: `${selectedServiceTypeObject?.name || 'Service'} - ${effectiveVehicleType}`,
@@ -245,6 +302,8 @@ export function ServiceSelectionStep({
         is_service_item: true,
         pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
         pickup_time: pickupTime || null,
+        time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
+        time_based_rule_name: ruleName || undefined,
       };
       
       setServiceItems([...serviceItems, newItem]);
@@ -260,13 +319,96 @@ export function ServiceSelectionStep({
       
       toast({
         title: t('quotations.form.serviceAdded'),
-        description: t('quotations.form.serviceAddedDescription')
+        description: `Service added${ruleName ? ` with ${ruleName} pricing` : ''} successfully`
       });
     } catch (error) {
       console.error('Error adding service item:', error);
       toast({
         title: t('quotations.form.error'),
         description: t('quotations.form.errorAddingService'),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  // Handle updating service item
+  const handleUpdateServiceItem = async (index: number) => {
+    try {
+      setIsCalculating(true);
+      
+      const effectiveServiceType = serviceType || "placeholder-service";
+      const effectiveVehicleType = vehicleType || "Standard Vehicle";
+      const effectiveVehicleCategory = vehicleCategory || "standard";
+      
+      const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
+      const effectiveDuration = isCharter ? hoursPerDay || 1 : 1;
+      
+      const pricingResult = await calculateQuotationAmount(
+        effectiveServiceType,
+        effectiveVehicleType,
+        effectiveDuration,
+        0,
+        0,
+        serviceDays || 1,
+        hoursPerDay
+      );
+      
+      const pickupDate = form.watch('pickup_date');
+      const pickupTime = form.watch('pickup_time');
+      
+      // Calculate time-based adjustment using actual rules
+      const { adjustment: timeBasedAdjustment, ruleName } = serviceTimeBasedPricing 
+        ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
+        : { adjustment: 0, ruleName: null };
+      
+      const baseServicePrice = pricingResult.baseAmount * (serviceDays || 1);
+      const adjustedPrice = baseServicePrice * (1 + timeBasedAdjustment / 100);
+
+      const updatedItem: ServiceItemInput = {
+        service_type_id: effectiveServiceType,
+        service_type_name: selectedServiceTypeObject?.name || 'Service',
+        vehicle_type: effectiveVehicleType,
+        vehicle_category: effectiveVehicleCategory,
+        duration_hours: effectiveDuration,
+        unit_price: pricingResult.baseAmount,
+        quantity: 1,
+        total_price: adjustedPrice,
+        service_days: serviceDays || 1,
+        hours_per_day: effectiveDuration,
+        description: `${selectedServiceTypeObject?.name || 'Service'} - ${effectiveVehicleType}`,
+        sort_order: serviceItems[index].sort_order, // Keep original sort order
+        is_service_item: true,
+        pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
+        pickup_time: pickupTime || null,
+        time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
+        time_based_rule_name: ruleName || undefined,
+      };
+      
+      // Replace the item at the specific index
+      const updatedItems = [...serviceItems];
+      updatedItems[index] = updatedItem;
+      setServiceItems(updatedItems);
+      
+      // Clear form fields
+      form.setValue('service_type', '');
+      form.setValue('vehicle_category', '');
+      form.setValue('vehicle_type', '');
+      form.setValue('service_days', 1);
+      form.setValue('hours_per_day', undefined);
+      form.setValue('pickup_date', undefined);
+      form.setValue('pickup_time', '');
+      
+      toast({
+        title: "Service Updated",
+        description: `Service updated${ruleName ? ` with ${ruleName} pricing` : ''} successfully`
+      });
+    } catch (error) {
+      console.error('Error updating service item:', error);
+      toast({
+        title: t('quotations.form.error'),
+        description: 'Failed to update service',
         variant: 'destructive'
       });
     } finally {
@@ -456,7 +598,7 @@ export function ServiceSelectionStep({
           )}>
             <div className={cn(
               "absolute top-0 left-0 h-full w-1",
-              item.service_type_name?.toLowerCase().includes('package') ? 'bg-purple-500' :
+              (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) ? 'bg-purple-500' :
               item.service_type_name?.toLowerCase().includes('charter') ? 'bg-blue-500' : 'bg-green-500'
             )} />
             <CardContent className="pt-4 pl-6">
@@ -464,10 +606,13 @@ export function ServiceSelectionStep({
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-sm sm:text-base flex items-center flex-wrap gap-2">
                     <Badge variant={
-                      item.service_type_name?.toLowerCase().includes('package') ? "secondary" :
+                      item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? "secondary" :
                       item.service_type_name?.toLowerCase().includes('charter') ? "default" : "outline"
-                    } className="text-xs">
-                      {item.service_type_name?.toLowerCase().includes('package') ? 'Package' :
+                    } className={cn(
+                      "text-xs",
+                      (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) && "bg-purple-100 text-purple-700 border-purple-200"
+                    )}>
+                      {item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? 'Package' :
                        item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
                     </Badge>
                     <span className="break-words">{item.description}</span>
@@ -484,6 +629,11 @@ export function ServiceSelectionStep({
                         <div className="text-muted-foreground">Hours per day:</div>
                         <div>{item.hours_per_day || 'N/A'}</div>
                       </>
+                    ) : (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) ? (
+                      <>
+                        <div className="text-muted-foreground">Type:</div>
+                        <div>Package</div>
+                      </>
                     ) : (
                       <>
                         <div className="text-muted-foreground">Duration:</div>
@@ -493,6 +643,32 @@ export function ServiceSelectionStep({
                     
                     <div className="text-muted-foreground">Unit Price:</div>
                     <div>{formatCurrency(item.unit_price)}</div>
+                    
+                    {/* Time-based adjustments */}
+                    {item.time_based_adjustment && (
+                      <>
+                        <div className="text-muted-foreground">Time Adjustment:</div>
+                        <div className="space-y-1">
+                          <div className={cn(
+                            "font-bold text-sm",
+                            item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
+                          )}>
+                            {item.time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.service_days || 1)) * (item.time_based_adjustment / 100)))}
+                          </div>
+                          <div className={cn(
+                            "text-xs font-medium",
+                            item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
+                          )}>
+                            ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
+                            {item.time_based_rule_name && (
+                              <span className="text-muted-foreground ml-1">
+                                - {item.time_based_rule_name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                     
                     {(item.pickup_date || item.pickup_time) && (
                       <>
@@ -838,6 +1014,86 @@ export function ServiceSelectionStep({
                                   )}
                                 </div>
                               )}
+
+                  {/* Time-based pricing control */}
+                  {serviceType && vehicleCategory && vehicleType && (
+                    <div className="pt-3 border-t border-green-200 dark:border-green-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-4 w-4 text-green-600" />
+                          <Label className="text-sm font-medium">Apply time-based pricing</Label>
+                        </div>
+                        <Switch
+                          checked={serviceTimeBasedPricing}
+                          onCheckedChange={setServiceTimeBasedPricing}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {serviceTimeBasedPricing 
+                          ? "Service pricing will adjust based on pickup time (e.g., overtime surcharges, morning discounts)"
+                          : "Standard pricing will be applied regardless of pickup time"
+                        }
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Button to add or update service - INSIDE THE SERVICE BLOCK */}
+                  <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-green-200 dark:border-green-800">
+                    {isEditingService ? (
+                      <>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setIsEditingService(false);
+                            setEditingIndex(null);
+                            
+                            // Reset form fields
+                            form.setValue('service_type', '');
+                            form.setValue('vehicle_category', '');
+                            form.setValue('vehicle_type', '');
+                            form.setValue('service_days', 1);
+                            form.setValue('hours_per_day', undefined);
+                          }}
+                          className="w-full sm:w-auto text-sm"
+                        >
+                          Cancel Edit
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // Handle update logic - replace existing service instead of adding new one
+                            if (editingIndex !== null) {
+                              handleUpdateServiceItem(editingIndex);
+                            } else {
+                              handleAddServiceItem();
+                            }
+                            setIsEditingService(false);
+                            setEditingIndex(null);
+                          }}
+                          disabled={!serviceType || !vehicleType}
+                          className="w-full sm:w-auto text-sm"
+                        >
+                          Update Service
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        type="button" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAddServiceItem();
+                        }}
+                        disabled={!serviceType || !vehicleType}
+                        className="w-full sm:w-auto text-sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> 
+                        {serviceItems.length === 0 ? 'Add This Service' : 'Add Another Service'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -882,19 +1138,43 @@ export function ServiceSelectionStep({
                   </div>
                 </div>
                 
-                {selectedPackage?.id === pkg.id && (
-                  <div className="space-y-4 p-3 sm:p-4 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
-                      <Package className="h-4 w-4" />
-                      <span className="font-medium text-sm">Package Includes:</span>
-                    </div>
-                    <div className="grid gap-1 text-xs sm:text-sm text-purple-600 dark:text-purple-400">
-                      <p>• All services at package rate</p>
-                      <p>• Time-based pricing adjustments</p>
-                      {pkg.items && pkg.items.length > 0 && (
-                        <p>• {pkg.items.length} service{pkg.items.length > 1 ? 's' : ''} included</p>
+                                  {selectedPackage?.id === pkg.id && (
+                    <div className="space-y-4 p-3 sm:p-4 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                      <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                        <Package className="h-4 w-4" />
+                        <span className="font-medium text-sm">Package Includes:</span>
+                      </div>
+                      
+                      {pkg.items && pkg.items.length > 0 ? (
+                        <div className="space-y-2">
+                          {pkg.items.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between bg-white/50 dark:bg-black/20 rounded p-2">
+                              <div>
+                                <div className="text-xs font-medium text-purple-800 dark:text-purple-200">
+                                  {item.name}
+                                </div>
+                                <div className="text-xs text-purple-600 dark:text-purple-400">
+                                  {item.vehicle_type} • {formatCurrency(item.price)}
+                                </div>
+                              </div>
+                              {item.quantity > 1 && (
+                                <Badge variant="outline" className="text-xs">
+                                  x{item.quantity}
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
+                          <div className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                            • Time-based pricing adjustments apply
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid gap-1 text-xs sm:text-sm text-purple-600 dark:text-purple-400">
+                          <p>• All services at package rate</p>
+                          <p>• Time-based pricing adjustments</p>
+                          <p>• Contact for detailed service breakdown</p>
+                        </div>
                       )}
-                    </div>
 
                     {/* PACKAGE DATE & TIME - ONLY FOR SELECTED PACKAGE */}
                     <div 
@@ -988,62 +1268,7 @@ export function ServiceSelectionStep({
             </Card>
           ))}
         </div>
-        
-        {/* Button to add or update service - ONLY FOR INDIVIDUAL SERVICES */}
-        {!selectedPackage && (
-          <div className="flex justify-center gap-2 mt-6">
-            {isEditingService ? (
-              <>
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsEditingService(false);
-                    setEditingIndex(null);
-                    
-                    // Reset form fields
-                    form.setValue('service_type', '');
-                    form.setValue('vehicle_category', '');
-                    form.setValue('vehicle_type', '');
-                    form.setValue('service_days', 1);
-                    form.setValue('hours_per_day', undefined);
-                  }}
-                  className="w-full sm:w-auto text-sm"
-                >
-                  Cancel Edit
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Handle update logic here
-                    handleAddServiceItem(); // For now, treat as add
-                    setIsEditingService(false);
-                    setEditingIndex(null);
-                  }}
-                  disabled={!serviceType || !vehicleType}
-                  className="w-full sm:w-auto text-sm"
-                >
-                  Update Service
-                </Button>
-              </>
-            ) : (
-              <Button 
-                type="button" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleAddServiceItem();
-                }}
-                disabled={!serviceType || !vehicleType}
-                className="w-full sm:w-auto text-sm"
-              >
-                <Plus className="h-4 w-4 mr-2" /> 
-                {serviceItems.length === 0 ? 'Add This Service' : 'Add Another Service'}
-              </Button>
-            )}
-          </div>
-        )}
+
       </div>
     </div>
   );

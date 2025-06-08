@@ -307,32 +307,52 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
     }
   };
   
-  // Recalculate values for email body display
-  let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
-  let baseAmount = hourlyRate * serviceDays;
+  // Calculate base amount from quotation items or fallback
+  let baseAmount = 0;
+  let timeBasedAdjustmentTotal = 0;
+  
+  if (quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0) {
+    // Calculate from individual items
+    quotation.quotation_items.forEach((item: any) => {
+      const itemBasePrice = (item.unit_price || 0) * (item.service_days || 1);
+      baseAmount += itemBasePrice;
+      
+      // Add time-based adjustment for this item
+      if (item.time_based_adjustment) {
+        const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
+        timeBasedAdjustmentTotal += timeAdjustment;
+      }
+    });
+  } else {
+    // Fallback to legacy calculation
+    let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
+    baseAmount = hourlyRate * serviceDays;
 
-  if (quotation.total_amount && baseAmount === 0) {
-    const totalAmt = parseFloat(String(quotation.total_amount));
-    const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
-    const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
-    let calcTotal = totalAmt;
-    let subtotalPreTax = calcTotal;
-    if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
-    if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
-    else baseAmount = subtotalPreTax;
-    // Ensure hourlyRate is updated if derived
-    if (serviceDays > 0) {
-        hourlyRate = baseAmount / serviceDays; 
+    if (quotation.total_amount && baseAmount === 0) {
+      const totalAmt = parseFloat(String(quotation.total_amount));
+      const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
+      const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
+      let calcTotal = totalAmt;
+      let subtotalPreTax = calcTotal;
+      if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
+      if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
+      else baseAmount = subtotalPreTax;
     }
+    
+    // Check for legacy time-based adjustment
+    timeBasedAdjustmentTotal = quotation.time_based_adjustment || 0;
   }
 
+  // Add time-based adjustments to base amount
+  const totalWithTimeAdjustments = baseAmount + timeBasedAdjustmentTotal;
+  
   const hasDiscount = quotation.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
   let discountAmount = 0;
-  let subtotalAmount = baseAmount;
+  let subtotalAmount = totalWithTimeAdjustments;
   if (hasDiscount) {
     const discountPercentage = parseFloat(String(quotation.discount_percentage));
-    discountAmount = (baseAmount * discountPercentage) / 100;
-    subtotalAmount = baseAmount - discountAmount;
+    discountAmount = (totalWithTimeAdjustments * discountPercentage) / 100;
+    subtotalAmount = totalWithTimeAdjustments - discountAmount;
   }
   
   const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
@@ -344,7 +364,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
     totalAmount = subtotalAmount + taxAmount;
   }
 
-  const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : (subtotalAmount + taxAmount);
+  const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : totalAmount;
     
   // Customize greeting based on whether this is an update
   const greetingText = isUpdated
@@ -568,7 +588,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                               </tr>
                               <tr>
                                 <td>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</td>
-                                <td align="right">${formatCurrency(hourlyRate)}</td>
+                                <td align="right">${formatCurrency(baseAmount / serviceDays)}</td>
                               </tr>
                               ${serviceDays > 1 ? `
                               <tr>
@@ -582,22 +602,43 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                             <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(baseAmount)}</td>
                           </tr>
                           ${(() => {
-                            // Time-based pricing adjustment
-                            const timeBasedAdjustment = quotation.time_based_adjustment || 0;
-                            if (timeBasedAdjustment !== 0) {
-                              const adjustmentPercentage = baseAmount !== 0 ? ((timeBasedAdjustment / baseAmount) * 100).toFixed(1) : '0';
-                              const isPositive = timeBasedAdjustment > 0;
-                              return `
+                            // Individual time-based pricing adjustments
+                            let timeBasedRows = '';
+                            if (quotation.quotation_items && Array.isArray(quotation.quotation_items)) {
+                              quotation.quotation_items.forEach((item: any) => {
+                                if (item.time_based_adjustment && item.unit_price) {
+                                  const itemBasePrice = (item.unit_price * (item.service_days || 1));
+                                  const adjustmentAmount = itemBasePrice * (item.time_based_adjustment / 100);
+                                  const isPositive = adjustmentAmount > 0;
+                                  
+                                  timeBasedRows += `
+                                  <tr>
+                                    <td style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; padding: 4px 0; font-size: 13px; background-color: ${isPositive ? '#fef3c7' : '#dcfce7'};">
+                                      ${isJapanese ? `時間調整: ${item.description || 'サービス'} (${isPositive ? '+' : ''}${item.time_based_adjustment}%)` : `Time Adjustment: ${item.description || 'Service'} (${isPositive ? '+' : ''}${item.time_based_adjustment}%)`}
+                                    </td>
+                                    <td align="right" style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; font-weight: bold; padding: 4px 0; font-size: 13px; background-color: ${isPositive ? '#fef3c7' : '#dcfce7'};">
+                                      ${isPositive ? '+' : ''}${formatCurrency(Math.abs(adjustmentAmount))}
+                                    </td>
+                                  </tr>`;
+                                }
+                              });
+                            }
+                            
+                            // Add total time-based adjustment summary if any exist
+                            if (timeBasedAdjustmentTotal !== 0) {
+                              const isPositive = timeBasedAdjustmentTotal > 0;
+                              timeBasedRows += `
                               <tr>
-                                <td style="color: ${isPositive ? '#3b82f6' : '#10b981'};">
-                                  ${isJapanese ? `時間帯調整 (${isPositive ? '+' : ''}${adjustmentPercentage}%)` : `Time-based Adjustment (${isPositive ? '+' : ''}${adjustmentPercentage}%)`}
+                                <td style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; padding: 8px 0; border-top: 2px solid #f59e0b; font-weight: bold; background-color: #fffbeb;">
+                                  ${isJapanese ? `合計時間調整` : `Total Time-based Adjustments`}
                                 </td>
-                                <td align="right" style="color: ${isPositive ? '#3b82f6' : '#10b981'};">
-                                  ${isPositive ? '+' : ''}${formatCurrency(timeBasedAdjustment)}
+                                <td align="right" style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; font-weight: bold; padding: 8px 0; border-top: 2px solid #f59e0b; background-color: #fffbeb;">
+                                  ${isPositive ? '+' : ''}${formatCurrency(timeBasedAdjustmentTotal)}
                                 </td>
                               </tr>`;
                             }
-                            return '';
+                            
+                            return timeBasedRows;
                           })()}
                           ${(() => {
                             // Package discount
@@ -751,24 +792,46 @@ function generateEmailText(language: string, customerName: string, formattedQuot
     }
   };
 
-  // Recalculate final amount for text email
-  let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
-  let baseAmount = hourlyRate * serviceDays;
-  if (quotation.total_amount && baseAmount === 0) {
-      const totalAmt = parseFloat(String(quotation.total_amount));
-      const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
-      const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
-      let calcTotal = totalAmt;
-      let subtotalPreTax = calcTotal;
-      if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
-      if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
-      else baseAmount = subtotalPreTax;
+  // Recalculate final amount for text email including time-based adjustments
+  let baseAmount = 0;
+  let timeBasedAdjustmentTotal = 0;
+  
+  if (quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0) {
+    // Calculate from individual items
+    quotation.quotation_items.forEach((item: any) => {
+      const itemBasePrice = (item.unit_price || 0) * (item.service_days || 1);
+      baseAmount += itemBasePrice;
+      
+      // Add time-based adjustment for this item
+      if (item.time_based_adjustment) {
+        const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
+        timeBasedAdjustmentTotal += timeAdjustment;
+      }
+    });
+  } else {
+    // Fallback to original calculation
+    let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
+    baseAmount = hourlyRate * serviceDays;
+    if (quotation.total_amount && baseAmount === 0) {
+        const totalAmt = parseFloat(String(quotation.total_amount));
+        const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
+        const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
+        let calcTotal = totalAmt;
+        let subtotalPreTax = calcTotal;
+        if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
+        if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
+        else baseAmount = subtotalPreTax;
+    }
   }
+  
+  // Add time-based adjustments to base amount  
+  const adjustedBaseAmount = baseAmount + timeBasedAdjustmentTotal;
+  
   const hasDiscount = quotation.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
-  let subtotalAmount = baseAmount;
+  let subtotalAmount = adjustedBaseAmount;
   if (hasDiscount) {
       const discountPercentage = parseFloat(String(quotation.discount_percentage));
-      subtotalAmount = baseAmount - (baseAmount * discountPercentage / 100);
+      subtotalAmount = adjustedBaseAmount - (adjustedBaseAmount * discountPercentage / 100);
   }
   const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
   let taxAmount = 0;
@@ -776,7 +839,7 @@ function generateEmailText(language: string, customerName: string, formattedQuot
       const taxPercentage = parseFloat(String(quotation.tax_percentage));
       taxAmount = (subtotalAmount * taxPercentage) / 100;
   }
-  const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : (subtotalAmount + taxAmount);
+  const finalAmount = subtotalAmount + taxAmount;
 
   const greetingText = isUpdated
     ? (isJapanese ? '見積書が更新されました。' : 'Your quotation has been updated.')

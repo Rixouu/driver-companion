@@ -194,6 +194,10 @@ export async function POST(request: Request) {
     let formattedOriginalPrice = formattedAmount
     let formattedDiscountAmount = ''
 
+    // Calculate time-based adjustments if available
+    const timeBasedAdjustment = (booking as any).time_based_adjustment || 0;
+    const timeBasedAdjustmentAmount = timeBasedAdjustment !== 0 ? (originalPrice * timeBasedAdjustment / 100) : 0;
+
     if (hasDiscount) {
       const discountPercentage = parseFloat(booking.coupon_discount_percentage as string)
       if (!isNaN(discountPercentage) && discountPercentage > 0) {
@@ -244,12 +248,31 @@ export async function POST(request: Request) {
     const paymentLink = booking.payment_link || `${appUrl}/bookings/${bookingId}/payment`
     
     // Create the email text with placeholders replaced
-    const priceBreakdownText = hasDiscount ? 
-      `${t.originalPrice}: ${formattedOriginalPrice}
-${t.couponCode}: ${booking.coupon_code}
-${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}: -${formattedDiscountAmount}
-${t.totalAmount}: ${formattedAmount}` : 
-      `${formattedAmount}`
+    const priceBreakdownText = (() => {
+      let breakdown = [];
+      
+      if (originalPrice > 0) {
+        breakdown.push(`${t.originalPrice}: ${formattedOriginalPrice}`);
+      }
+      
+      if (timeBasedAdjustmentAmount !== 0) {
+        const formattedTimeAdjustment = new Intl.NumberFormat(lang === 'ja' ? 'ja-JP' : 'en-US', {
+          style: 'currency',
+          currency: booking.price?.currency || 'JPY'
+        }).format(Math.abs(timeBasedAdjustmentAmount));
+        
+        breakdown.push(`${lang === 'ja' ? '時間帯調整' : 'Time-based adjustment'}: ${timeBasedAdjustment > 0 ? '+' : '-'}${formattedTimeAdjustment}`);
+      }
+      
+      if (hasDiscount) {
+        breakdown.push(`${t.couponCode}: ${booking.coupon_code}`);
+        breakdown.push(`${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}: -${formattedDiscountAmount}`);
+      }
+      
+      breakdown.push(`${t.totalAmount}: ${formattedAmount}`);
+      
+      return breakdown.join('\n');
+    })();
     
     const emailText = t.emailText
       .replace('{bookingId}', bookingId)
@@ -307,8 +330,14 @@ ${t.totalAmount}: ${formattedAmount}` :
 
     <div class="payment-summary">
       <h2>${t.paymentSummary}</h2>
+      ${originalPrice > 0 ? `<p><strong>${t.originalPrice}:</strong> ${formattedOriginalPrice}</p>` : ''}
+      ${timeBasedAdjustmentAmount !== 0 ? `
+        <p><strong>${lang === 'ja' ? '時間帯調整' : 'Time-based adjustment'}:</strong> ${timeBasedAdjustment > 0 ? '+' : ''}${new Intl.NumberFormat(lang === 'ja' ? 'ja-JP' : 'en-US', {
+          style: 'currency',
+          currency: booking.price?.currency || 'JPY'
+        }).format(timeBasedAdjustmentAmount)}</p>
+      ` : ''}
       ${hasDiscount ? `
-        <p><strong>${t.originalPrice}:</strong> ${formattedOriginalPrice}</p>
         ${booking.coupon_code ? `<p><strong>${t.couponCode}:</strong> ${booking.coupon_code}</p>` : ''}
         <p><strong>${t.discount.replace('{discount}', booking.coupon_discount_percentage || '0')}:</strong> -${formattedDiscountAmount}</p>
       ` : ''}

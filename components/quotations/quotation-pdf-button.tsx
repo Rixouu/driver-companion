@@ -588,6 +588,11 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         }
       };
       
+      // Calculate correct base amount from quotation items
+      const calculatedBaseAmount = latestQuotation?.quotation_items?.reduce((total: number, item: any) => {
+        return total + ((item.unit_price || 0) * (item.service_days || 1));
+      }, 0) || 0;
+
       // Check if we have quotation items (multiple services)
       if (latestQuotation?.quotation_items && Array.isArray(latestQuotation.quotation_items) && latestQuotation.quotation_items.length > 0) {
         // Display each service item individually
@@ -660,7 +665,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         baseAmountLabel.style.fontWeight = 'medium'
         
         const baseAmountValue = document.createElement('div')
-        baseAmountValue.textContent = formatCurrencyValue(latestQuotation.amount || 0)
+        baseAmountValue.textContent = formatCurrencyValue(calculatedBaseAmount)
         baseAmountValue.style.fontSize = '13px'
         baseAmountValue.style.fontWeight = 'medium'
         
@@ -750,7 +755,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         baseAmountLabel.style.fontWeight = 'medium'
         
         const baseAmountValue = document.createElement('div')
-        baseAmountValue.textContent = formatCurrencyValue(baseAmount)
+        baseAmountValue.textContent = formatCurrencyValue(calculatedBaseAmount)
         baseAmountValue.style.fontSize = '13px'
         baseAmountValue.style.fontWeight = 'medium'
         
@@ -759,31 +764,67 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         priceDetailsContainer.appendChild(baseAmountRow)
       }
       
-      // Add time-based pricing adjustment if available
-      const timeBasedAdjustment = latestQuotation?.time_based_adjustment || 0;
-      if (timeBasedAdjustment !== 0) {
-        const baseAmount = latestQuotation?.amount || 0;
-        const adjustmentPercentage = baseAmount !== 0 ? ((timeBasedAdjustment / baseAmount) * 100).toFixed(1) : '0';
-        const isPositive = timeBasedAdjustment > 0;
+      // Add individual time-based pricing adjustments from service items
+      let timeBasedAdjustmentTotal = 0;
+      latestQuotation?.quotation_items?.forEach((item: any) => {
+        if (item.time_based_adjustment && item.unit_price) {
+          const itemBasePrice = (item.unit_price * (item.service_days || 1));
+          const adjustmentAmount = itemBasePrice * (item.time_based_adjustment / 100);
+          timeBasedAdjustmentTotal += adjustmentAmount;
+          
+          const timeBasedRow = document.createElement('div')
+          timeBasedRow.style.display = 'flex'
+          timeBasedRow.style.justifyContent = 'space-between'
+          timeBasedRow.style.marginBottom = '6px'
+          timeBasedRow.style.padding = '4px 8px'
+          timeBasedRow.style.backgroundColor = adjustmentAmount > 0 ? '#fef3c7' : '#dcfce7'
+          timeBasedRow.style.borderRadius = '4px'
+          timeBasedRow.style.border = adjustmentAmount > 0 ? '1px solid #fbbf24' : '1px solid #22c55e'
+          
+          const timeBasedLabel = document.createElement('div')
+          timeBasedLabel.textContent = `Time Adjustment: ${item.description || 'Service'} (${item.time_based_adjustment > 0 ? '+' : ''}${item.time_based_adjustment}%)`
+          timeBasedLabel.style.fontSize = '11px'
+          timeBasedLabel.style.fontWeight = '500'
+          timeBasedLabel.style.color = adjustmentAmount > 0 ? '#f59e0b' : '#16a34a'
+          
+          const timeBasedValue = document.createElement('div')
+          timeBasedValue.textContent = `${adjustmentAmount > 0 ? '+' : ''}${formatCurrencyValue(Math.abs(adjustmentAmount))}`
+          timeBasedValue.style.fontSize = '11px'
+          timeBasedValue.style.fontWeight = 'bold'
+          timeBasedValue.style.color = adjustmentAmount > 0 ? '#f59e0b' : '#16a34a'
+          
+          timeBasedRow.appendChild(timeBasedLabel)
+          timeBasedRow.appendChild(timeBasedValue)
+          priceDetailsContainer.appendChild(timeBasedRow)
+        }
+      });
+      
+      // Add total time-based adjustment summary if any exist
+      if (timeBasedAdjustmentTotal !== 0) {
+        const timeBasedSummaryRow = document.createElement('div')
+        timeBasedSummaryRow.style.display = 'flex'
+        timeBasedSummaryRow.style.justifyContent = 'space-between'
+        timeBasedSummaryRow.style.marginBottom = '8px'
+        timeBasedSummaryRow.style.marginTop = '6px'
+        timeBasedSummaryRow.style.padding = '6px 0'
+        timeBasedSummaryRow.style.borderTop = '1px solid #f59e0b'
+        timeBasedSummaryRow.style.backgroundColor = '#fffbeb'
         
-        const timeBasedRow = document.createElement('div')
-        timeBasedRow.style.display = 'flex'
-        timeBasedRow.style.justifyContent = 'space-between'
-        timeBasedRow.style.marginBottom = '8px'
-        timeBasedRow.style.color = isPositive ? '#3b82f6' : '#10b981'
-        timeBasedRow.style.padding = '3px 0'
+        const timeBasedSummaryLabel = document.createElement('div')
+        timeBasedSummaryLabel.textContent = 'Total Time-based Adjustments'
+        timeBasedSummaryLabel.style.fontSize = '12px'
+        timeBasedSummaryLabel.style.fontWeight = 'bold'
+        timeBasedSummaryLabel.style.color = '#f59e0b'
         
-        const timeBasedLabel = document.createElement('div')
-        timeBasedLabel.textContent = `Time-based Adjustment (${isPositive ? '+' : ''}${adjustmentPercentage}%)`
-        timeBasedLabel.style.fontSize = '13px'
+        const timeBasedSummaryValue = document.createElement('div')
+        timeBasedSummaryValue.textContent = `${timeBasedAdjustmentTotal > 0 ? '+' : ''}${formatCurrencyValue(timeBasedAdjustmentTotal)}`
+        timeBasedSummaryValue.style.fontSize = '12px'
+        timeBasedSummaryValue.style.fontWeight = 'bold'
+        timeBasedSummaryValue.style.color = timeBasedAdjustmentTotal > 0 ? '#f59e0b' : '#16a34a'
         
-        const timeBasedValue = document.createElement('div')
-        timeBasedValue.textContent = `${isPositive ? '+' : ''}${formatCurrencyValue(timeBasedAdjustment)}`
-        timeBasedValue.style.fontSize = '13px'
-        
-        timeBasedRow.appendChild(timeBasedLabel)
-        timeBasedRow.appendChild(timeBasedValue)
-        priceDetailsContainer.appendChild(timeBasedRow)
+        timeBasedSummaryRow.appendChild(timeBasedSummaryLabel)
+        timeBasedSummaryRow.appendChild(timeBasedSummaryValue)
+        priceDetailsContainer.appendChild(timeBasedSummaryRow)
       }
       
       // Add package discount if available
@@ -830,16 +871,17 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         priceDetailsContainer.appendChild(promotionDiscountRow)
       }
       
-      // Calculate discount and tax
+      // Calculate discount and tax - include time-based adjustments in the base calculation
       // Get discount info
       const hasDiscount = latestQuotation?.discount_percentage && parseFloat(String(latestQuotation.discount_percentage)) > 0;
       let discountAmount = 0;
-      let subtotalAmount = latestQuotation?.amount || 0;
+      let baseAmountWithTimeAdjustments = calculatedBaseAmount + timeBasedAdjustmentTotal;
+      let subtotalAmount = baseAmountWithTimeAdjustments;
       
       if (hasDiscount) {
         const discountPercentage = parseFloat(String(latestQuotation.discount_percentage));
-        discountAmount = (subtotalAmount * discountPercentage) / 100;
-        subtotalAmount = subtotalAmount - discountAmount;
+        discountAmount = (baseAmountWithTimeAdjustments * discountPercentage) / 100;
+        subtotalAmount = baseAmountWithTimeAdjustments - discountAmount;
         
         // Discount row
         const discountRow = document.createElement('div')
@@ -916,7 +958,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         priceDetailsContainer.appendChild(taxRow)
       }
       
-      // Total Amount row with separator
+      // Total Amount row with separator (time-based adjustments already included in totalAmount)
       const totalRow = document.createElement('div')
       totalRow.style.display = 'flex'
       totalRow.style.justifyContent = 'space-between'
@@ -930,7 +972,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
       totalLabel.style.fontWeight = 'bold'
       
       const totalValue = document.createElement('div')
-      totalValue.textContent = formatCurrencyValue(latestQuotation?.total_amount || totalAmount)
+      totalValue.textContent = formatCurrencyValue(totalAmount)
       totalValue.style.fontSize = '13px'
       totalValue.style.fontWeight = 'bold'
       
@@ -1038,7 +1080,7 @@ export function QuotationPdfButton({ quotation, onSuccess }: QuotationPdfButtonP
         // Convert the container to PDF
         const pdfOptions = {
           margin: [15, 15, 15, 15], // Margins: [top, left, bottom, right] in mm
-          filename: `quotation-${latestQuotation?.id || 'details'}.pdf`,
+          filename: `JPDR-${latestQuotation?.quote_number?.toString().padStart(4, '0') || 'N/A'}-quotation.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
           html2canvas: { 
             scale: 2, 

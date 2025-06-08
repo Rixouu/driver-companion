@@ -360,11 +360,11 @@ export interface PricingPackageItem {
   price: number;
   price_override?: number | null;
   is_included_in_base: boolean;
-  is_optional?: boolean;
+  is_optional: boolean;
   sort_order: number;
-  pricing_item_id?: string;
+  pricing_item_id?: string | null;
   service_type_id?: string | null;
-  vehicle_type?: string;
+  vehicle_type?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -385,4 +385,6 @@ export interface ServiceItemInput {
   is_service_item: boolean;
   pickup_date?: string | null;
   pickup_time?: string | null;
+  time_based_adjustment?: number;
+  time_based_rule_name?: string;
 } 

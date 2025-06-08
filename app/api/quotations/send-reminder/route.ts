@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     // Add attachment if PDF was generated
     if (pdfBuffer) {
       emailOptions.attachments = [{
-        filename: `quotation-${formattedQuotationId}.pdf`,
+        filename: `${formattedQuotationId}-quotation.pdf`,
         content: pdfBuffer.toString('base64')
       }];
     }

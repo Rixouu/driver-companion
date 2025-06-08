@@ -32,7 +32,8 @@ export const en: TranslationValue = {
     all: "All",
     noResults: "No results found",
     details: "Details",
-    actions: {
+    actions: "Actions",
+    actionsMenu: {
       default: "Actions",
       goHome: "Go Home",
       tryAgain: "Try Again",
@@ -2444,7 +2445,32 @@ export const en: TranslationValue = {
         merchantNotes: "Internal notes, not visible to the customer.",
         customerNotes: "Notes visible to the customer on the quotation."
       },
-      previewDescription: "Please review all details carefully before sending the quotation to the customer."
+      previewDescription: "Please review all details carefully before sending the quotation to the customer.",
+      preview: {
+        quotationOverview: "Quotation Overview",
+        selectedPackage: "Selected Package",
+        packageIncludes: "Package includes:",
+        packageTotal: "Package Total:",
+        includedServices: "Included Services",
+        serviceDetails: "Service Details",
+        timeBasedAdjustments: "Time-based Pricing Adjustments",
+        baseDuration: "Base Duration",
+        basePrice: "Base Price",
+        totalHours: "Total Hours",
+        overtimeHours: "Overtime Hours",
+        adjustment: "Adjustment",
+        finalPrice: "Final:",
+        totalTimeBasedAdjustment: "Total Time-based Adjustment:",
+        appliedToServices: "Applied to {count} service(s)",
+        readyToSend: "Ready to Send",
+        reviewMessage: "Please review all information above before sending this quotation to the customer. Once sent, they will receive an email with the quotation details and a link to view or respond.",
+        pricingSummary: "Pricing Summary",
+        appliedPromotion: "Applied Promotion",
+        afterDiscount: "After Discount",
+        totalSavings: "Total Savings:",
+        currency: "Currency:",
+        finalReview: "Final Review"
+      }
     },
     pricing: {
       total: "Total Amount",
@@ -2467,6 +2493,7 @@ export const en: TranslationValue = {
       deleteSuccess: "Quotation deleted successfully",
       deleteConfirmation: "Are you sure you want to delete this quotation?",
       error: "Error",
+      success: "Success",
       sendSuccess: "Your Quotation has been sent",
       updateAndSendSuccess: "Your Updated Quotation has been sent",
       partialSuccess: "Partial success",
@@ -2524,8 +2551,17 @@ export const en: TranslationValue = {
       quotationSummary: "Quotation Summary",
       customerInfo: "Customer Information",
       contactInfo: "Contact Information",
+      primaryContact: "Primary contact information",
+      customerName: "Customer Name",
+      email: "Email Address",
+      phone: "Phone Number",
       billingAddress: "Billing Address",
+      invoicingDetails: "Billing and invoicing details",
+      companyName: "Company Name",
+      address: "Address",
       taxId: "Tax ID",
+      noBillingInfo: "No billing information provided",
+      noBillingAddress: "No billing address information provided for this quotation",
       serviceInfo: "Service Information",
       serviceDetails: "Service Details",
       serviceType: "Service Type",
@@ -2566,6 +2602,27 @@ export const en: TranslationValue = {
       moreServices: "more services",
       promotionApplied: "Promotion Applied",
       discount: "Discount",
+      // New enhanced details translations
+      serviceConfiguration: "Service configuration and details",
+      serviceDuration: "Service Duration",
+      total: "total",
+      passengerCount: "Passenger Count",
+      serviceSchedule: "Service schedule and timing",
+      serviceDescription: "Service Description",
+      multipleServices: "Multiple Services Requested",
+      multipleServicesDesc: "{count} services included in this quotation",
+      services: "services",
+      charter: "Charter",
+      transfer: "Transfer", 
+      daysShort: "d",
+      hoursShort: "h",
+      servicePrice: "Service Price",
+      charterHourly: "Charter Services (Hourly)",
+      mercedesVClass: "Mercedes Benz V Class",
+      specialOffer: "Special package deal with savings",
+      discountApplied: "Discount successfully applied",
+      validPeriod: "Valid period",
+      automaticAdjustments: "Automatic pricing adjustments based on time",
       approvalPanel: {
         title: "Quotation Approval",
         approveButton: "Approve Quotation",
@@ -2579,7 +2636,14 @@ export const en: TranslationValue = {
         reasonPlaceholder: "Please provide a reason for rejecting this quotation",
         approvalSuccess: "Quotation approved successfully",
         rejectionSuccess: "Quotation rejected successfully"
-      }
+      },
+      pricingSummary: "Pricing Summary",
+      pricingBreakdown: "Pricing Breakdown", 
+      detailedBreakdown: "Detailed Breakdown",
+      selectedServices: "Selected Services",
+      subtotal: "Subtotal",
+      totalAmount: "Total Amount",
+      activityFeed: "Activity Feed"
     },
     status: {
       draft: "Draft",
@@ -2601,19 +2665,21 @@ export const en: TranslationValue = {
       download: "Download PDF",
       email: "Email Quotation"
     },
-                emailDescription: "Send the quotation as a PDF attachment to the customer's email address.",
-      includeDetails: "Include quotation details",
-      editSection: {
-        title: "Edit Quotation",
-        description: "Modify the quotation details",
-        notEditable: "This quotation cannot be edited",
-        notEditableDescription: "Only quotations in Draft or Sent status can be edited."
-      },
-    empty: {
-      title: "No Quotations Found",
-      description: "No quotations found for the selected filters.",
-      cta: "Create Quotation"
-    }
+    emailDescription: "Send the quotation as a PDF attachment to the customer's email address.",
+    includeDetails: "Include quotation details",
+    editSection: {
+      title: "Edit Quotation",
+      description: "Modify the quotation details",
+      notEditable: "This quotation cannot be edited",
+      notEditableDescription: "Only quotations in Draft or Sent status can be edited."
+    },
+    pricingSummary: "Pricing Summary",
+    pricingBreakdown: "Pricing Breakdown", 
+    detailedBreakdown: "Detailed Breakdown",
+    selectedServices: "Selected Services",
+    subtotal: "Subtotal",
+    totalAmount: "Total Amount",
+    activityFeed: "Activity Feed"
   },
   email: {
     quotation: {
@@ -2802,7 +2868,7 @@ export const en: TranslationValue = {
         deleteSuccess: "Time-based pricing rule deleted successfully",
         addRule: "Add New Time-Based Rule",
         editRule: "Edit Time-Based Rule",
-        deleteRule: "Delete Time-Based Rule",
+        deleteRule: "Delete Time-based Rule",
         deleteRuleConfirm: "Are you sure you want to delete this time-based pricing rule? This action cannot be undone.",
         ruleName: "Rule Name",
         ruleNamePlaceholder: "e.g., Night Surcharge",

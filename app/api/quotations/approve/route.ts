@@ -424,7 +424,7 @@ export async function POST(request: NextRequest) {
         html: emailHtml,
         attachments: pdfBuffer ? [
           {
-            filename: `quotation-${formattedQuotationId}.pdf`,
+            filename: `${formattedQuotationId}-quotation.pdf`,
             content: pdfBuffer.toString('base64')
           }
         ] : undefined

@@ -243,6 +243,9 @@ export default function QuotationFormRefactored({
         tax_percentage: typeof data.tax_percentage === 'number' && !isNaN(data.tax_percentage) ? data.tax_percentage : 0
       };
 
+      // Use data from service items if available, otherwise use form data
+      const primaryServiceItem = serviceItems.length > 0 ? serviceItems[0] : null;
+      
       const input: CreateQuotationInput = {
         title: formData.title || '',
         customer_email: formData.customer_email,
@@ -256,14 +259,14 @@ export default function QuotationFormRefactored({
         billing_state: formData.billing_state || undefined,
         billing_postal_code: formData.billing_postal_code || undefined,
         billing_country: formData.billing_country || undefined,
-        service_type_id: formData.service_type,
-        vehicle_category: formData.vehicle_category || undefined,
-        vehicle_type: formData.vehicle_type,
-        pickup_date: formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined,
-        pickup_time: formData.pickup_time || undefined,
-        duration_hours: formData.duration_hours,
-        service_days: formData.service_days,
-        hours_per_day: formData.hours_per_day,
+        service_type_id: primaryServiceItem?.service_type_id || formData.service_type || 'a2538c63-bad1-4523-a234-a708b03744b4',
+        vehicle_category: primaryServiceItem?.vehicle_category || formData.vehicle_category || undefined,
+        vehicle_type: primaryServiceItem?.vehicle_type || formData.vehicle_type || 'Standard Vehicle',
+        pickup_date: primaryServiceItem?.pickup_date || (formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined),
+        pickup_time: primaryServiceItem?.pickup_time || formData.pickup_time || undefined,
+        duration_hours: primaryServiceItem?.duration_hours || formData.duration_hours,
+        service_days: primaryServiceItem?.service_days || formData.service_days,
+        hours_per_day: primaryServiceItem?.hours_per_day || formData.hours_per_day,
         merchant_notes: formData.merchant_notes || undefined,
         discount_percentage: formData.discount_percentage,
         tax_percentage: formData.tax_percentage,
@@ -484,6 +487,7 @@ export default function QuotationFormRefactored({
               serviceItems={serviceItems}
               selectedPackage={selectedPackage}
               selectedPromotion={selectedPromotion}
+              packages={packages}
             />
           )}
 

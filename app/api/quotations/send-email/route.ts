@@ -5,12 +5,25 @@ import { Resend } from 'resend'
 // Import our new HTML PDF generator
 import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator'
 // Import the new PDF helper utilities
-import { embedWorkSansFont, formatCurrency, createQuotationHeader } from '@/lib/pdf-helpers'
+import { embedWorkSansFont, createQuotationHeader } from '@/lib/pdf-helpers'
+import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
 
-// Email templates for different languages
-const emailTemplates = {
+// Email templates for different languages with proper typing
+const emailTemplates: Record<'en' | 'ja', {
+  subject: string;
+  greeting: string;
+  intro: string;
+  followup: string;
+  additionalInfo: string;
+  callToAction: string;
+  closing: string;
+  regards: string;
+  company: string;
+  serviceDetails: string;
+  pricingDetails: string;
+}> = {
   en: {
     subject: 'Your Quotation from Driver',
     greeting: 'Hello',
@@ -40,14 +53,19 @@ const emailTemplates = {
 };
 
 // Function to generate custom PDF using HTML-to-PDF approach
-async function generateQuotationPDF(quotation: any, language: string): Promise<Buffer | null> {
+async function generateQuotationPDF(
+  quotation: any, 
+  language: string,
+  selectedPackage: PricingPackage | null,
+  selectedPromotion: PricingPromotion | null
+): Promise<Buffer | null> {
   console.log(`🔄 [SEND-EMAIL API] Entering generateQuotationPDF for quote: ${quotation?.id}, lang: ${language}`);
   
   try {
     console.log('🔄 [SEND-EMAIL API] Starting PDF generation with HTML-to-PDF');
     
-    // Generate the HTML for the quotation
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja');
+    // Generate the HTML for the quotation, passing all required data
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
     
     // Convert the HTML to a PDF
     const pdfBuffer = await generatePdfFromHtml(htmlContent, {
@@ -73,7 +91,8 @@ export async function POST(request: NextRequest) {
     
     const email = formData.get('email') as string;
     const quotationId = formData.get('quotation_id') as string;
-    const language = (formData.get('language') as string) || 'en';
+    const languageParam = (formData.get('language') as string) || 'en';
+    const language = (['en', 'ja'].includes(languageParam) ? languageParam : 'en') as 'en' | 'ja';
     
     console.log('🔄 [SEND-EMAIL API] Received request for quotation:', quotationId);
     
@@ -123,13 +142,28 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Fetch associated package and promotion
+    let selectedPackage: PricingPackage | null = null;
+    const packageId = (quotation as any).package_id || (quotation as any).pricing_package_id;
+    if (packageId) {
+        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
+        selectedPackage = pkg as PricingPackage | null;
+    }
+
+    let selectedPromotion: PricingPromotion | null = null;
+    const promotionCode = (quotation as any).promotion_code;
+    if (promotionCode) {
+        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
+        selectedPromotion = promo as PricingPromotion | null;
+    }
+
     console.log('✅ [SEND-EMAIL API] Found quotation:', { id: quotation.id, email: quotation.customer_email });
     
     // Generate a fresh PDF from the latest data using the new function
     console.log(`🔄 [SEND-EMAIL API] Calling generateQuotationPDF for quote: ${quotation.id}, lang: ${language}`); // Log before calling
     
-    // Call the integrated PDF generation function
-    const pdfBuffer = await generateQuotationPDF(quotation, language);
+    // Call the integrated PDF generation function, passing package and promotion
+    const pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
     
     if (!pdfBuffer) {
       console.error('❌ [SEND-EMAIL API] Failed to generate PDF');
@@ -174,8 +208,8 @@ export async function POST(request: NextRequest) {
     const customerName = quotation.customer_name || email.split('@')[0];
     
     // Create the email content using existing helper functions
-    const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated);
-    const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated);
+    const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
+    const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
     
     console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
     
@@ -202,14 +236,18 @@ export async function POST(request: NextRequest) {
       console.log('✅ [SEND-EMAIL API] Email sent successfully! ID:', emailData?.id);
       
       // Update quotation status to 'sent' and last_sent details
+      // Expiry date should be 2 days from creation date, not from sending
+      const createdDate = new Date(quotation.created_at);
+      const expiryDate = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+      
       await supabase
         .from('quotations')
         .update({ 
           status: 'sent',
           last_sent_at: new Date().toISOString(),
           last_sent_to: email,
-          // Update expiry date to 2 days from now (or keep existing logic if preferred)
-          expiry_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+          // Expiry date: 2 days from creation (not from sending)
+          expiry_date: expiryDate.toISOString()
         })
         .eq('id', quotationId);
     
@@ -261,9 +299,19 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to generate email HTML content
-function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, isUpdated: boolean = false) {
+function generateEmailHtml(
+  language: 'en' | 'ja', 
+  customerName: string, 
+  formattedQuotationId: string, 
+  quotation: any, 
+  appUrl: string, 
+  isUpdated: boolean = false,
+  selectedPackage: PricingPackage | null,
+  selectedPromotion: PricingPromotion | null
+) {
   const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
   const isJapanese = language === 'ja';
+  const template = emailTemplates[language];
     
   // Format quotation details for display
   const serviceType = quotation.service_type || 'Transportation Service';
@@ -307,64 +355,58 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
     }
   };
   
-  // Calculate base amount from quotation items or fallback
-  let baseAmount = 0;
-  let timeBasedAdjustmentTotal = 0;
-  
-  if (quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0) {
-    // Calculate from individual items
-    quotation.quotation_items.forEach((item: any) => {
-      const itemBasePrice = (item.unit_price || 0) * (item.service_days || 1);
-      baseAmount += itemBasePrice;
-      
-      // Add time-based adjustment for this item
-      if (item.time_based_adjustment) {
-        const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
-        timeBasedAdjustmentTotal += timeAdjustment;
-      }
-    });
-  } else {
-    // Fallback to legacy calculation
-    let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
-    baseAmount = hourlyRate * serviceDays;
-
-    if (quotation.total_amount && baseAmount === 0) {
-      const totalAmt = parseFloat(String(quotation.total_amount));
-      const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
-      const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
-      let calcTotal = totalAmt;
-      let subtotalPreTax = calcTotal;
-      if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
-      if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
-      else baseAmount = subtotalPreTax;
+  // Recalculate totals using the same logic as the PDF generator
+  const calculateTotals = () => {
+    let serviceBaseTotal = 0;
+    let serviceTimeAdjustment = 0;
+    
+    if (quotation.quotation_items && quotation.quotation_items.length > 0) {
+      quotation.quotation_items.forEach((item: QuotationItem) => {
+        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        serviceBaseTotal += itemBasePrice;
+        
+        if ((item as any).time_based_adjustment) {
+          const timeAdjustment = itemBasePrice * ((item as any).time_based_adjustment / 100);
+          serviceTimeAdjustment += timeAdjustment;
+        }
+      });
+    } else {
+      serviceBaseTotal = quotation.amount || 0;
     }
     
-    // Check for legacy time-based adjustment
-    timeBasedAdjustmentTotal = quotation.time_based_adjustment || 0;
-  }
+    const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+    const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
+    const baseTotal = serviceTotal + packageTotal;
+    
+    const discountPercentage = quotation.discount_percentage || 0;
+    const taxPercentage = quotation.tax_percentage || 0;
+    
+    const promotionDiscount = selectedPromotion ? 
+      (selectedPromotion.discount_type === 'percentage' ? 
+        baseTotal * (selectedPromotion.discount_value / 100) : 
+        selectedPromotion.discount_value) : 0;
+    
+    const regularDiscount = baseTotal * (discountPercentage / 100);
+    const totalDiscount = promotionDiscount + regularDiscount;
+    
+    const subtotal = Math.max(0, baseTotal - totalDiscount);
+    const taxAmount = subtotal * (taxPercentage / 100);
+    const finalTotal = subtotal + taxAmount;
+    
+    return {
+      serviceBaseTotal,
+      serviceTimeAdjustment,
+      baseTotal,
+      totalDiscount,
+      promotionDiscount,
+      regularDiscount,
+      subtotal,
+      taxAmount,
+      finalTotal
+    };
+  };
 
-  // Add time-based adjustments to base amount
-  const totalWithTimeAdjustments = baseAmount + timeBasedAdjustmentTotal;
-  
-  const hasDiscount = quotation.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
-  let discountAmount = 0;
-  let subtotalAmount = totalWithTimeAdjustments;
-  if (hasDiscount) {
-    const discountPercentage = parseFloat(String(quotation.discount_percentage));
-    discountAmount = (totalWithTimeAdjustments * discountPercentage) / 100;
-    subtotalAmount = totalWithTimeAdjustments - discountAmount;
-  }
-  
-  const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
-  let taxAmount = 0;
-  let totalAmount = subtotalAmount;
-  if (hasTax) {
-    const taxPercentage = parseFloat(String(quotation.tax_percentage));
-    taxAmount = (subtotalAmount * taxPercentage) / 100;
-    totalAmount = subtotalAmount + taxAmount;
-  }
-
-  const finalAmount = quotation.total_amount ? parseFloat(String(quotation.total_amount)) : totalAmount;
+  const totals = calculateTotals();
     
   // Customize greeting based on whether this is an update
   const greetingText = isUpdated
@@ -378,7 +420,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${emailTemplates[language].subject}</title>
+      <title>${template.subject}</title>
       <style>
         body, table, td, a {
           -webkit-text-size-adjust:100%;
@@ -448,12 +490,12 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${language === 'ja' ? 
+                          ${isJapanese ? 
                             `見積書${isUpdated ? '更新' : ''}` : 
                             `Your Quotation ${isUpdated ? 'Updated' : ''} from Driver`}
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                          ${language === 'ja' ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
+                          ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
                         </p>
                       </td>
                     </tr>
@@ -465,7 +507,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <tr>
                 <td>
                   <p class="greeting">
-                    ${emailTemplates[language].greeting} ${customerName},<br><br>
+                    ${template.greeting} ${customerName},<br><br>
                     ${greetingText}
                   </p>
                 </td>
@@ -486,7 +528,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                           quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
                             // If we have items, display each one
                             `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                              ${quotation.quotation_items.map((item, index) => `
+                              ${quotation.quotation_items.map((item: QuotationItem, index: number) => `
                                 <tr ${index > 0 ? 'style="border-top: 1px solid #EDF2F7; margin-top: 8px;"' : ''}>
                                   <td style="padding: ${index > 0 ? '12px 0 0 0' : '0'};">
                                     <div style="font-weight: 500; margin-bottom: 4px;">${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}</div>
@@ -566,7 +608,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                             // Check if we have multiple service items
                             quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
                               // If we have items, display each one
-                              quotation.quotation_items.map((item, index) => `
+                              quotation.quotation_items.map((item: QuotationItem, index: number) => `
                                 <tr>
                                   <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
                                     <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
@@ -588,7 +630,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                               </tr>
                               <tr>
                                 <td>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</td>
-                                <td align="right">${formatCurrency(baseAmount / serviceDays)}</td>
+                                <td align="right">${formatCurrency(totals.serviceBaseTotal / serviceDays)}</td>
                               </tr>
                               ${serviceDays > 1 ? `
                               <tr>
@@ -599,7 +641,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                           }
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '基本料金' : 'Base Amount'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(baseAmount)}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.serviceBaseTotal)}</td>
                           </tr>
                           ${(() => {
                             // Individual time-based pricing adjustments
@@ -625,15 +667,15 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                             }
                             
                             // Add total time-based adjustment summary if any exist
-                            if (timeBasedAdjustmentTotal !== 0) {
-                              const isPositive = timeBasedAdjustmentTotal > 0;
+                            if (totals.serviceTimeAdjustment !== 0) {
+                              const isPositive = totals.serviceTimeAdjustment > 0;
                               timeBasedRows += `
                               <tr>
                                 <td style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; padding: 8px 0; border-top: 2px solid #f59e0b; font-weight: bold; background-color: #fffbeb;">
                                   ${isJapanese ? `合計時間調整` : `Total Time-based Adjustments`}
                                 </td>
                                 <td align="right" style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; font-weight: bold; padding: 8px 0; border-top: 2px solid #f59e0b; background-color: #fffbeb;">
-                                  ${isPositive ? '+' : ''}${formatCurrency(timeBasedAdjustmentTotal)}
+                                  ${isPositive ? '+' : ''}${formatCurrency(Math.abs(totals.serviceTimeAdjustment))}
                                 </td>
                               </tr>`;
                             }
@@ -670,25 +712,25 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                             }
                             return '';
                           })()}
-                          ${hasDiscount ? `
+                          ${totals.totalDiscount > 0 ? `
                           <tr>
                             <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
-                            <td align="right" style="color: #e53e3e;">-${formatCurrency(discountAmount)}</td>
+                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.totalDiscount)}</td>
                           </tr>
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(subtotalAmount)}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>
                           </tr>
                           ` : ''}
-                          ${hasTax ? `
+                          ${totals.taxAmount > 0 ? `
                           <tr>
                             <td style="color: #666;">${isJapanese ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}</td>
-                            <td align="right" style="color: #666;">+${formatCurrency(taxAmount)}</td>
+                            <td align="right" style="color: #666;">+${formatCurrency(totals.taxAmount)}</td>
                           </tr>
                           ` : ''}
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${isJapanese ? '合計金額' : 'Total Amount'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${formatCurrency(finalAmount)}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${formatCurrency(totals.finalTotal)}</td>
                           </tr>
                         </table>
                       </td>
@@ -701,13 +743,13 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <tr>
                 <td style="padding:12px 24px 24px; text-align: center;">
                   <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align: left;">
-                    ${emailTemplates[language].followup}
+                    ${template.followup}
                   </p>
                   <a href="${appUrl}/quotations/${quotation.id}"
                      style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
                             text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
                             font-size:16px; font-weight:600; text-align: center;">
-                    ${emailTemplates[language].callToAction}
+                    ${template.callToAction}
                   </a>
                 </td>
               </tr>
@@ -716,14 +758,14 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <tr>
                 <td style="padding:0px 24px 24px;">
                   <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${emailTemplates[language].additionalInfo}
+                    ${template.additionalInfo}
                   </p>
                   <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${emailTemplates[language].closing}
+                    ${template.closing}
                   </p>
                   <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${emailTemplates[language].regards}<br>
-                    ${emailTemplates[language].company}
+                    ${template.regards}<br>
+                    ${template.company}
                   </p>
                 </td>
               </tr>
@@ -731,7 +773,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <!-- FOOTER -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">${emailTemplates[language].company}</p>
+                  <p style="margin:0 0 4px;">${template.company}</p>
                   <p style="margin:0;">
                     <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
                       japandriver.com
@@ -750,7 +792,17 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
 }
 
 // Helper function to generate email Text content
-function generateEmailText(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, isUpdated: boolean = false) {
+function generateEmailText(
+  language: 'en' | 'ja', 
+  customerName: string, 
+  formattedQuotationId: string, 
+  quotation: any, 
+  appUrl: string, 
+  isUpdated: boolean = false,
+  selectedPackage: PricingPackage | null,
+  selectedPromotion: PricingPromotion | null
+) {
+  const template = emailTemplates[language];
   const isJapanese = language === 'ja';
   const serviceType = quotation.service_type || 'Transportation Service';
   const vehicleType = quotation.vehicle_type || 'Standard Vehicle';
@@ -792,72 +844,66 @@ function generateEmailText(language: string, customerName: string, formattedQuot
     }
   };
 
-  // Recalculate final amount for text email including time-based adjustments
-  let baseAmount = 0;
-  let timeBasedAdjustmentTotal = 0;
-  
-  if (quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0) {
-    // Calculate from individual items
-    quotation.quotation_items.forEach((item: any) => {
-      const itemBasePrice = (item.unit_price || 0) * (item.service_days || 1);
-      baseAmount += itemBasePrice;
-      
-      // Add time-based adjustment for this item
-      if (item.time_based_adjustment) {
-        const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
-        timeBasedAdjustmentTotal += timeAdjustment;
-      }
-    });
-  } else {
-    // Fallback to original calculation
-    let hourlyRate = quotation.price_per_day || quotation.hourly_rate || quotation.daily_rate || 0;
-    baseAmount = hourlyRate * serviceDays;
-    if (quotation.total_amount && baseAmount === 0) {
-        const totalAmt = parseFloat(String(quotation.total_amount));
-        const discPerc = quotation.discount_percentage ? parseFloat(String(quotation.discount_percentage)) : 0;
-        const taxPerc = quotation.tax_percentage ? parseFloat(String(quotation.tax_percentage)) : 0;
-        let calcTotal = totalAmt;
-        let subtotalPreTax = calcTotal;
-        if (taxPerc > 0) subtotalPreTax = calcTotal / (1 + (taxPerc / 100));
-        if (discPerc > 0) baseAmount = subtotalPreTax / (1 - (discPerc / 100));
-        else baseAmount = subtotalPreTax;
+  // Recalculate final amount for text email including all adjustments
+  const calculateTotals = () => {
+    let serviceBaseTotal = 0;
+    let serviceTimeAdjustment = 0;
+    
+    if (quotation.quotation_items && quotation.quotation_items.length > 0) {
+      quotation.quotation_items.forEach((item: QuotationItem) => {
+        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        serviceBaseTotal += itemBasePrice;
+        
+        if ((item as any).time_based_adjustment) {
+          const timeAdjustment = itemBasePrice * ((item as any).time_based_adjustment / 100);
+          serviceTimeAdjustment += timeAdjustment;
+        }
+      });
+    } else {
+      serviceBaseTotal = quotation.amount || 0;
     }
-  }
-  
-  // Add time-based adjustments to base amount  
-  const adjustedBaseAmount = baseAmount + timeBasedAdjustmentTotal;
-  
-  const hasDiscount = quotation.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
-  let subtotalAmount = adjustedBaseAmount;
-  if (hasDiscount) {
-      const discountPercentage = parseFloat(String(quotation.discount_percentage));
-      subtotalAmount = adjustedBaseAmount - (adjustedBaseAmount * discountPercentage / 100);
-  }
-  const hasTax = quotation.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
-  let taxAmount = 0;
-  if (hasTax) {
-      const taxPercentage = parseFloat(String(quotation.tax_percentage));
-      taxAmount = (subtotalAmount * taxPercentage) / 100;
-  }
-  const finalAmount = subtotalAmount + taxAmount;
+    
+    const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+    const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
+    const baseTotal = serviceTotal + packageTotal;
+    
+    const discountPercentage = quotation.discount_percentage || 0;
+    const taxPercentage = quotation.tax_percentage || 0;
+    
+    const promotionDiscount = selectedPromotion ? 
+      (selectedPromotion.discount_type === 'percentage' ? 
+        baseTotal * (selectedPromotion.discount_value / 100) : 
+        selectedPromotion.discount_value) : 0;
+    
+    const regularDiscount = baseTotal * (discountPercentage / 100);
+    const totalDiscount = promotionDiscount + regularDiscount;
+    
+    const subtotal = Math.max(0, baseTotal - totalDiscount);
+    const taxAmount = subtotal * (taxPercentage / 100);
+    const finalTotal = subtotal + taxAmount;
+    
+    return { finalTotal };
+  };
+
+  const { finalTotal } = calculateTotals();
 
   const greetingText = isUpdated
     ? (isJapanese ? '見積書が更新されました。' : 'Your quotation has been updated.')
     : (isJapanese ? 'お見積りありがとうございます。' : 'Thank you for your quotation request.');
     
   const textContent = `
-${emailTemplates[language].subject} - #${formattedQuotationId}
+${template.subject} - #${formattedQuotationId}
 
-${emailTemplates[language].greeting} ${customerName},
+${template.greeting} ${customerName},
 
-${greetingText} ${emailTemplates[language].intro}
+${greetingText} ${template.intro}
 
 ${isJapanese ? 'サービス概要' : 'SERVICE SUMMARY'}:
 ${
   // Check if we have multiple service items
   quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
     // If we have items, display each one
-    quotation.quotation_items.map(item => 
+    quotation.quotation_items.map((item: QuotationItem) => 
       `- ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`} ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
       ${item.service_type_name?.toLowerCase().includes('charter') ?
         `  ${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}` :
@@ -875,17 +921,17 @@ ${serviceDays > 1 ? `- ${isJapanese ? '日数' : 'NUMBER OF DAYS'}: ${serviceDay
 }
 
 ${isJapanese ? '価格詳細' : 'PRICE DETAILS'}:
-- ${isJapanese ? '合計金額' : 'TOTAL AMOUNT'}: ${formatCurrency(finalAmount)}
+- ${isJapanese ? '合計金額' : 'TOTAL AMOUNT'}: ${formatCurrency(finalTotal)}
 
-${emailTemplates[language].followup}
+${template.followup}
 
-${emailTemplates[language].callToAction}: ${appUrl}/quotations/${quotation.id}
+${template.callToAction}: ${appUrl}/quotations/${quotation.id}
 
-${emailTemplates[language].additionalInfo}
-${emailTemplates[language].closing}
+${template.additionalInfo}
+${template.closing}
 
-${emailTemplates[language].regards}
-${emailTemplates[language].company}
+${template.regards}
+${template.company}
   `;
   return textContent;
 } 

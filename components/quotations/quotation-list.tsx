@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays, isAfter } from 'date-fns';
 import { Quotation, QuotationStatus } from '@/types/quotations';
 import { 
   CalendarIcon, 
@@ -121,10 +121,20 @@ export default function QuotationList({
     return `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  // Check if quotation is expired
-  const isExpired = (expiryDate: string) => {
-    if (!expiryDate) return false;
-    return new Date(expiryDate) < new Date();
+  // Check if quotation is expired - Updated to use 2 days from creation
+  const isExpired = (quotation: Quotation) => {
+    if (!quotation.created_at) return false;
+    const now = new Date();
+    const createdDate = new Date(quotation.created_at);
+    const properExpiryDate = addDays(createdDate, 2);
+    return isAfter(now, properExpiryDate);
+  };
+
+  // Get expiry date properly - 2 days from creation
+  const getExpiryDate = (quotation: Quotation) => {
+    if (!quotation.created_at) return null;
+    const createdDate = new Date(quotation.created_at);
+    return addDays(createdDate, 2);
   };
 
   // Check if quotation needs reminder
@@ -133,7 +143,7 @@ export default function QuotationList({
     if (quotation.status !== 'sent') return false;
     
     // If already expired, no reminder needed
-    if (isExpired(quotation.expiry_date)) return false;
+    if (isExpired(quotation)) return false;
     
     // Get quotation creation or last activity date
     const lastActivityDate = new Date(quotation.updated_at || quotation.created_at);
@@ -144,16 +154,18 @@ export default function QuotationList({
     if (hoursSinceActivity >= 24) return true;
     
     // Check if nearing expiry (24h before expiry)
-    const expiryDate = new Date(quotation.expiry_date);
+    const expiryDate = getExpiryDate(quotation);
+    if (!expiryDate) return false;
+    
     const hoursUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     
     return hoursUntilExpiry <= 24 && hoursUntilExpiry > 0;
   };
 
   // Get status badge
-  const getStatusBadge = (status: QuotationStatus, expiryDate: string) => {
+  const getStatusBadge = (status: QuotationStatus, quotation: Quotation) => {
     // If status is draft or sent and the quotation is expired, show expired badge
-    if ((status === 'draft' || status === 'sent') && expiryDate && isExpired(expiryDate)) {
+    if ((status === 'draft' || status === 'sent') && isExpired(quotation)) {
       return (
         <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">
           {t('quotations.status.expired')}
@@ -341,7 +353,7 @@ export default function QuotationList({
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-mono text-xs">#{quotation.quote_number}</div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(quotation.status, quotation.expiry_date)}
+                      {getStatusBadge(quotation.status, quotation)}
                       {needsReminder(quotation) && (
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                           <AlertCircleIcon className="h-3 w-3 mr-1" />
@@ -359,7 +371,7 @@ export default function QuotationList({
                       {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
                     </div>
                     <div className="font-semibold text-right">
-                      {formatCurrency(quotation.total_amount, quotation.currency || 'JPY')}
+                      {formatCurrency(quotation.total_amount || quotation.amount || 0, quotation.currency || 'JPY')}
                     </div>
                   </div>
                   
@@ -376,7 +388,7 @@ export default function QuotationList({
                     
                     {isOrganizationMember && (
                       <>
-                        {quotation.status === 'sent' && quotation.expiry_date && !isExpired(quotation.expiry_date) && onRemind && (
+                        {quotation.status === 'sent' && !isExpired(quotation) && onRemind && (
                           <Button 
                             variant={needsReminder(quotation) ? "secondary" : "ghost"} 
                             size="icon"
@@ -474,13 +486,13 @@ export default function QuotationList({
                       {format(parseISO(quotation.created_at), 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell className="text-left">
-                      {formatCurrency(quotation.total_amount, quotation.currency)}
+                      {formatCurrency(quotation.total_amount || quotation.amount || 0, quotation.currency || 'JPY')}
                     </TableCell>
                     <TableCell className="text-left">
-                      {getStatusBadge(quotation.status, quotation.expiry_date)}
+                      {getStatusBadge(quotation.status, quotation)}
                     </TableCell>
                     <TableCell className="text-left">
-                      {quotation.expiry_date ? format(parseISO(quotation.expiry_date), 'dd MMM yyyy') : t('common.notAvailableShort')}
+                      {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'dd MMM yyyy') : t('common.notAvailableShort')}
                     </TableCell>
                     <TableCell className="space-x-1 text-left">
                       <Button 

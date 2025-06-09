@@ -2630,6 +2630,8 @@ export const en: TranslationValue = {
         approveConfirmation: "Are you sure you want to approve this quotation?",
         rejectConfirmation: "Are you sure you want to reject this quotation?",
         description: "Review this quotation and either approve to proceed or reject with detailed feedback.",
+        approveDescription: "Review this quotation and approve to proceed with the booking.",
+        rejectDescription: "Review this quotation and reject with detailed feedback.",
         notesLabel: "Notes (Optional)",
         notesPlaceholder: "Add any notes or comments about your decision",
         reasonLabel: "Reason for Rejection",
@@ -2643,7 +2645,21 @@ export const en: TranslationValue = {
       selectedServices: "Selected Services",
       subtotal: "Subtotal",
       totalAmount: "Total Amount",
-      activityFeed: "Activity Feed"
+      activityFeed: "Activity Feed",
+      // Additional details translations
+      vehicle: "Vehicle",
+      date: "Date",
+      time: "Time",
+      timeAdjustment: "Time Adjustment",
+      overtime: "Overtime",
+      packageService: "Package Service",
+      servicesBaseTotal: "Services Base Total",
+      timeBasedAdjustments: "Time-based Adjustments",
+      packageTotal: "Package Total",
+      promotionDiscount: "Promotion Discount",
+      regularDiscount: "Regular Discount",
+      quotationInfoStatus: "Quotation Info Status",
+      finalPricingBreakdown: "Final pricing breakdown"
     },
     status: {
       draft: "Draft",
@@ -2663,10 +2679,24 @@ export const en: TranslationValue = {
       remind: "Send Reminder",
       print: "Print",
       download: "Download PDF",
-      email: "Email Quotation"
+      downloadPdf: "Download PDF",
+      email: "Email Quotation",
+      emailQuote: "Email Quotation",
+      generating: "Generating..."
     },
     emailDescription: "Send the quotation as a PDF attachment to the customer's email address.",
     includeDetails: "Include quotation details",
+    emailModal: {
+      title: "Send Quotation by Email",
+      description: "Send this quotation to the customer via email",
+      emailLabel: "Customer Email",
+      emailPlaceholder: "Enter customer email address",
+      subjectLabel: "Email Subject",
+      messageLabel: "Additional Message (Optional)",
+      messagePlaceholder: "Add a personal message to the customer",
+      sendButton: "Send Email",
+      cancelButton: "Cancel"
+    },
     editSection: {
       title: "Edit Quotation",
       description: "Modify the quotation details",

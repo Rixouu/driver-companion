@@ -3,6 +3,7 @@ import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
+import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      quotation = data;
+      quotation = data as Quotation;
       console.log(`Approve route - Quotation fetched successfully. ID: ${quotation.id}, Status: ${quotation.status}, Quote Number: ${quotation.quote_number}`);
     } catch (fetchError) {
       console.error('Approve route - Exception fetching quotation:', fetchError);
@@ -319,7 +320,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if quotation already has a recent approval email
-    const lastEmailSent = new Date(quotation.last_email_sent_at || 0);
+    const lastEmailSent = new Date((quotation as any).last_email_sent_at || 0);
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     
     if (quotation.status === 'approved' && lastEmailSent > fiveMinutesAgo) {
@@ -330,12 +331,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Fetch full quotation with customer details for email
-    const { data: fullQuotation, error: fetchError } = await supabase
+    const { data: fullQuotationData, error: fetchError } = await supabase
       .from('quotations')
       .select('*, customers(*), quotation_items(*)')
       .eq('id', id)
       .single();
       
+    const fullQuotation = fullQuotationData as Quotation;
+
     if (fetchError || !fullQuotation) {
       console.log(`Approve route - Error fetching full quotation: ${fetchError?.message || 'Quotation not found'}`);
       return NextResponse.json({ 
@@ -344,9 +347,23 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
     
+    // Fetch associated package and promotion for the PDF
+    let selectedPackage: PricingPackage | null = null;
+    const packageId = (fullQuotation as any).package_id || (fullQuotation as any).pricing_package_id;
+    if (packageId) {
+        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
+        selectedPackage = pkg as PricingPackage | null;
+    }
+
+    let selectedPromotion: PricingPromotion | null = null;
+    const promotionCode = (fullQuotation as any).promotion_code;
+    if (promotionCode) {
+        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
+        selectedPromotion = promo as PricingPromotion | null;
+    }
+    
     // Ensure we have a valid email address before proceeding
-    const emailAddress = fullQuotation.email || 
-                      fullQuotation.customer_email || 
+    const emailAddress = fullQuotation.customer_email || 
                       (fullQuotation.customers ? fullQuotation.customers.email : null);
     
     if (!emailAddress) {
@@ -362,7 +379,7 @@ export async function POST(request: NextRequest) {
     let pdfBuffer;
     try {
       // Generate the HTML for the quotation
-      const htmlContent = generateQuotationHtml(fullQuotation, 'en');
+      const htmlContent = generateQuotationHtml(fullQuotation, 'en', selectedPackage, selectedPromotion);
       
       // Convert the HTML to a PDF
       pdfBuffer = await generatePdfFromHtml(htmlContent, {
@@ -409,8 +426,7 @@ export async function POST(request: NextRequest) {
       const emailSubject = `${t('email.quotation.approved.subject')} - ${formattedQuotationId}`;
       
       // Customer name with fallback
-      const customerName = fullQuotation.customers?.company_name || 
-                         fullQuotation.customers?.contact_name || 
+      const customerName = (fullQuotation.customers ? fullQuotation.customers.name : null) || 
                          fullQuotation.customer_name || 
                          'Customer';
       
@@ -438,7 +454,7 @@ export async function POST(request: NextRequest) {
         .from('quotations')
         .update({ 
           last_email_sent_at: new Date().toISOString() 
-        })
+        } as any)
         .eq('id', id);
       
       return NextResponse.json({ 

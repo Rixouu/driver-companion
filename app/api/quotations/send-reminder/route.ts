@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
 import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator'
+import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 // Email templates for different languages
 const reminderTemplates = {
@@ -32,12 +33,17 @@ const reminderTemplates = {
 };
 
 // Function to generate custom PDF using HTML-to-PDF approach
-async function generateQuotationPDF(quotation: any, language: string): Promise<Buffer | null> {
+async function generateQuotationPDF(
+  quotation: any, 
+  language: string,
+  selectedPackage: PricingPackage | null,
+  selectedPromotion: PricingPromotion | null
+): Promise<Buffer | null> {
   try {
     console.log('🔄 [SEND-REMINDER API] Starting PDF generation with HTML-to-PDF');
     
     // Generate the HTML for the quotation
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja');
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
     
     // Convert the HTML to a PDF
     const pdfBuffer = await generatePdfFromHtml(htmlContent, {
@@ -115,9 +121,23 @@ export async function POST(request: NextRequest) {
     
     console.log(`[SEND-REMINDER API] Quotation fetched successfully. ID: ${quotationData.id}, Status: ${quotationData.status}`);
     
-    // Use type assertion to handle potentially missing properties
-    const quotation = quotationData as any;
+    const quotation = quotationData as Quotation;
     
+    // Fetch associated package and promotion for the PDF
+    let selectedPackage: PricingPackage | null = null;
+    const packageId = (quotation as any).package_id || (quotation as any).pricing_package_id;
+    if (packageId) {
+        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
+        selectedPackage = pkg as PricingPackage | null;
+    }
+
+    let selectedPromotion: PricingPromotion | null = null;
+    const promotionCode = (quotation as any).promotion_code;
+    if (promotionCode) {
+        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
+        selectedPromotion = promo as PricingPromotion | null;
+    }
+
     // Check if API key is configured
     if (!process.env.RESEND_API_KEY) {
       console.error('[SEND-REMINDER API] RESEND_API_KEY environment variable is not configured');
@@ -145,7 +165,7 @@ export async function POST(request: NextRequest) {
     const formattedQuotationId = `JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
     
     // Get customer email
-    const customerEmail = quotation.customer_email || quotation.email;
+    const customerEmail = (quotation as any).customer_email || (quotation as any).email;
     if (!customerEmail) {
       console.error('[SEND-REMINDER API] No customer email found in quotation');
       return NextResponse.json(
@@ -168,7 +188,7 @@ export async function POST(request: NextRequest) {
     let pdfBuffer: Buffer | null = null;
     if (includeQuotation) {
       console.log('[SEND-REMINDER API] Generating PDF for attachment');
-      pdfBuffer = await generateQuotationPDF(quotation, language);
+      pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
       
       if (!pdfBuffer) {
         console.error('[SEND-REMINDER API] Failed to generate PDF');
@@ -220,7 +240,7 @@ export async function POST(request: NextRequest) {
         .update({ 
           reminder_sent_at: now,
           updated_at: now
-        })
+        } as any)
         .eq('id', id);
       
       // Log activity

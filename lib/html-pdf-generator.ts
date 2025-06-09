@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
+import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 
 /**
  * Generates a PDF from HTML content using Puppeteer
@@ -115,7 +116,12 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
  * @param language Language code ('en' or 'ja')
  * @returns HTML content string
  */
-export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'en'): string {
+export function generateQuotationHtml(
+  quotation: any, 
+  language: 'en' | 'ja' = 'en',
+  selectedPackage: PricingPackage | null = null,
+  selectedPromotion: PricingPromotion | null = null
+): string {
   // Quotation translations for different languages (same as client-side)
   const quotationTranslations = {
     en: {
@@ -158,7 +164,10 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
       taxNumber: 'Tax ID:',
       address: 'Address:',
       cityStatePostal: 'City/State/Postal:',
-      country: 'Country:'
+      country: 'Country:',
+      package: 'Package',
+      timeAdjustment: 'Time Adjustment',
+      basePrice: 'Base Price',
     },
     ja: {
       quotation: '見積書',
@@ -200,7 +209,10 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
       taxNumber: '税番号:',
       address: '住所:',
       cityStatePostal: '市区町村/都道府県/郵便番号:',
-      country: '国:'
+      country: '国:',
+      package: 'パッケージ',
+      timeAdjustment: '時間調整',
+      basePrice: '基本料金',
     }
   };
 
@@ -272,30 +284,61 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
     }
   };
   
-  // Calculate values for price details
-  let baseAmount = quotation?.amount || 0;
-  
-  // Check if we have discount
-  const hasDiscount = quotation?.discount_percentage && parseFloat(String(quotation.discount_percentage)) > 0;
-  let discountAmount = 0;
-  let subtotalAmount = baseAmount;
-  
-  if (hasDiscount) {
-    const discountPercentage = parseFloat(String(quotation.discount_percentage));
-    discountAmount = (baseAmount * discountPercentage) / 100;
-    subtotalAmount = baseAmount - discountAmount;
-  }
-  
-  // Check if we have tax
-  const hasTax = quotation?.tax_percentage && parseFloat(String(quotation.tax_percentage)) > 0;
-  let taxAmount = 0;
-  let totalAmount = subtotalAmount;
-  
-  if (hasTax) {
-    const taxPercentage = parseFloat(String(quotation.tax_percentage));
-    taxAmount = (subtotalAmount * taxPercentage) / 100;
-    totalAmount = subtotalAmount + taxAmount;
-  }
+  // Calculate final totals based on all data
+  const calculateTotals = () => {
+    let serviceBaseTotal = 0;
+    let serviceTimeAdjustment = 0;
+    
+    if (quotation.quotation_items && quotation.quotation_items.length > 0) {
+      quotation.quotation_items.forEach((item: QuotationItem) => {
+        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        serviceBaseTotal += itemBasePrice;
+        
+        if ((item as any).time_based_adjustment) {
+          const timeAdjustment = itemBasePrice * ((item as any).time_based_adjustment / 100);
+          serviceTimeAdjustment += timeAdjustment;
+        }
+      });
+    } else {
+      // Fallback for older quotations
+      serviceBaseTotal = quotation.amount || 0;
+    }
+    
+    const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+    const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
+    const baseTotal = serviceTotal + packageTotal;
+    
+    const discountPercentage = quotation.discount_percentage || 0;
+    const taxPercentage = quotation.tax_percentage || 0;
+    
+    const promotionDiscount = selectedPromotion ? 
+      (selectedPromotion.discount_type === 'percentage' ? 
+        baseTotal * (selectedPromotion.discount_value / 100) : 
+        selectedPromotion.discount_value) : 0;
+    
+    const regularDiscount = baseTotal * (discountPercentage / 100);
+    const totalDiscount = promotionDiscount + regularDiscount;
+    
+    const subtotal = Math.max(0, baseTotal - totalDiscount);
+    const taxAmount = subtotal * (taxPercentage / 100);
+    const finalTotal = subtotal + taxAmount;
+    
+    return {
+      serviceBaseTotal,
+      serviceTimeAdjustment,
+      serviceTotal,
+      packageTotal,
+      baseTotal,
+      promotionDiscount,
+      regularDiscount,
+      totalDiscount,
+      subtotal,
+      taxAmount,
+      finalTotal
+    };
+  };
+
+  const totals = calculateTotals();
   
   // Customer information
   const customerName = quotation?.customer_name || (quotation?.customers?.name || 'N/A');
@@ -433,28 +476,48 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
             // Check if we have multiple service items
             quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
               // If we have items, display each one
-              quotation.quotation_items.map((item, index) => `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 3px 0; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #edf2f7;' : ''}">
+              quotation.quotation_items.map((item: QuotationItem, index: number) => {
+                const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+                const timeAdjustment = (item as any).time_based_adjustment ? 
+                  itemBasePrice * ((item as any).time_based_adjustment / 100) : 0;
+                const isPackage = item.service_type_name?.toLowerCase().includes('package');
+
+                return `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 5px 0; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #edf2f7;' : ''}">
                   <div style="flex: 3;">
-                    <div style="font-weight: medium; margin-bottom: 3px; font-size: 13px;">
+                    <div style="font-weight: 500; margin-bottom: 3px; font-size: 13px;">
                       ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
                     </div>
-                    ${item.service_type_name?.toLowerCase().includes('charter') ?
-                      `<div style="font-size: 12px; color: #666;">
-                        ${item.service_days || 1} ${quotationT.days}, ${item.hours_per_day || 8} ${quotationT.hours}/${quotationT.days}
-                      </div>` :
-                      item.pickup_date ?
-                      `<div style="font-size: 12px; color: #666;">
+                    ${!isPackage ? `
+                      <div style="font-size: 12px; color: #666;">
+                        ${item.service_type_name?.toLowerCase().includes('charter') ?
+                          `${item.service_days || 1} day(s) × ${item.hours_per_day || 8}h` :
+                          `${item.duration_hours || 1} hour(s)`
+                        }
+                      </div>
+                      ${item.pickup_date ? `
+                      <div style="font-size: 12px; color: #666;">
                         ${quotationT.pickupDate} ${new Date(item.pickup_date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
-                      </div>` :
-                      ''
+                      </div>` : ''}` : ''
                     }
+                    ${selectedPackage && isPackage && selectedPackage.items && selectedPackage.items.length > 0 ? `
+                      <div style="font-size: 11px; color: #666; margin-top: 5px; padding-left: 10px;">
+                        <strong>Included:</strong>
+                        ${selectedPackage.items.map(pkgItem => `<div>- ${pkgItem.name} (${pkgItem.vehicle_type})</div>`).join('')}
+                      </div>
+                    ` : ''}
+                    ${timeAdjustment !== 0 ? `
+                      <div style="font-size: 11px; margin-top: 5px; padding: 3px 5px; background-color: #fffbeb; border-radius: 3px; color: #d97706;">
+                        <div>${quotationT.basePrice}: ${formatCurrency(itemBasePrice)}</div>
+                        <div>${quotationT.timeAdjustment} (${(item as any).time_based_adjustment}%): ${timeAdjustment > 0 ? '+' : ''}${formatCurrency(timeAdjustment)}</div>
+                      </div>
+                    `: ''}
                   </div>
-                  <div style="flex: 1; font-size: 13px; text-align: right;">
-                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                  <div style="flex: 1; font-size: 13px; text-align: right; font-weight: 500;">
+                    ${formatCurrency(item.total_price || itemBasePrice + timeAdjustment)}
                   </div>
                 </div>
-              `).join('')
+              `}).join('')
               :
               // Fallback to a single service display if no items
               `<div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;">
@@ -471,7 +534,7 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
                                        `Hourly Rate (${quotation?.hours_per_day || 8} hours / day)`}
                 </div>
                 <div style="font-size: 13px; font-weight: medium;">
-                  ${formatCurrency(quotation?.hourly_rate || quotation?.daily_rate || (baseAmount / (quotation?.service_days || 1)))}
+                  ${formatCurrency(quotation?.hourly_rate || quotation?.daily_rate || (totals.baseTotal / (quotation?.service_days || 1)))}
                 </div>
               </div>
               
@@ -487,56 +550,56 @@ export function generateQuotationHtml(quotation: any, language: 'en' | 'ja' = 'e
               ` : ''}`
           }
           
-          <!-- Base Amount row -->
-          <div style="display: flex; justify-content: space-between; margin-top: 8px; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
-            <div style="font-size: 13px; font-weight: medium;">
-              ${language === 'ja' ? '基本料金' : 'Base Amount'}
+          <!-- Totals Section -->
+          <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+            <!-- Service Base Total -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
+              <span>Services Subtotal</span>
+              <span>${formatCurrency(totals.serviceBaseTotal)}</span>
             </div>
-            <div style="font-size: 13px; font-weight: medium;">
-              ${formatCurrency(baseAmount)}
+            <!-- Time Adjustment -->
+            ${totals.serviceTimeAdjustment !== 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #d97706;">
+                <span>${quotationT.timeAdjustment}</span>
+                <span>${totals.serviceTimeAdjustment > 0 ? '+' : ''}${formatCurrency(totals.serviceTimeAdjustment)}</span>
+              </div>` : ''
+            }
+            <!-- Package Price -->
+            ${selectedPackage ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
+                <span>${quotationT.package}: ${selectedPackage.name}</span>
+                <span>${formatCurrency(totals.packageTotal)}</span>
+              </div>` : ''
+            }
+            <!-- Subtotal -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 500; padding-top: 5px; border-top: 1px solid #eee;">
+              <span>${quotationT.subtotal}</span>
+              <span>${formatCurrency(totals.baseTotal)}</span>
             </div>
-          </div>
-          
-          <!-- Discount row if applicable -->
-          ${hasDiscount ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #e53e3e; padding: 3px 0;">
-              <div style="font-size: 13px;">
-                ${language === 'ja' ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}
-              </div>
-              <div style="font-size: 13px;">
-                -${formatCurrency(discountAmount)}
-              </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
-              <div style="font-size: 13px; font-weight: medium;">
-                ${language === 'ja' ? '小計' : 'Subtotal'}
-              </div>
-              <div style="font-size: 13px; font-weight: medium;">
-                ${formatCurrency(subtotalAmount)}
-              </div>
-            </div>
-          ` : ''}
-          
-          <!-- Tax row if applicable -->
-          ${hasTax ? `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #666; padding: 3px 0;">
-              <div style="font-size: 13px;">
-                ${language === 'ja' ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}
-              </div>
-              <div style="font-size: 13px;">
-                +${formatCurrency(taxAmount)}
-              </div>
-            </div>
-          ` : ''}
-          
-          <!-- Total row -->
-          <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #e2e8f0; padding: 6px 0;">
-            <div style="font-size: 13px; font-weight: bold;">
-              ${language === 'ja' ? '合計金額' : 'Total Amount'}
-            </div>
-            <div style="font-size: 13px; font-weight: bold;">
-              ${formatCurrency(quotation?.total_amount || totalAmount)}
+            <!-- Discounts -->
+            ${totals.promotionDiscount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #16a34a;">
+                <span>Promotion: ${selectedPromotion?.name}</span>
+                <span>-${formatCurrency(totals.promotionDiscount)}</span>
+              </div>` : ''
+            }
+            ${totals.regularDiscount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #e53e3e;">
+                <span>${quotationT.discount} (${quotation.discount_percentage}%)</span>
+                <span>-${formatCurrency(totals.regularDiscount)}</span>
+              </div>` : ''
+            }
+            <!-- Tax -->
+            ${totals.taxAmount > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; padding-top: 5px; border-top: 1px solid #eee;">
+                <span>${quotationT.tax} (${quotation.tax_percentage}%)</span>
+                <span>+${formatCurrency(totals.taxAmount)}</span>
+              </div>` : ''
+            }
+            <!-- Final Total -->
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; padding-top: 8px; border-top: 2px solid #333;">
+              <span>${quotationT.total}</span>
+              <span>${formatCurrency(totals.finalTotal)}</span>
             </div>
           </div>
         </div>

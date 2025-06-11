@@ -1,5 +1,11 @@
-// Basic inspection type (for UI purposes)
-export type InspectionType = 'routine' | 'safety' | 'maintenance'
+// Extend to accept custom template type slugs (e.g., "daily_checklist_toyota") while preserving known literals
+export type InspectionType =
+  | 'routine'
+  | 'safety'
+  | 'maintenance'
+  | 'daily'
+  | 'test'
+  | (string & {}) // allows any additional string values without losing literal type benefits
 
 // Define TranslationObject type if not already present
 export type TranslationObject = { [key: string]: string };

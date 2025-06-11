@@ -571,9 +571,12 @@ export type Database = {
       }
       inspection_categories: {
         Row: {
+          assigned_to_group_id: string | null
+          assigned_to_vehicle_id: string | null
           created_at: string | null
           description_translations: Json | null
           id: string
+          is_active: boolean | null
           master_template_id: string | null
           name_translations: Json | null
           order_number: number | null
@@ -581,9 +584,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assigned_to_group_id?: string | null
+          assigned_to_vehicle_id?: string | null
           created_at?: string | null
           description_translations?: Json | null
           id?: string
+          is_active?: boolean | null
           master_template_id?: string | null
           name_translations?: Json | null
           order_number?: number | null
@@ -591,9 +597,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assigned_to_group_id?: string | null
+          assigned_to_vehicle_id?: string | null
           created_at?: string | null
           description_translations?: Json | null
           id?: string
+          is_active?: boolean | null
           master_template_id?: string | null
           name_translations?: Json | null
           order_number?: number | null
@@ -606,6 +615,20 @@ export type Database = {
             columns: ["master_template_id"]
             isOneToOne: false
             referencedRelation: "master_inspection_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_categories_assigned_to_group_id_fkey"
+            columns: ["assigned_to_group_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_categories_assigned_to_vehicle_id_fkey"
+            columns: ["assigned_to_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -734,7 +757,15 @@ export type Database = {
           photo_url?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inspection_photos_inspection_item_id_fkey"
+            columns: ["inspection_item_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inspection_schedules: {
         Row: {
@@ -791,6 +822,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inspection_schedules_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_template_assignments: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          template_type: string
+          updated_at: string | null
+          vehicle_group_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_type: string
+          updated_at?: string | null
+          vehicle_group_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_type?: string
+          updated_at?: string | null
+          vehicle_group_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_template_assignments_vehicle_group_id_fkey"
+            columns: ["vehicle_group_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_template_assignments_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
@@ -1731,12 +1807,16 @@ export type Database = {
           hours_per_day: number | null
           id: string
           is_service_item: boolean | null
+          pickup_date: string | null
+          pickup_time: string | null
           quantity: number
           quotation_id: string
           service_days: number | null
           service_type_id: string | null
           service_type_name: string | null
           sort_order: number
+          time_based_adjustment: number | null
+          time_based_rule_name: string | null
           total_price: number
           unit_price: number
           updated_at: string
@@ -1750,12 +1830,16 @@ export type Database = {
           hours_per_day?: number | null
           id?: string
           is_service_item?: boolean | null
+          pickup_date?: string | null
+          pickup_time?: string | null
           quantity?: number
           quotation_id: string
           service_days?: number | null
           service_type_id?: string | null
           service_type_name?: string | null
           sort_order?: number
+          time_based_adjustment?: number | null
+          time_based_rule_name?: string | null
           total_price: number
           unit_price: number
           updated_at?: string
@@ -1769,12 +1853,16 @@ export type Database = {
           hours_per_day?: number | null
           id?: string
           is_service_item?: boolean | null
+          pickup_date?: string | null
+          pickup_time?: string | null
           quantity?: number
           quotation_id?: string
           service_days?: number | null
           service_type_id?: string | null
           service_type_name?: string | null
           sort_order?: number
+          time_based_adjustment?: number | null
+          time_based_rule_name?: string | null
           total_price?: number
           unit_price?: number
           updated_at?: string
@@ -2195,6 +2283,33 @@ export type Database = {
           },
         ]
       }
+      vehicle_groups: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vehicle_locations: {
         Row: {
           accuracy: number | null
@@ -2291,6 +2406,7 @@ export type Database = {
           updated_at: string
           user_email: string | null
           user_id: string
+          vehicle_group_id: string | null
           vin: string
           year: string
         }
@@ -2313,6 +2429,7 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id: string
+          vehicle_group_id?: string | null
           vin: string
           year: string
         }
@@ -2335,10 +2452,19 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id?: string
+          vehicle_group_id?: string | null
           vin?: string
           year?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_vehicle_group_id_fkey"
+            columns: ["vehicle_group_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -2453,6 +2579,10 @@ export type Database = {
           currency: string
           duration_hours: number
         }[]
+      }
+      recalculate_quotation_totals: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

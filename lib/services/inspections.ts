@@ -58,6 +58,39 @@ export interface InspectionCategory extends BaseInspectionCategory {
 
 export interface InspectionItemTemplate extends BaseInspectionItemTemplate {}
 
+// Add interfaces for the new functions
+interface Vehicle {
+  id: string;
+  name: string;
+  plate_number: string;
+  brand?: string;
+  model?: string;
+  vehicle_group_id?: string | null;
+  vehicle_group?: {
+    id: string;
+    name: string;
+    color?: string | null;
+  } | null;
+}
+
+interface VehicleGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  vehicle_count?: number;
+}
+
+interface TemplateAssignment {
+  id: string;
+  template_type: string;
+  vehicle_id?: string | null;
+  vehicle_group_id?: string | null;
+  is_active: boolean | null;
+  vehicle?: Vehicle | null;
+  vehicle_group?: VehicleGroup | null;
+}
+
 /**
  * Fetches a paginated list of inspections, optionally filtered by status and search term.
  * Includes basic vehicle information for each inspection.
@@ -608,20 +641,54 @@ export async function updateInspectionSection(
  * Deletes an inspection section (category) and its associated items.
  * If the section is part of a master template, it will be disassociated.
  * @param sectionId The ID of the section to delete.
+ * @param force Whether to force delete even if there are items. Defaults to true.
  * @returns A promise that resolves when the deletion is complete.
  * @throws Throws an error if the deletion fails or related operations fail.
  */
-export async function deleteInspectionSection(sectionId: string): Promise<void> {
+export async function deleteInspectionSection(sectionId: string, force: boolean = true): Promise<void> {
   const supabaseClient = createServiceClient();
-  // Check for related items first
-  const { count, error: countError } = await supabaseClient
-    .from('inspection_item_templates')
-    .select('id', { count: 'exact', head: true })
-    .eq('category_id', sectionId);
+  
+  if (force) {
+    // First, get all item template IDs for this section
+    const { data: itemTemplates, error: fetchItemsError } = await supabaseClient
+      .from('inspection_item_templates')
+      .select('id')
+      .eq('category_id', sectionId);
 
-  if (countError) throw countError;
-  if (count && count > 0) {
-    throw new Error("Cannot delete section with existing items. Please delete items first or use force delete.");
+    if (fetchItemsError) throw fetchItemsError;
+
+    const itemTemplateIds = itemTemplates?.map(item => item.id) || [];
+
+    // Delete any inspection_items that reference these templates
+    if (itemTemplateIds.length > 0) {
+      const { error: inspectionItemsError } = await supabaseClient
+        .from('inspection_items')
+        .delete()
+        .in('template_id', itemTemplateIds);
+
+      if (inspectionItemsError) throw inspectionItemsError;
+    }
+
+    // Delete item templates
+    if (itemTemplateIds.length > 0) {
+      const { error: itemTemplatesError } = await supabaseClient
+        .from('inspection_item_templates')
+        .delete()
+        .in('id', itemTemplateIds);
+
+      if (itemTemplatesError) throw itemTemplatesError;
+    }
+  } else {
+    // Check for related items first
+    const { count, error: countError } = await supabaseClient
+      .from('inspection_item_templates')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_id', sectionId);
+
+    if (countError) throw countError;
+    if (count && count > 0) {
+      throw new Error("Cannot delete section with existing items. Please delete items first or use force delete.");
+    }
   }
 
   const { error } = await supabaseClient
@@ -697,6 +764,9 @@ export async function updateInspectionItem(
   updates: Partial<Pick<InspectionItemTemplateRow, 'name_translations' | 'description_translations' | 'requires_photo' | 'requires_notes' | 'order_number'>>
 ): Promise<InspectionItemTemplate> {
   const supabaseClient = createServiceClient();
+  
+  console.log('updateInspectionItem - Input:', { itemId, updates });
+  
   const { data: rowData, error } = await supabaseClient
     .from('inspection_item_templates')
     .update(updates)
@@ -704,13 +774,15 @@ export async function updateInspectionItem(
     .select('*')
     .single<InspectionItemTemplateRow>();
 
+  console.log('updateInspectionItem - Database response:', { rowData, error });
+
   if (error) throw error;
   if (!rowData) throw new Error("Failed to update inspection item, no data returned.");
 
   const finalNameTranslations = (rowData.name_translations as TranslationObject | null) || { en: '', ja: '' };
   const finalDescTranslations = (rowData.description_translations as TranslationObject | null) || { en: '', ja: '' };
 
-  return {
+  const result = {
     id: rowData.id,
     category_id: rowData.category_id,
     name_translations: finalNameTranslations,
@@ -721,6 +793,10 @@ export async function updateInspectionItem(
     created_at: rowData.created_at,
     updated_at: rowData.updated_at,
   };
+  
+  console.log('updateInspectionItem - Final result:', result);
+  
+  return result;
 }
 
 /**
@@ -769,4 +845,327 @@ export async function getInspectionsByBookingId(bookingId: string) {
 
   if (error) throw error;
   return data as DbInspection[];
+}
+
+/**
+ * Duplicates an entire inspection template (all categories and items) for a specific type
+ * @param sourceType - The inspection type to duplicate from
+ * @param targetType - The new inspection type to create
+ * @param nameTranslations - Name translations for the new template type
+ * @returns A promise that resolves to the duplicated template categories
+ */
+export async function duplicateInspectionTemplate(
+  sourceType: InspectionType,
+  targetType: InspectionType,
+  nameTranslations?: TranslationObject
+): Promise<InspectionCategory[]> {
+  const supabaseClient = createServiceClient();
+
+  // First, get all categories and items from the source template
+  const sourceTemplate = await getInspectionTemplates(sourceType);
+  
+  if (sourceTemplate.length === 0) {
+    throw new Error(`No template found for type: ${sourceType}`);
+  }
+
+  const duplicatedCategories: InspectionCategory[] = [];
+
+  // Duplicate each category and its items
+  for (const category of sourceTemplate) {
+    // Create new category - use the original category's name, not the template name
+    const newCategory = await addInspectionSection(
+      targetType,
+      category.name_translations, // Use the section's original name
+      category.description_translations && typeof category.description_translations === 'object' ? category.description_translations as TranslationObject : undefined
+    );
+
+    // Duplicate all items in this category
+    for (const item of category.inspection_item_templates || []) {
+      await addInspectionItem(
+        newCategory.id,
+        item.name_translations || {},
+        item.requires_photo || false,
+        item.requires_notes || false,
+        item.description_translations || undefined
+      );
+    }
+
+    // Fetch the complete category with items
+    const completeCategory = await getInspectionTemplates(targetType);
+    const newCategoryWithItems = completeCategory.find(c => c.id === newCategory.id);
+    if (newCategoryWithItems) {
+      duplicatedCategories.push(newCategoryWithItems);
+    }
+  }
+
+  return duplicatedCategories;
+}
+
+/**
+ * Deletes an entire inspection template (all categories and items) for a specific type
+ * @param type - The inspection type to delete
+ * @param force - Whether to force delete even if there are associated inspections
+ * @returns A promise that resolves when the template is deleted
+ */
+export async function deleteInspectionTemplate(
+  type: InspectionType,
+  force: boolean = false
+): Promise<void> {
+  const supabaseClient = createServiceClient();
+
+  // Check if there are any inspections using this template type
+  if (!force) {
+    const { data: existingInspections, error: inspectionCheckError } = await supabaseClient
+      .from('inspections')
+      .select('id')
+      .eq('type', type)
+      .limit(1);
+
+    if (inspectionCheckError) throw inspectionCheckError;
+
+    if (existingInspections && existingInspections.length > 0) {
+      throw new Error(`Cannot delete template type '${type}' because it is being used by existing inspections. Use force delete to override.`);
+    }
+  }
+
+  // Get all categories for this template type
+  const categories = await getInspectionTemplates(type);
+
+  // Delete all categories (this will cascade delete items due to foreign key constraints)
+  for (const category of categories) {
+    await deleteInspectionSection(category.id);
+  }
+}
+
+/**
+ * Duplicates a specific inspection category and all its items
+ * @param categoryId - The ID of the category to duplicate
+ * @param targetType - The inspection type for the new category
+ * @param nameTranslations - Optional name translations for the new category
+ * @returns A promise that resolves to the duplicated category
+ */
+export async function duplicateInspectionCategory(
+  categoryId: string,
+  targetType: InspectionType,
+  nameTranslations?: TranslationObject
+): Promise<InspectionCategory> {
+  const supabaseClient = createServiceClient();
+
+  // Get the source category with its items
+  const { data: sourceCategory, error } = await supabaseClient
+    .from('inspection_categories')
+    .select(`
+      *,
+      inspection_item_templates (*)
+    `)
+    .eq('id', categoryId)
+    .single();
+
+  if (error) throw error;
+  if (!sourceCategory) throw new Error(`Category not found: ${categoryId}`);
+
+  // Create new category
+  const newCategory = await addInspectionSection(
+    targetType,
+    nameTranslations || (sourceCategory.name_translations as TranslationObject) || {},
+    (sourceCategory.description_translations as TranslationObject) || undefined
+  );
+
+  // Duplicate all items in this category
+  if (sourceCategory.inspection_item_templates) {
+    for (const item of sourceCategory.inspection_item_templates) {
+      await addInspectionItem(
+        newCategory.id,
+        (item.name_translations as TranslationObject) || {},
+        item.requires_photo || false,
+        item.requires_notes || false,
+        (item.description_translations as TranslationObject) || undefined
+      );
+    }
+  }
+
+  // Return the complete category with items
+  const completeCategories = await getInspectionTemplates(targetType);
+  const newCategoryWithItems = completeCategories.find(c => c.id === newCategory.id);
+  
+  if (!newCategoryWithItems) {
+    throw new Error('Failed to retrieve duplicated category');
+  }
+
+  return newCategoryWithItems;
+}
+
+/**
+ * Gets vehicles with their group information for better assignment display
+ * @returns A promise resolving to an array of vehicles with group data
+ */
+export async function getVehiclesWithGroups(): Promise<Vehicle[]> {
+  const supabaseClient = createServiceClient();
+  const { data, error } = await supabaseClient
+    .from('vehicles')
+    .select(`
+      id,
+      name,
+      plate_number,
+      brand,
+      model,
+      vehicle_group_id,
+      vehicle_group:vehicle_groups (
+        id,
+        name,
+        color
+      )
+    `)
+    .order('name');
+
+  if (error) throw error;
+  return data as Vehicle[];
+}
+
+/**
+ * Gets vehicle groups with vehicle counts
+ * @returns A promise resolving to an array of vehicle groups with counts
+ */
+export async function getVehicleGroupsWithCounts(): Promise<VehicleGroup[]> {
+  const supabaseClient = createServiceClient();
+  const { data, error } = await supabaseClient
+    .from('vehicle_groups')
+    .select(`
+      id,
+      name,
+      description,
+      color,
+      vehicles:vehicles(count)
+    `)
+    .order('name');
+
+  if (error) throw error;
+  
+  return (data as any[]).map(group => ({
+    ...group,
+    vehicle_count: group.vehicles?.[0]?.count || 0
+  }));
+}
+
+/**
+ * Gets template assignments with related data
+ * @returns A promise resolving to an array of template assignments
+ */
+export async function getTemplateAssignments(): Promise<TemplateAssignment[]> {
+  const supabaseClient = createServiceClient();
+  const { data, error } = await supabaseClient
+    .from('inspection_template_assignments')
+    .select(`
+      id,
+      template_type,
+      vehicle_id,
+      vehicle_group_id,
+      is_active,
+      vehicle:vehicles (
+        id,
+        name,
+        plate_number
+      ),
+      vehicle_group:vehicle_groups (
+        id,
+        name,
+        color
+      )
+    `);
+
+  if (error) throw error;
+  return data as TemplateAssignment[];
+}
+
+/**
+ * Manages template assignment for vehicle or group
+ * @param templateType The template type to assign/unassign
+ * @param vehicleId Optional vehicle ID
+ * @param vehicleGroupId Optional vehicle group ID
+ * @returns A promise that resolves when assignment is updated
+ */
+export async function toggleTemplateAssignment(
+  templateType: string,
+  vehicleId?: string,
+  vehicleGroupId?: string
+): Promise<void> {
+  const supabaseClient = createServiceClient();
+  
+  // Check if assignment exists
+  let query = supabaseClient
+    .from('inspection_template_assignments')
+    .select('id, is_active')
+    .eq('template_type', templateType);
+  
+  if (vehicleId) {
+    query = query.eq('vehicle_id', vehicleId).is('vehicle_group_id', null);
+  } else if (vehicleGroupId) {
+    query = query.eq('vehicle_group_id', vehicleGroupId).is('vehicle_id', null);
+  }
+  
+  const { data: existing, error: queryError } = await query.single();
+  
+  if (queryError && queryError.code !== 'PGRST116') { // PGRST116 is "not found"
+    throw queryError;
+  }
+  
+  if (existing) {
+    // Update existing assignment
+    const { error } = await supabaseClient
+      .from('inspection_template_assignments')
+      .update({ is_active: !existing.is_active })
+      .eq('id', existing.id);
+    
+    if (error) throw error;
+  } else {
+    // Create new assignment
+    const { error } = await supabaseClient
+      .from('inspection_template_assignments')
+      .insert({
+        template_type: templateType,
+        vehicle_id: vehicleId || null,
+        vehicle_group_id: vehicleGroupId || null,
+        is_active: true
+      });
+    
+    if (error) throw error;
+  }
+}
+
+/**
+ * Updates the order of multiple sections
+ * @param reorderedSections - Array of section IDs in their new order
+ * @returns A promise that resolves when the order is updated
+ */
+export async function updateSectionOrder(reorderedSections: { id: string; order: number }[]): Promise<void> {
+  const supabaseClient = createServiceClient();
+  
+  // Update each section's order_number
+  for (const section of reorderedSections) {
+    const { error } = await supabaseClient
+      .from('inspection_categories')
+      .update({ order_number: section.order })
+      .eq('id', section.id);
+      
+    if (error) throw error;
+  }
+}
+
+/**
+ * Updates the order of multiple items within a section
+ * @param reorderedItems - Array of item IDs in their new order
+ * @returns A promise that resolves when the order is updated
+ */
+export async function updateItemOrder(reorderedItems: { id: string; order: number }[]): Promise<void> {
+  const supabaseClient = createServiceClient();
+  
+  // Update each item's order_number
+  for (const item of reorderedItems) {
+    const { error } = await supabaseClient
+      .from('inspection_item_templates')
+      .update({ order_number: item.order })
+      .eq('id', item.id);
+      
+    if (error) throw error;
+  }
 } 

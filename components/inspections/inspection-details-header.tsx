@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Printer, Download, Pencil, Play, CheckCircle, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Download, Pencil, Play, CheckCircle, MoreVertical } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
@@ -25,8 +25,6 @@ interface InspectionDetailsHeaderProps {
   isExporting?: boolean;
   /** Callback function to initiate starting the inspection. */
   onStartInspection: () => Promise<void>;
-  /** Callback function to print the inspection report. */
-  onPrint: () => void;
   /** Callback function to export the inspection report as HTML/CSV. */
   onExportHtml: () => void;
   /** Callback function to export the inspection report as PDF. */
@@ -44,14 +42,13 @@ export function InspectionDetailsHeader({
   isUpdating,
   isExporting,
   onStartInspection,
-  onPrint,
   onExportHtml,
   onExportPdf
 }: InspectionDetailsHeaderProps) {
   const { t } = useI18n();
   const router = useRouter();
 
-  const canEdit = inspection.status !== 'completed' && inspection.status !== 'cancelled';
+  const canEdit = inspection.status !== 'cancelled';
   const canStart = inspection.status !== 'completed' && inspection.status !== 'cancelled' && user && user.id === inspection.created_by;
 
   return (
@@ -99,13 +96,9 @@ export function InspectionDetailsHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onPrint}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  {t('inspections.actions.printReport')}
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={onExportHtml} disabled={isExporting}>
                   <Download className="mr-2 h-4 w-4" />
-                  {isExporting ? t('common.exporting') : t('inspections.actions.exportHtml')}
+                  {isExporting ? t('common.exporting') : t('common.exportCSV')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onExportPdf} disabled={isExporting}>
                   <Download className="mr-2 h-4 w-4" />

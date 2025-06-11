@@ -11,6 +11,7 @@ interface PerformInspectionPageProps {
   params: {
     id: string
   }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export const metadata: Metadata = {
@@ -18,9 +19,10 @@ export const metadata: Metadata = {
   description: "Perform a vehicle inspection",
 }
 
-export default async function PerformInspectionPage({ params }: PerformInspectionPageProps) {
+export default async function PerformInspectionPage({ params, searchParams }: PerformInspectionPageProps) {
   const supabase = await getSupabaseServerClient()
-  const { id } = await params;
+  const { id } = params;
+  const resume = searchParams?.resume === 'true'
   
   const { data: inspection } = await supabase
     .from('inspections')
@@ -31,7 +33,13 @@ export default async function PerformInspectionPage({ params }: PerformInspectio
     .eq('id', id)
     .single()
 
-  if (!inspection || (inspection.status !== 'scheduled' && inspection.status !== 'in_progress')) {
+  if (!inspection) return notFound()
+
+  const allowedStatuses = resume
+    ? ['scheduled', 'in_progress', 'completed', 'failed']
+    : ['scheduled', 'in_progress']
+
+  if (!allowedStatuses.includes(inspection.status)) {
     return notFound()
   }
 

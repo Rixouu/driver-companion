@@ -573,9 +573,13 @@ export const useQuotationService = () => {
         service_type: service?.name || 'Unknown Service',
         // Add days count field for clarity in DB
         days_count: input.service_days || 1,
-        // If we have multiple services, ensure we use the input amounts (which include all services)
-        amount: serviceItems && serviceItems.length > 0 ? input.amount : calculatedPricing.baseAmount,
-        total_amount: serviceItems && serviceItems.length > 0 ? input.total_amount : calculatedPricing.totalAmount
+        // Calculate amounts properly based on service items or single service
+        amount: serviceItems && serviceItems.length > 0 ? 
+          serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0) :
+          calculatedPricing.baseAmount,
+        total_amount: serviceItems && serviceItems.length > 0 ? 
+          input.total_amount || serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0) :
+          calculatedPricing.totalAmount
       };
       
       console.log('SAVE & SEND DEBUG - Record for DB Insert:', JSON.stringify(record));
@@ -608,17 +612,17 @@ export const useQuotationService = () => {
             },
             body: JSON.stringify({
               quotation_id: result.id,
-              items: serviceItems.map(item => ({
-                ...item,
-                quotation_id: result.id
-              }))
+              items: serviceItems
             }),
           });
           
           if (!itemsResponse.ok) {
-            console.error('Failed to create service items:', await itemsResponse.text());
+            const errorText = await itemsResponse.text();
+            console.error('SAVE & SEND DEBUG - Failed to create service items:', errorText);
+            throw new Error(`Failed to create service items: ${errorText}`);
           } else {
-            console.log('SAVE & SEND DEBUG - Successfully added service items to quotation');
+            const itemsResult = await itemsResponse.json();
+            console.log('SAVE & SEND DEBUG - Successfully added service items to quotation:', itemsResult);
             
             // After creating items, update the quotation with the correct total amount
             try {
@@ -663,13 +667,6 @@ export const useQuotationService = () => {
                 } else {
                   const directErrorText = await directUpdateResponse.text();
                   console.error('Direct update also failed:', directErrorText);
-                  console.error('Direct update request details:', {
-                    url: `/api/quotations/direct-update/${result.id}`,
-                    body: {
-                      amount: input.amount,
-                      total_amount: input.total_amount
-                    }
-                  });
                 }
               } else {
                 const updatedResult = await updateResponse.json();
@@ -678,11 +675,6 @@ export const useQuotationService = () => {
               }
             } catch (updateError) {
               console.error('Exception during amount update:', updateError);
-              console.error('Update request details:', {
-                id: result.id,
-                amount: input.amount,
-                total_amount: input.total_amount
-              });
             }
           }
         } catch (error) {
@@ -1764,7 +1756,8 @@ export const useQuotationService = () => {
             }
             acc[item.package_id].push({
               ...item,
-              item_type: item.item_type as PackageItemType
+              item_type: item.item_type as PackageItemType,
+              is_optional: item.is_optional ?? false
             });
             return acc;
           }, {} as Record<string, PricingPackageItem[]>);
@@ -1817,7 +1810,8 @@ export const useQuotationService = () => {
             items: (itemsData || []).map(item => ({
               ...item,
               // Force item_type to be a valid PackageItemType
-              item_type: (item.item_type as PackageItemType)
+              item_type: (item.item_type as PackageItemType),
+              is_optional: item.is_optional ?? false
             }))
           } as PricingPackage;
           

@@ -191,7 +191,7 @@ export function VehicleInProgress({ vehicle }: VehicleInProgressProps) {
                         <ClipboardCheck className="h-4 w-4 text-primary" />
                         <span className="font-medium">
                           {/* Use item.type directly from Inspection type */}
-                          {item.type ? t(`inspections.type.${item.type}`) : t('inspections.defaultType')}
+                          {item.type ? t(`inspections.type.${item.type}`) : String(t('inspections.defaultType')) || 'Routine'}
                         </span>
                         <Badge variant="warning">
                           {t('inspections.status.in_progress')}

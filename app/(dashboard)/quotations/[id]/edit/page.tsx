@@ -69,12 +69,14 @@ export default async function EditQuotationPage({ params: paramsPromise }: PageP
   if (!['draft', 'sent'].includes(data.status)) {
     // Redirect to view page if not editable
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="bg-muted p-4 rounded-md text-center">
-          <h2 className="text-lg font-medium">{t('quotations.editSection.notEditable')}</h2>
-          <p className="text-muted-foreground mt-2">
-            {t('quotations.editSection.notEditableDescription')}
-          </p>
+      <div className="space-y-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-muted p-6 rounded-lg text-center">
+            <h2 className="text-lg font-medium">{t('quotations.editSection.notEditable')}</h2>
+            <p className="text-muted-foreground mt-2">
+              {t('quotations.editSection.notEditableDescription')}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -84,15 +86,17 @@ export default async function EditQuotationPage({ params: paramsPromise }: PageP
   const quotation = data as (Quotation & { quotation_items: QuotationItem[] });
   
   return (
-    <div className="max-w-5xl mx-auto">
-      <Suspense fallback={<LoadingSpinner />}>
-        <QuotationFormClient 
-          quotation={quotation} 
-          serviceTypes={serviceTypes}
-          pricingCategories={pricingCategories}
-          pricingItems={pricingItems}
-        />
-      </Suspense>
+    <div className="space-y-6">
+      <div className="max-w-6xl mx-auto">
+        <Suspense fallback={<LoadingSpinner />}>
+          <QuotationFormClient 
+            quotation={quotation} 
+            serviceTypes={serviceTypes}
+            pricingCategories={pricingCategories}
+            pricingItems={pricingItems}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 } 

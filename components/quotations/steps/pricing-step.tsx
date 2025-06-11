@@ -28,6 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { ServiceItemInput, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { ServiceCard } from '@/components/quotations/service-card';
 
 interface PricingStepProps {
   form: UseFormReturn<any>;
@@ -446,74 +447,16 @@ export function PricingStep({
                                   <span className="font-semibold">{formatCurrency(serviceTotal)}</span>
                                 </div>
                                 {serviceItems.map((item, index) => (
-                                  <div key={index} className="bg-muted/30 rounded-lg p-3 space-y-2">
-                                    <div className="flex justify-between items-start">
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm text-foreground">{item.description}</div>
-                                        {item.service_type_name?.toLowerCase().includes('charter') && (
-                                          <div className="text-xs text-muted-foreground mt-1">
-                                            {item.service_days} day{item.service_days !== 1 ? 's' : ''} × {item.hours_per_day || item.duration_hours}h/day
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="text-right">
-                                        <div className="font-medium text-sm">{formatCurrency(item.unit_price)}</div>
-                                                                                 {(item.service_days || 1) > 1 && (
-                                           <div className="text-xs text-blue-600">× {item.service_days} days</div>
-                                         )}
-                                      </div>
-                                    </div>
-                                    
-                                    {(item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) && (
-                                      <div className="bg-purple-50 dark:bg-purple-900/20 rounded p-2">
-                                        <div className="flex justify-between text-xs text-purple-600">
-                                          <span>Package Service</span>
-                                          <span>{formatCurrency(item.total_price || item.unit_price)}</span>
-                                        </div>
-                                        {/* Find the corresponding package for this item */}
-                                        {(() => {
-                                          const correspondingPackage = packages.find(pkg => pkg.id === item.service_type_id);
-                                          return correspondingPackage && correspondingPackage.items && correspondingPackage.items.length > 0 && (
-                                            <div className="mt-1">
-                                              <div className="text-xs text-purple-600 font-medium mb-1">Included Services:</div>
-                                              {correspondingPackage.items.map((pkgItem, pkgIndex) => (
-                                                <div key={pkgIndex} className="text-xs text-purple-600">
-                                                  • {pkgItem.name} - {pkgItem.vehicle_type}
-                                                </div>
-                                              ))}
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                    )}
-                                    
-                                    {item.time_based_adjustment && (
-                                      <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-2">
-                                        <div className="flex justify-between text-xs">
-                                          <span className="text-orange-700 dark:text-orange-300">
-                                            Time-based adjustment ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
-                                            {item.time_based_rule_name && (
-                                              <span className="text-muted-foreground ml-1">- {item.time_based_rule_name}</span>
-                                            )}
-                                          </span>
-                                          <div className="text-right">
-                                            <div className={cn(
-                                              "font-bold text-sm",
-                                              item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                                            )}>
-                                              {item.time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs(item.unit_price * (item.service_days || 1) * item.time_based_adjustment / 100))}
-                                            </div>
-                                            <div className={cn(
-                                              "text-xs font-medium",
-                                              item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                                            )}>
-                                              ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                                  <ServiceCard
+                                    key={index}
+                                    item={item}
+                                    index={index}
+                                    formatCurrency={formatCurrency}
+                                    packages={packages}
+                                    selectedPackage={selectedPackage}
+                                    showActions={false}
+                                    className="bg-muted/30"
+                                  />
                                 ))}
                               </div>
                             )}

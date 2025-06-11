@@ -9,10 +9,10 @@ interface UpdateSectionRequestBody {
 
 export async function PUT(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
     const body: UpdateSectionRequestBody = await request.json();
     const { name_translations, description_translations, order_number } = body;
 
@@ -26,7 +26,7 @@ export async function PUT(
     const updatedSection = await updateInspectionSection(sectionId, name_translations, description_translations, undefined, order_number);
     return NextResponse.json(updatedSection);
   } catch (error) {
-    console.error(`Error updating inspection section ${params.sectionId}:`, error);
+    console.error(`Error updating inspection section:`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ error: 'Failed to update inspection section', details: errorMessage }, { status: 500 });
   }
@@ -34,24 +34,27 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
-    const { sectionId } = params;
+    const { sectionId } = await params;
+    const url = new URL(request.url);
+    const force = url.searchParams.get('force') !== 'false'; // Default to true
 
     if (!sectionId) {
       return NextResponse.json({ error: 'sectionId parameter is required' }, { status: 400 });
     }
 
-    await deleteInspectionSection(sectionId);
-    return NextResponse.json({ message: 'Section deleted successfully' }, { status: 200 }); // Or 204 No Content
+    await deleteInspectionSection(sectionId, force);
+    return NextResponse.json({ success: true, message: 'Section deleted successfully' });
   } catch (error) {
-    console.error(`Error deleting inspection section ${params.sectionId}:`, error);
+    console.error(`Error deleting inspection section:`, error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     // Check if error is due to existing items and provide a specific message
     if (errorMessage.includes('violates foreign key constraint') && errorMessage.includes('inspection_item_templates_category_id_fkey')) {
         return NextResponse.json(
             { 
+                success: false,
                 error: 'Failed to delete section', 
                 details: 'This section cannot be deleted because it still contains items. Please delete the items first or use force delete if available.',
                 code: 'SECTION_NOT_EMPTY'
@@ -59,6 +62,6 @@ export async function DELETE(
             { status: 409 } // 409 Conflict
         );
     }
-    return NextResponse.json({ error: 'Failed to delete inspection section', details: errorMessage }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to delete inspection section', details: errorMessage }, { status: 500 });
   }
 } 

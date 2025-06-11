@@ -396,6 +396,7 @@ function generateEmailHtml(
     return {
       serviceBaseTotal,
       serviceTimeAdjustment,
+      serviceTotal,
       baseTotal,
       totalDiscount,
       promotionDiscount,
@@ -513,75 +514,27 @@ function generateEmailHtml(
                 </td>
               </tr>
               
-              <!-- SERVICE DETAILS BLOCK -->
+              <!-- SERVICE SUMMARY BLOCK - Simplified -->
               <tr>
                 <td style="padding:12px 24px 12px;">
                   <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D; text-transform: uppercase;">
                     ${isJapanese ? 'サービス概要' : 'SERVICE SUMMARY'}
                   </h3>
-                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="details-table"
-                        style="background:#F8FAFC; border-radius:8px;">
-                    <tr>
-                      <td style="padding:12px;">
-                        ${
-                          // Check if we have multiple service items
-                          quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
-                            // If we have items, display each one
-                            `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                              ${quotation.quotation_items.map((item: QuotationItem, index: number) => `
-                                <tr ${index > 0 ? 'style="border-top: 1px solid #EDF2F7; margin-top: 8px;"' : ''}>
-                                  <td style="padding: ${index > 0 ? '12px 0 0 0' : '0'};">
-                                    <div style="font-weight: 500; margin-bottom: 4px;">${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}</div>
-                                    ${item.service_type_name?.toLowerCase().includes('charter') ?
-                                      `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` :
-                                      item.pickup_date ?
-                                      `<div style="font-size: 13px; color: #666;">${isJapanese ? '集合日' : 'Pickup'}: ${new Date(item.pickup_date).toLocaleDateString(isJapanese ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${item.pickup_time}` : ''}</div>` :
-                                      ''}
-                                  </td>
-                                  <td style="text-align: right; vertical-align: top; padding: ${index > 0 ? '12px 0 0 0' : '0'};">
-                                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
-                                  </td>
-                                </tr>
-                              `).join('')}
-                            </table>`
-                            :
-                            // Fallback to the original display if no items
-                            `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                              <tr>
-                                <th width="30%">${isJapanese ? 'サービスタイプ:' : 'SERVICE TYPE'}</th>
-                                <td>${serviceType}</td>
-                              </tr>
-                              <tr>
-                                <th>${isJapanese ? '車両:' : 'VEHICLE'}</th>
-                                <td>${vehicleType}</td>
-                              </tr>
-                              <tr>
-                                <th>${isJapanese ? '時間:' : 'HOURS'}</th>
-                                <td>${hours} ${durationUnit}</td>
-                              </tr>
-                              ${serviceDays > 1 ? `
-                              <tr>
-                                <th>${isJapanese ? '日数:' : 'NUMBER OF DAYS'}</th>
-                                <td>${serviceDays}</td>
-                              </tr>
-                              ` : ''}
-                              ${quotation.selected_package_name ? `
-                              <tr>
-                                <th>${isJapanese ? 'パッケージ:' : 'PACKAGE'}</th>
-                                <td>${quotation.selected_package_name}</td>
-                              </tr>
-                              ` : ''}
-                              ${quotation.selected_promotion_name ? `
-                              <tr>
-                                <th>${isJapanese ? 'プロモーション:' : 'PROMOTION'}</th>
-                                <td>${quotation.selected_promotion_name}</td>
-                              </tr>
-                              ` : ''}
-                            </table>`
-                        }
-                      </td>
-                    </tr>
-                  </table>
+                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: Work Sans, sans-serif; line-height: 1.6;">
+                    ${
+                      // Check if we have multiple service items
+                      quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
+                        // If we have items, display each one simply
+                        quotation.quotation_items.map((item: QuotationItem) => 
+                          `<p style="margin: 8px 0; font-size: 14px; color: #32325D;">• ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}</p>`
+                        ).join('')
+                        :
+                        // Fallback to the original display if no items
+                        `<p style="margin: 8px 0; font-size: 14px; color: #32325D;">• ${serviceType}</p>
+                         <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• ${vehicleType}</p>
+                         <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• ${hours} ${durationUnit}${serviceDays > 1 ? ` × ${serviceDays} ${isJapanese ? '日' : 'days'}` : ''}</p>`
+                    }
+                  </div>
                 </td>
               </tr>
               
@@ -608,20 +561,31 @@ function generateEmailHtml(
                             // Check if we have multiple service items
                             quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
                               // If we have items, display each one
-                              quotation.quotation_items.map((item: QuotationItem, index: number) => `
+                              quotation.quotation_items.map((item: QuotationItem, index: number) => {
+                                const isPackage = item.service_type_name?.toLowerCase().includes('package');
+                                return `
                                 <tr>
                                   <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
                                     <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
                                       ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
                                     </div>
-                                    ${item.service_type_name?.toLowerCase().includes('charter') ?
+                                    ${!isPackage && item.service_type_name?.toLowerCase().includes('charter') ?
                                       `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` : ''}
+                                    ${selectedPackage && isPackage ? `
+                                      <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
+                                        <strong>${isJapanese ? 'サービス内容:' : 'Services Included:'}</strong><br>
+                                        ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                                          selectedPackage.items.map(pkgItem => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
+                                          '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
+                                        }
+                                      </div>
+                                    ` : ''}
                                   </td>
                                   <td align="right" style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}; vertical-align: top;">
                                     ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
                                   </td>
                                 </tr>
-                              `).join('')
+                              `}).join('')
                               :
                               // Fallback to the original display if no items
                               `<tr>
@@ -640,48 +604,30 @@ function generateEmailHtml(
                               ` : ''}`
                           }
                           <tr>
-                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '基本料金' : 'Base Amount'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.serviceBaseTotal)}</td>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? 'サービス小計' : 'Services Subtotal'}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.serviceTotal)}</td>
                           </tr>
-                          ${(() => {
-                            // Individual time-based pricing adjustments
-                            let timeBasedRows = '';
-                            if (quotation.quotation_items && Array.isArray(quotation.quotation_items)) {
-                              quotation.quotation_items.forEach((item: any) => {
-                                if (item.time_based_adjustment && item.unit_price) {
-                                  const itemBasePrice = (item.unit_price * (item.service_days || 1));
-                                  const adjustmentAmount = itemBasePrice * (item.time_based_adjustment / 100);
-                                  const isPositive = adjustmentAmount > 0;
-                                  
-                                  timeBasedRows += `
-                                  <tr>
-                                    <td style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; padding: 4px 0; font-size: 13px; background-color: ${isPositive ? '#fef3c7' : '#dcfce7'};">
-                                      ${isJapanese ? `時間調整: ${item.description || 'サービス'} (${isPositive ? '+' : ''}${item.time_based_adjustment}%)` : `Time Adjustment: ${item.description || 'Service'} (${isPositive ? '+' : ''}${item.time_based_adjustment}%)`}
-                                    </td>
-                                    <td align="right" style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; font-weight: bold; padding: 4px 0; font-size: 13px; background-color: ${isPositive ? '#fef3c7' : '#dcfce7'};">
-                                      ${isPositive ? '+' : ''}${formatCurrency(Math.abs(adjustmentAmount))}
-                                    </td>
-                                  </tr>`;
-                                }
-                              });
-                            }
-                            
-                            // Add total time-based adjustment summary if any exist
-                            if (totals.serviceTimeAdjustment !== 0) {
-                              const isPositive = totals.serviceTimeAdjustment > 0;
-                              timeBasedRows += `
-                              <tr>
-                                <td style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; padding: 8px 0; border-top: 2px solid #f59e0b; font-weight: bold; background-color: #fffbeb;">
-                                  ${isJapanese ? `合計時間調整` : `Total Time-based Adjustments`}
-                                </td>
-                                <td align="right" style="color: ${isPositive ? '#f59e0b' : '#16a34a'}; font-weight: bold; padding: 8px 0; border-top: 2px solid #f59e0b; background-color: #fffbeb;">
-                                  ${isPositive ? '+' : ''}${formatCurrency(Math.abs(totals.serviceTimeAdjustment))}
-                                </td>
-                              </tr>`;
-                            }
-                            
-                            return timeBasedRows;
-                          })()}
+                          ${selectedPackage ? `
+                          <tr>
+                            <td style="padding-top: 10px; padding-bottom: 5px;">
+                              <div style="font-weight: medium; font-size: 14px; color: #8b5cf6;">
+                                ${isJapanese ? 'パッケージ' : 'Package'}: ${selectedPackage.name}
+                              </div>
+                              ${selectedPackage ? `
+                                <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
+                                  <strong>${isJapanese ? 'サービス内容:' : 'Services Included:'}</strong><br>
+                                  ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                                    selectedPackage.items.map(pkgItem => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
+                                    '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
+                                  }
+                                </div>
+                              ` : ''}
+                            </td>
+                            <td align="right" style="padding-top: 10px; padding-bottom: 5px; vertical-align: top; color: #8b5cf6; font-weight: 500;">
+                              ${formatCurrency(selectedPackage.base_price)}
+                            </td>
+                          </tr>
+                          ` : ''}
                           ${(() => {
                             // Package discount
                             if (quotation.selected_package_id && quotation.package_discount) {

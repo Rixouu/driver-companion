@@ -54,7 +54,15 @@ interface InspectionSection {
   items: InspectionItemType[]
 }
 
-// Define the vehicle type
+// Define the vehicle and group types
+interface VehicleGroup {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  vehicle_count?: number;
+}
+
 interface Vehicle {
   id: string;
   name: string;
@@ -63,11 +71,13 @@ interface Vehicle {
   model?: string;
   image_url?: string | null;
   year?: string;
+  vehicle_group_id?: string;
+  vehicle_group?: VehicleGroup;
 }
 
 const inspectionSchema = z.object({
   vehicle_id: z.string().min(1, "Required"),
-  type: z.enum(["routine", "safety", "maintenance"]).default("routine"),
+  type: z.string().min(1).default("routine"),
 });
 
 type InspectionFormData = z.infer<typeof inspectionSchema>;
@@ -94,6 +104,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(vehicleId ? 0 : -1); // -1 for vehicle selection, 0+ for sections
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
+  const [availableTemplateTypes, setAvailableTemplateTypes] = useState<InspectionType[]>([]); // NEW: Track available types for selected vehicle
   
   // Camera handling
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -113,8 +124,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const [searchQuery, setSearchQuery] = useState("");
   const [brandFilter, setBrandFilter] = useState<string>("all");
   const [modelFilter, setModelFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const vehiclesPerPage = 10;
+  
+  // Prevent duplicate toast notifications when auto-selecting templates
+  const [autoTemplateToastShown, setAutoTemplateToastShown] = useState(false);
   
   // Extract unique brands and models from vehicles for filters
   const brands = useMemo(() => {
@@ -135,29 +150,42 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     });
     return Array.from(uniqueModels).sort();
   }, [vehicles, brandFilter]);
+
+  // Get unique vehicle groups
+  const vehicleGroups = useMemo(() => {
+    const uniqueGroups = new Set<VehicleGroup>();
+    vehicles.forEach(vehicle => {
+      if (vehicle.vehicle_group) {
+        uniqueGroups.add(vehicle.vehicle_group);
+      }
+    });
+    return Array.from(uniqueGroups).sort((a, b) => a.name.localeCompare(b.name));
+  }, [vehicles]);
   
   // Filter Vehicle selection
   const filteredVehicles = useMemo(() => {
     // If no filters and no search query, return all vehicles
-    if (brandFilter === 'all' && modelFilter === 'all' && !searchQuery) {
+    if (brandFilter === 'all' && modelFilter === 'all' && groupFilter === 'all' && !searchQuery) {
       return vehicles;
     }
     
     return vehicles.filter((vehicle) => {
       const matchesBrand = brandFilter === 'all' || vehicle.brand === brandFilter;
       const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
+      const matchesGroup = groupFilter === 'all' || vehicle.vehicle_group?.id === groupFilter;
       
-      // Search query match against name, model, brand, or plate number
+      // Search query match against name, model, brand, plate number, or group name
       const matchesSearch = !searchQuery || (
         (vehicle.name && vehicle.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (vehicle.model && vehicle.model.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (vehicle.brand && vehicle.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase()))
+        (vehicle.plate_number && vehicle.plate_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (vehicle.vehicle_group?.name && vehicle.vehicle_group.name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
       
-      return matchesBrand && matchesModel && matchesSearch;
+      return matchesBrand && matchesModel && matchesGroup && matchesSearch;
     });
-  }, [vehicles, brandFilter, modelFilter, searchQuery]);
+  }, [vehicles, brandFilter, modelFilter, groupFilter, searchQuery]);
   
   // Pagination for vehicle selection
   const paginatedVehicles = useMemo(() => {
@@ -170,13 +198,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     setSearchQuery('');
     setBrandFilter('all');
     setModelFilter('all');
+    setGroupFilter('all');
     setCurrentPage(1);
   };
   
   // Update current page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, brandFilter, modelFilter]);
+  }, [searchQuery, brandFilter, modelFilter, groupFilter]);
   
   const methods = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -285,6 +314,98 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       loadInspectionTemplate();
     }
   }, [selectedType, locale, toast]);
+  
+  // NEW: Load available templates based on vehicle assignments
+  useEffect(() => {
+    if (selectedVehicle) {
+      const loadAvailableTemplates = async () => {
+        try {
+          const supabaseClient = createClient();
+          
+          // Check for templates assigned to this specific vehicle
+          const { data: vehicleAssignments, error: vehicleError } = await supabaseClient
+            .from('inspection_template_assignments')
+            .select('template_type')
+            .eq('vehicle_id', selectedVehicle.id)
+            .eq('is_active', true);
+
+          if (vehicleError) {
+            console.error('Error fetching vehicle assignments:', vehicleError);
+          }
+
+          // Check for templates assigned to this vehicle's group
+          let groupAssignments: any[] = [];
+          if (selectedVehicle.vehicle_group_id) {
+            const { data: groupData, error: groupError } = await supabaseClient
+              .from('inspection_template_assignments')
+              .select('template_type')
+              .eq('vehicle_group_id', selectedVehicle.vehicle_group_id)
+              .eq('is_active', true);
+
+            if (groupError) {
+              console.error('Error fetching group assignments:', groupError);
+            } else {
+              groupAssignments = groupData || [];
+            }
+          }
+
+          // Combine and deduplicate template types
+          const allAssignments = [...(vehicleAssignments || []), ...groupAssignments];
+          const availableTypes = [...new Set(allAssignments.map(a => a.template_type))] as InspectionType[];
+
+          console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Vehicle: ${selectedVehicle.name}, Available types:`, availableTypes);
+
+          // Set the available template types state
+          setAvailableTemplateTypes(availableTypes);
+
+          // If only one template type is available, auto-select it and skip type selection
+          if (availableTypes.length === 1) {
+            const alreadyNotified = autoTemplateToastShown;
+            const autoType = availableTypes[0] as InspectionType;
+
+            setSelectedType(autoType);
+            methods.setValue('type', autoType);
+
+            // Skip type selection step and go directly to inspection
+            if (currentStepIndex === 0) {
+              setCurrentStepIndex(1);
+            }
+            
+            if (!alreadyNotified) {
+              toast({
+                title: "Template Auto-Selected",
+                description: `Using ${autoType} inspection template for this vehicle`
+              });
+              setAutoTemplateToastShown(true);
+            }
+          } else if (availableTypes.length === 0) {
+            // No specific templates assigned, show all types as fallback
+            console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] No templates assigned to vehicle ${selectedVehicle.name}, no templates available`);
+            setAvailableTemplateTypes([]); // Empty array will trigger "No templates assigned" message
+            setSelectedType('routine');
+            methods.setValue('type', 'routine');
+          } else {
+            // Multiple templates available, set default to first available
+            const firstAvailable = availableTypes[0];
+            setSelectedType(firstAvailable);
+            methods.setValue('type', firstAvailable);
+          }
+          
+        } catch (error) {
+          console.error('Error loading available templates for vehicle:', error);
+          // Fallback: no templates available
+          setAvailableTemplateTypes([]);
+          setSelectedType('routine');
+          methods.setValue('type', 'routine');
+        }
+      };
+
+      loadAvailableTemplates();
+    } else {
+      // No vehicle selected, reset available types
+      setAvailableTemplateTypes([]);
+    }
+  }, [selectedVehicle, methods, currentStepIndex, toast]);
   
   // Handle changes to vehicle
   const handleVehicleSelect = (vehicle: Vehicle) => {
@@ -819,9 +940,32 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               </Select>
             </div>
           )}
+
+          {/* Vehicle Group filter */}
+          <div className="w-full sm:w-48">
+            <Select value={groupFilter} onValueChange={setGroupFilter}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t('vehicleGroups.filter')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('vehicleGroups.allGroups')}</SelectItem>
+                {vehicleGroups.map(group => (
+                  <SelectItem key={group.id} value={group.id}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: group.color }}
+                      />
+                      {group.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           {/* Clear filters button - only show if any filter is applied */}
-          {(searchQuery || brandFilter !== "all" || modelFilter !== "all") && (
+          {(searchQuery || brandFilter !== "all" || modelFilter !== "all" || groupFilter !== "all") && (
             <Button 
               variant="outline" 
               size="sm" 
@@ -900,6 +1044,17 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                             <span>{vehicle.model}</span>
                           </p>
                         )}
+                        {vehicle.vehicle_group && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: vehicle.vehicle_group.color }}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {vehicle.vehicle_group.name}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -964,6 +1119,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           control={methods.control}
           onTypeChange={handleTypeChange}
           defaultValue={selectedType}
+          availableTypes={availableTemplateTypes}
+          showAllTypes={false}
         />
       </FormProvider>
       
@@ -973,9 +1130,11 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         }}>
           <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
         </Button>
-        <Button onClick={handleStartInspection}>
-          {t('inspections.actions.startInspection')} <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+        {availableTemplateTypes.length > 0 && (
+          <Button onClick={handleStartInspection}>
+            {t('inspections.actions.startInspection')} <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -1191,6 +1350,91 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       </Card>
     );
   };
+  
+  const [existingInspection, setExistingInspection] = useState<any>(null);
+
+  // NEW: Load inspection header to get type and existing items when editing/continuing
+  useEffect(() => {
+    if (!inspectionId) return;
+
+    const loadInspectionHeader = async () => {
+      try {
+        const supabaseClient = createClient();
+        const { data, error } = await supabaseClient
+          .from('inspections')
+          .select('id, type, status')
+          .eq('id', inspectionId)
+          .maybeSingle();
+        if (error) {
+          console.error('[StepBasedInspectionForm] Failed to fetch inspection header:', error);
+          return;
+        }
+        if (data) {
+          setExistingInspection(data);
+          if (data.type) {
+            setSelectedType(data.type as InspectionType);
+            methods.setValue('type', data.type as InspectionType);
+            // Ensure we move to template step if vehicle is pre-selected
+            setCurrentStepIndex(1);
+          }
+        }
+      } catch (err) {
+        console.error('[StepBasedInspectionForm] Unexpected error loading inspection header:', err);
+      }
+    };
+
+    loadInspectionHeader();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inspectionId]);
+
+  // NEW: After sections are loaded, merge existing item statuses/notes/photos
+  useEffect(() => {
+    if (!inspectionId || sections.length === 0) return;
+
+    const loadExistingResults = async () => {
+      try {
+        const supabaseClient = createClient();
+        const { data: itemsRaw, error } = await supabaseClient
+          .from('inspection_items')
+          .select('template_id, status, notes, inspection_photos (photo_url)')
+          .eq('inspection_id', inspectionId);
+        if (error) {
+          console.error('[StepBasedInspectionForm] Failed to load existing inspection items:', error);
+          return;
+        }
+        if (!itemsRaw || itemsRaw.length === 0) return;
+
+        // Map template_id to existing item result
+        const iterableItems = Array.isArray(itemsRaw) ? itemsRaw : [];
+        const resultMap: Record<string, any> = {};
+        iterableItems.forEach((i: any) => {
+          if (i.template_id) {
+            resultMap[i.template_id] = i;
+          }
+        });
+
+        const merged = sections.map((section) => ({
+          ...section,
+          items: section.items.map((item) => {
+            const existing = resultMap[item.id as string];
+            if (!existing) return item;
+            return {
+              ...item,
+              status: existing.status as 'pass' | 'fail' | null,
+              notes: existing.notes || '',
+              photos: (existing.inspection_photos ?? []).map((p: { photo_url: string }) => p.photo_url),
+            };
+          }),
+        }));
+
+        setSections(merged);
+      } catch (err) {
+        console.error('[StepBasedInspectionForm] Unexpected error merging existing results:', err);
+      }
+    };
+
+    loadExistingResults();
+  }, [inspectionId, sections]);
   
   return (
     <div className="space-y-8">

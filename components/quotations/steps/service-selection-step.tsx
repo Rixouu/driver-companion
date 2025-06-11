@@ -27,6 +27,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
+import { ServiceCard } from '@/components/quotations/service-card';
 
 // Import types
 import { 
@@ -419,6 +420,17 @@ export function ServiceSelectionStep({
   // Handle editing service
   const handleEditServiceItem = (index: number) => {
     const item = serviceItems[index];
+    
+    // Don't allow editing packages through the service form
+    if (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) {
+      toast({
+        title: "Cannot edit packages",
+        description: "Package items cannot be edited. Please remove and add a new package if needed.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setEditingIndex(index);
     
     // Pre-fill form with the selected item's values
@@ -437,6 +449,12 @@ export function ServiceSelectionStep({
     }
     
     setIsEditingService(true);
+    
+    // Force re-render to show pickup date/time and time adjustment immediately
+    setTimeout(() => {
+      // This will trigger a re-render of the component
+      setServiceTimeBasedPricing(serviceTimeBasedPricing);
+    }, 100);
   };
 
   // Handle removing service
@@ -592,146 +610,19 @@ export function ServiceSelectionStep({
     return (
       <div className="space-y-3">
         {serviceItems.map((item, index) => (
-          <Card key={index} className={cn(
-            "relative overflow-hidden transition-all",
-            editingIndex === index ? 'ring-2 ring-primary' : ''
-          )}>
-            <div className={cn(
-              "absolute top-0 left-0 h-full w-1",
-              (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) ? 'bg-purple-500' :
-              item.service_type_name?.toLowerCase().includes('charter') ? 'bg-blue-500' : 'bg-green-500'
-            )} />
-            <CardContent className="pt-4 pl-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm sm:text-base flex items-center flex-wrap gap-2">
-                    <Badge variant={
-                      item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? "secondary" :
-                      item.service_type_name?.toLowerCase().includes('charter') ? "default" : "outline"
-                    } className={cn(
-                      "text-xs",
-                      (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) && "bg-purple-100 text-purple-700 border-purple-200"
-                    )}>
-                      {item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? 'Package' :
-                       item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
-                    </Badge>
-                    <span className="break-words">{item.description}</span>
-                    {editingIndex === index && <Badge variant="outline" className="text-xs">Editing</Badge>}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-2 text-xs sm:text-sm">
-                    <div className="text-muted-foreground">Vehicle:</div>
-                    <div className="break-words">{item.vehicle_type}</div>
-                    
-                    {item.service_type_name?.toLowerCase().includes('charter') ? (
-                      <>
-                        <div className="text-muted-foreground">Days:</div>
-                        <div>{item.service_days || 1}</div>
-                        <div className="text-muted-foreground">Hours per day:</div>
-                        <div>{item.hours_per_day || 'N/A'}</div>
-                      </>
-                    ) : (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) ? (
-                      <>
-                        <div className="text-muted-foreground">Type:</div>
-                        <div>Package</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-muted-foreground">Duration:</div>
-                        <div>{item.duration_hours} hour(s)</div>
-                      </>
-                    )}
-                    
-                    <div className="text-muted-foreground">Unit Price:</div>
-                    <div>{formatCurrency(item.unit_price)}</div>
-                    
-                    {/* Time-based adjustments */}
-                    {item.time_based_adjustment && (
-                      <>
-                        <div className="text-muted-foreground">Time Adjustment:</div>
-                        <div className="space-y-1">
-                          <div className={cn(
-                            "font-bold text-sm",
-                            item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                          )}>
-                            {item.time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.service_days || 1)) * (item.time_based_adjustment / 100)))}
-                          </div>
-                          <div className={cn(
-                            "text-xs font-medium",
-                            item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                          )}>
-                            ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
-                            {item.time_based_rule_name && (
-                              <span className="text-muted-foreground ml-1">
-                                - {item.time_based_rule_name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    
-                    {(item.pickup_date || item.pickup_time) && (
-                      <>
-                        <div className="text-muted-foreground">Pickup Date:</div>
-                        <div>{item.pickup_date ? format(parseISO(item.pickup_date), 'MMM d, yyyy') : 'N/A'}</div>
-                        <div className="text-muted-foreground">Pickup Time:</div>
-                        <div>{item.pickup_time || 'N/A'}</div>
-                      </>
-                    )}
-                    
-                    <div className="text-muted-foreground font-medium">Total:</div>
-                    <div className="font-semibold">{formatCurrency(item.total_price || item.unit_price)}</div>
-                  </div>
-                </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button 
-                    variant={editingIndex === index ? "default" : "ghost"}
-                    size="icon"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleEditServiceItem(index);
-                    }}
-                    title="Edit Service"
-                    type="button"
-                    className="h-8 w-8"
-                  >
-                    <PencilIcon className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDuplicateServiceItem(index);
-                    }}
-                    title="Duplicate Service"
-                    disabled={isEditingService}
-                    type="button"
-                    className="h-8 w-8"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleRemoveServiceItem(index);
-                    }}
-                    title="Remove Service"
-                    disabled={isEditingService}
-                    type="button"
-                    className="h-8 w-8"
-                  >
-                    <Trash className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ServiceCard
+            key={index}
+            item={item}
+            index={index}
+            formatCurrency={formatCurrency}
+            packages={packages}
+            selectedPackage={selectedPackage}
+            onEdit={handleEditServiceItem}
+            onDuplicate={handleDuplicateServiceItem}
+            onRemove={handleRemoveServiceItem}
+            isEditing={editingIndex === index}
+            showActions={true}
+          />
         ))}
         
         <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm">

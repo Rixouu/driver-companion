@@ -1,14 +1,18 @@
-import { Metadata } from "next"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Settings",
-  description: "Manage your account settings and preferences",
-}
+import { Sidebar } from "@/components/settings/settings-sidebar"
 
 export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <div className="flex h-full">
+      <Sidebar />
+      <div className="flex-1 p-6">
+        {children}
+      </div>
+    </div>
+  )
 } 

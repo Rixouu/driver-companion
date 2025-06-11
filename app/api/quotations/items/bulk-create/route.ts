@@ -19,7 +19,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { quotation_id, items } = body;
     
+    console.log('BULK CREATE DEBUG - Request body:', JSON.stringify(body, null, 2));
+
     if (!quotation_id || !items || !Array.isArray(items) || items.length === 0) {
+      console.log('BULK CREATE DEBUG - Validation failed:', {
+        quotation_id: !!quotation_id,
+        items: !!items,
+        isArray: Array.isArray(items),
+        length: items?.length
+      });
       return NextResponse.json(
         { error: 'Invalid request. Required fields: quotation_id, items' },
         { status: 400 }
@@ -73,8 +81,15 @@ export async function POST(req: NextRequest) {
       duration_hours: item.duration_hours || null,
       service_days: item.service_days || null,
       hours_per_day: item.hours_per_day || null,
-      is_service_item: item.is_service_item || false
+      is_service_item: item.is_service_item || false,
+      // Pickup date/time and time-based adjustments
+      pickup_date: item.pickup_date || null,
+      pickup_time: item.pickup_time || null,
+      time_based_adjustment: item.time_based_adjustment || null,
+      time_based_rule_name: item.time_based_rule_name || null
     }));
+    
+    console.log('BULK CREATE DEBUG - Formatted items for DB:', JSON.stringify(formattedItems, null, 2));
     
     // Insert items in bulk
     const { data: insertedItems, error: insertError } = await supabase
@@ -83,7 +98,11 @@ export async function POST(req: NextRequest) {
       .select();
     
     if (insertError) {
-      console.error('Error inserting line items:', insertError);
+      console.error('BULK CREATE DEBUG - Database error details:', insertError);
+      console.error('BULK CREATE DEBUG - Error code:', insertError.code);
+      console.error('BULK CREATE DEBUG - Error message:', insertError.message);
+      console.error('BULK CREATE DEBUG - Error details:', insertError.details);
+      console.error('BULK CREATE DEBUG - Error hint:', insertError.hint);
       return NextResponse.json(
         { error: 'Failed to create line items', details: insertError },
         { status: 500 }

@@ -87,6 +87,13 @@ export function DashboardContent({
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
   const [isLoadingBookings, setIsLoadingBookings] = useState(true)
   const [bookingsError, setBookingsError] = useState<string | null>(null)
+  
+  // State for expiring quotations
+  const [expiringQuotations, setExpiringQuotations] = useState<any[]>([])
+  const [isLoadingQuotations, setIsLoadingQuotations] = useState(true)
+  const [recentQuotations, setRecentQuotations] = useState<any[]>([])
+  const [isLoadingRecentQuotations, setIsLoadingRecentQuotations] = useState(true)
+  const [quotationsError, setQuotationsError] = useState<string | null>(null)
 
   // Fetch bookings with pending and assigned statuses
   useEffect(() => {
@@ -122,6 +129,68 @@ export function DashboardContent({
     }
     
     fetchUpcomingBookings()
+  }, [])
+  
+  // Fetch expiring quotations (expiring within 7 days)
+  useEffect(() => {
+    async function fetchExpiringQuotations() {
+      try {
+        setIsLoadingQuotations(true)
+        // Get current date and 7 days from now
+        const today = new Date()
+        const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+        
+        // Fetch quotations that are sent but not yet approved/rejected and expiring soon
+        const response = await fetch('/api/quotations?status=sent&limit=5')
+        if (!response.ok) throw new Error('Failed to fetch quotations')
+        
+        const data = await response.json()
+        
+        // Filter for quotations expiring within 7 days
+        const expiring = data.quotations?.filter((quotation: any) => {
+          if (!quotation.expiry_date) return false
+          const expiryDate = new Date(quotation.expiry_date)
+          return expiryDate >= today && expiryDate <= weekFromNow
+        }) || []
+        
+        // Sort by expiry date (soonest first)
+        expiring.sort((a: any, b: any) => {
+          const dateA = new Date(a.expiry_date)
+          const dateB = new Date(b.expiry_date)
+          return dateA.getTime() - dateB.getTime()
+        })
+        
+        setExpiringQuotations(expiring.slice(0, 3))
+      } catch (error) {
+        console.error('Error fetching expiring quotations:', error)
+        setExpiringQuotations([])
+      } finally {
+        setIsLoadingQuotations(false)
+      }
+    }
+    
+    fetchExpiringQuotations()
+  }, [])
+
+  // FETCH_RECENT_QUOTATIONS
+  useEffect(() => {
+    async function fetchRecentQuotations() {
+      try {
+        setIsLoadingRecentQuotations(true)
+        const response = await fetch('/api/quotations?limit=3')
+        if (!response.ok) throw new Error('Failed to fetch quotations')
+        const data = await response.json()
+        setRecentQuotations(data.quotations || [])
+        setQuotationsError(null)
+      } catch (error) {
+        console.error('Error fetching quotations:', error)
+        setRecentQuotations([])
+        setQuotationsError(t('common.error'))
+      } finally {
+        setIsLoadingRecentQuotations(false)
+      }
+    }
+    fetchRecentQuotations()
   }, [])
 
   // Function to handle checkbox changes
@@ -173,32 +242,93 @@ export function DashboardContent({
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/vehicles/new" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
-                <Car className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.addVehicle")}</span>
+              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors">
+                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                  <Car className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.addVehicle")}</span>
               </Button>
             </Link>
             <Link href="/maintenance/schedule" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
-                <Wrench className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.scheduleMaintenance")}</span>
+              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors">
+                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                  <Wrench className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleMaintenance")}</span>
               </Button>
             </Link>
             <Link href="/inspections/create" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
-                <ClipboardCheck className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.scheduleInspection")}</span>
+              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors">
+                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                  <ClipboardCheck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleInspection")}</span>
               </Button>
             </Link>
             <Link href="/quotations/create" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2">
-                <FileText className="h-6 w-6" />
-                <span className="text-center">{t("dashboard.quickActions.createQuotation")}</span>
+              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 dark:hover:border-orange-800 transition-colors">
+                <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
+                  <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.createQuotation")}</span>
               </Button>
             </Link>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Expiring Quotations Alert */}
+      {!isLoadingQuotations && expiringQuotations.length > 0 && (
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <AlertTriangle className="h-5 w-5" />
+              {t("dashboard.expiringQuotations.title")}
+            </CardTitle>
+            <CardDescription>{t("dashboard.expiringQuotations.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expiringQuotations.map((quotation) => (
+                <Link key={quotation.id} href={`/quotations/${quotation.id}`}>
+                  <div className="flex items-center justify-between p-3 bg-background rounded-lg border hover:bg-accent transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                        <span className="font-medium">
+                          {quotation.title || t("quotations.details.untitled", { defaultValue: "Untitled" })} - {quotation.customer_name}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {t("dashboard.expiringQuotations.amount")}: {quotation.currency || 'JPY'} {quotation.total_amount?.toLocaleString() || 0}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline" className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border-orange-300 dark:border-orange-700">
+                        {(() => {
+                          const daysLeft = Math.ceil((new Date(quotation.expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                          return daysLeft === 1 
+                            ? t("dashboard.expiringQuotations.expiringTomorrow")
+                            : t("dashboard.expiringQuotations.expiringInDays", { days: daysLeft })
+                        })()}
+                      </Badge>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              <div className="pt-2">
+                <Link href="/quotations?status=sent">
+                  <Button variant="outline" size="sm" className="w-full">
+                    {t("dashboard.expiringQuotations.viewAll")}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Main Dashboard Content - Two Column Layout */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Vehicle Stats - LEFT SIDE */}
@@ -331,80 +461,119 @@ export function DashboardContent({
           </CardContent>
         </Card>
       </div>
-      {/* Activity Feed */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5 text-primary" />
-            {t("dashboard.activityFeed.title")}
-          </CardTitle>
-          <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="recent" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="recent">
-                <History className="mr-2 h-4 w-4" />
-                {t("common.status.recent")}
-              </TabsTrigger>
-              <TabsTrigger value="upcoming">
-                <Calendar className="mr-2 h-4 w-4" />
-                {t("common.status.upcoming")}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="recent" className="space-y-4">
-              {recentMaintenance.length === 0 && recentInspections.length === 0 ? (
-                <EmptyState icon={History} message={t("dashboard.activityFeed.noRecent")} />
-              ) : (
-                <div className="space-y-4">
-                  {recentMaintenance.slice(0, 3).map((task) => (
-                    <MaintenanceTaskCard key={task.id} task={task} />
-                  ))}
-                  {recentInspections.slice(0, 3).map((inspection) => (
-                    <InspectionCard key={inspection.id} inspection={inspection} />
-                  ))}
-                </div>
-              )}
-              {(recentMaintenance.length > 0 || recentInspections.length > 0) && (
-                <div className="flex justify-center mt-4">
-                  <Link
-                    href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
-                    <Button variant="outline">
-                      {t("dashboard.activityFeed.viewAll")}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Quotations */}
+        <Card className="h-full">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              {t('quotations.title')}
+            </CardTitle>
+            <CardDescription>{t('quotations.listDescription')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingRecentQuotations ? (
+              <div className="flex justify-center items-center py-6">
+                <RotateCw className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : quotationsError ? (
+              <div className="text-center py-6 text-sm text-muted-foreground">
+                {quotationsError}
+              </div>
+            ) : recentQuotations.length === 0 ? (
+              <EmptyState icon={FileText} message={t('quotations.placeholder')} />
+            ) : (
+              <div className="space-y-4">
+                {recentQuotations.map((quotation: any) => (
+                  <QuotationCard key={quotation.id} quotation={quotation} />
+                ))}
+                <div className="pt-2">
+                  <Link href="/quotations">
+                    <Button variant="outline" className="w-full">
+                      {t('dashboard.expiringQuotations.viewAll')}
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
                 </div>
-              )}
-            </TabsContent>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        {/* Activity Feed */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              {t("dashboard.activityFeed.title")}
+            </CardTitle>
+            <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="recent" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="recent">
+                  <History className="mr-2 h-4 w-4" />
+                  {t("common.status.recent")}
+                </TabsTrigger>
+                <TabsTrigger value="upcoming">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {t("common.status.upcoming")}
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="upcoming" className="space-y-4">
-              {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 ? (
-                <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
-              ) : (
-                <div className="space-y-4">
-                  {upcomingMaintenance.slice(0, 3).map((task) => (
-                    <MaintenanceTaskCard key={task.id} task={task} />
-                  ))}
-                  {upcomingInspections.slice(0, 3).map((inspection) => (
-                    <InspectionCard key={inspection.id} inspection={inspection} />
-                  ))}
-                </div>
-              )}
-              {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
-                <div className="flex justify-center mt-4">
-                  <Link
-                    href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
-                    <Button variant="outline">
-                      {t("dashboard.activityFeed.viewAll")}
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              <TabsContent value="recent" className="space-y-4">
+                {recentMaintenance.length === 0 && recentInspections.length === 0 ? (
+                  <EmptyState icon={History} message={t("dashboard.activityFeed.noRecent")} />
+                ) : (
+                  <div className="space-y-4">
+                    {recentMaintenance.slice(0, 3).map((task) => (
+                      <MaintenanceTaskCard key={task.id} task={task} />
+                    ))}
+                    {recentInspections.slice(0, 3).map((inspection) => (
+                      <InspectionCard key={inspection.id} inspection={inspection} />
+                    ))}
+                  </div>
+                )}
+                {(recentMaintenance.length > 0 || recentInspections.length > 0) && (
+                  <div className="flex justify-center mt-4">
+                    <Link
+                      href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
+                      <Button variant="outline">
+                        {t("dashboard.activityFeed.viewAll")}
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="upcoming" className="space-y-4">
+                {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 ? (
+                  <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingMaintenance.slice(0, 3).map((task) => (
+                      <MaintenanceTaskCard key={task.id} task={task} />
+                    ))}
+                    {upcomingInspections.slice(0, 3).map((inspection) => (
+                      <InspectionCard key={inspection.id} inspection={inspection} />
+                    ))}
+                  </div>
+                )}
+                {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
+                  <div className="flex justify-center mt-4">
+                    <Link
+                      href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
+                      <Button variant="outline">
+                        {t("dashboard.activityFeed.viewAll")}
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -455,8 +624,10 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
         return t('inspections.type.safety')
       case 'maintenance':
         return t('inspections.type.maintenance')
+      case 'daily':
+        return t('inspections.type.daily')
       default:
-        return t('inspections.defaultType')
+        return String(t('inspections.defaultType')) || 'Routine'
     }
   }
   
@@ -536,6 +707,39 @@ function BookingCard({ booking }: { booking: Booking }) {
             </div>
           )}
         </div>
+      </div>
+    </Link>
+  )
+}
+
+function QuotationCard({ quotation }: { quotation: any }) {
+  const { t } = useI18n()
+  return (
+    <Link href={`/quotations/${quotation.id}`} className="block">
+      <div className="p-3 border rounded-md hover:border-primary transition-colors">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <span className="font-medium block truncate max-w-[160px]">
+                {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
+              </span>
+              <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+                {quotation.customer_name || t('bookings.unnamed')}
+              </span>
+            </div>
+          </div>
+          <Badge variant="secondary">
+            {t(`quotations.status.${quotation.status}`)}
+          </Badge>
+        </div>
+        {quotation.total_amount && (
+          <p className="text-xs text-muted-foreground pl-10">
+            {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
+          </p>
+        )}
       </div>
     </Link>
   )

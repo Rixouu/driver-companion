@@ -56,8 +56,9 @@ import Image from 'next/image';
 // Import the componentized parts
 import { QuotationDetailsApprovalPanel } from '@/components/quotations/quotation-details/approval-panel';
 import { PriceDetails } from '@/components/quotations/quotation-details/price-details';
-import { PricingBreakdown } from '@/components/quotations/quotation-details/pricing-breakdown';
+import { PricingSummary } from '@/components/quotations/quotation-details/pricing-summary';
 import { QuotationInfoCard } from '@/components/quotations/quotation-details/quotation-info-card';
+import { ServiceCard } from '@/components/quotations/service-card';
 
 interface QuotationDetailsProps {
   quotation: Quotation & {
@@ -123,36 +124,32 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       setLoadingPricingDetails(true);
       try {
         // Check if quotation has a package ID or promotion code
-        const packageId = (quotation as any).package_id || (quotation as any).pricing_package_id || (quotation as any).selected_package_id;
+        const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
         const promotionCode = (quotation as any).promotion_code || (quotation as any).applied_promotion_code || (quotation as any).selected_promotion_code;
         
         // Load package if available
         if (packageId) {
+          console.log('Loading package with ID:', packageId);
           try {
             const packages = await getPricingPackages(false, true);
+            console.log('Available packages:', packages.length);
             const foundPackage = packages.find(pkg => pkg.id === packageId);
             if (foundPackage) {
+              console.log('Found package:', foundPackage.name, 'with items:', foundPackage.items?.length || 0);
               setSelectedPackage(foundPackage);
+            } else {
+              console.log('Package not found in available packages');
             }
           } catch (error) {
             console.error('Error loading package:', error);
           }
-        } else if ((quotation as any).selected_package_name) {
-          // Create a temporary package object from stored data
-          setSelectedPackage({
-            id: (quotation as any).selected_package_id || 'stored-package',
-            name: (quotation as any).selected_package_name,
-            description: (quotation as any).selected_package_description || '',
-            package_type: 'bundle' as PackageType,
-            base_price: (quotation as any).package_discount || 0,
-            currency: 'JPY',
-            is_featured: false,
-            is_active: true,
-            sort_order: 0,
-            created_at: '',
-            updated_at: '',
-            items: []
-          } as any);
+        } else {
+          console.log('No package ID found in quotation. Checked fields:', {
+            selected_package_id: (quotation as any).selected_package_id,
+            package_id: (quotation as any).package_id,
+            pricing_package_id: (quotation as any).pricing_package_id,
+            selected_package_name: (quotation as any).selected_package_name
+          });
         }
         
         // Load promotion if available
@@ -582,14 +579,63 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               
               <Separator className="my-6" />
               
-              {/* ✅ PRICING BREAKDOWN COMPONENT - components/quotations/quotation-details/pricing-breakdown.tsx */}
-              <div className="mb-6">
-                <div className="flex items-center mb-4">
-                  <CreditCard className="h-5 w-5 mr-2 text-primary" />
-                  <h2 className="text-xl font-semibold">{t('quotations.details.pricingSummary')}</h2>
+              {/* Selected Services Section using ServiceCard */}
+              {quotation.quotation_items && quotation.quotation_items.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center mb-4">
+                    <Car className="h-5 w-5 mr-2 text-primary" />
+                    <h2 className="text-xl font-semibold">{t('quotations.details.selectedServices')} ({quotation.quotation_items.length})</h2>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {quotation.quotation_items.map((item, index) => {
+                      // Convert QuotationItem to ServiceItemInput format for ServiceCard
+                      const serviceItem = {
+                        description: item.description,
+                        service_type_id: item.service_type_id || '',
+                        service_type_name: item.service_type_name || '',
+                        vehicle_category: item.vehicle_category as string || '',
+                        vehicle_type: item.vehicle_type || '',
+                        duration_hours: item.duration_hours || 1,
+                        service_days: item.service_days || 1,
+                        hours_per_day: item.hours_per_day || null,
+                        unit_price: item.unit_price,
+                        total_price: item.total_price,
+                        quantity: item.quantity,
+                        sort_order: item.sort_order || index,
+                        is_service_item: item.is_service_item !== false,
+                        pickup_date: item.pickup_date || null,
+                        pickup_time: item.pickup_time || null,
+                        time_based_adjustment: (item as any).time_based_adjustment,
+                        time_based_rule_name: (item as any).time_based_rule_name,
+                      };
+                      
+                      return (
+                        <ServiceCard
+                          key={item.id}
+                          item={serviceItem}
+                          index={index}
+                          formatCurrency={formatCurrency}
+                          packages={selectedPackage ? [selectedPackage] : []}
+                          selectedPackage={selectedPackage}
+                          showActions={false}
+                        />
+                      );
+                    })}
+                    
+                    <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm border-t">
+                      <span>Total Amount (before discount/tax):</span>
+                      <span>{formatCurrency(quotation.quotation_items.reduce((total, item) => total + (item.total_price || item.unit_price), 0))}</span>
+                    </div>
+                  </div>
                 </div>
-                
-                <PricingBreakdown 
+              )}
+
+              <Separator className="my-6" />
+
+              {/* ✅ NEW PRICING SUMMARY COMPONENT - Complete Revamp */}
+              <div className="mb-6">
+                <PricingSummary 
                   quotationItems={quotation.quotation_items || []}
                   selectedPackage={selectedPackage}
                   selectedPromotion={selectedPromotion}
@@ -598,6 +644,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   selectedCurrency={selectedCurrency}
                   onCurrencyChange={handleCurrencyChange}
                   formatCurrency={formatCurrency}
+                  appliedTimeBasedRules={appliedTimeBasedRules}
                 />
               </div>
 

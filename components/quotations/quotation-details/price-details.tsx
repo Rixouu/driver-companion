@@ -431,7 +431,7 @@ export function PriceDetails({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base font-medium">Pricing Srmiiiiimary</CardTitle>
+              <CardTitle className="text-base font-medium">Pricing Summary</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Detailed breakdown
               </CardDescription>

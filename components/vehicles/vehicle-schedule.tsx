@@ -195,7 +195,7 @@ export function VehicleSchedule({ vehicle }: VehicleScheduleProps) {
                       <div className="flex items-center gap-2">
                         <ClipboardCheck className="h-4 w-4 text-primary" />
                         <span className="font-medium">
-                          {item.type ? t(`inspections.type.${item.type}`) : t('inspections.defaultType')}
+                          {item.type ? t(`inspections.type.${item.type}`) : String(t('inspections.defaultType')) || 'Routine'}
                         </span>
                         <Badge variant="secondary">
                           {t('inspections.status.scheduled')}

@@ -178,7 +178,7 @@ export interface Inspection {
   vehicle_id: string
   inspector_id: string | null
   type: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'failed'
   date: string
   notes?: string
   created_at: string

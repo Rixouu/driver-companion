@@ -51,14 +51,12 @@ const baseMockInspection: ExtendedInspection = {
 
 describe('InspectionDetailsHeader', () => {
   let mockOnStartInspection: ReturnType<typeof vi.fn>;
-  let mockOnPrint: ReturnType<typeof vi.fn>;
   let mockOnExportHtml: ReturnType<typeof vi.fn>;
   let mockOnExportPdf: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockOnStartInspection = vi.fn().mockResolvedValue(undefined);
-    mockOnPrint = vi.fn();
     mockOnExportHtml = vi.fn();
     mockOnExportPdf = vi.fn().mockResolvedValue(undefined);
   });
@@ -70,7 +68,6 @@ describe('InspectionDetailsHeader', () => {
       isUpdating: false,
       isExporting: false,
       onStartInspection: mockOnStartInspection,
-      onPrint: mockOnPrint,
       onExportHtml: mockOnExportHtml,
       onExportPdf: mockOnExportPdf,
     };
@@ -124,9 +121,9 @@ describe('InspectionDetailsHeader', () => {
     expect(screen.getByText('common.edit')).toBeInTheDocument();
   });
 
-  it('disables "Edit" button if inspection is completed', () => {
+  it('allows "Edit" button even if inspection is completed', () => {
     renderComponent({ inspection: { ...baseMockInspection, status: 'completed' } });
-    expect(screen.getByText('common.edit').closest('button')).toBeDisabled();
+    expect(screen.getByText('common.edit').closest('button')).not.toBeDisabled();
   });
 
   it('calls router.push with edit path when "Edit" button is clicked', () => {
@@ -137,33 +134,25 @@ describe('InspectionDetailsHeader', () => {
 
   it('renders export and print options in dropdown', () => {
     renderComponent();
-    fireEvent.click(screen.getByLabelText('common.actions')); // Open dropdown
-    expect(screen.getByText('inspections.printReport')).toBeInTheDocument();
-    expect(screen.getByText('inspections.exportHtml')).toBeInTheDocument();
-    expect(screen.getByText('inspections.exportPdf')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('common.actions.default')); // Open dropdown
+    expect(screen.getByText('common.exportCSV')).toBeInTheDocument();
+    expect(screen.getByText('inspections.actions.exportPdf')).toBeInTheDocument();
   });
 
-  it('calls onPrint when "Print Report" is clicked', () => {
+  it('calls onExportHtml when "Export CSV" is clicked', () => {
     renderComponent();
-    fireEvent.click(screen.getByLabelText('common.actions'));
-    fireEvent.click(screen.getByText('inspections.printReport'));
-    expect(mockOnPrint).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls onExportHtml when "Export HTML" is clicked', () => {
-    renderComponent();
-    fireEvent.click(screen.getByLabelText('common.actions'));
-    fireEvent.click(screen.getByText('inspections.exportHtml'));
+    fireEvent.click(screen.getByLabelText('common.actions.default'));
+    fireEvent.click(screen.getByText('common.exportCSV'));
     expect(mockOnExportHtml).toHaveBeenCalledTimes(1);
   });
   
   it('disables export buttons if isExporting is true', () => {
     renderComponent({ isExporting: true });
-    fireEvent.click(screen.getByLabelText('common.actions'));
-    expect(screen.getByText('inspections.exporting')).toBeInTheDocument(); // Check for "Exporting..." text
+    fireEvent.click(screen.getByLabelText('common.actions.default'));
+    expect(screen.getByText('common.exporting')).toBeInTheDocument(); // Check for "Exporting..." text
     // For more precise check, we'd need to inspect the disabled state of menu items
     // For now, checking the text change due to isExporting is a good indicator.
-    const exportHtmlButton = screen.getByText('inspections.exporting'); // This will be the text on both buttons if disabled
+    const exportHtmlButton = screen.getByText('common.exporting'); // This will be the text on both buttons if disabled
     // This test could be more robust if Radix DropdownMenuItem had a more direct way to test disabled state via RTL
     // However, the component logic shows `disabled={isExporting}` on the menu items.
     expect(exportHtmlButton).toBeInTheDocument();
@@ -171,8 +160,8 @@ describe('InspectionDetailsHeader', () => {
 
   it('calls onExportPdf when "Export PDF" is clicked', async () => {
     renderComponent();
-    fireEvent.click(screen.getByLabelText('common.actions'));
-    fireEvent.click(screen.getByText('inspections.exportPdf'));
+    fireEvent.click(screen.getByLabelText('common.actions.default'));
+    fireEvent.click(screen.getByText('inspections.actions.exportPdf'));
     expect(mockOnExportPdf).toHaveBeenCalledTimes(1);
   });
 

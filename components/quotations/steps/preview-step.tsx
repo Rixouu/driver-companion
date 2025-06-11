@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ServiceItemInput, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { ServiceCard } from '@/components/quotations/service-card';
 
 interface PreviewStepProps {
   form: UseFormReturn<any>;
@@ -242,120 +243,16 @@ export function PreviewStep({
                     Selected Services ({serviceItems.length})
                   </h4>
                   {serviceItems.map((item, index) => (
-                    <div key={index} className="p-3 bg-muted/30 rounded-lg border">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant={
-                              item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? "secondary" :
-                              item.service_type_name?.toLowerCase().includes('charter') ? "default" : "outline"
-                            } className={cn(
-                              "text-xs",
-                              (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) && "bg-purple-100 text-purple-700 border-purple-200"
-                            )}>
-                              {item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package') ? 'Package' :
-                               item.service_type_name?.toLowerCase().includes('charter') ? 'Charter' : 'Transfer'}
-                            </Badge>
-                            <span className="font-medium text-sm">{item.description}</span>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <span className="text-muted-foreground">Vehicle:</span>
-                            <span>{item.vehicle_type}</span>
-                            
-                            {item.service_type_name?.toLowerCase().includes('charter') ? (
-                              <>
-                                <span className="text-muted-foreground">Service Duration:</span>
-                                <span className="font-medium">
-                                  {item.service_days} day{item.service_days !== 1 ? 's' : ''} × {item.hours_per_day}h/day
-                                </span>
-                                <span className="text-muted-foreground">Total Hours:</span>
-                                <span className="font-medium text-blue-600">
-                                  {(item.service_days || 1) * (item.hours_per_day || 1)}h total
-                                </span>
-                              </>
-                            ) : (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) ? (
-                              <>
-                                <span className="text-muted-foreground">Package Service:</span>
-                                <span className="text-purple-600 font-medium">Included Services</span>
-                                <span className="text-muted-foreground">Services Included:</span>
-                                <div className="col-span-1 sm:col-span-2 text-xs space-y-1">
-                                  {/* Find the corresponding package for this item */}
-                                  {(() => {
-                                    const correspondingPackage = packages.find((pkg: PricingPackage) => pkg.id === item.service_type_id) || selectedPackage;
-                                    return correspondingPackage && correspondingPackage.items && correspondingPackage.items.length > 0 ? (
-                                      correspondingPackage.items.map((pkgItem: any, pkgIndex: number) => (
-                                        <div key={pkgIndex} className="text-purple-600">
-                                          • {pkgItem.name}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <div className="text-purple-600">• Package services included</div>
-                                    );
-                                  })()}
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-muted-foreground">Duration:</span>
-                                <span>{item.duration_hours} hour(s)</span>
-                              </>
-                            )}
-                            
-                            {item.pickup_date && (
-                              <>
-                                <span className="text-muted-foreground">Date:</span>
-                                <span>{format(new Date(item.pickup_date), 'MMM d, yyyy')}</span>
-                              </>
-                            )}
-                            
-                            {item.pickup_time && (
-                              <>
-                                <span className="text-muted-foreground">Time:</span>
-                                <span>{item.pickup_time}</span>
-                              </>
-                            )}
-                            
-                            {item.time_based_adjustment && (
-                              <>
-                                <span className="text-muted-foreground">Time Adjustment:</span>
-                                <div className="space-y-1">
-                                  <div className={cn(
-                                    "font-bold text-sm",
-                                    item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                                  )}>
-                                    {item.time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.service_days || 1)) * (item.time_based_adjustment / 100)))}
-                                  </div>
-                                  <div className={cn(
-                                    "text-xs font-medium",
-                                    item.time_based_adjustment > 0 ? "text-orange-600" : "text-green-600"
-                                  )}>
-                                    ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
-                                    {item.time_based_rule_name && (
-                                      <span className="text-muted-foreground ml-1">
-                                        - {item.time_based_rule_name}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          {item.service_type_name?.toLowerCase().includes('charter') && (item.service_days && item.service_days > 1) ? (
-                            <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(item.unit_price)} × {item.service_days} days
-                              </p>
-                              <p className="font-semibold text-blue-600">{formatCurrency(item.total_price || item.unit_price)}</p>
-                            </div>
-                          ) : (
-                            <p className="font-semibold">{formatCurrency(item.total_price || item.unit_price)}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <ServiceCard
+                      key={index}
+                      item={item}
+                      index={index}
+                      formatCurrency={formatCurrency}
+                      packages={packages}
+                      selectedPackage={selectedPackage}
+                      showActions={false}
+                      className="p-3 bg-muted/30 border"
+                    />
                   ))}
                 </div>
               )}
@@ -388,117 +285,7 @@ export function PreviewStep({
                 </>
               )}
 
-              {/* Time-based Pricing Features */}
-              {serviceItems.some(item => item.time_based_adjustment !== undefined && item.time_based_adjustment !== 0) && (
-                <>
-                  <Separator />
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium text-blue-900 dark:text-blue-100">{t('quotations.form.preview.timeBasedAdjustments')}</span>
-                    </div>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                      Pricing automatically adjusted based on pickup times, service duration, and special rules:
-                    </p>
-                    <div className="space-y-3">
-                      {serviceItems
-                        .filter(item => item.time_based_adjustment !== undefined && item.time_based_adjustment !== 0)
-                        .map((item, index) => (
-                          <div key={index} className="bg-white/60 dark:bg-black/20 rounded-md p-3 border border-blue-100 dark:border-blue-800">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <div className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                                  {item.description}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2 mb-2">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={cn(
-                                      "text-xs",
-                                      (item.time_based_adjustment || 0) > 0 
-                                        ? "border-orange-200 bg-orange-50 text-orange-700" 
-                                        : "border-green-200 bg-green-50 text-green-700"
-                                    )}
-                                  >
-                                    {item.time_based_rule_name}
-                                  </Badge>
-                                  <span className={cn(
-                                    "text-xs font-medium px-2 py-1 rounded",
-                                    (item.time_based_adjustment || 0) > 0 
-                                      ? "bg-orange-100 text-orange-700" 
-                                      : "bg-green-100 text-green-700"
-                                  )}>
-                                    {(item.time_based_adjustment || 0) > 0 ? '+' : ''}{item.time_based_adjustment}%
-                                  </span>
-                                </div>
-                                
-                                {/* Service Duration and Overtime Details */}
-                                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700 dark:text-blue-300">
-                                  <div>
-                                    <span className="font-medium">{t('quotations.form.preview.baseDuration')}:</span>
-                                    <div>{item.duration_hours || (item.hours_per_day && item.service_days ? `${item.hours_per_day}h × ${item.service_days} days` : '1h')}</div>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">{t('quotations.form.preview.basePrice')}:</span>
-                                    <div>{formatCurrency(item.unit_price)}</div>
-                                  </div>
-                                  
-                                  {/* Show overtime details if applicable */}
-                                  {item.time_based_rule_name?.toLowerCase().includes('overtime') && (
-                                    <>
-                                      <div>
-                                        <span className="font-medium">{t('quotations.form.preview.totalHours')}:</span>
-                                        <div className="text-orange-600">
-                                          {(item.service_days || 1) * (item.hours_per_day || item.duration_hours || 1)}h
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">{t('quotations.form.preview.overtimeHours')}:</span>
-                                        <div className="text-orange-600">
-                                          {Math.max(0, ((item.service_days || 1) * (item.hours_per_day || item.duration_hours || 1)) - 8)}h
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="text-right ml-3">
-                                <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">{t('quotations.form.preview.adjustment')}</div>
-                                <div className={cn(
-                                  "font-semibold text-sm",
-                                  (item.time_based_adjustment || 0) > 0 ? "text-orange-600" : "text-green-600"
-                                )}>
-                                  {(item.time_based_adjustment || 0) > 0 ? '+' : ''}{formatCurrency((item.unit_price * (item.service_days || 1)) * Math.abs(item.time_based_adjustment || 0) / 100)}
-                                </div>
-                                <div className="text-xs text-blue-600 dark:text-blue-400">
-                                  {t('quotations.form.preview.finalPrice')} {formatCurrency(item.total_price || item.unit_price)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                    <div className="mt-4 p-3 bg-blue-100/50 dark:bg-blue-800/20 rounded border border-blue-200 dark:border-blue-700">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('quotations.form.preview.totalTimeBasedAdjustment')}</div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">{t('quotations.form.preview.appliedToServices', { count: serviceItems.filter(item => item.time_based_adjustment !== undefined && item.time_based_adjustment !== 0).length })}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-base text-blue-900 dark:text-blue-100">
-                            {(() => {
-                              const totalAdjustment = serviceItems
-                                .filter(item => item.time_based_adjustment !== undefined && item.time_based_adjustment !== 0)
-                                .reduce((total, item) => total + ((item.unit_price * (item.service_days || 1)) * (item.time_based_adjustment || 0) / 100), 0);
-                              return totalAdjustment > 0 ? `+${formatCurrency(totalAdjustment)}` : formatCurrency(totalAdjustment);
-                            })()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+
             </CardContent>
           </Card>
 

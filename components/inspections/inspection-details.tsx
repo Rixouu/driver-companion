@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import dynamic from 'next/dynamic';
-import { ArrowLeft, Printer, Download, Expand, X, Pencil, Play, CheckCircle, XCircle, Clock, Camera, FileText, AlertTriangle, Wrench, Car, Clipboard, Tag, Hash, Truck, BarChart3 } from "lucide-react"
+import { ArrowLeft, Download, Expand, X, Pencil, Play, CheckCircle, XCircle, Clock, Camera, FileText, AlertTriangle, Wrench, Car, Clipboard, Tag, Hash, Truck, BarChart3 } from "lucide-react"
 import { formatDate } from "@/lib/utils/formatting"
 import { format as dateFormat } from "date-fns"
 import { useI18n } from "@/lib/i18n/context"
@@ -40,6 +40,16 @@ export interface ExtendedInspection extends DbInspection {
   };
   booking_id?: string | null;
   notes?: string | null;
+}
+
+export interface InspectionCategory {
+  id: string;
+  type: string;
+  name_translations: any;
+  description_translations?: any;
+  order_number?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface InspectionPhoto {
@@ -105,7 +115,6 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   
   const {
     isExporting,
-    printReport,
     exportCSV,
     exportPDF,
   } = useInspectionReportExport({ inspection, itemsWithTemplates });
@@ -182,7 +191,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
 
   // Effect to load inspector details
   useEffect(() => {
-    const currentInspectorId = inspection.created_by;
+    const currentInspectorId = (inspection as any).inspector_id || inspection.created_by;
     if (currentInspectorId && (!inspection.inspector || inspection.inspector.id !== currentInspectorId)) {
       const fetchInspectorDetails = async (inspectorId: string) => {
         const { data: inspectorData, error: inspectorError } = await supabase
@@ -202,7 +211,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             ...prev, 
             inspector: { 
               id: inspectorData.id,
-              name: inspectorData.full_name || t('common.notAssigned'),
+              name: inspectorData.full_name || inspectorData.email || t('common.notAssigned'),
               email: inspectorData.email || ''
             } 
           }));
@@ -215,7 +224,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             inspector: { id: '', name: t('common.notAssigned'), email: '' }
         }));
     }
-  }, [inspection.created_by, inspection.inspector, supabase, t]);
+  }, [inspection, supabase, t]);
 
   // Effect to load vehicle details
   useEffect(() => {
@@ -452,7 +461,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
               </div>
               <div>
                 <Label>{t("inspections.fields.type")}</Label>
-                <TextValue>{inspection.type ? t(`inspections.type.${inspection.type.toLowerCase()}`) || inspection.type : t("common.notAvailable")}</TextValue>
+                <TextValue>{inspection.type ? t(`inspections.type.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) : t("common.notAvailable")}</TextValue>
               </div>
               <div>
                 <Label>{t("inspections.fields.date")}</Label>
@@ -478,22 +487,12 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={printReport}
-                    disabled={isExporting}
-                    className="justify-start"
-                  >
-                    <Printer className="mr-2 h-4 w-4" />
-                    {t('inspections.actions.printReport')}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
                     onClick={exportCSV}
                     disabled={isExporting}
                     className="justify-start"
                   >
                     <Download className="mr-2 h-4 w-4" />
-                    {isExporting ? t('common.exporting') : t('inspections.actions.exportHtml')}
+                    {isExporting ? t('common.exporting') : t('common.exportCSV')}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -507,6 +506,36 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   </Button>
                 </div>
               </div>
+
+              {/* Resume / Start button */}
+              {['scheduled', 'in_progress'].includes(inspection.status || '') && (
+                <Button
+                  size="sm"
+                  className="mt-2 w-full"
+                  asChild
+                >
+                  <Link href={`/inspections/${inspection.id}/perform`}>
+                    <Play className="mr-2 h-4 w-4" />
+                    {inspection.status === 'in_progress'
+                      ? t('inspections.actions.continueInspection')
+                      : t('inspections.actions.startInspection')}
+                  </Link>
+                </Button>
+              )}
+              
+              {['completed', 'failed'].includes(inspection.status || '') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-2 w-full"
+                  asChild
+                >
+                  <Link href={`/inspections/${inspection.id}/perform?resume=true`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    {t('inspections.actions.continueEditing')}
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -614,13 +643,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={printReport}>
-              <Printer className="mr-2 h-4 w-4" />
-              {t('inspections.actions.printReport')}
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={exportCSV} disabled={isExporting}>
               <Download className="mr-2 h-4 w-4" />
-              {isExporting ? t('common.exporting') : t('inspections.actions.exportHtml')}
+              {isExporting ? t('common.exporting') : t('common.exportCSV')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={exportPDF} disabled={isExporting}>
               <Download className="mr-2 h-4 w-4" />

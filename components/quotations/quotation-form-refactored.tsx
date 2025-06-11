@@ -221,6 +221,8 @@ export default function QuotationFormRefactored({
         is_service_item: item.is_service_item ?? true,
         pickup_date: item.pickup_date || undefined,
         pickup_time: item.pickup_time || undefined,
+        time_based_adjustment: (item as any).time_based_adjustment || undefined,
+        time_based_rule_name: (item as any).time_based_rule_name || undefined,
       }));
       setServiceItems(items);
     }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3 } from "lucide-react"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import type { Inspection, DbVehicle } from "@/types"
@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useSupabase } from "@/components/providers/supabase-provider"
 
 interface InspectionListProps {
   inspections: Inspection[]
@@ -50,10 +51,12 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useI18n()
+  const supabase = useSupabase()
   const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
   const [calendarView, setCalendarView] = useState<CalendarView>("month")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
   const [search, setSearch] = useState(searchParams.get("search") || "")
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all")
@@ -94,6 +97,39 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         const sortedInspections = updatedInspections.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
         ) as Inspection[]
+
+        // Fetch inspectors in batch
+        const inspectorIds = [...new Set(sortedInspections
+          .map(i => (i as any).inspector_id || (i as any).created_by)
+          .filter(Boolean))]
+
+        if (inspectorIds.length > 0) {
+          const { data: inspectorsData, error: inspectorsError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', inspectorIds)
+
+          if (inspectorsError) {
+            console.error('Failed to load inspector data', inspectorsError)
+          }
+
+          const inspectorMap = new Map<string, { name: string; email: string }>()
+          inspectorsData?.forEach(ins => {
+            inspectorMap.set(ins.id, {
+              name: ins.full_name || ins.email || t('common.notAssigned'),
+              email: ins.email || ''
+            })
+          })
+
+          sortedInspections.forEach(ins => {
+            const id = (ins as any).inspector_id || (ins as any).created_by
+            if (id && inspectorMap.has(id)) {
+              (ins as any).inspector = { id, ...inspectorMap.get(id)! }
+            }
+          })
+        }
+
+        // Update state with vehicles + inspectors
         setInspectionsWithVehicles(sortedInspections)
       } catch (error) {
         console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error)
@@ -101,7 +137,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     loadVehicleData()
-  }, [inspections, vehicles, t])
+  }, [inspections, vehicles, t, supabase])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
@@ -145,7 +181,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }).length
 
     const failedInspections = filteredInspections.filter(
-      inspection => inspection.status === 'cancelled'
+      inspection => inspection.status === "failed"
     ).length
 
     return [
@@ -186,7 +222,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     { value: "scheduled", label: t("inspections.status.scheduled") },
     { value: "in_progress", label: t("inspections.status.inProgress") },
     { value: "completed", label: t("inspections.status.completed") },
-    { value: "cancelled", label: t("inspections.status.failed") },
+    { value: "cancelled", label: t("inspections.status.cancelled") },
+    { value: "failed", label: t("inspections.status.failed") },
   ], [t])
 
   // Get calendar dates based on view
@@ -215,8 +252,15 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     })
   }
 
+  const ITEMS_PER_PAGE = 5;
+
   // Get selected date inspections
   const selectedDateInspections = selectedDate ? getInspectionsForDate(selectedDate) : []
+  const totalSidebarPages = Math.ceil(selectedDateInspections.length / ITEMS_PER_PAGE)
+  const paginatedSidebarInspections = selectedDateInspections.slice(
+    (sidebarPage - 1) * ITEMS_PER_PAGE,
+    sidebarPage * ITEMS_PER_PAGE
+  );
 
   // Navigation functions
   const navigatePrevious = () => {
@@ -268,6 +312,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         return "bg-yellow-500"
       case "cancelled":
         return "bg-red-500"
+      case "failed":
+        return "bg-red-500"
       case "scheduled":
         return "bg-blue-500"
       default:
@@ -278,6 +324,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   // Handle day click
   const handleDayClick = (date: Date) => {
     setSelectedDate(date)
+    setSidebarPage(1)
   }
 
   // Render calendar day
@@ -345,6 +392,14 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     setStatusFilter("all")
   }
 
+  // Helper to format inspection type with fallback
+  const formatInspectionType = (type?: string | null) => {
+    if (!type) return t('inspections.type.unspecified')
+    const key = type.replace(/ /g, '_').toLowerCase()
+    const translated = t(`inspections.type.${key}`, { defaultValue: type }) as unknown
+    return typeof translated === 'string' ? translated : type
+  }
+
   // Render list view
   const renderListView = () => (
     <Card>
@@ -357,6 +412,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             <TableRow>
               <TableHead>{t("inspections.fields.vehicle")}</TableHead>
               <TableHead>{t("inspections.fields.type")}</TableHead>
+              <TableHead>{t("inspections.fields.inspector")}</TableHead>
               <TableHead>{t("inspections.fields.date")}</TableHead>
               <TableHead>{t("inspections.fields.status")}</TableHead>
               <TableHead className="w-[100px]">{t("common.actions.default")}</TableHead>
@@ -365,7 +421,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           <TableBody>
             {filteredInspections.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   {debouncedSearch || statusFilter !== "all" 
                     ? t("common.noResults")
                     : t("inspections.noInspections")
@@ -387,9 +443,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {inspection.type ? t(`inspections.type.${inspection.type.toLowerCase()}`) || inspection.type : t("inspections.type.unspecified")}
-                  </TableCell>
+                  <TableCell>{formatInspectionType(inspection.type)}</TableCell>
+                  <TableCell>{inspection.inspector?.name || t('common.notAssigned')}</TableCell>
                   <TableCell>
                     {format(parseISO(inspection.date), "MMM d, yyyy")}
                   </TableCell>
@@ -399,7 +454,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                       className={cn("text-xs", {
                         "border-green-500 text-green-700": inspection.status === "completed",
                         "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
-                        "border-red-500 text-red-700": inspection.status === "cancelled",
+                        "border-red-500 text-red-700": inspection.status === "cancelled" || inspection.status === "failed",
                         "border-blue-500 text-blue-700": inspection.status === "scheduled"
                       })}
                     >
@@ -569,8 +624,16 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               <CardContent>
                 <div className="grid grid-cols-7 gap-0 border border-border rounded-lg overflow-hidden">
                   {/* Week headers */}
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                    <div key={day} className="p-3 text-center font-medium bg-muted text-sm">
+                  {[
+                    t("calendar.weekdays.mon"),
+                    t("calendar.weekdays.tue"), 
+                    t("calendar.weekdays.wed"),
+                    t("calendar.weekdays.thu"),
+                    t("calendar.weekdays.fri"),
+                    t("calendar.weekdays.sat"),
+                    t("calendar.weekdays.sun")
+                  ].map((day, index) => (
+                    <div key={index} className="p-3 text-center font-medium bg-muted text-sm">
                       {day}
                     </div>
                   ))}
@@ -596,37 +659,32 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     })}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2 max-h-[calc(100vh-12rem)] overflow-y-auto p-3">
                   {selectedDateInspections.length > 0 ? (
-                    selectedDateInspections.map((inspection) => (
-                      <div key={inspection.id} className="border rounded-lg p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-sm">
-                            {inspection.vehicle?.name || t("inspections.unnamedInspection")}
-                          </h4>
-                          <Badge 
-                            variant="outline" 
-                            className={cn("text-xs", {
-                              "border-green-500 text-green-700": inspection.status === "completed",
-                              "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
-                              "border-red-500 text-red-700": inspection.status === "cancelled",
-                              "border-blue-500 text-blue-700": inspection.status === "scheduled"
-                            })}
-                          >
-                            {t(`inspections.status.${inspection.status}` as any)}
-                          </Badge>
+                    paginatedSidebarInspections.map((inspection) => (
+                      <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
+                        <div className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-sm truncate pr-2">
+                              {inspection.vehicle?.name || t("inspections.unnamedInspection")}
+                            </h4>
+                            <Badge 
+                              variant="outline" 
+                              className={cn("text-xs flex-shrink-0", {
+                                "border-green-500 text-green-700": inspection.status === "completed",
+                                "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
+                                "border-red-500 text-red-700": inspection.status === "cancelled" || inspection.status === "failed",
+                                "border-blue-500 text-blue-700": inspection.status === "scheduled"
+                              })}
+                            >
+                              {t(`inspections.status.${inspection.status}` as any)}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div><span className="font-medium">{inspection.vehicle?.plate_number || t("inspections.noVehicle")} - {formatInspectionType(inspection.type)}</span></div>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div>Vehicle: {inspection.vehicle?.plate_number || t("inspections.noVehicle")}</div>
-                          <div>Type: {inspection.type || t("inspections.type.unspecified")}</div>
-                        </div>
-                        <Button size="sm" variant="outline" className="w-full" asChild>
-                          <Link href={`/inspections/${inspection.id}`}>
-                            <Eye className="mr-2 h-3 w-3" />
-                            {t("inspections.calendar.viewInspection")}
-                          </Link>
-                        </Button>
-                      </div>
+                      </Link>
                     ))
                   ) : (
                     <div className="text-center py-8 text-muted-foreground text-sm">
@@ -634,6 +692,29 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                     </div>
                   )}
                 </CardContent>
+                {totalSidebarPages > 1 && (
+                  <CardFooter className="flex justify-between items-center pt-3 pb-3 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSidebarPage(p => p - 1)}
+                      disabled={sidebarPage === 1}
+                    >
+                      {t('common.previous')}
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      {sidebarPage} / {totalSidebarPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSidebarPage(p => p + 1)}
+                      disabled={sidebarPage === totalSidebarPages}
+                    >
+                      {t('common.next')}
+                    </Button>
+                  </CardFooter>
+                )}
               </Card>
             </div>
           )}

@@ -32,7 +32,9 @@ export const en: TranslationValue = {
     all: "All",
     noResults: "No results found",
     details: "Details",
-    actions: "Actions",
+    actions: {
+      default: "Actions"
+    },
     actionsMenu: {
       default: "Actions",
       goHome: "Go Home",
@@ -82,6 +84,8 @@ export const en: TranslationValue = {
     month: "Month",
     today: "Today",
     unassign: "Unassign",
+    assign: "Assign",
+    none: "None",
     cannotBeUndone: "This action cannot be undone.",
     updateAndSend: "Update & Send",
     processing: "Processing...",
@@ -109,7 +113,44 @@ export const en: TranslationValue = {
       success: "Success",
       error: "Error"
     },
-
+    // Flat keys for direct access
+    duplicate: "Duplicate",
+    active: "Active", 
+    inactive: "Inactive",
+    showingResults: "Showing {start}-{end} of {total} results",
+    nameEn: "Name (English)",
+    nameJa: "Name (Japanese)", 
+    descriptionEn: "Description (English)",
+    descriptionJa: "Description (Japanese)",
+    order: "Order",
+    add: "Add",
+    clearFilters: "Clear Filters"
+  },
+  
+  calendar: {
+    weekdays: {
+      mon: "Mon",
+      tue: "Tue",
+      wed: "Wed", 
+      thu: "Thu",
+      fri: "Fri",
+      sat: "Sat",
+      sun: "Sun"
+    },
+    months: {
+      january: "January",
+      february: "February",
+      march: "March",
+      april: "April",
+      may: "May",
+      june: "June",
+      july: "July",
+      august: "August",
+      september: "September",
+      october: "October",
+      november: "November",
+      december: "December"
+    }
   },
   auth: {
     logout: "Logout"
@@ -732,19 +773,26 @@ export const en: TranslationValue = {
       inProgress: "In Progress",
       completed: "Completed",
       failed: "Failed",
-      scheduled: "Scheduled"
+      scheduled: "Scheduled",
+      cancelled: "Cancelled"
     },
     type: {
       routine: "Routine",
       safety: "Safety",
       maintenance: "Maintenance",
       daily: "Daily",
+      test: "Test Inspection",
       unspecified: "Unspecified",
+      daily_checklist_toyota: "Daily Checklist (Toyota)",
+      "Daily Checklist Toyota": "Daily Checklist (Toyota)",
+      daily_checklist_mercedes: "Daily Checklist (Mercedes)",
+      "Daily Checklist Mercedes": "Daily Checklist (Mercedes)",
       description: {
         routine: "Comprehensive check of vehicle systems.",
         safety: "Focused check on safety-critical components.",
         maintenance: "Detailed mechanical system inspection.",
-        daily: "Quick daily inspection of essential components."
+        daily: "Quick daily inspection of essential components.",
+        test: "Test inspection template for development and training purposes."
       }
     },
     typeValues: {
@@ -761,7 +809,8 @@ export const en: TranslationValue = {
       inProgress: "In Progress",
       completed: "Completed",
       failed: "Failed",
-      scheduled: "Scheduled"
+      scheduled: "Scheduled",
+      cancelled: "Cancelled"
     },
     fields: {
       vehicle: "Vehicle",
@@ -837,6 +886,39 @@ export const en: TranslationValue = {
       exportHtml: "Export HTML",
       exportPdf: "Export PDF"
     },
+    templateDuplicated: "Template duplicated successfully",
+    templateDeleted: "Template deleted successfully",
+    searchTemplates: "Search templates...",
+    manageAssignments: "Manage Assignments",
+    addSection: "Add Section",
+    editSection: "Edit Section",
+    addItem: "Add Item",
+    editItem: "Edit Item",
+    items: "items",
+    sectionAdded: "Section added successfully",
+    sectionUpdated: "Section updated successfully",
+    sectionDeleted: "Section deleted successfully",
+    itemAdded: "Item added successfully",
+    itemUpdated: "Item updated successfully",
+    itemDeleted: "Item deleted successfully",
+    templateUpdated: "Template updated successfully",
+    requiresPhoto: "Requires Photo",
+    requiresNotes: "Requires Notes",
+    noSections: "No sections found",
+    createFirstSection: "Create your first section to get started",
+    adjustFilters: "Try adjusting your search or filters",
+    templateManager: {
+      routineTemplateTitle: "Routine Inspection Template",
+      safetyTemplateTitle: "Safety Inspection Template",
+      maintenanceTemplateTitle: "Maintenance Inspection Template",
+      dailyTemplateTitle: "Daily Checklist Template",
+      testTemplateTitle: "Test Inspection Template",
+      description: "Manage inspection template sections and items"
+    },
+    confirmDeleteTemplate: "Are you sure you want to delete this entire template? This action cannot be undone.",
+    confirmDeleteSection: "Are you sure you want to delete this section? This action cannot be undone.",
+    confirmDeleteItem: "Are you sure you want to delete this item? This action cannot be undone.",
+    templateInstanceCreated: "Template instance created successfully",
     sections: {
       vehicle: "Vehicle Information",
       inspection: "Inspection Information",
@@ -875,11 +957,9 @@ export const en: TranslationValue = {
           headlights: { title: "Headlights", description: "Check operation and alignment of headlights." },
           taillights: { title: "Taillights", description: "Check operation of taillights and brake lights." },
           turn_indicators: { title: "Turn Indicators", description: "Check operation of all turn indicators and hazard lights." },
-          back_light: { title: "Back Light", description: "Check operation of back/reverse lights." },
-          brake_light: { title: "Brake Light", description: "Check operation of brake lights." },
-          headlight: { title: "Headlight", description: "Check operation and alignment of headlight." },
-          blinker: { title: "Blinker", description: "Check operation of blinkers/turn signals." },
-          hazard_light: { title: "Hazard Light", description: "Check operation of hazard lights." }
+          reverse_lights: { title: "Reverse Lights", description: "Check operation of reverse lights." },
+          brake_lights: { title: "Brake Lights", description: "Check operation of brake lights." },
+          hazard_lights: { title: "Hazard Lights", description: "Check operation of hazard lights." }
         }
       },
       engine: {
@@ -1009,7 +1089,11 @@ export const en: TranslationValue = {
       repairNeededFor: "Repair needed for",
       andMoreItems: "and {count} more items",
       pdfDownloaded: "PDF downloaded successfully",
-      csvDownloaded: "CSV downloaded successfully"
+      csvDownloaded: "CSV downloaded successfully",
+      submitSuccessTitle: "Inspection Submitted",
+      submitSuccessDescription: "The inspection results have been submitted successfully.",
+      submitErrorTitle: "Submission Failed",
+      genericSubmitError: "An error occurred while submitting the inspection. Please try again."
     },
     details: {
       title: "Inspection Details",
@@ -1085,7 +1169,10 @@ export const en: TranslationValue = {
         failedItemsFound: "Failed Items Found",
         failedItemsDescription: "The following items did not meet inspection standards.",
         allPassed: "All Items Passed",
-        noFailedItems: "No failed items found in this inspection."
+        noFailedItems: "No failed items found in this inspection.",
+        noItemsInStatus: "No items with {status} status found",
+        noPassedItems: "No passed items found",
+        noPendingItems: "No pending items found"
       },
       tabs: {
         details: "Details",
@@ -1110,6 +1197,7 @@ export const en: TranslationValue = {
     },
     dateLabel: "Inspection Date",
     templates: {
+      title: "Inspection Templates",
       itemNameLabel: "Item Name",
       addItem: "Add Item",
       deleteSectionConfirm: "Are you sure you want to delete this section?",
@@ -1129,8 +1217,12 @@ export const en: TranslationValue = {
       sectionDescriptionLabel: "Section Description",
       editItemTitle: "Edit Inspection Item",
       editItemDescription: "Update inspection item details",
-      manageTitle: "Manage Templates",
+      manageTitle: "Manage {type} Templates",
       managerDescription: "Configure and customize your {type} inspection templates. Add sections and items to streamline your inspection process.",
+      managementSummary: "{count} sections configured",
+      noSectionsConfigured: "No sections configured yet",
+      emptyStateDescription: "This template doesn't have any sections yet. Sections help organize inspection items and make the process more efficient.",
+      emptyStateNote: "Contact your administrator to configure this template.",
       addSection: "Add Section",
       newSectionTitle: "Add New Section",
       newSectionDescription: "Create a new section for this inspection template",
@@ -1139,7 +1231,134 @@ export const en: TranslationValue = {
       sectionDescriptionPlaceholder: "Enter section description",
       sectionDescriptionPlaceholderJa: "セクションの説明を入力（日本語）",
       noSections: "No sections found. Add a section to get started.",
-      addItemError: "Error adding inspection item"
+      addItemError: "Error adding inspection item",
+      addSectionSuccess: "Section added successfully",
+      addSectionError: "Error adding section",
+      editSectionSuccess: "Section updated successfully",
+      editSectionError: "Error updating section",
+      deleteSectionSuccess: "Section deleted successfully",
+      deleteSectionError: "Error deleting section",
+      deleteSectionErrorNotEmpty: "Cannot delete section that contains items",
+      addItemSuccess: "Item added successfully",
+      editItemSuccess: "Item updated successfully",
+      editItemError: "Error updating item",
+      deleteItemSuccess: "Item deleted successfully",
+      deleteItemError: "Error deleting item",
+      deleteItemErrorInUse: "Cannot delete item that is being used in inspections",
+      itemNameRequired: "Item name is required in at least one language",
+      sectionNameRequired: "Section name is required in at least one language",
+      itemNotFound: "Item not found",
+      assign: "Assign",
+      tabs: {
+        templates: "Templates",
+        assignments: "Assignments"
+      },
+      assignments: {
+        title: "Template Assignments",
+        description: "Manage which vehicles and groups use specific inspection templates",
+        templateDescription: "Configure which vehicles and groups will use the {template} inspection template",
+        assignTemplateTitle: "Assign {template} Template",
+        assignTemplateDescription: "Select vehicles and vehicle groups that should use the {template} template for inspections",
+        manage: "Manage Assignment",
+        assignedCount: "{count} assignments",
+        notAssigned: "Not assigned to any vehicles or groups",
+        selectVehicles: "Select Vehicles",
+        selectVehiclesPlaceholder: "Choose vehicles...",
+        vehiclesHelpText: "Select individual vehicles that will use this template",
+        selectGroups: "Select Vehicle Groups",
+        selectGroupsPlaceholder: "Choose vehicle groups...",
+        groupsHelpText: "Select vehicle groups - all vehicles in these groups will use this template",
+        assignedVehicles: "Assigned Vehicles",
+        assignedGroups: "Assigned Vehicle Groups",
+        saveSuccess: "Template assignments saved successfully",
+        saveError: "Failed to save template assignments"
+      },
+      activation: {
+        title: "Template Activation",
+        activate: "Activate Template",
+        deactivate: "Deactivate Template",
+        activateConfirm: "Are you sure you want to activate this template?",
+        deactivateConfirm: "Are you sure you want to deactivate this template?",
+        activateSuccess: "Template activated successfully",
+        deactivateSuccess: "Template deactivated successfully",
+        activateError: "Error activating template",
+        deactivateError: "Error deactivating template",
+        status: "Status",
+        active: "Active",
+        inactive: "Inactive",
+        activeDescription: "This template is currently active and available for use",
+        inactiveDescription: "This template is currently inactive and hidden from users"
+      },
+      vehicleAssignment: {
+        title: "Vehicle Assignment",
+        description: "Assign this template to specific vehicles or vehicle groups",
+        assignToAll: "Available to All Vehicles",
+        assignToGroup: "Assign to Vehicle Group",
+        assignToVehicles: "Assign to Specific Vehicles",
+        selectGroup: "Select Vehicle Group",
+        selectVehicles: "Select Vehicles",
+        noGroupsFound: "No vehicle groups found",
+        noVehiclesFound: "No vehicles found",
+        createGroup: "Create Vehicle Group",
+        manageGroups: "Manage Vehicle Groups",
+        assignmentType: "Assignment Type",
+        currentAssignments: "Current Assignments",
+        noAssignments: "Not assigned to any vehicles or groups",
+        assignSuccess: "Template assigned successfully",
+        assignError: "Error assigning template",
+        unassignSuccess: "Template unassigned successfully",
+        unassignError: "Error unassigning template"
+      },
+      vehicleGroups: {
+        title: "Vehicle Groups",
+        description: "Organize vehicles into groups for easier template management",
+        create: "Create Vehicle Group",
+        edit: "Edit Vehicle Group",
+        delete: "Delete Vehicle Group",
+        name: "Group Name",
+        nameDescription: "A descriptive name for this vehicle group",
+        namePlaceholder: "e.g., Sedan Fleet, Delivery Trucks",
+        groupDescription: "Description",
+        descriptionPlaceholder: "Enter a description for this group",
+        color: "Color",
+        colorDescription: "Choose a color to identify this group",
+        vehicles: "Vehicles",
+        vehicleCount: "{count} vehicles",
+        noVehicles: "No vehicles in this group",
+        addVehicles: "Add Vehicles",
+        removeVehicle: "Remove from Group",
+        createSuccess: "Vehicle group created successfully",
+        updateSuccess: "Vehicle group updated successfully",
+        deleteSuccess: "Vehicle group deleted successfully",
+        createError: "Error creating vehicle group",
+        updateError: "Error updating vehicle group",
+        deleteError: "Error deleting vehicle group",
+        deleteConfirm: "Are you sure you want to delete this vehicle group?",
+        deleteWarning: "This will remove the group assignment from all vehicles, but won't delete the vehicles themselves.",
+        assignVehicles: "Assign Vehicles to Group",
+        unassignVehicle: "Remove Vehicle from Group",
+        groupAssignments: "Group Assignments",
+        moveToGroup: "Move to Group",
+        ungrouped: "Ungrouped Vehicles"
+      },
+      copyTemplate: {
+        title: "Copy Template",
+        description: "Create a copy of this template for specific vehicles or groups",
+        copyForGroup: "Copy for Vehicle Group",
+        copyForVehicle: "Copy for Specific Vehicle",
+        selectTarget: "Select Target",
+        copySuccess: "Template copied successfully",
+        copyError: "Error copying template",
+        customizeAfterCopy: "You can now customize this template for the selected target"
+      },
+      masterTemplate: {
+        title: "Master Template",
+        description: "This is a master template that can be copied and customized",
+        isMaster: "Master Template",
+        basedOn: "Based on: {templateName}",
+        viewMaster: "View Master Template",
+        customizedFor: "Customized for: {target}"
+      }
     },
     photoForItem: "Photo for {itemName}"
   },
@@ -1154,6 +1373,14 @@ export const en: TranslationValue = {
       scheduleInspection: "Create Inspection",
       createQuotation: "Create Quotation",
       viewReports: "View Reports"
+    },
+    expiringQuotations: {
+      title: "Expiring Quotations",
+      description: "Quotations that are expiring within the next 7 days.",
+      amount: "Amount",
+      expiringTomorrow: "Expiring tomorrow",
+      expiringInDays: "Expiring in {days} days",
+      viewAll: "View All Expiring"
     },
     activityFeed: {
       title: "Activity Feed",
@@ -2193,11 +2420,14 @@ export const en: TranslationValue = {
       quotations: "Quotations",
       dispatch: "Dispatch Board",
       pricing: "Pricing",
+      assignments: "Assignments",
       save: "Save Changes"
     },
     templates: {
       title: "Inspection Templates",
       description: "Manage the structure (sections and items) of your inspection forms.",
+      manageTitle: "Manage {type} Templates",
+      managerDescription: "Configure and customize your {type} inspection templates. Add sections and items to streamline your inspection process.",
       createSuccess: "Template type created successfully",
       createError: "Failed to create template type",
       nameRequired: "Template name is required",
@@ -2212,25 +2442,41 @@ export const en: TranslationValue = {
       templateNamePlaceholderJa: "テンプレート名を日本語で入力",
       templateSlug: "Template Slug",
       templateSlugPlaceholder: "Enter URL-friendly identifier",
-      templateSlugDescription: "Lowercase letters, numbers, and hyphens only"
+      templateSlugDescription: "Lowercase letters, numbers, and hyphens only",
+      duplicate: "Duplicate Template",
+      duplicateTemplate: "Duplicate Template",
+      duplicateSuccess: "Template duplicated successfully",
+      duplicateError: "Failed to duplicate template",
+      deleteTemplate: "Delete Template",
+      deleteTemplateConfirm: "Are you sure you want to delete this template? This action cannot be undone.",
+      deleteSuccess: "Template deleted successfully",
+      deleteError: "Failed to delete template"
     },
     tabs: {
       profile: "Profile",
       preferences: "Preferences",
       menu: "Menu",
       templates: "Templates",
-      account: "Account"
+      account: "Account",
+      notifications: "Notifications",
+      security: "Security",
+      localization: "Language & Region",
+      data: "Data Management"
     },
     selectTemplate: "Select template type",
     inspectionTypes: {
       routine: "Routine Inspection",
-      safety: "Safety Inspection",
+      safety: "Safety Inspection", 
       maintenance: "Maintenance Inspection",
+      daily: "Daily Inspection",
+      test: "Test Inspection",
       select: "Select Inspection Type",
       description: {
         routine: "Regular periodic inspection of vehicle components",
         safety: "Comprehensive safety system evaluation",
-        maintenance: "Detailed mechanical system inspection"
+        maintenance: "Detailed mechanical system inspection",
+        daily: "Daily inspection checklist",
+        test: "Test inspection template"
       }
     }
   },
@@ -2709,7 +2955,15 @@ export const en: TranslationValue = {
     selectedServices: "Selected Services",
     subtotal: "Subtotal",
     totalAmount: "Total Amount",
-    activityFeed: "Activity Feed"
+    activityFeed: "Activity Feed",
+    empty: {
+      title: "No Quotations Yet",
+      description: "There are no quotations in the system.",
+      noResultsTitle: "No Quotations Found",
+      noResultsDescription: "We couldn't find any quotations matching your filters.",
+      clearFilters: "Clear Filters",
+      cta: "Create Quotation"
+    }
   },
   email: {
     quotation: {
@@ -2897,7 +3151,7 @@ export const en: TranslationValue = {
         updateSuccess: "Time-based pricing rule updated successfully", 
         deleteSuccess: "Time-based pricing rule deleted successfully",
         addRule: "Add New Time-Based Rule",
-        editRule: "Edit Time-Based Rule",
+        editRule: "Edit Time-based Rule",
         deleteRule: "Delete Time-based Rule",
         deleteRuleConfirm: "Are you sure you want to delete this time-based pricing rule? This action cannot be undone.",
         ruleName: "Rule Name",
@@ -3036,6 +3290,487 @@ export const en: TranslationValue = {
   errors: {
     failedToLoadData: "Failed to load {entity}",
     pleaseTryAgainLater: "Please try again later."
+  },
+
+  vehicleGroups: {
+    title: "Vehicle Groups",
+    noGroups: "No vehicle groups found",
+    allGroups: "All Groups",
+    filter: "Filter by Group"
+  },
+
+  inspectionTemplates: {
+    title: "Inspection Templates",
+    description: "Manage inspection templates and assignments",
+    createTemplate: "Create Template",
+    editTemplate: "Edit Template",
+    duplicateTemplate: "Duplicate Template",
+    deleteTemplate: "Delete Template",
+    renameTemplate: "Rename Template",
+    templateType: "Template Type",
+    templateName: "Template Name",
+    newTemplateName: "New Template Name",
+    newTemplateType: "New Template Type",
+    searchTemplates: "Search templates by type...",
+    noTemplatesFound: "No templates found",
+    noTemplatesDescription: "Get started by creating your first inspection template.",
+    noSearchResults: "No templates match your search criteria.",
+    addSection: "Add Section",
+    
+    template: {
+      sections: "sections",
+      items: "items", 
+      vehicles: "vehicles",
+      groups: "groups",
+      active: "Active",
+      inactive: "Inactive"
+    },
+
+    assignment: {
+      title: "Template Assignments",
+      description: "Assign templates to vehicles or groups",
+      vehicleGroups: "Vehicle Groups",
+      individualVehicles: "Individual Vehicles",
+      addGroup: "Add Group",
+      noGroupsAvailable: "No vehicle groups available",
+      noVehiclesAvailable: "No vehicles available",
+      assignSuccess: "Template assigned successfully",
+      unassignSuccess: "Template unassigned successfully",
+      assignError: "Failed to assign template",
+      unassignError: "Failed to unassign template"
+    },
+
+    sections: {
+      title: "Template Sections",
+      addSection: "Add Section",
+      editSection: "Edit Section",
+      deleteSection: "Delete Section",
+      deleteSections: "Delete {count} sections",
+      sectionName: "Section Name",
+      sectionDescription: "Section Description",
+      activeSection: "Active Section",
+      unnamedSection: "Unnamed Section",
+      noItemsInSection: "No items in this section",
+      orderNumber: "Order Number"
+    },
+
+    items: {
+      addItem: "Add Item",
+      editItem: "Edit Item", 
+      deleteItem: "Delete Item",
+      itemName: "Item Name",
+      itemDescription: "Item Description",
+      requiresPhoto: "Requires Photo",
+      requiresNotes: "Requires Notes",
+      photo: "Photo",
+      notes: "Notes",
+      unnamedItem: "Unnamed Item",
+      manageItems: "Manage Items"
+    },
+
+    groups: {
+      title: "Vehicle Groups",
+      create: "Create Vehicle Group",
+      edit: "Edit Vehicle Group",
+      delete: "Delete Vehicle Group",
+      manage: "Manage Vehicles",
+      groupName: "Group Name",
+      groupDescription: "Description",
+      groupColor: "Color",
+      noGroups: "No vehicle groups found",
+      vehicleCount: "{count} vehicles",
+      addVehicles: "Add Vehicles",
+      removeVehicles: "Remove Vehicles",
+      manageVehiclesInGroup: "Manage Vehicles in Group",
+      vehiclesInGroup: "Vehicles in Group",
+      availableVehicles: "Available Vehicles",
+      ungroupedVehicles: "Ungrouped Vehicles",
+      groupColorDescription: "Choose a color to identify this group"
+    },
+
+    dialogs: {
+      createTemplate: {
+        title: "Create New Template",
+        description: "Create a new inspection template type",
+        templateTypePlaceholder: "e.g., routine, safety, maintenance"
+      },
+      
+      editTemplate: {
+        title: "Rename Template",
+        description: "Change the template type name",
+        currentName: "Current Name",
+        newName: "New Name"
+      },
+
+      duplicateTemplate: {
+        title: "Duplicate Template",
+        description: "Create a copy of this template",
+        sourceTemplate: "Source Template",
+        targetType: "New Template Type",
+        targetTypePlaceholder: "Enter new template type name"
+      },
+
+      deleteConfirm: {
+        title: "Delete {type}?",
+        template: "Delete Template \"{name}\"?",
+        section: "Delete Section \"{name}\"?",
+        item: "Delete Item \"{name}\"?",
+        templateDescription: "This will permanently delete all {sections} sections and {items} items in this template. This action cannot be undone.",
+        sectionDescription: "This will permanently delete this section and all {items} items within it. This action cannot be undone.",
+        itemDescription: "This will permanently delete this inspection item. This action cannot be undone.",
+        cannotBeUndone: "This action cannot be undone."
+      },
+
+      section: {
+        create: "Create New Section",
+        edit: "Edit Section",
+        nameEn: "Name (English)",
+        nameJa: "Name (Japanese)",
+        nameEnPlaceholder: "e.g., Engine Check",
+        nameJaPlaceholder: "e.g., エンジン点検",
+        descriptionEn: "Description (English)",
+        descriptionJa: "Description (Japanese)",
+        isActive: "Active Section"
+      },
+
+      vehicleGroup: {
+        create: "Create Vehicle Group", 
+        edit: "Edit Vehicle Group",
+        name: "Group Name",
+        namePlaceholder: "e.g., Delivery Trucks",
+        description: "Description",
+        descriptionPlaceholder: "Optional description",
+        color: "Color",
+        selectColor: "Select group color"
+      },
+
+      manageVehicles: {
+        title: "Manage Vehicles in {groupName}",
+        description: "Add or remove vehicles from this group",
+        currentVehicles: "Current Vehicles ({count})",
+        availableVehicles: "Available Vehicles",
+        noCurrentVehicles: "No vehicles in this group",
+        noAvailableVehicles: "No vehicles available to add",
+        addSelected: "Add Selected",
+        removeSelected: "Remove Selected"
+      }
+    },
+
+    actions: {
+      showAssignments: "Show Assignments",
+      hideAssignments: "Hide Assignments",
+      selectAll: "Select All",
+      deselectAll: "Deselect All",
+      bulkDelete: "Bulk Delete"
+    },
+
+    messages: {
+      templateCreated: "Template created successfully",
+      templateRenamed: "Template renamed successfully",
+      templateDuplicated: "Template duplicated successfully",
+      templateDeleted: "Template deleted successfully",
+      sectionCreated: "Section created successfully",
+      sectionUpdated: "Section updated successfully",
+      sectionDeleted: "Section deleted successfully",
+              sectionsDeleted: "{count} sections deleted successfully",
+        sectionsReordered: "Sections reordered successfully",
+        vehicleGroupCreated: "Vehicle group created successfully",
+        vehicleGroupUpdated: "Vehicle group updated successfully",
+        vehicleGroupDeleted: "Vehicle group deleted successfully",
+        itemCreated: "Item created successfully",
+        itemAdded: "Item added successfully",
+        itemUpdated: "Item updated successfully",
+        itemDeleted: "Item deleted successfully",
+        itemsReordered: "Items reordered successfully",
+        vehiclesAdded: "{count} vehicles added to group",
+        vehiclesRemoved: "{count} vehicles removed from group",
+      
+            errors: {
+        templateNameRequired: "Template type is required",
+        sectionNameRequired: "Section name (English) is required",
+        groupNameRequired: "Group name is required",
+        templateCreateFailed: "Failed to create template",
+        templateUpdateFailed: "Failed to update template",
+        templateDeleteFailed: "Failed to delete template",
+        templateDuplicateFailed: "Failed to duplicate template",
+        sectionCreateFailed: "Failed to create section",
+        sectionUpdateFailed: "Failed to update section",
+        sectionDeleteFailed: "Failed to delete section",
+        itemCreateFailed: "Failed to create item",
+        itemAddFailed: "Failed to add item",
+        itemUpdateFailed: "Failed to update item",
+        itemDeleteFailed: "Failed to delete item",
+        vehicleGroupCreateFailed: "Failed to create vehicle group",
+        vehicleGroupUpdateFailed: "Failed to update vehicle group", 
+        vehicleGroupDeleteFailed: "Failed to delete vehicle group",
+        vehicleGroupHasAssignments: "Cannot delete group with active template assignments",
+        loadTemplatesFailed: "Failed to load templates",
+        loadVehiclesFailed: "Failed to load vehicles",
+        loadAssignmentsFailed: "Failed to load assignments",
+        assignmentFailed: "Failed to update assignment",
+        reorderFailed: "Failed to reorder items",
+        deleteMultipleFailed: "Failed to delete multiple sections",
+        partialDeleteSuccess: "Some sections were deleted successfully"
+      },
+
+      confirmations: {
+        noSectionsSelected: "No sections selected for deletion",
+        deleteMultipleSections: "Are you sure you want to delete {count} sections? This will also delete all items in these sections.",
+        deleteTemplate: "Are you sure you want to delete this template? This will delete all sections and items.",
+        deleteSection: "Are you sure you want to delete this section? This will delete all items in this section.",
+        deleteItem: "Are you sure you want to delete this item?",
+        deleteVehicleGroup: "Are you sure you want to delete this vehicle group?"
+      },
+
+      mobile: {
+        showAssignments: "Assignments",
+        showSections: "Sections",
+        backToTemplates: "Back to Templates",
+        templateInfo: "Template Info",
+        assignTo: "Assign To",
+        manageItems: "Manage Items"
+      }
+    },
+
+    // Additional inspection keys needed for components
+    inspections: {
+      title: "Inspections",
+      description: "Manage and track vehicle inspections",
+      createInspection: "Create Inspection",
+      noInspections: "No inspections found",
+      dateLabel: "Date",
+      typeLabel: "Type",
+      statusLabel: "Status",
+      inspectorLabel: "Inspector",
+      inspectorEmailLabel: "Inspector Email",
+      unnamedInspection: "Unnamed Inspection",
+      noVehicle: "No Vehicle",
+      noVehicleAssigned: "No vehicle assigned to this inspection",
+      searchPlaceholder: "Search by vehicle, plate number, or type...",
+      defaultType: "General Inspection",
+      
+      fields: {
+        vehicle: "Vehicle",
+        type: "Type",
+        date: "Date",
+        status: "Status",
+        inspector: "Inspector"
+      },
+
+      type: {
+        routine: "Routine Inspection",
+        safety: "Safety Inspection",
+        maintenance: "Maintenance Inspection",
+        daily: "Daily Inspection",
+        test: "Test Inspection",
+        unspecified: "Unspecified",
+        daily_checklist_toyota: "Daily Checklist (Toyota)",
+        "Daily Checklist Toyota": "Daily Checklist (Toyota)",
+        daily_checklist_mercedes: "Daily Checklist (Mercedes)",
+        "Daily Checklist Mercedes": "Daily Checklist (Mercedes)",
+      },
+
+      status: {
+        scheduled: "Scheduled",
+        inProgress: "In Progress",
+        completed: "Completed",
+        failed: "Failed",
+        cancelled: "Cancelled"
+      },
+
+      statusValues: {
+        completed: "Completed"
+      },
+
+      messages: {
+        exportSuccess: "Export successful",
+        pdfDownloaded: "PDF downloaded successfully"
+      },
+
+      quickStats: {
+        todaysInspections: "Today's Inspections",
+        pendingInspections: "Pending Inspections",
+        weeklyCompleted: "Completed This Week",
+        failedInspections: "Failed Inspections"
+      },
+
+      calendar: {
+        title: "Inspection Calendar",
+        month: "Month",
+        week: "Week",
+        today: "Today",
+        inspectionsOnDate: "{count} inspections on {date}",
+        noInspectionsOnDate: "No inspections on this date",
+        viewInspection: "View Inspection"
+      },
+
+      details: {
+        printTitle: "Vehicle Inspection Report",
+        vehicleInfoTitle: "Vehicle Information",
+        overviewTitle: "Inspection Overview",
+        summaryTitle: "Inspection Summary",
+        photosTitle: "Photos ({count})",
+        photosTabDescription: "All photos captured during this inspection",
+        noPhotosMessage: "No photos were taken during this inspection",
+        photoForItem: "Photo for {itemName}",
+        photoItemAlt: "Inspection photo for {itemName}",
+        viewPhotoAria: "View photo for {itemName}",
+        
+        tabs: {
+          details: "All Items",
+          failed: "Failed",
+          passed: "Passed",
+          photos: "Photos"
+        },
+
+        allItemsTitle: "All Inspection Items ({count})",
+        failedItemsTitle: "Failed Items ({count})",
+        passedItemsTitle: "Passed Items ({count})",
+
+        summaryPassed: "Passed",
+        summaryFailed: "Failed",
+        summaryNotes: "With Notes",
+        summaryPhotos: "Photos",
+        passRate: "Pass Rate",
+        attentionRequired: "Attention Required",
+        itemsNeedAttention: "{count} items need attention",
+
+        vehicleInfo: {
+          title: "Vehicle Information"
+        },
+
+        summary: {
+          title: "Inspection Summary",
+          passedItems: "Passed Items",
+          failedItems: "Failed Items",
+          itemsWithNotes: "Items with Notes",
+          photosTaken: "Photos Taken"
+        },
+
+        items: {
+          title: "Inspection Items"
+        },
+
+        results: {
+          allPassed: "All items passed",
+          noPassedItems: "No items passed",
+          noItems: "No inspection items found",
+          noItemsInStatus: "No items with {status} status found",
+          itemStatus: "Item Status",
+          passed: "Passed",
+          failed: "Failed",
+          pending: "Pending",
+          withNotes: "Has Notes",
+          withPhotos: "Has Photos",
+          expandPhotos: "View Photos",
+          collapsePhotos: "Hide Photos"
+        },
+
+        pdfFooter: {
+          generatedOn: "Generated on {date}",
+          vehicleName: "Vehicle: {name}"
+        },
+
+        repairNeededTitle: "Repair Required",
+        repairNeededDescription: "This inspection has failed items that require repair or maintenance.",
+        repairNeededFor: "Repair needed for",
+        defaultRepairDescription: "Repair required based on inspection results",
+        repairTaskTitle: "Repair for {inspectionName} - {vehicleName}",
+        andMoreItems: "and {count} more items",
+        unknownItem: "Unknown Item"
+      },
+
+      actions: {
+        pass: "Pass",
+        fail: "Fail",
+        takePhoto: "Take Photo",
+        previousSection: "Previous Section",
+        nextSection: "Next Section",
+        startInspection: "Start Inspection",
+        continueInspection: "Continue Inspection",
+        completeInspection: "Complete Inspection",
+        scheduleRepair: "Schedule Repair",
+        printReport: "Print Report",
+        exportHtml: "Export CSV",
+        exportPdf: "Export PDF",
+        viewDetails: "View Details"
+      },
+
+      notes: {
+        title: "Inspector Notes",
+        placeholder: "Add notes about this inspection...",
+        itemNotes: "Item Notes"
+      },
+
+      photos: {
+        title: "Inspection Photos",
+        addPhoto: "Add Photo",
+        viewPhoto: "View Photo",
+        deletePhoto: "Delete Photo",
+        noPhotos: "No photos added"
+      },
+
+      form: {
+        title: "Vehicle Inspection",
+        selectVehicle: "Select Vehicle",
+        selectType: "Select Inspection Type",
+        searchVehicles: "Search vehicles...",
+        filterByBrand: "Filter by Brand",
+        filterByModel: "Filter by Model", 
+        filterByGroup: "Filter by Group",
+        allBrands: "All Brands",
+        allModels: "All Models",
+        allGroups: "All Groups",
+        clearFilters: "Clear Filters",
+        noVehiclesFound: "No vehicles found",
+        vehicleSelected: "Vehicle Selected",
+        typeSelected: "Type Selected",
+        startInspection: "Start Inspection",
+        
+        progress: {
+          vehicleSelection: "Vehicle Selection",
+          typeSelection: "Type Selection", 
+          inspection: "Inspection",
+          completion: "Completion"
+        },
+
+        steps: {
+          selectVehicle: "Select a vehicle to inspect",
+          selectType: "Choose the type of inspection to perform",
+          performInspection: "Complete the inspection checklist",
+          reviewAndSubmit: "Review and submit your inspection"
+        },
+
+        inspection: {
+          section: "Section {current} of {total}",
+          item: "Item {current} of {total}",
+          progress: "Progress: {percent}%",
+          estimatedTime: "Est. {minutes} min remaining",
+          pass: "Pass",
+          fail: "Fail",
+          addNote: "Add Note",
+          takePhoto: "Take Photo",
+          next: "Next",
+          previous: "Previous",
+          previousSection: "Previous Section",
+          nextSection: "Next Section",
+          complete: "Complete Inspection",
+          notes: "Notes",
+          photos: "Photos",
+          requiredPhoto: "Photo required",
+          requiredNotes: "Notes required",
+          optionalPhoto: "Photo optional",
+          optionalNotes: "Notes optional"
+        }
+      },
+
+      // Add labels section for backward compatibility
+      labels: {
+        model: "Model",
+        currentSection: "Current Section",
+        estimatedTime: "Estimated Time"
+      }
+    }
   }
 }
 

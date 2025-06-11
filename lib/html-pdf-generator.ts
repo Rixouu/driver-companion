@@ -500,10 +500,13 @@ export function generateQuotationHtml(
                         ${quotationT.pickupDate} ${new Date(item.pickup_date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
                       </div>` : ''}` : ''
                     }
-                    ${selectedPackage && isPackage && selectedPackage.items && selectedPackage.items.length > 0 ? `
+                    ${selectedPackage && isPackage ? `
                       <div style="font-size: 11px; color: #666; margin-top: 5px; padding-left: 10px;">
-                        <strong>Included:</strong>
-                        ${selectedPackage.items.map(pkgItem => `<div>- ${pkgItem.name} (${pkgItem.vehicle_type})</div>`).join('')}
+                        <strong>Included Services:</strong>
+                        ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                          selectedPackage.items.map(pkgItem => `<div style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</div>`).join('') :
+                          '<div style="color: #8b5cf6; font-weight: 500;">• All package services included</div>'
+                        }
                       </div>
                     ` : ''}
                     ${timeAdjustment !== 0 ? `
@@ -552,18 +555,11 @@ export function generateQuotationHtml(
           
           <!-- Totals Section -->
           <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
-            <!-- Service Base Total -->
+            <!-- Services Subtotal (includes time adjustments) -->
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">
               <span>Services Subtotal</span>
-              <span>${formatCurrency(totals.serviceBaseTotal)}</span>
+              <span>${formatCurrency(totals.serviceTotal)}</span>
             </div>
-            <!-- Time Adjustment -->
-            ${totals.serviceTimeAdjustment !== 0 ? `
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #d97706;">
-                <span>${quotationT.timeAdjustment}</span>
-                <span>${totals.serviceTimeAdjustment > 0 ? '+' : ''}${formatCurrency(totals.serviceTimeAdjustment)}</span>
-              </div>` : ''
-            }
             <!-- Package Price -->
             ${selectedPackage ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px;">

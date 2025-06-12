@@ -78,66 +78,65 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       try {
         const updatedInspections = await Promise.all(
           inspections.map(async (inspection) => {
+            let updatedInspection = { ...inspection } as Inspection;
+            
+            // Load vehicle data if available
             if (inspection.vehicle_id) {
-              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id)
+              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
               if (vehicle) {
-                return {
-                  ...inspection,
-                  vehicle: {
-                    ...vehicle,
-                    image_url: vehicle.image_url === null ? undefined : vehicle.image_url
-                  }
-                } as Inspection
+                updatedInspection.vehicle = {
+                  ...vehicle,
+                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url
+                };
+              }
+              
+              // Load template display name
+              const templateName = await getTemplateDisplayName(inspection);
+              if (templateName) {
+                console.log(`[INSPECTION_LIST] Setting template display name for inspection ${inspection.id}: ${templateName}`);
+                // If we found a template name, use it as the type
+                // Use 'as any' to bypass type checking since we're adding custom template types
+                (updatedInspection as any).type = templateName;
               }
             }
-            return inspection
+            
+            // Load inspector data if available
+            if (inspection.inspector_id) {
+              try {
+                const { data: inspectorData } = await supabase
+                  .from('profiles')
+                  .select('id, full_name')
+                  .eq('id', inspection.inspector_id)
+                  .single();
+                
+                if (inspectorData) {
+                  updatedInspection.inspector = {
+                    id: inspectorData.id,
+                    name: inspectorData.full_name || t('common.notAssigned')
+                  };
+                }
+              } catch (error) {
+                console.error('Error fetching inspector data:', error);
+              }
+            }
+            
+            return updatedInspection;
           })
-        )
+        );
+        
         // Sort inspections by date (most recent first)
         const sortedInspections = updatedInspections.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
-        ) as Inspection[]
-
-        // Fetch inspectors in batch
-        const inspectorIds = [...new Set(sortedInspections
-          .map(i => (i as any).inspector_id || (i as any).created_by)
-          .filter(Boolean))]
-
-        if (inspectorIds.length > 0) {
-          const { data: inspectorsData, error: inspectorsError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .in('id', inspectorIds)
-
-          if (inspectorsError) {
-            console.error('Failed to load inspector data', inspectorsError)
-          }
-
-          const inspectorMap = new Map<string, { name: string; email: string }>()
-          inspectorsData?.forEach(ins => {
-            inspectorMap.set(ins.id, {
-              name: ins.full_name || ins.email || t('common.notAssigned'),
-              email: ins.email || ''
-            })
-          })
-
-          sortedInspections.forEach(ins => {
-            const id = (ins as any).inspector_id || (ins as any).created_by
-            if (id && inspectorMap.has(id)) {
-              (ins as any).inspector = { id, ...inspectorMap.get(id)! }
-            }
-          })
-        }
-
-        // Update state with vehicles + inspectors
-        setInspectionsWithVehicles(sortedInspections)
+        ) as Inspection[];
+        
+        setInspectionsWithVehicles(sortedInspections);
       } catch (error) {
-        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error)
+        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
       }
     }
 
-    loadVehicleData()
-  }, [inspections, vehicles, t, supabase])
+    loadVehicleData();
+  }, [inspections, vehicles, t, supabase]);
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
@@ -392,14 +391,6 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     setStatusFilter("all")
   }
 
-  // Helper to format inspection type with fallback
-  const formatInspectionType = (type?: string | null) => {
-    if (!type) return t('inspections.type.unspecified')
-    const key = type.replace(/ /g, '_').toLowerCase()
-    const translated = t(`inspections.type.${key}`, { defaultValue: type }) as unknown
-    return typeof translated === 'string' ? translated : type
-  }
-
   // Render list view
   const renderListView = () => (
     <Card>
@@ -412,9 +403,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             <TableRow>
               <TableHead>{t("inspections.fields.vehicle")}</TableHead>
               <TableHead>{t("inspections.fields.type")}</TableHead>
-              <TableHead>{t("inspections.fields.inspector")}</TableHead>
               <TableHead>{t("inspections.fields.date")}</TableHead>
               <TableHead>{t("inspections.fields.status")}</TableHead>
+              <TableHead>{t("inspections.fields.inspector")}</TableHead>
               <TableHead className="w-[100px]">{t("common.actions.default")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -443,8 +434,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{formatInspectionType(inspection.type)}</TableCell>
-                  <TableCell>{inspection.inspector?.name || t('common.notAssigned')}</TableCell>
+                  <TableCell>
+                    {inspection.type || t("inspections.type.unspecified")}
+                  </TableCell>
                   <TableCell>
                     {format(parseISO(inspection.date), "MMM d, yyyy")}
                   </TableCell>
@@ -458,8 +450,22 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                         "border-blue-500 text-blue-700": inspection.status === "scheduled"
                       })}
                     >
-                      {t(`inspections.status.${inspection.status}` as any)}
+                      {inspection.status ? (
+                        (() => {
+                          console.log("[INSPECTION_LIST_TABLE_STATUS] Status:", inspection.status);
+                          const statusKey = `inspections.status.${inspection.status}`;
+                          try {
+                            return t(statusKey as any);
+                          } catch (error) {
+                            console.error(`Error translating status: ${statusKey}`, error);
+                            return inspection.status;
+                          }
+                        })()
+                      ) : t("common.notAvailable")}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {inspection.inspector?.name || t("common.notAssigned")}
                   </TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" asChild>
@@ -476,6 +482,96 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       </CardContent>
     </Card>
   )
+
+  // Add debugging function to check template assignments
+  const debugTemplateAssignments = async (vehicleId: string) => {
+    if (!vehicleId) return;
+    
+    try {
+      console.log("[INSPECTION_LIST_DEBUG] Checking template assignments for vehicle:", vehicleId);
+      
+      // Check direct vehicle assignments
+      const { data: vehicleAssignments } = await supabase
+        .from('inspection_template_assignments')
+        .select('template_type')
+        .eq('vehicle_id', vehicleId)
+        .eq('is_active', true);
+        
+      console.log("[INSPECTION_LIST_DEBUG] Direct vehicle assignments:", vehicleAssignments);
+      
+      // Get vehicle group ID
+      const { data: vehicleData } = await supabase
+        .from('vehicles')
+        .select('vehicle_group_id')
+        .eq('id', vehicleId)
+        .single();
+        
+      if (vehicleData?.vehicle_group_id) {
+        // Check group assignments
+        const { data: groupAssignments } = await supabase
+          .from('inspection_template_assignments')
+          .select('template_type')
+          .eq('vehicle_group_id', vehicleData.vehicle_group_id)
+          .eq('is_active', true);
+          
+        console.log("[INSPECTION_LIST_DEBUG] Group assignments for vehicle group:", vehicleData.vehicle_group_id, groupAssignments);
+      }
+    } catch (error) {
+      console.error("[INSPECTION_LIST_DEBUG] Error checking template assignments:", error);
+    }
+  };
+
+  // Function to get template display name for an inspection
+  const getTemplateDisplayName = async (inspection: Inspection): Promise<string | null> => {
+    if (!inspection.vehicle_id) return null;
+    
+    try {
+      // First check for a specific assignment for this vehicle
+      let { data: vehicleAssignment } = await supabase
+        .from('inspection_template_assignments')
+        .select('template_type')
+        .eq('vehicle_id', inspection.vehicle_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (vehicleAssignment) {
+        console.log(`[INSPECTION_LIST] Found template type via vehicle assignment: ${vehicleAssignment.template_type} for inspection ${inspection.id}`);
+        return vehicleAssignment.template_type;
+      }
+      
+      // If no vehicle-specific assignment, try to find via vehicle group
+      const { data: vehicleData } = await supabase
+        .from('vehicles')
+        .select('vehicle_group_id')
+        .eq('id', inspection.vehicle_id)
+        .maybeSingle();
+
+      if (vehicleData?.vehicle_group_id) {
+        const { data: groupAssignment } = await supabase
+          .from('inspection_template_assignments')
+          .select('template_type')
+          .eq('vehicle_group_id', vehicleData.vehicle_group_id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (groupAssignment) {
+          console.log(`[INSPECTION_LIST] Found template type via group assignment: ${groupAssignment.template_type} for inspection ${inspection.id}`);
+          return groupAssignment.template_type;
+        }
+      }
+      
+      // If we have a direct type, use it
+      if (inspection.type && inspection.type.includes('Daily Checklist')) {
+        console.log(`[INSPECTION_LIST] Using direct type from inspection: ${inspection.type} for inspection ${inspection.id}`);
+        return inspection.type;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error fetching template type:", error);
+      return null;
+    }
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -668,7 +764,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                             <h4 className="font-medium text-sm truncate pr-2">
                               {inspection.vehicle?.name || t("inspections.unnamedInspection")}
                             </h4>
-                            <Badge 
+                                                          <Badge 
                               variant="outline" 
                               className={cn("text-xs flex-shrink-0", {
                                 "border-green-500 text-green-700": inspection.status === "completed",
@@ -677,11 +773,33 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                                 "border-blue-500 text-blue-700": inspection.status === "scheduled"
                               })}
                             >
-                              {t(`inspections.status.${inspection.status}` as any)}
+                              {inspection.status ? (
+                                // Use a safer approach to access translation keys
+                                (() => {
+                                  console.log("[INSPECTION_LIST_BADGE] Status:", inspection.status);
+                                  const statusKey = `inspections.status.${inspection.status}`;
+                                  try {
+                                    return t(statusKey as any);
+                                  } catch (error) {
+                                    console.error(`Error translating status: ${statusKey}`, error);
+                                    return inspection.status;
+                                  }
+                                })()
+                              ) : t("common.notAvailable")}
                             </Badge>
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1">
-                            <div><span className="font-medium">{inspection.vehicle?.plate_number || t("inspections.noVehicle")} - {formatInspectionType(inspection.type)}</span></div>
+                            <div><span className="font-medium">{inspection.vehicle?.plate_number || t("inspections.noVehicle")}</span> - {inspection.type || t("inspections.type.unspecified")}</div>
+                            <div className="flex justify-between mt-1">
+                              <div>
+                                <span className="text-xs text-muted-foreground">{t("inspections.fields.inspector")}:</span>{" "}
+                                <span className="text-xs font-medium">{inspection.inspector?.name || t("common.notAssigned")}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground">{t("common.time")}:</span>{" "}
+                                <span className="text-xs">{format(parseISO(inspection.date), "HH:mm")}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </Link>

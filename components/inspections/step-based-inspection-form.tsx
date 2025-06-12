@@ -87,9 +87,10 @@ interface StepBasedInspectionFormProps {
   vehicleId: string;
   bookingId?: string;
   vehicles: Vehicle[];
+  isResuming?: boolean;
 }
 
-export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, vehicles }: StepBasedInspectionFormProps) {
+export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, vehicles, isResuming = false }: StepBasedInspectionFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -354,6 +355,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           const availableTypes = [...new Set(allAssignments.map(a => a.template_type))] as InspectionType[];
 
           console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Vehicle: ${selectedVehicle.name}, Available types:`, availableTypes);
+          console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Raw assignments data:`, { vehicleAssignments, groupAssignments });
 
           // Set the available template types state
           setAvailableTemplateTypes(availableTypes);
@@ -363,6 +365,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             const alreadyNotified = autoTemplateToastShown;
             const autoType = availableTypes[0] as InspectionType;
 
+            console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Auto-selecting template type: ${autoType}`);
             setSelectedType(autoType);
             methods.setValue('type', autoType);
 
@@ -628,26 +631,67 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
 
       if (isEditMode) {
         // Editing an existing inspection
-        const { data: updatedInspection, error: updateError } = await supabaseClient
-          .from('inspections')
-          .update({
-            status: 'completed', // Or derive this based on items
-            date: new Date().toISOString(), // Represents last modification date
-            notes: notes, // Overall inspection notes
-            // vehicle_id and type are generally not changed during an item edit session
-            // inspector_id: user.id, // Could be updated if another user modifies
-          })
-          .eq('id', inspectionId)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('Error updating inspection:', updateError);
-          toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
-          setIsSubmitting(false);
-          return;
+        // Determine the status based on the items
+        let newStatus = 'completed';
+        const allItemsHaveStatus = sections.every(section => 
+          section.items.every(item => item.status === 'pass' || item.status === 'fail')
+        );
+        
+        const anyItemFailed = sections.some(section => 
+          section.items.some(item => item.status === 'fail')
+        );
+        
+        if (!allItemsHaveStatus) {
+          newStatus = 'in_progress';
+        } else if (anyItemFailed) {
+          newStatus = 'failed';
         }
-        finalInspectionId = updatedInspection.id;
+        
+        // When resuming a completed inspection, make sure we update the status
+        if (isResuming) {
+          // Force status update even for completed inspections when resuming
+          const { data: updatedInspection, error: updateError } = await supabaseClient
+            .from('inspections')
+            .update({
+              status: newStatus,
+              notes: notes, // Overall inspection notes
+              // Don't update date or inspector when resuming
+            })
+            .eq('id', inspectionId)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating inspection:', updateError);
+            toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
+            setIsSubmitting(false);
+            return;
+          }
+          finalInspectionId = updatedInspection.id;
+        } else {
+          // Regular edit mode (not resuming)
+          console.log("[INSPECTION_FORM] Updating inspection without changing date");
+          const { data: updatedInspection, error: updateError } = await supabaseClient
+            .from('inspections')
+            .update({
+              status: newStatus,
+              // Do not update date when completing an inspection
+              notes: notes, // Overall inspection notes
+              // vehicle_id and type are generally not changed during an item edit session
+              // inspector_id: user.id, // Could be updated if another user modifies
+            })
+            .eq('id', inspectionId)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating inspection:', updateError);
+            toast({ title: t("inspections.errors.updatingInspectionError"), description: updateError.message, variant: "destructive" });
+            setIsSubmitting(false);
+            return;
+          }
+          finalInspectionId = updatedInspection.id;
+        }
 
         // Clean up old items and photos for this inspection
         const { data: oldItems, error: fetchOldItemsError } = await supabaseClient

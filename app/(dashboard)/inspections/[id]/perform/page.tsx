@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react"
 interface PerformInspectionPageProps {
   params: {
     id: string
-  }
+  },
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
@@ -19,10 +19,17 @@ export const metadata: Metadata = {
   description: "Perform a vehicle inspection",
 }
 
-export default async function PerformInspectionPage({ params, searchParams }: PerformInspectionPageProps) {
+export default async function PerformInspectionPage({ 
+  params,
+  searchParams
+}: PerformInspectionPageProps) {
   const supabase = await getSupabaseServerClient()
-  const { id } = params;
-  const resume = searchParams?.resume === 'true'
+  
+  // Properly await the parameters
+  const id = params.id;
+  
+  // Check for resume parameter
+  const isResuming = searchParams.resume === 'true';
   
   const { data: inspection } = await supabase
     .from('inspections')
@@ -33,13 +40,8 @@ export default async function PerformInspectionPage({ params, searchParams }: Pe
     .eq('id', id)
     .single()
 
-  if (!inspection) return notFound()
-
-  const allowedStatuses = resume
-    ? ['scheduled', 'in_progress', 'completed', 'failed']
-    : ['scheduled', 'in_progress']
-
-  if (!allowedStatuses.includes(inspection.status)) {
+  // Allow completed inspections if resume=true query parameter is provided
+  if (!inspection || (inspection.status !== 'scheduled' && inspection.status !== 'in_progress' && !(isResuming && ['completed', 'failed'].includes(inspection.status)))) {
     return notFound()
   }
 
@@ -64,12 +66,15 @@ export default async function PerformInspectionPage({ params, searchParams }: Pe
 
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
-              {inspection.status === 'in_progress' ? 'Continue Inspection' : 'Perform Inspection'}
+              {isResuming ? 'Edit Inspection' : (inspection.status === 'in_progress' ? 'Continue Inspection' : 'Perform Inspection')}
             </h1>
             <p className="text-muted-foreground">
-              {inspection.status === 'in_progress' 
-                ? `Continue inspection for ${inspection.vehicle.name}`
-                : `Perform inspection for ${inspection.vehicle.name}`
+              {isResuming 
+                ? `Editing inspection for ${inspection.vehicle.name}`
+                : (inspection.status === 'in_progress' 
+                  ? `Continue inspection for ${inspection.vehicle.name}`
+                  : `Perform inspection for ${inspection.vehicle.name}`
+                )
               }
             </p>
           </div>
@@ -78,8 +83,8 @@ export default async function PerformInspectionPage({ params, searchParams }: Pe
         <StepBasedInspectionForm 
           inspectionId={inspection.id}
           vehicleId={inspection.vehicle.id}
-          vehicles={[inspection.vehicle]}
-          // bookingId={inspection.booking_id} // Assuming bookingId might be needed from inspection data
+          vehicles={[inspection.vehicle as any]}
+          isResuming={isResuming}
         />
       </div>
     </div>

@@ -117,6 +117,7 @@ export const en: TranslationValue = {
     duplicate: "Duplicate",
     active: "Active", 
     inactive: "Inactive",
+    time: "Time",
     showingResults: "Showing {start}-{end} of {total} results",
     nameEn: "Name (English)",
     nameJa: "Name (Japanese)", 
@@ -773,8 +774,7 @@ export const en: TranslationValue = {
       inProgress: "In Progress",
       completed: "Completed",
       failed: "Failed",
-      scheduled: "Scheduled",
-      cancelled: "Cancelled"
+      scheduled: "Scheduled"
     },
     type: {
       routine: "Routine",
@@ -1094,6 +1094,20 @@ export const en: TranslationValue = {
       submitSuccessDescription: "The inspection results have been submitted successfully.",
       submitErrorTitle: "Submission Failed",
       genericSubmitError: "An error occurred while submitting the inspection. Please try again."
+    },
+    errors: {
+      selectVehicle: "Please select a vehicle",
+      completeOneItem: "Please complete at least one item",
+      completeOneItemBeforeSubmit: "Please complete at least one item before submitting",
+      authError: "Authentication Error",
+      mustBeLoggedIn: "You must be logged in to submit an inspection",
+      storageAccessError: "Storage Access Error",
+      unableToAccessStorage: "Unable to access the storage system",
+      creatingInspectionError: "Error Creating Inspection",
+      updatingInspectionError: "Error Updating Inspection",
+      photoUploadFailed: "Photo Upload Failed",
+      noCompletedItems: "No Completed Items",
+      genericSubmitError: "An error occurred. Please try again."
     },
     details: {
       title: "Inspection Details",

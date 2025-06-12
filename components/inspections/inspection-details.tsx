@@ -40,6 +40,7 @@ export interface ExtendedInspection extends DbInspection {
   };
   booking_id?: string | null;
   notes?: string | null;
+  templateDisplayName?: string;
 }
 
 export interface InspectionCategory {
@@ -123,6 +124,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     try {
       const inspectionDataToUpdate = Array.isArray(data) ? data[0] : data;
       if (inspectionDataToUpdate) {
+        console.log("[INSPECTION_DETAILS] Received inspection data update:", inspectionDataToUpdate);
+        console.log("[INSPECTION_DETAILS] Current type value:", inspectionDataToUpdate.type);
+        
         setInspection(prevInspection => ({
           ...prevInspection,
           ...inspectionDataToUpdate,
@@ -244,6 +248,75 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
       fetchVehicleDetails();
     }
   }, [inspection.vehicle_id, inspection.vehicle, supabase]);
+
+  // TODO: Add proper template type lookup in the future
+  // Effect to load template type information
+  useEffect(() => {
+    if (inspection.vehicle_id) {
+      const fetchTemplateType = async () => {
+        try {
+          console.log("[INSPECTION_DETAILS] Current inspection:", inspection);
+          console.log("[INSPECTION_DETAILS] Current type:", inspection.type);
+
+          // If we already have the type directly from the inspection, use it
+          if (inspection.type && inspection.type.includes('Daily Checklist')) {
+            console.log("[INSPECTION_DETAILS] Using direct type from inspection:", inspection.type);
+            setInspection(prev => ({
+              ...prev,
+              templateDisplayName: inspection.type
+            }));
+            return;
+          }
+          
+          // First check for a specific assignment for this vehicle
+          let { data: vehicleAssignment } = await supabase
+            .from('inspection_template_assignments')
+            .select('template_type')
+            .eq('vehicle_id', inspection.vehicle_id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          // If no vehicle-specific assignment, try to find via vehicle group
+          if (!vehicleAssignment && inspection.vehicle) {
+            // First get the vehicle group ID
+            const { data: vehicleData } = await supabase
+              .from('vehicles')
+              .select('vehicle_group_id')
+              .eq('id', inspection.vehicle_id)
+              .single();
+
+            if (vehicleData?.vehicle_group_id) {
+              // Then look for a group assignment
+              const { data: groupAssignment } = await supabase
+                .from('inspection_template_assignments')
+                .select('template_type')
+                .eq('vehicle_group_id', vehicleData.vehicle_group_id)
+                .eq('is_active', true)
+                .maybeSingle();
+              
+              if (groupAssignment) {
+                console.log("[INSPECTION_DETAILS] Found template type via group assignment:", groupAssignment.template_type);
+                setInspection(prev => ({
+                  ...prev,
+                  templateDisplayName: groupAssignment.template_type
+                }));
+              }
+            }
+          } else if (vehicleAssignment) {
+            console.log("[INSPECTION_DETAILS] Found template type via vehicle assignment:", vehicleAssignment.template_type);
+            setInspection(prev => ({
+              ...prev,
+              templateDisplayName: vehicleAssignment.template_type
+            }));
+          }
+        } catch (error) {
+          console.error("Error fetching template type:", error);
+        }
+      };
+      
+      fetchTemplateType();
+    }
+  }, [inspection.type, inspection.vehicle_id, inspection.vehicle, supabase]);
 
   const passedItems = useMemo(() => itemsWithTemplates.filter(item => item.status === 'pass'), [itemsWithTemplates]);
   const failedItems = useMemo(() => itemsWithTemplates.filter(item => item.status === 'fail'), [itemsWithTemplates]);
@@ -461,7 +534,13 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
               </div>
               <div>
                 <Label>{t("inspections.fields.type")}</Label>
-                <TextValue>{inspection.type ? t(`inspections.type.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) : t("common.notAvailable")}</TextValue>
+                <TextValue>
+                  {inspection.templateDisplayName 
+                    ? inspection.templateDisplayName 
+                    : (inspection.type 
+                        ? t(`inspections.type.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
+                        : t("common.notAvailable"))}
+                </TextValue>
               </div>
               <div>
                 <Label>{t("inspections.fields.date")}</Label>

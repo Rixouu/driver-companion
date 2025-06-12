@@ -83,6 +83,7 @@ export const ja: TranslationValue = {
     week: "週",
     month: "月",
     today: "今日",
+    time: "時間",
     unassign: "割り当て解除",
     assign: "割り当て",
     none: "なし",
@@ -786,6 +787,11 @@ export const ja: TranslationValue = {
     messages: {
       exportSuccess: "エクスポート成功",
       pdfDownloaded: "PDFが正常にダウンロードされました"
+    },
+    errors: {
+      photoUploadFailed: "写真のアップロードに失敗しました",
+      updatingInspectionError: "検査の更新中にエラーが発生しました",
+      genericSubmitError: "検査の送信中にエラーが発生しました。再度お試しください。"
     }
   },
   inspectionTemplates: {

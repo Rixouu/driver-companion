@@ -145,7 +145,7 @@ export function Sidebar() {
             "w-full justify-start gap-2 h-9",
             active && "bg-secondary font-medium",
             !active && "text-muted-foreground hover:text-foreground",
-            "md:px-3 px-2" // Adjusted padding for mobile
+            "px-3" // Consistent padding
           )}
           onClick={() => handleItemClick(item)}
         >
@@ -167,16 +167,16 @@ export function Sidebar() {
     )
   }
 
+  // Loading skeleton
   if (!mounted) {
     return (
-      <div className="w-full md:w-64 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="p-4 md:p-6">
-          <div className="flex items-center gap-2 mb-4 md:mb-6">
+      <div className="h-full w-full md:w-64 border-r bg-background">
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-4">
             <Settings className="h-5 w-5" />
             <h2 className="text-lg font-semibold">{t('settings.title') || 'Settings'}</h2>
           </div>
           <div className="space-y-2">
-            {/* Loading skeleton */}
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-9 bg-muted/50 rounded animate-pulse" />
             ))}
@@ -187,53 +187,49 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0 sticky top-0 z-10">
-      <div className="p-4 md:p-6">
-        <div className="flex items-center justify-between gap-2 mb-4 md:mb-6">
-          <div className="flex items-center gap-2">
+    <>
+      {/* Mobile Tabs - Horizontal Scrolling */}
+      <div className="md:hidden w-full sticky top-0 bg-background z-20 border-b">
+        <ScrollArea className="w-full">
+          <div className="flex p-2 overflow-x-auto">
+            {sidebarItems.map(item => {
+              const Icon = item.icon;
+              const active = isActive(item);
+              return (
+                <Button
+                  key={item.id}
+                  variant={active ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "flex-shrink-0 h-10 whitespace-nowrap rounded-full px-3 mr-1",
+                    active && "bg-secondary font-medium",
+                    !active && "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => handleItemClick(item)}
+                >
+                  <Icon className="h-4 w-4 mr-1" />
+                  <span className="truncate">{item.label}</span>
+                </Button>
+              );
+            })}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block md:w-64 border-r bg-background">
+        <div className="p-4">
+          <div className="flex items-center gap-2 mb-4">
             <Settings className="h-5 w-5" />
             <h2 className="text-lg font-semibold">{t('settings.title') || 'Settings'}</h2>
           </div>
-        </div>
-        
-        {/* Desktop Sidebar */}
-        <div className="hidden md:block">
-          <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
-            <nav className="space-y-1">
-              {sidebarItems.map(item => renderSidebarItem(item))}
-            </nav>
-          </ScrollArea>
-        </div>
-        
-        {/* Mobile/Tablet Horizontal Nav */}
-        <div className="md:hidden">
-          <ScrollArea className="w-full pb-4">
-            <div className="flex space-x-2 min-w-max py-1 px-1 overflow-x-auto">
-              {sidebarItems.map(item => {
-                const Icon = item.icon;
-                const active = isActive(item);
-                return (
-                  <Button
-                    key={item.id}
-                    variant={active ? "secondary" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "flex-shrink-0 h-10 whitespace-nowrap rounded-full px-4",
-                      active && "bg-secondary font-medium",
-                      !active && "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    <span className="truncate">{item.label}</span>
-                  </Button>
-                );
-              })}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          
+          <nav className="space-y-1">
+            {sidebarItems.map(item => renderSidebarItem(item))}
+          </nav>
         </div>
       </div>
-    </aside>
+    </>
   )
 } 

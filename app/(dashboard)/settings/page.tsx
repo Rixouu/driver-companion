@@ -498,7 +498,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto py-2 md:py-4">
       {renderTabContent()}
     </div>
   )

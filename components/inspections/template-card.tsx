@@ -31,11 +31,11 @@ import { useI18n } from "@/lib/i18n/context"
 import { AssignmentModal } from "./assignment-modal"
 import { ItemManagementModal } from "./item-management-modal"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { useSensors, useSensor, PointerSensor, KeyboardSensor, DndContext, closestCenter } from "@dnd-kit/core"
+import { useSensors, useSensor, PointerSensor, KeyboardSensor, DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core"
 import { arrayMove, sortableKeyboardCoordinates, useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { DragEndEvent } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 interface InspectionItemTemplate {
   id: string;
@@ -61,6 +61,7 @@ interface InspectionSection {
 
 interface InspectionTemplate {
   type: string;
+  displayName?: string;
   sections: InspectionSection[];
   totalItems: number;
   isActive: boolean;
@@ -164,11 +165,19 @@ function SortableSection({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: section.id })
+  } = useSortable({ 
+    id: section.id,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    zIndex: isDragging ? 10 : 'auto',
+    position: isDragging ? 'relative' : 'static' as any,
   }
 
   const sectionName = section.name_translations?.[locale] || section.name_translations?.en || 'Unnamed Section'
@@ -180,13 +189,16 @@ function SortableSection({
     <div
       ref={setNodeRef}
       style={style}
-      className={`border rounded-lg ${isDragging ? 'opacity-50 shadow-lg' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+      className={`border rounded-lg ${isDragging ? 'opacity-50 shadow-lg' : ''} ${isSelected ? 'ring-2 ring-primary' : ''}`}
     >
       <div className="flex items-center gap-2 p-3 sm:p-4">
         <div
           {...attributes}
           {...listeners}
           className="flex-shrink-0 p-1 rounded cursor-grab active:cursor-grabbing hover:bg-muted/80 dark:hover:bg-muted/60 touch-none transition-colors"
+          aria-label="Drag handle"
+          role="button"
+          tabIndex={0}
         >
           <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
         </div>
@@ -234,7 +246,7 @@ function SortableSection({
                     .map((item) => {
                       const itemName = item.name_translations?.[locale] || item.name_translations?.en || 'Unnamed Item'
                       return (
-                        <div key={item.id} className="flex items-center gap-2 p-2 bg-muted/50 dark:bg-muted/30 rounded text-sm border border-border/50">
+                        <div key={item.id} className="flex items-center gap-2 p-2 bg-muted/50 dark:bg-muted/20 rounded text-sm border border-border/50">
                           <span className="flex-1 truncate">{itemName}</span>
                           <div className="flex gap-1 flex-shrink-0">
                             {item.requires_photo && (
@@ -343,7 +355,9 @@ export function TemplateCard({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
+        delay: 100,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -402,24 +416,26 @@ export function TemplateCard({
     const { active, over } = event
 
     if (over && active.id !== over.id && onReorderSections) {
-      const oldIndex = sections.findIndex(section => section.id === active.id)
-      const newIndex = sections.findIndex(section => section.id === over.id)
-      
-      const reorderedSections = arrayMove(sections, oldIndex, newIndex)
-      setSections(reorderedSections)
-
-      // Update order numbers and call the reorder function
-      const reorderData = reorderedSections.map((section, index) => ({
-        id: section.id,
-        order: index + 1
-      }))
-
       try {
-        await onReorderSections(reorderData)
+        const oldIndex = sections.findIndex(section => section.id === active.id)
+        const newIndex = sections.findIndex(section => section.id === over.id)
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const reorderedSections = arrayMove(sections, oldIndex, newIndex)
+          setSections(reorderedSections)
+  
+          // Update order numbers and call the reorder function
+          const reorderData = reorderedSections.map((section, index) => ({
+            id: section.id,
+            order: index + 1
+          }))
+  
+          await onReorderSections(reorderData)
+        }
       } catch (error) {
         console.error('Error reordering sections:', error)
         // Revert on error
-        setSections(sections)
+        setSections(template.sections)
       }
     }
   }
@@ -428,9 +444,7 @@ export function TemplateCard({
   const templateAssignments = assignments.filter(a => a.template_type === template.type)
   const assignedVehiclesCount = templateAssignments.filter(a => a.vehicle_id).length
   const assignedGroupsCount = templateAssignments.filter(a => a.vehicle_group_id).length
-  const totalAssignedVehicles = assignedVehiclesCount + vehicleGroups
-    .filter(group => templateAssignments.some(a => a.vehicle_group_id === group.id))
-    .reduce((acc, group) => acc + (group.vehicle_count || 0), 0)
+  const totalAssignments = assignedVehiclesCount + assignedGroupsCount
 
   return (
     <Card className="w-full">
@@ -448,7 +462,7 @@ export function TemplateCard({
             
             <div className="flex-1 min-w-0">
               <CardTitle className="text-base sm:text-lg font-semibold truncate">
-                {template.type}
+                {template.displayName || template.type}
               </CardTitle>
               <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
                 <Badge 
@@ -466,72 +480,75 @@ export function TemplateCard({
                 <Badge variant="outline" className="text-xs border-border">
                   {template.totalItems} {t('inspectionTemplates.template.items')}
                 </Badge>
-                {template.assignedVehicles > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    <Car className="h-3 w-3 mr-1" />
-                    {template.assignedVehicles}
-                  </Badge>
-                )}
-                {template.assignedGroups > 0 && (
-                  <Badge variant="outline" className="text-xs">
-                    <Users className="h-3 w-3 mr-1" />
-                    {template.assignedGroups}
-                  </Badge>
-                )}
+                <Badge variant="outline" className="text-xs border-border flex items-center">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {totalAssignments}
+                </Badge>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onAddSection(template.type)}
-              className="text-xs hover:bg-muted/80 dark:hover:bg-muted/60"
+              className="text-xs sm:inline-flex hidden hover:bg-muted/80 dark:hover:bg-muted/60"
               title={t('inspectionTemplates.sections.addSection')}
             >
               <Plus className="h-3 w-3 mr-1" />
               {t('inspectionTemplates.sections.addSection')}
             </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onAddSection(template.type)}
+              className="text-xs sm:hidden h-8 w-8 p-0"
+              title={t('inspectionTemplates.sections.addSection')}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={handleManageAssignments}
-              className="text-xs hover:bg-muted/80 dark:hover:bg-muted/60"
+              className="text-xs h-8 w-8 p-0 sm:px-2 sm:w-auto"
               title={t('common.assign')}
             >
-              <MapPin className="h-3 w-3 mr-1" />
-              {t('common.assign')}
+              <MapPin className="h-3 w-3 sm:mr-1" />
+              <span className="hidden sm:inline">{t('common.assign')}</span>
             </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEditTemplate(template)}
-              className="text-xs hover:bg-muted/80 dark:hover:bg-muted/60"
+              className="text-xs h-8 w-8 p-0"
               title={t('common.edit')}
             >
-              <Edit className="h-3 w-3 mr-1" />
-              {t('common.edit')}
+              <Edit className="h-3 w-3" />
             </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => onDuplicateTemplate(template)}
-              className="text-xs hover:bg-muted/80 dark:hover:bg-muted/60"
+              className="text-xs h-8 w-8 p-0"
               title={t('common.duplicate')}
             >
-              <Copy className="h-3 w-3 mr-1" />
-              {t('common.duplicate')}
+              <Copy className="h-3 w-3" />
             </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={handleDeleteTemplate}
-              className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20"
+              className="text-xs h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20"
               title={t('common.delete')}
             >
-              <Trash2 className="h-3 w-3 mr-1" />
-              {t('common.delete')}
+              <Trash2 className="h-3 w-3" />
             </Button>
           </div>
         </div>
@@ -560,6 +577,7 @@ export function TemplateCard({
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleSectionDragEnd}
+              modifiers={[restrictToVerticalAxis]}
             >
               <SortableContext
                 items={sections.map(section => section.id)}
@@ -606,7 +624,7 @@ export function TemplateCard({
         <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">
-              Template Assignments - {template.type}
+              Template Assignments - {template.displayName || template.type}
             </DialogTitle>
             <DialogDescription className="text-sm">
               Assign this inspection template to vehicles or vehicle groups
@@ -628,7 +646,7 @@ export function TemplateCard({
                       return (
                         <div
                           key={vehicle.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -696,7 +714,7 @@ export function TemplateCard({
                       return (
                         <div
                           key={group.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">

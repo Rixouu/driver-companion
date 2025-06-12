@@ -31,15 +31,14 @@ import {
   DragEndEvent
 } from '@dnd-kit/core'
 import { 
-  arrayMove, 
   SortableContext, 
   sortableKeyboardCoordinates, 
+  useSortable, 
   verticalListSortingStrategy 
 } from '@dnd-kit/sortable'
-import { 
-  useSortable 
-} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { arrayMove } from '@dnd-kit/sortable'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 interface InspectionItemTemplate {
   id: string
@@ -97,11 +96,19 @@ function SortableItem({ item, onEdit, onDelete, locale }: SortableItemProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id })
+  } = useSortable({ 
+    id: item.id,
+    transition: {
+      duration: 150,
+      easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+    }
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    zIndex: isDragging ? 10 : 'auto',
+    position: isDragging ? 'relative' : 'static' as any,
   }
 
   const itemName = item.name_translations?.[locale] || item.name_translations?.en || 'Unnamed Item'
@@ -111,59 +118,60 @@ function SortableItem({ item, onEdit, onDelete, locale }: SortableItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white border rounded-lg p-3 sm:p-4 ${isDragging ? 'opacity-50 shadow-lg' : 'shadow-sm'}`}
+      className={`bg-background border rounded-lg p-3 sm:p-4 ${isDragging ? 'opacity-50 shadow-lg' : 'shadow-sm'}`}
     >
-      <div className="flex items-start gap-2 sm:gap-3">
+      <div className="flex items-start gap-3">
         <div
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 mt-1 p-1 rounded cursor-grab active:cursor-grabbing hover:bg-gray-100 touch-none"
+          className="flex-shrink-0 p-1 rounded cursor-grab active:cursor-grabbing hover:bg-muted/80 dark:hover:bg-muted/60 touch-none transition-colors mt-1"
+          aria-label="Drag handle"
+          role="button"
+          tabIndex={0}
         >
-          <GripVertical className="h-4 w-4 text-gray-400" />
+          <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
         </div>
-        
         <div className="flex-1 min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm text-gray-900 truncate">{itemName}</h4>
-              {itemDescription && (
-                <p className="text-xs text-gray-600 mt-1 line-clamp-2">{itemDescription}</p>
-              )}
-              <div className="flex flex-wrap gap-1 mt-2">
-                {item.requires_photo && (
-                  <Badge variant="outline" className="text-xs">
-                    <Camera className="h-3 w-3 mr-1" />
-                    Photo
-                  </Badge>
-                )}
-                {item.requires_notes && (
-                  <Badge variant="outline" className="text-xs">
-                    <FileText className="h-3 w-3 mr-1" />
-                    Notes
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex gap-1 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(item)}
-                className="h-8 w-8 p-0"
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(item)}
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+          <div className="font-medium truncate">{itemName}</div>
+          {itemDescription && (
+            <div className="text-sm text-muted-foreground line-clamp-2 mt-1">{itemDescription}</div>
+          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {item.requires_photo && (
+              <Badge variant="outline" className="text-xs">
+                <Camera className="h-3 w-3 mr-1" />
+                Photo Required
+              </Badge>
+            )}
+            {item.requires_notes && (
+              <Badge variant="outline" className="text-xs">
+                <FileText className="h-3 w-3 mr-1" />
+                Notes Required
+              </Badge>
+            )}
           </div>
+        </div>
+        <div className="flex gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(item)}
+            className="h-8 w-8 p-0"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(item)}
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete</span>
+          </Button>
         </div>
       </div>
     </div>
@@ -202,7 +210,9 @@ export function ItemManagementModal({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
+        delay: 100,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -324,25 +334,29 @@ export function ItemManagementModal({
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = items.findIndex(item => item.id === active.id)
-      const newIndex = items.findIndex(item => item.id === over.id)
-      
-      const reorderedItems = arrayMove(items, oldIndex, newIndex)
-      setItems(reorderedItems)
-
-      // Update order numbers and call the reorder function
-      const reorderData = reorderedItems.map((item, index) => ({
-        id: item.id,
-        order: index + 1
-      }))
-
-      if (onReorderItems) {
-        try {
-          await onReorderItems(reorderData)
-        } catch (error) {
-          console.error('Error reordering items:', error)
-          // Revert on error
-          setItems(items)
+      try {
+        const oldIndex = items.findIndex(item => item.id === active.id)
+        const newIndex = items.findIndex(item => item.id === over.id)
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const reorderedItems = arrayMove(items, oldIndex, newIndex)
+          setItems(reorderedItems)
+  
+          // Update order numbers and call the reorder function
+          const reorderData = reorderedItems.map((item, index) => ({
+            id: item.id,
+            order: index + 1
+          }))
+  
+          if (onReorderItems) {
+            await onReorderItems(reorderData)
+          }
+        }
+      } catch (error) {
+        console.error('Error reordering items:', error)
+        // Revert on error - get the original items for the section
+        if (section) {
+          setItems(section.inspection_item_templates)
         }
       }
     }
@@ -381,8 +395,8 @@ export function ItemManagementModal({
               </div>
 
               {items.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-2 text-muted" />
                   <p>{t('inspectionTemplates.sections.noItemsInSection')}</p>
                 </div>
               ) : (
@@ -390,6 +404,7 @@ export function ItemManagementModal({
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
+                  modifiers={[restrictToVerticalAxis]}
                 >
                   <SortableContext 
                     items={items.map(item => item.id)}
@@ -413,7 +428,7 @@ export function ItemManagementModal({
 
             {/* Form Panel */}
             {showForm && (
-              <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l bg-gray-50/50">
+              <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l bg-muted/50 dark:bg-muted/20">
                 <div className="p-4 sm:p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-base">

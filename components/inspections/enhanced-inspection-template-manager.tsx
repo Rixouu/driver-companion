@@ -67,6 +67,7 @@ interface InspectionSection {
 
 interface InspectionTemplate {
   type: string;
+  displayName?: string;
   sections: InspectionSection[];
   totalItems: number;
   isActive: boolean;
@@ -227,9 +228,14 @@ export function EnhancedInspectionTemplateManager() {
       
       categories?.forEach(category => {
         const type = category.type
+        // Use type assertion to access the display_name property
+        const categoryAny = category as any
+        const displayName = categoryAny.display_name || type
+        
         if (!templateMap.has(type)) {
           templateMap.set(type, {
             type,
+            displayName,
             sections: [],
             totalItems: 0,
             isActive: false,
@@ -376,17 +382,23 @@ export function EnhancedInspectionTemplateManager() {
 
     setIsSubmitting(true)
     try {
+      // Store the original display name
+      const displayName = newTemplateType.trim();
+      // Create a URL-friendly ID but keep original name for display
+      const typeId = displayName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      
       const { error } = await supabase
         .from('inspection_categories')
         .insert({
-          type: newTemplateType.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+          type: typeId,
+          display_name: displayName,
           name_translations: {
             en: `Default Section`,
             ja: `デフォルトセクション`
           },
           description_translations: {
-            en: `Default section for ${newTemplateType}`,
-            ja: `${newTemplateType}のデフォルトセクション`
+            en: `Default section for ${displayName}`,
+            ja: `${displayName}のデフォルトセクション`
           },
           order_number: 1,
           is_active: true
@@ -437,14 +449,19 @@ export function EnhancedInspectionTemplateManager() {
 
     setIsSubmitting(true)
     try {
+      // Store the original display name
+      const displayName = editTemplateForm.displayName.trim() || editTemplateForm.newType.trim();
+      // Create a URL-friendly ID but keep original name for display
+      const typeId = editTemplateForm.newType.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      
       const response = await fetch(`/api/inspection-templates/${editTemplateForm.currentType}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          newType: editTemplateForm.newType.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-          displayName: editTemplateForm.displayName
+          newType: typeId,
+          displayName: displayName
         })
       })
 
@@ -494,16 +511,22 @@ export function EnhancedInspectionTemplateManager() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch(`/api/inspection-templates/${duplicateTemplateForm.targetType}`, {
+      // Store the original display name
+      const displayName = duplicateTemplateForm.targetType.trim();
+      // Create a URL-friendly ID but keep original name for display
+      const typeId = displayName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+      
+      const response = await fetch(`/api/inspection-templates/${typeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           sourceType: duplicateTemplateForm.sourceType,
+          displayName: displayName,
           nameTranslations: {
-            en: duplicateTemplateForm.targetType,
-            ja: duplicateTemplateForm.targetType
+            en: displayName,
+            ja: displayName
           }
         })
       })
@@ -1084,15 +1107,31 @@ export function EnhancedInspectionTemplateManager() {
 
       const result = await response.json()
 
-      if (!response.ok || !result.success) {
+      if (!response.ok) {
+        // If we have missing section IDs, provide a more specific error message
+        if (result.missingIds && result.missingIds.length > 0) {
+          throw new Error(`Some sections could not be found in the database. Please refresh and try again.`);
+        }
         throw new Error(result.error || 'Failed to reorder sections')
       }
       
-      toast({
-        title: t('common.success'),
-        description: t('inspectionTemplates.messages.sectionsReordered')
-      })
+      // If any sections were updated, consider it a success
+      if (result.success) {
+        toast({
+          title: t('common.success'),
+          description: t('inspectionTemplates.messages.sectionsReordered')
+        })
+      } else {
+        // Partial success or no sections updated
+        console.warn('Reorder sections partial success:', result);
+        toast({
+          title: t('common.warning'),
+          description: result.message || t('inspectionTemplates.messages.errors.reorderFailed'),
+          variant: "default"
+        })
+      }
       
+      // Refresh data regardless of partial success
       await loadTemplates()
     } catch (error: any) {
       console.error('Error reordering sections:', error)
@@ -1101,6 +1140,9 @@ export function EnhancedInspectionTemplateManager() {
         description: error.message || t('inspectionTemplates.messages.errors.reorderFailed'),
         variant: "destructive"
       })
+      
+      // Refresh data to ensure UI is in sync with backend
+      await loadTemplates()
     }
   }
 
@@ -1116,15 +1158,31 @@ export function EnhancedInspectionTemplateManager() {
 
       const result = await response.json()
 
-      if (!response.ok || !result.success) {
+      if (!response.ok) {
+        // If we have missing item IDs, provide a more specific error message
+        if (result.missingIds && result.missingIds.length > 0) {
+          throw new Error(`Some items could not be found in the database. Please refresh and try again.`);
+        }
         throw new Error(result.error || 'Failed to reorder items')
       }
       
-      toast({
-        title: t('common.success'),
-        description: t('inspectionTemplates.messages.itemsReordered')
-      })
+      // If any items were updated, consider it a success
+      if (result.success) {
+        toast({
+          title: t('common.success'),
+          description: t('inspectionTemplates.messages.itemsReordered')
+        })
+      } else {
+        // Partial success or no items updated
+        console.warn('Reorder items partial success:', result);
+        toast({
+          title: t('common.warning'),
+          description: result.message || t('inspectionTemplates.messages.errors.reorderFailed'),
+          variant: "default"
+        })
+      }
       
+      // Refresh data regardless of partial success
       await loadTemplates()
     } catch (error: any) {
       console.error('Error reordering items:', error)
@@ -1133,6 +1191,9 @@ export function EnhancedInspectionTemplateManager() {
         description: error.message || t('inspectionTemplates.messages.errors.reorderFailed'),
         variant: "destructive"
       })
+      
+      // Refresh data to ensure UI is in sync with backend
+      await loadTemplates()
     }
   }
 

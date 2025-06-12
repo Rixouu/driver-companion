@@ -87,7 +87,7 @@ export function MainNav() {
   })
 
   return (
-    <nav className="hidden md:flex md:items-center md:space-x-6">
+    <nav className="hidden sm:flex sm:items-center sm:space-x-4 md:space-x-6">
       {items.map((item) => (
         <Link
           key={item.href}

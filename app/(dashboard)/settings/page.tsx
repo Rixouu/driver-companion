@@ -155,8 +155,32 @@ export default function SettingsPage() {
     }
   }
 
+  // Function to get the appropriate icon for each menu item
+  const getIconForMenuItem = (key: keyof typeof menuSettings) => {
+    switch (key) {
+      case 'dashboard':
+        return <Gauge className="h-4 w-4 text-primary" />;
+      case 'vehicles':
+        return <Truck className="h-4 w-4 text-primary" />;
+      case 'drivers':
+        return <User className="h-4 w-4 text-primary" />;
+      case 'bookings':
+        return <Calendar className="h-4 w-4 text-primary" />;
+      case 'maintenance':
+        return <Wrench className="h-4 w-4 text-primary" />;
+      case 'inspections':
+        return <ClipboardCheck className="h-4 w-4 text-primary" />;
+      case 'reporting':
+        return <BarChart className="h-4 w-4 text-primary" />;
+      case 'settings':
+        return <Settings className="h-4 w-4 text-primary" />;
+      default:
+        return <Settings className="h-4 w-4 text-primary" />;
+    }
+  }
+
   const renderAccountTab = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="border-b border-border pb-4">
         <h1 className="text-2xl font-semibold tracking-tight">Account Settings</h1>
         <p className="text-muted-foreground">
@@ -165,15 +189,15 @@ export default function SettingsPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-6">
-          <CardTitle>{t("settings.profile.title")}</CardTitle>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">{t("settings.profile.title")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {t("settings.profile.description")}
           </p>
         </CardHeader>
-        <CardContent className="space-y-8 px-8 sm:px-10 pb-8">
-          <div className="space-y-6">
-            <div className="space-y-4">
+        <CardContent className="space-y-6 px-4 sm:px-8 pb-6">
+          <div className="space-y-5">
+            <div className="space-y-3">
               <Label htmlFor="name" className="text-base">
                 {t("settings.profile.name")}
               </Label>
@@ -181,10 +205,10 @@ export default function SettingsPage() {
                 id="name" 
                 value={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || ""} 
                 disabled 
-                className="py-6"
+                className="h-10 sm:py-6"
               />
             </div>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-2">
               <Label htmlFor="email" className="text-base">
                 {t("settings.profile.email")}
               </Label>
@@ -193,7 +217,7 @@ export default function SettingsPage() {
                 type="email" 
                 value={session?.user?.email || ""} 
                 disabled 
-                className="py-6"
+                className="h-10 sm:py-6"
               />
               <p className="text-sm text-muted-foreground pt-2">
                 {t("settings.profile.emailDescription")}
@@ -204,27 +228,27 @@ export default function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-6">
-          <CardTitle>{t("settings.preferences.title")}</CardTitle>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">{t("settings.preferences.title")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {t("settings.preferences.description")}
           </p>
         </CardHeader>
-        <CardContent className="space-y-8 px-8 sm:px-10 pb-8">
-          <div className="space-y-8">
-            <div className="space-y-4">
+        <CardContent className="space-y-6 px-4 sm:px-8 pb-6">
+          <div className="space-y-6">
+            <div className="space-y-3">
               <Label htmlFor="theme" className="text-base">
                 {t("settings.preferences.theme.title")}
               </Label>
-              <div className="pt-2">
+              <div className="pt-1">
                 <ClientThemeSelector />
               </div>
             </div>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-1">
               <Label className="text-base">
                 {t("settings.preferences.language.title")}
               </Label>
-              <div className="pt-2">
+              <div className="pt-1">
                 <LanguageSelector />
               </div>
             </div>
@@ -235,7 +259,7 @@ export default function SettingsPage() {
   )
 
   const renderMenuTab = () => (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="border-b border-border pb-4">
         <h1 className="text-2xl font-semibold tracking-tight">Navigation Settings</h1>
         <p className="text-muted-foreground">
@@ -244,69 +268,78 @@ export default function SettingsPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-6">
-          <CardTitle>{t("settings.menu.title")}</CardTitle>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">{t("settings.menu.title")}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {t("settings.menu.description")}
           </p>
         </CardHeader>
-        <CardContent className="px-8 sm:px-10 pb-8">
-          <div className="space-y-8">
-            <div className="overflow-hidden rounded-md border">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/50">
-                    <th className="text-left p-4 font-medium">{t("settings.menu.menuItem")}</th>
-                    <th className="text-center p-4 font-medium hidden sm:table-cell">{t("settings.menu.desktop")}</th>
-                    <th className="text-center p-4 font-medium">{t("settings.menu.mobile")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {Object.entries(menuSettings).map(([key, value]) => {
-                    // Determine icon based on key
-                    let IconComponent = Settings; // Default icon
-                    if (key === 'dashboard') IconComponent = Gauge;
-                    else if (key === 'vehicles') IconComponent = Truck;
-                    else if (key === 'drivers') IconComponent = User;
-                    else if (key === 'bookings') IconComponent = Calendar;
-                    else if (key === 'maintenance') IconComponent = Wrench;
-                    else if (key === 'inspections') IconComponent = ClipboardCheck;
-                    else if (key === 'reporting') IconComponent = BarChart;
+        <CardContent className="px-4 sm:px-8 pb-6">
+          <div className="space-y-4">
+            <p className="text-sm text-amber-500 dark:text-amber-400 hidden md:block">
+              {t("settings.menu.desktopSettingsHidden")}
+            </p>
 
-                    return (
-                      <tr key={key} className="hover:bg-muted/50">
-                        <td className="p-4 flex items-center gap-3">
-                          <IconComponent className="h-5 w-5 text-primary flex-shrink-0" />
-                          <span className="text-base">{t(`settings.menu.${key}`)}</span>
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              <div className="relative overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs uppercase bg-muted/50">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 w-1/3">
+                        {t("settings.menu.menuItem")}
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-center">
+                        {t("settings.menu.mobile")}
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-center hidden md:table-cell">
+                        {t("settings.menu.desktop")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(menuSettings).map(([key, value]) => (
+                      <tr key={key} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 flex items-center gap-2">
+                          {getIconForMenuItem(key as keyof typeof menuSettings)}
+                          <span>{t(`settings.menu.${key}`)}</span>
                         </td>
-                        <td className="text-center p-4 hidden sm:table-cell">
-                          <Switch
-                            checked={value.desktop}
-                            onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
-                          />
-                        </td>
-                        <td className="text-center p-4">
+                        <td className="px-4 py-3 text-center">
                           <Switch
                             checked={value.mobile}
-                            onCheckedChange={(checked) => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
+                            onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
+                            disabled={key === 'bookings' || key === 'settings'}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-center hidden md:table-cell">
+                          <Switch
+                            checked={value.desktop}
+                            onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
+                            disabled={key === 'bookings' || key === 'settings'}
                           />
                         </td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <Button onClick={saveMenuSettings} disabled={isSaving} className="py-6 px-8 text-base">
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                  {t("common.saving")}
-                </>
-              ) : (
-                t("settings.menu.save")
-              )}
-            </Button>
+
+            <div className="pt-4 flex justify-end">
+              <Button 
+                onClick={saveMenuSettings} 
+                disabled={isSaving}
+                className="w-full sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  t("settings.menu.save")
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

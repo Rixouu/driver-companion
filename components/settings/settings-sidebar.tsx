@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useI18n } from "@/lib/i18n/context"
 import {
   User,
@@ -142,14 +142,15 @@ export function Sidebar() {
         <Button
           variant={active ? "secondary" : "ghost"}
           className={cn(
-            "md:w-full w-auto px-3 justify-start gap-2 h-9",
+            "w-full justify-start gap-2 h-9",
             active && "bg-secondary font-medium",
-            !active && "text-muted-foreground hover:text-foreground"
+            !active && "text-muted-foreground hover:text-foreground",
+            "md:px-3 px-2" // Adjusted padding for mobile
           )}
           onClick={() => handleItemClick(item)}
         >
-          <Icon className="h-4 w-4" />
-          <span className="flex-1 text-left">{item.label}</span>
+          <Icon className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1 text-left truncate">{item.label}</span>
           {item.badge && (
             <span className="ml-auto text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">
               {item.badge}
@@ -172,7 +173,7 @@ export function Sidebar() {
         <div className="p-4 md:p-6">
           <div className="flex items-center gap-2 mb-4 md:mb-6">
             <Settings className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Settings</h2>
+            <h2 className="text-lg font-semibold">{t('settings.title') || 'Settings'}</h2>
           </div>
           <div className="space-y-2">
             {/* Loading skeleton */}
@@ -186,26 +187,53 @@ export function Sidebar() {
   }
 
   return (
-    <div className="w-full md:w-64 border-b md:border-b-0 md:border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
+    <aside className="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0 sticky top-0 z-10">
       <div className="p-4 md:p-6">
-        <div className="flex items-center gap-2 mb-4 md:mb-6">
-          <Settings className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">Settings</h2>
+        <div className="flex items-center justify-between gap-2 mb-4 md:mb-6">
+          <div className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            <h2 className="text-lg font-semibold">{t('settings.title') || 'Settings'}</h2>
+          </div>
         </div>
         
         {/* Desktop Sidebar */}
-        <ScrollArea className="hidden md:block h-[calc(100vh-8rem)]">
-          <nav className="space-y-1">
-            {sidebarItems.map(item => renderSidebarItem(item))}
-          </nav>
-        </ScrollArea>
+        <div className="hidden md:block">
+          <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
+            <nav className="space-y-1">
+              {sidebarItems.map(item => renderSidebarItem(item))}
+            </nav>
+          </ScrollArea>
+        </div>
+        
         {/* Mobile/Tablet Horizontal Nav */}
-        <ScrollArea className="md:hidden overflow-x-auto">
-          <nav className="flex gap-2 pb-2">
-            {sidebarItems.map(item => renderSidebarItem(item))}
-          </nav>
-        </ScrollArea>
+        <div className="md:hidden">
+          <ScrollArea className="w-full pb-4">
+            <div className="flex space-x-2 min-w-max py-1 px-1 overflow-x-auto">
+              {sidebarItems.map(item => {
+                const Icon = item.icon;
+                const active = isActive(item);
+                return (
+                  <Button
+                    key={item.id}
+                    variant={active ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "flex-shrink-0 h-10 whitespace-nowrap rounded-full px-4",
+                      active && "bg-secondary font-medium",
+                      !active && "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    <span className="truncate">{item.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
       </div>
-    </div>
+    </aside>
   )
 } 

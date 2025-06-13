@@ -135,46 +135,72 @@ function EnhancedAssignmentCard({
 }) {
   const { t } = useI18n();
   
-  const getStatusColor = (status: string) => {
+  const getStatusColorClasses = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'confirmed': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
-      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
+      case 'assigned':
+      case 'confirmed':
+        return {
+          border: 'border-l-blue-500 dark:border-l-blue-400',
+          dot: 'bg-blue-500 dark:bg-blue-400',
+          badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          assignedBadge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          assignedBox: 'bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/10 dark:border-blue-800',
+          avatarFallback: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
+        };
+      case 'pending':
+        return {
+          border: 'border-l-amber-500 dark:border-l-amber-400',
+          dot: 'bg-amber-500 dark:bg-amber-400',
+          badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300',
+          unassignedBox: 'bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800',
+          unassignedText: 'text-amber-800 dark:text-amber-300'
+        };
+      case 'cancelled':
+        return {
+          border: 'border-l-red-500 dark:border-l-red-400',
+          dot: 'bg-red-500 dark:bg-red-400',
+          badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+        };
+      default:
+        return {
+          border: 'border-l-gray-300 dark:border-l-gray-600',
+          dot: 'bg-gray-300 dark:bg-gray-600',
+          badge: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+          unassignedBox: 'border-gray-200 dark:border-gray-700'
+        };
     }
   };
 
   const isAssigned = booking.driver_id && booking.vehicle_id;
-  const isPartiallyAssigned = booking.driver_id || booking.vehicle_id;
+  const status = (booking.status || 'pending').toLowerCase();
+  const displayStatus = isAssigned && status !== 'cancelled' ? 'assigned' : status;
+  const colors = getStatusColorClasses(displayStatus);
 
   return (
     <Card className={cn(
       "transition-all duration-200 hover:shadow-lg border bg-card text-card-foreground h-full flex flex-col",
-      isAssigned ? "border-l-4 border-l-green-500 dark:border-l-green-400" : 
-      isPartiallyAssigned ? "border-l-4 border-l-amber-500 dark:border-l-amber-400" : 
-      "border-l-4 border-l-gray-300 dark:border-l-gray-600"
+      colors.border
     )}>
       <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0 flex-1">
             <div className={cn(
               "w-3 h-3 rounded-full mt-1 flex-shrink-0",
-              isAssigned ? "bg-green-500 dark:bg-green-400" : 
-              isPartiallyAssigned ? "bg-amber-500 dark:bg-amber-400" : "bg-gray-300 dark:bg-gray-600"
+              colors.dot
             )} />
             <div className="min-w-0 flex-1">
               <CardTitle className="text-lg text-foreground">
                 #{booking.wp_id || booking.id.substring(0, 8)}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1 break-words">
-                {booking.customer_name || "Unknown Customer"}
+                {booking.customer_name || t("dispatch.assignments.unknownCustomer")}
               </p>
             </div>
           </div>
           
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <Badge className={cn("text-xs whitespace-nowrap", getStatusColor(booking.status))}>
-              {booking.status}
+            <Badge className={cn("text-xs whitespace-nowrap", colors.badge)}>
+              {t(`bookings.status.${displayStatus}` as any, { defaultValue: displayStatus })}
             </Badge>
             <Badge variant="outline" className="text-xs whitespace-nowrap dark:border-gray-600 dark:text-gray-300">
               {format(parseISO(booking.date), "MMM d")} at {booking.time}
@@ -187,7 +213,7 @@ function EnhancedAssignmentCard({
         <div className="space-y-4 flex-1">
           {/* Service Info */}
           <div className="space-y-2">
-            <p className="font-medium text-sm text-foreground break-words">{booking.service_name || "Vehicle Service"}</p>
+            <p className="font-medium text-sm text-foreground break-words">{booking.service_name || t("dispatch.assignments.vehicleService")}</p>
             {booking.pickup_location && (
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPinIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -203,21 +229,21 @@ function EnhancedAssignmentCard({
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
                   <UserIcon className="h-4 w-4" />
-                  Driver
+                  {t("dispatch.assignments.driver")}
                 </h4>
                 {booking.driver_id && (
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                  <Badge variant="secondary" className={cn("text-xs", colors.assignedBadge)}>
                     <CheckIcon className="h-3 w-3 mr-1" />
-                    Assigned
+                    {t("dispatch.assignments.assigned")}
                   </Badge>
                 )}
               </div>
               
               {booking.driver_id && booking.driver ? (
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md dark:bg-green-900/10 dark:border-green-800 min-h-[60px]">
+                <div className={cn("flex items-center gap-2 p-3 rounded-md min-h-[60px]", colors.assignedBox)}>
                   <Avatar className="h-6 w-6 flex-shrink-0">
                     <AvatarImage src={booking.driver.profile_image_url || ""} />
-                    <AvatarFallback className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300">
+                    <AvatarFallback className={cn("text-xs", colors.avatarFallback)}>
                       {booking.driver.first_name?.[0]}{booking.driver.last_name?.[0]}
                     </AvatarFallback>
                   </Avatar>
@@ -228,8 +254,8 @@ function EnhancedAssignmentCard({
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800 min-h-[60px] flex items-center justify-center">
-                  <p className="text-xs text-amber-800 dark:text-amber-300">Unassigned</p>
+                <div className={cn("min-h-[60px] flex items-center justify-center", colors.unassignedBox)}>
+                  <p className={cn(colors.unassignedText)}>{t("dispatch.assignments.unassigned")}</p>
                 </div>
               )}
             </div>
@@ -239,21 +265,25 @@ function EnhancedAssignmentCard({
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
                   <CarIcon className="h-4 w-4" />
-                  Vehicle
+                  {t("dispatch.assignments.vehicle")}
                 </h4>
                 {booking.vehicle_id && (
-                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                  <Badge variant="secondary" className={cn("text-xs", colors.assignedBadge)}>
                     <CheckIcon className="h-3 w-3 mr-1" />
-                    Assigned
+                    {t("dispatch.assignments.assigned")}
                   </Badge>
                 )}
               </div>
               
               {booking.vehicle_id && booking.vehicle ? (
-                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md dark:bg-green-900/10 dark:border-green-800 min-h-[60px]">
-                  <div className="h-6 w-6 bg-green-100 rounded flex items-center justify-center dark:bg-green-900/20 flex-shrink-0">
-                    <CarIcon className="h-3 w-3 text-green-600 dark:text-green-400" />
-                  </div>
+                <div className={cn("flex items-center gap-2 p-3 rounded-md min-h-[60px]", colors.assignedBox)}>
+                   <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={booking.vehicle.image_url || "/img/car-placeholder.png"} />
+                    <AvatarFallback>
+                      {booking.vehicle.brand?.[0]}
+                      {booking.vehicle.model?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-xs break-words text-foreground">
                       {booking.vehicle.plate_number}
@@ -264,8 +294,8 @@ function EnhancedAssignmentCard({
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800 min-h-[60px] flex items-center justify-center">
-                  <p className="text-xs text-amber-800 dark:text-amber-300">Unassigned</p>
+                <div className={cn("min-h-[60px] flex items-center justify-center", colors.unassignedBox)}>
+                   <p className={cn(colors.unassignedText)}>{t("dispatch.assignments.unassigned")}</p>
                 </div>
               )}
             </div>
@@ -281,7 +311,7 @@ function EnhancedAssignmentCard({
               className="flex-1 h-9"
             >
               <Zap className="h-4 w-4 mr-1" />
-              Smart Assign
+              {t("dispatch.assignments.smartAssign")}
             </Button>
           )}
           
@@ -292,7 +322,7 @@ function EnhancedAssignmentCard({
             className={cn("h-9", isAssigned ? "flex-1" : "")}
           >
             <Eye className="h-4 w-4 mr-1" />
-            View Details
+            {t("dispatch.assignments.viewDetails")}
           </Button>
 
           {isAssigned && (
@@ -308,7 +338,7 @@ function EnhancedAssignmentCard({
                   className="cursor-pointer hover:bg-accent text-destructive"
                 >
                   <UserX className="h-4 w-4 mr-2" />
-                  Unassign All
+                  {t("dispatch.assignments.unassignAll")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -396,10 +426,10 @@ function SmartAssignmentModal({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">
-            Smart Assignment for #{booking.wp_id || booking.id.substring(0, 8)}
+            {t("dispatch.assignments.smartAssignmentFor", { id: booking.wp_id || booking.id.substring(0, 8) })}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Intelligent matching based on service requirements and vehicle capabilities
+            {t("dispatch.assignments.smartAssignmentDescription")}
           </p>
         </DialogHeader>
 
@@ -408,13 +438,13 @@ function SmartAssignmentModal({
           <div className="space-y-4">
             <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
               <UsersIcon className="h-5 w-5" />
-              Available Drivers ({availableDrivers.length})
+              {t("dispatch.assignments.availableDriversCount", { count: availableDrivers.length })}
             </h3>
             
             {availableDrivers.length === 0 ? (
               <div className="text-center p-6 text-muted-foreground">
                 <UserIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No drivers available</p>
+                <p>{t("dispatch.assignments.noDriversAvailable")}</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -440,7 +470,7 @@ function SmartAssignmentModal({
                           <p className="font-medium text-sm text-foreground">
                             {driver.first_name} {driver.last_name}
                           </p>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400">Available</p>
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">{t("dispatch.assignments.statusAvailable")}</p>
                         </div>
                         
                         {selectedDriver === driver.id && (
@@ -458,13 +488,13 @@ function SmartAssignmentModal({
           <div className="space-y-4">
             <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
               <CarIcon className="h-5 w-5" />
-              Vehicle Recommendations ({availableVehicles.length})
+              {t("dispatch.assignments.vehicleRecommendations", { count: availableVehicles.length })}
             </h3>
             
             {availableVehicles.length === 0 ? (
               <div className="text-center p-6 text-muted-foreground">
                 <CarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No vehicles available</p>
+                <p>{t("dispatch.assignments.noVehiclesAvailable")}</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -500,7 +530,7 @@ function SmartAssignmentModal({
                                 matchPercentage >= 50 ? "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300" :
                                 "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"
                               )}>
-                                {matchPercentage}% match
+                                {t("dispatch.assignments.matchPercentage", { percentage: matchPercentage })}
                               </div>
                             </div>
                           </div>
@@ -523,14 +553,14 @@ function SmartAssignmentModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button 
             onClick={handleAssign}
             disabled={!selectedDriver || !selectedVehicle}
           >
             <CheckIcon className="h-4 w-4 mr-2" />
-            Assign
+            {t("dispatch.assignments.assign")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -556,7 +586,7 @@ function DispatchDetailsPanel({
             #{booking.wp_id || booking.id.substring(0, 8)}
           </h2>
           <Badge className="text-sm bg-muted text-muted-foreground border-border">
-            {booking.status}
+            {t(`bookings.status.${booking.status.toLowerCase()}` as any, { defaultValue: booking.status })}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -566,11 +596,11 @@ function DispatchDetailsPanel({
 
       {/* Customer Info */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Customer Information</h3>
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.customerInformation")}</h3>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <UserIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{booking.customer_name || "Unknown Customer"}</span>
+            <span className="text-sm text-foreground">{booking.customer_name || t("dispatch.assignments.unknownCustomer")}</span>
           </div>
           {booking.customer_phone && (
             <div className="flex items-center gap-2">
@@ -599,14 +629,14 @@ function DispatchDetailsPanel({
 
       {/* Service Details */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Service Details</h3>
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.serviceDetails")}</h3>
         <div className="space-y-2">
-          <p className="text-sm text-foreground">{booking.service_name || "Vehicle Service"}</p>
+          <p className="text-sm text-foreground">{booking.service_name || t("dispatch.assignments.vehicleService")}</p>
           {booking.pickup_location && (
             <div className="flex items-start gap-2">
               <MapPinIcon className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
               <div>
-                <p className="text-xs text-muted-foreground">From:</p>
+                <p className="text-xs text-muted-foreground">{t("dispatch.assignments.from")}</p>
                 <p className="text-sm text-foreground">{booking.pickup_location}</p>
               </div>
             </div>
@@ -615,7 +645,7 @@ function DispatchDetailsPanel({
             <div className="flex items-start gap-2">
               <MapPinIcon className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
               <div>
-                <p className="text-xs text-muted-foreground">To:</p>
+                <p className="text-xs text-muted-foreground">{t("dispatch.assignments.to")}</p>
                 <p className="text-sm text-foreground">{booking.dropoff_location}</p>
               </div>
             </div>
@@ -625,19 +655,19 @@ function DispatchDetailsPanel({
 
       {/* Assignment Status */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Assignment Status</h3>
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.assignmentStatus")}</h3>
         <div className="space-y-4">
           {/* Driver */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
                 <UserIcon className="h-4 w-4" />
-                Driver
+                {t("dispatch.assignments.driver")}
               </h4>
               {booking.driver_id && (
                 <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
                   <CheckIcon className="h-3 w-3 mr-1" />
-                  Assigned
+                  {t("dispatch.assignments.assigned")}
                 </Badge>
               )}
             </div>
@@ -661,7 +691,7 @@ function DispatchDetailsPanel({
               </div>
             ) : (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800">
-                <p className="text-sm text-amber-800 dark:text-amber-300">Not assigned</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
               </div>
             )}
           </div>
@@ -671,12 +701,12 @@ function DispatchDetailsPanel({
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
                 <CarIcon className="h-4 w-4" />
-                Vehicle
+                {t("dispatch.assignments.vehicle")}
               </h4>
               {booking.vehicle_id && (
                 <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
                   <CheckIcon className="h-3 w-3 mr-1" />
-                  Assigned
+                  {t("dispatch.assignments.assigned")}
                 </Badge>
               )}
             </div>
@@ -697,7 +727,7 @@ function DispatchDetailsPanel({
               </div>
             ) : (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800">
-                <p className="text-sm text-amber-800 dark:text-amber-300">Not assigned</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
               </div>
             )}
           </div>
@@ -706,7 +736,7 @@ function DispatchDetailsPanel({
 
       {/* Actions */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Actions</h3>
+        <h3 className="font-medium text-sm text-foreground">{t("dispatch.assignments.actions")}</h3>
         <div className="space-y-2">
           <Button
             variant="outline"
@@ -714,7 +744,7 @@ function DispatchDetailsPanel({
             onClick={() => router.push(`/bookings/${booking.id}`)}
           >
             <Eye className="h-4 w-4 mr-2" />
-            View Full Details
+            {t("dispatch.assignments.viewFullDetails")}
           </Button>
           
           <Button
@@ -723,7 +753,7 @@ function DispatchDetailsPanel({
             onClick={() => router.push(`/bookings/${booking.id}/edit`)}
           >
             <Edit className="h-4 w-4 mr-2" />
-            Edit Booking
+            {t("dispatch.assignments.editBooking")}
           </Button>
 
           {booking.customer_phone && (
@@ -733,7 +763,7 @@ function DispatchDetailsPanel({
               onClick={() => window.open(`tel:${booking.customer_phone}`)}
             >
               <PhoneIcon className="h-4 w-4 mr-2" />
-              Call Customer
+              {t("dispatch.assignments.callCustomer")}
             </Button>
           )}
         </div>
@@ -772,14 +802,24 @@ export default function DispatchAssignments() {
 
   useEffect(() => {
     loadData();
-    
-    // Set up polling for real-time updates
-    const interval = setInterval(() => {
-      loadData();
-    }, 30000); // Poll every 30 seconds
 
-    return () => clearInterval(interval);
-  }, [lastUpdate]); // Re-load when shared state updates
+    const supabase = createClient();
+    const channel = supabase
+      .channel('bookings-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          console.log('Change received!', payload);
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [lastUpdate]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -794,7 +834,7 @@ export default function DispatchAssignments() {
           driver:drivers(id, first_name, last_name, profile_image_url, phone, email),
           vehicle:vehicles(id, name, plate_number, brand, model, image_url)
         `)
-        .in('status', ['pending', 'confirmed', 'publish'])
+        .in('status', ['pending', 'confirmed', 'publish', 'assigned'])
         .order('date', { ascending: true });
 
       if (bookingsError) throw bookingsError;
@@ -892,7 +932,8 @@ export default function DispatchAssignments() {
         .from('bookings')
         .update({ 
           driver_id: null,
-          vehicle_id: null
+          vehicle_id: null,
+          status: 'pending'
         })
         .eq('id', bookingId);
 
@@ -903,7 +944,7 @@ export default function DispatchAssignments() {
         description: "Booking unassigned successfully",
       });
       
-      loadData();
+      router.refresh();
     } catch (error) {
       console.error('Error unassigning:', error);
       toast({
@@ -915,34 +956,79 @@ export default function DispatchAssignments() {
   };
 
   const handleAssignDriverAndVehicle = async (
-    bookingId: string, 
-    driverId: string, 
+    bookingId: string,
+    driverId: string,
     vehicleId: string
   ) => {
+    const originalBookings = [...bookings];
+    const bookingToUpdate = originalBookings.find(b => b.id === bookingId);
+    if (!bookingToUpdate) return;
+
+    // Optimistically update the UI
+    const driver = drivers.find(d => d.id === driverId);
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+
+    const updatedBooking: BookingWithRelations = {
+      ...bookingToUpdate,
+      driver_id: driverId,
+      vehicle_id: vehicleId,
+      status: 'assigned',
+      driver: driver
+        ? {
+            id: driver.id,
+            first_name: driver.first_name,
+            last_name: driver.last_name,
+            profile_image_url: driver.profile_image_url,
+            phone: driver.phone,
+            email: driver.email,
+          }
+        : undefined,
+      vehicle: vehicle
+        ? {
+            id: vehicle.id,
+            name: vehicle.name,
+            plate_number: vehicle.plate_number,
+            brand: vehicle.brand,
+            model: vehicle.model,
+            image_url: vehicle.image_url,
+          }
+        : undefined,
+    };
+
+    setBookings(
+      originalBookings.map(b => (b.id === bookingId ? updatedBooking : b))
+    );
+
     try {
       const supabase = createClient();
-      
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('bookings')
-        .update({ 
+        .update({
           driver_id: driverId,
-          vehicle_id: vehicleId
+          vehicle_id: vehicleId,
+          status: 'assigned',
         })
         .eq('id', bookingId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // This hook probably syncs with dispatch_entries or other shared state.
+      await updateAssignment(bookingId, driverId, vehicleId);
 
       toast({
-        title: "Success",
-        description: "Driver and vehicle assigned successfully",
+        title: t("dispatch.assignments.messages.assignSuccess"),
+        description: t("dispatch.assignments.messages.assignSuccess"),
       });
-      
-      loadData();
+
+      // Refresh data from server to ensure consistency
+      router.refresh();
     } catch (error) {
+      // Revert on failure
+      setBookings(originalBookings);
       console.error('Error assigning resources:', error);
       toast({
-        title: "Error",
-        description: "Failed to assign driver and vehicle",
+        title: t("common.error"),
+        description: t("dispatch.assignments.messages.assignError"),
         variant: "destructive",
       });
     }
@@ -985,7 +1071,7 @@ export default function DispatchAssignments() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-foreground">Loading assignments...</p>
+          <p className="text-foreground">{t("dispatch.assignments.loading")}</p>
         </div>
       </div>
     );
@@ -1006,10 +1092,10 @@ export default function DispatchAssignments() {
           
           <div className="flex-1">
             <h1 className="text-xl font-semibold text-foreground">
-              Assignment Center
+              {t("dispatch.assignments.title")}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Manage driver and vehicle assignments for bookings
+              {t("dispatch.assignments.description")}
             </p>
           </div>
         </div>
@@ -1018,7 +1104,7 @@ export default function DispatchAssignments() {
       {/* Availability Dashboard */}
       <div className="p-6 bg-card border-b border-border">
         <h2 className="text-lg font-semibold mb-4 text-foreground">
-          Resource Availability
+          {t("dispatch.assignments.resourceAvailability")}
         </h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1030,7 +1116,7 @@ export default function DispatchAssignments() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{availableDrivers}/{totalDrivers}</p>
-                  <p className="text-sm text-muted-foreground">Available Drivers</p>
+                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.availableDrivers")}</p>
                 </div>
               </div>
               <Progress 
@@ -1048,7 +1134,7 @@ export default function DispatchAssignments() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{availableVehicles}/{totalVehicles}</p>
-                  <p className="text-sm text-muted-foreground">Available Vehicles</p>
+                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.availableVehicles")}</p>
                 </div>
               </div>
               <Progress 
@@ -1066,7 +1152,7 @@ export default function DispatchAssignments() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{pendingBookings}</p>
-                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.pendingBookings")}</p>
                 </div>
               </div>
             </CardContent>
@@ -1080,7 +1166,7 @@ export default function DispatchAssignments() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">{assignedBookings}</p>
-                  <p className="text-sm text-muted-foreground">Assigned</p>
+                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.assignedBookings")}</p>
                 </div>
               </div>
             </CardContent>
@@ -1094,7 +1180,7 @@ export default function DispatchAssignments() {
           <div className="relative flex-1">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search bookings by customer, booking ID..."
+              placeholder={t("dispatch.assignments.searchPlaceholder")}
               className="pl-9 bg-background border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1107,10 +1193,10 @@ export default function DispatchAssignments() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border">
-              <SelectItem value="all">All Dates</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="thisWeek">This Week</SelectItem>
-              <SelectItem value="thisMonth">This Month</SelectItem>
+              <SelectItem value="all">{t("dispatch.assignments.allDates")}</SelectItem>
+              <SelectItem value="today">{t("dispatch.assignments.today")}</SelectItem>
+              <SelectItem value="thisWeek">{t("dispatch.assignments.thisWeek")}</SelectItem>
+              <SelectItem value="thisMonth">{t("dispatch.assignments.thisMonth")}</SelectItem>
             </SelectContent>
           </Select>
           
@@ -1120,11 +1206,11 @@ export default function DispatchAssignments() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-popover border border-border">
-              <SelectItem value="all">All Bookings</SelectItem>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              <SelectItem value="assigned">Assigned</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="all">{t("dispatch.assignments.allBookings")}</SelectItem>
+              <SelectItem value="unassigned">{t("dispatch.assignments.unassigned")}</SelectItem>
+              <SelectItem value="assigned">{t("dispatch.assignments.assigned")}</SelectItem>
+              <SelectItem value="pending">{t("bookings.status.pending")}</SelectItem>
+              <SelectItem value="confirmed">{t("bookings.status.confirmed")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1135,11 +1221,11 @@ export default function DispatchAssignments() {
         {filteredBookings.length === 0 ? (
           <div className="text-center py-12">
             <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2 text-foreground">No bookings found</h3>
+            <h3 className="text-lg font-medium mb-2 text-foreground">{t("dispatch.assignments.noBookingsFound")}</h3>
             <p className="text-muted-foreground">
               {searchQuery || statusFilter !== 'all' || dateFilter !== 'all'
-                ? "Try adjusting your search criteria" 
-                : "No bookings available for assignment"}
+                ? t("dispatch.assignments.noBookingsFilter")
+                : t("dispatch.assignments.noBookingsAvailable")}
             </p>
           </div>
         ) : (
@@ -1178,7 +1264,7 @@ export default function DispatchAssignments() {
       <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
         <SheetContent className="w-[400px] sm:w-[540px]">
           <SheetHeader>
-            <SheetTitle>Booking Details</SheetTitle>
+            <SheetTitle>{t("dispatch.assignments.bookingDetails")}</SheetTitle>
           </SheetHeader>
           {selectedBooking && (
             <div className="mt-6">

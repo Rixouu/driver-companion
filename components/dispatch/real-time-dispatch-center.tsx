@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -336,12 +336,12 @@ export default function RealTimeDispatchCenter() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<DispatchStatus | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [view, setView] = useState<'map' | 'board'>('board');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const { lastUpdate, updateDispatchStatus, unassignResources } = useSharedDispatchState();
 
-  // Shared dispatch state for cross-component synchronization
-  const { lastUpdate, updateDispatchStatus, updateAssignment, unassignResources } = useSharedDispatchState();
-
-  const loadDispatchData = async () => {
+  const loadDispatchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const supabase = createClient();
@@ -387,7 +387,27 @@ export default function RealTimeDispatchCenter() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDispatchData();
+  }, [lastUpdate, loadDispatchData]);
+
+  // Listen for broadcasted updates
+  useEffect(() => {
+    const handleDispatchUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.type === 'assignment_update' || customEvent.detail.type === 'refresh') {
+        loadDispatchData();
+      }
+    };
+
+    window.addEventListener('dispatch-state-update', handleDispatchUpdate);
+
+    return () => {
+      window.removeEventListener('dispatch-state-update', handleDispatchUpdate);
+    };
+  }, [loadDispatchData]);
 
   const handleUpdateStatus = async (entryId: string, newStatus: DispatchStatus) => {
     const originalAssignments = [...assignments];
@@ -400,32 +420,12 @@ export default function RealTimeDispatchCenter() {
     ));
 
     try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('dispatch_entries')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', entryId);
-
-      if (error) throw error;
-
       const entry = assignments.find(e => e.id === entryId);
-      if (entry && entry.booking_id) {
-        let bookingStatus = entry.booking.status;
-        if (newStatus === 'completed') bookingStatus = 'completed';
-        else if (newStatus === 'cancelled') bookingStatus = 'cancelled';
-        else if (newStatus === 'confirmed') bookingStatus = 'confirmed';
-
-        if (bookingStatus !== entry.booking.status) {
-          await supabase
-            .from('bookings')
-            .update({ status: bookingStatus, updated_at: new Date().toISOString() })
-            .eq('id', entry.booking_id);
-        }
+      if (!entry || !entry.booking_id) {
+        throw new Error("Booking information not found for this dispatch entry.");
       }
+      
+      await updateDispatchStatus(entryId, newStatus, entry.booking_id);
 
       toast({
         title: "Success",
@@ -452,25 +452,48 @@ export default function RealTimeDispatchCenter() {
   };
 
   const handleUnassign = async (dispatchId: string) => {
-    try {
-      const entry = assignments.find(e => e.id === dispatchId);
-      if (!entry) throw new Error("Dispatch entry not found");
+    const originalAssignments = [...assignments];
+    
+    // Optimistic update
+    setAssignments(prev => prev.filter(a => a.id !== dispatchId));
 
-      // Use shared state handler for synchronization
-      await unassignResources(dispatchId, entry.booking_id);
+    try {
+      await unassignResources(dispatchId);
+
+      // Also update the booking status to 'pending'
+      const assignmentToUnassign = originalAssignments.find(a => a.id === dispatchId);
+      if (assignmentToUnassign && assignmentToUnassign.booking_id) {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('bookings')
+          .update({ 
+            status: 'pending',
+            driver_id: null,
+            vehicle_id: null
+          })
+          .eq('id', assignmentToUnassign.booking_id);
+
+        if (error) throw error;
+      }
 
       toast({
-        title: "Success",
-        description: "Driver and vehicle unassigned successfully",
+        title: t("dispatch.assignments.messages.unassignSuccess"),
       });
+
     } catch (error) {
-      console.error('Error unassigning:', error);
+      console.error("Failed to unassign:", error);
+      // Revert optimistic update
+      setAssignments(originalAssignments);
       toast({
         title: "Error",
-        description: "Failed to unassign driver and vehicle",
+        description: t("dispatch.assignments.messages.unassignError"),
         variant: "destructive",
       });
     }
+  };
+
+  const handleAssignmentAction = (action: 'view-details' | 'start-trip' | 'complete-trip' | 'unassign', assignmentId: string) => {
+    // ... existing code ...
   };
 
   const filteredAssignments = assignments.filter(assignment => {
@@ -485,16 +508,6 @@ export default function RealTimeDispatchCenter() {
 
     return matchesSearch && matchesStatus;
   });
-
-  useEffect(() => {
-    loadDispatchData();
-    
-    const interval = setInterval(() => {
-      loadDispatchData();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [lastUpdate]); // Re-load when shared state updates
 
   return (
     <div className="flex flex-col h-full">

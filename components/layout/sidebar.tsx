@@ -287,7 +287,7 @@ export function Sidebar() {
                     </div>
                   )}
                   {visibleItems.map((item) => {
-                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))) : false;
+                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dispatch" && pathname.startsWith(item.href))) : false;
                     
                     const menuItem = (
                       <Button

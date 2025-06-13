@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function DispatchAssignmentsPage() {
   return (
-    <div className="h-[calc(100vh-4rem)] w-full">
+    <div className="w-full">
       <DispatchAssignments />
     </div>
   );

@@ -428,56 +428,7 @@ export default function DispatchBoardView({
     if (onStatusChange) {
       onStatusChange(entryId, newStatus);
     }
-
-    // Update the database
-    try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('dispatch_entries')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', entryId);
-
-      if (error) throw error;
-
-      // Also update booking status if needed
-      const entry = entries.find(e => e.id === entryId);
-      if (entry) {
-        let bookingStatus = entry.booking.status;
-        if (newStatus === 'completed') bookingStatus = 'completed';
-        if (newStatus === 'cancelled') bookingStatus = 'cancelled';
-        if (newStatus === 'confirmed') bookingStatus = 'confirmed';
-
-        const { error: bookingError } = await supabase
-          .from('bookings')
-          .update({ 
-            status: bookingStatus,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', entry.booking_id);
-
-        if (bookingError) {
-          console.error('Error updating booking status:', bookingError);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: `Status updated to ${newStatus.replace('_', ' ')}`,
-      });
-
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update status",
-        variant: "destructive",
-      });
-    }
-  }, [entries, onStatusChange]);
+  }, [onStatusChange]);
 
   const statusCounts = {
     pending: entries.filter(e => e.status === 'pending').length,

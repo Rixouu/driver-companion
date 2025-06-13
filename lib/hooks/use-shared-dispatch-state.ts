@@ -28,6 +28,11 @@ export function useSharedDispatchState() {
     setLastUpdate(new Date());
   }, []);
 
+  // Force refresh
+  const forceRefresh = useCallback(() => {
+    broadcastUpdate('refresh');
+  }, [broadcastUpdate]);
+
   // Update dispatch entry status
   const updateDispatchStatus = useCallback(async (dispatchId: string, newStatus: DispatchStatus, bookingId?: string) => {
     try {
@@ -69,13 +74,14 @@ export function useSharedDispatchState() {
 
       // Broadcast update
       broadcastUpdate('status_update', { dispatchId, newStatus, bookingId });
+      forceRefresh();
       
       return true;
     } catch (error) {
       console.error('Error updating dispatch status:', error);
       throw error;
     }
-  }, [broadcastUpdate]);
+  }, [broadcastUpdate, forceRefresh]);
 
   // Update assignment
   const updateAssignment = useCallback(async (dispatchId: string, driverId?: string | null, vehicleId?: string | null, bookingId?: string) => {
@@ -112,6 +118,7 @@ export function useSharedDispatchState() {
         
         if (driverId !== undefined) bookingUpdateData.driver_id = driverId;
         if (vehicleId !== undefined) bookingUpdateData.vehicle_id = vehicleId;
+        if (updateData.status) bookingUpdateData.status = updateData.status;
 
         const { error: bookingError } = await supabase
           .from('bookings')
@@ -131,17 +138,12 @@ export function useSharedDispatchState() {
       console.error('Error updating assignment:', error);
       throw error;
     }
-  }, [broadcastUpdate]);
+  }, [broadcastUpdate, forceRefresh]);
 
   // Unassign resources
   const unassignResources = useCallback(async (dispatchId: string, bookingId?: string) => {
     return updateAssignment(dispatchId, null, null, bookingId);
   }, [updateAssignment]);
-
-  // Force refresh
-  const forceRefresh = useCallback(() => {
-    broadcastUpdate('refresh');
-  }, [broadcastUpdate]);
 
   // Listen for updates from other components
   useEffect(() => {

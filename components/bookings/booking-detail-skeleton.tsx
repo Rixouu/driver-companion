@@ -13,20 +13,19 @@ export function BookingDetailSkeleton() {
         <Skeleton className="h-8 w-24" />
       </div>
 
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs defaultValue="details" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="client">Client</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="customer">Customer</TabsTrigger>
           <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
-          <TabsTrigger value="route">Route</TabsTrigger>
-          <TabsTrigger value="payment">Payment</TabsTrigger>
+          <TabsTrigger value="pricing">Pricing</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="general" className="space-y-4">
+        <TabsContent value="details" className="space-y-4">
           <Card>
             <CardHeader>
-              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -38,14 +37,83 @@ export function BookingDetailSkeleton() {
                 ))}
                 <div className="sm:col-span-2">
                   <Skeleton className="h-4 w-24 mb-1" />
-                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-20 w-full" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
         
-        {/* Only render the "general" tab skeleton to keep things simple */}
+        <TabsContent value="customer" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-5 w-48" />
+                </div>
+                <div className="sm:col-span-1">
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-5 w-40" />
+                </div>
+                <div className="sm:col-span-1">
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-5 w-32" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="vehicle" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-5 w-56" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-5 w-32" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="pricing" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-32" />
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex justify-between items-center mt-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   )

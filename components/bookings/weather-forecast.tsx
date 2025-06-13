@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { CloudSun, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils/formatting'
 import { useI18n } from '@/lib/i18n/context'
 
 interface WeatherForecastProps {
@@ -91,21 +91,23 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         }
         
         // Use WeatherAPI.com to fetch forecast
-        const apiKey = '479908cdad0f407595e62612251302'
-        const days = 10 // Maximum forecast days for free account
+        // Use environment variable with fallback for development
+        const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY || '479908cdad0f407595e62612251302'
+        const FORECAST_RANGE_DAYS = 3 // Free WeatherAPI accounts provide up to 3-day forecasts
         
-        // Calculate dates
         const tripDate = new Date(date)
         const currentDate = new Date()
         
-        // Check if tripDate is within forecast range (API limit is 14 days)
         const daysDifference = Math.floor((tripDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
         
-        if (daysDifference > days) {
+        // Skip fetching if the date is in the past or beyond the free forecast range
+        if (daysDifference < 0 || daysDifference > FORECAST_RANGE_DAYS) {
           setLoading(false)
-          setError(`Weather forecast is only available for ${days} days ahead`)
+          setError(t('bookings.details.weather.notAvailable', { date: tripDate.toLocaleDateString() }))
           return
         }
+        
+        const days = FORECAST_RANGE_DAYS // how many days of forecast to request
         
         // Check if tripDate is a valid date
         if (isNaN(tripDate.getTime())) {
@@ -117,6 +119,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${encodeURIComponent(locationQuery)}&days=${days}&aqi=no&alerts=no`
         
         try {
+          console.log('Fetching weather data for:', locationQuery)
           const response = await fetch(url, { 
             method: 'GET',
             headers: {
@@ -128,7 +131,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           if (!response.ok) {
             if (response.status === 400) {
               console.error('Weather API 400 error - failed to parse location: ', locationQuery)
-              setError(t('bookings.details.weather.notAvailable'))
+              setError(t('bookings.details.weather.notAvailable', { date: tripDate.toLocaleDateString() }))
             } else if (response.status === 403) {
               console.error('Weather API authentication error')
               setError(t('bookings.details.weather.errorMessage'))
@@ -141,6 +144,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           }
           
           const data = await response.json()
+          console.log('Weather data received:', data)
           setWeather(data)
           setError(null)
         } catch (fetchError) {
@@ -184,7 +188,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
       <div className={`p-4 text-sm text-muted-foreground ${className}`}>
         <p className="flex items-center">
           <CloudSun className="h-4 w-4 mr-2 text-muted-foreground" />
-          {t('bookings.details.weather.notAvailable')}
+          {t('bookings.details.weather.notAvailable', { date: date ? new Date(date).toLocaleDateString() : 'selected date' })}
         </p>
         {error && <p className="mt-1 text-xs">{t('bookings.details.weather.errorMessage')}</p>}
       </div>
@@ -202,13 +206,15 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="w-12 h-12 rounded-full bg-sky-100 dark:bg-sky-900 flex items-center justify-center mr-3">
-              <Image 
-                src={`https:${forecastDay.day.condition.icon}`} 
-                alt={forecastDay.day.condition.text}
-                width={32}
-                height={32}
-                className="w-8 h-8"
-              />
+              {forecastDay.day.condition.icon && (
+                <Image 
+                  src={`https:${forecastDay.day.condition.icon}`} 
+                  alt={forecastDay.day.condition.text}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8"
+                />
+              )}
             </div>
             <div>
               <p className="text-2xl font-bold">{forecastDay.day.avgtemp_c}°C</p>

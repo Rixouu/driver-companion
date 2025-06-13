@@ -342,24 +342,24 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
         console.log('Found updates:', updates);
         
         // Set the bookings to update without auto-selecting them
-        setBookingsToUpdate(updates.updatableBookings.map(booking => ({
+        setBookingsToUpdate(updates.updatableBookings.map((booking: BookingUpdateConfirmation) => ({
           ...booking,
           selectedChanges: {} // Initialize with no preselected changes
         })));
         
         // Initialize empty selection objects
         const emptySelectionMap: Record<string, boolean> = {};
-        updates.updatableBookings.forEach(booking => {
+        updates.updatableBookings.forEach((booking: BookingUpdateConfirmation) => {
           emptySelectionMap[booking.id] = false; // Initialize all bookings as unselected
         });
         setSelectedBookingsToUpdate(emptySelectionMap);
         
         // Initialize empty change selections
         const emptyChangeMap: Record<string, Record<string, boolean>> = {};
-        updates.updatableBookings.forEach(booking => {
+        updates.updatableBookings.forEach((booking: BookingUpdateConfirmation) => {
           emptyChangeMap[booking.id] = {};
           // Initialize all changes as unselected
-          booking.changes?.forEach(change => {
+          booking.changes?.forEach((change: string) => {
             emptyChangeMap[booking.id][change] = false;
           });
         });

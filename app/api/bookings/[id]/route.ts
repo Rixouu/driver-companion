@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const id = params.id
+    const { id } = context.params
     
     console.log(`[API] Fetching booking with ID: ${id}`)
     

@@ -1,17 +1,27 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { CheckCircle2, XCircle, AlertCircle, Calendar, ArrowRight, Plus } from "lucide-react"
-import { getInspectionsByBookingId } from "@/lib/services/inspections"
-import { format } from "date-fns"
-import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils/styles"
-import { useI18n } from "@/lib/i18n/context"
-import type { DbInspection } from "@/types/inspections"
-import Link from "next/link"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useI18n } from '@/lib/i18n/context'
+import { formatDate } from '@/lib/utils/formatting'
+import { Booking } from '@/types/bookings'
+import { useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { EmptyState } from '@/components/empty-state'
+import { ClipboardCheck } from 'lucide-react'
+
+interface BookingInspection {
+  id: string
+  created_at: string
+  vehicle_id: string
+  status: string
+  type: string
+  date: string
+  inspector_name?: string
+}
 
 interface BookingInspectionsProps {
   bookingId: string
@@ -19,105 +29,129 @@ interface BookingInspectionsProps {
 }
 
 export function BookingInspections({ bookingId, vehicleId }: BookingInspectionsProps) {
-  const router = useRouter()
-  const { toast } = useToast()
   const { t } = useI18n()
-  const [inspections, setInspections] = useState<DbInspection[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const [inspections, setInspections] = useState<BookingInspection[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadInspections = async () => {
+    async function fetchInspections() {
+      if (!vehicleId) {
+        setLoading(false)
+        return
+      }
+
       try {
-        setIsLoading(true)
-        const data = await getInspectionsByBookingId(bookingId)
-        setInspections(data)
-      } catch (error) {
-        console.error("Error loading inspections:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load inspections",
-          variant: "destructive"
-        })
+        const { data, error } = await supabase
+          .from('inspections')
+          .select('*')
+          .eq('vehicle_id', vehicleId)
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        if (error) {
+          console.error('Error fetching inspections:', error)
+          setLoading(false)
+          return
+        }
+
+        setInspections(data || [])
+      } catch (err) {
+        console.error('Error in fetchInspections:', err)
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
 
-    if (bookingId) {
-      loadInspections()
-    }
-  }, [bookingId, toast])
+    fetchInspections()
+  }, [vehicleId, supabase])
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="w-5 h-5 text-green-500" />
-      case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />
-      default:
-        return <AlertCircle className="w-5 h-5 text-amber-500" />
+  const handleViewInspection = (id: string) => {
+    router.push(`/inspections/${id}`)
+  }
+
+  const getStatusBadgeClass = (status: string) => {
+    const statusMap: Record<string, string> = {
+      completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      scheduled: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
     }
+    
+    return statusMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('inspections.title')}</CardTitle>
+          <CardDescription>{t('inspections.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (inspections.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('inspections.title')}</CardTitle>
+          <CardDescription>{t('inspections.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            icon={<ClipboardCheck className="h-8 w-8 text-muted-foreground" />}
+            title={t('inspections.tabs.inspectionsEmpty')}
+            description={t('inspections.tabs.noInspectionsForVehicle')}
+          />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>
-          {t('bookings.inspections.title', 'Vehicle Inspections')}
-        </CardTitle>
-        <Button 
-          size="sm" 
-          onClick={() => router.push(`/inspections/new?vehicleId=${vehicleId}&bookingId=${bookingId}`)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {t('bookings.inspections.newInspection', 'New Inspection')}
-        </Button>
+      <CardHeader>
+        <CardTitle>{t('inspections.title')}</CardTitle>
+        <CardDescription>{t('inspections.description')}</CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="py-6 text-center text-muted-foreground">
-            Loading inspections...
-          </div>
-        ) : inspections.length === 0 ? (
-          <div className="py-6 text-center text-muted-foreground">
-            {t('bookings.inspections.noInspections', 'No inspections found for this booking')}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {inspections.map((inspection) => (
-              <div 
-                key={inspection.id} 
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/10 transition-colors"
-              >
-                <div className="flex items-center">
-                  {getStatusIcon(inspection.status)}
-                  <div className="ml-3">
-                    <h4 className="font-medium">
-                      {inspection.type.charAt(0).toUpperCase() + inspection.type.slice(1)} Inspection
-                    </h4>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {inspection.created_at 
-                        ? format(new Date(inspection.created_at), 'PPP') 
-                        : 'Date not available'}
-                    </div>
-                  </div>
+        <div className="space-y-3">
+          {inspections.map((inspection) => (
+            <div 
+              key={inspection.id}
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+              onClick={() => handleViewInspection(inspection.id)}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{t(`inspections.type.${inspection.type}`) || inspection.type}</span>
+                  <Badge className={getStatusBadgeClass(inspection.status)}>
+                    {t(`inspections.status.${inspection.status}`)}
+                  </Badge>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  asChild
-                >
-                  <Link href={`/inspections/${inspection.id}`} >
-                    {t('common.view', 'View')}
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </Link>
-                </Button>
+                <div className="text-sm text-muted-foreground">
+                  {formatDate(inspection.date || inspection.created_at)}
+                  {inspection.inspector_name && ` • ${inspection.inspector_name}`}
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+              <Button variant="ghost" size="sm">
+                {t('common.viewDetails')}
+              </Button>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
-  );
+  )
 } 

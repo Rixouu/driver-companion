@@ -28,7 +28,7 @@ import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-auto
 import { 
   ArrowLeft, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
   CreditCard, CheckCircle, AlertTriangle, Plane, Route, Timer, Info,
-  ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit, Truck
+  ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -42,10 +42,8 @@ import type { Driver } from '@/types/drivers'
 import type { Vehicle } from '@/types/vehicles'
 import type { DbVehicle } from '@/types'
 import { useI18n } from '@/lib/i18n/context'
-import BookingAssignment from '@/components/bookings/booking-assignment'
 import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { format, parseISO } from "date-fns";
-import { utcToZonedTime } from "date-fns-tz";
 import Image from 'next/image';
 
 export default function EditBookingPage() {
@@ -415,7 +413,7 @@ export default function EditBookingPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Desktop Tabs */}
             <div className="hidden md:block w-full bg-black border-b">
-              <TabsList className="w-full grid grid-cols-5 p-0 h-auto bg-transparent">
+              <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
                   value="summary" 
                   className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
@@ -438,13 +436,6 @@ export default function EditBookingPage() {
                   <span>Client Details</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="assignment" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <Truck className="h-4 w-4" />
-                  <span>Driver & Vehicle</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="additional" 
                   className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
                 >
@@ -456,7 +447,7 @@ export default function EditBookingPage() {
             
             {/* Bottom Fixed Mobile Nav */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t z-50">
-              <TabsList className="w-full grid grid-cols-5 p-0 h-auto bg-transparent">
+              <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
                   value="summary" 
                   className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
@@ -477,13 +468,6 @@ export default function EditBookingPage() {
                 >
                   <User className="h-5 w-5" />
                   <span className="text-xs">Client</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="assignment" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <Truck className="h-5 w-5" />
-                  <span className="text-xs">Driver</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="additional" 
@@ -1058,39 +1042,6 @@ export default function EditBookingPage() {
                         />
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="assignment" className="mt-0 space-y-6">
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <Truck className="mr-2 h-5 w-5" />
-                      {t('bookings.details.driverVehicleAssignment')}
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    {booking && (
-                      <BookingAssignment 
-                        booking={booking} 
-                        onAssignmentComplete={() => {
-                          // Refresh booking data after assignment
-                          getBookingById(id).then(({ booking: refreshedBooking }) => {
-                            if (refreshedBooking) {
-                              setBooking(refreshedBooking);
-                              // Update form data with new assignments as strings
-                              setFormData({
-                                ...formData,
-                                driver_id: refreshedBooking.driver_id,
-                                vehicle_id: refreshedBooking.vehicle?.id
-                              });
-                            }
-                          });
-                        }}
-                      />
-                    )}
                   </div>
                 </Card>
               </TabsContent>

@@ -13,7 +13,6 @@ import {
   Loader2
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { PrintButton } from "./print-button"
 import { InvoiceButton } from "./invoice-button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -126,7 +125,6 @@ export function BookingActions({ bookingId, status, date, time, booking }: Booki
           <h3 className="text-sm font-medium mb-3">Documents</h3>
           
           <div className="grid grid-cols-1 gap-3">
-            <PrintButton booking={booking} />
             <InvoiceButton booking={booking} />
           </div>
         </div>

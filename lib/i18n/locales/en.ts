@@ -1869,7 +1869,8 @@ export const en: TranslationValue = {
         assignment: "Driver & Vehicle Assignment",
         billingAddress: "Billing Address",
         billing: "Billing Information",
-        coupon: "Coupon Information"
+        coupon: "Coupon Information",
+        pricing: "Pricing Information"
       },
       fields: {
         bookingId: "Booking ID",

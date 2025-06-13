@@ -5,9 +5,12 @@ import { getDashboardData } from "@/app/actions/dashboard"
 
 export const dynamic = "force-dynamic"
 
-export const metadata: Metadata = {
-  title: "Dashboard",
-  description: "Vehicle fleet management dashboard",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getDictionary()
+  return {
+    title: t("dashboard.title"),
+    description: t("dashboard.description")
+  }
 }
 
 export default async function DashboardPage() {

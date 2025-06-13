@@ -69,6 +69,99 @@ interface DashboardContentProps {
   vehicles: DbVehicle[]
 }
 
+function getQuotationStatusBadge(status: string, t: (key: string, options?: any) => string) {
+  switch (status) {
+    case 'draft':
+      return (
+        <Badge variant="outline" className="text-gray-500 border-gray-200 bg-gray-50 dark:bg-gray-900/20">
+          {t('quotations.status.draft')}
+        </Badge>
+      );
+    case 'sent':
+      return (
+        <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+          {t('quotations.status.sent')}
+        </Badge>
+      );
+    case 'approved':
+      return (
+        <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">
+          {t('quotations.status.approved')}
+        </Badge>
+      );
+    case 'rejected':
+      return (
+        <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">
+          {t('quotations.status.rejected')}
+        </Badge>
+      );
+    case 'converted':
+      return (
+        <Badge variant="outline" className="text-purple-500 border-purple-200 bg-purple-50 dark:bg-purple-900/20">
+          {t('quotations.status.converted')}
+        </Badge>
+      );
+    case 'expired':
+      return (
+        <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 dark:bg-orange-900/20">
+          {t('quotations.status.expired')}
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline" className="text-gray-500">
+          {status}
+        </Badge>
+      );
+  }
+}
+
+function getBookingStatusBadge(status: string, t: (key: string, options?: any) => string) {
+    switch (status) {
+      case 'completed':
+      case 'confirmed':
+        return <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">{t(`bookings.status.${status}`)}</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`bookings.status.${status}`)}</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">{t(`bookings.status.${status}`)}</Badge>;
+      default:
+        return <Badge variant="outline" className="text-gray-500">{t(`bookings.status.${status}`)}</Badge>;
+    }
+}
+
+function getMaintenanceStatusBadge(status: string, t: (key: string, options?: any) => string) {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+      case 'in_progress':
+        return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+      case 'scheduled':
+      case 'pending':
+        return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+      default:
+        return <Badge variant="outline" className="text-gray-500">{t(`maintenance.status.${status}`)}</Badge>;
+    }
+}
+
+function getInspectionStatusBadge(status: string, t: (key: string, options?: any) => string) {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">{t(`inspections.status.${status}`)}</Badge>;
+      case 'inProgress':
+        return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`inspections.status.inProgress`)}</Badge>;
+      case 'failed':
+        return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">{t(`inspections.status.${status}`)}</Badge>;
+      case 'scheduled':
+      case 'pending':
+        return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">{t(`inspections.status.${status}`)}</Badge>;
+      default:
+        return <Badge variant="outline" className="text-gray-500">{t(`inspections.status.${status}`)}</Badge>;
+    }
+}
+
 export function DashboardContent({
   stats,
   recentInspections,
@@ -229,9 +322,7 @@ export function DashboardContent({
       {/* Dashboard Header */}
       <div>
         <h1 className="text-3xl font-bold">{t("dashboard.title")}</h1>
-        <p className="text-muted-foreground">
-          {t("dashboard.description")}
-        </p>
+        <p className="text-muted-foreground">{t("dashboard.description")}</p>
       </div>
       {/* Quick Actions */}
       <Card>
@@ -242,7 +333,10 @@ export function DashboardContent({
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/vehicles/new" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors">
+              <Button
+                variant="outline"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors"
+              >
                 <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
                   <Car className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
@@ -250,7 +344,10 @@ export function DashboardContent({
               </Button>
             </Link>
             <Link href="/maintenance/schedule" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors">
+              <Button
+                variant="outline"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors"
+              >
                 <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
                   <Wrench className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
@@ -258,7 +355,10 @@ export function DashboardContent({
               </Button>
             </Link>
             <Link href="/inspections/create" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors">
+              <Button
+                variant="outline"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors"
+              >
                 <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
                   <ClipboardCheck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
@@ -266,7 +366,10 @@ export function DashboardContent({
               </Button>
             </Link>
             <Link href="/quotations/create" className="col-span-1">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 dark:hover:border-orange-800 transition-colors">
+              <Button
+                variant="outline"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 dark:hover:border-orange-800 transition-colors"
+              >
                 <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
                   <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
@@ -490,7 +593,7 @@ export function DashboardContent({
                 <div className="pt-2">
                   <Link href="/quotations">
                     <Button variant="outline" className="w-full">
-                      {t('dashboard.expiringQuotations.viewAll')}
+                      {t('quotations.viewAll')}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -535,11 +638,11 @@ export function DashboardContent({
                   </div>
                 )}
                 {(recentMaintenance.length > 0 || recentInspections.length > 0) && (
-                  <div className="flex justify-center mt-4">
-                    <Link
-                      href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
-                      <Button variant="outline">
+                  <div className="mt-4">
+                    <Link href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
+                      <Button variant="outline" className="w-full">
                         {t("dashboard.activityFeed.viewAll")}
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                   </div>
@@ -560,11 +663,13 @@ export function DashboardContent({
                   </div>
                 )}
                 {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
-                  <div className="flex justify-center mt-4">
+                  <div className="mt-4">
                     <Link
-                      href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}>
-                      <Button variant="outline">
+                      href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}
+                    >
+                      <Button variant="outline" className="w-full">
                         {t("dashboard.activityFeed.viewAll")}
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                   </div>
@@ -593,20 +698,20 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
 function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
   const { t } = useI18n()
   return (
-    <Link href={`/maintenance/${task.id}`}>
-      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-primary" />
-            <p className="font-medium">{task.title}</p>
+    <Link href={`/maintenance/${task.id}`} className="block">
+      <div className="p-3 border rounded-md hover:border-primary transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-primary" />
+              <p className="font-medium">{task.title}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {task.vehicle?.name} • {task.status === 'completed' ? t('common.status.completed') : t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {task.vehicle?.name} • {task.status === 'completed' ? t('common.status.completed') : t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
-          </p>
+          {getMaintenanceStatusBadge(task.status, t)}
         </div>
-        <Badge variant={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'warning' : 'secondary'}>
-          {t(`maintenance.status.${task.status}`)}
-        </Badge>
       </div>
     </Link>
   );
@@ -632,20 +737,20 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
   }
   
   return (
-    <Link href={`/inspections/${inspection.id}`}>
-      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-primary" />
-            <p className="font-medium">{getFullTypeName(inspection.type)}</p>
+    <Link href={`/inspections/${inspection.id}`} className="block">
+      <div className="p-3 border rounded-md hover:border-primary transition-colors">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4 text-primary" />
+              <p className="font-medium">{getFullTypeName(inspection.type)}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {inspection.vehicle?.name} • {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {inspection.vehicle?.name} • {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
-          </p>
+          {getInspectionStatusBadge(inspection.status, t)}
         </div>
-        <Badge variant={inspection.status === 'completed' ? 'success' : inspection.status === 'in_progress' ? 'warning' : 'secondary'}>
-          {t(`inspections.status.${inspection.status}`)}
-        </Badge>
       </div>
     </Link>
   );
@@ -675,18 +780,7 @@ function BookingCard({ booking }: { booking: Booking }) {
               </div>
             </div>
           </div>
-          <Badge 
-            variant={booking.status === 'pending' ? 'outline' : 'secondary'} 
-            className={`ml-2 ${
-              booking.status === 'pending' 
-                ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
-                : booking.status === 'confirmed' 
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : ''
-            }`}
-          >
-            {t(`bookings.status.${booking.status}`)}
-          </Badge>
+          {getBookingStatusBadge(booking.status, t)}
         </div>
         
         <div className="flex flex-col space-y-1 pl-10">
@@ -731,9 +825,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
               </span>
             </div>
           </div>
-          <Badge variant="secondary">
-            {t(`quotations.status.${quotation.status}`)}
-          </Badge>
+          {getQuotationStatusBadge(quotation.status, t)}
         </div>
         {quotation.total_amount && (
           <p className="text-xs text-muted-foreground pl-10">

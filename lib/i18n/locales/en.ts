@@ -1401,7 +1401,7 @@ export const en: TranslationValue = {
       description: "Recent and upcoming activities",
       noUpcoming: "No upcoming activities",
       noRecent: "No recent activities",
-      viewAll: "View all"
+      viewAll: "View All Activities"
     },
     dailyChecklist: {
       title: "Daily Checklist",
@@ -2519,6 +2519,7 @@ export const en: TranslationValue = {
       description: "Modify the quotation details"
     },
     view: "View Quotation",
+    viewAll: "View All Quotations",
     duplicate: "Duplicate",
     placeholder: "No quotations found",
     list: "All Quotations",

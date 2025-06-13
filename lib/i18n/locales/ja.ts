@@ -543,9 +543,18 @@ export const ja: TranslationValue = {
     },
     view: "見積もりを表示",
     duplicate: "複製",
+    viewAll: "すべての見積もりを表示",
     placeholder: "見積もりが見つかりません",
     list: "すべての見積もり",
-    listDescription: "顧客の見積もりを管理・追跡する"
+    listDescription: "顧客の見積もりを管理・追跡する",
+    status: {
+      draft: "下書き",
+      sent: "送信済み",
+      approved: "承認済み",
+      rejected: "拒否済み",
+      expired: "期限切れ",
+      converted: "予約に変換済み"
+    }
   },
   invoices: {
     title: "請求書",
@@ -588,6 +597,170 @@ export const ja: TranslationValue = {
     noGroups: "車両グループが見つかりません",
     allGroups: "すべてのグループ",
     filter: "グループでフィルター"
+  },
+  dashboard: {
+    title: "ダッシュボード",
+    description: "車両フリートの概要",
+    quickActions: {
+      title: "クイックアクション",
+      description: "一般的なタスクとアクション",
+      addVehicle: "車両を追加",
+      scheduleMaintenance: "メンテナンスを予約",
+      scheduleInspection: "点検を作成",
+      createQuotation: "見積もりを作成",
+      viewReports: "レポートを表示"
+    },
+    expiringQuotations: {
+      title: "期限切れ間近の見積もり",
+      description: "今後7日以内に期限切れとなる見積もり。",
+      amount: "金額",
+      expiringTomorrow: "明日期限切れ",
+      expiringInDays: "{days}日後に期限切れ",
+      viewAll: "期限切れ間近のものをすべて表示"
+    },
+    activityFeed: {
+      title: "アクティビティフィード",
+      description: "最近および今後のアクティビティ",
+      noUpcoming: "今後のアクティビティはありません",
+      noRecent: "最近のアクティビティはありません",
+      viewAll: "すべてのアクティビティを表示"
+    },
+    dailyChecklist: {
+      title: "デイリーチェックリスト",
+      description: "今日完了するタスク",
+      completeChecklist: "チェックリストを完了",
+      checkAllItems: "完了するにはすべての項目をチェックしてください",
+      upcomingReminders: "今後のリマインダー",
+      completed: {
+        title: "チェックリスト完了！",
+        message: "お疲れ様でした！毎日のチェックはすべて完了しました。また明日！",
+        reset: "チェックリストをリセット"
+      },
+      items: {
+        checkTires: "タイヤの空気圧と状態を確認",
+        checkLights: "すべてのライトが機能していることを確認",
+        checkFluids: "オイルと冷却水のレベルを確認",
+        checkBrakes: "ブレーキとパーキングブレーキをテスト",
+        visualInspection: "目視点検を実施"
+      }
+    },
+    vehicleStats: {
+      title: "車両概要",
+      description: "あなたの車両に関するクイック統計",
+      fuelLevel: "燃料レベル",
+      mileage: "走行距離",
+      viewAllVehicles: "すべての車両を表示",
+      previousVehicle: "前の車両",
+      nextVehicle: "次の車両"
+    },
+    upcomingBookings: {
+      title: "今後の予約",
+      description: "レビューと割り当て待ちの予約",
+      viewAll: "すべての予約を表示",
+      loadError: "今後の予約の読み込みに失敗しました",
+      empty: {
+        message: "今後の予約はありません"
+      }
+    },
+    maintenance: {
+      title: "メンテナンス",
+      description: "車両のメンテナンスタスクを管理する",
+      status: {
+        pending: "保留中",
+        scheduled: "予定済み",
+        in_progress: "進行中",
+        completed: "完了",
+        cancelled: "キャンセル済み"
+      }
+    },
+    inspections: {
+      title: "点検",
+      description: "車両点検の管理と追跡",
+      status: {
+        pending: "保留中",
+        inProgress: "進行中",
+        completed: "完了",
+        failed: "不合格",
+        scheduled: "予定済み"
+      }
+    },
+    stats: {
+      totalVehicles: "総車両数",
+      maintenanceTasks: "メンテナンスタスク",
+      inspections: "点検",
+      activeVehicles: "稼働中の車両",
+      vehiclesInMaintenance: "メンテナンス中",
+      scheduledInspections: "予定済み",
+      inProgressInspections: "進行中",
+      completedInspections: "完了済み",
+      pendingTasks: "保留中",
+      inProgressTasks: "進行中",
+      completedTasks: "完了済み"
+    },
+    sections: {
+      maintenanceSchedule: {
+        title: "メンテナンススケジュール",
+        noPending: "保留中のメンテナンスタスクはありません"
+      },
+      inspectionSchedule: {
+        title: "点検スケジュール",
+        noPending: "保留中の点検はありません"
+      },
+      recentMaintenance: {
+        title: "最近のメンテナンス",
+        noCompleted: "完了したメンテナンスタスクはありません"
+      },
+      recentInspections: {
+        title: "最近の点検",
+        noCompleted: "完了した点検はありません"
+      },
+      inProgress: {
+        title: "進行中",
+        maintenance: "メンテナンス進行中",
+        inspections: "点検進行中",
+        noTasks: "進行中のタスクはありません"
+      },
+      tires: {
+        title: "タイヤ",
+        items: {
+          tire_pressure: {
+            title: "タイヤ空気圧",
+            description: "タイヤの空気圧を推奨レベルに確認・調整します。"
+          },
+          tread_depth: {
+            title: "トレッドの深さ",
+            description: "タイヤのトレッドの深さを測定して、十分なグリップを確保します。"
+          },
+          wear_pattern: {
+            title: "摩耗パターン",
+            description: "タイヤの不均一な摩耗パターンを検査します。"
+          }
+        }
+      }
+    },
+    tabs: {
+      recent: "最近",
+      upcoming: "今後の予定",
+      inProgress: "進行中"
+    }
+  },
+  maintenance: {
+    status: {
+      pending: "保留中",
+      scheduled: "予定済み",
+      in_progress: "進行中",
+      completed: "完了",
+      cancelled: "キャンセル済み"
+    }
+  },
+  inspections: {
+    status: {
+      pending: "保留中",
+      inProgress: "進行中",
+      completed: "完了",
+      failed: "不合格",
+      scheduled: "予定済み"
+    }
   }
 };
 

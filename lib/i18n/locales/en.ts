@@ -3037,6 +3037,14 @@ export const en: TranslationValue = {
   pricing: {
     title: "Pricing Management",
     description: "Manage service pricing, promotions, and packages",
+    tabs: {
+      categories: "Categories",
+      items: "Items",
+      serviceTypes: "Service Types",
+      timeBasedPricing: "Time-based Pricing",
+      promotions: "Promotions",
+      packages: "Packages"
+    },
     categories: {
       title: "Categories",
       description: "Manage pricing categories",

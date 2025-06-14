@@ -6,6 +6,7 @@ import PricingPromotionsTab from "./_components/pricing-promotions-tab";
 import PricingPackagesTab from "./_components/pricing-packages-tab";
 import PricingServiceTypesTab from "./_components/pricing-service-types-tab";
 import TimeBasedPricingTab from "./_components/time-based-pricing-tab";
+import { PricingTabsList } from "./_components/pricing-tabs-list";
 
 export const dynamic = "force-dynamic"
 
@@ -25,16 +26,7 @@ export default function PricingManagementPage() {
       </div>
 
       <Tabs defaultValue="categories" className="w-full">
-        <div className="overflow-x-auto">
-          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-            <TabsTrigger value="categories">Pricing Categories</TabsTrigger>
-            <TabsTrigger value="items">Pricing Items</TabsTrigger>
-            <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
-            <TabsTrigger value="timeBasedPricing">Time-based Pricing</TabsTrigger>
-            <TabsTrigger value="promotions">Promotions Codes</TabsTrigger>
-            <TabsTrigger value="packages">Packages Deals</TabsTrigger>
-          </TabsList>
-        </div>
+        <PricingTabsList />
         
         <div className="mt-4">
           <TabsContent value="categories">

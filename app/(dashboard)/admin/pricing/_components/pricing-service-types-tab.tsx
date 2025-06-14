@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Loader2, RefreshCw, Edit, Trash } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -344,23 +344,24 @@ export default function PricingServiceTypesTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8"
                         onClick={() => openEditDialog(serviceType)}
-                        title="Edit"
+                        title={t('common.edit')}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8 text-destructive"
                         onClick={() => openDeleteDialog(serviceType)}
-                        title="Delete"
-                        className="hover:text-destructive"
+                        title={t('common.delete')}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

@@ -27,12 +27,12 @@ export default function PricingManagementPage() {
       <Tabs defaultValue="categories" className="w-full">
         <div className="overflow-x-auto">
           <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="items">Items</TabsTrigger>
+            <TabsTrigger value="categories">Pricing Categories</TabsTrigger>
+            <TabsTrigger value="items">Pricing Items</TabsTrigger>
             <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
             <TabsTrigger value="timeBasedPricing">Time-based Pricing</TabsTrigger>
-            <TabsTrigger value="promotions">Promotions</TabsTrigger>
-            <TabsTrigger value="packages">Packages</TabsTrigger>
+            <TabsTrigger value="promotions">Promotions Codes</TabsTrigger>
+            <TabsTrigger value="packages">Packages Deals</TabsTrigger>
           </TabsList>
         </div>
         

@@ -302,6 +302,23 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
   }
 
+  // Get status badge classes
+  const getStatusBadgeClasses = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      case 'in_progress':
+        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      case 'failed':
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
+    }
+  }
+
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -443,12 +460,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                   <TableCell>
                     <Badge 
                       variant="outline" 
-                      className={cn("text-xs", {
-                        "border-green-500 text-green-700": inspection.status === "completed",
-                        "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
-                        "border-red-500 text-red-700": inspection.status === "cancelled" || inspection.status === "failed",
-                        "border-blue-500 text-blue-700": inspection.status === "scheduled"
-                      })}
+                      className={cn("text-xs", getStatusBadgeClasses(inspection.status))}
                     >
                       {inspection.status ? (
                         (() => {
@@ -766,12 +778,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                             </h4>
                                                           <Badge 
                               variant="outline" 
-                              className={cn("text-xs flex-shrink-0", {
-                                "border-green-500 text-green-700": inspection.status === "completed",
-                                "border-yellow-500 text-yellow-700": inspection.status === "in_progress", 
-                                "border-red-500 text-red-700": inspection.status === "cancelled" || inspection.status === "failed",
-                                "border-blue-500 text-blue-700": inspection.status === "scheduled"
-                              })}
+                              className={cn("text-xs flex-shrink-0", getStatusBadgeClasses(inspection.status))}
                             >
                               {inspection.status ? (
                                 // Use a safer approach to access translation keys

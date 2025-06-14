@@ -626,12 +626,13 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
     if (filter === buttonStatus) {
       switch (buttonStatus) {
         case 'confirmed':
+        case 'completed':
           return 'bg-green-600 hover:bg-green-700 border-green-600 text-white font-medium';
         case 'pending':
           return 'bg-yellow-600 hover:bg-yellow-700 border-yellow-600 text-white font-medium';
         case 'cancelled':
           return 'bg-red-600 hover:bg-red-700 border-red-600 text-white font-medium';
-        case 'completed':
+        case 'assigned':
           return 'bg-blue-600 hover:bg-blue-700 border-blue-600 text-white font-medium';
         default:
           return 'bg-primary text-primary-foreground font-medium';
@@ -639,12 +640,13 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
     } else {
       switch (buttonStatus) {
         case 'confirmed':
+        case 'completed':
           return 'border-green-500 text-green-500 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-950/30';
         case 'pending':
           return 'border-yellow-500 text-yellow-500 hover:bg-yellow-50 dark:border-yellow-500 dark:text-yellow-400 dark:hover:bg-yellow-950/30';
         case 'cancelled':
           return 'border-red-500 text-red-500 hover:bg-red-50 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-950/30';
-        case 'completed':
+        case 'assigned':
           return 'border-blue-500 text-blue-500 hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-950/30';
         default:
           return 'border-gray-200 text-foreground dark:border-gray-700';
@@ -925,9 +927,10 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                         <SelectContent>
                           <SelectItem value="all">{t('bookings.filters.all')}</SelectItem>
                           <SelectItem value="confirmed" className="text-green-700 font-medium">{t('bookings.filters.confirmed')}</SelectItem>
+                          <SelectItem value="assigned" className="text-blue-700 font-medium">{t('bookings.filters.assigned', { ns: 'bookings' })}</SelectItem>
                           <SelectItem value="pending" className="text-yellow-700 font-medium">{t('bookings.filters.pending')}</SelectItem>
                           <SelectItem value="cancelled" className="text-red-700 font-medium">{t('bookings.filters.cancelled')}</SelectItem>
-                          <SelectItem value="completed" className="text-blue-700 font-medium">{t('bookings.filters.completed')}</SelectItem>
+                          <SelectItem value="completed" className="text-green-700 font-medium">{t('bookings.filters.completed')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -988,6 +991,14 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                     <Button 
                       variant="outline"
                       size="sm"
+                      onClick={() => handleFilterChange('assigned')}
+                      className={`${getStatusButtonClass('assigned')} w-full h-12 font-semibold border-2`}
+                    >
+                      {t('bookings.filters.assigned', { ns: 'bookings' })}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleFilterChange('pending')}
                       className={`${getStatusButtonClass('pending')} w-full h-12 font-semibold border-2`}
                     >
@@ -1005,7 +1016,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                       variant="outline"
                       size="sm"
                       onClick={() => handleFilterChange('completed')}
-                      className={`${getStatusButtonClass('completed')} w-full h-12 col-span-2 font-semibold border-2`}
+                      className={`${getStatusButtonClass('completed')} w-full h-12 font-semibold border-2`}
                     >
                       {t('bookings.filters.completed')}
                     </Button>
@@ -1028,6 +1039,14 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                       className={`${getStatusButtonClass('confirmed')} flex-shrink-0`}
                     >
                       {t('bookings.filters.confirmed')}
+                    </Button>
+                    <Button 
+                      variant={filter === 'assigned' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilterChange('assigned')}
+                      className={`${getStatusButtonClass('assigned')} flex-shrink-0`}
+                    >
+                      {t('bookings.filters.assigned', { ns: 'bookings' })}
                     </Button>
                     <Button 
                       variant={filter === 'pending' ? 'default' : 'outline'}

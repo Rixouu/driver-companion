@@ -50,11 +50,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Edit, Trash, Clock, Calendar, Check, X } from "lucide-react";
-import { useQuotationService } from "@/hooks/useQuotationService";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { TimeInput } from "@/components/ui/time-input";
 import { createBrowserClient } from "@supabase/ssr";
+import { Badge } from "@/components/ui/badge";
+import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 
 // Type definitions
 interface TimeBasedRule {
@@ -364,6 +365,10 @@ export default function TimeBasedPricingTab() {
   const formatDays = (days: string[] | null) => {
     if (!days || days.length === 0) return t("pricing.items.timeBasedPricing.days.all");
     
+    if (days.length === 7) {
+      return t("pricing.items.timeBasedPricing.days.all");
+    }
+    
     if (
       days.includes("monday") &&
       days.includes("tuesday") &&
@@ -396,143 +401,109 @@ export default function TimeBasedPricingTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>{t("pricing.items.timeBasedPricing.title")}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {t("pricing.items.timeBasedPricing.description")}
-            </p>
-          </div>
-          <Button onClick={() => handleOpenDialog("add")} size="sm">
-            <Plus className="mr-2 h-4 w-4" /> {t("pricing.items.timeBasedPricing.buttons.addRule")}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <Label htmlFor="category-filter-time-based">{t("pricing.items.timeBasedPricing.filters.categoryLabel")}</Label>
-            <Select 
-              onValueChange={setSelectedCategoryId} 
-              value={selectedCategoryId || "all"}
-              disabled={dataLoading || loading}
-            >
-              <SelectTrigger id="category-filter-time-based">
-                <SelectValue placeholder={t("pricing.items.timeBasedPricing.filters.allCategoriesPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("pricing.items.timeBasedPricing.filters.allCategories")}</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {categories.length === 0 && !dataLoading && (
-                <p className="text-xs text-destructive mt-1">{t("pricing.items.filters.noCategoriesFound")}</p>
-            )}
-          </div>
-
-          {loading && <p className="text-center py-4">{t("common.loading")}</p>}
-          {!loading && rules.length === 0 && (
-            <p className="text-center py-8 text-muted-foreground">
+    <div className="space-y-4">
+      {/* Section header with consistent styling */}
+      <div className="flex items-center justify-between mb-4 mt-6">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-2xl font-semibold leading-none">{t("pricing.items.timeBasedPricing.title")}</h3>
+          <p className="text-sm text-muted-foreground">{t("pricing.items.timeBasedPricing.description")}</p>
+        </div>
+        <Button onClick={() => handleOpenDialog("add") } className="shrink-0 mt-2">
+          <Plus className="mr-2 h-4 w-4" /> {t("pricing.items.timeBasedPricing.buttons.addRule")}
+        </Button>
+      </div>
+          
+      {loading && <p className="text-center py-4">{t("common.loading")}</p>}
+      {!loading && rules.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground border rounded-md">
+            <p>
               {selectedCategoryId 
                 ? t("pricing.items.timeBasedPricing.emptyState.noRulesForCategory")
                 : t("pricing.items.timeBasedPricing.emptyState.selectCategoryOrAddRule")}
             </p>
-          )}
+        </div>
+      )}
 
-          {!loading && rules.length > 0 && (
-            <ScrollArea className="whitespace-nowrap rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("pricing.items.timeBasedPricing.table.ruleName")}</TableHead>
-                    <TableHead>{t("pricing.items.timeBasedPricing.table.appliesTo")}</TableHead>
-                    <TableHead>{t("pricing.items.timeBasedPricing.table.timeRange")}</TableHead>
-                    <TableHead>{t("pricing.items.timeBasedPricing.table.days")}</TableHead>
-                    <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.adjustment")}</TableHead>
-                    <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.priority")}</TableHead>
-                    <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.status")}</TableHead>
-                    <TableHead className="text-right">{t("common.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rules.map((rule) => (
-                    <TableRow key={rule.id}>
-                      <TableCell>
-                        <div className="font-medium">{rule.name}</div>
-                        {rule.description && (
-                          <div className="text-sm text-muted-foreground">{rule.description}</div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {rule.category_id
-                          ? categories.find(c => c.id === rule.category_id)?.name || "-"
-                          : t("pricing.items.timeBasedPricing.allCategories")}
-                        {rule.service_type_id && (
-                          <>
-                            <br />
-                            <span className="text-xs text-muted-foreground">
-                              {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
-                            </span>
-                          </>
-                        )}
-                      </TableCell>
-                      <TableCell>{formatTime(rule.start_time)} - {formatTime(rule.end_time)}</TableCell>
-                      <TableCell>{formatDays(rule.days_of_week)}</TableCell>
-                      <TableCell>
-                        <span className={rule.adjustment_percentage > 0 ? "text-green-600" : rule.adjustment_percentage < 0 ? "text-red-600" : ""}>
-                          {rule.adjustment_percentage > 0 ? "+" : ""}
-                          {rule.adjustment_percentage}%
+      {!loading && rules.length > 0 && (
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("pricing.items.timeBasedPricing.table.ruleName")}</TableHead>
+                <TableHead>{t("pricing.items.timeBasedPricing.table.appliesTo")}</TableHead>
+                <TableHead>{t("pricing.items.timeBasedPricing.table.timeRange")}</TableHead>
+                <TableHead>{t("pricing.items.timeBasedPricing.table.days")}</TableHead>
+                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.adjustment")}</TableHead>
+                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.priority")}</TableHead>
+                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.status")}</TableHead>
+                <TableHead className="text-right">{t("common.actions.default")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rules.map((rule) => (
+                <TableRow key={rule.id}>
+                  <TableCell>
+                    <div className="font-medium">{rule.name}</div>
+                    {rule.description && (
+                      <div className="text-sm text-muted-foreground">{rule.description}</div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {rule.category_id
+                      ? categories.find(c => c.id === rule.category_id)?.name || "-"
+                      : t("pricing.items.timeBasedPricing.allCategories")}
+                    {rule.service_type_id && (
+                      <>
+                        <br />
+                        <span className="text-xs text-muted-foreground">
+                          {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-center">{rule.priority}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center">
-                          <Button
-                            variant={rule.is_active ? "default" : "outline"}
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled
-                          >
-                            {rule.is_active ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <X className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleOpenDialog("edit", rule)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => openDeleteConfirm(rule.id!)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          )}
-        </CardContent>
-      </Card>
+                      </>
+                    )}
+                  </TableCell>
+                  <TableCell>{formatTime(rule.start_time)} - {formatTime(rule.end_time)}</TableCell>
+                  <TableCell>{formatDays(rule.days_of_week)}</TableCell>
+                  <TableCell>
+                    <span className={rule.adjustment_percentage > 0 ? "text-green-600" : rule.adjustment_percentage < 0 ? "text-red-600" : ""}>
+                      {rule.adjustment_percentage > 0 ? "+" : ""}
+                      {rule.adjustment_percentage}%
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">{rule.priority}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      variant="outline"
+                      className={cn('text-xs', getStatusBadgeClasses(rule.is_active ? 'active' : 'inactive'))}
+                    >
+                      {rule.is_active ? t('common.status.active') : t('common.status.inactive')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleOpenDialog("edit", rule)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => openDeleteConfirm(rule.id!)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Add/Edit Rule Dialog */}
       <Dialog open={dialog.open} onOpenChange={handleCloseDialog}>

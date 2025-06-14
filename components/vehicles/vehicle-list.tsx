@@ -179,29 +179,33 @@ export function VehicleList({
 
   // Get colored status button class
   function getStatusButtonClass(status: string, isSelected: boolean) {
+    const baseClasses = {
+      active: 'border-green-300 text-green-800 dark:border-green-700 dark:text-green-300',
+      maintenance: 'border-orange-300 text-orange-800 dark:border-orange-700 dark:text-orange-300',
+      inactive: 'border-gray-300 text-gray-800 dark:border-gray-700 dark:text-gray-300',
+    };
+
+    const selectedClasses = {
+      active: 'bg-green-600 text-white hover:bg-green-700',
+      maintenance: 'bg-orange-600 text-white hover:bg-orange-700',
+      inactive: 'bg-gray-600 text-white hover:bg-gray-700',
+    };
+
+    const unselectedClasses = {
+      active: 'bg-green-100 hover:bg-green-200 dark:bg-green-900/20 dark:hover:bg-green-900/40',
+      maintenance: 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/20 dark:hover:bg-orange-900/40',
+      inactive: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-900/20 dark:hover:bg-gray-900/40',
+    };
+
+    const statusKey = status as keyof typeof baseClasses;
+
     if (isSelected) {
-      switch (status) {
-        case "active":
-          return "bg-green-600 text-white hover:bg-green-700 border-green-600"
-        case "maintenance":
-          return "bg-orange-600 text-white hover:bg-orange-700 border-orange-600"
-        case "inactive":
-          return "bg-gray-600 text-white hover:bg-gray-700 border-gray-600"
-        default:
-          return "bg-primary text-primary-foreground hover:bg-primary/90"
-      }
-    } else {
-      switch (status) {
-        case "active":
-          return "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
-        case "maintenance":
-          return "border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950"
-        case "inactive":
-          return "border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-950"
-        default:
-          return "border-border text-foreground hover:bg-accent"
-      }
+      return cn(baseClasses[statusKey], selectedClasses[statusKey]);
     }
+    if (status === 'all') {
+      return "border-border text-foreground hover:bg-accent"
+    }
+    return cn(baseClasses[statusKey], unselectedClasses[statusKey]);
   }
 
   return (
@@ -381,10 +385,10 @@ export function VehicleList({
                         <div className="flex justify-center">
                           <Badge 
                             className={cn(
-                              "font-medium border-0",
-                              vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                              vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                              "font-medium border",
+                              vehicle.status === 'active' && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
+                              vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700",
+                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700"
                             )}
                           >
                             {t(`vehicles.status.${vehicle.status}`)}

@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Metadata } from "next";
 import PricingCategoriesTab from "./_components/pricing-categories-tab";
 import PricingItemsTab from "./_components/pricing-items-tab";
@@ -17,107 +16,49 @@ export const metadata: Metadata = {
 
 export default function PricingManagementPage() {
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pricing Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Pricing Management</h1>
         <p className="text-muted-foreground">
-          Manage your pricing categories, individual items, promotions, and packages
+          Manage your pricing categories, individual items, promotions, and packages.
         </p>
       </div>
 
       <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="grid grid-cols-6 w-full md:w-[900px]">
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="items">Pricing Items</TabsTrigger>
-          <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
-          <TabsTrigger value="timeBasedPricing">Time-Based Pricing</TabsTrigger>
-          <TabsTrigger value="promotions">Promotions</TabsTrigger>
-          <TabsTrigger value="packages">Packages</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="items">Items</TabsTrigger>
+            <TabsTrigger value="serviceTypes">Service Types</TabsTrigger>
+            <TabsTrigger value="timeBasedPricing">Time-based Pricing</TabsTrigger>
+            <TabsTrigger value="promotions">Promotions</TabsTrigger>
+            <TabsTrigger value="packages">Packages</TabsTrigger>
+          </TabsList>
+        </div>
         
         <div className="mt-4">
           <TabsContent value="categories">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pricing Categories</CardTitle>
-                <CardDescription>
-                  Manage the service categories and which service types they apply to
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingCategoriesTab />
-              </CardContent>
-            </Card>
+            <PricingCategoriesTab />
           </TabsContent>
           
           <TabsContent value="items">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pricing Items</CardTitle>
-                <CardDescription>
-                  Manage individual pricing items for each service type, vehicle type, and duration
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingItemsTab />
-              </CardContent>
-            </Card>
+            <PricingItemsTab />
           </TabsContent>
           
           <TabsContent value="serviceTypes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Types</CardTitle>
-                <CardDescription>
-                  Manage the different types of services offered
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingServiceTypesTab />
-              </CardContent>
-            </Card>
+            <PricingServiceTypesTab />
           </TabsContent>
           
           <TabsContent value="timeBasedPricing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Time-Based Pricing</CardTitle>
-                <CardDescription>
-                  Apply price adjustments based on time of day, day of week, and holidays
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TimeBasedPricingTab />
-              </CardContent>
-            </Card>
+            <TimeBasedPricingTab />
           </TabsContent>
           
           <TabsContent value="promotions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Promotions</CardTitle>
-                <CardDescription>
-                  Manage promotional codes and discounts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingPromotionsTab />
-              </CardContent>
-            </Card>
+            <PricingPromotionsTab />
           </TabsContent>
           
           <TabsContent value="packages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Packages</CardTitle>
-                <CardDescription>
-                  Manage package deals and bundles
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingPackagesTab />
-              </CardContent>
-            </Card>
+            <PricingPackagesTab />
           </TabsContent>
         </div>
       </Tabs>

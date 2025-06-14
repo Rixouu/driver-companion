@@ -1793,12 +1793,14 @@ export const en: TranslationValue = {
       assigned: "Assigned"
     },
     filters: {
-      statusPlaceholder: "Filter by status",
-      all: "All",
-      pending: "Pending",
-      confirmed: "Confirmed",
-      completed: "Completed",
-      cancelled: "Cancelled",
+      status: 'Status',
+      all: 'All',
+      confirmed: 'Confirmed',
+      assigned: 'Assigned',
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      completed: 'Completed',
+      statusPlaceholder: 'Filter by status...',
       advancedFilters: "Advanced Filters",
       clearFilters: "Clear Filters"
     },
@@ -1981,7 +1983,8 @@ export const en: TranslationValue = {
         confirmed: "Confirmed",
         pending: "Pending",
         cancelled: "Cancelled",
-        completed: "Completed"
+        completed: "Completed",
+        assigned: "Assigned"
       },
       quickCustomerActions: "Quick Customer Actions",
       tooltips: {
@@ -2678,20 +2681,17 @@ export const en: TranslationValue = {
         servicesIncluded: "{count} service{plural} included"
       },
       promotions: {
-        title: "Discount Code",
-        apply: "Apply",
-        applied: "Promotion Applied",
-        invalid: "Invalid promotion code",
-        expired: "Promotion has expired",
-        notActive: "Promotion not yet active",
-        usageLimitReached: "Promotion usage limit reached",
-        minimumAmount: "Minimum order amount:",
-        availablePromotions: "Available Promotions",
-        noPromotions: "No active promotions",
-        enterCode: "Enter promotion code",
-        discount: "Discount",
-        promotionApplied: "Promotion Applied!",
-        maxDiscount: "max: {amount}"
+        title: "Promotions",
+        description: "Manage promotional codes and discounts",
+        create: "Create Promotion",
+        createSuccess: "Promotion created successfully",
+        createError: "Failed to create promotion",
+        updateSuccess: "Promotion updated successfully",
+        updateSuccessDescription: "The promotion has been updated",
+        updateError: "Failed to update promotion",
+        deleteSuccess: "Promotion deleted successfully",
+        deleteSuccessDescription: "The promotion has been removed",
+        deleteError: "Failed to delete promotion"
       },
       timePricing: {
         title: "Time-based Pricing",
@@ -3263,8 +3263,8 @@ export const en: TranslationValue = {
     promotions: {
       title: "Promotions",
       description: "Manage promotional codes and discounts",
+      create: "Create Promotion",
       createSuccess: "Promotion created successfully",
-      createSuccessDescription: "The new promotion has been added",
       createError: "Failed to create promotion",
       updateSuccess: "Promotion updated successfully",
       updateSuccessDescription: "The promotion has been updated",
@@ -3276,6 +3276,7 @@ export const en: TranslationValue = {
     packages: {
       title: "Packages",
       description: "Manage package deals and bundles",
+      addPackage: "Add Package",
       createSuccess: "Package created successfully",
       createSuccessDescription: "The new package has been added",
       createError: "Failed to create package",

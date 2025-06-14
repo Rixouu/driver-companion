@@ -9,6 +9,8 @@ import { BookingDetailSkeleton } from './booking-detail-skeleton'
 import { Booking } from '@/types/bookings'
 import { toast } from '@/components/ui/use-toast'
 import { useI18n } from '@/lib/i18n/context'
+import { getStatusBadgeClasses } from '@/lib/utils/styles'
+import { cn } from '@/lib/utils'
 
 interface BookingDetailProps {
   booking: Booking
@@ -78,13 +80,7 @@ export function BookingDetail({ booking }: BookingDetailProps) {
             </Button>
           )}
           <Badge 
-            className={
-              booking.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-              booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100' :
-              booking.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
-              booking.status === 'draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100' :
-              'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
-            }
+            className={cn(getStatusBadgeClasses(booking.status))}
           >
             {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
           </Badge>

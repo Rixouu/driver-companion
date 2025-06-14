@@ -18,6 +18,7 @@ import { useI18n } from '@/lib/i18n/context'
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { QuotationMessageContainer } from '@/components/quotations/quotation-containers'
+import { getStatusBadgeClasses, getPaymentStatusBadgeClasses } from '@/lib/utils/styles'
 
 function BookingNotFound({ bookingId }: { bookingId: string }) {
   const { t } = useI18n()
@@ -189,19 +190,16 @@ export default function BookingPage() {
   }
   
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return <Badge className="bg-green-600 text-white">{t('bookings.details.status.confirmed')}</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-600 text-white">{t('bookings.details.status.pending')}</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-600 text-white">{t('bookings.details.status.cancelled')}</Badge>;
-      case 'completed':
-        return <Badge className="bg-green-600 text-white">{t('bookings.details.status.completed')}</Badge>;
-      default:
-        return <Badge className="bg-gray-600 text-white">{status}</Badge>;
-    }
-  };
+    const statusKey = status?.toLowerCase() || 'unknown'
+    const statusText = t(`bookings.details.status.${statusKey}`, {
+      defaultValue: statusKey.charAt(0).toUpperCase() + statusKey.slice(1),
+    })
+    return (
+      <Badge className={getStatusBadgeClasses(status)}>
+        {statusText}
+      </Badge>
+    )
+  }
   
   return (
     <div className="space-y-6">
@@ -274,7 +272,9 @@ export default function BookingPage() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentStatus')}</h3>
                   <p className="mt-1 text-yellow-500">
-                    {booking.payment_status || 'Pending'}
+                    <Badge className={getPaymentStatusBadgeClasses(booking.payment_status || 'Pending')}>
+                      {booking.payment_status || 'Pending'}
+                    </Badge>
                   </p>
                 </div>
               </div>

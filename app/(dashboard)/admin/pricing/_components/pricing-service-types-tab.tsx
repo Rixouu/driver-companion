@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2, Loader2, RefreshCw } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -34,6 +35,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { cn, getStatusBadgeClasses } from '@/lib/utils/styles';
+import { useI18n } from '@/lib/i18n/context';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Schema for service type form validation
 const serviceTypeFormSchema = z.object({
@@ -41,6 +45,8 @@ const serviceTypeFormSchema = z.object({
   description: z.string().optional(),
   is_active: z.boolean().default(true),
 });
+
+type ServiceTypeFormValues = z.infer<typeof serviceTypeFormSchema>;
 
 // Interface for the service type data received from API / used in state
 interface ServiceType {
@@ -52,8 +58,16 @@ interface ServiceType {
   updated_at: string; // ISO date string
 }
 
+interface PricingCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  service_type_ids: string[];
+}
+
 export default function PricingServiceTypesTab() {
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [categories, setCategories] = useState<PricingCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -62,8 +76,9 @@ export default function PricingServiceTypesTab() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingServiceType, setDeletingServiceType] = useState<ServiceType | null>(null);
   const { toast } = useToast();
+  const { t } = useI18n();
 
-  const form = useForm<z.infer<typeof serviceTypeFormSchema>>({
+  const form = useForm<ServiceTypeFormValues>({
     resolver: zodResolver(serviceTypeFormSchema),
     defaultValues: {
       name: '',
@@ -107,6 +122,22 @@ export default function PricingServiceTypesTab() {
       if (Array.isArray(data)) {
         console.log('Service types fetched:', data);
         setServiceTypes(data);
+
+        // Fetch categories (needed for descriptions)
+        try {
+          const catRes = await fetch(`/api/pricing/categories?active_only=false`, {
+            method: 'GET',
+            cache: 'no-store',
+          });
+          if (catRes.ok) {
+            const catData: PricingCategory[] = await catRes.json();
+            setCategories(catData);
+          } else {
+            console.error('Failed to fetch pricing categories');
+          }
+        } catch (catErr) {
+          console.error('Error fetching categories', catErr);
+        }
       } else {
         console.error('Expected array but got:', data);
         setServiceTypes([]); // Reset to empty array on invalid data
@@ -160,7 +191,7 @@ export default function PricingServiceTypesTab() {
     setDeleteDialogOpen(true);
   };
 
-  const handleSubmit = async (values: z.infer<typeof serviceTypeFormSchema>) => {
+  const handleSubmit = async (values: ServiceTypeFormValues) => {
     setIsSubmitting(true);
     try {
       const url = editingServiceType
@@ -246,27 +277,37 @@ export default function PricingServiceTypesTab() {
     }
   };
 
+  const getCategoryDescription = (serviceTypeId: string): string => {
+    const cat = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceTypeId));
+    return cat?.description || cat?.name || 'N/A';
+  };
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-medium">Service Types</h2>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={refreshServiceTypes}
-            disabled={isLoading || isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Service Type
-          </Button>
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Service Types</CardTitle>
+            <CardDescription>Manage the individual service types for your pricing.</CardDescription>
+          </div>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={refreshServiceTypes}
+              disabled={isLoading || isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Service Type
+            </Button>
+          </div>
         </div>
-      </div>
-      
+      </CardHeader>
+      <CardContent>
       {isLoading && !isRefreshing ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -293,15 +334,14 @@ export default function PricingServiceTypesTab() {
               {serviceTypes.map((serviceType) => (
                 <TableRow key={serviceType.id}>
                   <TableCell className="font-medium">{serviceType.name}</TableCell>
-                  <TableCell>{serviceType.description || 'N/A'}</TableCell>
+                  <TableCell>{getCategoryDescription(serviceType.id)}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      serviceType.is_active 
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300'
-                    }`}>
-                      {serviceType.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    <Badge
+                      variant="outline"
+                      className={cn('text-xs', getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive'))}
+                    >
+                      {serviceType.is_active ? t('common.status.active') : t('common.status.inactive')}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
@@ -449,6 +489,7 @@ export default function PricingServiceTypesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </CardContent>
+    </Card>
   );
 } 

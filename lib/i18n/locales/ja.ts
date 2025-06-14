@@ -1798,13 +1798,15 @@ export const ja: TranslationValue = {
       assigned: "割り当て済み"
     },
     filters: {
-      statusPlaceholder: "ステータスで絞り込み",
+      status: "ステータス",
       all: "すべて",
-      pending: "保留中",
       confirmed: "確定済み",
-      completed: "完了",
+      assigned: "割り当て済み",
+      pending: "保留中",
       cancelled: "キャンセル済み",
-      advancedFilters: "詳細フィルター",
+      completed: "完了",
+      statusPlaceholder: "ステータスで絞り込み...",
+      advancedFilters: "高度なフィルター",
       clearFilters: "フィルターをクリア"
     },
     upcomingBookings: {
@@ -3266,6 +3268,7 @@ export const ja: TranslationValue = {
     promotions: {
       title: "プロモーション",
       description: "プロモーションコードと割引を管理します",
+      create: "プロモーションを作成",
       createSuccess: "プロモーションが正常に作成されました",
       createSuccessDescription: "新しいプロモーションが追加されました",
       createError: "プロモーションの作成に失敗しました",
@@ -3279,6 +3282,7 @@ export const ja: TranslationValue = {
     packages: {
       title: "パッケージ",
       description: "パッケージディールとバンドルを管理します",
+      addPackage: "パッケージを追加",
       createSuccess: "パッケージが正常に作成されました",
       createSuccessDescription: "新しいパッケージが追加されました",
       createError: "パッケージの作成に失敗しました",

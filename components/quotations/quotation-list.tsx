@@ -43,6 +43,7 @@ import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationStatusFilter } from './quotation-status-filter';
 import { cn } from '@/lib/utils';
+import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -187,6 +188,13 @@ export default function QuotationList({
     const hoursUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     
     return hoursUntilExpiry <= 24 && hoursUntilExpiry > 0;
+  };
+
+  const getFinalStatus = (quotation: Quotation): QuotationStatus => {
+    if ((quotation.status === 'draft' || quotation.status === 'sent') && isExpired(quotation)) {
+      return 'expired';
+    }
+    return quotation.status;
   };
 
   // Get status badge
@@ -384,7 +392,14 @@ export default function QuotationList({
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-mono text-xs">#{quotation.quote_number}</div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(quotation.status, quotation)}
+                      {(() => {
+                        const finalStatus = getFinalStatus(quotation);
+                        return (
+                          <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
+                            {t(`quotations.status.${finalStatus}`)}
+                          </Badge>
+                        );
+                      })()}
                       {needsReminder(quotation) && (
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                           <AlertCircleIcon className="h-3 w-3 mr-1" />
@@ -521,7 +536,14 @@ export default function QuotationList({
                       {formatCurrency(quotation.total_amount || quotation.amount || 0, quotation.currency || 'JPY')}
                     </TableCell>
                     <TableCell className="text-left">
-                      {getStatusBadge(quotation.status, quotation)}
+                      {(() => {
+                        const finalStatus = getFinalStatus(quotation);
+                        return (
+                          <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
+                            {t(`quotations.status.${finalStatus}`)}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-left">
                       <div className="flex flex-col items-start gap-1">

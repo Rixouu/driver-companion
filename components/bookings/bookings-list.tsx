@@ -76,17 +76,21 @@ const ITEMS_PER_PAGE = 10
 
 // Function to generate consistent status badge styling
 function getStatusBadgeClasses(status: string): string {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/60 dark:text-green-200 dark:border-green-800';
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/60 dark:text-yellow-200 dark:border-yellow-800';
-    case 'cancelled':
-      return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/60 dark:text-red-200 dark:border-red-800';
+  switch (status?.toLowerCase()) {
     case 'completed':
-      return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/60 dark:text-blue-200 dark:border-blue-800';
+    case 'confirmed':
+      return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+    case 'pending':
+      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+    case 'cancelled':
+    case 'canceled':
+    case 'trash':
+    case 'draft':
+      return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+    case 'assigned':
+      return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/60 dark:text-gray-200 dark:border-gray-800';
+      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
   }
 }
 

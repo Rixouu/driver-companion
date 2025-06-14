@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { 
   Dialog, 
   DialogContent, 
@@ -28,6 +29,7 @@ import { Plus, Edit, Trash, Check, X, Filter, Search } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "@/components/ui/use-toast";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 
 // Utility functions
 // const getVehicleTypes = () => ["Sedan", "Van", "Minibus", "Bus", "Coach"]; // Removed as per requirement
@@ -74,6 +76,7 @@ export default function PricingItemsTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<string>("all");
+  const [selectedServiceType, setSelectedServiceType] = useState<string>("all");
   // const [selectedVehicleType, setSelectedVehicleType] = useState<string>("all"); // Removed
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -162,6 +165,7 @@ export default function PricingItemsTab() {
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
+    setSelectedServiceType("all");
   };
 
   const handleOpenDialog = (item?: Partial<PricingItem>) => {
@@ -334,10 +338,10 @@ export default function PricingItemsTab() {
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesDuration = selectedDuration === "all" || item.duration_hours === parseInt(selectedDuration);
-      // const matchesVehicleType = selectedVehicleType === "all" || item.vehicle_type === selectedVehicleType; // Removed
-      return matchesDuration; // && matchesVehicleType; // Removed
+      const matchesServiceType = selectedServiceType === "all" || item.service_type_id === selectedServiceType;
+      return matchesDuration && matchesServiceType;
     });
-  }, [items, selectedDuration]); // selectedVehicleType removed
+  }, [items, selectedDuration, selectedServiceType]);
 
   const priceTable = useMemo<PriceTableData>(() => {
     if (filteredItems.length === 0 || activeServiceTypesForTable.length === 0) return { durations: [], serviceTypes: [], groupedRows: [] };
@@ -397,24 +401,50 @@ export default function PricingItemsTab() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2 text-muted-foreground" /> 
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center">
+            <Filter className="h-5 w-5 mr-2 text-muted-foreground" />
             {t("pricing.items.filters.title")}
-          </CardTitle>
+          </div>
+          <Button onClick={() => handleOpenDialog()} size="sm" disabled={!selectedCategory}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t("pricing.items.buttons.addItemToCategory", { categoryName: currentCategoryName || "..." })}
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
+            <div>
+              <Label htmlFor="service-type-select" className="text-sm font-medium mb-1 block">{t("quotations.form.services.serviceType")}</Label>
+              <Select
+                value={selectedServiceType}
+                onValueChange={setSelectedServiceType}
+                disabled={!selectedCategory}
+              >
+                <SelectTrigger id="service-type-select">
+                  <SelectValue placeholder={t("quotations.form.services.serviceType")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
+                  {activeServiceTypesForTable.map(st => (
+                    <SelectItem key={st.id} value={st.id}>
+                      {st.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="pricing-category-select" className="text-sm font-medium mb-1 block">{t("pricing.items.filters.categoryLabel")}</Label>
               <Select
-                value={selectedCategory || ""}
-                onValueChange={handleCategoryChange}
+                value={selectedCategory ?? "all"}
+                onValueChange={(val) => handleCategoryChange(val === "all" ? null : val)}
               >
                 <SelectTrigger id="pricing-category-select">
                   <SelectValue placeholder={t("pricing.items.filters.categoryPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
                   {categories.length > 0 ? (
                     categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
@@ -426,9 +456,6 @@ export default function PricingItemsTab() {
                   )}
                 </SelectContent>
               </Select>
-              {!selectedCategory && categories.length > 0 && (
-                 <p className="text-xs text-muted-foreground mt-1">{t("pricing.items.filters.selectCategoryPrompt")}</p>
-              )}
             </div>
 
             <div>
@@ -448,28 +475,9 @@ export default function PricingItemsTab() {
                       {t("pricing.items.durations.hours", { count: duration })}
                     </SelectItem>
                   ))}
-                  {/* Add option for custom duration if needed */}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Vehicle Select Removed */}
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t mt-4">
-            <div className="flex gap-2 mb-3 sm:mb-0">
-              {/* <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                More filters
-              </Button>
-              <Button variant="outline" size="sm">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button> */} 
-            </div>
-            <Button onClick={() => handleOpenDialog()} size="sm" disabled={!selectedCategory} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" /> {t("pricing.items.buttons.addItemToCategory", { categoryName: currentCategoryName || '...' })}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -509,22 +517,23 @@ export default function PricingItemsTab() {
                     {item.currency} {item.price.toLocaleString(undefined, { style: 'currency', currency: item.currency, minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col items-center">
-                      <span
-                        className={`font-semibold cursor-pointer hover:underline ${item.is_active ? '' : 'text-red-500 line-through'}`}
-                        onClick={() => handleOpenDialog(item)}
-                      >
-                        {item.is_active ? t('pricing.items.active') : t('pricing.items.inactive')}
-                      </span>
-                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-xs", getStatusBadgeClasses(item.is_active ? 'active' : 'inactive'))}
+                    >
+                      {item.is_active ? t('common.status.active') : t('common.status.inactive')}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openStatusConfirm(item)}>
-                        {item.is_active ? 'Deactivate' : 'Activate'}
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openStatusConfirm(item)}>
+                        {item.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => openDeleteConfirm(item.id)}>
-                        Delete
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(item)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => openDeleteConfirm(item.id)}>
+                        <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

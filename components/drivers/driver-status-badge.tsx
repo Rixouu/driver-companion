@@ -5,46 +5,32 @@ import { useI18n } from "@/lib/i18n/context"
 
 interface DriverStatusBadgeProps {
   status: string;
-  isBooking?: boolean;
-  notes?: string;
 }
 
-export function DriverStatusBadge({ status, isBooking, notes }: DriverStatusBadgeProps) {
+export function DriverStatusBadge({ status }: DriverStatusBadgeProps) {
   const { t } = useI18n()
-  
-  // Check if it's a booking based on notes or explicit flag
-  const isBookingStatus = isBooking || (notes?.includes('Assigned to booking'));
 
-  const getVariant = () => {
-    // If it's a booking, use a custom "booking" variant
-    if (isBookingStatus) {
-      return "booking";
-    }
-    
+  const getStatusClasses = () => {
     switch (status?.toLowerCase()) {
-      case "available":
-      case "active": // For backward compatibility
-        return "success"
-      case "unavailable":
-      case "inactive": // For backward compatibility
-        return "destructive"
-      case "leave":
-      case "on_leave": // For backward compatibility
-        return "warning"
-      case "training":
-        return "info"
+      case 'available':
+      case 'active':
+        return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      case 'unavailable':
+      case 'inactive':
+        return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      case 'leave':
+      case 'on_leave':
+        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      case 'training':
+        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+      case 'booking':
+        return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700';
       default:
-        return "secondary"
+        return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
     }
   }
 
-  // Map old status values to new ones for translation
   const getTranslationKey = () => {
-    // If it's a booking, return "Booking"
-    if (isBookingStatus) {
-      return "booking";
-    }
-    
     switch (status?.toLowerCase()) {
       case "active":
         return "available"
@@ -57,22 +43,12 @@ export function DriverStatusBadge({ status, isBooking, notes }: DriverStatusBadg
     }
   }
 
-  // Add inline styles for the "booking" variant which might not be defined in the Badge component
-  const getCustomStyles = () => {
-    if (getVariant() === "booking") {
-      return "bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200";
-    }
-    return "";
-  }
-
   return (
     <Badge 
-      variant={getVariant() as any}
-      className={getCustomStyles()}
+      variant="outline"
+      className={getStatusClasses()}
     >
-      {isBookingStatus 
-        ? t("common.booking") 
-        : t(`drivers.status.${getTranslationKey()}`)}
+      {t(`drivers.status.${getTranslationKey()}` as any, { defaultValue: status })}
     </Badge>
   );
 }

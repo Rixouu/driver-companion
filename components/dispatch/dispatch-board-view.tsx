@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DispatchEntryWithRelations, DispatchStatus } from "@/types/dispatch";
-import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, PhoneIcon, MoreVerticalIcon, EditIcon, EyeIcon, UserXIcon, Zap } from "lucide-react";
+import { CalendarIcon, ClockIcon, UserIcon, CarIcon, MapPinIcon, PhoneIcon, MoreVerticalIcon, EditIcon, EyeIcon, UserXIcon, Zap, CheckIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils/styles";
 import { Driver } from "@/types/drivers";
@@ -31,6 +31,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
+import SidePanelDetails from "./side-panel-details";
 
 interface DispatchBoardViewProps {
   entries: DispatchEntryWithRelations[];
@@ -100,6 +102,7 @@ function DispatchCard({
 }) {
   const formattedTime = format(parseISO(entry.start_time), "HH:mm");
   const router = useRouter();
+  const { unassignResources } = useSharedDispatchState();
   const isAssigned = entry.driver_id && entry.vehicle_id;
   
   const handleQuickAssign = (e: React.MouseEvent) => {
@@ -119,10 +122,14 @@ function DispatchCard({
     router.push(`/bookings/${entry.booking.id}/edit`);
   };
 
-  const handleUnassign = (e: React.MouseEvent) => {
+  const handleUnassign = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onUnassign) {
-      onUnassign(entry.id);
+    if (entry.booking?.id) {
+      await unassignResources(entry.id, entry.booking.id);
+      toast({
+        title: "Unassigned",
+        description: "Booking has been returned to pending status."
+      });
     }
   };
   
@@ -208,7 +215,7 @@ function DispatchCard({
                       Quick Assign
                     </DropdownMenuItem>
                   )}
-                  {isAssigned && onUnassign && (
+                  {isAssigned && (
                     <DropdownMenuItem onClick={handleUnassign}>
                       <UserXIcon className="h-4 w-4 mr-2" />
                       Unassign All
@@ -272,129 +279,6 @@ function Column({ title, status, entries, count, emptyMessage, onCardClick, onQu
   );
 }
 
-function DispatchDetailsPanel({ 
-  entry, 
-  onAssignDriver, 
-  onAssignVehicle, 
-  onUnassignVehicle,
-  availableDrivers = [],
-  availableVehicles = []
-}: {
-  entry: DispatchEntryWithRelations;
-  onAssignDriver?: (dispatchId: string, driverId: string) => void;
-  onAssignVehicle?: (dispatchId: string, vehicleId: string) => void;
-  onUnassignVehicle?: (dispatchId: string) => void;
-  availableDrivers?: Driver[];
-  availableVehicles?: Vehicle[];
-}) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const formattedDate = format(parseISO(entry.start_time), "MMM d, yyyy");
-  const formattedTime = format(parseISO(entry.start_time), "HH:mm");
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">
-            #{entry.booking.wp_id || entry.booking.id.substring(0, 8)}
-          </h2>
-          <Badge className={cn("text-sm", getStatusBadgeStyle(entry.status))}>
-            {entry.status.replace('_', ' ')}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {formattedDate} at {formattedTime}
-        </p>
-      </div>
-
-      {/* Customer Info */}
-      <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Customer Information</h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-foreground">{entry.booking.customer_name || "Unknown Customer"}</span>
-          </div>
-          {entry.booking.customer_phone && (
-            <div className="flex items-center gap-2">
-              <PhoneIcon className="h-4 w-4 text-muted-foreground" />
-              <a 
-                href={`tel:${entry.booking.customer_phone}`}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {entry.booking.customer_phone}
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Service Details */}
-      <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Service Details</h3>
-        <div className="space-y-2">
-          <p className="text-sm text-foreground">{entry.booking.service_name || "Vehicle Service"}</p>
-          {entry.booking.pickup_location && (
-            <div className="flex items-start gap-2">
-              <MapPinIcon className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">From:</p>
-                <p className="text-sm text-foreground">{entry.booking.pickup_location}</p>
-              </div>
-            </div>
-          )}
-          {entry.booking.dropoff_location && (
-            <div className="flex items-start gap-2">
-              <MapPinIcon className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">To:</p>
-                <p className="text-sm text-foreground">{entry.booking.dropoff_location}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">Actions</h3>
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => router.push(`/bookings/${entry.booking.id}`)}
-          >
-            <EyeIcon className="h-4 w-4 mr-2" />
-            View Full Details
-          </Button>
-          
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => router.push(`/bookings/${entry.booking.id}/edit`)}
-          >
-            <EditIcon className="h-4 w-4 mr-2" />
-            Edit Booking
-          </Button>
-
-          {entry.booking.customer_phone && (
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => window.open(`tel:${entry.booking.customer_phone}`)}
-            >
-              <PhoneIcon className="h-4 w-4 mr-2" />
-              Call Customer
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function DispatchBoardView({ 
   entries,
   onAssignDriver,
@@ -444,7 +328,7 @@ export default function DispatchBoardView({
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-4 lg:grid-cols-5 gap-4 h-full overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full overflow-visible">
           <Column
             title="Pending"
             status="pending"
@@ -505,13 +389,9 @@ export default function DispatchBoardView({
           </SheetHeader>
           {selectedEntry && (
             <div className="mt-6">
-              <DispatchDetailsPanel
+              <SidePanelDetails
                 entry={selectedEntry}
-                onAssignDriver={onAssignDriver}
-                onAssignVehicle={onAssignVehicle}
-                onUnassignVehicle={onUnassignVehicle}
-                availableDrivers={availableDrivers}
-                availableVehicles={availableVehicles}
+                onUnassign={() => onUnassignVehicle?.(selectedEntry.id)}
               />
             </div>
           )}

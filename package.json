@@ -73,6 +73,8 @@
     "@react-spring/web": "^9.7.5",
     "@sentry/nextjs": "^9.22.0",
     "@sparticuz/chromium": "^133.0.0",
+    "@stagewise-plugins/react": "^0.4.7",
+    "@stagewise/toolbar-next": "^0.4.7",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/ssr": "^0.6.1",
@@ -147,7 +149,6 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.8.0",
-    "@stagewise/toolbar": "^0.3.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

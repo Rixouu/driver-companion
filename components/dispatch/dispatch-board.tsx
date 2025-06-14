@@ -210,7 +210,9 @@ export default function DispatchBoard() {
           .from('dispatch_entries')
           .select(`
             *,
-            booking:bookings(*)
+            booking:bookings(*),
+            driver:drivers(*),
+            vehicle:vehicles(*)
           `)
           .order('created_at', { ascending: false });
 
@@ -230,7 +232,9 @@ export default function DispatchBoard() {
         // Process and combine the data
         const mappedEntries = dispatchData?.map(entry => ({
           ...entry,
-          booking: entry.booking
+          booking: entry.booking,
+          driver: entry.driver,
+          vehicle: entry.vehicle
         })) || [];
         
         const dispatchEntries = createDispatchEntriesFromBookings(mappedBookings, mappedEntries);
@@ -278,7 +282,9 @@ export default function DispatchBoard() {
       if (existingEntry) {
         return {
           ...existingEntry,
-          booking: booking
+          booking: booking,
+          driver: existingEntry.driver,
+          vehicle: existingEntry.vehicle
         };
       }
       
@@ -313,7 +319,9 @@ export default function DispatchBoard() {
         end_time: endTimeDate.toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        booking: booking
+        booking: booking,
+        driver: null,
+        vehicle: null
       };
     });
   };

@@ -371,8 +371,22 @@ export default function DispatchMap({
   return (
     <div className={cn("relative h-full", className)}>
       {/* Map Controls */}
-      <div className="absolute top-4 left-4 z-10 space-y-2">
-        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 space-y-2">
+        {/* Map Status */}
+        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              isTracking ? "bg-green-500" : "bg-gray-400"
+            )} />
+            <span>{isTracking ? t('dispatch.mapView.liveTracking') : t('dispatch.mapView.offline')}</span>
+            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/30">
+              {markers.filter(m => m.type === 'vehicle').length} vehicles
+            </Badge>
+          </div>
+        </div>
+        
+        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -403,9 +417,9 @@ export default function DispatchMap({
           </div>
         </div>
 
-        <div className="border-2 border-primary/20 rounded-lg p-3 backdrop-blur-sm">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+        <div className="border-2 border-primary/20 rounded-lg p-2 sm:p-3 backdrop-blur-sm bg-background/90">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-2">
               <Label htmlFor="traffic" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.traffic')}</Label>
               <Switch
                 id="traffic"
@@ -416,7 +430,7 @@ export default function DispatchMap({
               />
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label htmlFor="vehicles" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.vehicles')}</Label>
               <Switch
                 id="vehicles"
@@ -427,7 +441,7 @@ export default function DispatchMap({
               />
             </div>
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label htmlFor="routes" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.routes')}</Label>
               <Switch
                 id="routes"
@@ -438,7 +452,7 @@ export default function DispatchMap({
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label htmlFor="auto-center" className="text-sm font-medium text-foreground dark:text-foreground">{t('dispatch.mapView.autoCenter')}</Label>
               <Switch
                 id="auto-center"
@@ -453,7 +467,7 @@ export default function DispatchMap({
 
         {/* Route Controls */}
         {selectedRoute && (
-          <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
+          <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm bg-background/90">
             <Button
               variant="outline"
               size="sm"
@@ -472,22 +486,6 @@ export default function DispatchMap({
             </Button>
           </div>
         )}
-      </div>
-
-      {/* Map Status */}
-      <div className="absolute top-4 right-4 z-10">
-        <div className="border-2 border-primary/20 rounded-lg p-2 backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              isTracking ? "bg-green-500" : "bg-gray-400"
-            )} />
-            <span>{isTracking ? t('dispatch.mapView.liveTracking') : t('dispatch.mapView.offline')}</span>
-            <Badge variant="outline" className="bg-background/90 backdrop-blur-sm border-primary/30">
-              {markers.filter(m => m.type === 'vehicle').length} vehicles
-            </Badge>
-          </div>
-        </div>
       </div>
 
       {/* Google Map */}

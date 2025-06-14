@@ -39,7 +39,9 @@ import {
   ListIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  FilterIcon
+  FilterIcon,
+  PanelLeftOpenIcon,
+  PanelLeftCloseIcon
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { toast } from '@/components/ui/use-toast';
@@ -51,6 +53,14 @@ import { DispatchEntryWithRelations, DispatchStatus } from '@/types/dispatch';
 import DispatchMap from './dispatch-map';
 import DispatchBoardView from './dispatch-board-view';
 import { useRouter } from 'next/navigation';
+import { useMediaQuery } from '@/lib/hooks/use-media-query';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface BookingListItemProps {
   booking: any;
@@ -160,6 +170,88 @@ function BookingListItem({ booking, isSelected, isExpanded, onClick, onToggleExp
   );
 }
 
+function SidebarContent({ assignments, selectedBookingId, onBookingSelect, onToggleExpand, expandedCards }: any) {
+  const [sidebarFilter, setSidebarFilter] = useState<'all' | 'pending' | 'assigned' | 'confirmed' | 'en_route' | 'completed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+
+  // Convert assignments to bookings for the sidebar, ensuring unique entries
+  const allBookings = assignments
+    .filter((a: any) => a.booking)
+    .reduce((unique: any[], assignment: any) => {
+      const booking = assignment.booking!;
+      if (!unique.find(b => b.id === booking.id)) {
+        unique.push({ ...booking, status: assignment.status }); // Use dispatch status
+      }
+      return unique;
+    }, [] as any[]);
+
+  // Filter bookings based on search and status filter
+  const bookings = allBookings.filter((booking: any) => {
+    const matchesSearch = !searchQuery || 
+      booking.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.wp_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.service_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = sidebarFilter === 'all' || booking.status === sidebarFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  return (
+    <div className="bg-background flex flex-col h-full">
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Today's Bookings</h3>
+          <Badge variant="secondary">{bookings.length} / {allBookings.length}</Badge>
+        </div>
+        
+        <div className="relative mb-3">
+          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search bookings..."
+            className="pl-8 h-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Select value={sidebarFilter} onValueChange={(value: any) => setSidebarFilter(value)}>
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="confirmed">Confirmed</SelectItem>
+              <SelectItem value="en_route">En Route</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <div className="flex-1 overflow-auto">
+        <div className="space-y-1 p-2">
+          {bookings.map((booking: any) => (
+            <BookingListItem
+              key={booking.id}
+              booking={booking}
+              isSelected={selectedBookingId === booking.id}
+              isExpanded={expandedCards.has(booking.id)}
+              onClick={() => onBookingSelect(booking)}
+              onToggleExpand={() => onToggleExpand(booking.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }: {
   assignments: DispatchEntryWithRelations[];
   onAssignmentSelect: (assignment: DispatchEntryWithRelations) => void;
@@ -167,16 +259,13 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
 }) {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [sidebarFilter, setSidebarFilter] = useState<'all' | 'pending' | 'assigned' | 'confirmed' | 'en_route' | 'completed'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [selectedAssignment, setSelectedAssignment] = useState<DispatchEntryWithRelations | null>(null);
-  const router = useRouter();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const handleBookingSelect = (booking: any) => {
     if (!booking) return;
     setSelectedBookingId(booking.id);
-    // Find the assignment and trigger route display
     const assignment = assignments.find(a => a.booking_id === booking.id);
     if (assignment) {
       setSelectedAssignment(assignment);
@@ -191,139 +280,72 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
   const toggleCardExpansion = (bookingId: string) => {
     setExpandedCards(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(bookingId)) {
-        newSet.delete(bookingId);
-      } else {
-        newSet.add(bookingId);
-      }
+      if (newSet.has(bookingId)) newSet.delete(bookingId);
+      else newSet.add(bookingId);
       return newSet;
     });
   };
 
-  // Convert assignments to bookings for the sidebar, ensuring unique entries
-  const allBookings = assignments
-    .filter(a => a.booking)
-    .reduce((unique, assignment) => {
-      const booking = assignment.booking!;
-      if (!unique.find(b => b.id === booking.id)) {
-        unique.push({ ...booking, status: assignment.status }); // Use dispatch status
-      }
-      return unique;
-    }, [] as any[]);
+  const sidebarProps = {
+    assignments,
+    selectedBookingId,
+    onBookingSelect: handleBookingSelect,
+    expandedCards,
+    onToggleExpand: toggleCardExpansion,
+  };
 
-  // Filter bookings based on search and status filter
-  const bookings = allBookings.filter(booking => {
-    const matchesSearch = !searchQuery || 
-      booking.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.wp_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.service_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesFilter = sidebarFilter === 'all' || booking.status === sidebarFilter;
-    
-    return matchesSearch && matchesFilter;
-  });
-
-  return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      {showSidebar && (
-        <div className="w-80 border-r bg-background flex flex-col">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Today's Bookings</h3>
-              <Badge variant="secondary">{bookings.length} / {allBookings.length}</Badge>
-            </div>
-            
-            {/* Search */}
-            <div className="relative mb-3">
-              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search bookings..."
-                className="pl-8 h-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* Filter */}
-            <div className="mb-3">
-              <Select value={sidebarFilter} onValueChange={(value: any) => setSidebarFilter(value)}>
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="assigned">Assigned</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="en_route">En Route</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1"
-                onClick={() => router.push('/dispatch/assignments')}
-              >
-                <SettingsIcon className="h-4 w-4 mr-1" />
-                Assignments
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowSidebar(false)}
-                title="Hide Panel"
-              >
-                <ChevronRightIcon className="h-4 w-4" />
-              </Button>
-            </div>
+  if (isDesktop) {
+    return (
+      <div className="flex h-full">
+        {showSidebar && (
+          <div className="w-80 border-r bg-background flex flex-col">
+            <SidebarContent {...sidebarProps} />
           </div>
-          
-          <div className="flex-1 overflow-auto">
-            <div className="space-y-1 p-2">
-              {bookings.map((booking) => (
-                <BookingListItem
-                  key={booking.id}
-                  booking={booking}
-                  isSelected={selectedBookingId === booking.id}
-                  isExpanded={expandedCards.has(booking.id)}
-                  onClick={() => handleBookingSelect(booking)}
-                  onToggleExpand={() => toggleCardExpansion(booking.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Map */}
-      <div className="flex-1 relative">
-        {!showSidebar && (
+        )}
+        <div className="flex-1 relative">
           <Button
             size="sm"
             variant="outline"
-            className="absolute bottom-4 left-4 z-20 bg-white/90 backdrop-blur-sm border-2 dark:bg-gray-900/90 shadow-lg"
-            onClick={() => setShowSidebar(true)}
-            title="Show Panel"
+            className="absolute top-4 left-4 z-20 bg-background/90 backdrop-blur-sm"
+            onClick={() => setShowSidebar(prev => !prev)}
           >
-            <ListIcon className="h-4 w-4 mr-1" />
-            Show List
+            {showSidebar ? <PanelLeftCloseIcon className="h-4 w-4" /> : <PanelLeftOpenIcon className="h-4 w-4" />}
           </Button>
-        )}
-        
-        <DispatchMap
-          assignments={assignments}
-          selectedAssignment={selectedAssignment}
-          onAssignmentSelect={onAssignmentSelect}
-          onVehicleSelect={onVehicleSelect}
-          className="h-full"
-        />
+          <DispatchMap
+            assignments={assignments}
+            selectedAssignment={selectedAssignment}
+            onAssignmentSelect={onAssignmentSelect}
+            onVehicleSelect={onVehicleSelect}
+            className="h-full"
+          />
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="h-full relative">
+      <DispatchMap
+        assignments={assignments}
+        selectedAssignment={selectedAssignment}
+        onAssignmentSelect={onAssignmentSelect}
+        onVehicleSelect={onVehicleSelect}
+        className="h-full"
+      />
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button
+            variant="outline"
+            className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 shadow-lg"
+          >
+            <ListIcon className="h-4 w-4 mr-2" />
+            Show Bookings
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="h-[60%] flex flex-col p-0">
+           <SidebarContent {...sidebarProps} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -350,6 +372,8 @@ export default function RealTimeDispatchCenter() {
         .from('dispatch_entries')
         .select(`
           *,
+          driver:drivers(*),
+          vehicle:vehicles(*),
           booking:bookings(
             *,
             driver:drivers(id, first_name, last_name, email, phone, profile_image_url),
@@ -512,70 +536,85 @@ export default function RealTimeDispatchCenter() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur">
-        <div className="flex h-14 items-center px-4 gap-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold">Real-Time Dispatch Center</h1>
+      <div className="border-b bg-background/95 backdrop-blur p-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex items-center gap-3 mr-auto self-start md:self-center">
+            <h1 className="text-lg font-semibold whitespace-nowrap">Real-Time Dispatch Center</h1>
             <Badge variant="outline" className="text-xs">
               {assignments.length} assignments
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center rounded-md border p-0.5 w-full sm:w-auto">
+              <Button
+                variant={activeView === 'board' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('board')}
+                className="flex-1"
+              >
+                <Grid3X3Icon className="h-4 w-4 mr-2" />
+                Board
+              </Button>
+              <Button
+                variant={activeView === 'map' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('map')}
+                className="flex-1"
+              >
+                <MapIcon className="h-4 w-4 mr-2" />
+                Map
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/dispatch/assignments')}
+                className="flex-1"
+              >
+                <ListIcon className="h-4 w-4 mr-2" />
+                Assignments
+              </Button>
+            </div>
+            
+            <div className="relative w-full sm:w-auto">
               <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search assignments..."
-                className="w-[250px] pl-8"
+                placeholder="Search..."
+                className="w-full sm:w-40 md:w-auto pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DispatchStatus | 'all')}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="en_route">En Route</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center rounded-md border">
-              <Button
-                variant={activeView === 'board' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('board')}
-                className="rounded-r-none"
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex-grow">
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as DispatchStatus | 'all')}>
+                  <SelectTrigger className="w-full">
+                    <FilterIcon className="h-3 w-3 mr-2" />
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="en_route">En Route</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={loadDispatchData}
+                disabled={isLoading}
+                className="whitespace-nowrap"
               >
-                <Grid3X3Icon className="h-4 w-4 mr-1" />
-                Board
-              </Button>
-              <Button
-                variant={activeView === 'map' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveView('map')}
-                className="rounded-l-none"
-              >
-                <MapIcon className="h-4 w-4 mr-1" />
-                Map
+                <RefreshCwIcon className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                Refresh
               </Button>
             </div>
-
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={loadDispatchData}
-              disabled={isLoading}
-            >
-              <RefreshCwIcon className={cn("h-4 w-4", isLoading && "animate-spin")} />
-            </Button>
           </div>
         </div>
       </div>
@@ -588,6 +627,7 @@ export default function RealTimeDispatchCenter() {
               entries={filteredAssignments}
               onStatusChange={handleUpdateStatus}
               onUnassign={handleUnassign}
+              onUnassignVehicle={handleUnassign}
             />
           </div>
         ) : (
@@ -606,24 +646,6 @@ export default function RealTimeDispatchCenter() {
             }}
           />
         )}
-      </div>
-
-      {/* Status Bar */}
-      <div className="border-t bg-background/95 backdrop-blur">
-        <div className="flex h-8 items-center px-4 text-xs text-muted-foreground">
-          <span>Last updated: {format(lastRefresh, 'HH:mm:ss')}</span>
-          <div className="ml-auto flex items-center gap-4">
-            <span>{filteredAssignments.length} assignments</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/dispatch/assignments')}
-              className="h-6 text-xs"
-            >
-              Manage Assignments
-            </Button>
-          </div>
-        </div>
       </div>
     </div>
   );

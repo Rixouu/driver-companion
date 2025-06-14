@@ -132,6 +132,7 @@ export function useSharedDispatchState() {
 
       // Broadcast update
       broadcastUpdate('assignment_update', { dispatchId, driverId, vehicleId, bookingId });
+      forceRefresh();
       
       return true;
     } catch (error) {
@@ -142,8 +143,20 @@ export function useSharedDispatchState() {
 
   // Unassign resources
   const unassignResources = useCallback(async (dispatchId: string, bookingId?: string) => {
-    return updateAssignment(dispatchId, null, null, bookingId);
-  }, [updateAssignment]);
+    try {
+      // Explicitly set status to pending on unassignment
+      await updateAssignment(dispatchId, null, null, bookingId);
+      await updateDispatchStatus(dispatchId, 'pending', bookingId);
+      
+      broadcastUpdate('unassign', { dispatchId, bookingId });
+      forceRefresh();
+      
+      return true;
+    } catch (error) {
+      console.error('Error unassigning resources:', error);
+      throw error;
+    }
+  }, [updateAssignment, updateDispatchStatus, broadcastUpdate, forceRefresh]);
 
   // Listen for updates from other components
   useEffect(() => {

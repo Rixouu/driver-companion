@@ -3825,6 +3825,70 @@ export const en: TranslationValue = {
         estimatedTime: "Estimated Time"
       }
     }
+  },
+  board: {
+    view: "Board View",
+    title: "Dispatch Board",
+    pending: "Pending",
+    confirmed: "Confirmed",
+    assigned: "Assigned",
+    enRoute: "En Route",
+    arrived: "Arrived",
+    inProgress: "In Progress",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    addEntry: "Add Assignment"
+  },
+  notificationOptions: {
+    title: "Notification Options",
+    description: "Choose how to notify assigned resources",
+    emailNotification: "Email Notification",
+    emailDescription: "Send email to driver and customer",
+    pushNotification: "Push Notification", 
+    pushDescription: "Send push notification to driver's mobile app",
+    smsNotification: "SMS Notification",
+    smsDescription: "Send SMS to driver's phone",
+    includeCustomer: "Include Customer",
+    customerDescription: "Send confirmation to customer",
+    customMessage: "Custom Message",
+    customMessagePlaceholder: "Add a custom message (optional)"
+  },
+  mapView: {
+    title: "Map View",
+    showList: "Show List",
+    hideList: "Hide List",
+    todaysBookings: "Today's Bookings", 
+    manage: "Assignments",
+    manageAssignments: "Manage Assignments",
+    satellite: "Satellite",
+    roadmap: "Roadmap",
+    hybrid: "Hybrid",
+    terrain: "Terrain",
+    traffic: "Traffic",
+    vehicles: "Vehicles",
+    routes: "Routes",
+    autoCenter: "Auto Center",
+    hideTraffic: "Hide Traffic",
+    centerMap: "Center Map",
+    fullscreen: "Fullscreen",
+    exitFullscreen: "Exit Fullscreen",
+    zoomIn: "Zoom In",
+    zoomOut: "Zoom Out",
+    togglePanel: "Toggle Panel",
+    expandPanel: "Expand Panel",
+    collapsePanel: "Collapse Panel",
+    showRoute: "Show Route",
+    hideRoute: "Hide Route",
+    liveTracking: "Live Tracking",
+    offline: "Offline"
+  },
+  boardView: {
+    title: "Board View",
+    pending: "Pending",
+    assigned: "Assigned",
+    confirmed: "Confirmed",
+    completed: "Completed",
+    cancelled: "Cancelled"
   }
 }
 

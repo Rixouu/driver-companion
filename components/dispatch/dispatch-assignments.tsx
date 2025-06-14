@@ -40,7 +40,6 @@ import {
   ClockIcon,
   MapPinIcon,
   PhoneIcon,
-  ArrowLeftIcon,
   CheckIcon,
   XIcon,
   MoreVerticalIcon,
@@ -55,7 +54,8 @@ import {
   Clock,
   Edit,
   Eye,
-  UserX
+  UserX,
+  Grid3X3Icon,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "@/components/ui/use-toast";
@@ -64,6 +64,8 @@ import { format, parseISO } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/styles";
 import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
+import { DispatchStatus } from "@/types/dispatch";
+import SidePanelDetails from "./side-panel-details";
 
 interface BookingWithRelations {
   id: string;
@@ -77,9 +79,10 @@ interface BookingWithRelations {
   pickup_location?: string;
   dropoff_location?: string;
   status: string;
-  driver_id?: string;
-  vehicle_id?: string;
+  driver_id?: string | null;
+  vehicle_id?: string | null;
   notes?: string;
+  dispatch_entry_id?: string;
   driver?: {
     id: string;
     first_name: string;
@@ -119,6 +122,21 @@ interface VehicleWithStatus {
   image_url?: string;
   status: string;
   is_available: boolean;
+}
+
+// Maps dispatch status to badge color utility classes (mirrors dispatch-board-view)
+function getStatusBadgeStyle(status: DispatchStatus): string {
+  const styles: Record<DispatchStatus, string> = {
+    pending: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700",
+    assigned: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700",
+    confirmed: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700",
+    en_route: "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
+    arrived: "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-700",
+    in_progress: "bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/20 dark:text-cyan-300 dark:border-cyan-700",
+    completed: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
+    cancelled: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700",
+  };
+  return styles[status] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
 }
 
 // Enhanced Assignment Card with Visual Status Indicators
@@ -178,7 +196,7 @@ function EnhancedAssignmentCard({
 
   return (
     <Card className={cn(
-      "transition-all duration-200 hover:shadow-lg border bg-card text-card-foreground h-full flex flex-col",
+      "transition-all duration-200 hover:shadow-lg border bg-card text-card-foreground h-full flex flex-col min-h-[320px]",
       colors.border
     )}>
       <CardHeader className="pb-3 flex-shrink-0">
@@ -228,7 +246,7 @@ function EnhancedAssignmentCard({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
-                  <UserIcon className="h-4 w-4" />
+                  <UserIcon className="h-3 w-3" />
                   {t("dispatch.assignments.driver")}
                 </h4>
                 {booking.driver_id && (
@@ -240,8 +258,8 @@ function EnhancedAssignmentCard({
               </div>
               
               {booking.driver_id && booking.driver ? (
-                <div className={cn("flex items-center gap-2 p-3 rounded-md min-h-[60px]", colors.assignedBox)}>
-                  <Avatar className="h-6 w-6 flex-shrink-0">
+                <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+                  <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={booking.driver.profile_image_url || ""} />
                     <AvatarFallback className={cn("text-xs", colors.avatarFallback)}>
                       {booking.driver.first_name?.[0]}{booking.driver.last_name?.[0]}
@@ -251,11 +269,16 @@ function EnhancedAssignmentCard({
                     <p className="font-medium text-xs break-words text-foreground">
                       {booking.driver.first_name} {booking.driver.last_name}
                     </p>
+                    {booking.driver.phone && (
+                      <p className="font-medium text-xs text-muted-foreground break-words mt-0.5">
+                        {booking.driver.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (
-                <div className={cn("min-h-[60px] flex items-center justify-center", colors.unassignedBox)}>
-                  <p className={cn(colors.unassignedText)}>{t("dispatch.assignments.unassigned")}</p>
+                <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
                 </div>
               )}
             </div>
@@ -264,7 +287,7 @@ function EnhancedAssignmentCard({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm flex items-center gap-2 text-foreground">
-                  <CarIcon className="h-4 w-4" />
+                  <CarIcon className="h-3 w-3" />
                   {t("dispatch.assignments.vehicle")}
                 </h4>
                 {booking.vehicle_id && (
@@ -276,7 +299,7 @@ function EnhancedAssignmentCard({
               </div>
               
               {booking.vehicle_id && booking.vehicle ? (
-                <div className={cn("flex items-center gap-2 p-3 rounded-md min-h-[60px]", colors.assignedBox)}>
+                <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
                    <Avatar className="h-8 w-8 flex-shrink-0">
                     <AvatarImage src={booking.vehicle.image_url || "/img/car-placeholder.png"} />
                     <AvatarFallback>
@@ -294,8 +317,8 @@ function EnhancedAssignmentCard({
                   </div>
                 </div>
               ) : (
-                <div className={cn("min-h-[60px] flex items-center justify-center", colors.unassignedBox)}>
-                   <p className={cn(colors.unassignedText)}>{t("dispatch.assignments.unassigned")}</p>
+                <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
+                   <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
                 </div>
               )}
             </div>
@@ -568,10 +591,12 @@ function SmartAssignmentModal({
   );
 }
 
-function DispatchDetailsPanel({ 
-  booking 
+function DispatchDetailsPanel({
+  booking,
+  onUnassign,
 }: {
   booking: BookingWithRelations;
+  onUnassign: (bookingId: string) => void;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -585,7 +610,7 @@ function DispatchDetailsPanel({
           <h2 className="text-lg font-semibold text-foreground">
             #{booking.wp_id || booking.id.substring(0, 8)}
           </h2>
-          <Badge className="text-sm bg-muted text-muted-foreground border-border">
+          <Badge className={cn("text-sm", getStatusBadgeStyle(booking.status as DispatchStatus))}>
             {t(`bookings.status.${booking.status.toLowerCase()}` as any, { defaultValue: booking.status })}
           </Badge>
         </div>
@@ -665,7 +690,7 @@ function DispatchDetailsPanel({
                 {t("dispatch.assignments.driver")}
               </h4>
               {booking.driver_id && (
-                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                   <CheckIcon className="h-3 w-3 mr-1" />
                   {t("dispatch.assignments.assigned")}
                 </Badge>
@@ -673,10 +698,10 @@ function DispatchDetailsPanel({
             </div>
             
             {booking.driver_id && booking.driver ? (
-              <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md dark:bg-green-900/10 dark:border-green-800">
-                <Avatar className="h-8 w-8">
+              <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+                <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src={booking.driver.profile_image_url || ""} />
-                  <AvatarFallback className="text-xs bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300">
+                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
                     {booking.driver.first_name?.[0]}{booking.driver.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
@@ -690,7 +715,7 @@ function DispatchDetailsPanel({
                 </div>
               </div>
             ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800">
+              <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
                 <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
               </div>
             )}
@@ -704,7 +729,7 @@ function DispatchDetailsPanel({
                 {t("dispatch.assignments.vehicle")}
               </h4>
               {booking.vehicle_id && (
-                <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                   <CheckIcon className="h-3 w-3 mr-1" />
                   {t("dispatch.assignments.assigned")}
                 </Badge>
@@ -712,10 +737,14 @@ function DispatchDetailsPanel({
             </div>
             
             {booking.vehicle_id && booking.vehicle ? (
-              <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md dark:bg-green-900/10 dark:border-green-800">
-                <div className="h-8 w-8 bg-green-100 rounded flex items-center justify-center dark:bg-green-900/20">
-                  <CarIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
-                </div>
+              <div className="flex items-center gap-2 p-3 rounded-md h-20 bg-blue-50 border border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={booking.vehicle.image_url || ""} />
+                  <AvatarFallback>
+                    {booking.vehicle.brand?.[0]}
+                    {booking.vehicle.model?.[0]}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm truncate text-foreground">
                     {booking.vehicle.plate_number}
@@ -726,7 +755,7 @@ function DispatchDetailsPanel({
                 </div>
               </div>
             ) : (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-center dark:bg-amber-900/10 dark:border-amber-800">
+              <div className="h-20 flex items-center justify-center bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/10 dark:border-amber-800">
                 <p className="text-sm text-amber-800 dark:text-amber-300">{t("dispatch.assignments.notAssigned")}</p>
               </div>
             )}
@@ -755,6 +784,17 @@ function DispatchDetailsPanel({
             <Edit className="h-4 w-4 mr-2" />
             {t("dispatch.assignments.editBooking")}
           </Button>
+
+          {booking.driver_id && booking.vehicle_id && (
+            <Button
+              variant="destructive"
+              className="w-full justify-start mt-2"
+              onClick={() => onUnassign(booking.id)}
+            >
+              <UserX className="h-4 w-4 mr-2" />
+              {t("dispatch.assignments.unassignAll")}
+            </Button>
+          )}
 
           {booking.customer_phone && (
             <Button
@@ -802,23 +842,6 @@ export default function DispatchAssignments() {
 
   useEffect(() => {
     loadData();
-
-    const supabase = createClient();
-    const channel = supabase
-      .channel('bookings-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bookings' },
-        (payload) => {
-          console.log('Change received!', payload);
-          loadData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [lastUpdate]);
 
   const loadData = async () => {
@@ -826,6 +849,13 @@ export default function DispatchAssignments() {
     try {
       const supabase = createClient();
       
+      const { data: dispatchData, error: dispatchError } = await supabase
+        .from('dispatch_entries')
+        .select(`*`);
+
+      if (dispatchError) throw dispatchError;
+      const dispatchMap = new Map(dispatchData?.map(d => [d.booking_id, d]) || []);
+
       // Load bookings with related data
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
@@ -838,6 +868,38 @@ export default function DispatchAssignments() {
         .order('date', { ascending: true });
 
       if (bookingsError) throw bookingsError;
+      
+      const combinedBookings = bookingsData?.map(booking => {
+        const dispatchEntry = dispatchMap.get(booking.id);
+        const bookingWithDispatchInfo = {
+          ...booking,
+          wp_id: booking.wp_id || undefined,
+          customer_name: booking.customer_name || undefined,
+          customer_email: booking.customer_email || undefined,
+          customer_phone: booking.customer_phone || undefined,
+          driver_id: dispatchEntry?.driver_id || booking.driver_id,
+          vehicle_id: dispatchEntry?.vehicle_id || booking.vehicle_id,
+          pickup_location: booking.pickup_location || undefined,
+          dropoff_location: booking.dropoff_location || undefined,
+          notes: booking.notes || undefined,
+          status: dispatchEntry ? dispatchEntry.status : booking.status,
+          dispatch_entry_id: dispatchEntry?.id,
+          driver: booking.driver ? {
+            ...booking.driver,
+            phone: booking.driver.phone || undefined,
+            email: booking.driver.email || undefined,
+            profile_image_url: booking.driver.profile_image_url || undefined,
+          } : undefined,
+          vehicle: booking.vehicle ? {
+            ...booking.vehicle,
+            name: booking.vehicle.name || undefined,
+            image_url: booking.vehicle.image_url || undefined,
+          } : undefined,
+        };
+        return bookingWithDispatchInfo;
+      }) || [];
+      
+      setBookings(combinedBookings);
 
       // Load drivers
       const { data: driversData, error: driversError } = await supabase
@@ -874,29 +936,6 @@ export default function DispatchAssignments() {
         is_available: vehicle.status === 'active'
       })) || [];
 
-      setBookings(bookingsData?.map(booking => ({
-        ...booking,
-        wp_id: booking.wp_id || undefined,
-        customer_name: booking.customer_name || undefined,
-        customer_email: booking.customer_email || undefined,
-        customer_phone: booking.customer_phone || undefined,
-        driver_id: booking.driver_id || undefined,
-        vehicle_id: booking.vehicle_id || undefined,
-        pickup_location: booking.pickup_location || undefined,
-        dropoff_location: booking.dropoff_location || undefined,
-        notes: booking.notes || undefined,
-        driver: booking.driver ? {
-          ...booking.driver,
-          phone: booking.driver.phone || undefined,
-          email: booking.driver.email || undefined,
-          profile_image_url: booking.driver.profile_image_url || undefined,
-        } : undefined,
-        vehicle: booking.vehicle ? {
-          ...booking.vehicle,
-          name: booking.vehicle.name || undefined,
-          image_url: booking.vehicle.image_url || undefined,
-        } : undefined,
-      })) || []);
       setDrivers(processedDrivers);
       setVehicles(processedVehicles);
     } catch (error) {
@@ -925,33 +964,30 @@ export default function DispatchAssignments() {
   };
 
   const handleUnassign = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) {
+        toast({ title: "Error", description: "Booking not found.", variant: "destructive" });
+        return;
+    }
+    
+    if (!booking.dispatch_entry_id) {
+        toast({ title: "Error", description: "Cannot unassign, dispatch record not found.", variant: "destructive" });
+        return;
+    }
+
     try {
-      const supabase = createClient();
-      
-      const { error } = await supabase
-        .from('bookings')
-        .update({ 
-          driver_id: null,
-          vehicle_id: null,
-          status: 'pending'
-        })
-        .eq('id', bookingId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Booking unassigned successfully",
-      });
-      
-      router.refresh();
+        await unassignResources(booking.dispatch_entry_id, booking.id);
+        toast({
+            title: t("dispatch.assignments.messages.unassignSuccess"),
+            description: "Booking has been returned to pending status.",
+        });
     } catch (error) {
-      console.error('Error unassigning:', error);
-      toast({
-        title: "Error",
-        description: "Failed to unassign booking",
-        variant: "destructive",
-      });
+        console.error('Error unassigning:', error);
+        toast({
+            title: "Error",
+            description: t("dispatch.assignments.messages.unassignError"),
+            variant: "destructive",
+        });
     }
   };
 
@@ -960,71 +996,37 @@ export default function DispatchAssignments() {
     driverId: string,
     vehicleId: string
   ) => {
-    const originalBookings = [...bookings];
-    const bookingToUpdate = originalBookings.find(b => b.id === bookingId);
+    const bookingToUpdate = bookings.find(b => b.id === bookingId);
     if (!bookingToUpdate) return;
-
-    // Optimistically update the UI
-    const driver = drivers.find(d => d.id === driverId);
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-
-    const updatedBooking: BookingWithRelations = {
-      ...bookingToUpdate,
-      driver_id: driverId,
-      vehicle_id: vehicleId,
-      status: 'assigned',
-      driver: driver
-        ? {
-            id: driver.id,
-            first_name: driver.first_name,
-            last_name: driver.last_name,
-            profile_image_url: driver.profile_image_url,
-            phone: driver.phone,
-            email: driver.email,
-          }
-        : undefined,
-      vehicle: vehicle
-        ? {
-            id: vehicle.id,
-            name: vehicle.name,
-            plate_number: vehicle.plate_number,
-            brand: vehicle.brand,
-            model: vehicle.model,
-            image_url: vehicle.image_url,
-          }
-        : undefined,
-    };
-
-    setBookings(
-      originalBookings.map(b => (b.id === bookingId ? updatedBooking : b))
-    );
 
     try {
       const supabase = createClient();
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({
-          driver_id: driverId,
-          vehicle_id: vehicleId,
-          status: 'assigned',
-        })
-        .eq('id', bookingId);
+      let dispatchId = bookingToUpdate.dispatch_entry_id;
 
-      if (updateError) throw updateError;
+      // If no dispatch entry exists, create one first.
+      if (!dispatchId) {
+          const { data: newDispatchEntry, error: createError } = await supabase
+              .from('dispatch_entries')
+              .insert({
+                  booking_id: bookingId,
+                  status: 'pending', // start as pending
+                  start_time: `${bookingToUpdate.date}T${bookingToUpdate.time}:00`,
+              })
+              .select()
+              .single();
+          
+          if (createError) throw createError;
+          if (!newDispatchEntry) throw new Error("Failed to create dispatch entry.");
+          dispatchId = newDispatchEntry.id;
+      }
 
-      // This hook probably syncs with dispatch_entries or other shared state.
-      await updateAssignment(bookingId, driverId, vehicleId);
+      await updateAssignment(dispatchId, driverId, vehicleId, bookingId);
 
       toast({
         title: t("dispatch.assignments.messages.assignSuccess"),
-        description: t("dispatch.assignments.messages.assignSuccess"),
       });
 
-      // Refresh data from server to ensure consistency
-      router.refresh();
     } catch (error) {
-      // Revert on failure
-      setBookings(originalBookings);
       console.error('Error assigning resources:', error);
       toast({
         title: t("common.error"),
@@ -1081,16 +1083,8 @@ export default function DispatchAssignments() {
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="flex h-16 items-center px-6 gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/dispatch")}
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
-          
-          <div className="flex-1">
+        <div className="flex h-16 items-center px-6 gap-4 flex-wrap">
+          <div className="flex-1 min-w-[200px]">
             <h1 className="text-xl font-semibold text-foreground">
               {t("dispatch.assignments.title")}
             </h1>
@@ -1098,6 +1092,16 @@ export default function DispatchAssignments() {
               {t("dispatch.assignments.description")}
             </p>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dispatch')}
+            className="ml-auto"
+          >
+            <Grid3X3Icon className="h-4 w-4 mr-2" />
+            Dispatch Board
+          </Button>
         </div>
       </div>
 
@@ -1268,7 +1272,10 @@ export default function DispatchAssignments() {
           </SheetHeader>
           {selectedBooking && (
             <div className="mt-6">
-              <DispatchDetailsPanel booking={selectedBooking} />
+              <SidePanelDetails
+                booking={selectedBooking}
+                onUnassign={() => handleUnassign(selectedBooking.id)}
+              />
             </div>
           )}
         </SheetContent>

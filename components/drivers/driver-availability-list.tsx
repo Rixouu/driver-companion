@@ -71,8 +71,8 @@ const StatusBadge = ({ status, isBooking }: { status: string, isBooking?: boolea
   
   return (
     <Badge className={cn(getBadgeStyle(), "rounded px-2.5 py-1 text-xs font-medium")}>
-      {isBooking 
-        ? t("common.booking", { defaultValue: "Booking" })
+      {isBooking
+        ? 'Booking'
         : t(`drivers.availability.statuses.${status}`, { defaultValue: status })}
     </Badge>
   );
@@ -268,30 +268,20 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
   }
   
   useEffect(() => {
-    // Fetch data only once when component mounts or driver.id changes
     fetchAvailability();
     
-    // Listen for custom refresh events for booking updates
-    const handleRefreshData = () => {
-      console.log("Refreshing availability data due to booking changes");
-      fetchAvailability();
+    const handleDataRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.driverId === driver.id) {
+        console.log("Refreshing availability data due to booking changes");
+        fetchAvailability();
+      }
     };
     
-    // Add event listener for external refresh triggers
-    document.addEventListener('refresh-driver-availability', handleRefreshData);
+    document.addEventListener('refresh-driver-data', handleDataRefresh);
     
-    // Also listen for booking unassignment events
-    const handleBookingUnassigned = () => {
-      console.log("Booking unassigned, refreshing availability data");
-      fetchAvailability();
-    };
-    
-    document.addEventListener('booking-unassigned', handleBookingUnassigned);
-    
-    // Cleanup
     return () => {
-      document.removeEventListener('refresh-driver-availability', handleRefreshData);
-      document.removeEventListener('booking-unassigned', handleBookingUnassigned);
+      document.removeEventListener('refresh-driver-data', handleDataRefresh);
     };
   }, [driver.id]);
   

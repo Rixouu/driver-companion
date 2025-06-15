@@ -122,27 +122,27 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
     // Fetch data when component mounts or driverId changes
     fetchAvailability();
 
-    // Listen for booking unassignment events to refresh availability
-    const handleBookingUnassigned = () => {
-      console.log("[Driver Availability] Detected booking unassignment, refreshing availability data");
-      fetchAvailability();
+    const handleDataRefresh = (event: Event) => {
+        const customEvent = event as CustomEvent;
+        if (customEvent.detail.driverId === driverId) {
+            console.log("[Driver Availability] Detected booking unassignment, refreshing availability data");
+            fetchAvailability();
+        }
     };
 
-    document.addEventListener('booking-unassigned', handleBookingUnassigned);
-    document.addEventListener('refresh-driver-availability', handleBookingUnassigned);
+    document.addEventListener('refresh-driver-data', handleDataRefresh);
     
     // Clean up event listeners when component unmounts
     return () => {
-      document.removeEventListener('booking-unassigned', handleBookingUnassigned);
-      document.removeEventListener('refresh-driver-availability', handleBookingUnassigned);
+      document.removeEventListener('refresh-driver-data', handleDataRefresh);
     };
   }, [driverId, t]);
 
   // Helper to get status badge class
   function getStatusBadgeClass(status: string, isBooking = false): string {
     // If it's a booking, use booking styling
-    if (isBooking) {
-      return "booking";
+    if (isBooking || status.toLowerCase() === 'booking') {
+      return 'booking';
     }
     
     switch (status.toLowerCase()) { // Ensure lowercase comparison
@@ -163,8 +163,8 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
   // Helper to get proper label for status
   function getStatusLabel(status: string, isBooking = false): string {
     // If it's a booking, return Booking text
-    if (isBooking) {
-      return t("common.booking", { defaultValue: "Booking" });
+    if (isBooking || status.toLowerCase() === 'booking') {
+      return 'Booking';
     }
     
     // Use availability statuses keys for translation

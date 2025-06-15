@@ -14,19 +14,24 @@ export function DriverStatusBadge({ status }: DriverStatusBadgeProps) {
     switch (status?.toLowerCase()) {
       case 'available':
       case 'active':
-        return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+        return 'text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20';
       case 'unavailable':
       case 'inactive':
-        return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+        return 'text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20';
       case 'leave':
       case 'on_leave':
-        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+        return 'text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-900/20';
       case 'training':
-        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+        return 'text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20';
       case 'booking':
-        return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700';
+      case 'assigned':
+        return 'text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20';
+      case 'cancelled':
+        return 'text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20';
+      case 'completed':
+        return 'text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
+        return 'text-gray-500 border-gray-200 bg-gray-50 dark:bg-gray-900/20';
     }
   }
 

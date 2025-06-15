@@ -33,7 +33,10 @@ export const en: TranslationValue = {
     noResults: "No results found",
     details: "Details",
     actions: {
-      default: "Actions"
+      default: "Actions",
+      goHome: "Go Home",
+      tryAgain: "Try Again",
+      chat: "Chat"
     },
     actionsMenu: {
       default: "Actions",
@@ -313,7 +316,8 @@ export const en: TranslationValue = {
       unassignError: "Failed to unassign booking",
       empty: {
         title: "No Upcoming Bookings",
-        description: "This driver has no upcoming bookings scheduled."
+        description: "This driver has no upcoming bookings scheduled.",
+        booking: "Booking #{id}"
       }
     },
     inspections: {

@@ -1197,41 +1197,78 @@ export async function getBookingsByDriverId(driverId: string, options: {
   error?: string;
 }> {
   try {
-    const { limit = 5, status, upcoming = true } = options;
+    const { limit = 100, status, upcoming } = options;
     const supabase = createServiceClient();
+
+    // Get booking IDs from dispatch_entries for the driver
+    const { data: dispatchEntries, error: dispatchError } = await supabase
+      .from('dispatch_entries')
+      .select('booking_id')
+      .eq('driver_id', driverId);
+
+    if (dispatchError) {
+      console.error('Error fetching dispatch entries for driver:', dispatchError);
+      return { bookings: [], error: dispatchError.message };
+    }
+
+    const bookingIdsFromDispatch = dispatchEntries?.map(e => e.booking_id).filter(e => e !== null) as string[] || [];
+
+    // Get booking IDs from direct assignment on bookings table
+    const { data: directBookings, error: directBookingError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('driver_id', driverId);
     
+    if (directBookingError) {
+        // Don't fail here, just log, dispatch entries might still yield results
+        console.error('Error fetching direct bookings for driver:', directBookingError);
+    }
+
+    const bookingIdsFromDirect = directBookings?.map(b => b.id).filter(b => b !== null) as string[] || [];
+
+    // Combine and unique booking IDs
+    const allBookingIds = [...new Set([...bookingIdsFromDispatch, ...bookingIdsFromDirect])];
+
+    if (allBookingIds.length === 0) {
+      return { bookings: [] };
+    }
+
+    // Now fetch all booking details for these IDs
     let query = supabase
       .from('bookings')
       .select('*')
-      .eq('driver_id', driverId)
-      .order('date', { ascending: upcoming }) // upcoming=true → ascending order, otherwise descending
+      .in('id', allBookingIds)
+      .order('date', { ascending: upcoming === true })
       .limit(limit);
-      
-    // Apply status filter if provided
+
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
-    
-    // If upcoming is true, only get bookings from today or later
-    if (upcoming) {
-      const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD format
+
+    // If upcoming is true, only get bookings from today or later.
+    // If upcoming is false, get past bookings.
+    // If upcoming is undefined, get all.
+    const today = new Date().toISOString().split('T')[0];
+    if (upcoming === true) {
       query = query.gte('date', today);
+    } else if (upcoming === false) {
+      query = query.lt('date', today);
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error fetching driver bookings:', error);
       return { bookings: [], error: error.message };
     }
-    
-    const bookings = (data || []).map(booking => mapSupabaseBookingToBooking(booking));
+
+    const bookings = (data || []).map(mapSupabaseBookingToBooking);
     return { bookings };
   } catch (error) {
     console.error('Error in getBookingsByDriverId:', error);
-    return { 
-      bookings: [], 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      bookings: [],
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 }

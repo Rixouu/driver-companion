@@ -1022,9 +1022,29 @@ export default function DispatchAssignments() {
 
       await updateAssignment(dispatchId, driverId, vehicleId, bookingId);
 
+      // Create a corresponding driver_availability record
+      console.log('[Assign] Creating driver_availability record for booking', bookingId);
+      const { error: availabilityError } = await supabase
+        .from('driver_availability')
+        .insert({
+          driver_id: driverId,
+          // Cover the entire booking day to ensure calendar visibility
+          start_date: `${bookingToUpdate.date}T00:00:00`,
+          end_date: `${bookingToUpdate.date}T23:59:59`,
+          status: 'booking',
+          notes: `Assigned to booking ${bookingId}`
+        });
+
+      if (availabilityError) {
+        console.error('Error creating driver availability record:', availabilityError);
+      }
+
       toast({
         title: t("dispatch.assignments.messages.assignSuccess"),
       });
+
+      // Dispatch event to refresh data for the specific driver
+      document.dispatchEvent(new CustomEvent('refresh-driver-data', { detail: { driverId } }));
 
     } catch (error) {
       console.error('Error assigning resources:', error);

@@ -94,21 +94,25 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
+      console.log('[Calendar] Fetching availability and bookings for driver', driver.id, 'range', dateRange);
       // Fetch availability data
       const availabilityData = await getDriverAvailability(driver.id);
+      console.log('[Calendar] Availability records', availabilityData);
       setAvailabilityRecords(availabilityData);
       
       // Format date range for bookings query
       const startDate = format(dateRange.start, "yyyy-MM-dd");
       const endDate = format(dateRange.end, "yyyy-MM-dd");
-      
+      console.log('[Calendar] Fetching bookings between', startDate, 'and', endDate);
       // Fetch bookings for this driver within the date range
-      const { bookings: driverBookings } = await getDriverBookings(driver.id, {
+      const { bookings: driverBookings, error: bookingErr } = await getDriverBookings(driver.id, {
         upcoming: true,
-        limit: 30 // Higher limit to get all relevant bookings
+        limit: 30
       });
-      
+      if (bookingErr) {
+        console.error('[Calendar] Error fetching bookings', bookingErr);
+      }
+      console.log('[Calendar] Bookings fetched', driverBookings);
       setBookings(driverBookings || []);
     } catch (error) {
       console.error("Error fetching calendar data:", error);
@@ -125,12 +129,16 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
   useEffect(() => {
     fetchData();
     
-    // Listen for custom refresh events from the parent component
-    const handleCustomRefresh = () => fetchData();
-    document.addEventListener('refresh-availability-data', handleCustomRefresh);
+    const handleDataRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.driverId === driver.id) {
+        fetchData();
+      }
+    };
+    document.addEventListener('refresh-driver-data', handleDataRefresh);
     
     return () => {
-      document.removeEventListener('refresh-availability-data', handleCustomRefresh);
+      document.removeEventListener('refresh-driver-data', handleDataRefresh);
     };
   }, [driver.id, dateRange.start, dateRange.end]);
   
@@ -341,7 +349,9 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                           getStatusColor(availability.status)
                         )}
                       >
-                        {t(`drivers.availability.statuses.${availability.status}`)}
+                        {(availability.status as any) === 'booking' 
+                          ? 'Booking'
+                          : t(`drivers.availability.statuses.${availability.status}`, { defaultValue: availability.status })}
                       </Badge>
                     )}
                     
@@ -378,9 +388,7 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("training"))}>
                 {t("drivers.availability.statuses.training")}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("booking"))}>
-                {t("common.booking", { defaultValue: "Booking" })}
-              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("booking"))}>Booking</Badge>
             </div>
           </>
         )}

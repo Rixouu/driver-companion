@@ -147,6 +147,35 @@ export function useSharedDispatchState() {
       // Explicitly set status to pending on unassignment
       await updateAssignment(dispatchId, null, null, bookingId);
       await updateDispatchStatus(dispatchId, 'pending', bookingId);
+
+      // NEW: remove any driver_availability records created for this booking
+      if (bookingId) {
+        try {
+          const supabase = createClient();
+          // Records created on assignment always have a note like "Assigned to booking <bookingId>"
+          const { data: toDelete, error: findErr } = await supabase
+            .from('driver_availability')
+            .select('id')
+            .like('notes', `%${bookingId}%`);
+
+          if (findErr) {
+            console.error('[Unassign] Error fetching availability records to delete:', findErr);
+          } else if (toDelete && toDelete.length) {
+            const ids = toDelete.map((r: any) => r.id);
+            const { error: delErr } = await supabase
+              .from('driver_availability')
+              .delete()
+              .in('id', ids);
+            if (delErr) {
+              console.error('[Unassign] Error deleting availability records:', delErr);
+            } else {
+              console.log(`[Unassign] Removed ${ids.length} driver availability record(s) for booking ${bookingId}`);
+            }
+          }
+        } catch (dbErr) {
+          console.error('[Unassign] Unexpected error cleaning availability records:', dbErr);
+        }
+      }
       
       broadcastUpdate('unassign', { dispatchId, bookingId });
       forceRefresh();

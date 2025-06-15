@@ -11,11 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DriverStatusBadge } from "@/components/drivers/driver-status-badge"
-import { DriverVehicles } from "@/components/drivers/driver-vehicles"
 import { DriverInspectionsList } from "@/components/drivers/driver-inspections-list"
 import { DriverActivityFeed } from "@/components/drivers/driver-activity-feed"
 import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-bookings"
 import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
+import { DriverBookingsList } from "@/components/drivers/driver-bookings-list"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { format as formatDate, parseISO } from "date-fns"
@@ -48,7 +48,6 @@ export function DriverDetailsContent({
 
   const id = driverId
 
-  // Function to process availability data and update state
   const processAndSetAvailability = useCallback((currentDriver: Driver | null, records: DriverAvailability[]) => {
     const today = formatDate(new Date(), "yyyy-MM-dd")
     const now = new Date()
@@ -80,16 +79,6 @@ export function DriverDetailsContent({
     }
   }, [])
 
-  useEffect(() => {
-    setDriver(initialDriver)
-    setAvailabilityRecords(initialAvailability)
-    setInspections(initialInspections)
-    if (initialDriver && initialAvailability) {
-      processAndSetAvailability(initialDriver, initialAvailability)
-    }
-  }, [initialDriver, initialAvailability, initialInspections, processAndSetAvailability])
-
-  // Client-side data refresh function
   const refreshData = useCallback(async () => {
     if (!id) return
     setIsLoading(true)
@@ -119,6 +108,27 @@ export function DriverDetailsContent({
       setIsLoading(false)
     }
   }, [id, processAndSetAvailability, t])
+
+  useEffect(() => {
+    setDriver(initialDriver)
+    setAvailabilityRecords(initialAvailability)
+    setInspections(initialInspections)
+    if (initialDriver && initialAvailability) {
+      processAndSetAvailability(initialDriver, initialAvailability)
+    }
+
+    const handleDataRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail.driverId === id) {
+        refreshData();
+      }
+    };
+    document.addEventListener("refresh-driver-data", handleDataRefresh);
+
+    return () => {
+      document.removeEventListener("refresh-driver-data", handleDataRefresh);
+    };
+  }, [id, refreshData, initialDriver, initialAvailability, initialInspections, processAndSetAvailability]);
 
   const handleViewFullSchedule = () => {
     setActiveTab("availability")
@@ -319,7 +329,7 @@ export function DriverDetailsContent({
               <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="overview">{t("drivers.tabs.overview")}</TabsTrigger>
                 <TabsTrigger value="availability">{t("drivers.tabs.availability")}</TabsTrigger>
-                <TabsTrigger value="vehicles">{t("drivers.tabs.assignedVehicles")}</TabsTrigger>
+                <TabsTrigger value="bookings">Bookings</TabsTrigger>
                 <TabsTrigger value="activity">{t("drivers.tabs.activityLog")}</TabsTrigger>
               </TabsList>
 
@@ -361,8 +371,8 @@ export function DriverDetailsContent({
                 {id && driver && <DriverAvailabilityManager driver={driver} />}
               </TabsContent>
               
-              <TabsContent value="vehicles">
-                {id && driver && <DriverVehicles driverId={id} assignedVehicles={driver.assigned_vehicles} onUnassignSuccess={refreshData} />}
+              <TabsContent value="bookings">
+                {id && <DriverBookingsList driverId={id} />}
               </TabsContent>
 
               <TabsContent value="activity">

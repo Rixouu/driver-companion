@@ -13,8 +13,7 @@ export const en: TranslationValue = {
       type: "Type",
       pass: "Pass",
       fail: "Fail",
-      pending: "Pending",
-      booking: "Booking"
+      pending: "Pending"
     },
     loading: "Loading...",
     error: "Error",
@@ -44,6 +43,7 @@ export const en: TranslationValue = {
       tryAgain: "Try Again",
       chat: "Chat"
     },
+    booking: "Booking",
     viewDetails: "View details",
     addNew: "Add new",
     backTo: "Back to",
@@ -346,6 +346,22 @@ export const en: TranslationValue = {
       empty: {
         title: "No Recent Activity",
         description: "This driver has no recent activity to display."
+      }
+    },
+    bookingHistory: {
+      title: "Booking History",
+      description: "A list of all bookings assigned to this driver.",
+      table: {
+        dateTime: "Date & Time",
+        service: "Service",
+        customer: "Customer",
+        status: "Status",
+        actions: "Actions"
+      },
+      viewButton: "View",
+      empty: {
+        title: "No Bookings Found",
+        description: "This driver has no assigned bookings."
       }
     },
     pagination: {

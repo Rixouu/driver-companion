@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'; // Ensure Database type is imported
 import { EmptyState } from "@/components/empty-state"
+import { getStatusBadgeClasses, cn } from '@/lib/utils/styles'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -209,7 +210,7 @@ function BookingCard({ booking, onUnassign, isUnassigning }: { booking: Booking,
             </p>
           </div>
         </div>
-        <Badge variant={booking.status === 'assigned' ? 'outline' : 'default'} className="capitalize">
+        <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize")}>
           {booking.status}
         </Badge>
       </div>
@@ -241,7 +242,9 @@ function BookingCard({ booking, onUnassign, isUnassigning }: { booking: Booking,
         <div className="space-y-3">
           <div>
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Car className="h-3 w-3" /> Vehicle Information</p>
-            <p className="text-sm">{booking.vehicle_name || 'Not specified'}</p>
+            <p className="text-sm">
+              {[booking.vehicle_make, booking.vehicle_model].filter(Boolean).join(' ') || 'Not specified'}
+            </p>
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Info className="h-3 w-3" /> Service Type</p>

@@ -14,7 +14,6 @@ export const ja: TranslationValue = {
             pass: "合格",
             fail: "不合格",
             pending: "保留中",
-            booking: "予約"
         },
         loading: "読み込み中...",
         error: "エラー",
@@ -44,6 +43,7 @@ export const ja: TranslationValue = {
             tryAgain: "再試行",
             chat: "チャット"
         },
+        booking: "予約",
         viewDetails: "詳細を表示",
         addNew: "新規追加",
         backTo: "に戻る",
@@ -345,6 +345,22 @@ export const ja: TranslationValue = {
             empty: {
                 title: "最近のアクティビティはありません",
                 description: "このドライバーには表示する最近のアクティビティがありません。"
+            }
+        },
+        bookingHistory: {
+            title: "予約履歴",
+            description: "このドライバーに割り当てられたすべての予約のリスト。",
+            table: {
+                dateTime: "日時",
+                service: "サービス",
+                customer: "顧客",
+                status: "ステータス",
+                actions: "アクション"
+            },
+            viewButton: "表示",
+            empty: {
+                title: "予約が見つかりません",
+                description: "このドライバーには割り当てられた予約がありません。"
             }
         },
         pagination: {

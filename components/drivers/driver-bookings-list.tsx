@@ -20,12 +20,15 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn, getStatusBadgeClasses } from "@/lib/utils/styles"
+import { useI18n } from "@/lib/i18n/context"
 
 interface DriverBookingsListProps {
   driverId: string
 }
 
 export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
+  const { t } = useI18n()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -61,8 +64,8 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <CalendarIcon className="h-10 w-10 mx-auto mb-3" />
-        <h3 className="text-lg font-medium">No Bookings Found</h3>
-        <p className="text-sm">This driver has no assigned bookings.</p>
+        <h3 className="text-lg font-medium">{t("drivers.bookingHistory.empty.title")}</h3>
+        <p className="text-sm">{t("drivers.bookingHistory.empty.description")}</p>
       </div>
     )
   }
@@ -70,19 +73,19 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Booking History</CardTitle>
-        <CardDescription>A list of all bookings assigned to this driver.</CardDescription>
+        <CardTitle>{t("drivers.bookingHistory.title")}</CardTitle>
+        <CardDescription>{t("drivers.bookingHistory.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead className="hidden md:table-cell">Customer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("drivers.bookingHistory.table.dateTime")}</TableHead>
+                <TableHead>{t("drivers.bookingHistory.table.service")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("drivers.bookingHistory.table.customer")}</TableHead>
+                <TableHead>{t("drivers.bookingHistory.table.status")}</TableHead>
+                <TableHead className="text-right">{t("drivers.bookingHistory.table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -95,14 +98,14 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
                   <TableCell className="max-w-[200px] truncate">{booking.service_name}</TableCell>
                   <TableCell className="hidden md:table-cell">{booking.customer_name}</TableCell>
                   <TableCell>
-                    <Badge variant={booking.status === 'completed' ? 'success' : booking.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                    <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize")}>
                       {booking.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/bookings/${booking.id}`}>
-                        View
+                        {t("drivers.bookingHistory.viewButton")}
                         <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                       </Link>
                     </Button>

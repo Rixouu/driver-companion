@@ -15,25 +15,33 @@ export function cn(...inputs: ClassValue[]) {
 export function getStatusBadgeClasses(status: string): string {
   switch (status?.toLowerCase()) {
     case 'active':
+    case 'available':
       // Treat active similar to confirmed/completed (green)
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      return 'bg-green-100 text-green-800 border-green-300 dark:bg-transparent dark:text-green-400 dark:border-green-500';
     case 'inactive':
+    case 'unavailable':
       // Inactive shown as destructive (red) for clear visibility
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      return 'bg-red-100 text-red-800 border-red-300 dark:bg-transparent dark:text-red-400 dark:border-red-500';
     case 'completed':
     case 'confirmed':
-      return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
+      return 'bg-green-100 text-green-800 border-green-300 dark:bg-transparent dark:text-green-400 dark:border-green-500';
     case 'pending':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-transparent dark:text-yellow-400 dark:border-yellow-500';
     case 'cancelled':
     case 'canceled':
     case 'trash':
     case 'draft':
-      return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700';
+      return 'bg-red-100 text-red-800 border-red-300 dark:bg-transparent dark:text-red-400 dark:border-red-500';
     case 'assigned':
-      return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700';
+    case 'booking':
+      return 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-transparent dark:text-purple-400 dark:border-purple-500';
+    case 'leave':
+    case 'on_leave':
+        return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-transparent dark:text-amber-400 dark:border-amber-500';
+    case 'training':
+        return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-transparent dark:text-sky-400 dark:border-sky-500';
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700';
+      return 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-transparent dark:text-gray-400 dark:border-gray-500';
   }
 }
 

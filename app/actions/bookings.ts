@@ -1,6 +1,7 @@
 'use server'
 
 import { Booking } from '@/types/bookings'
+import { revalidatePath } from 'next/cache'
 import { 
   syncBookingsFromWordPress, 
   getBookingsFromDatabase,
@@ -1361,4 +1362,44 @@ export async function getDriverBookings(driverId: string, options: {
       error: error instanceof Error ? error.message : 'Unknown error' 
     };
   }
+}
+
+export async function unassignBookingFromDriver(bookingId: string, driverId: string): Promise<{ success: boolean; message: string }> {
+    if (!bookingId || !driverId) {
+        return { success: false, message: "Booking ID and Driver ID are required." };
+    }
+
+    try {
+        const supabase = createServiceClient();
+
+        // When unassigning, we assume the booking goes back to a 'confirmed' state, ready for another driver.
+        const { data, error } = await supabase
+            .from('bookings')
+            .update({ driver_id: null, status: 'confirmed' })
+            .eq('id', bookingId)
+            .eq('driver_id', driverId)
+            .select();
+
+        if (error) {
+            console.error("Error unassigning driver from booking:", error);
+            throw error;
+        }
+
+        if (data && data.length > 0) {
+            console.log(`Driver ${driverId} unassigned from booking ${bookingId}`);
+            // Revalidate paths to ensure data freshness across the app
+            revalidatePath(`/bookings/${bookingId}`);
+            revalidatePath(`/drivers/${driverId}`);
+            revalidatePath('/dispatch'); // Also revalidate dispatch page
+            return { success: true, message: "Driver has been successfully unassigned from the booking." };
+        } else {
+            console.warn(`Attempted to unassign driver ${driverId} from booking ${bookingId}, but no matching record was found.`);
+            return { success: false, message: "Could not unassign driver. The booking may not be assigned to this driver or does not exist." };
+        }
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred while unassigning driver.";
+        console.error("Exception in unassignBookingFromDriver:", errorMessage);
+        return { success: false, message: errorMessage };
+    }
 } 

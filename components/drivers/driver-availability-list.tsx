@@ -44,35 +44,17 @@ import { useI18n } from "@/lib/i18n/context"
 import { DriverAvailabilityForm } from "./driver-availability-form"
 import { getDriverAvailability, deleteDriverAvailability } from "@/lib/services/driver-availability"
 import type { DriverAvailability, Driver } from "@/types/drivers"
+import { getStatusBadgeClasses } from "@/lib/utils/styles"
 
 // Helper to get status badge
 const StatusBadge = ({ status, isBooking }: { status: string, isBooking?: boolean }) => {
   const { t } = useI18n();
-  
-  const getBadgeStyle = () => {
-    // If it's a booking, always use purple styling regardless of status
-    if (isBooking) {
-      return "bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200";
-    }
-    
-    switch (status) {
-      case "available":
-        return "bg-green-100 text-green-800 hover:bg-green-200 border-green-200";
-      case "unavailable":
-        return "bg-red-100 text-red-800 hover:bg-red-200 border-red-200";
-      case "leave":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200";
-      case "training":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200";
-    }
-  };
+  const finalStatus = isBooking ? 'booking' : status;
   
   return (
-    <Badge className={cn(getBadgeStyle(), "rounded px-2.5 py-1 text-xs font-medium")}>
+    <Badge variant="outline" className={cn(getStatusBadgeClasses(finalStatus), "rounded px-2.5 py-1 text-xs font-medium capitalize")}>
       {isBooking
-        ? 'Booking'
+        ? t('common.booking', { defaultValue: 'Booking' })
         : t(`drivers.availability.statuses.${status}`, { defaultValue: status })}
     </Badge>
   );

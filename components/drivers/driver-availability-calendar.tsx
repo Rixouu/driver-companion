@@ -32,27 +32,10 @@ import { getDriverAvailability } from "@/lib/services/driver-availability"
 import { getDriverBookings } from "@/app/actions/bookings"
 import type { DriverAvailability, Driver } from "@/types/drivers"
 import type { Booking } from "@/types/bookings"
+import { getStatusBadgeClasses } from "@/lib/utils/styles"
 
 // View types
 type CalendarView = "day" | "week" | "month"
-
-// Helper to get status color
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "available":
-      return "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400";
-    case "unavailable":
-      return "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400";
-    case "leave":
-      return "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400";
-    case "training":
-      return "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400";
-    case "booking":
-      return "bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 font-medium";
-    default:
-      return "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300";
-  }
-};
 
 interface DriverAvailabilityCalendarProps {
   driver: Driver
@@ -346,7 +329,7 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                         variant="outline"
                         className={cn(
                           "text-[10px] px-1 py-0.5 h-auto leading-tight justify-center truncate", 
-                          getStatusColor(availability.status)
+                          getStatusBadgeClasses(availability.status)
                         )}
                       >
                         {(availability.status as any) === 'booking' 
@@ -362,7 +345,7 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
                         variant="outline"
                         className={cn(
                           "text-[10px] px-1 py-0.5 h-auto leading-tight justify-start truncate flex gap-1 items-center", 
-                          getStatusColor("booking")
+                          getStatusBadgeClasses("booking")
                         )}
                       >
                         <Clock className="h-2 w-2 flex-shrink-0" />
@@ -376,19 +359,19 @@ export function DriverAvailabilityCalendar({ driver }: DriverAvailabilityCalenda
             
             {/* Legend */}
             <div className="flex flex-wrap gap-1 sm:gap-2 mt-4">
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("available"))}>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusBadgeClasses("available"))}>
                 {t("drivers.availability.statuses.available")}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("unavailable"))}>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusBadgeClasses("unavailable"))}>
                 {t("drivers.availability.statuses.unavailable")}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("leave"))}>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusBadgeClasses("leave"))}>
                 {t("drivers.availability.statuses.leave")}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("training"))}>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusBadgeClasses("training"))}>
                 {t("drivers.availability.statuses.training")}
               </Badge>
-              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusColor("booking"))}>Booking</Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5 h-auto", getStatusBadgeClasses("booking"))}>Booking</Badge>
             </div>
           </>
         )}

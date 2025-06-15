@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { getDriverAvailability } from "@/lib/services/driver-availability";
 import { useI18n } from "@/lib/i18n/context";
 import type { DriverAvailability as DriverAvailabilityType } from "@/types/drivers";
+import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 
 interface DriverAvailabilitySectionProps {
   driverId: string;
@@ -140,7 +141,6 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
 
   // Helper to get status badge class
   function getStatusBadgeClass(status: string, isBooking = false): string {
-    // If it's a booking, use booking styling
     if (isBooking || status.toLowerCase() === 'booking') {
       return 'booking';
     }
@@ -162,7 +162,6 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
 
   // Helper to get proper label for status
   function getStatusLabel(status: string, isBooking = false): string {
-    // If it's a booking, return Booking text
     if (isBooking || status.toLowerCase() === 'booking') {
       return 'Booking';
     }
@@ -223,25 +222,18 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
           <h4 className="text-sm font-medium mb-2">{t("drivers.availability.currentStatus")}</h4> 
           <div className="flex items-center justify-between mb-2">
             {/* Check if current status is from a booking */}
-            <Badge 
-              // For booking, we can add a custom class that matches your design system
-              className={
-                currentStatus && 
-                allAvailabilityRecords?.find(r => 
-                  r.status === currentStatus && 
-                  r.notes?.includes('Assigned to booking') &&
-                  new Date(r.start_date) <= new Date() && 
-                  new Date(r.end_date) >= new Date()
-                ) 
-                  ? "bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200 rounded px-2.5 py-1 text-xs font-medium"
-                  : `rounded px-2.5 py-1 text-xs font-medium ${
-                      currentStatus === "available" ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200" :
-                      currentStatus === "unavailable" ? "bg-red-100 text-red-800 hover:bg-red-200 border-red-200" :
-                      currentStatus === "leave" ? "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200" :
-                      currentStatus === "training" ? "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200" :
-                      "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
-                    }`
-              }
+            <Badge
+              variant="outline"
+              className={cn(
+                getStatusBadgeClasses(
+                  allAvailabilityRecords?.find(r => 
+                    r.status === currentStatus && 
+                    r.notes?.includes('Assigned to booking') &&
+                    new Date(r.start_date) <= new Date() && 
+                    new Date(r.end_date) >= new Date()
+                  ) ? 'booking' : currentStatus || 'available'
+                )
+              )}
             >
               {allAvailabilityRecords?.find(r => 
                 r.status === currentStatus && 
@@ -270,17 +262,12 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
                       <CalendarIcon className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
                       <span className="text-sm">{formatDateRange(record.start_date, record.end_date)}</span>
                     </div>
-                    <Badge 
-                      className={isBooking 
-                        ? "bg-purple-100 text-purple-800 hover:bg-purple-200 border-purple-200 rounded px-2.5 py-1 text-xs font-medium self-start sm:self-auto" 
-                        : `rounded px-2.5 py-1 text-xs font-medium self-start sm:self-auto ${
-                            record.status === "available" ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200" :
-                            record.status === "unavailable" ? "bg-red-100 text-red-800 hover:bg-red-200 border-red-200" :
-                            record.status === "leave" ? "bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200" :
-                            record.status === "training" ? "bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200" :
-                            "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
-                          }`
-                      }
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        getStatusBadgeClasses(isBooking ? 'booking' : record.status),
+                        "self-start sm:self-auto"
+                      )}
                     >
                       {isBooking 
                         ? t("common.booking", { defaultValue: "Booking" })

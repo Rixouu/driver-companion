@@ -83,8 +83,8 @@ const inspectionSchema = z.object({
 type InspectionFormData = z.infer<typeof inspectionSchema>;
 
 interface StepBasedInspectionFormProps {
-  inspectionId: string;
-  vehicleId: string;
+  inspectionId?: string;
+  vehicleId?: string;
   bookingId?: string;
   vehicles: Vehicle[];
   isResuming?: boolean;
@@ -271,50 +271,65 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     }
   }, [vehicleId, methods, currentStepIndex]); // Added currentStepIndex to dependencies
   
-  // Load inspection template when type changes
+  // Load the template only when we are in the section-rendering step (index >= 1).
   useEffect(() => {
-    if (selectedType) {
-      const loadInspectionTemplate = async () => {
-        try {
-          // Use the server action to fetch templates
-          const categories = await fetchInspectionTemplatesAction(selectedType);
-          
-          // Format the sections with their items
-          const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
-            return {
-              id: category.id,
-              name_translations: category.name_translations,
-              description_translations: category.description_translations,
-              title: category.name_translations[locale] || 'Unknown Section',
-              description: category.description_translations[locale] || '',
-              items: category.inspection_item_templates.map((item: any) => ({
-                id: item.id,
-                name_translations: item.name_translations,
-                description_translations: item.description_translations,
-                title: item.name_translations[locale] || 'Unknown Item',
-                description: item.description_translations[locale] || '',
-                requires_photo: Boolean(item.requires_photo),
-                requires_notes: Boolean(item.requires_notes),
-                status: null as 'pass' | 'fail' | null,
-                notes: '',
-                photos: [] as string[]
-              }))
-            };
-          });
-          
-          setSections(sectionsWithItems);
-        } catch (error) {
-          console.error('Error loading inspection template:', error);
+    if (currentStepIndex < 1 || !selectedType) return;
+
+    const loadInspectionTemplate = async () => {
+      try {
+        console.log(`[INSPECTION_TEMPLATE] Loading template for type: ${selectedType}`);
+        
+        // Use the server action to fetch templates
+        const categories = await fetchInspectionTemplatesAction(selectedType);
+        
+        if (!categories || categories.length === 0) {
+          console.error(`[INSPECTION_TEMPLATE] No template categories found for type: ${selectedType}`);
           toast({
-            title: "Failed to load inspection template",
+            title: "Template not found",
+            description: `No inspection template found for ${selectedType}`,
             variant: "destructive"
           });
+          return;
         }
-      };
-      
-      loadInspectionTemplate();
-    }
-  }, [selectedType, locale, toast]);
+        
+        console.log(`[INSPECTION_TEMPLATE] Loaded ${categories.length} categories for template: ${selectedType}`);
+        
+        // Format the sections with their items
+        const sectionsWithItems: InspectionSection[] = categories.map((category: any) => {
+          return {
+            id: category.id,
+            name_translations: category.name_translations,
+            description_translations: category.description_translations,
+            title: category.name_translations[locale] || 'Unknown Section',
+            description: category.description_translations[locale] || '',
+            items: category.inspection_item_templates.map((item: any) => ({
+              id: item.id,
+              name_translations: item.name_translations,
+              description_translations: item.description_translations,
+              title: item.name_translations[locale] || 'Unknown Item',
+              description: item.description_translations[locale] || '',
+              requires_photo: Boolean(item.requires_photo),
+              requires_notes: Boolean(item.requires_notes),
+              status: null as 'pass' | 'fail' | null,
+              notes: '',
+              photos: [] as string[]
+            }))
+          };
+        });
+        
+        setSections(sectionsWithItems);
+        console.log(`[INSPECTION_TEMPLATE] Processed ${sectionsWithItems.length} sections with items`);
+      } catch (error) {
+        console.error('Error loading inspection template:', error);
+        toast({
+          title: "Failed to load inspection template",
+          variant: "destructive"
+        });
+      }
+    };
+
+    loadInspectionTemplate();
+  }, [selectedType, currentStepIndex, locale, toast]);
   
   // NEW: Load available templates based on vehicle assignments
   useEffect(() => {
@@ -368,9 +383,22 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Auto-selecting template type: ${autoType}`);
             setSelectedType(autoType);
             methods.setValue('type', autoType);
+            
+            // Trigger immediate template loading
+            fetchInspectionTemplatesAction(autoType)
+              .then(categories => {
+                if (categories && categories.length > 0) {
+                  console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Successfully pre-loaded template: ${autoType} with ${categories.length} categories`);
+                } else {
+                  console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Failed to pre-load template: ${autoType} - no categories returned`);
+                }
+              })
+              .catch(err => {
+                console.error(`[VEHICLE_TEMPLATE_ASSIGNMENT] Error pre-loading template: ${autoType}`, err);
+              });
 
             // Skip type selection step and go directly to inspection
-            if (currentStepIndex === 0) {
+            if (currentStepIndex === 0 && inspectionId) {
               setCurrentStepIndex(1);
             }
             
@@ -410,13 +438,31 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     }
   }, [selectedVehicle, methods, currentStepIndex, toast]);
   
+  // Automatically start the inspection when exactly ONE template is available
+  // for the selected vehicle. This matches the expected UX: select vehicle →
+  // Next → form loads immediately without asking for the type.
+  useEffect(() => {
+    if (
+      currentStepIndex === 0 && // On the type-selection step
+      !inspectionId &&          // Creating a new inspection
+      selectedVehicle &&
+      availableTemplateTypes.length === 1 &&
+      !isSubmitting
+    ) {
+      // Start automatically – no further input required
+      handleStartInspection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStepIndex, selectedVehicle, availableTemplateTypes, isSubmitting]);
+  
   // Handle changes to vehicle
   const handleVehicleSelect = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    methods.setValue('vehicle_id', vehicle.id);
-    // Move to type selection
-    setCurrentStepIndex(0);
-  };
+    console.log(`[INSPECTION_CREATE] Vehicle selected: ${vehicle.name} (${vehicle.id})`)
+    setSelectedVehicle(vehicle)
+    methods.setValue("vehicle_id", vehicle.id)
+    // DO NOT move to type selection automatically, wait for user to click Next.
+    // setCurrentStepIndex(0);
+  }
   
   // Handle type change
   const handleTypeChange = (type: InspectionType) => {
@@ -441,21 +487,96 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   };
   
   // Start inspection (after selecting vehicle and type)
-  const handleStartInspection = () => {
+  const handleStartInspection = async () => {
     if (!selectedVehicle) {
       toast({
         title: "Please select a vehicle",
-        variant: "destructive"
-      });
-      return;
+        variant: "destructive",
+      })
+      return
     }
     
-    // Set current step to first section
-    setCurrentStepIndex(1);
-  };
+    // Ensure we have a template type selected
+    if (!selectedType) {
+      toast({
+        title: "Please select an inspection type",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    // When creating a brand-new inspection we can proceed immediately and let
+    // the perform page load the template. Only enforce the sections-loaded
+    // check when we are editing / resuming an existing inspection.
+    if (inspectionId && sections.length === 0) {
+      toast({
+        title: "Template not loaded",
+        description: "Please wait for the template to load or try selecting a different template",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Always create a new inspection if we don't have an inspectionId
+    if (!inspectionId) {
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to create an inspection",
+          variant: "destructive",
+        })
+        return
+      }
+
+      console.log(
+        `[INSPECTION_CREATE] User ${user.id} is creating a new inspection. Vehicle: ${selectedVehicle.name}, Type: ${selectedType}`
+      )
+      setIsSubmitting(true)
+      try {
+        const supabaseClient = createClient()
+        const { data: newInspection, error } = await supabaseClient
+          .from("inspections")
+          .insert({
+            vehicle_id: selectedVehicle.id,
+            type: selectedType,
+            status: "in_progress",
+            created_by: user.id,
+            inspector_id: user.id,
+            date: new Date().toISOString(),
+          })
+          .select("id")
+          .single()
+
+        if (error) {
+          console.error("[INSPECTION_CREATE] Error creating new inspection:", error)
+          throw error
+        }
+
+        console.log(
+          `[INSPECTION_CREATE] New inspection created (ID: ${newInspection.id}). Redirecting to perform page.`
+        )
+        toast({ title: "Inspection Created", description: "Starting..." })
+        router.push(`/inspections/${newInspection.id}/perform`)
+        return
+      } catch (error: any) {
+        toast({
+          title: "Failed to Start Inspection",
+          description: error.message || "Could not create the inspection. Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+      return
+    }
+    
+    // If we have an inspectionId, we're editing an existing inspection
+    console.log("[INSPECTION_PERFORM] Starting/continuing inspection. Moving to first section.")
+    setCurrentStepIndex(1)
+  }
   
   // Handle item status change
-  const handleItemStatus = (sectionId: string, itemId: string, status: 'pass' | 'fail') => {
+  const handleItemStatus = (sectionId: string, itemId: string, status: "pass" | "fail") => {
     setSections(prevSections => {
       return prevSections.map(section => {
         if (section.id === sectionId) {
@@ -1145,7 +1266,12 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         </Button>
       
       {selectedVehicle && (
-          <Button onClick={() => setCurrentStepIndex(0)}>
+          <Button 
+            onClick={() => {
+              console.log(`[INSPECTION_FLOW] Moving to type selection with vehicle: ${selectedVehicle.name}`);
+              setCurrentStepIndex(0);
+            }}
+          >
             {t('common.next')} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
       )}
@@ -1156,10 +1282,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Render inspection type selection
   const renderTypeSelection = () => (
     <div className="space-y-8">
-      <h2 className="text-xl font-semibold">{t('inspections.steps.selectType')}</h2>
-      
+      <h2 className="text-xl font-semibold">{t("inspections.steps.selectType")}</h2>
+
       <FormProvider {...methods}>
-        <InspectionTypeSelector 
+        <InspectionTypeSelector
           control={methods.control}
           onTypeChange={handleTypeChange}
           defaultValue={selectedType}
@@ -1167,16 +1293,20 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           showAllTypes={false}
         />
       </FormProvider>
-      
+
       <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={() => {
-          setCurrentStepIndex(-1);
-        }}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('common.back')}
+        <Button
+          variant="outline"
+          onClick={() => {
+            setCurrentStepIndex(-1)
+          }}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.back")}
         </Button>
         {availableTemplateTypes.length > 0 && (
-          <Button onClick={handleStartInspection}>
-            {t('inspections.actions.startInspection')} <ArrowRight className="ml-2 h-4 w-4" />
+          <Button onClick={handleStartInspection} disabled={isSubmitting}>
+            {isSubmitting ? t("common.creating") : t("inspections.actions.startInspection")}{" "}
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
       </div>

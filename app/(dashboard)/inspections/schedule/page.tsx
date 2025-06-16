@@ -25,6 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ScheduleInspectionPage() {
-  // Redirect to the create inspection page
-  return redirect("/inspections/create")
+  // Redirect to the new inspection page
+  return redirect("/inspections/new")
 } 

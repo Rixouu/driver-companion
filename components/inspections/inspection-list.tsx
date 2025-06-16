@@ -595,7 +595,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             <p className="text-muted-foreground">{t("inspections.description")}</p>
           </div>
           <Button asChild>
-            <Link href="/inspections/create">
+            <Link href="/inspections/new">
               <Plus className="mr-2 h-4 w-4" />
               {t("inspections.createInspection")}
             </Link>

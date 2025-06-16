@@ -789,7 +789,8 @@ export const en: TranslationValue = {
       inProgress: "In Progress",
       completed: "Completed",
       failed: "Failed",
-      scheduled: "Scheduled"
+      scheduled: "Scheduled",
+      cancelled: "Cancelled"
     },
     type: {
       routine: "Routine",
@@ -899,7 +900,8 @@ export const en: TranslationValue = {
       markAsCompleted: "Mark as Completed",
       printReport: "Print Report",
       exportHtml: "Export HTML",
-      exportPdf: "Export PDF"
+      exportPdf: "Export PDF",
+      continueInspection: "Continue Inspection"
     },
     templateDuplicated: "Template duplicated successfully",
     templateDeleted: "Template deleted successfully",

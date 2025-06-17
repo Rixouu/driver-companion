@@ -7,6 +7,8 @@ export const vehicleSchema = z.object({
   model: z.string().optional(),
   year: z.number().int().positive().optional(),
   vin: z.string().optional(),
+  passenger_capacity: z.number().int().positive().optional(),
+  luggage_capacity: z.number().int().positive().optional(),
   status: z.enum(["active", "maintenance", "inactive"]).optional(),
   image_url: z.string().url({ message: "Invalid URL format" }).optional().nullable(),
 })

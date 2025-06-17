@@ -415,82 +415,125 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         <CardTitle>{t("inspections.title")}</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("inspections.fields.vehicle")}</TableHead>
-              <TableHead>{t("inspections.fields.type")}</TableHead>
-              <TableHead>{t("inspections.fields.date")}</TableHead>
-              <TableHead>{t("inspections.fields.status")}</TableHead>
-              <TableHead>{t("inspections.fields.inspector")}</TableHead>
-              <TableHead className="w-[100px]">{t("common.actions.default")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredInspections.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {debouncedSearch || statusFilter !== "all" 
-                    ? t("common.noResults")
-                    : t("inspections.noInspections")
-                  }
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredInspections.map((inspection) => (
-                <TableRow key={inspection.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        {inspection.vehicle?.name || t("inspections.noVehicle")}
-                      </div>
-                      {inspection.vehicle?.plate_number && (
-                        <div className="text-sm text-muted-foreground">
-                          {inspection.vehicle.plate_number}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {inspection.type || t("inspections.type.unspecified")}
-                  </TableCell>
-                  <TableCell>
-                    {format(parseISO(inspection.date), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className={cn("text-xs", getStatusBadgeClasses(inspection.status))}
-                    >
-                      {inspection.status ? (
-                        (() => {
-                          console.log("[INSPECTION_LIST_TABLE_STATUS] Status:", inspection.status);
-                          const statusKey = `inspections.status.${inspection.status}`;
-                          try {
-                            return t(statusKey as any);
-                          } catch (error) {
-                            console.error(`Error translating status: ${statusKey}`, error);
-                            return inspection.status;
-                          }
-                        })()
-                      ) : t("common.notAvailable")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
+        {/* Mobile Card List */}
+        <div className="md:hidden space-y-4">
+          {filteredInspections.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              {debouncedSearch || statusFilter !== "all" 
+                ? t("common.noResults")
+                : t("inspections.noInspections")}
+            </p>
+          ) : (
+            filteredInspections.map((inspection) => (
+              <Card key={inspection.id} className="p-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <p className="font-medium">
+                      {inspection.vehicle?.name || t("inspections.noVehicle")}
+                    </p>
+                    {inspection.vehicle?.plate_number && (
+                      <p className="text-xs text-muted-foreground">
+                        {inspection.vehicle.plate_number}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className={cn("text-xs", getStatusBadgeClasses(inspection.status))}>
+                    {inspection.status ? (
+                      (() => {
+                        const statusKey = `inspections.status.${inspection.status}`;
+                        try { return t(statusKey as any); } catch { return inspection.status; }
+                      })()
+                    ) : t("common.notAvailable")}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap justify-between text-sm mt-3 gap-2">
+                  <span>{inspection.type || t("inspections.type.unspecified")}</span>
+                  <span>{format(parseISO(inspection.date), "MMM d, yyyy")}</span>
+                </div>
+
+                <div className="flex justify-between items-center mt-3">
+                  <p className="text-sm text-muted-foreground">
                     {inspection.inspector?.name || t("common.notAssigned")}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/inspections/${inspection.id}`}>
-                        <Eye className="h-3 w-3" />
-                      </Link>
-                    </Button>
+                  </p>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/inspections/${inspection.id}`}> 
+                      <Eye className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("inspections.fields.vehicle")}</TableHead>
+                <TableHead>{t("inspections.fields.type")}</TableHead>
+                <TableHead>{t("inspections.fields.date")}</TableHead>
+                <TableHead>{t("inspections.fields.status")}</TableHead>
+                <TableHead>{t("inspections.fields.inspector")}</TableHead>
+                <TableHead className="w-[100px]">{t("common.actions.default")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredInspections.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    {debouncedSearch || statusFilter !== "all" 
+                      ? t("common.noResults")
+                      : t("inspections.noInspections")}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredInspections.map((inspection) => (
+                  <TableRow key={inspection.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">
+                          {inspection.vehicle?.name || t("inspections.noVehicle")}
+                        </div>
+                        {inspection.vehicle?.plate_number && (
+                          <div className="text-sm text-muted-foreground">
+                            {inspection.vehicle.plate_number}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {inspection.type || t("inspections.type.unspecified")}
+                    </TableCell>
+                    <TableCell>
+                      {format(parseISO(inspection.date), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn("text-xs", getStatusBadgeClasses(inspection.status))}>
+                        {inspection.status ? (
+                          (() => {
+                            const statusKey = `inspections.status.${inspection.status}`;
+                            try { return t(statusKey as any); } catch { return inspection.status; }
+                          })()
+                        ) : t("common.notAvailable")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {inspection.inspector?.name || t("common.notAssigned")}
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/inspections/${inspection.id}`}> <Eye className="h-3 w-3" /></Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )
@@ -670,7 +713,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon
           return (

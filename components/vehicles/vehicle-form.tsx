@@ -65,6 +65,8 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
       model: vehicle?.model || "",
       year: vehicle?.year || undefined,
       vin: vehicle?.vin || "",
+      passenger_capacity: vehicle?.passenger_capacity ?? undefined,
+      luggage_capacity: vehicle?.luggage_capacity ?? undefined,
       status: vehicle?.status || "active",
       image_url: vehicle?.image_url || null,
     },
@@ -79,6 +81,8 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         model: vehicle.model || "",
         year: vehicle.year || undefined,
         vin: vehicle.vin || "",
+        passenger_capacity: vehicle.passenger_capacity ?? undefined,
+        luggage_capacity: vehicle.luggage_capacity ?? undefined,
         status: vehicle.status || "active",
         image_url: vehicle.image_url || null,
       });
@@ -157,6 +161,8 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         model: data.model || "",
         year: data.year ? String(data.year) : "",
         vin: data.vin || "",
+        passenger_capacity: data.passenger_capacity ?? null,
+        luggage_capacity: data.luggage_capacity ?? null,
         status: data.status || 'active',
         image_url: finalImageUrl || null,
       };
@@ -173,6 +179,8 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         if (data.vin !== undefined) updatePayload.vin = data.vin || "";
         if (data.status !== undefined) updatePayload.status = data.status;
         if (finalImageUrl !== undefined) updatePayload.image_url = finalImageUrl || null;
+        if (data.passenger_capacity !== undefined) updatePayload.passenger_capacity = data.passenger_capacity ?? null;
+        if (data.luggage_capacity !== undefined) updatePayload.luggage_capacity = data.luggage_capacity ?? null;
         
         if (Object.keys(updatePayload).length === 0) {
             toast({ title: t('common.noChanges') });
@@ -196,6 +204,8 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             vin: vehicleDbData.vin,
             user_id: user.id,
             image_url: vehicleDbData.image_url,
+            passenger_capacity: vehicleDbData.passenger_capacity,
+            luggage_capacity: vehicleDbData.luggage_capacity,
             status: vehicleDbData.status,
         };
         result = await supabase
@@ -333,6 +343,32 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
                         <SelectItem value="inactive">{t('vehicles.status.inactive')}</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="passenger_capacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.passengerCapacity')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder={t('vehicles.fields.passengerCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="luggage_capacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('vehicles.fields.luggageCapacity')}</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder={t('vehicles.fields.luggageCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

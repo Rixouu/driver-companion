@@ -27,6 +27,7 @@ import { useInspectionStatus } from "@/lib/hooks/use-inspection-status";
 import { useInspectionItems } from "@/lib/hooks/use-inspection-items";
 import { useInspectionReportExport } from '@/lib/hooks/use-inspection-report-export';
 import { InspectionItemsDisplayList } from '@/components/inspections/inspection-items-display-list';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Add extended inspection type with inspection_items
 export interface ExtendedInspection extends DbInspection {
@@ -379,6 +380,9 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     router.push(`/maintenance/schedule?${queryParams.toString()}`);
   };
 
+  // Local state for tabs (needed to sync with mobile select)
+  const [tabValue, setTabValue] = useState<string>("all");
+
   if (isLoadingTemplates && itemsWithTemplates.length === 0) {
     return <div className="container mx-auto p-4"><p>{t('common.loading')}</p></div>;
   }
@@ -437,12 +441,36 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             </CardContent>
           </Card>
 
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 print-hide">
-              <TabsTrigger value="all">{t("inspections.details.tabs.details")} ({itemsWithTemplates.length})</TabsTrigger>
-              <TabsTrigger value="failed">{t("inspections.details.tabs.failed")} ({failedCount})</TabsTrigger>
-              <TabsTrigger value="passed">{t("inspections.details.tabs.passed")} ({passedCount})</TabsTrigger>
-              <TabsTrigger value="photos">{t("inspections.details.tabs.photos")} ({photosCount})</TabsTrigger>
+          <Tabs value={tabValue} onValueChange={setTabValue} className="w-full">
+            {/* Mobile dropdown selector */}
+            <div className="sm:hidden mb-4">
+              <Select value={tabValue} onValueChange={setTabValue}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("inspections.details.tabs.details")} ({itemsWithTemplates.length})</SelectItem>
+                  <SelectItem value="failed">{t("inspections.details.tabs.failed")} ({failedCount})</SelectItem>
+                  <SelectItem value="passed">{t("inspections.details.tabs.passed")} ({passedCount})</SelectItem>
+                  <SelectItem value="photos">{t("inspections.details.tabs.photos")} ({photosCount})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop/Tablet tab buttons */}
+            <TabsList className="hidden sm:grid w-full grid-cols-4 print-hide">
+              <TabsTrigger value="all" className="flex-1 sm:flex-none">
+                {t("inspections.details.tabs.details")} ({itemsWithTemplates.length})
+              </TabsTrigger>
+              <TabsTrigger value="failed" className="flex-1 sm:flex-none">
+                {t("inspections.details.tabs.failed")} ({failedCount})
+              </TabsTrigger>
+              <TabsTrigger value="passed" className="flex-1 sm:flex-none">
+                {t("inspections.details.tabs.passed")} ({passedCount})
+              </TabsTrigger>
+              <TabsTrigger value="photos" className="flex-1 sm:flex-none">
+                {t("inspections.details.tabs.photos")} ({photosCount})
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-4">
               <InspectionItemsDisplayList 

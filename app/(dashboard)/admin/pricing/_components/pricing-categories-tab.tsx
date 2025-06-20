@@ -27,27 +27,24 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash, Check, X, MoreHorizontal, Link as LinkIcon } from "lucide-react";
+import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ExternalLink } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import type { Vehicle } from "@/types/vehicles";
+
+// Extend PricingCategory to include vehicle_ids coming from the new junction table
+type CategoryWithVehicles = PricingCategory & { vehicle_ids?: string[] };
 
 export default function PricingCategoriesTab() {
-  const [categories, setCategories] = useState<PricingCategory[]>([]);
+  const [categories, setCategories] = useState<CategoryWithVehicles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState<Partial<PricingCategory> | null>(null);
+  const [currentCategory, setCurrentCategory] = useState<Partial<CategoryWithVehicles> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -56,9 +53,13 @@ export default function PricingCategoriesTab() {
   const [categoryToToggle, setCategoryToToggle] = useState<{id: string, isActive: boolean} | null>(null);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [selectedServiceTypesForLink, setSelectedServiceTypesForLink] = useState<Set<string>>(new Set());
-  const [categoryToLink, setCategoryToLink] = useState<PricingCategory | null>(null);
+  const [categoryToLink, setCategoryToLink] = useState<CategoryWithVehicles | null>(null);
+  const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<Set<string>>(new Set());
+  const [categoryForVehicles, setCategoryForVehicles] = useState<CategoryWithVehicles | null>(null);
   
-  const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory } = useQuotationService();
+  const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory, addVehiclesToCategory, removeVehiclesFromCategory, replaceServiceTypesOfCategory } = useQuotationService();
   const { t } = useI18n();
   
   // Function to refresh categories
@@ -131,7 +132,7 @@ export default function PricingCategoriesTab() {
     loadData();
   }, [getPricingCategories, getServiceTypes]);
   
-  const handleOpenDialog = (category: PricingCategory | null = null) => {
+  const handleOpenDialog = (category: CategoryWithVehicles | null = null) => {
     if (category) {
       setCurrentCategory({ ...category });
       setIsEditing(true);
@@ -162,18 +163,20 @@ export default function PricingCategoriesTab() {
       return;
     }
 
-    let result: PricingCategory | null = null;
+    let result: CategoryWithVehicles | null = null;
     if (isEditing && currentCategory.id) {
       // Update existing category
-      const { id, created_at, updated_at, ...updateData } = currentCategory as PricingCategory;
+      const { id, created_at, updated_at, ...updateData } = currentCategory as CategoryWithVehicles;
       result = await updatePricingCategory(id, updateData);
     } else {
       // Create new category
       const { id, created_at, updated_at, ...createData } = currentCategory; // currentCategory is Partial here
-      result = await createPricingCategory(createData as Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>);
+      result = await createPricingCategory(createData as Omit<CategoryWithVehicles, 'id' | 'created_at' | 'updated_at'>);
     }
 
     if (result) {
+      // sync service types via junction table
+      await replaceServiceTypesOfCategory(result.id, currentCategory.service_type_ids || []);
       await refreshCategories();
       handleCloseDialog();
     } else {
@@ -234,8 +237,9 @@ export default function PricingCategoriesTab() {
     }
   };
   
-  const handleOpenLinkDialog = (category: PricingCategory) => {
+  const handleOpenLinkDialog = (category: CategoryWithVehicles) => {
     setCategoryToLink(category);
+    setSelectedServiceTypesForLink(new Set(category.service_type_ids || []));
     setIsLinkDialogOpen(true);
   };
   
@@ -260,6 +264,67 @@ export default function PricingCategoriesTab() {
         description: t("pricing.categories.updateError"),
         variant: "destructive",
       });
+    }
+  };
+  
+  const handleOpenVehicleDialog = async (category: CategoryWithVehicles) => {
+    setCategoryForVehicles(category);
+    // load vehicles if not loaded
+    if (allVehicles.length === 0) {
+      try {
+        // Fetch vehicles in pages of 100 (API limit)
+        const pageSize = 100;
+        let page = 1;
+        let hasMore = true;
+        const collected: Vehicle[] = [];
+
+        while (hasMore) {
+          const res = await fetch(`/api/vehicles?page=${page}&pageSize=${pageSize}&sortBy=name&sortOrder=asc`);
+          if (!res.ok) throw new Error(`Failed to load vehicles (page ${page})`);
+
+          const data = await res.json();
+          const raw: any[] = data.vehicles || data.data || [];
+
+          const normalised: Vehicle[] = raw.map(v => ({
+            ...v,
+            plate_number: v.plate_number ?? v.license_plate,
+            brand: v.brand ?? v.make,
+          }));
+
+          collected.push(...normalised);
+
+          // If we received fewer than pageSize, we have all data
+          hasMore = raw.length === pageSize;
+          page += 1;
+        }
+
+        setAllVehicles(collected);
+      } catch (err) {
+        console.error('Error loading vehicles', err);
+      }
+    }
+    setSelectedVehicleIds(new Set(category.vehicle_ids || []));
+    setIsVehicleDialogOpen(true);
+  };
+  
+  const handleSaveVehicles = async () => {
+    if (!categoryForVehicles) return;
+    const originalIds = new Set(categoryForVehicles.vehicle_ids || []);
+    const newIds = selectedVehicleIds;
+    const toAdd: string[] = [];
+    const toRemove: string[] = [];
+    newIds.forEach(id => { if (!originalIds.has(id)) toAdd.push(id); });
+    originalIds.forEach(id => { if (!newIds.has(id)) toRemove.push(id); });
+    try {
+      if (toAdd.length) await addVehiclesToCategory(categoryForVehicles.id, toAdd);
+      if (toRemove.length) await removeVehiclesFromCategory(categoryForVehicles.id, toRemove);
+      toast({ title: t('pricing.categories.toast.vehiclesUpdated') });
+      await refreshCategories();
+    } catch (err) {
+      console.error(err);
+      toast({ title: t('common.error'), description: t('pricing.categories.toast.vehiclesUpdateError'), variant: 'destructive' });
+    } finally {
+      setIsVehicleDialogOpen(false);
     }
   };
   
@@ -352,6 +417,15 @@ export default function PricingCategoriesTab() {
                           onClick={() => openDeleteConfirm(category.id)}
                         >
                           <Trash className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title={t('pricing.categories.actions.manageVehicles')}
+                          onClick={() => handleOpenVehicleDialog(category)}
+                        >
+                          <Car className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -556,6 +630,64 @@ export default function PricingCategoriesTab() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsLinkDialogOpen(false)}>{t("common.cancel")}</Button>
                 <Button onClick={handleSaveLinks}>{t("pricing.categories.linkDialog.saveLinks")}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Manage Vehicles Dialog */}
+          <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>{t('pricing.categories.vehicleDialog.title', { categoryName: categoryForVehicles?.name || '' })}</DialogTitle>
+                <DialogDescription>{t('pricing.categories.vehicleDialog.description')}</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh]">
+                <div>
+                  <Label>{t('pricing.categories.vehicleDialog.available')}</Label>
+                  <ScrollArea className="h-[45vh] border rounded-md p-2">
+                    {allVehicles.map(v => {
+                      const checked = selectedVehicleIds.has(v.id);
+                      return (
+                        <div key={v.id} className="flex items-center gap-2 py-1">
+                          <Checkbox checked={checked} onCheckedChange={(val) => {
+                            setSelectedVehicleIds(prev => {
+                              const set = new Set(prev);
+                              if (val) set.add(v.id); else set.delete(v.id);
+                              return set;
+                            });
+                          }} />
+                          <span className="text-sm">{v.name} ({v.plate_number})</span>
+                        </div>
+                      );
+                    })}
+                  </ScrollArea>
+                </div>
+                <div>
+                  <Label>{t('pricing.categories.vehicleDialog.selected')}</Label>
+                  <ScrollArea className="h-[45vh] border rounded-md p-2">
+                    {[...selectedVehicleIds].map(id => {
+                      const v = allVehicles.find(av => av.id === id);
+                      if (!v) return null;
+                      return (
+                        <Badge key={id} className="mr-2 mb-2 inline-flex items-center gap-1">
+                          {v.name}
+                          <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                            setSelectedVehicleIds(prev => {
+                              const set = new Set(prev);
+                              set.delete(id);
+                              return set;
+                            });
+                          }} />
+                        </Badge>
+                      );
+                    })}
+                    {selectedVehicleIds.size === 0 && <p className="text-sm text-muted-foreground p-2">{t('pricing.categories.vehicleDialog.noVehicles')}</p>}
+                  </ScrollArea>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsVehicleDialogOpen(false)}>{t('common.cancel')}</Button>
+                <Button onClick={handleSaveVehicles}>{t('common.save')}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

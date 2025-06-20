@@ -1346,7 +1346,6 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          service_type_ids: string[] | null
           service_types: string[]
           sort_order: number
           updated_at: string
@@ -1357,7 +1356,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          service_type_ids?: string[] | null
           service_types: string[]
           sort_order?: number
           updated_at?: string
@@ -1368,12 +1366,83 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          service_type_ids?: string[] | null
           service_types?: string[]
           sort_order?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      pricing_category_service_types: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          service_type_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          service_type_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          service_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_category_service_types_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_category_service_types_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_category_vehicles: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          vehicle_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          vehicle_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_category_vehicles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_category_vehicles_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pricing_items: {
         Row: {

@@ -1187,7 +1187,11 @@ export const useQuotationService = () => {
       
       const { data, error } = await supabase
         .from('pricing_categories')
-        .select('id, name, description, service_type_ids, is_active, sort_order, created_at, updated_at') // Ensure service_type_ids is selected
+        .select(`
+          *,
+          service_types:pricing_category_service_types ( service_type_id ),
+          vehicles:pricing_category_vehicles ( vehicle_id )
+        `)
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
@@ -1197,9 +1201,10 @@ export const useQuotationService = () => {
         return []; // Return empty on error
       }
       
-      const categoriesData = (data || []).map(category => ({
+      const categoriesData = (data || []).map((category: any) => ({
         ...category,
-        service_type_ids: category.service_type_ids || [], // Ensure service_type_ids is an array
+        service_type_ids: (category.service_types || []).map((st: any) => st.service_type_id),
+        vehicle_ids: (category.vehicles || []).map((v: any) => v.vehicle_id),
       })) as PricingCategory[];
 
       pricingCache.categories = categoriesData;
@@ -1533,22 +1538,43 @@ export const useQuotationService = () => {
   const createPricingCategory = async (categoryData: Omit<PricingCategory, 'id' | 'created_at' | 'updated_at'>): Promise<PricingCategory | null> => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/pricing/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create pricing category');
+      const { service_type_ids = [], ...rest } = categoryData as any;
+
+      // Ensure we always insert non-null arrays for the NOT NULL columns in the DB
+      const insertPayload = {
+        ...rest,
+        service_type_ids: service_type_ids, // uuid[] column – empty array is fine
+        service_types: [],                  // we no longer rely on the denormalised names column but it is NOT NULL
+        is_active: categoryData.is_active ?? true,
+      };
+
+      const { data, error } = await supabase
+        .from('pricing_categories')
+        .insert(insertPayload)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // If there were service types selected, create junction rows
+      if (service_type_ids && service_type_ids.length) {
+        try {
+          await addServiceTypesToCategory(data.id, service_type_ids);
+        } catch (junctionErr) {
+          console.error('Failed to add service types to new category', junctionErr);
+        }
       }
-      const data = await response.json();
-      pricingCache.categories = null; // Invalidate cache
+
+      pricingCache.categories = null;
       toast({ title: t('pricing.categories.createSuccess') });
-      return data as PricingCategory;
+      return data as unknown as PricingCategory;
     } catch (err: any) {
       console.error('Error creating pricing category:', err);
-      toast({ title: t('pricing.categories.createError'), description: err.message, variant: 'destructive' });
+      toast({
+        title: t('pricing.categories.createError'),
+        description: err.message,
+        variant: 'destructive'
+      });
       return null;
     } finally {
       setLoading(false);
@@ -2056,6 +2082,60 @@ export const useQuotationService = () => {
     }
   };
 
+  /* -------------------------------------------------------------
+   * Junction-table helpers (pricing_category_service_types / _vehicles)
+   * ------------------------------------------------------------- */
+
+  const addServiceTypesToCategory = async (categoryId: string, typeIds: string[]) => {
+    if (typeIds.length === 0) return;
+    await supabase
+      .from('pricing_category_service_types')
+      .insert(typeIds.map(id => ({ category_id: categoryId, service_type_id: id })))
+      .throwOnError();
+  };
+
+  const removeServiceTypesFromCategory = async (categoryId: string, typeIds: string[]) => {
+    if (typeIds.length === 0) return;
+    await supabase
+      .from('pricing_category_service_types')
+      .delete()
+      .eq('category_id', categoryId)
+      .in('service_type_id', typeIds)
+      .throwOnError();
+  };
+
+  const replaceServiceTypesOfCategory = async (categoryId: string, newTypeIds: string[]) => {
+    // Fetch current
+    const { data: currentRows, error } = await supabase
+      .from('pricing_category_service_types')
+      .select('service_type_id')
+      .eq('category_id', categoryId);
+    if (error) throw error;
+    const currentIds = (currentRows ?? []).map(r => r.service_type_id);
+    const toAdd = newTypeIds.filter(id => !currentIds.includes(id));
+    const toRemove = currentIds.filter(id => !newTypeIds.includes(id));
+    await addServiceTypesToCategory(categoryId, toAdd);
+    await removeServiceTypesFromCategory(categoryId, toRemove);
+  };
+
+  const addVehiclesToCategory = async (categoryId: string, vehicleIds: string[]) => {
+    if (vehicleIds.length === 0) return;
+    await supabase
+      .from('pricing_category_vehicles')
+      .insert(vehicleIds.map(id => ({ category_id: categoryId, vehicle_id: id })))
+      .throwOnError();
+  };
+
+  const removeVehiclesFromCategory = async (categoryId: string, vehicleIds: string[]) => {
+    if (vehicleIds.length === 0) return;
+    await supabase
+      .from('pricing_category_vehicles')
+      .delete()
+      .eq('category_id', categoryId)
+      .in('vehicle_id', vehicleIds)
+      .throwOnError();
+  };
+
   return {
     loading,
     error,
@@ -2091,6 +2171,11 @@ export const useQuotationService = () => {
     getPricingPackage,
     createPricingPackage,
     updatePricingPackage,
-    deletePricingPackage
+    deletePricingPackage,
+    addVehiclesToCategory,
+    removeVehiclesFromCategory,
+    replaceServiceTypesOfCategory,
+    addServiceTypesToCategory,
+    removeServiceTypesFromCategory,
   };
 }; 

@@ -3089,7 +3089,9 @@ export const en: TranslationValue = {
         serviceTypesFixedTitle: "Service Types Fixed",
         serviceTypesFixedDescription: "Successfully updated {count} categories.",
         fixServiceTypesError: "Failed to fix service types",
-        nameRequiredError: "Category name is required"
+        nameRequiredError: "Category name is required",
+        vehiclesUpdated: "Vehicles updated successfully",
+        vehiclesUpdateError: "Failed to update vehicles"
       },
       buttons: {
         fixServiceTypes: "Fix Service Types",
@@ -3143,6 +3145,23 @@ export const en: TranslationValue = {
         saveLinks: "Save Links",
         noLinkedServiceTypes: "No service types linked yet.",
         noSelectedServiceTypes: "No service types selected."
+      },
+      actions: {
+        manageVehicles: "Manage Vehicles"
+      },
+      vehicleDialog: {
+        title: "Manage Vehicles for {categoryName}",
+        description: "Link or unlink vehicles from this category.",
+        available: "Available Vehicles",
+        selected: "Selected Vehicles",
+        noVehicles: "No vehicles available",
+        save: "Save Vehicles"
+      },
+      toast: {
+        vehiclesUpdated: "Vehicles updated successfully",
+        vehiclesUpdateError: "Failed to update vehicles",
+        vehiclesLoaded: "Vehicles loaded successfully",
+        vehiclesLoadError: "Failed to load vehicles"
       }
     },
     items: {

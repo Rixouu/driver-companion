@@ -47,10 +47,10 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         name,
-        make,
+        brand,
         model,
         year,
-        license_plate,
+        plate_number,
         vin,
         status,
         created_at,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
     
     if (search) {
-      query = query.or(`name.ilike.%${search}%,license_plate.ilike.%${search}%,vin.ilike.%${search}%`)
+      query = query.or(`name.ilike.%${search}%,plate_number.ilike.%${search}%,vin.ilike.%${search}%`)
     }
     
     if (statusFilter) {

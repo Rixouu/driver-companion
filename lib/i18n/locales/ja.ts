@@ -770,9 +770,11 @@ export const ja: TranslationValue = {
     status: {
       pending: "保留中",
       inProgress: "進行中",
+      in_progress: "進行中",
       completed: "完了",
       failed: "不合格",
-      scheduled: "スケジュール済み"
+      scheduled: "スケジュール済み",
+      cancelled: "キャンセル済み"
     },
     type: {
       routine: "定期点検",

@@ -787,6 +787,7 @@ export const en: TranslationValue = {
     status: {
       pending: "Pending",
       inProgress: "In Progress",
+      in_progress: "In Progress",
       completed: "Completed",
       failed: "Failed",
       scheduled: "Scheduled",

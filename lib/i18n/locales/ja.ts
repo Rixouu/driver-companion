@@ -54,6 +54,8 @@ export const ja: TranslationValue = {
     menu: "メニュー",
     login: "ログイン",
     logout: "ログアウト",
+    language: "言語",
+    emailPlaceholder: "customer@example.com",
     darkMode: "ダークモード",
     inProgress: "進行中",
     upcoming: "予定",
@@ -3278,6 +3280,16 @@ export const ja: TranslationValue = {
     invoices: {
       title: "請求書",
       description: "顧客の請求書を管理・追跡します",
+      actions: {
+        downloadPdf: "請求書PDFをダウンロード",
+        emailInvoice: "請求書をメール送信",
+        sending: "送信中..."
+      },
+      emailModal: {
+        title: "請求書をメール送信",
+        description: "この請求書PDFをお客様にメールで送信します。",
+        includeDetails: "詳細情報を含める"
+      },
       invoiceManagement: "請求書管理",
       createInvoice: "請求書を作成",
       noInvoiceCreatedYet: "まだ請求書は作成されていません",

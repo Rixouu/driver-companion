@@ -42,6 +42,7 @@ import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromo
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
+import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';
 import { useQuotationMessages } from '@/lib/hooks/useQuotationMessages';
 import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
 import { QuotationMessageBlock } from '@/components/quotations/quotation-message-block';
@@ -389,12 +390,22 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Right side - Action buttons */}
             <div className="flex flex-wrap gap-2 flex-shrink-0">
-              <QuotationPdfButton 
-                quotation={quotation} 
-                selectedPackage={selectedPackage} 
-                selectedPromotion={selectedPromotion}
-                onSuccess={() => router.refresh()} 
-              />
+              {/* Show different buttons based on quotation status */}
+              {quotation.status === 'approved' ? (
+                /* Show invoice buttons when approved */
+                <QuotationInvoiceButton 
+                  quotation={quotation}
+                  onSuccess={() => router.refresh()} 
+                />
+              ) : (
+                /* Show regular quotation buttons when not approved */
+                <QuotationPdfButton 
+                  quotation={quotation} 
+                  selectedPackage={selectedPackage} 
+                  selectedPromotion={selectedPromotion}
+                  onSuccess={() => router.refresh()} 
+                />
+              )}
               
               {isOrganizationMember && quotation.status === 'draft' && (
                 <Button 
@@ -407,7 +418,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 </Button>
               )}
               
-              {isOrganizationMember && (
+              {/* Hide edit button when status is approved */}
+              {isOrganizationMember && quotation.status !== 'approved' && (
                 <Button variant="outline" asChild className="gap-2">
                   <Link href={`/quotations/${quotation.id}/edit`}>
                     <Edit className="h-4 w-4" />

@@ -14,8 +14,7 @@ import type { NextWebVitalsMetric } from 'next/app';
 // import { SupabaseProvider } from "@/components/providers/supabase-provider" 
 import { QueryProvider } from "@/components/providers/query-provider"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
-import { ReactPlugin } from "@stagewise-plugins/react"
-import { StagewiseToolbarWrapper } from "@/components/stagewise/StagewiseToolbar"
+
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -72,7 +71,7 @@ export default async function RootLayout({
             </I18nProvider>
           </QueryProvider>
         </SupabaseProvider>
-        <StagewiseToolbarWrapper />
+
       </body>
     </html>
   )

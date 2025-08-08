@@ -74,6 +74,8 @@ export const en: TranslationValue = {
     line: "LINE",
     exporting: "Exporting...",
     email: "Email",
+    language: "Language",
+    emailPlaceholder: "customer@example.com",
     send: "Send Email",
     sending: "Sending...",
     selected: "Selected",
@@ -3341,6 +3343,16 @@ export const en: TranslationValue = {
   invoices: {
     title: "Invoices",
     description: "Manage and track customer invoices",
+    actions: {
+      downloadPdf: "Download Invoice PDF",
+      emailInvoice: "Email Invoice",
+      sending: "Sending..."
+    },
+    emailModal: {
+      title: "Email Invoice",
+      description: "This will send the invoice PDF to the customer.",
+      includeDetails: "Include detailed service information"
+    },
     invoiceManagement: "Invoice Management",
     createInvoice: "Create Invoice",
     noInvoiceCreatedYet: "No Invoice Created Yet",

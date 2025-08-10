@@ -11,6 +11,27 @@ export const ja: TranslationValue = {
       success: "成功",
       sendSuccess: "見積りを送信しました"
     },
+    share: {
+      button: "共有",
+      message: "この見積りをご確認ください: {title} ({number})\n\n{url}",
+      whatsapp: {
+        title: "WhatsApp",
+        success: "WhatsAppを開きました",
+        description: "WhatsAppで見積りを共有"
+      },
+      line: {
+        title: "LINE",
+        success: "LINEを開きました",
+        description: "LINEで見積りを共有"
+      },
+      copy: {
+        title: "リンクをコピー",
+        success: "リンクをコピーしました！",
+        description: "見積りリンクをクリップボードにコピーしました",
+        error: "リンクのコピーに失敗しました",
+        errorDescription: "URLを手動でコピーしてください"
+      }
+    },
     form: {
       pricingSection: "料金情報",
       currencySettings: "通貨設定",

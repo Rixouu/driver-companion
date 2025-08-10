@@ -3042,6 +3042,27 @@ export const en: TranslationValue = {
       emailQuote: "Email Quotation",
       generating: "Generating..."
     },
+    share: {
+      button: "Share",
+      message: "Check out this quotation: {title} ({number})\n\n{url}",
+      whatsapp: {
+        title: "WhatsApp",
+        success: "Opened WhatsApp",
+        description: "Share the quotation via WhatsApp"
+      },
+      line: {
+        title: "LINE",
+        success: "Opened LINE",
+        description: "Share the quotation via LINE"
+      },
+      copy: {
+        title: "Copy Link",
+        success: "Link copied!",
+        description: "Quotation link copied to clipboard",
+        error: "Failed to copy link",
+        errorDescription: "Please copy the URL manually"
+      }
+    },
     emailDescription: "Send the quotation as a PDF attachment to the customer's email address.",
     includeDetails: "Include quotation details",
     emailModal: {

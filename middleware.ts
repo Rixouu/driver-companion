@@ -54,6 +54,19 @@ export async function middleware(request: NextRequest) {
       )
     }
   }
+  
+  // Special handling for quotations list page - allow customer access
+  if (isQuotationsListPage) {
+    if (isAuth) {
+      // If user is authenticated, continue - we'll filter quotations based on user type in the page component
+      return response
+    } else {
+      // If not authenticated, redirect to login
+      return NextResponse.redirect(
+        new URL(`/auth/login?redirectTo=${encodeURIComponent(request.nextUrl.pathname)}`, request.url)
+      )
+    }
+  }
 
   // For all other protected pages
   if (!isAuth && !isPublicPage && !isNotAuthorizedPage) {

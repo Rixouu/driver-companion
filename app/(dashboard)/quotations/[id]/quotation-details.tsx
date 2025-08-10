@@ -60,6 +60,7 @@ import { PriceDetails } from '@/components/quotations/quotation-details/price-de
 import { PricingSummary } from '@/components/quotations/quotation-details/pricing-summary';
 import { QuotationInfoCard } from '@/components/quotations/quotation-details/quotation-info-card';
 import { ServiceCard } from '@/components/quotations/service-card';
+import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
 
 interface QuotationDetailsProps {
   quotation: Quotation & {
@@ -404,6 +405,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Right side - Action buttons */}
             <div className="flex flex-wrap gap-2 flex-shrink-0">
+              {/* Share buttons - visible to all users */}
+              <QuotationShareButtons quotation={quotation} />
+              
               {/* Show different buttons based on quotation status */}
               {quotation.status === 'approved' ? (
                 /* Show invoice buttons when approved */

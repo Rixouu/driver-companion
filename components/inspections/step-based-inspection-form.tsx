@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useForm } from "react-hook-form"
 import { FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -106,6 +106,19 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const [currentStepIndex, setCurrentStepIndex] = useState(vehicleId ? 0 : -1); // -1 for vehicle selection, 0+ for sections
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
   const [availableTemplateTypes, setAvailableTemplateTypes] = useState<InspectionType[]>([]); // NEW: Track available types for selected vehicle
+  
+  // Debug component mount
+  useEffect(() => {
+    console.log(`[INSPECTION_FORM] Component mounted. Vehicle ID: ${vehicleId}, Inspection ID: ${inspectionId}`);
+    return () => {
+      console.log(`[INSPECTION_FORM] Component unmounting`);
+    };
+  }, []);
+  
+  // Debug sections changes
+  useEffect(() => {
+    console.log(`[INSPECTION_FORM] Sections changed:`, sections);
+  }, [sections]);
   
   // Camera handling
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -318,7 +331,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         });
         
         setSections(sectionsWithItems);
-        console.log(`[INSPECTION_TEMPLATE] Processed ${sectionsWithItems.length} sections with items`);
+        console.log(`[INSPECTION_TEMPLATE] Processed ${sectionsWithItems.length} sections with items:`, sectionsWithItems);
       } catch (error) {
         console.error('Error loading inspection template:', error);
         toast({
@@ -577,13 +590,20 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Handle item status change
   const handleItemStatus = (sectionId: string, itemId: string, status: "pass" | "fail") => {
+    console.log(`[INSPECTION_FORM] Setting item status: sectionId=${sectionId}, itemId=${itemId}, status=${status}`);
+    
     setSections(prevSections => {
-      return prevSections.map(section => {
+      console.log(`[INSPECTION_FORM] Previous sections before status update:`, prevSections);
+      
+      let itemFound = false;
+      const newSections = prevSections.map(section => {
         if (section.id === sectionId) {
           return {
             ...section,
             items: section.items.map(item => {
               if (item.id === itemId) {
+                itemFound = true;
+                console.log(`[INSPECTION_FORM] Item found, updating status from ${item.status} to ${status}`);
                 return {
                   ...item,
                   status: status
@@ -595,6 +615,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         }
         return section;
       });
+      
+      if (!itemFound) {
+        console.error(`[INSPECTION_FORM] Item not found! sectionId=${sectionId}, itemId=${itemId}`);
+        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
+      }
+      
+      console.log(`[INSPECTION_FORM] Updated sections:`, newSections);
+      return newSections;
     });
     
     // Check if section is complete
@@ -639,24 +667,38 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Handle camera click
   const handleCameraClick = (sectionId: string, itemId: string) => {
+    console.log(`[INSPECTION_FORM] Camera click: sectionId=${sectionId}, itemId=${itemId}`);
     setCurrentPhotoItem({ sectionId, itemId });
     setIsCameraOpen(true);
   };
   
   // Handle photo capture
   const handlePhotoCapture = async (photoUrl: string) => {
-    if (!currentPhotoItem) return;
+    console.log(`[INSPECTION_FORM] Photo captured: ${photoUrl}`);
+    console.log(`[INSPECTION_FORM] Current photo item:`, currentPhotoItem);
+    
+    if (!currentPhotoItem) {
+      console.error(`[INSPECTION_FORM] No current photo item set!`);
+      return;
+    }
     
     setSections(prevSections => {
-      return prevSections.map(section => {
+      console.log(`[INSPECTION_FORM] Previous sections before photo capture:`, prevSections);
+      
+      let itemFound = false;
+      const newSections = prevSections.map(section => {
         if (section.id === currentPhotoItem.sectionId) {
           return {
             ...section,
             items: section.items.map(item => {
               if (item.id === currentPhotoItem.itemId) {
+                itemFound = true;
+                console.log(`[INSPECTION_FORM] Adding photo to item, current photos:`, item.photos);
+                const newPhotos = [...item.photos, photoUrl];
+                console.log(`[INSPECTION_FORM] New photos array:`, newPhotos);
                 return {
                   ...item,
-                  photos: [...item.photos, photoUrl]
+                  photos: newPhotos
                 };
               }
               return item;
@@ -665,9 +707,18 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         }
         return section;
       });
+      
+      if (!itemFound) {
+        console.error(`[INSPECTION_FORM] Photo item not found! sectionId=${currentPhotoItem.sectionId}, itemId=${currentPhotoItem.itemId}`);
+        console.log(`[INSPECTION_FORM] Available sections:`, prevSections.map(s => ({ id: s.id, items: s.items.map(i => ({ id: i.id, title: i.title })) })));
+      }
+      
+      console.log(`[INSPECTION_FORM] Updated sections after photo capture:`, newSections);
+      return newSections;
     });
     
     setIsCameraOpen(false);
+    setCurrentPhotoItem(null);
   };
   
   // Handle photo deletion
@@ -778,7 +829,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               notes: notes, // Overall inspection notes
               // Don't update date or inspector when resuming
             })
-            .eq('id', inspectionId)
+            .eq('id', inspectionId!)
             .select()
             .single();
 
@@ -801,7 +852,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               // vehicle_id and type are generally not changed during an item edit session
               // inspector_id: user.id, // Could be updated if another user modifies
             })
-            .eq('id', inspectionId)
+            .eq('id', inspectionId!)
             .select()
             .single();
 
@@ -1315,9 +1366,16 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   
   // Render section items with improved spacing
   const renderSectionItems = () => {
-    if (!sections.length || currentSectionIndex >= sections.length) return null;
+    console.log(`[INSPECTION_FORM] Rendering section items. Sections:`, sections);
+    console.log(`[INSPECTION_FORM] Current section index:`, currentSectionIndex);
+    
+    if (!sections.length || currentSectionIndex >= sections.length) {
+      console.log(`[INSPECTION_FORM] No sections or invalid index. Sections length: ${sections.length}, Current index: ${currentSectionIndex}`);
+      return null;
+    }
     
     const currentSection = sections[currentSectionIndex];
+    console.log(`[INSPECTION_FORM] Current section:`, currentSection);
     
     return (
       <div className="space-y-8">
@@ -1333,8 +1391,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         
         {/* Inspection items */}
         <div className="space-y-6">
-          {currentSection.items.map(item => (
-            <Card key={item.id} className="border">
+          {currentSection.items.map((item, itemIndex) => (
+            <Card key={`${currentSection.id}-${item.id}-${itemIndex}`} className="border">
               <CardContent className="p-6 space-y-5">
                 <div className="bg-muted/20 p-3 rounded-md">
                   <h3 className="font-medium text-lg">{item.title}</h3>
@@ -1348,7 +1406,11 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                     variant={item.status === 'pass' ? 'default' : 'outline'} 
                     size="sm"
                     className={item.status === 'pass' ? 'bg-green-600 hover:bg-green-700' : ''}
-                    onClick={() => handleItemStatus(currentSection.id, item.id, 'pass')}
+                    onClick={() => {
+                      console.log(`[INSPECTION_FORM] Pass button clicked for item:`, item);
+                      console.log(`[INSPECTION_FORM] Current section:`, currentSection);
+                      handleItemStatus(currentSection.id, item.id, 'pass');
+                    }}
                   >
                     <Check className="mr-2 h-4 w-4" />
                     {t('inspections.actions.pass')}
@@ -1357,7 +1419,11 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                     variant={item.status === 'fail' ? 'default' : 'outline'} 
                     size="sm"
                     className={item.status === 'fail' ? 'bg-red-600 hover:bg-red-700' : ''}
-                    onClick={() => handleItemStatus(currentSection.id, item.id, 'fail')}
+                    onClick={() => {
+                      console.log(`[INSPECTION_FORM] Fail button clicked for item:`, item);
+                      console.log(`[INSPECTION_FORM] Current section:`, currentSection);
+                      handleItemStatus(currentSection.id, item.id, 'fail');
+                    }}
                   >
                     <X className="mr-2 h-4 w-4" />
                     {t('inspections.actions.fail')}
@@ -1366,7 +1432,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => handleCameraClick(currentSection.id, item.id)}
+                      onClick={() => {
+                        console.log(`[INSPECTION_FORM] Camera button clicked for item:`, item);
+                        handleCameraClick(currentSection.id, item.id);
+                      }}
                     >
                       <Camera className="mr-2 h-4 w-4" />
                       {item.photos.length > 0 
@@ -1526,10 +1595,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   };
   
   const [existingInspection, setExistingInspection] = useState<any>(null);
+  const hasLoadedExistingData = useRef(false);
 
   // NEW: Load inspection header to get type and existing items when editing/continuing
   useEffect(() => {
     if (!inspectionId) return;
+    
+    // Reset the flag when inspection ID changes
+    hasLoadedExistingData.current = false;
 
     const loadInspectionHeader = async () => {
       try {
@@ -1563,7 +1636,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
 
   // NEW: After sections are loaded, merge existing item statuses/notes/photos
   useEffect(() => {
-    if (!inspectionId || sections.length === 0) return;
+    if (!inspectionId || sections.length === 0 || hasLoadedExistingData.current) return;
 
     const loadExistingResults = async () => {
       try {
@@ -1587,11 +1660,19 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           }
         });
 
+        console.log(`[INSPECTION_FORM] Loading existing results for ${iterableItems.length} items`);
+        console.log(`[INSPECTION_FORM] Result map:`, resultMap);
+        console.log(`[INSPECTION_FORM] Current sections before merge:`, sections);
+
         const merged = sections.map((section) => ({
           ...section,
           items: section.items.map((item) => {
             const existing = resultMap[item.id as string];
-            if (!existing) return item;
+            if (!existing) {
+              console.log(`[INSPECTION_FORM] No existing data for item ${item.id}`);
+              return item;
+            }
+            console.log(`[INSPECTION_FORM] Merging existing data for item ${item.id}:`, existing);
             return {
               ...item,
               status: existing.status as 'pass' | 'fail' | null,
@@ -1601,7 +1682,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           }),
         }));
 
+        console.log(`[INSPECTION_FORM] Merged sections:`, merged);
         setSections(merged);
+        hasLoadedExistingData.current = true;
       } catch (err) {
         console.error('[StepBasedInspectionForm] Unexpected error merging existing results:', err);
       }

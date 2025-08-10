@@ -8,9 +8,12 @@ import * as z from 'zod';
 import { format } from 'date-fns';
 import { FileText, User, Car, DollarSign, Eye, ArrowLeft, ArrowRight, Send, Save } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
+import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
 import { cn } from '@/lib/utils';
 import { Form } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuotationService } from '@/lib/hooks/useQuotationService';
@@ -230,8 +233,30 @@ export default function QuotationFormRefactored({
 
   // Submit the form
   const onSubmit = async (data: FormData, sendToCustomer = false) => {
+    // Guard: require a valid service type when there are no service items
+    // For packages, use Charter Services as the fallback service type since packages don't have service_type_id in the service_types table
+    const effectiveServiceType = (
+      serviceItems[0]?.service_type_id || 
+      data.service_type || 
+      (selectedPackage ? PACKAGE_SERVICE_TYPE_ID : '') || 
+      ''
+    ).toString().trim();
+    
+    if (!effectiveServiceType) {
+      toast({
+        title: t('quotations.form.error') || 'Error',
+        description: t('quotations.form.errors.serviceTypeRequired') || 'Please select a service type before saving',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       setSubmittingAndSending(sendToCustomer);
+      // Progress overlay setup
+      setProgressOpen(true);
+      setProgressTitle(sendToCustomer ? (initialData?.id ? 'Updating & Sending' : 'Sending Quotation') : (initialData?.id ? 'Updating Draft' : 'Saving Draft'));
+      setProgressLabel('Preparing data...');
+      setProgressValue(5);
       
       const formData = {
         ...data,
@@ -261,7 +286,8 @@ export default function QuotationFormRefactored({
         billing_state: formData.billing_state || undefined,
         billing_postal_code: formData.billing_postal_code || undefined,
         billing_country: formData.billing_country || undefined,
-        service_type_id: primaryServiceItem?.service_type_id || formData.service_type || 'a2538c63-bad1-4523-a234-a708b03744b4',
+        // Use the effectiveServiceType which includes the packageFallbackServiceType for packages
+        service_type_id: primaryServiceItem?.service_type_id || formData.service_type || effectiveServiceType,
         vehicle_category: primaryServiceItem?.vehicle_category || formData.vehicle_category || undefined,
         vehicle_type: primaryServiceItem?.vehicle_type || formData.vehicle_type || 'Standard Vehicle',
         pickup_date: primaryServiceItem?.pickup_date || (formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined),
@@ -279,6 +305,17 @@ export default function QuotationFormRefactored({
       };
 
       let result: Quotation | null = null;
+      // Calculate steps for progress
+      let totalSteps = 1; // create/update quotation
+      if ((serviceItems.length > 0 || selectedPackage) && initialData?.id) totalSteps += 2; // delete-all + bulk-create
+      if (sendToCustomer) totalSteps += 1; // send email
+      let completedSteps = 0;
+      const advance = (label: string) => {
+        completedSteps += 1;
+        const pct = Math.min(95, Math.round((completedSteps / totalSteps) * 100));
+        setProgressValue(pct);
+        setProgressLabel(label);
+      };
 
       if (serviceItems.length > 0) {
         const processedServiceItems = serviceItems.map(item => ({
@@ -288,43 +325,54 @@ export default function QuotationFormRefactored({
 
         if (initialData?.id) {
           result = await updateQuotation(initialData.id, input);
+          advance('Quotation record saved');
           
-          if (result) {
+           if (result) {
             // Update service items
             await fetch(`/api/quotations/${initialData.id}/items/delete-all`, { method: 'DELETE' });
-            await fetch('/api/quotations/items/bulk-create', {
+            advance('Removing previous items');
+             await fetch('/api/quotations/items/bulk-create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 quotation_id: initialData.id,
-                items: processedServiceItems
+                 items: processedServiceItems
               })
             });
+            advance('Saving items');
           }
           
           if (sendToCustomer && result) {
             await sendQuotation(initialData.id);
+            advance('Emailing customer');
             toast({ title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully' });
           }
         } else {
+          // If only a package is selected and no serviceItems, still create with empty array
           result = await createQuotation(input, processedServiceItems);
+          advance(serviceItems.length > 0 ? 'Saving quotation and items' : 'Saving quotation');
           
           if (sendToCustomer && result?.id) {
             await sendQuotation(result.id);
+            advance('Emailing customer');
             toast({ title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully' });
           }
         }
       } else {
         if (initialData?.id) {
           result = await updateQuotation(initialData.id, input);
+          advance('Quotation record saved');
           if (sendToCustomer && result) {
             await sendQuotation(initialData.id);
+            advance('Emailing customer');
             toast({ title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully' });
           }
         } else {
           result = await createQuotation(input);
+          advance('Saving quotation');
           if (sendToCustomer && result?.id) {
             await sendQuotation(result.id);
+            advance('Emailing customer');
             toast({ title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully' });
           }
         }
@@ -335,6 +383,9 @@ export default function QuotationFormRefactored({
       } else if (result) {
         router.push(`/quotations/${result.id}` as any);
       }
+      setProgressValue(100);
+      setProgressLabel('Completed');
+      setTimeout(() => setProgressOpen(false), 600);
     } catch (error) {
       console.error('Error in form submission:', error);
       toast({
@@ -342,6 +393,9 @@ export default function QuotationFormRefactored({
         description: 'Failed to process quotation',
         variant: 'destructive'
       });
+      setProgressLabel('Failed');
+      setProgressValue(100);
+      setTimeout(() => setProgressOpen(false), 1200);
     } finally {
       setSubmittingAndSending(false);
     }
@@ -365,6 +419,12 @@ export default function QuotationFormRefactored({
     e.preventDefault();
     form.handleSubmit((data) => onSubmit(data, sendToCustomer))(e);
   };
+
+  // Progress modal state
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
+  const [progressTitle, setProgressTitle] = useState('Saving');
+  const [progressLabel, setProgressLabel] = useState('Starting...');
 
   return (
     <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
@@ -494,7 +554,7 @@ export default function QuotationFormRefactored({
           )}
 
           {/* Navigation - Optimized for mobile/tablet */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-4 border-t gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-4 border-t gap-3 sm:gap-4 relative">
             <Button
               type="button"
               variant="outline"
@@ -544,8 +604,32 @@ export default function QuotationFormRefactored({
               </div>
             )}
           </div>
+          {(apiLoading || submittingAndSending) && (
+            <div className="absolute inset-x-0 -bottom-0.5 md:bottom-auto md:top-[52px]">
+              <div className="h-1 w-full bg-muted/40">
+                <div className="h-1 bg-primary animate-[progress_1.2s_ease_infinite]" style={{width: '40%'}} />
+              </div>
+            </div>
+          )}
         </form>
       </Form>
+
+      {/* Progress Modal */}
+      <Dialog open={progressOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{progressTitle}</DialogTitle>
+            <DialogDescription className="sr-only">Saving quotation</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Progress value={progressValue} />
+            <div className="text-sm text-muted-foreground flex items-center justify-between">
+              <span>{progressLabel}</span>
+              <span className="font-medium text-foreground">{progressValue}%</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 } 

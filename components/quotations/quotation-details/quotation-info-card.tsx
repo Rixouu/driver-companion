@@ -36,10 +36,10 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
   const now = new Date();
   const createdDate = new Date(quotation.created_at);
   // Calculate proper expiry date: 2 days from creation
-  const properExpiryDate = addDays(createdDate, 2);
+  const properExpiryDate = addDays(createdDate, 3);
   const daysUntilExpiry = differenceInDays(properExpiryDate, now);
   const isExpired = isAfter(now, properExpiryDate);
-  const isExpiringSoon = !isExpired && daysUntilExpiry <= 1;
+  const isExpiringSoon = !isExpired && daysUntilExpiry <= 2;
   
   // Get status configuration
   const getStatusConfig = () => {

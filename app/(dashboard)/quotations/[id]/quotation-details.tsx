@@ -290,6 +290,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   // Send the quotation to the customer
   const handleSend = async () => {
     setIsLoading(true);
+    // Show lightweight determinate progress via toasts
+    const start = Date.now();
+    const steps = ['Preparing email', 'Queuing delivery', 'Sending'];
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = Math.min(idx + 1, steps.length - 1);
+      toast({ title: steps[idx], description: `${Math.min(90, (idx + 1) * 30)}%`, variant: 'default' });
+    }, 700);
     try {
       const success = await sendQuotation(quotation.id);
       if (success) {
@@ -306,6 +314,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         variant: 'destructive',
       });
     } finally {
+      clearInterval(interval);
+      const elapsed = Date.now() - start;
+      if (elapsed < 1200) {
+        // brief success pulse when very fast
+        toast({ title: 'Completed', description: '100%', variant: 'default' });
+      }
       setIsLoading(false);
     }
   };
@@ -813,11 +827,20 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 onApprove={async (notes) => {
                   setIsLoading(true);
                   try {
+                    // determinate toasts for approve flow
+                    let stepA = 0;
+                    const labelsA = ['Updating status', 'Recording activity', 'Notifying'];
+                    const tmA = setInterval(() => {
+                      stepA = Math.min(stepA + 1, labelsA.length - 1);
+                      toast({ title: labelsA[stepA], description: `${Math.min(90, (stepA + 1) * 30)}%` });
+                    }, 600);
                     const success = await approveQuotation({
                       quotation_id: quotation.id,
                       notes: notes
                     });
                     if (success) {
+                      clearInterval(tmA);
+                      toast({ title: t('quotations.notifications.approveSuccess'), description: '100%' });
                       toast({
                         title: t('quotations.notifications.approveSuccess'),
                         variant: 'default',
@@ -838,11 +861,20 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 onReject={async (reason) => {
                   setIsLoading(true);
                   try {
+                    // determinate toasts for reject flow
+                    let stepR = 0;
+                    const labelsR = ['Updating status', 'Recording activity', 'Notifying'];
+                    const tmR = setInterval(() => {
+                      stepR = Math.min(stepR + 1, labelsR.length - 1);
+                      toast({ title: labelsR[stepR], description: `${Math.min(90, (stepR + 1) * 30)}%` });
+                    }, 600);
                     const success = await rejectQuotation({
                       quotation_id: quotation.id,
                       rejected_reason: reason
                     });
                     if (success) {
+                      clearInterval(tmR);
+                      toast({ title: t('quotations.notifications.rejectSuccess'), description: '100%' });
                       toast({
                         title: t('quotations.notifications.rejectSuccess'),
                         variant: 'default',

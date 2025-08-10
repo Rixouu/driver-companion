@@ -273,6 +273,13 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
     }
     
     setIsEmailing(true);
+    // determinate progress via toasts
+    let step = 0;
+    const labels = ['Generating email', 'Attaching PDF', 'Sending email'];
+    const interval = setInterval(() => {
+      step = Math.min(step + 1, labels.length - 1);
+      toast({ title: labels[step], description: `${Math.min(90, (step + 1) * 30)}%` });
+    }, 600);
     
     try {
       // Generate the PDF with the selected language
@@ -307,6 +314,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
         title: "Success",
         description: `Invoice sent successfully to ${emailAddress}`,
       });
+      toast({ title: 'Completed', description: '100%' });
       
       setIsEmailDialogOpen(false);
       onSuccess?.();
@@ -318,6 +326,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
         variant: "destructive",
       });
     } finally {
+      try { clearInterval(interval); } catch {}
       setIsEmailing(false);
     }
   };

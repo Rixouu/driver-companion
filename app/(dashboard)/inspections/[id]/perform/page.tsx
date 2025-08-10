@@ -26,10 +26,12 @@ export default async function PerformInspectionPage({
   const supabase = await getSupabaseServerClient()
   
   // Properly await the parameters
-  const id = params.id;
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const id = resolvedParams.id;
   
   // Check for resume parameter
-  const isResuming = searchParams.resume === 'true';
+  const isResuming = resolvedSearchParams.resume === 'true';
   
   const { data: inspection } = await supabase
     .from('inspections')

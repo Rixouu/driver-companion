@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
+import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
 import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useI18n } from '@/lib/i18n/context';
@@ -214,7 +215,7 @@ export function ServiceSelectionStep({
       }
 
       const newPackageItem: ServiceItemInput = {
-        service_type_id: pkg.id,
+        service_type_id: PACKAGE_SERVICE_TYPE_ID,
         service_type_name: pkg.name,
         vehicle_type: 'Package',
         vehicle_category: 'package',
@@ -810,7 +811,7 @@ export function ServiceSelectionStep({
                         <Calendar className="h-4 w-4 text-green-600" />
                         <Label className="text-sm font-medium">{t('quotations.form.services.serviceDateTime')}</Label>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 items-end">
                         <FormField
                           control={form.control}
                           name="pickup_date"
@@ -873,8 +874,8 @@ export function ServiceSelectionStep({
                       </div>
 
                                   {/* Duration for Charter Services */}
-                                  {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
-                                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-3">
+                                   {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
+                                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 mt-3 items-end">
                                       <FormField
                                         control={form.control}
                                         name="service_days"
@@ -897,10 +898,10 @@ export function ServiceSelectionStep({
                                         )}
                                       />
                                       
-                                      <div>
-                                        <Label className="text-sm font-medium mb-2 block">Hours/Day</Label>
-                                        {renderHoursPerDayButtons('hours_per_day', getDurationsForServiceAndVehicle())}
-                                      </div>
+                                       <div className="flex flex-col">
+                                         <Label className="text-sm font-medium mb-2 block">Hours/Day</Label>
+                                         {renderHoursPerDayButtons('hours_per_day', getDurationsForServiceAndVehicle())}
+                                       </div>
                                     </div>
                                   )}
                                 </div>
@@ -1076,7 +1077,7 @@ export function ServiceSelectionStep({
                         <Calendar className="h-4 w-4 text-purple-600" />
                         <Label className="text-sm font-medium">Package Date & Time</Label>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 items-end">
                         <FormField
                           control={form.control}
                           name="pickup_date"

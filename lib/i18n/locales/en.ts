@@ -2,6 +2,8 @@ import { TranslationValue } from "../types"
 
 export const en: TranslationValue = {
   common: {
+    active: "Active",
+    inactive: "Inactive",
     status: {
       inProgress: "In Progress",
       upcoming: "Upcoming",
@@ -819,7 +821,9 @@ export const en: TranslationValue = {
       safety: "Safety",
       maintenance: "Maintenance",
       daily: "Daily",
-      unspecified: "Unspecified"
+      unspecified: "Unspecified",
+      daily_checklist_toyota: "Daily Checklist (Toyota)",
+      daily_checklist_mercedes: "Daily Checklist (Mercedes)"
     },
     statusValues: {
       pass: "Pass",
@@ -2642,6 +2646,9 @@ export const en: TranslationValue = {
       serviceUpdatedDescription: "The service details have been updated successfully.",
       currencySettings: "Currency Settings",
       estimatedPricing: "Estimated Pricing",
+      errors: {
+        serviceTypeRequired: "Please select a service type before saving",
+      },
       services: {
         individual: "Individual Services",
         configure: "Configure custom services",
@@ -2708,6 +2715,19 @@ export const en: TranslationValue = {
       promotions: {
         title: "Promotions",
         description: "Manage promotional codes and discounts",
+        enterCode: "Enter promotion code",
+        apply: "Apply",
+        availablePromotions: "Available Promotions",
+        noPromotions: "No promotions available",
+        invalid: "Invalid promotion code",
+        notActive: "This promotion is not yet active",
+        expired: "This promotion has expired",
+        usageLimitReached: "The usage limit for this promotion has been reached",
+        minimumAmount: "Minimum order amount required:",
+        applied: "Applied",
+        discount: "Discount",
+        promotionApplied: "Promotion applied",
+        maxDiscount: "Max discount: {amount}",
         create: "Create Promotion",
         createSuccess: "Promotion created successfully",
         createError: "Failed to create promotion",
@@ -2737,6 +2757,18 @@ export const en: TranslationValue = {
           title: "How it works",
           description: "When you set a pickup date and time, our system automatically checks for applicable time-based pricing rules and applies the appropriate adjustments to your base price. The adjusted price is reflected in the final quotation."
         }
+      },
+      currencyInfo: {
+        title: "Currency & Exchange Rates",
+        description: "Live exchange rates are used to convert totals for display. Final invoicing may be settled in your account currency.",
+        lastUpdated: "Rates last updated: {date}",
+        disclaimer: "Exchange rates are indicative and may differ at settlement."
+      },
+      taxInfo: {
+        title: "Tax Guidelines",
+        japan: "Japan Consumption Tax: Standard 10% (8% reduced for specific goods). Transportation services are typically 10%.",
+        thailand: "Thailand VAT: Standard 7%.",
+        applyRecommended: "Apply recommended ({percent}%)"
       },
       steps: {
         customerDetails: "Customer Details",
@@ -2816,6 +2848,7 @@ export const en: TranslationValue = {
       createSuccess: "Quotation created successfully",
       updateSuccess: "Quotation updated successfully",
       deleteSuccess: "Quotation deleted successfully",
+      reminderSuccess: "Reminder sent successfully",
       deleteConfirmation: "Are you sure you want to delete this quotation?",
       error: "Error",
       success: "Success",
@@ -3160,7 +3193,7 @@ export const en: TranslationValue = {
         noVehicles: "No vehicles available",
         save: "Save Vehicles"
       },
-      toast: {
+      vehicleToast: {
         vehiclesUpdated: "Vehicles updated successfully",
         vehiclesUpdateError: "Failed to update vehicles",
         vehiclesLoaded: "Vehicles loaded successfully",

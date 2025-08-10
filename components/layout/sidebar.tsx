@@ -182,6 +182,7 @@ export function Sidebar() {
       id: 'sales', 
       label: t("navigation.sales"),
       items: [
+        { icon: Calendar, label: "Sales Calendar", href: "/sales/calendar", key: "quotations" } as MenuItem,
         { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
         { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem
       ]
@@ -220,6 +221,7 @@ export function Sidebar() {
           id: 'sales',
           label: 'Sales',
           items: [
+            { icon: Calendar, label: "Sales Calendar", href: "/sales/calendar", key: "quotations" } as MenuItem,
             { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem
           ]
         }

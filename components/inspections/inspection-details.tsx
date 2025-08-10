@@ -566,7 +566,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                   {inspection.templateDisplayName 
                     ? inspection.templateDisplayName 
                     : (inspection.type 
-                        ? t(`inspections.type.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
+                        ? t(`inspections.typeValues.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) 
                         : t("common.notAvailable"))}
                 </TextValue>
               </div>

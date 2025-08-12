@@ -64,8 +64,8 @@ async function generateQuotationPDF(
   try {
     console.log('🔄 [SEND-EMAIL API] Starting PDF generation with HTML-to-PDF');
     
-    // Generate the HTML for the quotation, passing all required data
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
+    // Generate the HTML for the quotation, passing all required data including signatures
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion, true);
     
     // Convert the HTML to a PDF
     const pdfBuffer = await generatePdfFromHtml(htmlContent, {
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     }
 
     let selectedPromotion: PricingPromotion | null = null;
-    const promotionCode = (quotation as any).promotion_code;
+    const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
     if (promotionCode) {
         const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
         selectedPromotion = promo as PricingPromotion | null;
@@ -644,25 +644,28 @@ function generateEmailHtml(
                             return '';
                           })()}
                           ${(() => {
-                            // Promotion discount
-                            if (quotation.selected_promotion_id && quotation.promotion_discount) {
+                            // Show promotion discount if available
+                            if (totals.promotionDiscount > 0) {
                               return `
                               <tr>
                                 <td style="color: #10b981;">
                                   ${isJapanese ? 'プロモーション割引' : 'Promotion Discount'}
                                 </td>
                                 <td align="right" style="color: #10b981;">
-                                  -${formatCurrency(quotation.promotion_discount)}
+                                  -${formatCurrency(totals.promotionDiscount)}
                                 </td>
+                              </tr>`;
+                            }
+                            // Show regular discount only if no promotion is applied
+                            else if (totals.regularDiscount > 0) {
+                              return `
+                              <tr>
+                                <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
+                                <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.regularDiscount)}</td>
                               </tr>`;
                             }
                             return '';
                           })()}
-                          ${totals.totalDiscount > 0 ? `
-                          <tr>
-                            <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
-                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.totalDiscount)}</td>
-                          </tr>
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>
                             <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>

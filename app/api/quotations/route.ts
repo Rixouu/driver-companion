@@ -28,6 +28,11 @@ export async function GET(request: NextRequest) {
       .from('quotations')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
+
+    // Determine organization membership and restrict customers to their own quotes
+    const ORGANIZATION_DOMAIN = 'japandriver.com';
+    const userEmail = session.user?.email || '';
+    const isOrganizationMember = userEmail.endsWith(`@${ORGANIZATION_DOMAIN}`);
     
     // Apply status filter if provided
     if (status && status !== 'all') {
@@ -39,6 +44,11 @@ export async function GET(request: NextRequest) {
       query = query.or(`customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,title.ilike.%${search}%`);
     }
     
+    // Non-org users only see their own quotations
+    if (!isOrganizationMember && userEmail) {
+      query = query.eq('customer_email', userEmail);
+    }
+
     // Apply pagination
     query = query.range(offset, offset + limit - 1);
 

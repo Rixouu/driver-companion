@@ -8,20 +8,23 @@ import { useI18n } from '@/lib/i18n/context';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { SignaturePad } from '@/components/ui/signature-pad';
 import { cn } from '@/lib/utils';
 
 interface QuotationDetailsApprovalPanelProps {
   quotationId: string;
-  onApprove: (notes: string) => Promise<void>;
-  onReject: (reason: string) => Promise<void>;
+  onApprove: (notes: string, signature?: string) => Promise<void>;
+  onReject: (reason: string, signature?: string) => Promise<void>;
   isProcessing: boolean;
+  customerName?: string;
 }
 
 export function QuotationDetailsApprovalPanel({
   quotationId,
   onApprove,
   onReject,
-  isProcessing
+  isProcessing,
+  customerName
 }: QuotationDetailsApprovalPanelProps) {
   const { t } = useI18n();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -29,16 +32,22 @@ export function QuotationDetailsApprovalPanel({
   const [notes, setNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [hoveredButton, setHoveredButton] = useState<'approve' | 'reject' | null>(null);
+  const [approveSignature, setApproveSignature] = useState<string | null>(null);
+  const [rejectSignature, setRejectSignature] = useState<string | null>(null);
   
   const handleApprove = async () => {
-    await onApprove(notes);
+    await onApprove(notes, approveSignature || undefined);
     setShowApproveDialog(false);
+    setApproveSignature(null);
+    setNotes('');
   };
   
   const handleReject = async () => {
     if (!rejectionReason.trim()) return;
-    await onReject(rejectionReason);
+    await onReject(rejectionReason, rejectSignature || undefined);
     setShowRejectDialog(false);
+    setRejectSignature(null);
+    setRejectionReason('');
   };
   
   return (
@@ -149,6 +158,16 @@ export function QuotationDetailsApprovalPanel({
                 className="min-h-[100px] focus:ring-2 focus:ring-green-500/50"
               />
             </div>
+            
+            <div className="space-y-2">
+              <SignaturePad
+                title="Approval Signature"
+                required={true}
+                onSignatureChange={setApproveSignature}
+                className="border-green-200"
+                customerName={customerName}
+              />
+            </div>
           </div>
           
           <AlertDialogFooter className="flex gap-2">
@@ -163,8 +182,8 @@ export function QuotationDetailsApprovalPanel({
                 e.preventDefault();
                 handleApprove();
               }}
-              disabled={isProcessing}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              disabled={isProcessing || !approveSignature}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
@@ -217,6 +236,16 @@ export function QuotationDetailsApprovalPanel({
                 </p>
               )}
             </div>
+            
+            <div className="space-y-2">
+              <SignaturePad
+                title="Rejection Signature"
+                required={true}
+                onSignatureChange={setRejectSignature}
+                className="border-red-200"
+                customerName={customerName}
+              />
+            </div>
           </div>
           
           <AlertDialogFooter className="flex gap-2">
@@ -231,7 +260,7 @@ export function QuotationDetailsApprovalPanel({
                 e.preventDefault();
                 handleReject();
               }}
-              disabled={isProcessing || !rejectionReason.trim()}
+              disabled={isProcessing || !rejectionReason.trim() || !rejectSignature}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >
               {isProcessing ? (

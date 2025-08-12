@@ -182,7 +182,8 @@ export function Sidebar() {
       id: 'sales', 
       label: t("navigation.sales"),
       items: [
-        { icon: Calendar, label: "Sales Calendar", href: "/sales/calendar", key: "quotations" } as MenuItem,
+        // Only show sales calendar to organization members
+        ...(isOrganizationMember ? ([{ icon: Calendar, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : []),
         { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
         { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem
       ]
@@ -193,7 +194,7 @@ export function Sidebar() {
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" } as MenuItem,
-        { icon: ClipboardCheck, label: "Assignments", href: "/dispatch/assignments", key: "assignments" } as MenuItem,
+        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/dispatch/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
         { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" } as MenuItem
@@ -221,7 +222,6 @@ export function Sidebar() {
           id: 'sales',
           label: 'Sales',
           items: [
-            { icon: Calendar, label: "Sales Calendar", href: "/sales/calendar", key: "quotations" } as MenuItem,
             { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem
           ]
         }

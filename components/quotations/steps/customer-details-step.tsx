@@ -12,13 +12,124 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CustomerDetailsStepProps {
   form: UseFormReturn<any>;
 }
 
+// Common countries for the dropdown
+const countries = [
+  { value: 'Thailand', label: 'Thailand' },
+  { value: 'Japan', label: 'Japan' },
+  { value: 'United States', label: 'United States' },
+  { value: 'United Kingdom', label: 'United Kingdom' },
+  { value: 'Canada', label: 'Canada' },
+  { value: 'Australia', label: 'Australia' },
+  { value: 'Singapore', label: 'Singapore' },
+  { value: 'Malaysia', label: 'Malaysia' },
+  { value: 'Philippines', label: 'Philippines' },
+  { value: 'Vietnam', label: 'Vietnam' },
+  { value: 'Indonesia', label: 'Indonesia' },
+  { value: 'South Korea', label: 'South Korea' },
+  { value: 'China', label: 'China' },
+  { value: 'Germany', label: 'Germany' },
+  { value: 'France', label: 'France' },
+  { value: 'Netherlands', label: 'Netherlands' },
+  { value: 'Other', label: 'Other' },
+];
+
+// Address field configurations based on country
+const getAddressConfig = (country: string) => {
+  switch (country) {
+    case 'Japan':
+      return {
+        postalCodeLabel: 'Postal Code (〒)',
+        postalCodePlaceholder: '100-0001',
+        stateLabel: 'Prefecture',
+        statePlaceholder: 'Tokyo',
+        cityLabel: 'City/Ward',
+        cityPlaceholder: 'Chiyoda-ku',
+        streetLabel: 'Street Address',
+        streetNumberLabel: 'Building/Apartment',
+        addressOrder: ['postal', 'state', 'city', 'street', 'number']
+      };
+    case 'United States':
+    case 'Canada':
+      return {
+        postalCodeLabel: country === 'United States' ? 'ZIP Code' : 'Postal Code',
+        postalCodePlaceholder: country === 'United States' ? '90210' : 'K1A 0A6',
+        stateLabel: country === 'United States' ? 'State' : 'Province',
+        statePlaceholder: country === 'United States' ? 'California' : 'Ontario',
+        cityLabel: 'City',
+        cityPlaceholder: 'Los Angeles',
+        streetLabel: 'Street Address',
+        streetNumberLabel: 'Apt/Suite',
+        addressOrder: ['street', 'number', 'city', 'state', 'postal']
+      };
+    case 'United Kingdom':
+      return {
+        postalCodeLabel: 'Postcode',
+        postalCodePlaceholder: 'SW1A 1AA',
+        stateLabel: 'County',
+        statePlaceholder: 'London',
+        cityLabel: 'City/Town',
+        cityPlaceholder: 'Westminster',
+        streetLabel: 'Street Address',
+        streetNumberLabel: 'Building Number',
+        addressOrder: ['number', 'street', 'city', 'state', 'postal']
+      };
+    case 'Germany':
+      return {
+        postalCodeLabel: 'Postleitzahl (PLZ)',
+        postalCodePlaceholder: '10115',
+        stateLabel: 'State (Bundesland)',
+        statePlaceholder: 'Berlin',
+        cityLabel: 'City',
+        cityPlaceholder: 'Berlin',
+        streetLabel: 'Street',
+        streetNumberLabel: 'House Number',
+        addressOrder: ['street', 'number', 'postal', 'city', 'state']
+      };
+    case 'Australia':
+      return {
+        postalCodeLabel: 'Postcode',
+        postalCodePlaceholder: '2000',
+        stateLabel: 'State/Territory',
+        statePlaceholder: 'NSW',
+        cityLabel: 'Suburb',
+        cityPlaceholder: 'Sydney',
+        streetLabel: 'Street Address',
+        streetNumberLabel: 'Unit/Apt',
+        addressOrder: ['number', 'street', 'city', 'state', 'postal']
+      };
+    default: // Thailand and others
+      return {
+        postalCodeLabel: 'Postal Code',
+        postalCodePlaceholder: '10100',
+        stateLabel: 'Province/State',
+        statePlaceholder: 'Bangkok',
+        cityLabel: 'District/City',
+        cityPlaceholder: 'Pathumwan',
+        streetLabel: 'Street Name',
+        streetNumberLabel: 'House/Building Number',
+        addressOrder: ['number', 'street', 'city', 'state', 'postal']
+      };
+  }
+};
+
 export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
   const { t } = useI18n();
+  
+  // Watch the selected country to adapt address fields
+  const selectedCountry = form.watch('billing_country') || 'Thailand';
+  const addressConfig = getAddressConfig(selectedCountry);
 
   return (
     <div className="space-y-6">
@@ -166,10 +277,10 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           name="billing_street_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('quotations.form.billing.streetName')}</FormLabel>
+              <FormLabel>{addressConfig.streetLabel}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('quotations.form.billing.streetName')}
+                  placeholder={addressConfig.streetLabel}
                   {...field}
                   value={field.value || ''}
                 />
@@ -184,10 +295,10 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           name="billing_street_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('quotations.form.billing.streetNumber')}</FormLabel>
+              <FormLabel>{addressConfig.streetNumberLabel}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('quotations.form.billing.streetNumber')}
+                  placeholder={addressConfig.streetNumberLabel}
                   {...field}
                   value={field.value || ''}
                 />
@@ -204,10 +315,10 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           name="billing_city"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('quotations.form.billing.city')}</FormLabel>
+              <FormLabel>{addressConfig.cityLabel}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('quotations.form.billing.city')}
+                  placeholder={addressConfig.cityPlaceholder}
                   {...field}
                   value={field.value || ''}
                 />
@@ -222,10 +333,10 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           name="billing_state"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('quotations.form.billing.state')}</FormLabel>
+              <FormLabel>{addressConfig.stateLabel}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('quotations.form.billing.state')}
+                  placeholder={addressConfig.statePlaceholder}
                   {...field}
                   value={field.value || ''}
                 />
@@ -240,10 +351,10 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
           name="billing_postal_code"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('quotations.form.billing.postalCode')}</FormLabel>
+              <FormLabel>{addressConfig.postalCodeLabel}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={t('quotations.form.billing.postalCode')}
+                  placeholder={addressConfig.postalCodePlaceholder}
                   {...field}
                   value={field.value || ''}
                 />
@@ -260,13 +371,20 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>{t('quotations.form.billing.country')}</FormLabel>
-            <FormControl>
-              <Input
-                placeholder={t('quotations.form.billing.country')}
-                {...field}
-                value={field.value || 'Thailand'}
-              />
-            </FormControl>
+            <Select onValueChange={field.onChange} value={field.value || 'Thailand'}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('quotations.form.billing.country')} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {countries.map((country) => (
+                  <SelectItem key={country.value} value={country.value}>
+                    {country.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}

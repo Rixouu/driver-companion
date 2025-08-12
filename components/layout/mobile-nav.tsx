@@ -22,6 +22,7 @@ import {
   Tag
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/hooks/use-auth"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
@@ -64,6 +65,8 @@ export function MobileNav() {
   const { t } = useI18n()
   const [activeGroup, setActiveGroup] = useState('dashboard')
   const [sheetOpen, setSheetOpen] = useState(false)
+  const { user } = useAuth()
+  const isOrganizationMember = !!user?.email?.endsWith('@japandriver.com')
 
   // Update active group based on pathname
   useEffect(() => {
@@ -144,6 +147,7 @@ export function MobileNav() {
       { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' }
     ],
     sales: [
+      ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: Calendar, href: '/sales/calendar' }] as MenuItem[]) : []),
       { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
       { id: 'pricing', title: t("navigation.pricing"), icon: Tag, href: '/admin/pricing' }
     ],

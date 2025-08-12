@@ -17,6 +17,13 @@ export async function middleware(request: NextRequest) {
       return response
   }
 
+  // Avoid interfering with API routes to prevent JSON consumers from receiving HTML redirects
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api')
+
+  if (isApiRoute) {
+    return response
+  }
+
   // Check if user is authenticated
   const isAuth = !!sessionUser
   const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
@@ -34,9 +41,15 @@ export async function middleware(request: NextRequest) {
   // Redirect rules
   if (isAuthPage) {
     if (isAuth) {
-      // If user is authenticated and tries to access auth page,
-      // redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      // Redirect authenticated users to intended destination if provided
+      const redirectToParam = request.nextUrl.searchParams.get('redirectTo') || ''
+      const hasSafeRedirect = redirectToParam.startsWith('/') && !redirectToParam.startsWith('//')
+
+      // Non-organization members should land on quotations by default
+      const defaultAuthedPath = isOrganizationMember ? '/dashboard' : '/quotations'
+      const targetPath = hasSafeRedirect ? redirectToParam : defaultAuthedPath
+
+      return NextResponse.redirect(new URL(targetPath, request.url))
     }
     // Allow access to auth pages for non-authenticated users
     return response
@@ -68,6 +81,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // If authenticated customer visits root, send them to quotations list directly
+  if (isAuth && !isOrganizationMember && isPublicPage) {
+    return NextResponse.redirect(new URL('/quotations', request.url))
+  }
+
   // For all other protected pages
   if (!isAuth && !isPublicPage && !isNotAuthorizedPage) {
     // If user is not authenticated and tries to access protected page,
@@ -89,9 +107,17 @@ export async function middleware(request: NextRequest) {
   
   // Check for non-organization members accessing protected areas
   // Allow quotation-related pages for any authenticated user
-  if (isAuth && !isOrganizationMember && !isQuotationDetailsPage && !isQuotationsListPage && !isAuthPage && !isPublicPage && !isNotAuthorizedPage) {
-    // If user is not part of the organization, redirect to not-authorized page
-    return NextResponse.redirect(new URL('/not-authorized', request.url))
+  if (
+    isAuth &&
+    !isOrganizationMember &&
+    !isQuotationDetailsPage &&
+    !isQuotationsListPage &&
+    !isAuthPage &&
+    !isPublicPage &&
+    !isNotAuthorizedPage
+  ) {
+    // Redirect customers to quotations instead of blocking outright
+    return NextResponse.redirect(new URL('/quotations', request.url))
   }
 
   return response
@@ -105,9 +131,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
+     * - public folder assets
+     * - api (API routes must not be handled by middleware to avoid HTML redirects)
      * - auth folder (except for signout)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|ico|jpg|jpeg|png|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|api/|.*\\.(?:svg|ico|jpg|jpeg|png|gif|webp|woff2|ttf)$).*)',
   ],
 } 

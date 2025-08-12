@@ -120,7 +120,8 @@ export function generateQuotationHtml(
   quotation: any, 
   language: 'en' | 'ja' = 'en',
   selectedPackage: PricingPackage | null = null,
-  selectedPromotion: PricingPromotion | null = null
+  selectedPromotion: PricingPromotion | null = null,
+  showSignature: boolean = true
 ): string {
   // Quotation translations for different languages (same as client-side)
   const quotationTranslations = {
@@ -366,6 +367,17 @@ export function generateQuotationHtml(
         <img src="${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
       </div>
       
+      <!-- Status Label (if approved or rejected) -->
+      ${quotation.status === 'approved' ? `
+        <div style="background: #10b981; color: white; text-align: center; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+          ✓ APPROVED
+        </div>
+      ` : quotation.status === 'rejected' ? `
+        <div style="background: #ef4444; color: white; text-align: center; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+          ✗ REJECTED
+        </div>
+      ` : ''}
+      
       <!-- Header with quotation and company info -->
       <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
         <div style="flex: 1; max-width: 50%;">
@@ -577,9 +589,7 @@ export function generateQuotationHtml(
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #16a34a;">
                 <span>Promotion: ${selectedPromotion?.name}</span>
                 <span>-${formatCurrency(totals.promotionDiscount)}</span>
-              </div>` : ''
-            }
-            ${totals.regularDiscount > 0 ? `
+              </div>` : totals.regularDiscount > 0 ? `
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #e53e3e;">
                 <span>${quotationT.discount} (${quotation.discount_percentage}%)</span>
                 <span>-${formatCurrency(totals.regularDiscount)}</span>
@@ -613,6 +623,48 @@ export function generateQuotationHtml(
           ${quotation?.terms || quotationT.termsContent}
         </p>
       </div>
+      
+      <!-- Signature Section -->
+      ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
+          <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #333;">
+            ${quotation.status === 'approved' ? 'Approved By' : 'Rejected By'}
+          </h3>
+          <div style="display: flex; justify-content: space-between; align-items: end;">
+            <div style="flex: 1; max-width: 300px;">
+              <div style="border: 1px solid #d1d5db; border-radius: 5px; padding: 10px; background: #f9fafb; min-height: 120px; display: flex; align-items: center; justify-content: center;">
+                ${quotation.status === 'approved' && quotation.approval_signature ? `
+                  <img src="${quotation.approval_signature}" alt="Approval Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
+                  <img src="${quotation.rejection_signature}" alt="Rejection Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                ` : ''}
+              </div>
+              <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 5px; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #666;">Signature</p>
+              </div>
+            </div>
+            <div style="flex: 1; padding-left: 30px;">
+              <p style="margin: 0 0 5px 0; font-size: 13px; color: #333;">
+                <strong>Date:</strong> ${quotation.status === 'approved' ? 
+                  (quotation.approved_at ? new Date(quotation.approved_at).toLocaleDateString() : 'N/A') : 
+                  (quotation.rejected_at ? new Date(quotation.rejected_at).toLocaleDateString() : 'N/A')}
+              </p>
+              <p style="margin: 0 0 5px 0; font-size: 13px; color: #333;">
+                <strong>Status:</strong> ${quotation.status === 'approved' ? 'Approved' : 'Rejected'}
+              </p>
+              ${quotation.status === 'approved' && quotation.approval_notes ? `
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                  <strong>Notes:</strong> ${quotation.approval_notes}
+                </p>
+              ` : quotation.status === 'rejected' && quotation.rejection_reason ? `
+                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                  <strong>Reason:</strong> ${quotation.rejection_reason}
+                </p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      ` : ''}
       
       <!-- Footer -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-align: center; margin-top: auto;">

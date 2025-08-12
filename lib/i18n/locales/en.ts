@@ -2,6 +2,7 @@ import { TranslationValue } from "../types"
 
 export const en: TranslationValue = {
   common: {
+    confidential: "Confidential",
     active: "Active",
     inactive: "Inactive",
     status: {
@@ -167,6 +168,7 @@ export const en: TranslationValue = {
     pricing: "Pricing",
     dispatch: "Dispatch",
     assignments: "Assignments",
+    salesCalendar: "Sales Calendar",
     maintenance: "Maintenance",
     inspections: "Inspections",
     reporting: "Reporting",
@@ -2983,8 +2985,8 @@ export const en: TranslationValue = {
       automaticAdjustments: "Automatic pricing adjustments based on time",
       approvalPanel: {
         title: "Quotation Approval",
-        approveButton: "Approve Quotation",
-        rejectButton: "Reject Quotation",
+        approveButton: "Approve",
+        rejectButton: "Reject",
         approveConfirmation: "Are you sure you want to approve this quotation?",
         rejectConfirmation: "Are you sure you want to reject this quotation?",
         description: "Review this quotation and either approve to proceed or reject with detailed feedback.",

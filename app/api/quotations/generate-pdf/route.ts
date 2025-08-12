@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       selectedPromotion = promo as PricingPromotion | null
     }
     
-    // Generate HTML content
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion)
+    // Generate HTML content with signature support
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion, true)
     
     // Convert to PDF
     const pdfBuffer = await generatePdfFromHtml(htmlContent, {

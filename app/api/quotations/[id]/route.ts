@@ -22,12 +22,21 @@ export async function GET(
     // Get the quotation ID from URL params
     const { id } = params;
     
-    // Fetch quotation with items for PDF generation
-    const { data: quotation, error } = await supabase
+    // Determine organization membership
+    const ORGANIZATION_DOMAIN = 'japandriver.com';
+    const isOrganizationMember = user.email?.endsWith(`@${ORGANIZATION_DOMAIN}`);
+
+    // Build query; restrict non-organization users to their own quotations
+    let query = supabase
       .from('quotations')
       .select('*, quotation_items (*)')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
+
+    if (!isOrganizationMember && user.email) {
+      query = query.eq('customer_email', user.email);
+    }
+
+    const { data: quotation, error } = await query.single();
     
     if (error) {
       console.error('Error fetching quotation:', error);

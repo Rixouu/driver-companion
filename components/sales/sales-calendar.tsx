@@ -177,7 +177,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
       event => event.type === 'quotation' && (event.status === 'sent' || event.status === 'draft')
     ).length
 
-    const weeklyRevenue = filteredEvents.filter(event => {
+    const weeklyRevenue = salesEvents.filter(event => {
       const eventDate = parseISO(event.date)
       const isInWeek = isValid(eventDate) && 
                       eventDate >= startOfThisWeek && 
@@ -188,7 +188,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         ? event.status === 'approved'
         : (event.status === 'confirmed' || event.status === 'completed')
       
-      return isInWeek && countsAsRevenue && event.total_amount
+      return isInWeek && countsAsRevenue && event.total_amount && event.total_amount > 0
     }).reduce((sum, event) => sum + (event.total_amount || 0), 0)
 
     const confirmedBookings = filteredEvents.filter(
@@ -485,7 +485,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                       {event.customer_name}
                     </p>
                     {event.total_amount && (
-                      <p className="text-sm font-medium text-green-600">
+                      <p className="text-sm font-medium text-white">
                         {event.currency} {event.total_amount.toLocaleString()}
                       </p>
                     )}
@@ -582,7 +582,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                     </TableCell>
                     <TableCell>
                       {event.total_amount ? (
-                        <span className="font-medium text-green-600">
+                        <span className="font-medium text-white">
                           {event.currency} {event.total_amount.toLocaleString()}
                         </span>
                       ) : (
@@ -812,8 +812,8 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                               ) : (
                                 <ShoppingCart className="h-4 w-4 text-green-500" />
                               )}
-                              <h4 className="font-medium text-sm truncate pr-2">
-                                {event.title}
+                              <h4 className="font-medium text-sm truncate pr-2 max-w-[120px]">
+                                {event.title.length > 25 ? `${event.title.substring(0, 25)}...` : event.title}
                               </h4>
                             </div>
                             <Badge 
@@ -838,7 +838,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                               )}
                             </div>
                             {event.total_amount && (
-                              <div className="text-xs font-medium text-green-600">
+                              <div className="text-xs font-medium text-white">
                                 {event.currency} {event.total_amount.toLocaleString()}
                               </div>
                             )}

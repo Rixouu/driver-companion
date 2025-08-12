@@ -1016,6 +1016,7 @@ export const useQuotationService = () => {
         body: JSON.stringify({ 
           id: input.quotation_id, 
           notes: input.notes,
+          signature: input.signature,
           skipStatusCheck: true 
         }),
       });
@@ -1085,6 +1086,7 @@ export const useQuotationService = () => {
         body: JSON.stringify({ 
           id: input.quotation_id, 
           reason: input.rejected_reason,
+          signature: input.signature,
           skipStatusCheck: true 
         }),
       });

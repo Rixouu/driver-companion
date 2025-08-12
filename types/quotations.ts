@@ -294,11 +294,13 @@ export interface QuotationResponse {
 export interface QuotationApprovalInput {
   quotation_id: string;
   notes?: string;
+  signature?: string;
 }
 
 export interface QuotationRejectionInput {
   quotation_id: string;
   rejected_reason: string;
+  signature?: string;
 }
 
 // New interfaces for pricing promotions and packages

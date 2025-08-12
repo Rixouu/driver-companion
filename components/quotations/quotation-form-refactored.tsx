@@ -165,13 +165,47 @@ export default function QuotationFormRefactored({
         
         setPackages(packagesData);
         setPromotions(promotionsData);
+        
+        // Initialize selectedPackage and selectedPromotion if editing existing quotation
+        if (initialData) {
+          // Initialize selected package
+          const packageId = (initialData as any).selected_package_id;
+          if (packageId) {
+            const foundPackage = packagesData.find(pkg => pkg.id === packageId);
+            if (foundPackage) {
+              setSelectedPackage(foundPackage);
+            }
+          }
+          
+          // Initialize selected promotion
+          const promotionCode = (initialData as any).selected_promotion_code;
+          if (promotionCode) {
+            const foundPromotion = promotionsData.find(promo => promo.code === promotionCode);
+            if (foundPromotion) {
+              setSelectedPromotion(foundPromotion);
+            }
+          } else if ((initialData as any).selected_promotion_name) {
+            // Create a temporary promotion object from stored data
+            setSelectedPromotion({
+              id: (initialData as any).selected_promotion_id || 'stored-promotion',
+              name: (initialData as any).selected_promotion_name,
+              code: (initialData as any).selected_promotion_code || 'APPLIED',
+              description: (initialData as any).selected_promotion_description || '',
+              discount_type: 'percentage',
+              discount_value: (initialData as any).promotion_discount || 0,
+              is_active: true,
+              created_at: '',
+              updated_at: ''
+            } as any);
+          }
+        }
       } catch (error) {
         console.error('Error loading pricing data:', error);
       }
     };
     
     loadPricingData();
-  }, [getPricingPackages, getPricingPromotions]);
+  }, [getPricingPackages, getPricingPromotions, initialData]);
 
   // Initialize form
   const form = useForm<FormData>({
@@ -301,7 +335,18 @@ export default function QuotationFormRefactored({
         status: sendToCustomer ? 'sent' as QuotationStatus : 'draft' as QuotationStatus,
         passenger_count: formData.passenger_count,
         currency: 'JPY',
-        display_currency: 'JPY'
+        display_currency: 'JPY',
+        // Package fields
+        selected_package_id: selectedPackage?.id || undefined,
+        selected_package_name: selectedPackage?.name || undefined,
+        selected_package_description: selectedPackage?.description || undefined,
+        package_discount: 0, // Packages provide value through bundled pricing, not direct discounts
+        // Promotion fields
+        selected_promotion_id: selectedPromotion?.id || undefined,
+        selected_promotion_name: selectedPromotion?.name || undefined,
+        selected_promotion_description: selectedPromotion?.description || undefined,
+        selected_promotion_code: selectedPromotion?.code || undefined,
+        promotion_discount: selectedPromotion?.discount_value || undefined,
       };
 
       let result: Quotation | null = null;

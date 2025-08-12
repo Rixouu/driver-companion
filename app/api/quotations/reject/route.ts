@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
   console.log('Reject route - User authenticated:', authUser.id);
 
   try {
-    const { id, reason, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
+    const { id, reason, signature, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
     
     console.log(`Reject route - Request data: id=${id}, reason=${reason || 'provided'}, customerId=${customerId || 'null'}, skipStatusCheck=${skipStatusCheck}, skipEmail=${skipEmail}`);
     
@@ -273,7 +273,9 @@ export async function POST(request: NextRequest) {
         .update({ 
           status: 'rejected',
           rejection_reason: reason,
-          rejected_at: new Date().toISOString()
+          rejected_at: new Date().toISOString(),
+          rejected_by: authUser.id,
+          rejection_signature: signature
         })
         .eq('id', id);
       
@@ -344,7 +346,7 @@ export async function POST(request: NextRequest) {
     }
 
     let selectedPromotion: PricingPromotion | null = null;
-    const promotionCode = (fullQuotation as any).promotion_code;
+    const promotionCode = (fullQuotation as any).selected_promotion_code || (fullQuotation as any).promotion_code;
     if (promotionCode) {
         const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
         selectedPromotion = promo as PricingPromotion | null;
@@ -366,8 +368,15 @@ export async function POST(request: NextRequest) {
     console.log('Reject route - Generating PDF for email attachment');
     let pdfBuffer;
     try {
-      // Generate the HTML for the quotation
-      const htmlContent = generateQuotationHtml(fullQuotation, 'en', selectedPackage, selectedPromotion);
+      // Fetch the updated quotation to get the signature
+      const { data: updatedQuotation } = await supabase
+        .from('quotations')
+        .select('*, quotation_items (*)')
+        .eq('id', id)
+        .single();
+      
+      // Generate the HTML for the quotation with signature
+      const htmlContent = generateQuotationHtml(updatedQuotation || fullQuotation, 'en', selectedPackage, selectedPromotion, true);
       
       // Convert the HTML to a PDF
       pdfBuffer = await generatePdfFromHtml(htmlContent, {

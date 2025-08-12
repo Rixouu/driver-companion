@@ -835,7 +835,7 @@ export function PricingStep({
                   </p>
                   
                   <div className="pt-3 border-t">
-                    <p className="text-sm">
+                    <div className="text-sm">
                       <strong>Current Status:</strong> {' '}
                       {timeBasedPricingEnabled ? (
                         form.watch('pickup_date') && form.watch('pickup_time') ? (
@@ -852,7 +852,7 @@ export function PricingStep({
                           Disabled - no time adjustments
                         </Badge>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

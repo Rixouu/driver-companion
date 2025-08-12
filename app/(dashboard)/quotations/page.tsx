@@ -37,7 +37,19 @@ async function getQuotations({ query: searchTerm, status: statusFilter }: { quer
     );
   }
   if (statusFilter) {
-    queryBuilder = queryBuilder.eq('status', statusFilter);
+    if (statusFilter === 'expired') {
+      // For expired filter, get quotations that are either:
+      // 1. Explicitly marked as expired, OR
+      // 2. Have draft/sent status but are past expiry date (2 days from creation)
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      
+      queryBuilder = queryBuilder.or(
+        `status.eq.expired,and(status.in.(draft,sent),created_at.lt.${twoDaysAgo.toISOString()})`
+      );
+    } else {
+      queryBuilder = queryBuilder.eq('status', statusFilter);
+    }
   }
   
   if (!isOrganizationMember && user.email) {

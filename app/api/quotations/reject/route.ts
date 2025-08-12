@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
         .from('quotations')
         .update({ 
           status: 'rejected',
-          rejection_reason: reason,
+          rejected_reason: reason,
           rejected_at: new Date().toISOString(),
           rejected_by: authUser.id,
           rejection_signature: signature

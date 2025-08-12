@@ -679,6 +679,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     quotationId={quotation.id}
                     isProcessing={isLoading}
                     customerName={quotation.customer_name}
+                    quotation={quotation as any}
                     onApprove={async (notes, signature) => {
                       setIsLoading(true);
                       setProgressOpen(true);
@@ -909,6 +910,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 quotationId={quotation.id}
                 isProcessing={isLoading}
                 customerName={quotation.customer_name}
+                quotation={quotation as any}
                 onApprove={async (notes, signature) => {
                   setIsLoading(true);
                   setProgressOpen(true);

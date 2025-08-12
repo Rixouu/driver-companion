@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
 import { Mail, Loader2, FileText, Link2 } from "lucide-react";
 import { Quotation, QuotationItem } from "@/types/quotations";
-import html2pdf from 'html2pdf.js'
+// Dynamic import for html2pdf to avoid SSR issues
 
 interface QuotationInvoiceButtonProps {
   quotation: Quotation & { quotation_items?: QuotationItem[] };
@@ -195,11 +195,15 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }, 
           pagebreak: { mode: ['css', 'legacy'] } 
         };
+        // Dynamic import to avoid SSR issues
+        const html2pdf = (await import('html2pdf.js')).default;
+        
         if (!email) {
-          const worker = (html2pdf() as any).set(options).from(container); await worker.save();
+          const worker = html2pdf().set(options).from(container); 
+          await worker.save();
           toast({ title: 'Success', description: 'Invoice generated successfully' });
         } else {
-          pdfBlob = await (html2pdf() as any).set({ ...options, filename: undefined }).from(container).outputPdf('blob');
+          pdfBlob = await html2pdf().set({ ...options, filename: undefined }).from(container).outputPdf('blob');
         }
       } finally {
         if (document.body.contains(container)) document.body.removeChild(container);

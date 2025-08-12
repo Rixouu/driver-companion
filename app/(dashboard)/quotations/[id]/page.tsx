@@ -92,7 +92,7 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
     
   // If user is not an organization member, only allow access to their own quotations
   if (!isOrganizationMember) {
-    queryBuilder = queryBuilder.eq('customer_email', user.email);
+    queryBuilder = queryBuilder.eq('customer_email', user.email as string);
   }
   
   const { data, error } = await queryBuilder.single();

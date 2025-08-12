@@ -44,6 +44,7 @@ import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationStatusFilter } from './quotation-status-filter';
 import { cn } from '@/lib/utils';
 import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
+import { useToast } from '@/components/ui/use-toast';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -65,6 +66,7 @@ export default function QuotationList({
   isOrganizationMember = true
 }: QuotationListProps) {
   const { t } = useI18n();
+  const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const currentSearchParams = useSearchParams() ?? new URLSearchParams();
@@ -74,6 +76,15 @@ export default function QuotationList({
 
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>(initialStatusFilter);
+
+  // Check if quotation is expired - Updated to use 2 days from creation
+  const isExpired = (quotation: Quotation) => {
+    if (!quotation.created_at) return false;
+    const now = new Date();
+    const createdDate = new Date(quotation.created_at);
+    const properExpiryDate = addDays(createdDate, 2);
+    return isAfter(now, properExpiryDate);
+  };
 
   // Derived list based on current query + status filter
   const filteredQuotations = useMemo(() => {
@@ -149,13 +160,37 @@ export default function QuotationList({
     return `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  // Check if quotation is expired - Updated to use 2 days from creation
-  const isExpired = (quotation: Quotation) => {
-    if (!quotation.created_at) return false;
-    const now = new Date();
-    const createdDate = new Date(quotation.created_at);
-    const properExpiryDate = addDays(createdDate, 2);
-    return isAfter(now, properExpiryDate);
+  // Calculate final amount after tax and discount for display
+  const calculateFinalAmount = (quotation: Quotation) => {
+    // If total_amount is already calculated and stored, use it
+    if (quotation.total_amount && quotation.total_amount !== quotation.amount) {
+      return quotation.total_amount;
+    }
+
+    // Otherwise calculate it from base amount, discount, and tax
+    const baseAmount = quotation.amount || 0;
+    const discountPercentage = quotation.discount_percentage || 0;
+    const taxPercentage = quotation.tax_percentage || 0;
+    
+    // Apply promotion discount if exists
+    const promotionDiscount = quotation.promotion_discount || 0;
+    
+    // Calculate regular discount
+    const regularDiscountAmount = baseAmount * (discountPercentage / 100);
+    
+    // Total discount is promotion + regular discount
+    const totalDiscountAmount = promotionDiscount + regularDiscountAmount;
+    
+    // Calculate subtotal after discount
+    const subtotal = Math.max(0, baseAmount - totalDiscountAmount);
+    
+    // Calculate tax on subtotal
+    const taxAmount = subtotal * (taxPercentage / 100);
+    
+    // Final total
+    const finalTotal = subtotal + taxAmount;
+    
+    return finalTotal;
   };
 
   // Get expiry date properly - 2 days from creation
@@ -429,7 +464,7 @@ export default function QuotationList({
                       {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
                     </div>
                     <div className="font-semibold text-right">
-                      {formatCurrency(quotation.total_amount || quotation.amount || 0, quotation.currency || 'JPY')}
+                      {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
                     </div>
                   </div>
                   
@@ -544,7 +579,7 @@ export default function QuotationList({
                       {format(parseISO(quotation.created_at), 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell className="text-left">
-                      {formatCurrency(quotation.total_amount || quotation.amount || 0, quotation.currency || 'JPY')}
+                      {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
                     </TableCell>
                     <TableCell className="text-left">
                       {(() => {

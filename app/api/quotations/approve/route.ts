@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
         .from('quotations')
         .update({ 
           status: 'approved',
-          approval_notes: notes,
+          customer_notes: notes,
           approved_at: new Date().toISOString(),
           approved_by: authUser.id,
           approval_signature: signature

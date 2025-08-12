@@ -636,11 +636,11 @@ export function generateQuotationHtml(
           </h3>
           <div style="display: flex; justify-content: space-between; align-items: end;">
             <div style="flex: 1; max-width: 300px;">
-              <div style="border: 1px solid #d1d5db; border-radius: 5px; padding: 10px; background: #f9fafb; min-height: 120px; display: flex; align-items: center; justify-content: center;">
+              <div style="border: 1px solid #d1d5db; border-radius: 5px; padding: 15px; background: #f9fafb; min-height: 150px; display: flex; align-items: center; justify-content: center;">
                 ${quotation.status === 'approved' && quotation.approval_signature ? `
-                  <img src="${quotation.approval_signature}" alt="Approval Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                  <img src="${quotation.approval_signature}" alt="Approval Signature" style="max-width: 100%; max-height: 130px; object-fit: contain;">
                 ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
-                  <img src="${quotation.rejection_signature}" alt="Rejection Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                  <img src="${quotation.rejection_signature}" alt="Rejection Signature" style="max-width: 100%; max-height: 130px; object-fit: contain;">
                 ` : ''}
               </div>
               <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 5px; text-align: center;">

@@ -132,48 +132,49 @@ export function QuotationDetailsApprovalPanel({
       
       {/* Enhanced Approve Dialog */}
       <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[85vh] flex flex-col">
-          <AlertDialogHeader className="text-center flex-shrink-0">
-            <div className="mx-auto mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-full w-fit">
-              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <AlertDialogContent className="sm:max-w-md max-w-[90vw] max-h-[90vh] p-4">
+          <AlertDialogHeader className="text-center pb-4">
+            <div className="mx-auto mb-3 p-2 bg-green-100 dark:bg-green-900/30 rounded-full w-fit">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-green-700 dark:text-green-300">
+            <AlertDialogTitle className="text-lg font-bold text-green-700 dark:text-green-300">
               {t('quotations.details.approvalPanel.approveConfirmation') || 'Approve Quotation'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              {t('quotations.details.approvalPanel.approveDescription') || 'You are about to approve this quotation. The customer will be notified and can proceed with the booking.'}
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              {t('quotations.details.approvalPanel.approveDescription') || 'Confirm approval and add your signature.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="approve-notes" className="text-sm font-medium">
-                {t('quotations.details.approvalPanel.notesLabel') || 'Additional Notes (Optional)'}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="approve-notes" className="text-xs font-medium">
+                {t('quotations.details.approvalPanel.notesLabel') || 'Notes (Optional)'}
               </Label>
               <Textarea
                 id="approve-notes"
-                placeholder={t('quotations.details.approvalPanel.notesPlaceholder') || 'Add any additional notes or instructions for the customer...'}
+                placeholder={t('quotations.details.approvalPanel.notesPlaceholder') || 'Add notes...'}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px] focus:ring-2 focus:ring-green-500/50"
+                className="min-h-[60px] text-sm resize-none"
+                rows={2}
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <SignaturePad
                 title="Approval Signature"
                 required={true}
                 onSignatureChange={setApproveSignature}
-                className="border-green-200"
+                className="border-green-200 h-[120px]"
                 customerName={customerName}
               />
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-3 pt-4 flex-shrink-0 border-t bg-background">
+          <AlertDialogFooter className="flex gap-2 pt-4 mt-4 border-t">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="flex-1 min-h-[44px]"
+              className="flex-1 h-10 text-sm"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -183,7 +184,7 @@ export function QuotationDetailsApprovalPanel({
                 handleApprove();
               }}
               disabled={isProcessing || !approveSignature}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 min-h-[44px]"
+              className="flex-1 h-10 text-sm bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
@@ -203,31 +204,32 @@ export function QuotationDetailsApprovalPanel({
 
       {/* Enhanced Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[85vh] flex flex-col">
-          <AlertDialogHeader className="text-center flex-shrink-0">
-            <div className="mx-auto mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit">
-              <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+        <AlertDialogContent className="sm:max-w-md max-w-[90vw] max-h-[90vh] p-4">
+          <AlertDialogHeader className="text-center pb-4">
+            <div className="mx-auto mb-3 p-2 bg-red-100 dark:bg-red-900/30 rounded-full w-fit">
+              <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
-            <AlertDialogTitle className="text-xl font-bold text-red-700 dark:text-red-300">
+            <AlertDialogTitle className="text-lg font-bold text-red-700 dark:text-red-300">
               {t('quotations.details.approvalPanel.rejectConfirmation') || 'Reject Quotation'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              {t('quotations.details.approvalPanel.rejectDescription') || 'You are about to reject this quotation. Please provide a clear reason for the customer.'}
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              {t('quotations.details.approvalPanel.rejectDescription') || 'Provide reason and add your signature.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason" className="text-sm font-medium flex items-center gap-1">
-                {t('quotations.details.approvalPanel.reasonLabel') || 'Rejection Reason'}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="rejection-reason" className="text-xs font-medium flex items-center gap-1">
+                {t('quotations.details.approvalPanel.reasonLabel') || 'Reason'}
                 <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="rejection-reason"
-                placeholder={t('quotations.details.approvalPanel.reasonPlaceholder') || 'Please explain why this quotation is being rejected. This will help the customer understand and potentially resubmit with corrections.'}
+                placeholder={t('quotations.details.approvalPanel.reasonPlaceholder') || 'Reason for rejection...'}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                className="min-h-[120px] focus:ring-2 focus:ring-red-500/50"
+                className="min-h-[60px] text-sm resize-none"
+                rows={2}
                 required
               />
               {rejectionReason.trim() && (
@@ -237,21 +239,21 @@ export function QuotationDetailsApprovalPanel({
               )}
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <SignaturePad
                 title="Rejection Signature"
                 required={true}
                 onSignatureChange={setRejectSignature}
-                className="border-red-200"
+                className="border-red-200 h-[120px]"
                 customerName={customerName}
               />
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-3 pt-4 flex-shrink-0 border-t bg-background">
+          <AlertDialogFooter className="flex gap-2 pt-4 mt-4 border-t">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="flex-1 min-h-[44px]"
+              className="flex-1 h-10 text-sm"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -261,7 +263,7 @@ export function QuotationDetailsApprovalPanel({
                 handleReject();
               }}
               disabled={isProcessing || !rejectionReason.trim() || !rejectSignature}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 min-h-[44px]"
+              className="flex-1 h-10 text-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">

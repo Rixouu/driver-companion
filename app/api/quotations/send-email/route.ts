@@ -64,8 +64,8 @@ async function generateQuotationPDF(
   try {
     console.log('🔄 [SEND-EMAIL API] Starting PDF generation with HTML-to-PDF');
     
-    // Generate the HTML for the quotation, passing all required data including signatures
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion, true);
+    // Generate the HTML for the quotation, passing all required data
+    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
     
     // Convert the HTML to a PDF
     const pdfBuffer = await generatePdfFromHtml(htmlContent, {
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     }
 
     let selectedPromotion: PricingPromotion | null = null;
-    const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
+    const promotionCode = (quotation as any).promotion_code;
     if (promotionCode) {
         const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
         selectedPromotion = promo as PricingPromotion | null;
@@ -323,7 +323,7 @@ function generateEmailHtml(
   // Format pricing information
   const formatCurrency = (amount: number) => {
     const currency = quotation?.display_currency || quotation?.currency || 'JPY';
-    if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+    if (!amount) return currency === 'JPY' ? `\u00A50` : `${currency} 0`;
     
     // Exchange rates (simplified for demo)
     const exchangeRates: Record<string, number> = {
@@ -342,10 +342,10 @@ function generateEmailHtml(
     // Format based on currency
     if (currency === 'JPY' || currency === 'CNY') {
       return currency === 'JPY' 
-        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        ? `\u00A5${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN\u00A5${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else if (currency === 'THB') {
-      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      return `\u0E3F${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -644,28 +644,25 @@ function generateEmailHtml(
                             return '';
                           })()}
                           ${(() => {
-                            // Show promotion discount if available
-                            if (totals.promotionDiscount > 0) {
+                            // Promotion discount
+                            if (quotation.selected_promotion_id && quotation.promotion_discount) {
                               return `
                               <tr>
                                 <td style="color: #10b981;">
                                   ${isJapanese ? 'プロモーション割引' : 'Promotion Discount'}
                                 </td>
                                 <td align="right" style="color: #10b981;">
-                                  -${formatCurrency(totals.promotionDiscount)}
+                                  -${formatCurrency(quotation.promotion_discount)}
                                 </td>
-                              </tr>`;
-                            }
-                            // Show regular discount only if no promotion is applied
-                            else if (totals.regularDiscount > 0) {
-                              return `
-                              <tr>
-                                <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
-                                <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.regularDiscount)}</td>
                               </tr>`;
                             }
                             return '';
                           })()}
+                          ${totals.totalDiscount > 0 ? `
+                          <tr>
+                            <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
+                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.totalDiscount)}</td>
+                          </tr>
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>
                             <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>
@@ -761,7 +758,7 @@ function generateEmailText(
   
   const formatCurrency = (amount: number) => {
     const currency = quotation?.display_currency || quotation?.currency || 'JPY';
-    if (!amount) return currency === 'JPY' ? `¥0` : `${currency} 0`;
+    if (!amount) return currency === 'JPY' ? `\u00A50` : `${currency} 0`;
     
     // Exchange rates (simplified for demo)
     const exchangeRates: Record<string, number> = {
@@ -780,10 +777,10 @@ function generateEmailText(
     // Format based on currency
     if (currency === 'JPY' || currency === 'CNY') {
       return currency === 'JPY' 
-        ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-        : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        ? `\u00A5${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN\u00A5${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else if (currency === 'THB') {
-      return `฿${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      return `\u0E3F${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     } else {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',

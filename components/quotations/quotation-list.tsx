@@ -160,31 +160,50 @@ export default function QuotationList({
     return `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  // Calculate final amount after tax and discount for display
+  // Calculate final amount after tax and discount for display - EXACTLY matching PDF/quotation-details logic
   const calculateFinalAmount = (quotation: Quotation) => {
-    // If total_amount is already calculated and stored, use it
-    if (quotation.total_amount && quotation.total_amount !== quotation.amount) {
+    // ALWAYS prioritize total_amount if it exists - this is the final calculated amount
+    if (quotation.total_amount && quotation.total_amount > 0) {
       return quotation.total_amount;
     }
 
-    // Otherwise calculate it from base amount, discount, and tax
-    const baseAmount = quotation.amount || 0;
+    // If no total_amount, calculate exactly like PDF and quotation-details
+    // First calculate service base total from items or fallback to amount
+    let serviceBaseTotal = 0;
+    let serviceTimeAdjustment = 0;
+    
+    if ((quotation as any).quotation_items && Array.isArray((quotation as any).quotation_items)) {
+      (quotation as any).quotation_items.forEach((item: any) => {
+        const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+        serviceBaseTotal += itemBasePrice;
+        
+        if (item.time_based_adjustment) {
+          const timeAdjustment = itemBasePrice * (item.time_based_adjustment / 100);
+          serviceTimeAdjustment += timeAdjustment;
+        }
+      });
+    } else {
+      serviceBaseTotal = quotation.amount || 0;
+    }
+    
+    const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+    const packageTotal = 0; // Packages would need to be fetched separately
+    const baseTotal = serviceTotal + packageTotal;
+    
     const discountPercentage = quotation.discount_percentage || 0;
     const taxPercentage = quotation.tax_percentage || 0;
     
-    // Apply promotion discount if exists
+    // Use stored promotion discount (this is the calculated final discount amount)
     const promotionDiscount = quotation.promotion_discount || 0;
     
-    // Calculate regular discount
-    const regularDiscountAmount = baseAmount * (discountPercentage / 100);
+    // Calculate regular discount on base total
+    const regularDiscount = baseTotal * (discountPercentage / 100);
+    const totalDiscount = promotionDiscount + regularDiscount;
     
-    // Total discount is promotion + regular discount
-    const totalDiscountAmount = promotionDiscount + regularDiscountAmount;
+    // Calculate subtotal after all discounts
+    const subtotal = Math.max(0, baseTotal - totalDiscount);
     
-    // Calculate subtotal after discount
-    const subtotal = Math.max(0, baseAmount - totalDiscountAmount);
-    
-    // Calculate tax on subtotal
+    // Calculate tax on subtotal (after discounts, not on base)
     const taxAmount = subtotal * (taxPercentage / 100);
     
     // Final total

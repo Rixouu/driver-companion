@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
-import { Mail, Loader2, FileText, Link2 } from "lucide-react";
+import { Mail, Loader2, FileText, Link2, CreditCard } from "lucide-react";
 import { Quotation, QuotationItem } from "@/types/quotations";
 // Dynamic import for html2pdf to avoid SSR issues
 
@@ -21,13 +22,19 @@ interface QuotationInvoiceButtonProps {
 
 export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoiceButtonProps) {
   const { t, language } = useI18n();
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEmailing, setIsEmailing] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isPaymentLinkDialogOpen, setIsPaymentLinkDialogOpen] = useState(false);
+  const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
   const [includeDetails, setIncludeDetails] = useState(true);
   const [paymentLink, setPaymentLink] = useState<string>("");
+  
+  // Check if user is admin (japandriver email)
+  const isAdmin = user?.email?.endsWith('@japandriver.com') || false;
 
   // Progress modal state (align with quotation-details)
   const [progressOpen, setProgressOpen] = useState(false);
@@ -362,6 +369,115 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
     }
   };
 
+  const handlePaymentLinkDialogOpen = () => {
+    if (!quotation?.customer_email && !emailAddress) {
+      toast({
+        title: "No Email Address",
+        description: "Please provide a customer email address to send the payment link.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Prefill payment link with app origin + quotation path
+    try {
+      if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        setPaymentLink(`${origin}/quotations/${quotation.id}`);
+      }
+    } catch {}
+    setIsPaymentLinkDialogOpen(true);
+  };
+
+  const handleSendPaymentLink = async () => {
+    if (!emailAddress || !emailAddress.includes('@')) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!paymentLink || !paymentLink.includes('http')) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid payment link",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSendingPaymentLink(true);
+    setProgressOpen(true);
+    setProgressTitle('Sending Payment Link');
+    setProgressLabel('Preparing email...');
+    setProgressValue(15);
+    
+    try {
+      // Generate the PDF using server-side generation for proper discount calculations
+      const pdfResponse = await fetch('/api/quotations/generate-invoice-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotation_id: quotation.id,
+          language: emailLanguage,
+          include_details: includeDetails
+        })
+      });
+
+      if (!pdfResponse.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const pdfBlob = await pdfResponse.blob();
+      setProgressValue(50);
+      setProgressLabel('Sending payment link email...');
+
+      // Create form data for the payment link email API
+      const formData = new FormData();
+      formData.append('email', emailAddress);
+      formData.append('quotation_id', quotation.id);
+      formData.append('customer_name', quotation.customer_name || quotation.customers?.name || 'Customer');
+      formData.append('include_details', includeDetails.toString());
+      formData.append('language', emailLanguage);
+      formData.append('payment_link', paymentLink);
+      formData.append('invoice_pdf', pdfBlob, `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`);
+
+      // Send payment link email via new API endpoint
+      const emailResponse = await fetch('/api/quotations/send-payment-link-email', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
+        throw new Error(errorData.error || 'Failed to send payment link email');
+      }
+
+      setProgressValue(100);
+      setProgressLabel('Payment link sent successfully!');
+      setTimeout(() => setProgressOpen(false), 400);
+      
+      toast({
+        title: "Payment Link Sent",
+        description: `Payment link has been sent to ${emailAddress}`,
+      });
+      
+      setIsPaymentLinkDialogOpen(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error sending payment link email:', error);
+      setProgressOpen(false);
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to send payment link. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSendingPaymentLink(false);
+    }
+  };
+
   return (
     <>
       <Button 
@@ -382,6 +498,19 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
         <Mail className="h-4 w-4" />
         {isEmailing ? (t('invoices.actions.sending') || 'Sending...') : (t('invoices.actions.emailInvoice') || 'Email Invoice')}
       </Button>
+
+      {/* Admin-only Send Payment Link button */}
+      {isAdmin && (
+        <Button 
+          onClick={handlePaymentLinkDialogOpen} 
+          disabled={isSendingPaymentLink}
+          variant="secondary"
+          className="gap-2"
+        >
+          <CreditCard className="h-4 w-4" />
+          {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
+        </Button>
+      )}
       
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -418,18 +547,10 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
               </Select>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="payment-link">Payment Link (optional)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="payment-link"
-                  type="url"
-                  value={paymentLink}
-                  onChange={(e) => setPaymentLink(e.target.value)}
-                  placeholder="https://pay.example.com/..."
-                />
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-              </div>
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Payment link will be sent separately by an admin shortly after this invoice is delivered.
+              </p>
             </div>
             
             <div className="flex items-center space-x-2">
@@ -458,6 +579,90 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
                 <>
                   <Mail className="mr-2 h-4 w-4" />
                   {t('common.send') || 'Send'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Link Dialog - Admin Only */}
+      <Dialog open={isPaymentLinkDialogOpen} onOpenChange={setIsPaymentLinkDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Send Payment Link</DialogTitle>
+            <DialogDescription>
+              This will send the invoice with payment link to the customer.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="payment-email">{t('common.email') || 'Email Address'}</Label>
+              <Input
+                id="payment-email"
+                type="email"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                placeholder={t('common.emailPlaceholder') || 'customer@example.com'}
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="payment-language">{t('common.language') || 'Language'}</Label>
+              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="payment-link-url">Payment Link</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="payment-link-url"
+                  type="url"
+                  value={paymentLink}
+                  onChange={(e) => setPaymentLink(e.target.value)}
+                  placeholder="https://pay.example.com/..."
+                  required
+                />
+                <Link2 className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="payment-include-details" 
+                checked={includeDetails}
+                onCheckedChange={(checked) => setIncludeDetails(!!checked)}
+              />
+              <Label htmlFor="payment-include-details" className="text-sm">
+                {t('invoices.emailModal.includeDetails') || 'Include detailed service information'}
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentLinkDialogOpen(false)}>
+              {t('common.cancel') || 'Cancel'}
+            </Button>
+            <Button onClick={handleSendPaymentLink} disabled={isSendingPaymentLink || !emailAddress || !paymentLink}>
+              {isSendingPaymentLink ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Send Payment Link
                 </>
               )}
             </Button>

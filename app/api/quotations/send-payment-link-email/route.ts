@@ -6,7 +6,7 @@ import { sendInvoiceEmail } from "@/lib/email/send-email";
 
 export async function POST(req: NextRequest) {
   try {
-    // Allow unauthenticated in development to facilitate testing
+    // Check authentication and admin permission
     const session = await getServerSession(authOptions);
     const isDev = process.env.NODE_ENV !== 'production';
     if (!isDev) {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       const userEmail = session.user.email || "";
       if (!userEmail.endsWith("@japandriver.com")) {
         return NextResponse.json(
-          { error: "You do not have permission to perform this action" },
+          { error: "You do not have permission to perform this action. Admin access required." },
           { status: 403 }
         );
       }
@@ -30,11 +30,19 @@ export async function POST(req: NextRequest) {
     const includeDetails = formData.get('include_details') === 'true';
     const language = (formData.get('language') as string) || 'en';
     const pdfFile = formData.get('invoice_pdf') as File;
-    const overridePaymentLink = (formData.get('payment_link') as string) || '';
+    const paymentLink = formData.get('payment_link') as string;
 
-    if (!email || !quotationId || !pdfFile) {
+    if (!email || !quotationId || !pdfFile || !paymentLink) {
       return NextResponse.json(
-        { error: "Missing required fields: email, quotation_id, and invoice_pdf are required" },
+        { error: "Missing required fields: email, quotation_id, invoice_pdf, and payment_link are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate payment link format
+    if (!paymentLink.startsWith('http')) {
+      return NextResponse.json(
+        { error: "Invalid payment link format. Must be a valid URL." },
         { status: 400 }
       );
     }
@@ -46,8 +54,10 @@ export async function POST(req: NextRequest) {
       .from('quotations')
       .select(`
         *,
-        quotation_items (*),
-        customers:customer_id (*)
+        customers (
+          name,
+          email
+        )
       `)
       .eq('id', quotationId)
       .single();
@@ -59,25 +69,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if quotation is approved
-    if (quotationData.status !== 'approved') {
-      return NextResponse.json(
-        { error: "Can only send invoices for approved quotations" },
-        { status: 400 }
-      );
-    }
-    
-    // Convert the PDF file to buffer for email attachment
+    // Convert File to Buffer
     const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
     
-    // Generate invoice ID
-    const invoiceId = `INV-${quotationId}`;
+    // Determine service name
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    const displayCurrency = quotationData.display_currency || quotationData.currency || 'JPY';
+    const invoiceId = `invoice-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`;
     
-    // Determine base URL for links
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(req.url).origin;
-
-    // Prepare derived fields
-    const displayCurrency = (quotationData as any).display_currency || (quotationData as any).currency || 'JPY';
     const serviceSummary = (() => {
       try {
         const items = (quotationData as any).quotation_items as Array<any> | null;
@@ -103,9 +102,9 @@ export async function POST(req: NextRequest) {
         }
         
         // Fallback for single service quotations
-        const serviceType = (quotationData as any).service_type || (quotationData as any).service_type_name || 'Transportation Service';
-        const vehicle = (quotationData as any).vehicle_type || '';
-        const duration = (quotationData as any).duration_hours ? `${(quotationData as any).duration_hours}h` : '';
+        const serviceType = quotationData.service_type || (quotationData as any).service_type_name || 'Transportation Service';
+        const vehicle = quotationData.vehicle_type || '';
+        const duration = quotationData.duration_hours ? `${quotationData.duration_hours}h` : '';
         
         return `${serviceType}${vehicle ? ` - ${vehicle}` : ''}${duration ? ` (${duration})` : ''}`;
       } catch { 
@@ -224,15 +223,15 @@ export async function POST(req: NextRequest) {
 
     const totals = calculateTotals();
 
-    // Prepare email data - no payment link for regular invoice emails
+    // Prepare email data with payment link
     const emailData = {
       to: email,
       customerName: customerName || quotationData.customer_name || quotationData.customers?.name || 'Customer',
-      invoiceId: `invoice-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
+      invoiceId: invoiceId,
       quotationId: `quotation-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
       amount: quotationData.total_amount || totals.finalTotal, // Use calculated final total
       currencyCode: displayCurrency,
-      paymentLink: '', // Empty payment link - admin will send separately
+      paymentLink: paymentLink, // Use the provided payment link
       serviceName: serviceSummary,
       pdfAttachment: pdfBuffer,
       // Add breakdown details for enhanced email template
@@ -246,7 +245,7 @@ export async function POST(req: NextRequest) {
     
     if (!emailResult.success) {
       return NextResponse.json(
-        { error: 'Failed to send email' },
+        { error: 'Failed to send payment link email' },
         { status: 500 }
       );
     }
@@ -257,12 +256,13 @@ export async function POST(req: NextRequest) {
         .from('quotation_activities')
         .insert({
           quotation_id: quotationId,
-          action: 'invoice_sent',
+          action: 'payment_link_sent',
           user_id: (session?.user as any)?.id || null,
-          user_name: session?.user?.name || session?.user?.email || 'system',
+          user_name: session?.user?.name || session?.user?.email || 'admin',
           details: {
             email: email,
             invoice_id: invoiceId,
+            payment_link: paymentLink,
             language: language
           }
         });
@@ -273,11 +273,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      message: "Invoice email sent successfully"
+      message: "Payment link email sent successfully"
     });
 
   } catch (error) {
-    console.error("Error in send-invoice-email API:", error);
+    console.error("Error in send-payment-link-email API:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

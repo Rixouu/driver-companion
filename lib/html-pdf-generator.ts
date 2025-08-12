@@ -31,21 +31,37 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     margin: { ...defaultOptions.margin, ...(options?.margin || {}) }
   };
 
-  // Create the full HTML document with Work Sans font
+  // Create the full HTML document with Work Sans font and proper encoding for special characters
   const fullHtml = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-      <meta charset=\"utf-8\">
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <title>PDF Export</title>
-      <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap\">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap">
       <style>
+        * {
+          box-sizing: border-box;
+        }
         body {
-          font-family: 'Work Sans', sans-serif;
+          font-family: 'Work Sans', 'Noto Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
           background-color: white;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-feature-settings: 'liga' 1, 'kern' 1;
+          text-rendering: optimizeLegibility;
+        }
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+          }
         }
       </style>
     </head>
@@ -63,24 +79,48 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     if (isProduction) {
       // Use @sparticuz/chromium for serverless environments (production)
       browser = await puppeteer.launch({
-        args: chromium.args,
+        args: [
+          ...chromium.args,
+          '--font-render-hinting=none',
+          '--disable-font-subpixel-positioning',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-gpu-sandbox',
+          '--disable-software-rasterizer',
+          '--disable-dev-shm-usage'
+        ],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless, // Use chromium.headless for serverless
+        headless: chromium.headless,
       });
     } else {
       // Use regular Puppeteer for local development
       browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--font-render-hinting=none',
+          '--disable-font-subpixel-positioning'
+        ]
       });
     }
 
     // Create a new page
     const page = await browser.newPage();
     
-    // Set content and wait for network idle
+    // Set extra HTTP headers for better font loading
+    await page.setExtraHTTPHeaders({
+      'Accept-Charset': 'utf-8',
+      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Language': 'en-US,en;q=0.9,ja;q=0.8'
+    });
+    
+    // Set content and wait for network idle and fonts to load
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    
+    // Wait for fonts to load
+    await page.evaluateHandle('document.fonts.ready');
 
     // Generate PDF
     const pdfBuffer = await page.pdf({
@@ -367,16 +407,7 @@ export function generateQuotationHtml(
         <img src="${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
       </div>
       
-      <!-- Status Label (if approved or rejected) -->
-      ${quotation.status === 'approved' ? `
-        <div style="background: #10b981; color: white; text-align: center; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; font-size: 16px;">
-          ✓ APPROVED
-        </div>
-      ` : quotation.status === 'rejected' ? `
-        <div style="background: #ef4444; color: white; text-align: center; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; font-size: 16px;">
-          ✗ REJECTED
-        </div>
-      ` : ''}
+
       
       <!-- Header with quotation and company info -->
       <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
@@ -387,15 +418,30 @@ export function generateQuotationHtml(
           <p style="margin: 0 0 5px 0; font-weight: normal; font-size: 13px;">
             ${quotationT.quotationNumber} ${formattedQuotationId}
           </p>
-          <p style="margin: 0 0 5px 0; font-size: 13px;">
-            ${quotationT.quotationDate} ${quotationDate}
-          </p>
-          <p style="margin: 0 0 5px 0; font-size: 13px;">
-            ${quotationT.expiryDate} ${expiryDateString}
-          </p>
-          <p style="margin: 0; font-size: 13px;">
-            ${quotationT.validFor} ${validDays} ${quotationT.days}
-          </p>
+          ${quotation.status === 'approved' || quotation.status === 'rejected' ? `
+            <div style="background: ${quotation.status === 'approved' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
+              ${quotation.status === 'approved' ? (isJapanese ? '✓ 承認済み' : '✓ APPROVED') : (isJapanese ? '✗ 却下済み' : '✗ REJECTED')}
+            </div>
+            <p style="margin: 5px 0 0 0; font-size: 13px;">
+              ${quotation.status === 'approved' ? 
+                (quotation.approved_at ? 
+                  `${isJapanese ? '承認日時:' : 'Approved on:'} ${new Date(quotation.approved_at).toLocaleDateString(localeCode)} ${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                  `${isJapanese ? '承認日時:' : 'Approved on:'} ${quotationDate}`) :
+                (quotation.rejected_at ?
+                  `${isJapanese ? '却下日時:' : 'Rejected on:'} ${new Date(quotation.rejected_at).toLocaleDateString(localeCode)} ${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                  `${isJapanese ? '却下日時:' : 'Rejected on:'} ${quotationDate}`)}
+            </p>
+          ` : `
+            <p style="margin: 0 0 5px 0; font-size: 13px;">
+              ${quotationT.quotationDate} ${quotationDate}
+            </p>
+            <p style="margin: 0 0 5px 0; font-size: 13px;">
+              ${quotationT.expiryDate} ${expiryDateString}
+            </p>
+            <p style="margin: 0; font-size: 13px;">
+              ${quotationT.validFor} ${validDays} ${quotationT.days}
+            </p>
+          `}
         </div>
         
         <div style="flex: 1; max-width: 40%; text-align: right; padding-top: 5px;">
@@ -630,38 +676,36 @@ export function generateQuotationHtml(
         return '';
       })()}
       ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 10px;">
-          <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #333;">
-            ${quotation.status === 'approved' ? 'Approved By' : 'Rejected By'}
-          </h3>
-          <div style="display: flex; justify-content: space-between; align-items: end;">
-            <div style="flex: 1; max-width: 300px;">
-              <div style="border: 1px solid #d1d5db; border-radius: 5px; padding: 15px; background: #f9fafb; min-height: 150px; display: flex; align-items: center; justify-content: center;">
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
+          <!-- Right-aligned signature block like a letter -->
+          <div style="display: flex; justify-content: flex-end;">
+            <div style="max-width: 250px; text-align: center;">
+              <!-- Signature image -->
+              <div style="border: 1px solid #d1d5db; border-radius: 3px; padding: 10px; background: #f9fafb; min-height: 80px; max-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                 ${quotation.status === 'approved' && quotation.approval_signature ? `
-                  <img src="${quotation.approval_signature}" alt="Approval Signature" style="max-width: 100%; max-height: 130px; object-fit: contain;">
+                  <img src="${quotation.approval_signature}" alt="Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                 ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
-                  <img src="${quotation.rejection_signature}" alt="Rejection Signature" style="max-width: 100%; max-height: 130px; object-fit: contain;">
+                  <img src="${quotation.rejection_signature}" alt="Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                 ` : ''}
               </div>
-              <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 5px; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #666;">Signature</p>
-              </div>
-            </div>
-            <div style="flex: 1; padding-left: 30px;">
-              <p style="margin: 0 0 5px 0; font-size: 13px; color: #333;">
-                <strong>Date:</strong> ${quotation.status === 'approved' ? 
-                  (quotation.approved_at ? new Date(quotation.approved_at).toLocaleDateString() : 'N/A') : 
-                  (quotation.rejected_at ? new Date(quotation.rejected_at).toLocaleDateString() : 'N/A')}
-              </p>
-              <p style="margin: 0 0 5px 0; font-size: 13px; color: #333;">
-                <strong>Status:</strong> ${quotation.status === 'approved' ? 'Approved' : 'Rejected'}
+              <!-- Signature line -->
+              <div style="border-top: 1px solid #333; margin-bottom: 8px;"></div>
+              <!-- Date and time -->
+              <p style="margin: 0; font-size: 11px; color: #666; line-height: 1.3;">
+                ${quotation.status === 'approved' ? 
+                  (quotation.approved_at ? 
+                    `${new Date(quotation.approved_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                    quotationDate) : 
+                  (quotation.rejected_at ?
+                    `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                    quotationDate)}
               </p>
               ${quotation.status === 'approved' && quotation.approval_notes ? `
-                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
                   <strong>Notes:</strong> ${quotation.approval_notes}
                 </p>
               ` : quotation.status === 'rejected' && quotation.rejection_reason ? `
-                <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+                <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
                   <strong>Reason:</strong> ${quotation.rejection_reason}
                 </p>
               ` : ''}

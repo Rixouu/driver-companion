@@ -26,7 +26,18 @@ async function getQuotations({ query: searchTerm, status: statusFilter }: { quer
   
   let queryBuilder = supabase
     .from('quotations')
-    .select('*, customers(name, email)', { count: 'exact' });
+    .select(`
+      *,
+      customers(name, email),
+      quotation_items(
+        id,
+        unit_price,
+        total_price,
+        quantity,
+        service_days,
+        time_based_adjustment
+      )
+    `, { count: 'exact' });
 
   if (searchTerm) {
     queryBuilder = queryBuilder.or(

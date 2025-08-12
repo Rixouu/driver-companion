@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -137,6 +137,7 @@ export default function QuotationFormRefactored({
   const [promotions, setPromotions] = useState<PricingPromotion[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<PricingPackage | null>(null);
   const [selectedPromotion, setSelectedPromotion] = useState<PricingPromotion | null>(null);
+  const initializedRef = useRef(false);
   
   // Data state
   const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>(initialPricingCategories || []);
@@ -166,8 +167,8 @@ export default function QuotationFormRefactored({
         setPackages(packagesData);
         setPromotions(promotionsData);
         
-        // Initialize selectedPackage and selectedPromotion if editing existing quotation
-        if (initialData) {
+        // Initialize selectedPackage and selectedPromotion if editing existing quotation (only once)
+        if (initialData && !initializedRef.current) {
           // Initialize selected package
           const packageId = (initialData as any).selected_package_id;
           if (packageId) {
@@ -198,6 +199,8 @@ export default function QuotationFormRefactored({
               updated_at: ''
             } as any);
           }
+          
+          initializedRef.current = true; // Mark as initialized
         }
       } catch (error) {
         console.error('Error loading pricing data:', error);

@@ -23,10 +23,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     
-    // Start building the query
+    // Start building the query with quotation_items for proper amount calculation
     let query = supabase
       .from('quotations')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        quotation_items(
+          id,
+          unit_price,
+          total_price,
+          quantity,
+          service_days,
+          time_based_adjustment
+        )
+      `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     // Determine organization membership and restrict customers to their own quotes

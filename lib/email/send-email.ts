@@ -27,6 +27,10 @@ interface InvoiceEmailParams {
   paymentLink: string;
   serviceName: string;
   pdfAttachment?: Buffer;
+  quotationData?: any; // Full quotation data for detailed breakdown
+  totals?: any; // Calculated totals breakdown
+  selectedPackage?: any; // Package info if applicable
+  selectedPromotion?: any; // Promotion info if applicable
 }
 
 // Create reusable transporter (fallback when Resend is not configured)
@@ -148,23 +152,66 @@ export async function sendPaymentConfirmationEmail(params: PaymentConfirmationPa
 }
 
 export async function sendInvoiceEmail(params: InvoiceEmailParams) {
-  const { to, customerName, invoiceId, quotationId, amount, currencyCode = 'JPY', paymentLink, serviceName, pdfAttachment } = params;
+  const { to, customerName, invoiceId, quotationId, amount, currencyCode = 'JPY', paymentLink, serviceName, pdfAttachment, quotationData, totals, selectedPackage, selectedPromotion } = params;
 
   // Avoid repeating the word "Invoice" if invoiceId already includes it
   const subject = `${invoiceId} - ${serviceName}`;
   
+  // Check if payment link is provided to determine email type
+  const hasPaymentLink = paymentLink && paymentLink.trim().length > 0;
+
+  // Currency formatting function
+  const formatCurrency = (amount: number) => {
+    if (amount === undefined || amount === null) return `¥0`;
+    
+    if (currencyCode === 'JPY' || currencyCode === 'CNY') {
+      return currencyCode === 'JPY' 
+        ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `CN¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else if (currencyCode === 'THB') {
+      return `฿${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    } else {
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: currencyCode,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        }).format(amount);
+      } catch (error) {
+        // Fallback if currency code is invalid
+        return `${currencyCode} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      }
+    }
+  };
+  
   // Plain text version
-  const text = `
+  const text = hasPaymentLink ? `
     Dear ${customerName},
     
     Thank you for choosing Japan Driver. Your invoice for your upcoming trip is attached to this email.
     
     Your invoice #${invoiceId} for ${serviceName} is attached to this email.
     
-    Amount due: ${amount.toFixed(2)} ${currencyCode}
+    Amount due: ${typeof amount === 'number' ? amount.toFixed(2) : parseFloat(amount || '0').toFixed(2)} ${currencyCode}
     
     To make payment, please use the following link:
     ${paymentLink}
+    
+    If you have any questions about this invoice, please contact us.
+    
+    Best regards,
+    Japan Driver Team
+  ` : `
+    Dear ${customerName},
+    
+    Thank you for choosing Japan Driver. Your invoice for your upcoming trip is attached to this email.
+    
+    Your invoice #${invoiceId} for ${serviceName} is attached to this email.
+    
+    Amount due: ${typeof amount === 'number' ? amount.toFixed(2) : parseFloat(amount || '0').toFixed(2)} ${currencyCode}
+    
+    An admin will send you an email with the payment link included very soon.
     
     If you have any questions about this invoice, please contact us.
     
@@ -221,20 +268,157 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
               </tr>
 
               <tr>
+                <td style="padding:0 24px 12px;">
+                  <h3 style="margin:0 0 12px; font-size:16px; color:#32325D; text-transform: uppercase;">
+                    Service Details
+                  </h3>
+                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-size:14px; color:#32325D; line-height: 1.6;">
+                    <p style="margin:5px 0;"><strong>Service:</strong> ${serviceName}</p>
+                    <p style="margin:5px 0;"><strong>Reference:</strong> ${quotationId}</p>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
                 <td style="padding:0 24px 24px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-                         style="background:#F8FAFC; border-radius:8px;">
+                  <h3 style="margin:0 0 12px; font-size:16px; color:#32325D; text-transform: uppercase;">
+                    Price Details
+                  </h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="price-table"
+                        style="background:#F8FAFC; border-radius:8px;">
                     <tr>
-                      <td style="padding:16px; font-size:14px; color:#32325D;">
-                        <p style="margin:5px 0;"><strong>Service:</strong> ${serviceName}</p>
-                        <p style="margin:5px 0;"><strong>Reference:</strong> ${quotationId}</p>
-                        <p style="margin:5px 0;"><strong>Amount due:</strong> ${amount.toLocaleString()} ${currencyCode}</p>
+                      <td style="padding:12px;">
+                        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                          <tr>
+                            <th align="left" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                              Description
+                            </th>
+                            <th align="right" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                              Price
+                            </th>
+                          </tr>
+                          ${
+                            // Check if we have detailed quotation data and totals
+                            quotationData && totals ? (() => {
+                              // Check if we have multiple service items
+                              if (quotationData.quotation_items && Array.isArray(quotationData.quotation_items) && quotationData.quotation_items.length > 0) {
+                                // If we have items, display each one
+                                return quotationData.quotation_items.map((item: any, index: number) => {
+                                  const isPackage = item.service_type_name?.toLowerCase().includes('package');
+                                  return `
+                                  <tr>
+                                    <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotationData.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
+                                      <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
+                                        ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
+                                      </div>
+                                      ${!isPackage && item.service_type_name?.toLowerCase().includes('charter') ?
+                                        `<div style="font-size: 13px; color: #666;">${item.service_days || 1} days, ${item.hours_per_day || 8} hours/day</div>` : ''}
+                                      ${selectedPackage && isPackage ? `
+                                        <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
+                                          <strong>Services Included:</strong><br>
+                                          ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                                            selectedPackage.items.map((pkgItem: any) => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
+                                            '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
+                                          }
+                                        </div>
+                                      ` : ''}
+                                    </td>
+                                    <td align="right" style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotationData.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}; vertical-align: top;">
+                                      ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                                    </td>
+                                  </tr>
+                                `}).join('');
+                              } else {
+                                // Fallback to simple service display
+                                return `
+                                <tr>
+                                  <td style="padding-top: 15px;">${serviceName}</td>
+                                  <td align="right" style="padding-top: 15px;">${formatCurrency(totals.serviceTotal)}</td>
+                                </tr>`;
+                              }
+                            })() : `
+                            <tr>
+                              <td style="padding-top: 15px;">${serviceName}</td>
+                              <td align="right" style="padding-top: 15px;">${formatCurrency(amount)}</td>
+                            </tr>`
+                          }
+                          ${totals ? `
+                          <tr>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">Services Subtotal</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.serviceTotal)}</td>
+                          </tr>
+                          ${selectedPackage ? `
+                          <tr>
+                            <td style="padding-top: 10px; padding-bottom: 5px;">
+                              <div style="font-weight: medium; font-size: 14px; color: #8b5cf6;">
+                                Package: ${selectedPackage.name}
+                              </div>
+                              ${selectedPackage ? `
+                                <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
+                                  <strong>Services Included:</strong><br>
+                                  ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                                    selectedPackage.items.map((pkgItem: any) => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
+                                    '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
+                                  }
+                                </div>
+                              ` : ''}
+                            </td>
+                            <td align="right" style="padding-top: 10px; padding-bottom: 5px; vertical-align: top; color: #8b5cf6; font-weight: 500;">
+                              ${formatCurrency(selectedPackage.base_price)}
+                            </td>
+                          </tr>
+                          ` : ''}
+                          ${(() => {
+                            // Package discount
+                            if (quotationData?.selected_package_id && quotationData?.package_discount) {
+                              return `
+                              <tr>
+                                <td style="color: #3b82f6;">
+                                  Package Discount
+                                </td>
+                                <td align="right" style="color: #3b82f6;">
+                                  -${formatCurrency(quotationData.package_discount)}
+                                </td>
+                              </tr>`;
+                            }
+                            return '';
+                          })()}
+                          ${totals.promotionDiscount > 0 ? `
+                          <tr>
+                            <td style="color: #10b981;">
+                              Promotion: ${selectedPromotion?.name || quotationData?.selected_promotion_name || 'Discount'}
+                            </td>
+                            <td align="right" style="color: #10b981;">
+                              -${formatCurrency(totals.promotionDiscount)}
+                            </td>
+                          </tr>` : totals.regularDiscount > 0 ? `
+                          <tr>
+                            <td style="color: #e53e3e;">Discount (${quotationData?.discount_percentage || 0}%)</td>
+                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.regularDiscount)}</td>
+                          </tr>
+                          <tr>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">Subtotal</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>
+                          </tr>
+                          ` : ''}
+                          ${totals.taxAmount > 0 ? `
+                          <tr>
+                            <td style="color: #666;">Tax (${quotationData?.tax_percentage || 0}%)</td>
+                            <td align="right" style="color: #666;">+${formatCurrency(totals.taxAmount)}</td>
+                          </tr>
+                          ` : ''}` : ''}
+                          <tr>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">Total Amount Due</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${formatCurrency(totals?.finalTotal || amount)}</td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                   </table>
                 </td>
               </tr>
 
+${hasPaymentLink ? `
               <tr>
                 <td style="padding:12px 24px 6px; text-align: center; color:#32325D; font-size:13px;">
                   You can pay securely using the link below. If the button does not work, use the plain link further down.
@@ -259,7 +443,25 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
                 <td style="padding:0 24px 24px; text-align:center;">
                   <p style="margin:0; font-size:12px; color:#8898AA; word-break:break-all;">${paymentLink}</p>
                 </td>
+              </tr>` : `
+              <tr>
+                <td style="padding:12px 24px 16px; text-align: center;">
+                  <div style="background:#FEF3C7; border:1px solid #F59E0B; border-radius:8px; padding:16px; margin:0 auto; max-width:400px;">
+                    <p style="margin:0; color:#92400E; font-size:14px; font-weight:600;">
+                      📧 Payment Link Coming Soon
+                    </p>
+                    <p style="margin:8px 0 0; color:#92400E; font-size:13px;">
+                      An admin will send you an email with the payment link included very soon.
+                    </p>
+                  </div>
+                </td>
               </tr>
+
+              <tr>
+                <td style="padding:6px 24px 16px; text-align:center; color:#32325D; font-size:13px;">
+                  If you have any questions about this invoice, please reply to this email and our team will assist you.
+                </td>
+              </tr>`}
 
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-size:12px; color:#8898AA;">

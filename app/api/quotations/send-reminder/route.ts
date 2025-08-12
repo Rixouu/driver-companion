@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     
     // Fetch associated package and promotion for the PDF
     let selectedPackage: PricingPackage | null = null;
-    const packageId = (quotation as any).package_id || (quotation as any).pricing_package_id;
+    const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
     if (packageId) {
         const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
         selectedPackage = pkg as PricingPackage | null;

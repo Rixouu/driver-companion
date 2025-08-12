@@ -280,6 +280,13 @@ export async function POST(request: NextRequest) {
     
     // Only update status if needed
     if (!skipStatusCheck) {
+      console.log('Approve route - Updating quotation with signature:', {
+        id,
+        hasSignature: !!signature,
+        signatureLength: signature?.length || 0,
+        signaturePreview: signature?.substring(0, 50) + '...' || 'none'
+      });
+      
       const { error: updateError } = await supabase
         .from('quotations')
         .update({ 
@@ -351,7 +358,7 @@ export async function POST(request: NextRequest) {
     
     // Fetch associated package and promotion for the PDF
     let selectedPackage: PricingPackage | null = null;
-    const packageId = (fullQuotation as any).package_id || (fullQuotation as any).pricing_package_id;
+    const packageId = (fullQuotation as any).selected_package_id || (fullQuotation as any).package_id || (fullQuotation as any).pricing_package_id;
     if (packageId) {
         const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
         selectedPackage = pkg as PricingPackage | null;
@@ -386,6 +393,14 @@ export async function POST(request: NextRequest) {
         .select('*, quotation_items (*)')
         .eq('id', id)
         .single();
+      
+      console.log('Approve route - Updated quotation signature status:', {
+        id: updatedQuotation?.id,
+        status: updatedQuotation?.status,
+        hasApprovalSignature: !!updatedQuotation?.approval_signature,
+        approvalSignatureLength: updatedQuotation?.approval_signature?.length || 0,
+        approvalSignaturePreview: updatedQuotation?.approval_signature?.substring(0, 50) + '...' || 'none'
+      });
       
       // Generate the HTML for the quotation with signature
       const htmlContent = generateQuotationHtml(updatedQuotation || fullQuotation, 'en', selectedPackage, selectedPromotion, true);

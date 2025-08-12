@@ -132,7 +132,7 @@ export function QuotationDetailsApprovalPanel({
       
       {/* Enhanced Approve Dialog */}
       <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw]">
           <AlertDialogHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-full w-fit">
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -170,10 +170,10 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-2 flex-col sm:flex-row">
+          <AlertDialogFooter className="flex gap-3 pt-4">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="sm:flex-1 hover:bg-muted/80 w-full"
+              className="flex-1 min-h-[44px]"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -183,7 +183,7 @@ export function QuotationDetailsApprovalPanel({
                 handleApprove();
               }}
               disabled={isProcessing || !approveSignature}
-              className="sm:flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 w-full"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 min-h-[44px]"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export function QuotationDetailsApprovalPanel({
 
       {/* Enhanced Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw]">
           <AlertDialogHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit">
               <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
@@ -248,10 +248,10 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-2 flex-col sm:flex-row">
+          <AlertDialogFooter className="flex gap-3 pt-4">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="sm:flex-1 hover:bg-muted/80 w-full"
+              className="flex-1 min-h-[44px]"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -261,7 +261,7 @@ export function QuotationDetailsApprovalPanel({
                 handleReject();
               }}
               disabled={isProcessing || !rejectionReason.trim() || !rejectSignature}
-              className="sm:flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 w-full"
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 min-h-[44px]"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">

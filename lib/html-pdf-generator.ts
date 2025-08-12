@@ -624,9 +624,9 @@ export function generateQuotationHtml(
         </p>
       </div>
       
-      <!-- Signature Section -->
+      <!-- Signature Section placed under totals -->
       ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 10px;">
           <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #333;">
             ${quotation.status === 'approved' ? 'Approved By' : 'Rejected By'}
           </h3>

@@ -424,46 +424,17 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               </div>
             </div>
             
-            {/* Right side - Action buttons */}
+            {/* Right side - Primary actions only */}
             <div className="flex flex-wrap gap-2 flex-shrink-0">
-              {/* Share buttons - visible to all users */}
-              <QuotationShareButtons quotation={quotation} />
-              
-              {/* Show different buttons based on quotation status */}
               {quotation.status === 'approved' ? (
-                /* Show invoice buttons when approved */
-                <QuotationInvoiceButton 
-                  quotation={quotation}
-                  onSuccess={() => router.refresh()} 
-                />
+                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
               ) : (
-                /* Show regular quotation buttons when not approved */
-                <QuotationPdfButton 
-                  quotation={quotation} 
-                  selectedPackage={selectedPackage} 
-                  selectedPromotion={selectedPromotion}
-                  onSuccess={() => router.refresh()} 
-                />
+                <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
               )}
-              
               {isOrganizationMember && quotation.status === 'draft' && (
-                <Button 
-                  onClick={handleSend} 
-                  disabled={isLoading}
-                  className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                >
+                <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
                   <Mail className="h-4 w-4" />
                   {t('quotations.actions.send')}
-                </Button>
-              )}
-              
-              {/* Hide edit button when status is approved or rejected */}
-              {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
-                <Button variant="outline" asChild className="gap-2">
-                  <Link href={`/quotations/${quotation.id}/edit`}>
-                    <Edit className="h-4 w-4" />
-                    {t('quotations.actions.edit')}
-                  </Link>
                 </Button>
               )}
             </div>
@@ -896,7 +867,24 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             }}
             onRefresh={() => router.refresh()}
           />
-          
+          {/* Secondary actions under status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Other Actions</CardTitle>
+              <CardDescription>Additional actions</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <QuotationShareButtons quotation={quotation} />
+              {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
+                <Button variant="outline" asChild className="gap-2">
+                  <Link href={`/quotations/${quotation.id}/edit`}>
+                    <Edit className="h-4 w-4" />
+                    {t('quotations.actions.edit')}
+                  </Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Default Approval Panel placement - in sidebar above activity feed */}
           {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (

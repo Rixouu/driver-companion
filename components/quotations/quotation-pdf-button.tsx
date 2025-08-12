@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { toast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -237,6 +238,10 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
   const [targetEmail, setTargetEmail] = useState(quotation?.customer_email || '')
   const [includeDetails, setIncludeDetails] = useState(true)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [progressValue, setProgressValue] = useState(0)
+  const [progressTitle, setProgressTitle] = useState('Processing')
+  const [progressLabel, setProgressLabel] = useState('Starting...')
   
   const formatCurrency = (amount: number, currency: string = 'JPY') => {
     // Use the quotation's display_currency if available, otherwise default to JPY
@@ -252,7 +257,13 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
   const handleGeneratePdf = async () => {
     if (!quotation) return;
     setIsGenerating(true);
+    setProgressOpen(true)
+    setProgressTitle('Generating Quotation PDF')
+    setProgressLabel('Preparing...')
+    setProgressValue(10)
     try {
+      setProgressLabel('Rendering...')
+      setProgressValue(50)
       const response = await fetch('/api/quotations/generate-pdf', {
         method: 'POST',
         headers: {
@@ -271,6 +282,8 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       }
 
       const blob = await response.blob();
+      setProgressLabel('Downloading...')
+      setProgressValue(80)
       const url = window.URL.createObjectURL(blob);
       const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
@@ -283,19 +296,14 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast({
-        title: "PDF Downloaded",
-        description: `Quotation ${formattedQuotationId} has been downloaded successfully.`,
-        variant: "default"
-      });
+      setProgressValue(100)
+      setProgressLabel('Completed')
+      setTimeout(() => setProgressOpen(false), 400)
 
     } catch (error) {
       console.error("Error generating PDF for download:", error);
-      toast({
-        title: "PDF Generation Failed",
-        description: "An unexpected error occurred while generating the PDF.",
-        variant: "destructive",
-      });
+      setProgressOpen(false)
+      toast({ title: "PDF Generation Failed", description: "An unexpected error occurred while generating the PDF.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -319,7 +327,11 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       return;
     }
     
-    setIsEmailing(true);
+    setIsEmailing(true)
+    setProgressOpen(true)
+    setProgressTitle('Emailing Quotation')
+    setProgressLabel('Preparing...')
+    setProgressValue(15)
     
     try {
       // The PDF blob is not needed anymore as the server will generate its own PDF
@@ -334,6 +346,8 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       formData.append('language', emailLanguage);
       // formData.append('pdf', pdfBlob, `quotation-${quotation.quote_number}.pdf`); // Don't send PDF from client
       
+      setProgressLabel('Sending email...')
+      setProgressValue(70)
       const response = await fetch('/api/quotations/send-email', {
         method: 'POST',
         body: formData,
@@ -344,20 +358,15 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         throw new Error(errorData.error || 'Failed to send email');
       }
       
-      toast({
-        title: "Email Sent",
-        description: `Quotation successfully sent to ${targetEmail}`,
-        variant: "default"
-      });
+      setProgressValue(100)
+      setProgressLabel('Completed')
+      setTimeout(() => setProgressOpen(false), 400)
       setIsEmailDialogOpen(false);
       if (onSuccess) onSuccess();
     } catch (apiError) {
       console.error('Error sending quotation email:', apiError);
-      toast({
-        title: 'Error Sending Email',
-        description: (apiError as Error).message || 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
+      setProgressOpen(false)
+      toast({ title: 'Error Sending Email', description: (apiError as Error).message || 'An unexpected error occurred.', variant: 'destructive' });
     } finally {
       setIsEmailing(false);
     }
@@ -453,6 +462,23 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
               {isEmailing ? (t('common.sending') || 'Sending...') : (t('common.send') || 'Send Email')}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Modal */}
+      <Dialog open={progressOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{progressTitle}</DialogTitle>
+            <DialogDescription className="sr-only">Processing</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Progress value={progressValue} />
+            <div className="text-sm text-muted-foreground flex items-center justify-between">
+              <span>{progressLabel}</span>
+              <span className="font-medium text-foreground">{progressValue}%</span>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

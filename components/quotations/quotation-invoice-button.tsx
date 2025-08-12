@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,6 +28,12 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
   const [includeDetails, setIncludeDetails] = useState(true);
   const [paymentLink, setPaymentLink] = useState<string>("");
+
+  // Progress modal state (align with quotation-details)
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
+  const [progressTitle, setProgressTitle] = useState('Processing');
+  const [progressLabel, setProgressLabel] = useState('Starting...');
 
   // Generate invoice using same HTML-to-PDF design as bookings
   const generateInvoice = async (email: boolean = false, invoiceLanguage: 'en' | 'ja' = 'en'): Promise<Blob | null> => {
@@ -207,37 +214,50 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
 
   const handleGeneratePdf = async () => {
     setIsGenerating(true);
-    
+    setProgressOpen(true);
+    setProgressTitle('Generating Invoice PDF');
+    setProgressLabel('Preparing...');
+    setProgressValue(10);
+
     try {
-      const pdfBlob = await generateInvoice();
+      setProgressLabel('Generating PDF...');
+      setProgressValue(50);
       
-      if (!pdfBlob) {
-        throw new Error('Failed to generate invoice PDF');
+      // Use server-side PDF generation with proper discount calculations
+      const response = await fetch('/api/quotations/generate-invoice-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotation_id: quotation.id,
+          language: language as 'en' | 'ja'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
-      
-      // Create download link
-      const url = URL.createObjectURL(pdfBlob);
+
+      const blob = await response.blob();
+      setProgressLabel('Downloading...');
+      setProgressValue(80);
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-${quotation.id}.pdf`;
+      link.download = `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Success",
-        description: "Invoice PDF downloaded successfully",
-      });
-      
+
+      setProgressValue(100);
+      setProgressLabel('Completed');
+      setTimeout(() => setProgressOpen(false), 400);
       onSuccess?.();
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to download invoice. Please try again.",
-        variant: "destructive",
-      });
+      setProgressOpen(false);
+      toast({ title: "Error", description: "Failed to download invoice. Please try again.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -273,17 +293,29 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
     }
     
     setIsEmailing(true);
-    // determinate progress via toasts
-    let step = 0;
-    const labels = ['Generating email', 'Attaching PDF', 'Sending email'];
-    const interval = setInterval(() => {
-      step = Math.min(step + 1, labels.length - 1);
-      toast({ title: labels[step], description: `${Math.min(90, (step + 1) * 30)}%` });
-    }, 600);
+    setProgressOpen(true);
+    setProgressTitle('Emailing Invoice');
+    setProgressLabel('Generating PDF...');
+    setProgressValue(15);
     
     try {
-      // Generate the PDF with the selected language
-      const pdfBlob = await generateInvoice(true, emailLanguage);
+      // Generate the PDF using server-side generation for proper discount calculations
+      const pdfResponse = await fetch('/api/quotations/generate-invoice-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quotation_id: quotation.id,
+          language: emailLanguage
+        })
+      });
+
+      if (!pdfResponse.ok) {
+        throw new Error(`Failed to generate invoice PDF: ${pdfResponse.statusText}`);
+      }
+
+      const pdfBlob = await pdfResponse.blob();
+      setProgressLabel('Attaching PDF...');
+      setProgressValue(55);
       
       if (!pdfBlob) {
         throw new Error('Failed to generate invoice PDF');
@@ -300,33 +332,28 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       const formattedId = `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
       formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
       
-      const response = await fetch('/api/quotations/send-invoice-email', {
+      const emailResponse = await fetch('/api/quotations/send-invoice-email', {
         method: 'POST',
         body: formData,
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
         throw new Error(errorData.error || 'Failed to send invoice email');
       }
-      
-      toast({
-        title: "Success",
-        description: `Invoice sent successfully to ${emailAddress}`,
-      });
-      toast({ title: 'Completed', description: '100%' });
+      setProgressLabel('Sending email...');
+      setProgressValue(85);
+      setProgressValue(100);
+      setProgressLabel('Completed');
+      setTimeout(() => setProgressOpen(false), 400);
       
       setIsEmailDialogOpen(false);
       onSuccess?.();
     } catch (error) {
       console.error('Error sending invoice email:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send invoice. Please try again.",
-        variant: "destructive",
-      });
+      setProgressOpen(false);
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to send invoice. Please try again.", variant: "destructive" });
     } finally {
-      try { clearInterval(interval); } catch {}
       setIsEmailing(false);
     }
   };
@@ -431,6 +458,23 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Modal */}
+      <Dialog open={progressOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{progressTitle}</DialogTitle>
+            <DialogDescription className="sr-only">Processing</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Progress value={progressValue} />
+            <div className="text-sm text-muted-foreground flex items-center justify-between">
+              <span>{progressLabel}</span>
+              <span className="font-medium text-foreground">{progressValue}%</span>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

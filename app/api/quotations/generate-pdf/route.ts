@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    // Fetch quotation data
+    // Fetch quotation data including signature fields
     const { data: quotation, error } = await supabase
       .from('quotations')
       .select('*, customers (*), quotation_items (*)')

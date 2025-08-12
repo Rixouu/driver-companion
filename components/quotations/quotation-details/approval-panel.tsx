@@ -91,7 +91,7 @@ export function QuotationDetailsApprovalPanel({
                 ) : (
                   <CheckCircle className="h-5 w-5" />
                 )}
-                {t('quotations.details.approvalPanel.approveButton') || 'Approve Quotation'}
+                {t('quotations.details.approvalPanel.approveButton') || 'Approve'}
               </div>
             </Button>
             
@@ -116,7 +116,7 @@ export function QuotationDetailsApprovalPanel({
                 ) : (
                   <XCircle className="h-5 w-5" />
                 )}
-                {t('quotations.details.approvalPanel.rejectButton') || 'Reject Quotation'}
+                {t('quotations.details.approvalPanel.rejectButton') || 'Reject'}
               </div>
             </Button>
           </div>
@@ -170,10 +170,10 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-2">
+          <AlertDialogFooter className="flex gap-2 flex-col sm:flex-row">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="flex-1 hover:bg-muted/80"
+              className="sm:flex-1 hover:bg-muted/80 w-full"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -183,7 +183,7 @@ export function QuotationDetailsApprovalPanel({
                 handleApprove();
               }}
               disabled={isProcessing || !approveSignature}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+              className="sm:flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 w-full"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">
@@ -248,10 +248,10 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-2">
+          <AlertDialogFooter className="flex gap-2 flex-col sm:flex-row">
             <AlertDialogCancel 
               disabled={isProcessing}
-              className="flex-1 hover:bg-muted/80"
+              className="sm:flex-1 hover:bg-muted/80 w-full"
             >
               {t('common.cancel') || 'Cancel'}
             </AlertDialogCancel>
@@ -261,7 +261,7 @@ export function QuotationDetailsApprovalPanel({
                 handleReject();
               }}
               disabled={isProcessing || !rejectionReason.trim() || !rejectSignature}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+              className="sm:flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 w-full"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2">

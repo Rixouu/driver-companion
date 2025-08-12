@@ -611,20 +611,24 @@ export function generateQuotationHtml(
         </div>
       </div>
       
-      <!-- Page break before Terms and Conditions -->
-      <div style="page-break-after: always; height: 1px;"></div>
-      
-      <!-- Terms and Conditions -->
-      <div style="margin-bottom: 25px; margin-top: 20px;">
-        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px;">
-          ${quotationT.termsAndConditions}
-        </h3>
-        <p style="margin: 0; font-size: 12px; line-height: 1.5; white-space: pre-line;">
-          ${quotation?.terms || quotationT.termsContent}
-        </p>
-      </div>
-      
-      <!-- Signature Section placed under totals -->
+      <!-- Signature Section placed right under totals -->
+      ${(() => {
+        console.log('PDF Generator - Signature check:', {
+          showSignature,
+          quotationStatus: quotation.status,
+          hasApprovalSignature: !!quotation.approval_signature,
+          hasRejectionSignature: !!quotation.rejection_signature,
+          approvalSignatureLength: quotation.approval_signature?.length || 0,
+          rejectionSignatureLength: quotation.rejection_signature?.length || 0
+        });
+        
+        const shouldShowSignature = showSignature && 
+          ((quotation.status === 'approved' && quotation.approval_signature) || 
+           (quotation.status === 'rejected' && quotation.rejection_signature));
+           
+        console.log('PDF Generator - Should show signature:', shouldShowSignature);
+        return '';
+      })()}
       ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
         <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 10px;">
           <h3 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #333;">
@@ -665,6 +669,19 @@ export function generateQuotationHtml(
           </div>
         </div>
       ` : ''}
+      
+      <!-- Page break before Terms and Conditions -->
+      <div style="page-break-after: always; height: 1px;"></div>
+      
+      <!-- Terms and Conditions -->
+      <div style="margin-bottom: 25px; margin-top: 20px;">
+        <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px;">
+          ${quotationT.termsAndConditions}
+        </h3>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; white-space: pre-line;">
+          ${quotation?.terms || quotationT.termsContent}
+        </p>
+      </div>
       
       <!-- Footer -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-align: center; margin-top: auto;">

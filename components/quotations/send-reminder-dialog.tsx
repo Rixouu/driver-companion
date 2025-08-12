@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Progress } from "@/components/ui/progress"
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { Quotation } from '@/types/quotations'
@@ -22,13 +23,26 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
   const [language, setLanguage] = useState<'en' | 'ja'>('en')
   const [includeQuotation, setIncludeQuotation] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Progress modal state
+  const [progressOpen, setProgressOpen] = useState(false)
+  const [progressValue, setProgressValue] = useState(0)
+  const [progressTitle, setProgressTitle] = useState('Processing')
+  const [progressLabel, setProgressLabel] = useState('Starting...')
 
   const handleSendReminder = async () => {
     if (!quotation?.id) return
 
     setIsLoading(true)
+    setProgressOpen(true)
+    setProgressTitle('Sending Reminder')
+    setProgressLabel('Preparing...')
+    setProgressValue(10)
     
     try {
+      setProgressLabel('Generating content...')
+      setProgressValue(40)
+      
       const response = await fetch(`/api/quotations/send-reminder`, {
         method: 'POST',
         headers: {
@@ -45,14 +59,19 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
         throw new Error('Failed to send reminder')
       }
       
-      toast({
-        title: t('quotations.notifications.reminderSuccess'),
-        variant: 'default',
-      })
+      setProgressLabel('Sending email...')
+      setProgressValue(80)
+      setProgressValue(100)
+      setProgressLabel('Completed')
       
-      onOpenChange(false)
+      setTimeout(() => {
+        setProgressOpen(false)
+        onOpenChange(false)
+      }, 400)
+      
     } catch (error) {
       console.error('Error sending reminder:', error)
+      setProgressOpen(false)
       toast({
         title: t('quotations.notifications.error'),
         description: 'Failed to send reminder',
@@ -64,7 +83,8 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
@@ -124,5 +144,23 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    
+    {/* Progress Modal */}
+    <Dialog open={progressOpen}>
+      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{progressTitle}</DialogTitle>
+          <DialogDescription className="sr-only">Processing</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <Progress value={progressValue} />
+          <div className="text-sm text-muted-foreground flex items-center justify-between">
+            <span>{progressLabel}</span>
+            <span className="font-medium text-foreground">{progressValue}%</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 } 

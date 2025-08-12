@@ -132,7 +132,7 @@ export function QuotationDetailsApprovalPanel({
       
       {/* Enhanced Approve Dialog */}
       <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw]">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-full w-fit">
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -203,7 +203,7 @@ export function QuotationDetailsApprovalPanel({
 
       {/* Enhanced Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw]">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit">
               <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />

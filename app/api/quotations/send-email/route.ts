@@ -643,25 +643,18 @@ function generateEmailHtml(
                             }
                             return '';
                           })()}
-                          ${(() => {
-                            // Promotion discount
-                            if (quotation.selected_promotion_id && quotation.promotion_discount) {
-                              return `
-                              <tr>
-                                <td style="color: #10b981;">
-                                  ${isJapanese ? 'プロモーション割引' : 'Promotion Discount'}
-                                </td>
-                                <td align="right" style="color: #10b981;">
-                                  -${formatCurrency(quotation.promotion_discount)}
-                                </td>
-                              </tr>`;
-                            }
-                            return '';
-                          })()}
-                          ${totals.totalDiscount > 0 ? `
+                          ${totals.promotionDiscount > 0 ? `
+                          <tr>
+                            <td style="color: #10b981;">
+                              ${isJapanese ? 'プロモーション' : 'Promotion'}: ${selectedPromotion?.name || quotation.selected_promotion_name || 'Discount'}
+                            </td>
+                            <td align="right" style="color: #10b981;">
+                              -${formatCurrency(totals.promotionDiscount)}
+                            </td>
+                          </tr>` : totals.regularDiscount > 0 ? `
                           <tr>
                             <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
-                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.totalDiscount)}</td>
+                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.regularDiscount)}</td>
                           </tr>
                           <tr>
                             <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>

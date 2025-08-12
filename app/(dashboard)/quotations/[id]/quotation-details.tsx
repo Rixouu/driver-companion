@@ -700,11 +700,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           await new Promise(resolve => setTimeout(resolve, 200));
                         }
                         
-                        const success = await approveQuotation({
-                          quotation_id: quotation.id,
-                          notes: notes,
-                          signature: signature
+                        const response = await fetch('/api/quotations/approve', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            id: quotation.id,
+                            notes: notes,
+                            signature: signature
+                          }),
                         });
+                        
+                        const success = response.ok;
                         
                         if (success) {
                           setProgressValue(100);
@@ -752,11 +760,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           await new Promise(resolve => setTimeout(resolve, 200));
                         }
                         
-                        const success = await rejectQuotation({
-                          quotation_id: quotation.id,
-                          rejected_reason: reason,
-                          signature: signature
+                        const response = await fetch('/api/quotations/reject', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            id: quotation.id,
+                            reason: reason,
+                            signature: signature
+                          }),
                         });
+                        
+                        const success = response.ok;
                         
                         if (success) {
                           setProgressValue(100);
@@ -914,11 +930,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       await new Promise(resolve => setTimeout(resolve, 200));
                     }
                     
-                    const success = await approveQuotation({
-                      quotation_id: quotation.id,
-                      notes: notes,
-                      signature: signature
+                    const response = await fetch('/api/quotations/approve', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        id: quotation.id,
+                        notes: notes,
+                        signature: signature
+                      }),
                     });
+                    
+                    const success = response.ok;
                     
                     if (success) {
                       setProgressValue(100);
@@ -966,11 +990,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       await new Promise(resolve => setTimeout(resolve, 200));
                     }
                     
-                    const success = await rejectQuotation({
-                      quotation_id: quotation.id,
-                      rejected_reason: reason,
-                      signature: signature
+                    const response = await fetch('/api/quotations/reject', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        id: quotation.id,
+                        reason: reason,
+                        signature: signature
+                      }),
                     });
+                    
+                    const success = response.ok;
                     
                     if (success) {
                       setProgressValue(100);

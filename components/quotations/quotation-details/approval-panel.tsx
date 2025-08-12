@@ -132,8 +132,8 @@ export function QuotationDetailsApprovalPanel({
       
       {/* Enhanced Approve Dialog */}
       <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader className="text-center">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[85vh] flex flex-col">
+          <AlertDialogHeader className="text-center flex-shrink-0">
             <div className="mx-auto mb-4 p-3 bg-green-100 dark:bg-green-900/30 rounded-full w-fit">
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
@@ -145,7 +145,7 @@ export function QuotationDetailsApprovalPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="approve-notes" className="text-sm font-medium">
                 {t('quotations.details.approvalPanel.notesLabel') || 'Additional Notes (Optional)'}
@@ -170,7 +170,7 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-3 pt-4">
+          <AlertDialogFooter className="flex gap-3 pt-4 flex-shrink-0 border-t bg-background">
             <AlertDialogCancel 
               disabled={isProcessing}
               className="flex-1 min-h-[44px]"
@@ -203,8 +203,8 @@ export function QuotationDetailsApprovalPanel({
 
       {/* Enhanced Reject Dialog */}
       <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader className="text-center">
+        <AlertDialogContent className="sm:max-w-lg max-w-[95vw] max-h-[85vh] flex flex-col">
+          <AlertDialogHeader className="text-center flex-shrink-0">
             <div className="mx-auto mb-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-full w-fit">
               <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
             </div>
@@ -216,7 +216,7 @@ export function QuotationDetailsApprovalPanel({
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="rejection-reason" className="text-sm font-medium flex items-center gap-1">
                 {t('quotations.details.approvalPanel.reasonLabel') || 'Rejection Reason'}
@@ -248,7 +248,7 @@ export function QuotationDetailsApprovalPanel({
             </div>
           </div>
           
-          <AlertDialogFooter className="flex gap-3 pt-4">
+          <AlertDialogFooter className="flex gap-3 pt-4 flex-shrink-0 border-t bg-background">
             <AlertDialogCancel 
               disabled={isProcessing}
               className="flex-1 min-h-[44px]"

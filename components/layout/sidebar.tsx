@@ -199,13 +199,8 @@ export function Sidebar() {
         { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/dispatch/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
+        { icon: FileText, label: t("navigation.templates"), href: "/templates", key: "templates" } as MenuItem,
         { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" } as MenuItem
-      ]
-    },
-    {
-      id: 'templates',
-      items: [
-        { icon: FileText, label: t("navigation.templates"), href: "/templates", key: "templates" } as MenuItem
       ]
     },
     {

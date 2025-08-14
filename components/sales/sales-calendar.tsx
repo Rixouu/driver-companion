@@ -791,7 +791,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
           {/* Sidebar - Details Panel */}
           {selectedDate && (
             <div className="lg:col-span-1">
-              <Card className="sticky top-6">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
                     {format(selectedDate, "EEEE, MMMM d, yyyy")}
@@ -800,7 +800,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                     {selectedDateEvents.length} events on {format(selectedDate, "MMMM d")}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2 max-h-[calc(100vh-12rem)] overflow-y-auto p-3">
+                <CardContent className="space-y-2 p-3">
                   {selectedDateEvents.length > 0 ? (
                     paginatedSidebarEvents.map((event) => (
                       <Link key={`${event.type}-${event.id}`} href={`/${event.type === 'quotation' ? 'quotations' : 'bookings'}/${event.id}`} className="block">

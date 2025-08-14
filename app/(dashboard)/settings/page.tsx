@@ -47,6 +47,7 @@ export default function SettingsPage() {
     bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
+    templates: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
     settings: { desktop: true, mobile: true }
   })
@@ -170,6 +171,8 @@ export default function SettingsPage() {
         return <Wrench className="h-4 w-4 text-primary" />;
       case 'inspections':
         return <ClipboardCheck className="h-4 w-4 text-primary" />;
+      case 'templates':
+        return <FileText className="h-4 w-4 text-primary" />;
       case 'reporting':
         return <BarChart className="h-4 w-4 text-primary" />;
       case 'settings':

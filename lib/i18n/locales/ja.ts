@@ -2505,6 +2505,7 @@ export const ja: TranslationValue = {
       bookings: "予約",
       maintenance: "メンテナンス",
       inspections: "点検",
+      templates: "テンプレート",
       reporting: "レポート",
       settings: "設定",
       quotations: "見積",

@@ -84,7 +84,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       h1.style.fontWeight = 'bold';
       h1.style.color = '#111827';
       const num = document.createElement('p');
-      num.textContent = `${invoiceLanguage === 'ja' ? '請求書番号:' : 'Invoice #:'} invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
+      num.textContent = `${invoiceLanguage === 'ja' ? '請求書番号:' : 'Invoice #:'} INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
       num.style.margin = '0 0 5px 0';
       num.style.color = '#111827';
       num.style.fontSize = '14px';
@@ -94,7 +94,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       date.style.color = '#111827';
       date.style.fontSize = '14px';
       const ref = document.createElement('p');
-      ref.textContent = `${invoiceLanguage === 'ja' ? '見積参照:' : 'Quotation Ref:'} quotation-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
+      ref.textContent = `${invoiceLanguage === 'ja' ? '見積参照:' : 'Quotation Ref:'} QUO-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
       ref.style.margin = '0';
       ref.style.color = '#111827';
       ref.style.fontSize = '14px';
@@ -185,7 +185,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       try {
         await new Promise(res => { if (logo.complete) res(null); else { logo.onload = () => res(null); logo.onerror = () => res(null); } });
         await new Promise(res => setTimeout(res, 300));
-        const pdfName = `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`;
+        const pdfName = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`;
         const options: any = { 
           margin: [15, 15, 40, 15], 
           filename: pdfName, 
@@ -255,7 +255,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`;
+      link.download = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -340,7 +340,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       formData.append('include_details', includeDetails.toString());
       formData.append('language', emailLanguage);
       formData.append('payment_link', paymentLink || '');
-      const formattedId = `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
+      const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
       formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
       
       const emailResponse = await fetch('/api/quotations/send-invoice-email', {
@@ -441,7 +441,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
       formData.append('include_details', includeDetails.toString());
       formData.append('language', emailLanguage);
       formData.append('payment_link', paymentLink);
-      formData.append('invoice_pdf', pdfBlob, `invoice-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`);
+      formData.append('invoice_pdf', pdfBlob, `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`);
 
       // Send payment link email via new API endpoint
       const emailResponse = await fetch('/api/quotations/send-payment-link-email', {
@@ -630,7 +630,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
                   type="url"
                   value={paymentLink}
                   onChange={(e) => setPaymentLink(e.target.value)}
-                  placeholder="https://pay.example.com/..."
+                  placeholder="https://linksplus.omise.co/..."
                   required
                 />
                 <Link2 className="h-4 w-4 text-muted-foreground" />

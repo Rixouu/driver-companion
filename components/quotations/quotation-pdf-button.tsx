@@ -52,7 +52,7 @@ function generateClientQuotationHtml(
   
   const creationDate = quotation?.created_at ? new Date(quotation.created_at) : new Date();
   const quotationDate = dateFormat.format(creationDate);
-  const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+  const formattedQuotationId = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   
   const formatCurrency = (value: number): string => {
     const currency = quotation?.display_currency || quotation?.currency || 'JPY';

@@ -154,8 +154,8 @@ export async function sendPaymentConfirmationEmail(params: PaymentConfirmationPa
 export async function sendInvoiceEmail(params: InvoiceEmailParams) {
   const { to, customerName, invoiceId, quotationId, amount, currencyCode = 'JPY', paymentLink, serviceName, pdfAttachment, quotationData, totals, selectedPackage, selectedPromotion } = params;
 
-  // Avoid repeating the word "Invoice" if invoiceId already includes it
-  const subject = `${invoiceId} - ${serviceName}`;
+  // Payment-focused subject line
+  const subject = `Payment for ${invoiceId}`;
   
   // Check if payment link is provided to determine email type
   const hasPaymentLink = paymentLink && paymentLink.trim().length > 0;
@@ -189,7 +189,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
   const text = hasPaymentLink ? `
     Dear ${customerName},
     
-    Thank you for choosing Japan Driver. Your invoice for your upcoming trip is attached to this email.
+    We hope this email finds you well. Your invoice ${invoiceId} is ready for payment, with all details and payment information provided below.
     
     Your invoice #${invoiceId} for ${serviceName} is attached to this email.
     
@@ -205,7 +205,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
   ` : `
     Dear ${customerName},
     
-    Thank you for choosing Japan Driver. Your invoice for your upcoming trip is attached to this email.
+    We hope this email finds you well. Your invoice ${invoiceId} is ready for payment, with all details and payment information provided below.
     
     Your invoice #${invoiceId} for ${serviceName} is attached to this email.
     
@@ -262,20 +262,8 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
                     Hello ${customerName},
                   </p>
                   <p style="color:#32325D; margin:0 24px 16px; line-height:1.6; font-size: 14px;">
-                    Thank you for choosing Japan Driver. Your invoice for your upcoming trip is attached to this email.
+                    We hope this email finds you well. Your invoice is ready for payment, with all details and payment information provided below.
                   </p>
-                </td>
-              </tr>
-
-              <tr>
-                <td style="padding:0 24px 12px;">
-                  <h3 style="margin:0 0 12px; font-size:16px; color:#32325D; text-transform: uppercase;">
-                    Service Details
-                  </h3>
-                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-size:14px; color:#32325D; line-height: 1.6;">
-                    <p style="margin:5px 0;"><strong>Service:</strong> ${serviceName}</p>
-                    <p style="margin:5px 0;"><strong>Reference:</strong> ${quotationId}</p>
-                  </div>
                 </td>
               </tr>
 

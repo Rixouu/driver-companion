@@ -16,6 +16,7 @@ export function MainNav() {
     bookings: { desktop: true, mobile: true },
     maintenance: { desktop: true, mobile: true },
     inspections: { desktop: true, mobile: true },
+    templates: { desktop: true, mobile: true },
     quotations: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
     settings: { desktop: true, mobile: true }
@@ -64,6 +65,11 @@ export function MainNav() {
       title: t("navigation.inspections"),
       href: "/inspections",
       key: "inspections"
+    },
+    {
+      title: t("navigation.templates"),
+      href: "/templates",
+      key: "templates"
     },
     {
       title: t("navigation.reporting"),

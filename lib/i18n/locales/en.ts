@@ -2507,6 +2507,7 @@ export const en: TranslationValue = {
       bookings: "Bookings",
       maintenance: "Maintenance",
       inspections: "Inspections",
+      templates: "Templates",
       reporting: "Reporting",
       settings: "Settings",
       quotations: "Quotations",

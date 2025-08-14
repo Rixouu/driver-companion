@@ -111,7 +111,7 @@ export function AssignmentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -178,7 +178,7 @@ export function AssignmentModal({
               </Button>
             </div>
 
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-[60vh] pr-4">
               {filteredVehicleGroups.length === 0 ? (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -219,12 +219,11 @@ export function AssignmentModal({
                           onCheckedChange={() => onToggleAssignment(templateType, undefined, group.id)}
                         />
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => onManageGroupVehicles(group)}
-                          title="Manage vehicles in group"
                         >
-                          <Users className="h-4 w-4" />
+                          <Users className="h-4 w-4 mr-1" /> Manage Vehicles
                         </Button>
                         <Button
                           variant="ghost"
@@ -254,7 +253,7 @@ export function AssignmentModal({
               {filteredVehicles.length} vehicles available
             </div>
 
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-[60vh] pr-4">
               {filteredVehicles.length === 0 ? (
                 <div className="text-center py-8">
                   <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -270,7 +269,7 @@ export function AssignmentModal({
                   {filteredVehicles.map((vehicle) => (
                     <div
                       key={vehicle.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${assignedVehicleIds.has(vehicle.id) ? 'bg-muted/40 ring-1 ring-primary/30' : 'hover:bg-muted/50'}`}
                     >
                       <div className="flex items-center gap-3 flex-1">
                         <Car className="h-4 w-4 text-muted-foreground" />
@@ -293,6 +292,11 @@ export function AssignmentModal({
                               <span className="text-xs text-muted-foreground">
                                 {vehicle.vehicle_group.name}
                               </span>
+                            </div>
+                          )}
+                          {assignedVehicleIds.has(vehicle.id) && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium">Assigned</span>
                             </div>
                           )}
                         </div>

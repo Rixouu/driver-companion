@@ -62,7 +62,7 @@ export async function sendEmail(params: EmailParams) {
     // Prefer Resend if configured
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const fromAddress = `${process.env.EMAIL_FROM_NAME || 'Japan Driver'} <${process.env.EMAIL_FROM_ADDRESS || 'info@japandriver.com'}>`;
+      const fromAddress = `${process.env.EMAIL_FROM_NAME || 'Driver Japan'} <${process.env.EMAIL_FROM_ADDRESS || 'info@japandriver.com'}>`;
       // Convert NodeMailer-style attachments to Resend format
       const resendAttachments = attachments.map((a: any) => ({
         filename: a.filename,
@@ -84,7 +84,7 @@ export async function sendEmail(params: EmailParams) {
     // Fallback to NodeMailer transport
     const transporter = createTransporter();
     const mailOptions = {
-      from: `"${process.env.EMAIL_FROM_NAME || 'Japan Driver'}" <${process.env.EMAIL_FROM_ADDRESS || 'info@japandriver.com'}>`,
+      from: `"${process.env.EMAIL_FROM_NAME || 'Driver Japan'}" <${process.env.EMAIL_FROM_ADDRESS || 'info@japandriver.com'}>`,
       to,
       subject,
       html,

@@ -46,6 +46,16 @@ export const en: TranslationValue = {
       tryAgain: "Try Again",
       chat: "Chat"
     },
+    pagination: {
+      pageOf: "Page {page} of {total}"
+    },
+    drivers: {
+      pagination: {
+        page: "Page {page}",
+        of: "of {total}",
+        showing: "Showing {start}-{end} of {total} items"
+      }
+    },
     booking: "Booking",
     viewDetails: "View details",
     addNew: "Add new",
@@ -1154,7 +1164,7 @@ export const en: TranslationValue = {
       summaryPhotos: "Photos Taken",
       passRate: "Pass Rate",
       attentionRequired: "Attention Required",
-      itemsNeedAttention: "{count} item{plural} need{pluralVerb} attention",
+      itemsNeedAttention: "{count} {count, plural, one {item needs} other {items need}} attention",
       allItemsTitle: "All Inspection Items ({count})",
       failedItemsTitle: "Failed Items ({count})",
       passedItemsTitle: "Passed Items ({count})",
@@ -1204,7 +1214,10 @@ export const en: TranslationValue = {
         passedLabel: "Passed Items",
         failedLabel: "Failed Items",
         notesLabel: "Items with Notes",
-        photosLabel: "Photos Taken",
+      photosLabel: "Photos Taken",
+      items: {
+        photosHeader: "Photos",
+      },
         passCount: "Passed Items: {count}",
         failCount: "Failed Items: {count}",
         notesCount: "Notes Added: {count}",
@@ -1234,6 +1247,10 @@ export const en: TranslationValue = {
       notes: {
         title: "Overall Inspection Notes"
       },
+      typeLabel: "Type",
+      statusLabel: "Status",
+      inspectorLabel: "Inspector",
+      inspectorEmailLabel: "Inspector Email",
       dateLabel: "Inspection Date",
       isScheduled: "Is Scheduled",
       isScheduledDescription: "Indicates if the inspection is part of a recurring schedule.",

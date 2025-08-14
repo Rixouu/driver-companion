@@ -46,6 +46,9 @@ export const ja: TranslationValue = {
       tryAgain: "再試行",
       chat: "チャット"
     },
+    pagination: {
+      pageOf: "{page} / {total} ページ"
+    },
     booking: "予約",
     viewDetails: "詳細を表示",
     addNew: "新規追加",
@@ -374,7 +377,9 @@ export const ja: TranslationValue = {
       }
     },
     pagination: {
-      showing: "{total}件中{start}～{end}件を表示中"
+      showing: "{total}件中{start}～{end}件を表示中",
+      page: "ページ {page}",
+      of: "/ {total}"
     },
     errors: {
       loadFailed: {
@@ -1152,7 +1157,7 @@ export const ja: TranslationValue = {
       summaryPhotos: "撮影された写真",
       passRate: "合格率",
       attentionRequired: "対応が必要です",
-      itemsNeedAttention: "{count}項目が対応を必要としています",
+      itemsNeedAttention: "{count} 件の項目が対応を必要としています",
       allItemsTitle: "全点検項目 ({count})",
       failedItemsTitle: "不合格項目 ({count})",
       passedItemsTitle: "合格項目 ({count})",

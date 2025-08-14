@@ -165,7 +165,7 @@ export function VehicleGroupManagementModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -209,7 +209,7 @@ export function VehicleGroupManagementModal({
         </div>
 
         {/* Vehicle List */}
-        <ScrollArea className="h-[400px] pr-4">
+        <ScrollArea className="h-[60vh] pr-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

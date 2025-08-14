@@ -74,6 +74,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   }, [debouncedSearch, statusFilter, viewMode, router])
 
   useEffect(() => {
+    // In list view, enrich the server-provided, paginated inspections
+    if (viewMode === "calendar") return
     async function loadVehicleData() {
       try {
         const updatedInspections = await Promise.all(
@@ -93,7 +95,6 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               // Load template display name
               const templateName = await getTemplateDisplayName(inspection);
               if (templateName) {
-                console.log(`[INSPECTION_LIST] Setting template display name for inspection ${inspection.id}: ${templateName}`);
                 // If we found a template name, use it as the type
                 // Use 'as any' to bypass type checking since we're adding custom template types
                 (updatedInspection as any).type = templateName;
@@ -136,7 +137,67 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     loadVehicleData();
-  }, [inspections, vehicles, t, supabase]);
+  }, [inspections, vehicles, t, supabase, viewMode]);
+
+  // Calendar view: load all inspections for the visible date range regardless of list pagination
+  useEffect(() => {
+    if (viewMode !== "calendar") return
+
+    const fetchCalendarInspections = async () => {
+      try {
+        const rangeStart = calendarView === "month" 
+          ? startOfMonth(currentDate) 
+          : startOfWeek(currentDate, { weekStartsOn: 1 })
+        const rangeEnd = calendarView === "month" 
+          ? endOfMonth(currentDate) 
+          : endOfWeek(currentDate, { weekStartsOn: 1 })
+
+        let query = supabase
+          .from('inspections')
+          .select(`*, vehicle:vehicles(id, name, plate_number, image_url)`)
+          .gte('date', rangeStart.toISOString())
+          .lte('date', rangeEnd.toISOString())
+          .order('date', { ascending: false })
+
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter)
+        }
+
+        const { data, error } = await query
+        if (error) throw error
+
+        // Map and enrich with template display name similar to server-enriched flow
+        const enriched = await Promise.all((data || []).map(async (inspection: any) => {
+          const updatedInspection: any = { ...inspection }
+          if (inspection.vehicle) {
+            updatedInspection.vehicle = {
+              ...inspection.vehicle,
+              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url
+            }
+          }
+          const templateName = await getTemplateDisplayName(updatedInspection)
+          if (templateName) (updatedInspection as any).type = templateName
+          return updatedInspection
+        }))
+
+        // Apply client-side search filter (by vehicle name/plate/type)
+        const searchLower = (debouncedSearch || '').toLowerCase()
+        const searched = !searchLower ? enriched : enriched.filter((inspection: any) => (
+          (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(searchLower)) ||
+          (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(searchLower)) ||
+          (inspection.type && String(inspection.type).toLowerCase().includes(searchLower))
+        ))
+
+        // Sort newest first and set
+        const sorted = searched.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setInspectionsWithVehicles(sorted)
+      } catch (err) {
+        console.error('[INSPECTIONS_CALENDAR_FETCH] Failed to fetch inspections for calendar view:', err)
+      }
+    }
+
+    fetchCalendarInspections()
+  }, [viewMode, calendarView, currentDate, statusFilter, debouncedSearch, supabase])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
@@ -151,6 +212,17 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       return matchesSearch && matchesStatus
     })
   }, [inspectionsWithVehicles, debouncedSearch, statusFilter])
+
+  // Server-provided pagination for list view
+  const listCurrentPage = currentPage
+  const listTotalPages = totalPages
+
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    if (page <= 1) params.delete('page')
+    else params.set('page', String(page))
+    router.replace(`?${params.toString()}` as any, { scroll: false })
+  }
 
   // Calculate quick stats
   const quickStats = useMemo((): QuickStat[] => {
@@ -535,6 +607,19 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           </Table>
         </div>
       </CardContent>
+      <CardFooter className="flex items-center justify-between border-t px-6 py-4">
+        <div className="text-sm text-muted-foreground">
+          {t ? t("common.pagination.pageOf", { page: listCurrentPage, total: listTotalPages }) : `Page ${listCurrentPage} of ${listTotalPages}`}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled={listCurrentPage <= 1} onClick={() => goToPage(listCurrentPage - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" disabled={listCurrentPage >= listTotalPages} onClick={() => goToPage(listCurrentPage + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   )
 
@@ -590,7 +675,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         .maybeSingle();
 
       if (vehicleAssignment) {
-        console.log(`[INSPECTION_LIST] Found template type via vehicle assignment: ${vehicleAssignment.template_type} for inspection ${inspection.id}`);
+        // noisy console removed
         return vehicleAssignment.template_type;
       }
       
@@ -610,14 +695,12 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           .maybeSingle();
         
         if (groupAssignment) {
-          console.log(`[INSPECTION_LIST] Found template type via group assignment: ${groupAssignment.template_type} for inspection ${inspection.id}`);
           return groupAssignment.template_type;
         }
       }
       
       // If we have a direct type, use it
       if (inspection.type && inspection.type.includes('Daily Checklist')) {
-        console.log(`[INSPECTION_LIST] Using direct type from inspection: ${inspection.type} for inspection ${inspection.id}`);
         return inspection.type;
       }
       

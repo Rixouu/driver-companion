@@ -145,21 +145,32 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // Prevent duplicate toast notifications when auto-selecting templates
   const [autoTemplateToastShown, setAutoTemplateToastShown] = useState(false);
   
-  // Extract unique brands and models from vehicles for filters
-  const brands = useMemo(() => {
-    const uniqueBrands = new Set<string>();
-    vehicles.forEach(vehicle => {
-      if (vehicle.brand) uniqueBrands.add(vehicle.brand);
+  // Helpers for brand normalization (avoid duplicates like 'Toyota' vs 'toyota')
+  const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
+
+  // Extract unique brands from vehicles and produce canonical options
+  const brandOptions = useMemo(() => {
+    const groups = new Map<string, string>();
+    vehicles.forEach(v => {
+      if (!v.brand) return;
+      const key = normalizeBrand(v.brand);
+      if (!key) return;
+      if (!groups.has(key)) groups.set(key, v.brand.trim());
     });
-    return Array.from(uniqueBrands).sort();
+    return Array.from(groups.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [vehicles]);
   
   // Get unique models based on selected brand
   const models = useMemo(() => {
     const uniqueModels = new Set<string>();
+    const key = brandFilter === 'all' ? null : brandFilter;
     vehicles.forEach(vehicle => {
-      if ((brandFilter === "all" || vehicle.brand === brandFilter) && vehicle.model) {
-        uniqueModels.add(vehicle.model);
+      if (vehicle.model) {
+        if (!key || normalizeBrand(vehicle.brand) === key) {
+          uniqueModels.add(vehicle.model);
+        }
       }
     });
     return Array.from(uniqueModels).sort();
@@ -184,7 +195,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     }
     
     return vehicles.filter((vehicle) => {
-      const matchesBrand = brandFilter === 'all' || vehicle.brand === brandFilter;
+      const matchesBrand = brandFilter === 'all' || normalizeBrand(vehicle.brand) === brandFilter;
       const matchesModel = modelFilter === 'all' || vehicle.model === modelFilter;
       const matchesGroup = groupFilter === 'all' || vehicle.vehicle_group?.id === groupFilter;
       
@@ -1133,8 +1144,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('drivers.filters.allBrands')}</SelectItem>
-                {brands.map(brand => (
-                  <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                {brandOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

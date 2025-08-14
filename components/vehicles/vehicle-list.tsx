@@ -118,16 +118,19 @@ export function VehicleList({
   }, [debouncedSearch, statusFilterState, brandFilterState, modelFilterState, router, currentSearchParams]);
 
   // Extract unique brands and models for filters
-  const brands = Array.from(new Set(vehicles.filter(v => v.brand).map(v => v.brand as string)))
-    .map(brand => ({ value: brand, label: brand }))
+  // Use normalized brand options passed from server to avoid duplicates like 'Toyota' vs 'toyota'
+  const brands = brandOptions.length
+    ? brandOptions
+    : Array.from(new Set(vehicles.filter(v => v.brand).map(v => (v.brand as string).trim())))
+        .map(brand => ({ value: brand.toLowerCase(), label: brand }))
   
   // Get models based on selected brand
   const models = useMemo(() => {
     if (brandFilterState === "all") return []
-    
+    const key = brandFilterState.toLowerCase();
     return Array.from(new Set(
       vehicles
-        .filter(v => v.model && v.brand === brandFilterState)
+        .filter(v => v.model && (v.brand || '').trim().toLowerCase() === key)
         .map(v => v.model as string)
     )).map(model => ({ value: model, label: model }))
   }, [vehicles, brandFilterState])

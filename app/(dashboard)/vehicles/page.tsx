@@ -35,13 +35,13 @@ const ITEMS_PER_PAGE = 9
 export default async function VehiclesPage({
   searchParams,
 }: {
-  searchParams: { 
+  searchParams: Promise<{ 
     page?: string; 
     query?: string; 
     status?: string; 
     brand?: string; 
     model?: string; 
-  }
+  }>
 }) {
   // Await searchParams before accessing its properties
   const resolvedSearchParams = await searchParams;
@@ -66,6 +66,9 @@ export default async function VehiclesPage({
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE - 1;
 
+  // Helpers for brand normalization and grouping of variants
+  const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
+
   // Base query for vehicles
   let vehiclesQuery = supabase
     .from('vehicles')
@@ -87,10 +90,7 @@ export default async function VehiclesPage({
     vehiclesQuery = vehiclesQuery.eq('status', statusFilter);
     countQuery = countQuery.eq('status', statusFilter);
   }
-  if (brandFilter && brandFilter !== 'all') {
-    vehiclesQuery = vehiclesQuery.eq('brand', brandFilter);
-    countQuery = countQuery.eq('brand', brandFilter);
-  }
+  // We'll resolve brand variants after fetching the list of distinct brands below
   if (modelFilter && modelFilter !== 'all') {
     vehiclesQuery = vehiclesQuery.eq('model', modelFilter);
     countQuery = countQuery.eq('model', modelFilter);
@@ -115,8 +115,29 @@ export default async function VehiclesPage({
     .not('model', 'is', null)
     .neq('model', '');
 
+  // Build brand groups (normalized key -> set of raw variants)
+  const brandGroups = new Map<string, Set<string>>();
+  (distinctBrands || []).forEach((row: any) => {
+    const raw = row.brand as string;
+    const key = normalizeBrand(raw);
+    if (!key) return;
+    if (!brandGroups.has(key)) brandGroups.set(key, new Set<string>());
+    brandGroups.get(key)!.add(raw);
+  });
+
   if (brandFilter && brandFilter !== 'all') {
-    modelsQuery = modelsQuery.eq('brand', brandFilter);
+    const key = normalizeBrand(brandFilter);
+    const variants = Array.from(brandGroups.get(key) || []);
+    if (variants.length > 0) {
+      vehiclesQuery = vehiclesQuery.in('brand', variants);
+      countQuery = countQuery.in('brand', variants);
+      modelsQuery = modelsQuery.in('brand', variants);
+    } else {
+      // Fallback: case-insensitive prefix match
+      vehiclesQuery = vehiclesQuery.ilike('brand', `${key}%`);
+      countQuery = countQuery.ilike('brand', `${key}%`);
+      modelsQuery = modelsQuery.ilike('brand', `${key}%`);
+    }
   }
   const { data: distinctModels, error: modelsError } = await modelsQuery;
 
@@ -132,7 +153,13 @@ export default async function VehiclesPage({
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-  const brandOptions = [...new Set((distinctBrands || []).map(item => item.brand).filter(Boolean))].map(b => ({ value: b, label: b }));
+  // Build canonical brand options from groups
+  const brandOptions = Array.from(brandGroups.entries()).map(([key, set]) => {
+    const sample = Array.from(set)[0] as string;
+    // Simple capitalization for display
+    const display = sample.trim();
+    return { value: key, label: display };
+  }).sort((a, b) => a.label.localeCompare(b.label));
   const modelOptions = [...new Set((distinctModels || []).map(item => item.model).filter(Boolean))].map(m => ({ value: m, label: m }));
 
   return (

@@ -621,7 +621,7 @@ export function TemplateCard({
 
       {/* Assignment Management Modal */}
       <Dialog open={showAssignmentModal} onOpenChange={setShowAssignmentModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">
               Template Assignments - {template.displayName || template.type}
@@ -639,14 +639,15 @@ export function TemplateCard({
               </TabsList>
 
               <TabsContent value="vehicles" className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
+                <ScrollArea className="h-[60vh]">
                   <div className="space-y-2 pr-4">
                     {vehicles.map((vehicle) => {
                       const isAssigned = templateAssignments.some(a => a.vehicle_id === vehicle.id)
+                      const isAssignedViaGroup = Boolean(vehicle.vehicle_group?.id) && templateAssignments.some(a => a.vehicle_group_id === vehicle.vehicle_group?.id)
                       return (
                         <div
                           key={vehicle.id}
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30"
+                          className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${isAssigned || isAssignedViaGroup ? 'bg-muted/40 ring-1 ring-primary/30' : 'hover:bg-muted/50 dark:hover:bg-muted/30'}`}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -662,6 +663,12 @@ export function TemplateCard({
                                 >
                                   {vehicle.vehicle_group.name}
                                 </Badge>
+                              )}
+                              {isAssigned && (
+                                <Badge className="text-xs bg-primary/90">Assigned</Badge>
+                              )}
+                              {!isAssigned && isAssignedViaGroup && (
+                                <Badge variant="secondary" className="text-xs">From Group</Badge>
                               )}
                             </div>
                             {vehicle.brand && vehicle.model && (
@@ -696,7 +703,7 @@ export function TemplateCard({
               </TabsContent>
 
               <TabsContent value="groups" className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
+                <ScrollArea className="h-[60vh]">
                   <div className="space-y-2 pr-4">
                     <div className="flex justify-end mb-4">
                       <Button
@@ -734,6 +741,17 @@ export function TemplateCard({
                             )}
                           </div>
                           <div className="flex gap-2">
+                            {onManageGroupVehicles && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onManageGroupVehicles(group)}
+                                className="text-xs"
+                              >
+                                <Users className="h-3 w-3 mr-1" />
+                                Manage Vehicles
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"

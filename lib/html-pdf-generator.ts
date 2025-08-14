@@ -42,13 +42,13 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap">
       <style>
         * {
           box-sizing: border-box;
         }
         body {
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Work Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Work Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', Roboto, Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth/main'
 import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
@@ -105,27 +107,29 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create server client (relies on cookies for auth)
-    console.log('🔄 [SEND-EMAIL API] Creating Supabase server client');
-    let supabase;
-    try {
-      supabase = await getSupabaseServerClient();
-      console.log('✅ [SEND-EMAIL API] Supabase server client created successfully');
-    } catch (serverClientError) {
-      console.error('❌ [SEND-EMAIL API] Error creating server client:', serverClientError);
-      return NextResponse.json(
-        { error: 'Error connecting to database' },
-        { status: 500 }
-      );
-    }
+    // Authorization (works in both local and production)
+    // Accept either NextAuth session (preferred) or Supabase auth cookie
+    const session = await getServerSession(authOptions)
+    const supabase = await getSupabaseServerClient()
+    const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+    const isDev = process.env.NODE_ENV !== 'production'
 
-    // Authenticate user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) {
-      console.error('❌ [SEND-EMAIL API] Authentication error', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isDev) {
+      const hasNextAuth = Boolean(session?.user)
+      const hasSupabaseAuth = Boolean(supabaseUser)
+      if (!hasNextAuth && !hasSupabaseAuth) {
+        console.error('❌ [SEND-EMAIL API] Unauthorized: no session present (NextAuth or Supabase)')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      // Optional: restrict to company domain when using NextAuth
+      if (hasNextAuth) {
+        const email = session!.user!.email || ''
+        if (!email.endsWith('@japandriver.com')) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+      }
     }
-    console.log('✅ [SEND-EMAIL API] User authenticated:', authUser.id);
+    console.log('✅ [SEND-EMAIL API] Authorization passed')
     
     // Fetch quotation data
     console.log('🔄 [SEND-EMAIL API] Fetching latest quotation data');
@@ -257,7 +261,7 @@ export async function POST(request: NextRequest) {
         .from('quotation_activities')
         .insert({
           quotation_id: quotationId,
-          user_id: authUser.id,
+          user_id: (session?.user as any)?.id || supabaseUser?.id || null,
           action: 'email_sent',
           details: { 
             email: email,

@@ -156,6 +156,7 @@ export function MobileNav() {
       { id: 'dispatch', title: t("navigation.dispatch") || "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
       { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
       { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' },
+      { id: 'templates', title: t("navigation.templates") || "Templates", icon: FileText, href: '/inspections/templates' },
       { id: 'reporting', title: t("navigation.reporting"), icon: BarChart, href: '/reporting' }
     ]
   }

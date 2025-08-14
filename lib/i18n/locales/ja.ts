@@ -173,6 +173,7 @@ export const ja: TranslationValue = {
     salesCalendar: "営業カレンダー",
     maintenance: "メンテナンス",
     inspections: "点検",
+    templates: "テンプレート",
     reporting: "レポート",
     settings: "設定",
     fleet: "フリート",

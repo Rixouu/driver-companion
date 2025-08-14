@@ -175,6 +175,7 @@ export const en: TranslationValue = {
     salesCalendar: "Sales Calendar",
     maintenance: "Maintenance",
     inspections: "Inspections",
+    templates: "Templates",
     reporting: "Reporting",
     settings: "Settings",
     fleet: "Fleet",

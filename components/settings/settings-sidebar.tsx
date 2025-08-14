@@ -67,12 +67,7 @@ export function Sidebar() {
       icon: LayoutList,
       href: "/settings?tab=menu"
     },
-    {
-      id: "templates",
-      label: t("settings.tabs.templates") || "Templates",
-      icon: ClipboardCheck,
-      href: "/settings?tab=templates"
-    },
+
     {
       id: "notifications",
       label: t("settings.tabs.notifications") || "Notifications",

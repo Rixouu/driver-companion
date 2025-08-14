@@ -28,7 +28,7 @@ import {
   Calendar,
   Plus,
 } from "lucide-react"
-import { EnhancedInspectionTemplateManager } from "@/components/inspections/enhanced-inspection-template-manager"
+
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import { toast } from "@/components/ui/use-toast"
@@ -346,18 +346,7 @@ export default function SettingsPage() {
     </div>
   )
 
-  const renderTemplatesTab = () => (
-    <div className="space-y-8">
-      <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Inspection Templates</h1>
-        <p className="text-muted-foreground">
-          Manage inspection templates and assign them to vehicles or groups.
-        </p>
-      </div>
 
-      <EnhancedInspectionTemplateManager />
-    </div>
-  )
 
   if (isLoading) {
     return (
@@ -380,8 +369,7 @@ export default function SettingsPage() {
         return renderAccountTab()
       case 'menu':
         return renderMenuTab()
-      case 'templates':
-        return renderTemplatesTab()
+
       case 'appearance':
         return (
           <div className="space-y-8">

@@ -23,18 +23,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse form data for file upload
-    const formData = await req.formData();
-    const email = formData.get('email') as string;
-    const quotationId = formData.get('quotation_id') as string;
-    const customerName = formData.get('customer_name') as string;
-    const includeDetails = formData.get('include_details') === 'true';
-    const language = (formData.get('language') as string) || 'en';
-    const pdfFile = formData.get('invoice_pdf') as File;
-    const overridePaymentLink = (formData.get('payment_link') as string) || '';
+    const contentType = req.headers.get('content-type') || '';
+    const formData = contentType.includes('multipart/form-data') ? await req.formData() : null;
+    const email = formData ? (formData.get('email') as string) : (await req.json()).email;
+    const quotationId = formData ? (formData.get('quotation_id') as string) : (await req.json()).quotation_id;
+    const customerName = formData ? (formData.get('customer_name') as string) : (await req.json()).customer_name;
+    const includeDetails = formData ? formData.get('include_details') === 'true' : Boolean((await req.json()).include_details);
+    const language = formData ? ((formData.get('language') as string) || 'en') : ((await req.json()).language || 'en');
+    const pdfFile = formData ? (formData.get('invoice_pdf') as File) : null;
+    const overridePaymentLink = formData ? ((formData.get('payment_link') as string) || '') : ((await req.json()).payment_link || '');
 
-    if (!email || !quotationId || !pdfFile) {
+    if (!email || !quotationId) {
       return NextResponse.json(
-        { error: "Missing required fields: email, quotation_id, and invoice_pdf are required" },
+        { error: "Missing required fields: email and quotation_id are required" },
         { status: 400 }
       );
     }
@@ -68,7 +69,10 @@ export async function POST(req: NextRequest) {
     }
     
     // Convert the PDF file to buffer for email attachment
-    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    let pdfBuffer: Buffer | null = null;
+    if (pdfFile) {
+      pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    }
     
     // Generate invoice ID
     const invoiceId = `INV-${quotationId}`;
@@ -234,7 +238,7 @@ export async function POST(req: NextRequest) {
       currencyCode: displayCurrency,
       paymentLink: '', // Empty payment link - admin will send separately
       serviceName: serviceSummary,
-      pdfAttachment: pdfBuffer,
+      pdfAttachment: pdfBuffer || undefined,
       // Add breakdown details for enhanced email template
       quotationData: quotationData,
       totals: totals,

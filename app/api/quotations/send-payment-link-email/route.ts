@@ -23,18 +23,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse form data for file upload
-    const formData = await req.formData();
-    const email = formData.get('email') as string;
-    const quotationId = formData.get('quotation_id') as string;
-    const customerName = formData.get('customer_name') as string;
-    const includeDetails = formData.get('include_details') === 'true';
-    const language = (formData.get('language') as string) || 'en';
-    const pdfFile = formData.get('invoice_pdf') as File;
-    const paymentLink = formData.get('payment_link') as string;
+    const contentType = req.headers.get('content-type') || '';
+    const formData = contentType.includes('multipart/form-data') ? await req.formData() : null;
+    const email = formData ? (formData.get('email') as string) : (await req.json()).email;
+    const quotationId = formData ? (formData.get('quotation_id') as string) : (await req.json()).quotation_id;
+    const customerName = formData ? (formData.get('customer_name') as string) : (await req.json()).customer_name;
+    const includeDetails = formData ? formData.get('include_details') === 'true' : Boolean((await req.json()).include_details);
+    const language = formData ? ((formData.get('language') as string) || 'en') : ((await req.json()).language || 'en');
+    const pdfFile = formData ? (formData.get('invoice_pdf') as File) : null;
+    const paymentLink = formData ? (formData.get('payment_link') as string) : (await req.json()).payment_link;
 
-    if (!email || !quotationId || !pdfFile || !paymentLink) {
+    if (!email || !quotationId || !paymentLink) {
       return NextResponse.json(
-        { error: "Missing required fields: email, quotation_id, invoice_pdf, and payment_link are required" },
+        { error: "Missing required fields: email, quotation_id, and payment_link are required" },
         { status: 400 }
       );
     }
@@ -70,7 +71,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert File to Buffer
-    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    let pdfBuffer: Buffer | null = null;
+    if (pdfFile) {
+      pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    }
     
     // Determine service name
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
@@ -233,7 +237,7 @@ export async function POST(req: NextRequest) {
       currencyCode: displayCurrency,
       paymentLink: paymentLink, // Use the provided payment link
       serviceName: serviceSummary,
-      pdfAttachment: pdfBuffer,
+      pdfAttachment: pdfBuffer || undefined,
       // Add breakdown details for enhanced email template
       quotationData: quotationData,
       totals: totals,

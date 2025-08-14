@@ -87,11 +87,12 @@ export async function POST(request: NextRequest) {
   console.log('🔄 [SEND-EMAIL API] Received POST request.'); // Log entry into POST
   try {
     // Use formData to handle the multipart/form-data request
-    const formData = await request.formData();
+    const contentType = request.headers.get('content-type') || ''
+    const formData = contentType.includes('multipart/form-data') ? await request.formData() : null;
     
-    const email = formData.get('email') as string;
-    const quotationId = formData.get('quotation_id') as string;
-    const languageParam = (formData.get('language') as string) || 'en';
+    const email = formData ? (formData.get('email') as string) : (await request.json()).email;
+    const quotationId = formData ? (formData.get('quotation_id') as string) : (await request.json()).quotation_id;
+    const languageParam = formData ? ((formData.get('language') as string) || 'en') : ((await request.json()).language || 'en');
     const language = (['en', 'ja'].includes(languageParam) ? languageParam : 'en') as 'en' | 'ja';
     
     console.log('🔄 [SEND-EMAIL API] Received request for quotation:', quotationId);

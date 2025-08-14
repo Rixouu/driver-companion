@@ -8,18 +8,11 @@ export async function POST(req: NextRequest) {
   try {
     // Check authentication and admin permission
     const session = await getServerSession(authOptions);
+    const supabaseAuth = await getSupabaseServerClient();
+    const { data: { user: supabaseUser } } = await supabaseAuth.auth.getUser();
     const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev) {
-      if (!session || !session.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const userEmail = session.user.email || "";
-      if (!userEmail.endsWith("@japandriver.com")) {
-        return NextResponse.json(
-          { error: "You do not have permission to perform this action. Admin access required." },
-          { status: 403 }
-        );
-      }
+    if (!isDev && !session?.user && !supabaseUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Parse form data for file upload

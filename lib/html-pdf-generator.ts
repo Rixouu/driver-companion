@@ -201,7 +201,7 @@ export function generateQuotationHtml(
       contactMessage: 'If you have any questions about this quotation, please contact us at info@japandriver.com',
       companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
       termsAndConditions: 'Terms and Conditions',
-      termsContent: '1. This quotation is valid for the specified period from the date of issue.\n2. Prices are subject to change if requirements change.\n3. Payment terms: 50% advance, 50% before service.\n4. Cancellation policy: 100% refund if cancelled 7+ days before service, 50% refund if 3-7 days, no refund if less than 3 days.',
+      termsContent: '1. This quotation is valid for the specified period from the date of issue.\n2. Prices are subject to change if requirements change.\n3. Cancellation policy: 100% refund if cancelled 7+ days before service, 50% refund if 3-7 days, no refund if less than 3 days.',
       companyNameLabel: 'Company:',
       taxNumber: 'Tax ID:',
       address: 'Address:',

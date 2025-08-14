@@ -285,7 +285,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       setProgressLabel('Downloading...')
       setProgressValue(80)
       const url = window.URL.createObjectURL(blob);
-      const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+      const formattedQuotationId = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
       // Create download link
       const a = document.createElement('a');

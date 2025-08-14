@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="quotation-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf"`
+        'Content-Disposition': `inline; filename="QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf"`
       }
     })
     

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     // Determine service name
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
     const displayCurrency = quotationData.display_currency || quotationData.currency || 'JPY';
-    const invoiceId = `invoice-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`;
+    const invoiceId = `INV-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`;
     
     const serviceSummary = (() => {
       try {
@@ -228,7 +228,7 @@ export async function POST(req: NextRequest) {
       to: email,
       customerName: customerName || quotationData.customer_name || quotationData.customers?.name || 'Customer',
       invoiceId: invoiceId,
-      quotationId: `quotation-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
+      quotationId: `QUO-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
       amount: quotationData.total_amount || totals.finalTotal, // Use calculated final total
       currencyCode: displayCurrency,
       paymentLink: paymentLink, // Use the provided payment link

@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
     const quotationUrl = `${appUrl}/quotations/${id}`;
     
     // Format quotation ID to use JPDR prefix
-    const formattedQuotationId = `JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+    const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
     
     // Get customer email
     const customerEmail = (quotation as any).customer_email || (quotation as any).email;

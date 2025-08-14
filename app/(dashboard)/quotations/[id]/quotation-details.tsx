@@ -252,7 +252,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   ]);
 
   // Format quotation number with JPDR prefix and padding
-  const formattedQuoteNumber = `JPDR-${quotation?.quote_number?.toString().padStart(4, '0') || 'N/A'}`;
+  const formattedQuoteNumber = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
 
   // Format currency with the appropriate locale and symbol
   const formatCurrency = (amount: number | string | undefined, currency: string = selectedCurrency) => {

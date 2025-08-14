@@ -79,7 +79,7 @@ function generateInvoiceHtml(
   };
 
   const totals = calculateTotals();
-  const formattedInvoiceId = `invoice-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+  const formattedInvoiceId = `INV-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   const invoiceDate = new Date().toLocaleDateString(localeCode, { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return `
@@ -103,7 +103,7 @@ function generateInvoiceHtml(
             ${isJapanese ? '請求書発行日:' : 'Invoice Date:'} ${invoiceDate}
           </p>
           <p style="margin: 0; color: #111827; font-size: 14px;">
-            ${isJapanese ? '見積参照:' : 'Quotation Ref:'} quotation-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}
+            ${isJapanese ? '見積参照:' : 'Quotation Ref:'} QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}
           </p>
         </div>
         
@@ -346,7 +346,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="invoice-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf"`
+        'Content-Disposition': `inline; filename="INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf"`
       }
     })
     

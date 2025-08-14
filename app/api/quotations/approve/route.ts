@@ -444,7 +444,7 @@ export async function POST(request: NextRequest) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
       
       // Format quotation ID
-      const formattedQuotationId = `JPDR-${fullQuotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+      const formattedQuotationId = `QUO-JPDR-${fullQuotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
       // Use translation key for subject
       const emailSubject = `${t('email.quotation.approved.subject')} - ${formattedQuotationId}`;

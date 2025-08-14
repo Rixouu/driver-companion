@@ -228,8 +228,8 @@ export async function POST(req: NextRequest) {
     const emailData = {
       to: email,
       customerName: customerName || quotationData.customer_name || quotationData.customers?.name || 'Customer',
-      invoiceId: `invoice-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
-      quotationId: `quotation-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
+      invoiceId: `INV-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
+      quotationId: `QUO-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
       amount: quotationData.total_amount || totals.finalTotal, // Use calculated final total
       currencyCode: displayCurrency,
       paymentLink: '', // Empty payment link - admin will send separately

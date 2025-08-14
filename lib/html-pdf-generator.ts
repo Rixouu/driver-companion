@@ -279,7 +279,7 @@ export function generateQuotationHtml(
   const expiryDateString = dateFormat.format(expiryDate);
   
   // Format quotation number with JPDR prefix and padding
-  const formattedQuotationId = `JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+  const formattedQuotationId = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   
   // Get service details
   const vehicleType = quotation?.vehicle_type || 'Toyota Alphard Executive Lounge';

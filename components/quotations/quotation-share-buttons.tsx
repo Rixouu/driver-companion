@@ -22,7 +22,7 @@ export function QuotationShareButtons({ quotation }: QuotationShareButtonsProps)
   const [isOpen, setIsOpen] = useState(false);
 
   // Format quotation number with JPDR prefix
-  const formattedQuoteNumber = `JPDR-${quotation?.quote_number?.toString().padStart(4, '0') || 'N/A'}`;
+  const formattedQuoteNumber = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   
   // Get current URL
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';

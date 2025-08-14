@@ -310,6 +310,25 @@ export default function QuotationFormRefactored({
       // Use data from service items if available, otherwise use form data
       const primaryServiceItem = serviceItems.length > 0 ? serviceItems[0] : null;
       
+      // Compute concrete promotion discount amount so it can be stored and used by server-side totals
+      const baseAmountForDiscount = (serviceItems || []).reduce((sum, item) => {
+        const itemTotal = typeof item.total_price === 'number' && !isNaN(item.total_price)
+          ? item.total_price
+          : (item.unit_price * (item.quantity || 1));
+        return sum + itemTotal;
+      }, 0);
+      let promotionDiscountAmount = 0;
+      if (selectedPromotion) {
+        if (selectedPromotion.discount_type === 'percentage') {
+          promotionDiscountAmount = baseAmountForDiscount * (selectedPromotion.discount_value / 100);
+          if (selectedPromotion.maximum_discount && promotionDiscountAmount > selectedPromotion.maximum_discount) {
+            promotionDiscountAmount = selectedPromotion.maximum_discount;
+          }
+        } else {
+          promotionDiscountAmount = Math.min(selectedPromotion.discount_value, baseAmountForDiscount);
+        }
+      }
+
       const input: CreateQuotationInput = {
         title: formData.title || '',
         customer_email: formData.customer_email,
@@ -349,7 +368,8 @@ export default function QuotationFormRefactored({
         selected_promotion_name: selectedPromotion?.name || undefined,
         selected_promotion_description: selectedPromotion?.description || undefined,
         selected_promotion_code: selectedPromotion?.code || undefined,
-        promotion_discount: selectedPromotion?.discount_value || undefined,
+        // Store the final discount amount (not percentage) for DB trigger math and reporting
+        promotion_discount: promotionDiscountAmount || undefined,
       };
 
       let result: Quotation | null = null;

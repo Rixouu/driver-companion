@@ -357,10 +357,14 @@ export const useQuotationService = () => {
     serviceItems: ServiceItemInput[],
     discountPercentage: number = 0,
     taxPercentage: number = 0,
-    currency: string = 'JPY'
+    currency: string = 'JPY',
+    promotionDiscount: number = 0,
+    packageDiscount: number = 0
   ): {
     baseAmount: number;
-    discountAmount: number;
+    discountAmount: number; // percentage-based discount amount
+    promotionDiscountAmount: number;
+    packageDiscountAmount: number;
     taxAmount: number;
     totalAmount: number;
     currency: string;
@@ -387,16 +391,22 @@ export const useQuotationService = () => {
       return total + itemTotal;
     }, 0);
     
-    // Apply discount and tax
+    // Apply discounts (percentage first, then absolute promotion/package discounts)
     const discountAmount = baseAmount * (discountPercentage / 100);
-    const amountAfterDiscount = baseAmount - discountAmount;
-    const taxAmount = amountAfterDiscount * (taxPercentage / 100);
-    const totalAmount = amountAfterDiscount + taxAmount;
+    const promotionDiscountAmount = promotionDiscount || 0;
+    const packageDiscountAmount = packageDiscount || 0;
+    const discountedSubtotal = Math.max(
+      baseAmount - discountAmount - promotionDiscountAmount - packageDiscountAmount,
+      0
+    );
+    // Apply tax after all discounts
+    const taxAmount = discountedSubtotal * (taxPercentage / 100);
+    const totalAmount = discountedSubtotal + taxAmount;
     
     console.log('MULTI_SERVICE_CALCULATION - Final calculation:', {
       baseAmount,
       discountAmount,
-      amountAfterDiscount,
+      discountedSubtotal,
       taxAmount,
       totalAmount,
       currency
@@ -405,6 +415,8 @@ export const useQuotationService = () => {
     return {
       baseAmount,
       discountAmount,
+      promotionDiscountAmount,
+      packageDiscountAmount,
       taxAmount,
       totalAmount,
       currency
@@ -493,15 +505,19 @@ export const useQuotationService = () => {
           }, 0);
         });
         
-        // Calculate the total with multiple services
+        // Calculate the total with multiple services (including promotion/package discounts)
         const totalsObj = calculateTotalWithMultipleServices(
           serviceItems,
           input.discount_percentage || 0,
           input.tax_percentage || 0,
-          input.currency || 'JPY'
+          input.currency || 'JPY',
+          input.promotion_discount || 0,
+          input.package_discount || 0
         );
         
         console.log('SAVE & SEND DEBUG - Multi-service totals calculated:', totalsObj);
+        // Persist the computed totals for later use in the update step
+        (input as any).__computedTotals = totalsObj;
       }
       
       // Calculate pricing if not provided
@@ -564,9 +580,22 @@ export const useQuotationService = () => {
       // Override the service_type field based on the service_type_id
       const service = await getServiceTypeById(input.service_type_id);
       
+      // Extract computed totals (do not send internal helper to API)
+      const computedTotals = (input as any).__computedTotals as
+        | {
+            baseAmount: number;
+            totalAmount: number;
+          }
+        | undefined;
+
+      console.log('SAVE & SEND DEBUG - Computed totals for DB insert:', computedTotals);
+
+      // Omit internal fields from payload
+      const { __computedTotals, ...inputForDb } = input as any;
+
       // Prepare record for DB insert
       const record = {
-        ...input,
+        ...inputForDb,
         // Format dates
         expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         // Set service name from ID
@@ -574,11 +603,11 @@ export const useQuotationService = () => {
         // Add days count field for clarity in DB
         days_count: input.service_days || 1,
         // Calculate amounts properly based on service items or single service
-        amount: serviceItems && serviceItems.length > 0 ? 
-          serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0) :
+        amount: serviceItems && serviceItems.length > 0 ?
+          (computedTotals?.baseAmount ?? serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0)) :
           calculatedPricing.baseAmount,
-        total_amount: serviceItems && serviceItems.length > 0 ? 
-          input.total_amount || serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0) :
+        total_amount: serviceItems && serviceItems.length > 0 ?
+          computedTotals?.totalAmount :
           calculatedPricing.totalAmount
       };
       
@@ -604,6 +633,32 @@ export const useQuotationService = () => {
       // If we have service items, create them
       if (serviceItems && serviceItems.length > 0 && result.id) {
         try {
+                  // ALWAYS use direct update since we disabled the trigger entirely
+        const needsDirectUpdate = computedTotals !== undefined;
+        
+        if (needsDirectUpdate) {
+            console.log('SAVE & SEND DEBUG - Quotation has promotion/package discount, using direct update approach');
+            
+            // First, use direct update to set the correct amounts BEFORE creating items
+            const directUpdateResponse = await fetch(`/api/quotations/direct-update/${result.id}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount: computedTotals.baseAmount,
+                total_amount: computedTotals.totalAmount
+              }),
+            });
+            
+            if (!directUpdateResponse.ok) {
+              const directErrorText = await directUpdateResponse.text();
+              console.error('Direct update failed:', directErrorText);
+            } else {
+              console.log('SAVE & SEND DEBUG - Pre-emptive direct update succeeded');
+            }
+          }
+          
           // Use the bulk create endpoint
           const itemsResponse = await fetch('/api/quotations/items/bulk-create', {
             method: 'POST',
@@ -624,57 +679,40 @@ export const useQuotationService = () => {
             const itemsResult = await itemsResponse.json();
             console.log('SAVE & SEND DEBUG - Successfully added service items to quotation:', itemsResult);
             
-            // After creating items, update the quotation with the correct total amount
-            try {
-              console.log('Updating quotation amounts in the database:', {
-                id: result.id,
-                amount: input.amount,
-                total_amount: input.total_amount
-              });
-              
-              const updateResponse = await fetch(`/api/quotations/${result.id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  amount: input.amount,
-                  total_amount: input.total_amount
-                }),
-              });
-              
-              if (!updateResponse.ok) {
-                const updateErrorText = await updateResponse.text();
-                console.error('Failed to update quotation with correct amounts:', updateErrorText);
+            // After creating items, ensure the correct amounts are still set
+            if (computedTotals) {
+              try {
+                console.log('Updating quotation amounts in the database (post-items):', {
+                  id: result.id,
+                  amount: computedTotals.baseAmount,
+                  total_amount: computedTotals.totalAmount
+                });
                 
-                // Try with a direct update to the database
-                console.log('Attempting direct update as fallback...');
-                const directUpdateResponse = await fetch(`/api/quotations/direct-update/${result.id}`, {
+                // Always use direct update since trigger is disabled
+                const updateResponse = await fetch(`/api/quotations/direct-update/${result.id}`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    amount: input.amount,
-                    total_amount: input.total_amount
+                    amount: computedTotals.baseAmount,
+                    total_amount: computedTotals.totalAmount
                   }),
                 });
-                
-                if (directUpdateResponse.ok) {
-                  const updatedResult = await directUpdateResponse.json();
-                  console.log('SAVE & SEND DEBUG - Direct update quotation with amounts succeeded:', updatedResult);
-                  return updatedResult;
+              
+                if (!updateResponse.ok) {
+                  const updateErrorText = await updateResponse.text();
+                  console.error('Failed to update quotation with correct amounts:', updateErrorText);
+                  
+                  // No fallback needed since we're already using direct update
                 } else {
-                  const directErrorText = await directUpdateResponse.text();
-                  console.error('Direct update also failed:', directErrorText);
+                  const updatedResult = await updateResponse.json();
+                  console.log('SAVE & SEND DEBUG - Updated quotation with correct amounts:', JSON.stringify(updatedResult));
+                  return updatedResult;
                 }
-              } else {
-                const updatedResult = await updateResponse.json();
-                console.log('SAVE & SEND DEBUG - Updated quotation with correct amounts:', JSON.stringify(updatedResult));
-                return updatedResult;
+              } catch (updateError) {
+                console.error('Exception during amount update:', updateError);
               }
-            } catch (updateError) {
-              console.error('Exception during amount update:', updateError);
             }
           }
         } catch (error) {
@@ -711,23 +749,117 @@ export const useQuotationService = () => {
       // Log the sanitized data
       console.log('Sanitized update data:', sanitizedData);
       
-      const response = await fetch(`/api/quotations/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(sanitizedData),
-      });
+      // Check if this update includes promotion/package discounts or pricing-related fields
+      const hasPricingChanges = [
+        'promotion_discount', 'package_discount', 'discount_percentage', 'tax_percentage',
+        'amount', 'total_amount', 'service_type_id', 'vehicle_type', 'duration_hours',
+        'service_days', 'hours_per_day'
+      ].some(field => sanitizedData.hasOwnProperty(field));
+      
+      if (hasPricingChanges) {
+        console.log('UPDATE DEBUG - Pricing-related changes detected, will recalculate totals after update');
+        
+        // First, do the regular update
+        const response = await fetch(`/api/quotations/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sanitizedData),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error updating quotation (${response.status}):`, errorText);
-        throw new Error(`Failed to update quotation: ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error updating quotation (${response.status}):`, errorText);
+          throw new Error(`Failed to update quotation: ${errorText}`);
+        }
+
+        const result = await response.json();
+        
+        // If we have promotion or package discounts, recalculate totals
+        if (result.promotion_discount > 0 || result.package_discount > 0) {
+          console.log('UPDATE DEBUG - Recalculating totals due to promotion/package discounts');
+          
+          // Get current quotation items to recalculate totals
+          const { data: items } = await supabase
+            .from('quotation_items')
+            .select('*')
+            .eq('quotation_id', id);
+          
+          if (items && items.length > 0) {
+            // Calculate correct totals using the same logic as creation
+            const serviceItems = items.map(item => ({
+              description: item.description || '',
+              service_type_id: item.service_type_id || '',
+              service_type_name: item.service_type_name || '',
+              vehicle_type: item.vehicle_type || '',
+              vehicle_category: item.vehicle_category || '',
+              unit_price: Number(item.unit_price),
+              total_price: Number(item.total_price),
+              quantity: item.quantity || 1,
+              duration_hours: item.duration_hours || 1,
+              service_days: item.service_days || 1,
+              hours_per_day: item.hours_per_day || 1,
+              sort_order: item.sort_order || 0,
+              is_service_item: true
+            }));
+            
+            const totalsObj = calculateTotalWithMultipleServices(
+              serviceItems,
+              result.discount_percentage || 0,
+              result.tax_percentage || 0,
+              result.currency || 'JPY',
+              result.promotion_discount || 0,
+              result.package_discount || 0
+            );
+            
+            console.log('UPDATE DEBUG - Recalculated totals:', totalsObj);
+            
+            // Update with correct totals using direct-update API
+            const directUpdateResponse = await fetch(`/api/quotations/direct-update/${id}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount: totalsObj.baseAmount,
+                total_amount: totalsObj.totalAmount
+              }),
+            });
+            
+            if (directUpdateResponse.ok) {
+              const finalResult = await directUpdateResponse.json();
+              console.log('UPDATE DEBUG - Totals recalculated successfully:', finalResult);
+              return finalResult;
+            } else {
+              console.error('UPDATE DEBUG - Failed to recalculate totals, returning original result');
+              return result;
+            }
+          }
+        }
+        
+        console.log('Quotation updated successfully:', result);
+        return result;
+      } else {
+        // No pricing changes, use regular update
+        const response = await fetch(`/api/quotations/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sanitizedData),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error updating quotation (${response.status}):`, errorText);
+          throw new Error(`Failed to update quotation: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Quotation updated successfully:', result);
+        return result;
       }
-
-      const result = await response.json();
-      console.log('Quotation updated successfully:', result);
-      return result;
     } catch (error) {
       console.error('Error updating quotation:', error);
       throw error;

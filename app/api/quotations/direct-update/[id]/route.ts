@@ -62,18 +62,29 @@ export async function POST(
       total_amount: Number(total_amount),
     };
 
-    const { data: updatedQuotation, error: updateError } = await supabase
-      .from('quotations')
-      .update(updateData)
-      .eq('id', quotationId)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error(`[API direct-update] Supabase error updating quotation ${quotationId}:`, updateError.message);
-      return NextResponse.json({ error: 'Failed to update quotation', details: updateError.message }, { status: 500 });
+    // Direct update (trigger is disabled, so no bypass needed)
+    try {
+      console.log(`[API direct-update] Updating quotation ${quotationId} directly (trigger disabled)`);
+      
+      const { data: updatedQuotation, error: updateError } = await supabase
+        .from('quotations')
+        .update(updateData)
+        .eq('id', quotationId)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error(`[API direct-update] Error updating quotation:`, updateError.message);
+        throw new Error('Failed to update quotation amounts');
+      }
+      
+      console.log(`[API direct-update] Successfully updated quotation ${quotationId}`);
+      return NextResponse.json(updatedQuotation, { status: 200 });
+      
+    } catch (directError: any) {
+      console.error(`[API direct-update] Direct update failed:`, directError);
+      return NextResponse.json({ error: 'Failed to update quotation', details: directError.message }, { status: 500 });
     }
-    return NextResponse.json(updatedQuotation, { status: 200 });
   } catch (e: any) {
     console.error(`[API direct-update] Unexpected error for quotation ${quotationId}:`, e.message);
     return NextResponse.json({ error: 'Internal server error', details: e.message }, { status: 500 });

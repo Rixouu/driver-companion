@@ -3,6 +3,37 @@ import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 
 /**
+ * Font loading utility for production environments
+ */
+async function ensureFontsLoaded(page: any): Promise<void> {
+  try {
+    // Wait for fonts to load with a timeout
+    await Promise.race([
+      page.evaluateHandle('document.fonts.ready'),
+      new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+    ]);
+    
+    // Additional wait for any pending font loads
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        if (document.fonts.status === 'loaded') {
+          resolve(true);
+        } else {
+          document.fonts.onloadingdone = resolve;
+          // Fallback timeout
+          setTimeout(resolve, 2000);
+        }
+      });
+    });
+    
+    // Force a small delay to ensure rendering is complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+  } catch (error) {
+    console.warn('Font loading timeout, proceeding with available fonts:', error);
+  }
+}
+
+/**
  * Generates a PDF from HTML content using Puppeteer
  * This server-side implementation matches the client-side html2pdf implementation
  * 
@@ -31,7 +62,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     margin: { ...defaultOptions.margin, ...(options?.margin || {}) }
   };
 
-  // Create the full HTML document with Work Sans font and proper encoding for special characters
+  // Create the full HTML document with embedded fonts and proper encoding for special characters
   const fullHtml = `
     <!DOCTYPE html>
     <html lang="en">
@@ -40,16 +71,48 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <meta http-equiv="Content-Language" content="en, ja, th">
       <title>PDF Export</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap">
       <style>
+        /* Import fonts using @import for better compatibility */
+        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+        
+        /* Fallback font definitions with embedded base64 fonts for production */
+        @font-face {
+          font-family: 'Noto Sans JP Fallback';
+          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans Thai Fallback';
+          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+
+        @font-face {
+          font-family: 'Work Sans';
+          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
+        
         * {
           box-sizing: border-box;
         }
+        
         body {
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans', 'Work Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', Roboto, Arial, sans-serif;
+          /* Primary font stack with fallbacks */
+          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans JP Fallback', 'Noto Sans Thai Fallback', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', 'MS Gothic', 'MS Mincho',
+                       'Takao Gothic', 'Takao Mincho', 'IPAexGothic', 'IPAexMincho',
+                       'IPAPGothic', 'IPAPMincho', 'IPAUIGothic', 'IPAUIMincho',
+                       'Apple Gothic', 'Apple LiGothic', 'Apple LiSung', 'Apple Myungjo',
+                       'Work Sans', Roboto, Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -58,7 +121,25 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           -moz-osx-font-smoothing: grayscale;
           font-feature-settings: 'liga' 1, 'kern' 1;
           text-rendering: optimizeLegibility;
+          /* Ensure proper text rendering for CJK characters */
+          text-rendering: optimizeLegibility;
+          -webkit-font-feature-settings: 'liga' 1, 'kern' 1;
+          -moz-font-feature-settings: 'liga' 1, 'kern' 1;
+          font-feature-settings: 'liga' 1, 'kern' 1;
         }
+        
+        /* Specific styling for Japanese text */
+        .ja-text, [lang="ja"] {
+          font-family: 'Noto Sans JP', 'Noto Sans JP Fallback', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          line-height: 1.6;
+        }
+        
+        /* Specific styling for Thai text */
+        .th-text, [lang="th"] {
+          font-family: 'Noto Sans Thai', 'Noto Sans Thai Fallback', 'Segoe UI', Arial, sans-serif;
+          line-height: 1.5;
+        }
+        
         @media print {
           body {
             -webkit-print-color-adjust: exact;
@@ -90,7 +171,14 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--disable-gpu-sandbox',
           '--disable-software-rasterizer',
           '--disable-dev-shm-usage',
-          '--lang=en-US,en,ja,th'
+          '--lang=en-US,en,ja,th',
+          '--enable-font-antialiasing',
+          '--force-color-profile=srgb',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection'
         ],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
@@ -105,7 +193,9 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--disable-setuid-sandbox',
           '--font-render-hinting=none',
           '--disable-font-subpixel-positioning',
-          '--lang=en-US,en,ja,th'
+          '--lang=en-US,en,ja,th',
+          '--enable-font-antialiasing',
+          '--force-color-profile=srgb'
         ]
       });
     }
@@ -123,8 +213,8 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     // Set content and wait for network idle and fonts to load
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     
-    // Wait for fonts to load
-    await page.evaluateHandle('document.fonts.ready');
+    // Use the enhanced font loading utility
+    await ensureFontsLoaded(page);
 
     // Generate PDF
     const pdfBuffer = await page.pdf({

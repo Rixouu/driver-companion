@@ -50,16 +50,16 @@ class CurrencyService {
     }
 
     try {
-      // Try primary source: exchangerate.host (free, reliable)
-      const data = await this.fetchFromExchangeRateHost(baseCurrency);
+      // Try primary source: exchangerate-api.com (with API key)
+      const data = await this.fetchFromExchangeRateApi(baseCurrency);
       this.updateCache(data);
       return data;
     } catch (error) {
       console.warn('Primary currency service failed, trying backup sources:', error);
       
       try {
-        // Try backup source: exchangerate-api.com
-        const data = await this.fetchFromExchangeRateApi(baseCurrency);
+        // Try backup source: exchangerate.host (free tier)
+        const data = await this.fetchFromExchangeRateHost(baseCurrency);
         this.updateCache(data);
         return data;
       } catch (backupError) {
@@ -72,14 +72,66 @@ class CurrencyService {
   }
 
   /**
-   * Primary source: exchangerate.host
+   * Primary source: exchangerate-api.com (with API key)
+   */
+  private async fetchFromExchangeRateApi(baseCurrency: string): Promise<CurrencyData> {
+    const apiKey = process.env.EXCHANGE_RATE_API_KEY;
+    
+    // Debug logging (remove in production)
+    if (typeof window === 'undefined') {
+      console.log('Currency Service - API Key available:', !!apiKey);
+      console.log('Currency Service - Using URL:', apiKey 
+        ? `https://v6.exchangerate-api.com/v6/${apiKey.substring(0, 8)}.../latest/${baseCurrency}`
+        : `https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+    }
+    
+    const url = apiKey 
+      ? `https://v6.exchangerate-api.com/v6/${apiKey}/latest/${baseCurrency}`
+      : `https://api.exchangerate-api.com/v4/latest/${baseCurrency}`;
+      
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Handle both v4 and v6 API responses
+    const rates = data.conversion_rates || data.rates || {};
+    const date = data.time_last_update_utc || data.date || Date.now();
+
+    // Filter to only supported currencies
+    const filteredRates: Record<string, number> = {};
+    Object.keys(this.SUPPORTED_CURRENCIES).forEach(code => {
+      if (code === baseCurrency) {
+        filteredRates[code] = 1;
+      } else if (rates && typeof rates[code] === 'number') {
+        filteredRates[code] = rates[code];
+      }
+    });
+
+    return {
+      rates: filteredRates,
+      lastUpdated: new Date(date),
+      source: apiKey ? 'exchangerate-api.com (v6)' : 'exchangerate-api.com (v4)',
+      baseCurrency
+    };
+  }
+
+  /**
+   * Backup source: exchangerate.host (free tier)
    */
   private async fetchFromExchangeRateHost(baseCurrency: string): Promise<CurrencyData> {
     const response = await fetch(`https://api.exchangerate.host/latest?base=${baseCurrency}&symbols=${Object.keys(this.SUPPORTED_CURRENCIES).join(',')}`, {
       headers: {
         'Accept': 'application/json',
       },
-      // Add timeout
       signal: AbortSignal.timeout(10000)
     });
 
@@ -112,45 +164,10 @@ class CurrencyService {
   }
 
   /**
-   * Backup source: exchangerate-api.com (free tier)
-   */
-  private async fetchFromExchangeRateApi(baseCurrency: string): Promise<CurrencyData> {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`, {
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(10000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    // Filter to only supported currencies
-    const filteredRates: Record<string, number> = {};
-    Object.keys(this.SUPPORTED_CURRENCIES).forEach(code => {
-      if (code === baseCurrency) {
-        filteredRates[code] = 1;
-      } else if (data.rates && typeof data.rates[code] === 'number') {
-        filteredRates[code] = data.rates[code];
-      }
-    });
-
-    return {
-      rates: filteredRates,
-      lastUpdated: new Date(data.date || Date.now()),
-      source: 'exchangerate-api.com',
-      baseCurrency
-    };
-  }
-
-  /**
    * Fallback to static rates when APIs are unavailable
    */
   private getFallbackData(baseCurrency: string): CurrencyData {
-    let rates = { ...this.FALLBACK_RATES };
+    let rates: Record<string, number> = { ...this.FALLBACK_RATES };
     
     // If base currency is not JPY, convert all rates
     if (baseCurrency !== 'JPY') {
@@ -158,7 +175,7 @@ class CurrencyService {
       if (baseRate) {
         rates = {};
         Object.entries(this.FALLBACK_RATES).forEach(([code, rate]) => {
-          rates[code] = rate / baseRate;
+          rates[code as keyof typeof this.FALLBACK_RATES] = rate / baseRate;
         });
       }
     }

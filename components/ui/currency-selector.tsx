@@ -63,30 +63,38 @@ export function CurrencySelector({
     return <CheckCircle className="h-3 w-3 text-green-500" />;
   };
 
-  const getTooltipContent = () => {
-    if (!currencyData || !sourceInfo) {
-      return (
-        <div className="space-y-2">
-          <p className="font-medium">Currency Rates</p>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? 'Loading exchange rates...' : 'Failed to load exchange rates'}
-          </p>
-        </div>
-      );
-    }
-
-    const selectedRate = currencyData.rates[selectedCurrency];
-    
-    return (
-      <div className="space-y-3 max-w-xs">
-        <div>
-          <p className="font-medium">Exchange Rate Information</p>
-          {selectedCurrency !== baseCurrency && selectedRate && (
-            <p className="text-sm mt-1">
-              1 {baseCurrency} = {selectedRate.toFixed(selectedCurrency === 'JPY' ? 0 : 4)} {selectedCurrency}
+      const getTooltipContent = () => {
+      if (!currencyData || !sourceInfo) {
+        return (
+          <div className="space-y-2">
+            <p className="font-medium">Currency Rates</p>
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? 'Loading exchange rates...' : 'Failed to load exchange rates'}
             </p>
-          )}
-        </div>
+          </div>
+        );
+      }
+
+      const selectedRate = currencyData.rates[selectedCurrency];
+      const reverseRate = selectedRate ? 1 / selectedRate : null;
+      
+      return (
+        <div className="space-y-3 max-w-xs">
+          <div>
+            <p className="font-medium">Exchange Rate Information</p>
+            {selectedCurrency !== baseCurrency && selectedRate && (
+              <div className="space-y-1 mt-2">
+                <p className="text-sm font-medium text-blue-600">
+                  1 {baseCurrency} = {selectedRate.toFixed(selectedCurrency === 'JPY' ? 0 : 4)} {selectedCurrency}
+                </p>
+                {reverseRate && (
+                  <p className="text-sm font-medium text-blue-600">
+                    1 {selectedCurrency} = {reverseRate.toFixed(baseCurrency === 'JPY' ? 0 : 4)} {baseCurrency}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         
         <div className="space-y-1 text-xs">
           <div className="flex items-center justify-between">
@@ -114,6 +122,25 @@ export function CurrencySelector({
             <span className="font-medium">{baseCurrency}</span>
           </div>
         </div>
+
+        {/* Show all available exchange rates */}
+        {Object.keys(currencyData.rates).length > 1 && (
+          <div className="pt-2 border-t">
+            <p className="text-xs font-medium text-muted-foreground mb-2">All Rates (1 {baseCurrency}):</p>
+            <div className="space-y-1">
+              {Object.entries(currencyData.rates)
+                .filter(([code]) => code !== baseCurrency)
+                .map(([code, rate]) => (
+                  <div key={code} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{code}:</span>
+                    <span className="font-mono font-medium">
+                      {rate.toFixed(code === 'JPY' ? 0 : 4)}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         {sourceInfo.isFallback && (
           <div className="pt-2 border-t">

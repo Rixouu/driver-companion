@@ -80,8 +80,8 @@ export function QuotationWorkflow({
   const daysUntilExpiry = differenceInDays(properExpiryDate, now);
   const isExpired = isAfter(now, properExpiryDate);
 
-  // Check if reminder should be sent (2 days before expiry)
-  const shouldSendReminder = daysUntilExpiry !== null && daysUntilExpiry <= 2 && daysUntilExpiry > 0 && !quotation.reminder_sent_at && quotation.status === 'sent';
+  // Check if reminder should be sent (1 day before expiry)
+  const shouldSendReminder = daysUntilExpiry !== null && daysUntilExpiry <= 1 && daysUntilExpiry > 0 && !quotation.reminder_sent_at && quotation.status === 'sent';
 
   // Check if reminder step should be shown
   const shouldShowReminder = quotation.status !== 'draft' && (shouldSendReminder || quotation.reminder_sent_at);

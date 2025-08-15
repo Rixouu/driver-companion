@@ -15,16 +15,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse form data for file upload
+    // Parse request body - only read once
     const contentType = req.headers.get('content-type') || '';
-    const formData = contentType.includes('multipart/form-data') ? await req.formData() : null;
-    const email = formData ? (formData.get('email') as string) : (await req.json()).email;
-    const quotationId = formData ? (formData.get('quotation_id') as string) : (await req.json()).quotation_id;
-    const customerName = formData ? (formData.get('customer_name') as string) : (await req.json()).customer_name;
-    const includeDetails = formData ? formData.get('include_details') === 'true' : Boolean((await req.json()).include_details);
-    const language = formData ? ((formData.get('language') as string) || 'en') : ((await req.json()).language || 'en');
+    let requestData: any = {};
+    let formData: FormData | null = null;
+    
+    if (contentType.includes('multipart/form-data')) {
+      formData = await req.formData();
+      requestData = {
+        email: formData.get('email') as string,
+        quotation_id: formData.get('quotation_id') as string,
+        customer_name: formData.get('customer_name') as string,
+        include_details: formData.get('include_details') === 'true',
+        language: formData.get('language') as string || 'en',
+        payment_link: formData.get('payment_link') as string
+      };
+    } else {
+      requestData = await req.json();
+    }
+    
+    const { email, quotation_id: quotationId, customer_name: customerName, include_details: includeDetails, language, payment_link: paymentLink } = requestData;
+    
+    // Get PDF file if it exists (for multipart requests)
     const pdfFile = formData ? (formData.get('invoice_pdf') as File) : null;
-    const paymentLink = formData ? (formData.get('payment_link') as string) : (await req.json()).payment_link;
 
     if (!email || !quotationId || !paymentLink) {
       return NextResponse.json(

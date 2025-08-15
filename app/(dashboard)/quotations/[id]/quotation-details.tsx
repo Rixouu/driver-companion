@@ -970,6 +970,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               invoice_generated_at: (quotation as any).invoice_generated_at,
               payment_completed_at: (quotation as any).payment_completed_at,
               booking_created_at: (quotation as any).booking_created_at,
+              quote_number: quotation.quote_number,
             }}
             onSendQuotation={quotation.status === 'draft' ? handleSend : undefined}
             onSendReminder={async () => {
@@ -1053,7 +1054,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
-                    quotationId: quotation.id,
+                    quotation_id: quotation.id,
                     language: 'en'
                   })
                 });

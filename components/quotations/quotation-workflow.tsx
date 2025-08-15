@@ -51,6 +51,7 @@ interface QuotationWorkflowProps {
     invoice_generated_at?: string;
     payment_completed_at?: string;
     booking_created_at?: string;
+    quote_number?: number;
   };
   onSendQuotation?: () => void;
   onSendReminder?: () => void;
@@ -186,7 +187,7 @@ export function QuotationWorkflow({
                   const url = URL.createObjectURL(blob);
                   const link = document.createElement('a');
                   link.href = url;
-                  link.download = `INV-JPDR-${String(quotation.id).padStart(6, '0')}.pdf`;
+                  link.download = `INV-JPDR-${String(quotation.quote_number || quotation.id).padStart(6, '0')}.pdf`;
                   document.body.appendChild(link);
                   link.click();
                   document.body.removeChild(link);
@@ -195,6 +196,19 @@ export function QuotationWorkflow({
                   // Call the onGenerateInvoice callback if provided
                   if (onGenerateInvoice) {
                     onGenerateInvoice();
+                  }
+                  
+                  // Update the quotation status to mark invoice as generated
+                  try {
+                    await fetch(`/api/quotations/${quotation.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        invoice_generated_at: new Date().toISOString()
+                      })
+                    });
+                  } catch (error) {
+                    console.error('Error updating invoice status:', error);
                   }
                 } catch (error) {
                   console.error('Error generating invoice:', error);
@@ -221,6 +235,34 @@ export function QuotationWorkflow({
               variant: 'outline' as const,
               disabled: !onSendPaymentLink
             }
+          } : {}),
+          ...(quotation.invoice_generated_at && quotation.payment_completed_at && isOrganizationMember ? {
+            action: {
+              label: 'Mark as Paid',
+              onClick: async () => {
+                try {
+                  // Update quotation status to mark payment as completed
+                  const response = await fetch(`/api/quotations/${quotation.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      payment_completed_at: new Date().toISOString()
+                    })
+                  });
+                  
+                  if (response.ok) {
+                    // Call the onSendPaymentLink callback if provided
+                    if (onSendPaymentLink) {
+                      onSendPaymentLink();
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error marking payment as completed:', error);
+                }
+              },
+              variant: 'default' as const,
+              disabled: false
+            }
           } : {})
         },
         {
@@ -233,9 +275,30 @@ export function QuotationWorkflow({
           date: quotation.booking_created_at,
           ...(quotation.payment_completed_at && !quotation.booking_created_at && isOrganizationMember ? {
             action: {
-              label: t('quotations.workflow.actions.createBooking'),
-              onClick: onCreateBooking || (() => {}),
-              disabled: !onCreateBooking
+              label: 'Convert to Booking',
+              onClick: async () => {
+                try {
+                  // Create booking from quotation
+                  const response = await fetch('/api/quotations/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      quotation_id: quotation.id
+                    })
+                  });
+                  
+                  if (response.ok) {
+                    // Call the onCreateBooking callback if provided
+                    if (onCreateBooking) {
+                      onCreateBooking();
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error converting to booking:', error);
+                }
+              },
+              variant: 'default' as const,
+              disabled: false
             }
           } : {})
         }

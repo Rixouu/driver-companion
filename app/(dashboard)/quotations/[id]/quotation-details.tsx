@@ -1061,26 +1061,24 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 });
                 
                 if (response.ok) {
-                  // Download the invoice for the user
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `INV-JPDR-${String(quotation.quote_number || quotation.id).padStart(6, '0')}.pdf`;
-                  document.body.appendChild(a);
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
+                  const pdfBlob = await response.blob();
+                  setProgressLabel('Sending email...');
+                  setProgressValue(80);
                   
-                  // Now send the invoice by email
+                  // Send the PDF via email using the same logic as QuotationInvoiceButton
+                  const formData = new FormData();
+                  formData.append('email', quotation.customer_email);
+                  formData.append('quotation_id', quotation.id);
+                  formData.append('customer_name', quotation.customer_name || 'Customer');
+                  formData.append('include_details', 'true');
+                  formData.append('language', 'en');
+                  formData.append('payment_link', '');
+                  const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
+                  formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
+                  
                   const emailResponse = await fetch('/api/quotations/send-invoice-email', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      quotation_id: quotation.id,
-                      language: 'en',
-                      customer_email: quotation.customer_email
-                    })
+                    body: formData,
                   });
                   
                   if (emailResponse.ok) {

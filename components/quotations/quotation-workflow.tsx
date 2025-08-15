@@ -167,52 +167,15 @@ export function QuotationWorkflow({
           date: quotation.invoice_generated_at,
           ...(quotation.status === 'approved' && !quotation.invoice_generated_at && isOrganizationMember ? {
             action: {
-              label: t('quotations.workflow.actions.generateInvoice'),
+              label: 'Send Invoice',
               onClick: async () => {
                 try {
-                  const response = await fetch('/api/quotations/generate-invoice-pdf', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      quotation_id: quotation.id,
-                      language: 'en'
-                    })
-                  });
-
-                  if (!response.ok) {
-                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-                  }
-
-                  const blob = await response.blob();
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `INV-JPDR-${String(quotation.quote_number || quotation.id).padStart(6, '0')}.pdf`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-
-                  // Call the onGenerateInvoice callback if provided
+                  // Call the onGenerateInvoice callback which will handle the invoice generation and sending
                   if (onGenerateInvoice) {
                     onGenerateInvoice();
                   }
-                  
-                  // Update the quotation status to mark invoice as generated
-                  try {
-                    await fetch(`/api/quotations/${quotation.id}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        invoice_generated_at: new Date().toISOString()
-                      })
-                    });
-                  } catch (error) {
-                    console.error('Error updating invoice status:', error);
-                  }
                 } catch (error) {
-                  console.error('Error generating invoice:', error);
-                  // You can add toast notification here if needed
+                  console.error('Error sending invoice:', error);
                 }
               },
               variant: 'default' as const,

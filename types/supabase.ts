@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -2047,6 +2047,7 @@ export type Database = {
           billing_street_name: string | null
           billing_street_number: string | null
           billing_tax_number: string | null
+          booking_created_at: string | null
           converted_to_booking_id: string | null
           created_at: string
           currency: string
@@ -2063,10 +2064,12 @@ export type Database = {
           expiry_date: string
           hours_per_day: number | null
           id: string
+          invoice_generated_at: string | null
           merchant_id: string | null
           merchant_notes: string | null
           package_discount: number | null
           passenger_count: number | null
+          payment_completed_at: string | null
           pickup_date: string | null
           pickup_location: string | null
           pickup_time: string | null
@@ -2111,6 +2114,7 @@ export type Database = {
           billing_street_name?: string | null
           billing_street_number?: string | null
           billing_tax_number?: string | null
+          booking_created_at?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
           currency?: string
@@ -2127,10 +2131,12 @@ export type Database = {
           expiry_date?: string
           hours_per_day?: number | null
           id?: string
+          invoice_generated_at?: string | null
           merchant_id?: string | null
           merchant_notes?: string | null
           package_discount?: number | null
           passenger_count?: number | null
+          payment_completed_at?: string | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
@@ -2175,6 +2181,7 @@ export type Database = {
           billing_street_name?: string | null
           billing_street_number?: string | null
           billing_tax_number?: string | null
+          booking_created_at?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
           currency?: string
@@ -2191,10 +2198,12 @@ export type Database = {
           expiry_date?: string
           hours_per_day?: number | null
           id?: string
+          invoice_generated_at?: string | null
           merchant_id?: string | null
           merchant_notes?: string | null
           package_discount?: number | null
           passenger_count?: number | null
+          payment_completed_at?: string | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
@@ -2663,25 +2672,25 @@ export type Database = {
       get_correct_price_for_duration: {
         Args:
           | {
-              p_vehicle_type: string
-              p_service_type: string
-              p_duration_hours: number
-            }
-          | {
-              p_vehicle_type: string
-              p_service_type: string
-              p_duration_hours: number
               p_category_id: string
+              p_duration_hours: number
+              p_service_type: string
+              p_vehicle_type: string
             }
           | {
-              p_vehicle_type: string
-              p_service_type_id: string
               p_duration_hours: number
+              p_service_type: string
+              p_vehicle_type: string
+            }
+          | {
+              p_duration_hours: number
+              p_service_type_id: string
+              p_vehicle_type: string
             }
         Returns: {
-          price: number
           currency: string
           duration_hours: number
+          price: number
         }[]
       }
       recalculate_quotation_totals: {

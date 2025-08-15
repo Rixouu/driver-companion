@@ -1033,15 +1033,15 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             onGenerateInvoice={async () => {
               setIsLoading(true);
               setProgressOpen(true);
-              setProgressTitle('Generating Invoice');
-              setProgressLabel('Creating invoice...');
+              setProgressTitle('Sending Invoice');
+              setProgressLabel('Preparing invoice...');
               setProgressValue(10);
               
               try {
                 const steps = [
-                  { label: 'Creating invoice...', value: 30 },
+                  { label: 'Preparing invoice...', value: 30 },
                   { label: 'Generating PDF...', value: 60 },
-                  { label: 'Finalizing...', value: 90 }
+                  { label: 'Sending email...', value: 90 }
                 ];
                 
                 for (const step of steps) {
@@ -1050,6 +1050,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   await new Promise(resolve => setTimeout(resolve, 300));
                 }
                 
+                // First generate the invoice PDF
                 const response = await fetch('/api/quotations/generate-invoice-pdf', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -1060,34 +1061,63 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 });
                 
                 if (response.ok) {
+                  // Download the invoice for the user
                   const blob = await response.blob();
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `invoice-${quotation.quote_number || quotation.id}.pdf`;
+                  a.download = `INV-JPDR-${String(quotation.quote_number || quotation.id).padStart(6, '0')}.pdf`;
                   document.body.appendChild(a);
                   a.click();
                   window.URL.revokeObjectURL(url);
                   document.body.removeChild(a);
                   
-                  setProgressValue(100);
-                  setProgressLabel('Completed');
-                  toast({
-                    title: "Invoice generated successfully",
-                    variant: 'default',
+                  // Now send the invoice by email
+                  const emailResponse = await fetch('/api/quotations/send-invoice-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      quotation_id: quotation.id,
+                      language: 'en',
+                      customer_email: quotation.customer_email
+                    })
                   });
-                  setTimeout(() => {
-                    setProgressOpen(false);
-                    router.refresh();
-                  }, 500);
+                  
+                  if (emailResponse.ok) {
+                    // Update the quotation status to mark invoice as generated
+                    try {
+                      await fetch(`/api/quotations/${quotation.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          invoice_generated_at: new Date().toISOString()
+                        })
+                      });
+                    } catch (error) {
+                      console.error('Error updating invoice status:', error);
+                    }
+                    
+                    setProgressValue(100);
+                    setProgressLabel('Completed');
+                    toast({
+                      title: "Invoice sent successfully",
+                      variant: 'default',
+                    });
+                    setTimeout(() => {
+                      setProgressOpen(false);
+                      router.refresh();
+                    }, 500);
+                  } else {
+                    throw new Error('Failed to send invoice email');
+                  }
                 } else {
                   throw new Error('Failed to generate invoice');
                 }
               } catch (error) {
-                console.error('Error generating invoice:', error);
+                console.error('Error sending invoice:', error);
                 setProgressLabel('Failed');
                 toast({
-                  title: "Failed to generate invoice",
+                  title: "Failed to send invoice",
                   description: "Please try again later",
                   variant: 'destructive',
                 });

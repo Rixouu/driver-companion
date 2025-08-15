@@ -185,42 +185,36 @@ export function QuotationWorkflow({
         },
         {
           id: 'payment',
-          title: t('quotations.workflow.payment.title'),
-          description: t('quotations.workflow.payment.description'),
+          title: 'Send Payment Link',
+          description: 'Send payment link to customer for invoice payment',
           icon: <CreditCard className="h-4 w-4" />,
           status: quotation.payment_completed_at ? 'completed' :
                   quotation.invoice_generated_at ? 'current' : 'pending',
           date: quotation.payment_completed_at,
           ...(quotation.invoice_generated_at && !quotation.payment_completed_at && isOrganizationMember ? {
             action: {
-              label: t('quotations.workflow.actions.sendPaymentLink'),
-              onClick: onSendPaymentLink || (() => {}),
-              variant: 'outline' as const,
-              disabled: !onSendPaymentLink
-            }
-          } : {}),
-          ...(quotation.invoice_generated_at && quotation.payment_completed_at && isOrganizationMember ? {
-            action: {
-              label: 'Mark as Paid',
+              label: 'Send Payment Link',
               onClick: async () => {
                 try {
-                  // Update quotation status to mark payment as completed
-                  const response = await fetch(`/api/quotations/${quotation.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      payment_completed_at: new Date().toISOString()
-                    })
-                  });
+                  // Call the onSendPaymentLink callback if provided
+                  if (onSendPaymentLink) {
+                    onSendPaymentLink();
+                  }
                   
-                  if (response.ok) {
-                    // Call the onSendPaymentLink callback if provided
-                    if (onSendPaymentLink) {
-                      onSendPaymentLink();
-                    }
+                  // Update the quotation status to mark payment link as sent
+                  try {
+                    await fetch(`/api/quotations/${quotation.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        payment_completed_at: new Date().toISOString()
+                      })
+                    });
+                  } catch (error) {
+                    console.error('Error updating payment status:', error);
                   }
                 } catch (error) {
-                  console.error('Error marking payment as completed:', error);
+                  console.error('Error sending payment link:', error);
                 }
               },
               variant: 'default' as const,
@@ -230,8 +224,8 @@ export function QuotationWorkflow({
         },
         {
           id: 'booking',
-          title: t('quotations.workflow.booking.title'),
-          description: t('quotations.workflow.booking.description'),
+          title: 'Convert to Booking',
+          description: 'Convert approved quotation to a booking',
           icon: <Calendar className="h-4 w-4" />,
           status: quotation.booking_created_at ? 'completed' :
                   quotation.payment_completed_at ? 'current' : 'pending',
@@ -454,3 +448,4 @@ export function QuotationWorkflow({
     </Card>
   );
 }
+

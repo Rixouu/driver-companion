@@ -428,12 +428,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     }>
                       {t(`quotations.status.${quotation.status}`)}
                     </Badge>
-                  </div>
                 </div>
               </div>
-              
+            </div>
+            
               {/* Share and Edit buttons moved to top right */}
-              <div className="flex flex-wrap gap-2 flex-shrink-0">
+            <div className="flex flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
                 {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
                   <Button variant="outline" asChild className="gap-2">
@@ -455,7 +455,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 case 'sent':
                   return t('quotations.workflow.steps.waitingForApproval');
                 case 'approved':
-                  return t('quotations.workflow.steps.generateInvoice');
+                  if ((quotation as any).invoice_generated_at) {
+                    return 'Send Payment Link';
+                  }
+                  return 'Send Invoice';
                 default:
                   return null;
               }
@@ -480,16 +483,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               {/* Primary Action Buttons */}
               {quotation.status === 'approved' ? (
                 <>
-                  <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
+                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 </>
               ) : (
                 <>
-                  <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
-                  {isOrganizationMember && quotation.status === 'draft' && (
-                    <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                      <Mail className="h-4 w-4" />
-                      {t('quotations.actions.send')}
-                    </Button>
+                <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
+              {isOrganizationMember && quotation.status === 'draft' && (
+                <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                  <Mail className="h-4 w-4" />
+                  {t('quotations.actions.send')}
+                </Button>
                   )}
                 </>
               )}
@@ -1124,13 +1127,64 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 setIsLoading(false);
               }
             }}
-            onSendPaymentLink={() => {
-              // TODO: Implement payment link
-              toast({
-                title: "Payment link feature coming soon",
-                description: "This feature will be available in the next update.",
-                variant: "default",
-              });
+            onSendPaymentLink={async () => {
+              setIsLoading(true);
+              setProgressOpen(true);
+              setProgressTitle('Sending Payment Link');
+              setProgressLabel('Preparing payment link...');
+              setProgressValue(10);
+              
+              try {
+                const steps = [
+                  { label: 'Preparing payment link...', value: 30 },
+                  { label: 'Generating payment URL...', value: 60 },
+                  { label: 'Sending email...', value: 90 }
+                ];
+                
+                for (const step of steps) {
+                  setProgressLabel(step.label);
+                  setProgressValue(step.value);
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                // Send payment link email
+                const response = await fetch('/api/quotations/send-payment-link-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    quotation_id: quotation.id,
+                    language: 'en',
+                    customer_email: quotation.customer_email,
+                    customer_name: quotation.customer_name
+                  })
+                });
+                
+                if (response.ok) {
+                  setProgressValue(100);
+                  setProgressLabel('Completed');
+                  toast({
+                    title: "Payment link sent successfully",
+                    variant: 'default',
+                  });
+                  setTimeout(() => {
+                    setProgressOpen(false);
+                    router.refresh();
+                  }, 500);
+                } else {
+                  throw new Error('Failed to send payment link');
+                }
+              } catch (error) {
+                console.error('Error sending payment link:', error);
+                setProgressLabel('Failed');
+                toast({
+                  title: "Failed to send payment link",
+                  description: "Please try again later",
+                  variant: 'destructive',
+                });
+                setTimeout(() => setProgressOpen(false), 1000);
+              } finally {
+                setIsLoading(false);
+              }
             }}
             onCreateBooking={() => {
               // TODO: Implement booking creation

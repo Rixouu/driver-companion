@@ -381,8 +381,8 @@ export function QuotationWorkflow({
               const nextStepText = nextStepMap[currentStep.id];
               if (nextStepText) {
                 return (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                  <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                     {t('quotations.workflow.nextStep', { step: nextStepText })}
                   </div>
                 );

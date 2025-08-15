@@ -464,9 +464,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             const nextStep = getNextStep();
             if (nextStep) {
               return (
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-lg">
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span className="text-sm text-muted-foreground font-medium">
+                  <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
                     {t('quotations.workflow.nextStep', { step: nextStep })}
                   </span>
                 </div>
@@ -976,21 +976,128 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               booking_created_at: (quotation as any).booking_created_at,
             }}
             onSendQuotation={quotation.status === 'draft' ? handleSend : undefined}
-            onSendReminder={() => {
-              // TODO: Implement reminder functionality
-              toast({
-                title: "Reminder feature coming soon",
-                description: "This feature will be available in the next update.",
-                variant: "default",
-              });
+            onSendReminder={async () => {
+              setIsLoading(true);
+              setProgressOpen(true);
+              setProgressTitle('Sending Reminder');
+              setProgressLabel('Preparing reminder...');
+              setProgressValue(10);
+              
+              try {
+                const steps = [
+                  { label: 'Preparing reminder...', value: 20 },
+                  { label: 'Generating PDF...', value: 40 },
+                  { label: 'Sending email...', value: 80 }
+                ];
+                
+                for (const step of steps) {
+                  setProgressLabel(step.label);
+                  setProgressValue(step.value);
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                const response = await fetch('/api/quotations/send-reminder', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    id: quotation.id, 
+                    language: 'en',
+                    includeQuotation: true 
+                  })
+                });
+                
+                if (response.ok) {
+                  setProgressValue(100);
+                  setProgressLabel('Completed');
+                  toast({
+                    title: "Reminder sent successfully",
+                    variant: 'default',
+                  });
+                  setTimeout(() => {
+                    setProgressOpen(false);
+                    router.refresh();
+                  }, 500);
+                } else {
+                  throw new Error('Failed to send reminder');
+                }
+              } catch (error) {
+                console.error('Error sending reminder:', error);
+                setProgressLabel('Failed');
+                toast({
+                  title: "Failed to send reminder",
+                  description: "Please try again later",
+                  variant: 'destructive',
+                });
+                setTimeout(() => setProgressOpen(false), 1000);
+              } finally {
+                setIsLoading(false);
+              }
             }}
-            onGenerateInvoice={() => {
-              // TODO: Implement invoice generation
-              toast({
-                title: "Invoice generation coming soon",
-                description: "This feature will be available in the next update.",
-                variant: "default",
-              });
+            onGenerateInvoice={async () => {
+              setIsLoading(true);
+              setProgressOpen(true);
+              setProgressTitle('Generating Invoice');
+              setProgressLabel('Creating invoice...');
+              setProgressValue(10);
+              
+              try {
+                const steps = [
+                  { label: 'Creating invoice...', value: 30 },
+                  { label: 'Generating PDF...', value: 60 },
+                  { label: 'Finalizing...', value: 90 }
+                ];
+                
+                for (const step of steps) {
+                  setProgressLabel(step.label);
+                  setProgressValue(step.value);
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                }
+                
+                const response = await fetch('/api/quotations/generate-invoice-pdf', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    quotationId: quotation.id,
+                    language: 'en'
+                  })
+                });
+                
+                if (response.ok) {
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `invoice-${quotation.quote_number || quotation.id}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                  
+                  setProgressValue(100);
+                  setProgressLabel('Completed');
+                  toast({
+                    title: "Invoice generated successfully",
+                    variant: 'default',
+                  });
+                  setTimeout(() => {
+                    setProgressOpen(false);
+                    router.refresh();
+                  }, 500);
+                } else {
+                  throw new Error('Failed to generate invoice');
+                }
+              } catch (error) {
+                console.error('Error generating invoice:', error);
+                setProgressLabel('Failed');
+                toast({
+                  title: "Failed to generate invoice",
+                  description: "Please try again later",
+                  variant: 'destructive',
+                });
+                setTimeout(() => setProgressOpen(false), 1000);
+              } finally {
+                setIsLoading(false);
+              }
             }}
             onSendPaymentLink={() => {
               // TODO: Implement payment link

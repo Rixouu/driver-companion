@@ -167,9 +167,42 @@ export function QuotationWorkflow({
           ...(quotation.status === 'approved' && !quotation.invoice_generated_at && isOrganizationMember ? {
             action: {
               label: t('quotations.workflow.actions.generateInvoice'),
-              onClick: onGenerateInvoice || (() => {}),
+              onClick: async () => {
+                try {
+                  const response = await fetch('/api/quotations/generate-invoice-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      quotation_id: quotation.id,
+                      language: 'en'
+                    })
+                  });
+
+                  if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                  }
+
+                  const blob = await response.blob();
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `INV-JPDR-${String(quotation.id).padStart(6, '0')}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+
+                  // Call the onGenerateInvoice callback if provided
+                  if (onGenerateInvoice) {
+                    onGenerateInvoice();
+                  }
+                } catch (error) {
+                  console.error('Error generating invoice:', error);
+                  // You can add toast notification here if needed
+                }
+              },
               variant: 'default' as const,
-              disabled: !onGenerateInvoice
+              disabled: false
             }
           } : {})
         },

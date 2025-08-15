@@ -481,10 +481,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               {quotation.status === 'approved' ? (
                 <>
                   <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
-                  <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                    <CreditCard className="h-4 w-4" />
-                    Send Payment Link
-                  </Button>
                 </>
               ) : (
                 <>

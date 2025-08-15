@@ -504,8 +504,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
         <Button 
           onClick={handlePaymentLinkDialogOpen} 
           disabled={isSendingPaymentLink}
-          variant="secondary"
-          className="gap-2"
+          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
         >
           <CreditCard className="h-4 w-4" />
           {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}

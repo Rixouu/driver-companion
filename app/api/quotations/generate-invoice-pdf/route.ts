@@ -122,31 +122,43 @@ function generateInvoiceHtml(
         <h3 style="margin: 0 0 8px 0; color: #111827; font-size: 14px; font-weight: bold;">
           ${isJapanese ? '請求先住所:' : 'BILLING ADDRESS:'}
         </h3>
-        <p style="margin: 0 0 3px 0; font-weight: bold; color: #111827; font-size: 14px;">
+        <p style="margin: 0 0 3px 0; font-weight: normal; color: #111827; font-size: 13px;">
           ${quotation?.customer_name || 'N/A'}
         </p>
-        <p style="margin: 0 0 3px 0; color: #111827; font-size: 14px;">
+        <p style="margin: 0 0 3px 0; color: #111827; font-size: 13px;">
           ${quotation?.customer_email || 'N/A'}
         </p>
-        <p style="margin: 0 0 15px 0; color: #111827; font-size: 14px;">
+        <p style="margin: 0 0 15px 0; color: #111827; font-size: 13px;">
           ${quotation?.customer_phone || 'N/A'}
         </p>
         
         ${quotation?.billing_company_name ? `
-          <p style="margin: 0 0 3px 0; font-size: 14px; color: #111827;">
+          <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
             <strong>${isJapanese ? '会社名:' : 'Company:'}</strong> ${quotation.billing_company_name}
           </p>
         ` : ''}
         
         ${quotation?.billing_tax_number ? `
-          <p style="margin: 0 0 3px 0; font-size: 14px; color: #111827;">
+          <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
             <strong>${isJapanese ? '税番号:' : 'Tax ID:'}</strong> ${quotation.billing_tax_number}
           </p>
         ` : ''}
         
-        ${[quotation?.billing_street_number, quotation?.billing_street_name, quotation?.billing_city, quotation?.billing_state, quotation?.billing_postal_code, quotation?.billing_country].filter(Boolean).length > 0 ? `
-          <p style="margin: 0; font-size: 14px; color: #111827;">
-            ${[quotation?.billing_street_number, quotation?.billing_street_name, quotation?.billing_city, quotation?.billing_state, quotation?.billing_postal_code, quotation?.billing_country].filter(Boolean).join(', ')}
+        ${(quotation?.billing_street_name || quotation?.billing_street_number) ? `
+          <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
+            <strong>${isJapanese ? '住所:' : 'Address:'}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}
+          </p>
+        ` : ''}
+        
+        ${(quotation?.billing_city || quotation?.billing_state || quotation?.billing_postal_code) ? `
+          <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
+            <strong>${isJapanese ? '市区町村/都道府県/郵便番号:' : 'City/State/Postal:'}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}
+          </p>
+        ` : ''}
+        
+        ${quotation?.billing_country ? `
+          <p style=\"margin: 0; font-size: 13px; color: #111827;\">
+            <strong>${isJapanese ? '国:' : 'Country:'}</strong> ${quotation.billing_country}
           </p>
         ` : ''}
       </div>

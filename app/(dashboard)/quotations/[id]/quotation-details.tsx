@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from "@/components/ui/separator";
 import { Progress } from '@/components/ui/progress';
+import { useCurrency } from '@/lib/services/currency-service';
+import { CurrencySelector } from '@/components/ui/currency-selector';
 import { 
   ArrowLeft,
   Calendar,
@@ -61,6 +63,7 @@ import { PricingSummary } from '@/components/quotations/quotation-details/pricin
 import { QuotationInfoCard } from '@/components/quotations/quotation-details/quotation-info-card';
 import { ServiceCard } from '@/components/quotations/service-card';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
+import { QuotationWorkflow } from '@/components/quotations/quotation-workflow';
 import { Dialog, DialogTitle, DialogContent, DialogDescription, DialogHeader } from '@/components/ui/dialog';
 
 interface QuotationDetailsProps {
@@ -101,6 +104,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<string>(quotation?.display_currency || quotation?.currency || 'JPY');
   const [shouldMoveToMainContent, setShouldMoveToMainContent] = useState(false);
+  
+  // Use dynamic currency service
+  const { currencyData, isLoading: currencyLoading, formatCurrency: dynamicFormatCurrency, convertCurrency } = useCurrency('JPY');
   
   // Add state for packages, promotions, and time-based pricing
   const [selectedPackage, setSelectedPackage] = useState<PricingPackage | null>(null);
@@ -254,13 +260,19 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   // Format quotation number with JPDR prefix and padding
   const formattedQuoteNumber = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
 
-  // Format currency with the appropriate locale and symbol
+  // Enhanced currency formatting using dynamic rates
   const formatCurrency = (amount: number | string | undefined, currency: string = selectedCurrency) => {
-    if (amount === undefined) return `¥0`;
+    if (amount === undefined) return dynamicFormatCurrency(0, currency);
     
     const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     
-    // Exchange rates (simplified for demo)
+    // Use dynamic currency service if available, fallback to static rates
+    if (currencyData && !currencyLoading) {
+      const convertedAmount = convertCurrency(numericAmount, 'JPY', currency);
+      return dynamicFormatCurrency(convertedAmount, currency);
+    }
+    
+    // Fallback to static rates (same as before)
     const exchangeRates: Record<string, number> = {
       'JPY': 1,
       'USD': 0.0067,
@@ -270,17 +282,14 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       'SGD': 0.0091
     };
 
-    // Convert amount to selected currency
     const convertedAmount = numericAmount * (exchangeRates[currency] / exchangeRates['JPY']);
     
-    // Format based on currency
     if (currency === 'JPY' || currency === 'CNY') {
       return currency === 'JPY' 
         ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
         : `CN¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     }
     
-    // Use locale and currency code for others
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -392,13 +401,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
   return (
     <div className="space-y-6">
-      {/* Revamped Header */}
+      {/* Enhanced Header with New Layout */}
       <Card className="mb-6">
         <CardContent className="p-6">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            {/* Left side - Quotation info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-4">
+          <div className="space-y-4">
+            {/* Top Row - Title and Status */}
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="flex items-start gap-4 flex-1 min-w-0">
                 <div className="p-3 bg-muted rounded-lg">
                   <FileText className="h-6 w-6 text-muted-foreground" />
                 </div>
@@ -406,7 +415,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <h1 className="text-2xl font-bold mb-2 break-words">
                     {quotation.title || t('quotations.details.untitled')}
                   </h1>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <p className="text-muted-foreground">
                       {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
                     </p>
@@ -422,20 +431,71 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   </div>
                 </div>
               </div>
+              
+              {/* Share and Edit buttons moved to top right */}
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
+                <QuotationShareButtons quotation={quotation} />
+                {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
+                  <Button variant="outline" asChild className="gap-2">
+                    <Link href={`/quotations/${quotation.id}/edit`}>
+                      <Edit className="h-4 w-4" />
+                      {t('quotations.actions.edit')}
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
             
-            {/* Right side - Primary actions only */}
-            <div className="flex flex-wrap gap-2 flex-shrink-0">
+                      {/* Next Step Indicator */}
+          {(() => {
+            const getNextStep = () => {
+              switch (quotation.status) {
+                case 'draft':
+                  return t('quotations.workflow.steps.sendToCustomer');
+                case 'sent':
+                  return t('quotations.workflow.steps.waitingForApproval');
+                case 'approved':
+                  return t('quotations.workflow.steps.generateInvoice');
+                default:
+                  return null;
+              }
+            };
+            
+            const nextStep = getNextStep();
+            if (nextStep) {
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-lg">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  <span className="text-sm text-muted-foreground font-medium">
+                    {t('quotations.workflow.nextStep', { step: nextStep })}
+                  </span>
+                </div>
+              );
+            }
+            return null;
+          })()}
+            
+            {/* Action Buttons Row */}
+            <div className="flex flex-wrap gap-3 pt-2 border-t">
+              {/* Primary Action Buttons */}
               {quotation.status === 'approved' ? (
-                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
+                <>
+                  <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
+                  <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                    <CreditCard className="h-4 w-4" />
+                    Send Payment Link
+                  </Button>
+                </>
               ) : (
-                <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
-              )}
-              {isOrganizationMember && quotation.status === 'draft' && (
-                <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                  <Mail className="h-4 w-4" />
-                  {t('quotations.actions.send')}
-                </Button>
+                <>
+                  <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
+                  {isOrganizationMember && quotation.status === 'draft' && (
+                    <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                      <Mail className="h-4 w-4" />
+                      {t('quotations.actions.send')}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -655,8 +715,23 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
               <Separator className="my-6" />
 
-              {/* ✅ NEW PRICING SUMMARY COMPONENT - Complete Revamp */}
+              {/* ✅ ENHANCED PRICING SUMMARY with Dynamic Currency */}
               <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-primary" />
+                    <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails')}</h2>
+                  </div>
+                  <CurrencySelector
+                    selectedCurrency={selectedCurrency}
+                    onCurrencyChange={handleCurrencyChange}
+                    baseCurrency="JPY"
+                    compact={true}
+                    showRefreshButton={true}
+                    showRateInfo={true}
+                  />
+                </div>
+                
                 <PricingSummary 
                   quotationItems={quotation.quotation_items || []}
                   selectedPackage={selectedPackage}
@@ -884,24 +959,57 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             }}
             onRefresh={() => router.refresh()}
           />
-          {/* Secondary actions under status */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Other Actions</CardTitle>
-              <CardDescription>Additional actions</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-              <QuotationShareButtons quotation={quotation} />
-              {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
-                <Button variant="outline" asChild className="gap-2">
-                  <Link href={`/quotations/${quotation.id}/edit`}>
-                    <Edit className="h-4 w-4" />
-                    {t('quotations.actions.edit')}
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          
+          {/* Quotation Workflow - Replaces "Other Actions" */}
+          <QuotationWorkflow
+            quotation={{
+              id: quotation.id,
+              status: quotation.status,
+              created_at: quotation.created_at,
+              expiry_date: quotation.expiry_date,
+              last_sent_at: (quotation as any).last_sent_at,
+              reminder_sent_at: (quotation as any).reminder_sent_at,
+              approved_at: (quotation as any).approved_at,
+              rejected_at: (quotation as any).rejected_at,
+              invoice_generated_at: (quotation as any).invoice_generated_at,
+              payment_completed_at: (quotation as any).payment_completed_at,
+              booking_created_at: (quotation as any).booking_created_at,
+            }}
+            onSendQuotation={quotation.status === 'draft' ? handleSend : undefined}
+            onSendReminder={() => {
+              // TODO: Implement reminder functionality
+              toast({
+                title: "Reminder feature coming soon",
+                description: "This feature will be available in the next update.",
+                variant: "default",
+              });
+            }}
+            onGenerateInvoice={() => {
+              // TODO: Implement invoice generation
+              toast({
+                title: "Invoice generation coming soon",
+                description: "This feature will be available in the next update.",
+                variant: "default",
+              });
+            }}
+            onSendPaymentLink={() => {
+              // TODO: Implement payment link
+              toast({
+                title: "Payment link feature coming soon",
+                description: "This feature will be available in the next update.",
+                variant: "default",
+              });
+            }}
+            onCreateBooking={() => {
+              // TODO: Implement booking creation
+              toast({
+                title: "Booking creation coming soon",
+                description: "This feature will be available in the next update.",
+                variant: "default",
+              });
+            }}
+            isOrganizationMember={isOrganizationMember}
+          />
 
           {/* Default Approval Panel placement - in sidebar above activity feed */}
           {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (

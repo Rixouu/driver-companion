@@ -65,6 +65,7 @@ export function PricingSummary({
     }
     
     const serviceTotal = serviceBaseTotal + serviceTimeAdjustment;
+    // Only include package total if selectedPackage is actually selected (not null)
     const packageTotal = selectedPackage ? selectedPackage.base_price : 0;
     const baseTotal = serviceTotal + packageTotal;
     
@@ -100,34 +101,7 @@ export function PricingSummary({
 
   return (
     <div className="space-y-6">
-      {/* Pricing Summary Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-muted rounded-lg">
-            <Calculator className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold">Price Details</h2>
-            <p className="text-sm text-muted-foreground">Complete cost breakdown</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedCurrency} onValueChange={onCurrencyChange}>
-            <SelectTrigger className="w-[120px] h-8">
-              <SelectValue placeholder="Currency" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JPY">JPY (¥)</SelectItem>
-              <SelectItem value="USD">USD ($)</SelectItem>
-              <SelectItem value="EUR">EUR (€)</SelectItem>
-              <SelectItem value="THB">THB (฿)</SelectItem>
-              <SelectItem value="CNY">CNY (¥)</SelectItem>
-              <SelectItem value="SGD">SGD ($)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {/* Removed header since it's now handled at the parent level */}
 
       {/* Pricing Details Card - Matching PDF exactly */}
       <Card className="bg-muted/40">
@@ -160,6 +134,7 @@ export function PricingSummary({
                           {item.pickup_time && `, Pickup Time: ${item.pickup_time}`}
                         </div>
                       )}
+                      {/* Only show package details if selectedPackage is actually selected and this item is marked as package */}
                       {selectedPackage && isPackage && (
                         <div className="text-xs text-muted-foreground mt-1 pl-2">
                           <strong>Services Included:</strong>
@@ -204,29 +179,27 @@ export function PricingSummary({
               <span>{formatCurrency(totals.serviceTotal)}</span>
             </div>
             
-            {/* Package Total */}
+            {/* Package Total - Only show when selectedPackage exists and has a positive total */}
             {selectedPackage && totals.packageTotal > 0 && (
               <div className="space-y-1">
                 <div className="flex justify-between text-sm text-purple-600 font-medium">
                   <div>
                     <div>Package: {selectedPackage.name}</div>
-                    {selectedPackage && (
-                      <div className="text-xs text-muted-foreground mt-1 pl-2">
-                        <strong>Services Included:</strong>
-                        {selectedPackage.items && selectedPackage.items.length > 0 ? (
-                          selectedPackage.items.map((pkgItem, idx) => (
-                            <div key={idx} className="text-purple-600 text-xs font-medium">
-                              • {pkgItem.name}
-                              {pkgItem.vehicle_type && (
-                                <span className="text-muted-foreground ml-1">({pkgItem.vehicle_type})</span>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-purple-600 text-xs font-medium">• All package services included</div>
-                        )}
-                      </div>
-                    )}
+                    <div className="text-xs text-muted-foreground mt-1 pl-2">
+                      <strong>Services Included:</strong>
+                      {selectedPackage.items && selectedPackage.items.length > 0 ? (
+                        selectedPackage.items.map((pkgItem, idx) => (
+                          <div key={idx} className="text-purple-600 text-xs font-medium">
+                            • {pkgItem.name}
+                            {pkgItem.vehicle_type && (
+                              <span className="text-muted-foreground ml-1">({pkgItem.vehicle_type})</span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-purple-600 text-xs font-medium">• All package services included</div>
+                      )}
+                    </div>
                   </div>
                   <span>{formatCurrency(totals.packageTotal)}</span>
                 </div>

@@ -3114,6 +3114,57 @@ export const en: TranslationValue = {
     subtotal: "Subtotal",
     totalAmount: "Total Amount",
     activityFeed: "Activity Feed",
+    workflow: {
+      title: "Quotation Workflow",
+      description: "Track the progress of this quotation through each stage",
+      draft: {
+        title: "Draft Created",
+        description: "Quotation has been created and saved as draft"
+      },
+      send: {
+        title: "Quotation Sent",
+        description: "Quotation has been sent to customer for review"
+      },
+      reminder: {
+        title: "Reminder Sent",
+        description: "Follow-up reminder sent to customer before expiry"
+      },
+      approve: {
+        title: "Customer Approved",
+        description: "Customer has approved the quotation"
+      },
+      rejected: {
+        title: "Quotation Rejected",
+        description: "Quotation was rejected by customer"
+      },
+      invoice: {
+        title: "Invoice Generated",
+        description: "Invoice has been created and sent to customer"
+      },
+      payment: {
+        title: "Payment Received",
+        description: "Customer has completed payment for the invoice"
+      },
+      booking: {
+        title: "Booking Created",
+        description: "Service booking has been created based on quotation"
+      },
+      actions: {
+        sendReminder: "Send Reminder",
+        generateInvoice: "Generate Invoice",
+        sendPaymentLink: "Send Payment Link",
+        createBooking: "Create Booking"
+      },
+      nextStep: "Next step: {step}",
+      steps: {
+        sendToCustomer: "Send to customer",
+        waitingForApproval: "Waiting for customer approval",
+        sendReminder: "Send reminder to customer",
+        generateInvoice: "Generate invoice",
+        sendPaymentLink: "Send payment link to client",
+        createBooking: "Create booking"
+      }
+    },
     empty: {
       title: "No Quotations Yet",
       description: "There are no quotations in the system.",

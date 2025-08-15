@@ -38,6 +38,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     <head>
       <meta charset="utf-8">
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <meta http-equiv="Content-Language" content="en, ja, th">
       <title>PDF Export</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +49,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           box-sizing: border-box;
         }
         body {
-          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Work Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', Roboto, Arial, sans-serif;
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans', 'Work Sans', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', Roboto, Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -88,7 +89,8 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--disable-plugins',
           '--disable-gpu-sandbox',
           '--disable-software-rasterizer',
-          '--disable-dev-shm-usage'
+          '--disable-dev-shm-usage',
+          '--lang=en-US,en,ja,th'
         ],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
@@ -102,7 +104,8 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--no-sandbox', 
           '--disable-setuid-sandbox',
           '--font-render-hinting=none',
-          '--disable-font-subpixel-positioning'
+          '--disable-font-subpixel-positioning',
+          '--lang=en-US,en,ja,th'
         ]
       });
     }
@@ -114,7 +117,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     await page.setExtraHTTPHeaders({
       'Accept-Charset': 'utf-8',
       'Accept-Encoding': 'gzip, deflate',
-      'Accept-Language': 'en-US,en;q=0.9,ja;q=0.8'
+      'Accept-Language': 'en-US,en;q=0.9,ja;q=0.8,th;q=0.8'
     });
     
     // Set content and wait for network idle and fonts to load

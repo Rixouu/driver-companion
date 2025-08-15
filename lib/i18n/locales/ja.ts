@@ -3089,6 +3089,57 @@ export const ja: TranslationValue = {
     subtotal: "小計",
     totalAmount: "合計金額",
     activityFeed: "アクティビティフィード",
+    workflow: {
+      title: "見積ワークフロー",
+      description: "見積の進行状況を各段階で追跡します",
+      draft: {
+        title: "下書き作成完了",
+        description: "見積が作成され、下書きとして保存されました"
+      },
+      send: {
+        title: "見積送信完了",
+        description: "見積が顧客に送信され、確認待ちです"
+      },
+      reminder: {
+        title: "リマインダー送信完了",
+        description: "期限前に顧客へフォローアップのリマインダーを送信しました"
+      },
+      approve: {
+        title: "顧客承認完了",
+        description: "顧客が見積を承認しました"
+      },
+      rejected: {
+        title: "見積拒否",
+        description: "顧客が見積を拒否しました"
+      },
+      invoice: {
+        title: "請求書生成完了",
+        description: "請求書が作成され、顧客に送信されました"
+      },
+      payment: {
+        title: "支払い完了",
+        description: "顧客が請求書の支払いを完了しました"
+      },
+      booking: {
+        title: "予約作成完了",
+        description: "見積に基づいてサービス予約が作成されました"
+      },
+      actions: {
+        sendReminder: "リマインダーを送信",
+        generateInvoice: "請求書を生成",
+        sendPaymentLink: "支払いリンクを送信",
+        createBooking: "予約を作成"
+      },
+      nextStep: "次のステップ：{step}",
+      steps: {
+        sendToCustomer: "顧客に送信",
+        waitingForApproval: "顧客の承認待ち",
+        sendReminder: "顧客にリマインダーを送信",
+        generateInvoice: "請求書を生成",
+        sendPaymentLink: "顧客に支払いリンクを送信",
+        createBooking: "予約を作成"
+      }
+    },
     empty: {
       title: "まだ見積はありません",
       description: "システムに見積がありません。",

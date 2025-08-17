@@ -381,7 +381,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
         className="gap-2"
       >
         <FileText className="h-4 w-4" />
-        {isGenerating ? (t('quotations.actions.generating') || 'Generating...') : (t('quotations.actions.downloadPdf') || 'Download PDF')}
+        {isGenerating ? (t('quotations.actions.generating') || 'Generating...') : (t('quotations.actions.downloadQuotation') || 'Download Quotation')}
       </Button>
       
       <Button onClick={handleEmailDialogOpen} className="gap-2">

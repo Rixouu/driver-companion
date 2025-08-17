@@ -53,7 +53,7 @@ export function PricingStep({
 }: PricingStepProps) {
   const { t } = useI18n();
   const [currentPricingTab, setCurrentPricingTab] = useState<string>('basic');
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(form.watch('display_currency') || 'JPY');
   const [promotionCode, setPromotionCode] = useState<string>('');
   const [promotionError, setPromotionError] = useState<string>('');
   const [timeBasedPricingEnabled, setTimeBasedPricingEnabled] = useState<boolean>(true);
@@ -64,6 +64,22 @@ export function PricingStep({
 
   const discountPercentage = form.watch('discount_percentage');
   const taxPercentage = form.watch('tax_percentage');
+
+  // Sync currency selection with form
+  const handleCurrencyChange = (newCurrency: string) => {
+    setSelectedCurrency(newCurrency);
+    form.setValue('display_currency', newCurrency);
+  };
+
+  // Sync with form changes
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'display_currency' && value.display_currency) {
+        setSelectedCurrency(value.display_currency);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const formatCurrency = (amount: number) => {
     if (amount === undefined) return `¥0`;
@@ -274,7 +290,7 @@ export function PricingStep({
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       <Select 
                         value={selectedCurrency}
-                        onValueChange={setSelectedCurrency}
+                        onValueChange={handleCurrencyChange}
                       >
                         <SelectTrigger className="w-[120px] h-8">
                           <SelectValue placeholder="Currency" />

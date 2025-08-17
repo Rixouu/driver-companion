@@ -25,6 +25,7 @@ interface QuotationInfoCardProps {
     expiry_date: string;
     last_sent_at?: string;
     reminder_sent_at?: string;
+    booking_created_at?: string | null;
   };
   onRefresh?: () => void;
 }
@@ -87,6 +88,13 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
           label: 'Converted',
           icon: CheckCircle,
           color: 'text-purple-500'
+        };
+      case 'paid':
+        return {
+          variant: 'success' as const,
+          label: 'Paid',
+          icon: CheckCircle,
+          color: 'text-green-600'
         };
       default:
         return {

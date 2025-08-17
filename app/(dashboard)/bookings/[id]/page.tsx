@@ -238,10 +238,7 @@ export default function BookingPage() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.orderTotal')}</h3>
                   <p className="mt-1 font-semibold">
-                    {booking.price ? 
-                      (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-                      'THB 8,200'
-                    }
+                    {booking.price_currency || 'JPY'} {booking.price_amount?.toLocaleString() || '0'}
                   </p>
                 </div>
                 
@@ -271,11 +268,11 @@ export default function BookingPage() {
                 
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentStatus')}</h3>
-                  <p className="mt-1 text-yellow-500">
+                  <div className="mt-1">
                     <Badge className={getPaymentStatusBadgeClasses(booking.payment_status || 'Pending')}>
                       {booking.payment_status || 'Pending'}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
               </div>
               
@@ -501,41 +498,73 @@ export default function BookingPage() {
                     <p className="mt-1">{booking.payment_status || 'Pending'}</p>
                   </div>
                   
-                  {/* Price Information - Updated with original price and discount calculation */}
-                  {booking.coupon_code || booking.coupon_discount_percentage ? (
+                  {/* Price Information - Updated with quotation conversion data */}
+                  {booking.meta && typeof booking.meta === 'object' && 'quotation_id' in booking.meta ? (
                     <div className="space-y-2 pt-2">
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.originalPrice') || 'Original Price'}</h3>
                         <p className="mt-1 text-muted-foreground line-through">
-                          {booking.original_price ? 
-                            (booking.original_price.formatted || `${booking.price?.currency || 'THB'} ${booking.original_price.amount}`) : 
-                            calculateOriginalPrice(booking.price?.amount, booking.coupon_discount_percentage)
+                          {booking.meta.original_amount ? 
+                            `${booking.price_currency || 'JPY'} ${booking.meta.original_amount.toLocaleString()}` : 
+                            `${booking.price_currency || 'JPY'} ${booking.price_amount?.toLocaleString() || '0'}`
                           }
                         </p>
                       </div>
                       
-                      <div className="bg-secondary/50 px-3 py-2 rounded-md">
-                        <div className="flex items-center text-sm">
-                          <span className="flex-1 font-medium text-primary">{t('bookings.details.fields.coupon')}</span>
-                          <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
-                            {booking.coupon_code}
-                          </span>
+                      {/* Show discount if exists */}
+                      {booking.meta.discount_percentage && booking.meta.discount_percentage > 0 && (
+                        <div className="bg-secondary/50 px-3 py-2 rounded-md">
+                          <div className="flex items-center text-sm">
+                            <span className="flex-1 font-medium text-primary">{t('bookings.details.fields.discount') || 'Discount'}</span>
+                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
+                              -{booking.meta.discount_percentage}%
+                            </span>
+                          </div>
+                          <div className="flex items-center mt-1 text-sm">
+                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.discountAmount') || 'Discount Amount'}</span>
+                            <span className="font-medium">-{booking.price_currency || 'JPY'} {booking.meta.discount_amount?.toLocaleString() || '0'}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center mt-1 text-sm">
-                          <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.discount')}</span>
-                          <span className="font-medium">-{booking.coupon_discount_percentage}%</span>
+                      )}
+                      
+                      {/* Show promotion discount if exists */}
+                      {booking.meta.promotion_discount && booking.meta.promotion_discount > 0 && (
+                        <div className="bg-blue-50 px-3 py-2 rounded-md">
+                          <div className="flex items-center text-sm">
+                            <span className="flex-1 font-medium text-blue-600">{t('bookings.details.fields.promotion') || 'Promotion'}</span>
+                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-medium">
+                              Promotion
+                            </span>
+                          </div>
+                          <div className="flex items-center mt-1 text-sm">
+                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.promotionDiscount') || 'Promotion Discount'}</span>
+                            <span className="font-medium text-blue-600">-{booking.price_currency || 'JPY'} {booking.meta.promotion_discount.toLocaleString()}</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      
+                      {/* Show tax if exists */}
+                      {booking.meta.tax_percentage && booking.meta.tax_percentage > 0 && (
+                        <div className="bg-green-50 px-3 py-2 rounded-md">
+                          <div className="flex items-center text-sm">
+                            <span className="flex-1 font-medium text-green-600">{t('bookings.details.fields.tax') || 'Tax'}</span>
+                            <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded text-xs font-medium">
+                              {booking.meta.tax_percentage}%
+                            </span>
+                          </div>
+                          <div className="flex items-center mt-1 text-sm">
+                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.taxAmount') || 'Tax Amount'}</span>
+                            <span className="font-medium text-green-600">+{booking.price_currency || 'JPY'} {booking.meta.tax_amount?.toLocaleString() || '0'}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : null}
                   
-                  <div className={booking.coupon_code || booking.coupon_discount_percentage ? "pt-2 border-t" : ""}>
+                  <div className={booking.meta && typeof booking.meta === 'object' && 'quotation_id' in booking.meta ? "pt-2 border-t" : ""}>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.finalAmount') || 'Final Amount'}</h3>
                     <p className="mt-1 font-semibold text-lg">
-                      {booking.price ? 
-                        (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-                        'THB 8,200'
-                      }
+                      {booking.price_currency || 'JPY'} {booking.price_amount?.toLocaleString() || '0'}
                     </p>
                   </div>
                   

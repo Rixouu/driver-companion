@@ -69,36 +69,39 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     <head>
       <meta charset="utf-8">
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-      <meta http-equiv="Content-Language" content="en, ja, th">
+      <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
         /* Import fonts using @import for better compatibility */
         @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
-        /* Fallback font definitions with embedded base64 fonts for production */
+        /* Enhanced font definitions with better fallbacks */
         @font-face {
-          font-family: 'Noto Sans JP Fallback';
-          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          font-family: 'Noto Sans JP';
+          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFowAIO2lZ9hgI2.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
         }
         
         @font-face {
-          font-family: 'Noto Sans Thai Fallback';
-          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          font-family: 'Noto Sans Thai';
+          src: url('https://fonts.gstatic.com/s/notosansthai/v17/iJWnBQcP9n9z1aPwQwb9J3JqJ8g.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0E00-0E7F;
         }
-
+        
         @font-face {
           font-family: 'Work Sans';
-          src: url('data:font/woff2;base64,d09GMgABAAAAAA...') format('woff2');
+          src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jow.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
         
         * {
@@ -106,13 +109,13 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         }
         
         body {
-          /* Primary font stack with fallbacks */
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans JP Fallback', 'Noto Sans Thai Fallback', 
+          /* Enhanced font stack with proper Unicode ranges */
+          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
                        'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', 'MS Gothic', 'MS Mincho',
                        'Takao Gothic', 'Takao Mincho', 'IPAexGothic', 'IPAexMincho',
                        'IPAPGothic', 'IPAPMincho', 'IPAUIGothic', 'IPAUIMincho',
                        'Apple Gothic', 'Apple LiGothic', 'Apple LiSung', 'Apple Myungjo',
-                       'Work Sans', Roboto, Arial, sans-serif;
+                       'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Arial', sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -121,23 +124,36 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           -moz-osx-font-smoothing: grayscale;
           font-feature-settings: 'liga' 1, 'kern' 1;
           text-rendering: optimizeLegibility;
-          /* Ensure proper text rendering for CJK characters */
-          text-rendering: optimizeLegibility;
-          -webkit-font-feature-settings: 'liga' 1, 'kern' 1;
-          -moz-font-feature-settings: 'liga' 1, 'kern' 1;
-          font-feature-settings: 'liga' 1, 'kern' 1;
+          /* Ensure proper text rendering for CJK and Thai characters */
+          -webkit-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+          -moz-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         /* Specific styling for Japanese text */
         .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Noto Sans JP Fallback', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
           line-height: 1.6;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         /* Specific styling for Thai text */
         .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Noto Sans Thai Fallback', 'Segoe UI', Arial, sans-serif;
+          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
           line-height: 1.5;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Specific styling for Korean text */
+        .ko-text, [lang="ko"] {
+          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+          line-height: 1.6;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Ensure proper rendering for all text */
+        h1, h2, h3, h4, h5, h6, p, span, div {
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         @media print {
@@ -171,14 +187,17 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--disable-gpu-sandbox',
           '--disable-software-rasterizer',
           '--disable-dev-shm-usage',
-          '--lang=en-US,en,ja,th',
+          '--lang=en-US,en,ja,th,fr',
           '--enable-font-antialiasing',
           '--force-color-profile=srgb',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
           '--disable-renderer-backgrounding',
           '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection'
+          '--disable-ipc-flooding-protection',
+          '--enable-blink-features=CSSFontMetrics',
+          '--enable-font-antialiasing',
+          '--enable-font-subpixel-positioning'
         ],
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
@@ -193,9 +212,11 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           '--disable-setuid-sandbox',
           '--font-render-hinting=none',
           '--disable-font-subpixel-positioning',
-          '--lang=en-US,en,ja,th',
+          '--lang=en-US,en,ja,th,fr',
           '--enable-font-antialiasing',
-          '--force-color-profile=srgb'
+          '--force-color-profile=srgb',
+          '--enable-blink-features=CSSFontMetrics',
+          '--enable-font-subpixel-positioning'
         ]
       });
     }
@@ -207,7 +228,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     await page.setExtraHTTPHeaders({
       'Accept-Charset': 'utf-8',
       'Accept-Encoding': 'gzip, deflate',
-      'Accept-Language': 'en-US,en;q=0.9,ja;q=0.8,th;q=0.8'
+      'Accept-Language': 'en-US,en;q=0.9,ja;q=0.8,th;q=0.8,fr;q=0.7'
     });
     
     // Set content and wait for network idle and fonts to load
@@ -239,8 +260,6 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     // It's often better to throw a custom error or re-throw if you can't handle it
     throw new Error(`PDF generation failed: ${(error as Error).message}`);
   }
-  // console.warn("PDF generation with Puppeteer is currently disabled due to missing dependencies.");
-  // return Promise.reject(new Error("PDF generation (Puppeteer) is disabled."));
 }
 
 /**

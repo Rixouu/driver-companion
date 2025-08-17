@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { FileText, User, Car, DollarSign, Eye, ArrowLeft, ArrowRight, Send, Save } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
@@ -91,9 +91,9 @@ const formSchema = z.object({
   passenger_count: z.union([
     z.coerce.number().int().nullable(),
     z.literal('none').transform(() => null),
-    z.literal('').transform(() => null),
     z.literal('undefined').transform(() => null)
   ]).optional().nullable(),
+  display_currency: z.string().optional().default('JPY'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -225,20 +225,21 @@ export default function QuotationFormRefactored({
       billing_city: initialData?.billing_city || '',
       billing_state: initialData?.billing_state || '',
       billing_postal_code: initialData?.billing_postal_code || '',
-      billing_country: initialData?.billing_country || 'Thailand',
+      billing_country: initialData?.billing_country || '',
       service_type: initialData?.service_type_id || '',
-      vehicle_category: '',
+      vehicle_category: initialData?.vehicle_category || '',
       vehicle_type: initialData?.vehicle_type || '',
-      pickup_date: initialData?.pickup_date ? new Date(initialData.pickup_date) : undefined,
+      pickup_date: initialData?.pickup_date ? parseISO(initialData.pickup_date) : undefined,
       pickup_time: initialData?.pickup_time || '',
       duration_hours: initialData?.duration_hours || 1,
       service_days: initialData?.service_days || 1,
-      hours_per_day: initialData?.hours_per_day || 1,
+      hours_per_day: initialData?.hours_per_day || null,
       discount_percentage: initialData?.discount_percentage || 0,
       tax_percentage: initialData?.tax_percentage || 0,
       merchant_notes: initialData?.merchant_notes || '',
       customer_notes: initialData?.customer_notes || '',
       passenger_count: initialData?.passenger_count || null,
+      display_currency: initialData?.display_currency || 'JPY',
     },
   });
 
@@ -331,8 +332,8 @@ export default function QuotationFormRefactored({
 
       const input: CreateQuotationInput = {
         title: formData.title || '',
-        customer_email: formData.customer_email,
         customer_name: formData.customer_name || undefined,
+        customer_email: formData.customer_email || '',
         customer_phone: formData.customer_phone || undefined,
         billing_company_name: formData.billing_company_name || undefined,
         billing_tax_number: formData.billing_tax_number || undefined,
@@ -342,22 +343,22 @@ export default function QuotationFormRefactored({
         billing_state: formData.billing_state || undefined,
         billing_postal_code: formData.billing_postal_code || undefined,
         billing_country: formData.billing_country || undefined,
-        // Use the effectiveServiceType which includes the packageFallbackServiceType for packages
-        service_type_id: primaryServiceItem?.service_type_id || formData.service_type || effectiveServiceType,
+        service_type_id: primaryServiceItem?.service_type_id || formData.service_type || '',
         vehicle_category: primaryServiceItem?.vehicle_category || formData.vehicle_category || undefined,
-        vehicle_type: primaryServiceItem?.vehicle_type || formData.vehicle_type || 'Standard Vehicle',
+        vehicle_type: primaryServiceItem?.vehicle_type || formData.vehicle_type || '',
         pickup_date: primaryServiceItem?.pickup_date || (formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined),
         pickup_time: primaryServiceItem?.pickup_time || formData.pickup_time || undefined,
         duration_hours: primaryServiceItem?.duration_hours || formData.duration_hours,
         service_days: primaryServiceItem?.service_days || formData.service_days,
-        hours_per_day: primaryServiceItem?.hours_per_day || formData.hours_per_day,
+        hours_per_day: primaryServiceItem?.hours_per_day || formData.hours_per_day || undefined,
+        passenger_count: formData.passenger_count || undefined,
         merchant_notes: formData.merchant_notes || undefined,
+        customer_notes: formData.customer_notes || undefined,
         discount_percentage: formData.discount_percentage,
         tax_percentage: formData.tax_percentage,
         status: sendToCustomer ? 'sent' as QuotationStatus : 'draft' as QuotationStatus,
-        passenger_count: formData.passenger_count,
         currency: 'JPY',
-        display_currency: 'JPY',
+        display_currency: formData.display_currency || 'JPY',
         // Package fields
         selected_package_id: selectedPackage?.id || undefined,
         selected_package_name: selectedPackage?.name || undefined,

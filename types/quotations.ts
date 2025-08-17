@@ -6,7 +6,8 @@ export type QuotationStatus =
   | "approved"
   | "rejected"
   | "expired"
-  | "converted";
+  | "converted"
+  | "paid";
 
 // Added ServiceTypeInfo here
 export interface ServiceTypeInfo {
@@ -79,6 +80,7 @@ export interface Quotation {
   updated_at: string;
   rejected_reason?: string;
   quote_number: number;
+  booking_created_at?: string | null;
 
   // Package and Promotion fields
   selected_package_id?: string | null;
@@ -91,6 +93,12 @@ export interface Quotation {
   selected_promotion_code?: string | null;
   promotion_discount?: number;
   time_based_adjustment?: number;
+
+  // Payment fields
+  payment_amount?: number | null;
+  payment_method?: string | null;
+  payment_date?: string | null;
+  receipt_url?: string | null;
 
   // Joined customer data (default Supabase behavior)
   customers?: {

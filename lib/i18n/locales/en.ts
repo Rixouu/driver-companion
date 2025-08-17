@@ -1837,6 +1837,11 @@ export const en: TranslationValue = {
       km: "km",
       min: "min"
     },
+    defaultLabels: {
+      noLocationData: "No location data available",
+      noRouteData: "No route information available",
+      noWeatherData: "No weather forecast available"
+    },
     status: {
       publish: "Published",
       pending: "Pending",
@@ -1967,7 +1972,12 @@ export const en: TranslationValue = {
         discount: "Discount",
         address: "Address",
         cityState: "City/State/Postal",
-        billingCompany: "Billing Company"
+        billingCompany: "Billing Company",
+        discountAmount: "Discount Amount",
+        promotion: "Promotion",
+        promotionDiscount: "Promotion Discount",
+        tax: "Tax",
+        taxAmount: "Tax Amount"
       },
       actions: {
         navigateToPickup: "Navigate to Pickup",
@@ -3050,7 +3060,8 @@ export const en: TranslationValue = {
       approved: "Approved", 
       rejected: "Rejected",
       expired: "Expired",
-      converted: "Converted to Booking"
+      converted: "Converted to Booking",
+      paid: "Paid"
     },
     actions: {
       view: "View",
@@ -3063,6 +3074,7 @@ export const en: TranslationValue = {
       print: "Print",
       download: "Download PDF",
       downloadPdf: "Download PDF",
+      downloadQuotation: "Download Quotation",
       email: "Email Quotation",
       emailQuote: "Email Quotation",
       generating: "Generating..."
@@ -3143,7 +3155,10 @@ export const en: TranslationValue = {
       },
       payment: {
         title: "Payment Received",
-        description: "Customer has completed payment for the invoice"
+        description: "Customer has completed payment for the invoice",
+        sendPaymentLink: "Send Payment Link",
+        waitPayment: "Wait for payment",
+        paymentCompleted: "Payment completed"
       },
       booking: {
         title: "Booking Created",
@@ -3152,8 +3167,10 @@ export const en: TranslationValue = {
       actions: {
         sendReminder: "Send Reminder",
         generateInvoice: "Generate Invoice",
-        sendPaymentLink: "Send Payment Link",
-        createBooking: "Create Booking"
+        sendPaymentLink: "Send payment link to client",
+        waitPayment: "Wait for payment",
+        paymentCompleted: "Payment completed",
+        createBooking: "Create booking"
       },
       nextStep: "Next step: {step}",
       steps: {
@@ -3162,6 +3179,8 @@ export const en: TranslationValue = {
         sendReminder: "Send reminder to customer",
         generateInvoice: "Generate invoice",
         sendPaymentLink: "Send payment link to client",
+        waitPayment: "Wait for payment",
+        paymentCompleted: "Payment completed",
         createBooking: "Create booking"
       }
     },

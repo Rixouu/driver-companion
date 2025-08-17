@@ -24,7 +24,8 @@ export function QuotationStatusFilter({
     { value: 'approved', label: t('quotations.status.approved') },
     { value: 'rejected', label: t('quotations.status.rejected') },
     { value: 'expired', label: t('quotations.status.expired') },
-    { value: 'converted', label: t('quotations.status.converted') }
+    { value: 'converted', label: t('quotations.status.converted') },
+    { value: 'paid', label: t('quotations.status.paid') }
   ];
 
   const getStatusStyles = (status: QuotationStatus | 'all', isSelected: boolean) => {

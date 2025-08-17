@@ -2069,12 +2069,17 @@ export type Database = {
           merchant_notes: string | null
           package_discount: number | null
           passenger_count: number | null
+          payment_amount: number | null
           payment_completed_at: string | null
+          payment_date: string | null
+          payment_link_sent_at: string | null
+          payment_method: string | null
           pickup_date: string | null
           pickup_location: string | null
           pickup_time: string | null
           promotion_discount: number | null
           quote_number: number
+          receipt_url: string | null
           reference_code: string | null
           rejected_at: string | null
           rejected_by: string | null
@@ -2136,12 +2141,17 @@ export type Database = {
           merchant_notes?: string | null
           package_discount?: number | null
           passenger_count?: number | null
+          payment_amount?: number | null
           payment_completed_at?: string | null
+          payment_date?: string | null
+          payment_link_sent_at?: string | null
+          payment_method?: string | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
           promotion_discount?: number | null
           quote_number?: number
+          receipt_url?: string | null
           reference_code?: string | null
           rejected_at?: string | null
           rejected_by?: string | null
@@ -2203,12 +2213,17 @@ export type Database = {
           merchant_notes?: string | null
           package_discount?: number | null
           passenger_count?: number | null
+          payment_amount?: number | null
           payment_completed_at?: string | null
+          payment_date?: string | null
+          payment_link_sent_at?: string | null
+          payment_method?: string | null
           pickup_date?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
           promotion_discount?: number | null
           quote_number?: number
+          receipt_url?: string | null
           reference_code?: string | null
           rejected_at?: string | null
           rejected_by?: string | null

@@ -101,6 +101,12 @@ function getQuotationStatusBadge(status: string, t: (key: string, options?: any)
           {t('quotations.status.converted')}
         </Badge>
       );
+    case 'paid':
+      return (
+        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-900/20">
+          {t('quotations.status.paid')}
+        </Badge>
+      );
     case 'expired':
       return (
         <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 dark:bg-orange-900/20">

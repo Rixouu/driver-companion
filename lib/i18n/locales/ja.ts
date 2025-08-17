@@ -1823,6 +1823,11 @@ export const ja: TranslationValue = {
       km: "km",
       min: "分"
     },
+    defaultLabels: {
+      noLocationData: "位置情報が利用できません",
+      noRouteData: "ルート情報が利用できません",
+      noWeatherData: "天気予報が利用できません"
+    },
     status: {
       publish: "公開済み",
       pending: "保留中",
@@ -1953,7 +1958,12 @@ export const ja: TranslationValue = {
         discount: "割引",
         address: "住所",
         cityState: "市区町村/都道府県/郵便番号",
-        billingCompany: "請求先会社"
+        billingCompany: "請求先会社",
+        discountAmount: "割引額",
+        promotion: "プロモーション",
+        promotionDiscount: "プロモーション割引",
+        tax: "税金",
+        taxAmount: "税額"
       },
       actions: {
         navigateToPickup: "迎車場所へナビゲート",
@@ -3025,7 +3035,8 @@ export const ja: TranslationValue = {
       approved: "承認済み",
       rejected: "拒否済み",
       expired: "期限切れ",
-      converted: "予約に変換済み"
+      converted: "予約に変換済み",
+      paid: "支払い済み"
     },
     actions: {
       view: "表示",
@@ -3038,6 +3049,7 @@ export const ja: TranslationValue = {
       print: "印刷",
       download: "PDFをダウンロード",
       downloadPdf: "PDFをダウンロード",
+      downloadQuotation: "見積書をダウンロード",
       email: "見積をメール送信",
       emailQuote: "見積をメール送信",
       generating: "生成中..."
@@ -3118,11 +3130,15 @@ export const ja: TranslationValue = {
       },
       payment: {
         title: "支払い完了",
-        description: "顧客が請求書の支払いを完了しました"
+        description: "お客様が請求書の支払いを完了しました",
+        sendPaymentLink: "支払いリンクを送信",
+        waitPayment: "支払い待ち",
+        paymentCompleted: "支払い完了"
       },
       booking: {
-        title: "予約作成完了",
-        description: "見積に基づいてサービス予約が作成されました"
+        title: "予約作成",
+        description: "見積もりに基づいてサービス予約が作成されました",
+        createBooking: "予約作成"
       },
       actions: {
         sendReminder: "リマインダーを送信",
@@ -3137,6 +3153,8 @@ export const ja: TranslationValue = {
         sendReminder: "顧客にリマインダーを送信",
         generateInvoice: "請求書を生成",
         sendPaymentLink: "顧客に支払いリンクを送信",
+        waitPayment: "支払い待ち",
+        paymentCompleted: "支払い完了",
         createBooking: "予約を作成"
       }
     },

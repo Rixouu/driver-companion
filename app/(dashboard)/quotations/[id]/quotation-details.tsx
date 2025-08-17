@@ -38,7 +38,8 @@ import {
   Phone,
   DollarSign,
   Calculator,
-  Eye
+  Eye,
+  Receipt
 } from 'lucide-react';
 import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromotion, PackageType } from '@/types/quotations';
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
@@ -47,7 +48,7 @@ import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button
 import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';
 import { useQuotationMessages } from '@/lib/hooks/useQuotationMessages';
 import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
-import { QuotationMessageBlock } from '@/components/quotations/quotation-message-block';
+import QuotationMessageBlock from '@/components/quotations/quotation-message-block';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -424,6 +425,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       quotation.status === 'sent' ? "text-blue-500 border-blue-200 bg-blue-50" :
                       quotation.status === 'rejected' ? "text-red-500 border-red-200 bg-red-50" :
                       quotation.status === 'converted' ? "text-purple-500 border-purple-200 bg-purple-50" :
+                      quotation.status === 'paid' ? "text-green-600 border-green-200 bg-green-50" :
                       "text-gray-500 border-gray-200 bg-gray-50"
                     }>
                       {t(`quotations.status.${quotation.status}`)}
@@ -435,7 +437,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               {/* Share and Edit buttons moved to top right */}
             <div className="flex flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
-                {isOrganizationMember && !['approved', 'rejected'].includes(quotation.status) && (
+                {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && (
                   <Button variant="outline" asChild className="gap-2">
                     <Link href={`/quotations/${quotation.id}/edit`}>
                       <Edit className="h-4 w-4" />
@@ -445,6 +447,54 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 )}
               </div>
             </div>
+            
+            {/* Download buttons for paid status */}
+            {quotation.status === 'paid' && (
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Download Invoice
+                </Button>
+                {quotation.receipt_url && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open(quotation.receipt_url!, '_blank')}
+                    className="gap-2"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    Download Receipt
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Download buttons for converted status */}
+            {quotation.status === 'converted' && (
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Download Invoice
+                </Button>
+                {quotation.receipt_url && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open(quotation.receipt_url!, '_blank')}
+                    className="gap-2"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    Download Receipt
+                  </Button>
+                )}
+              </div>
+            )}
             
                       {/* Next Step Indicator */}
           {(() => {
@@ -485,6 +535,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 <>
                 <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 </>
+              ) : quotation.status === 'paid' || quotation.status === 'converted' ? (
+                // No buttons for paid or converted status - they have download buttons above
+                null
               ) : (
                 <>
                 <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
@@ -954,7 +1007,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               created_at: quotation.created_at,
               expiry_date: quotation.expiry_date,
               last_sent_at: (quotation as any).last_sent_at,
-              reminder_sent_at: (quotation as any).reminder_sent_at
+              reminder_sent_at: (quotation as any).reminder_sent_at,
+              booking_created_at: (quotation as any).booking_created_at
             }}
             onRefresh={() => router.refresh()}
           />
@@ -972,10 +1026,18 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               rejected_at: (quotation as any).rejected_at,
               invoice_generated_at: (quotation as any).invoice_generated_at,
               payment_completed_at: (quotation as any).payment_completed_at,
-              booking_created_at: (quotation as any).booking_created_at,
+              payment_link_sent_at: (quotation as any).payment_link_sent_at,
+              booking_created_at: (quotation as any).booking_created_at || (quotation.status === 'converted' ? quotation.updated_at : undefined),
               quote_number: quotation.quote_number,
+              customer_email: quotation.customer_email,
+              customer_name: quotation.customer_name,
+              amount: quotation.amount,
+              total_amount: quotation.total_amount,
+              currency: quotation.currency,
+              receipt_url: (quotation as any).receipt_url,
             }}
             onSendQuotation={quotation.status === 'draft' ? handleSend : undefined}
+            onRefresh={() => router.refresh()}
             onSendReminder={async () => {
               setIsLoading(true);
               setProgressOpen(true);
@@ -1186,13 +1248,40 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 setIsLoading(false);
               }
             }}
-            onCreateBooking={() => {
-              // TODO: Implement booking creation
-              toast({
-                title: "Booking creation coming soon",
-                description: "This feature will be available in the next update.",
-                variant: "default",
-              });
+            onCreateBooking={async () => {
+              try {
+                // Create booking from quotation
+                const response = await fetch('/api/quotations/convert', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    quotation_id: quotation.id
+                  })
+                });
+                
+                if (response.ok) {
+                  const result = await response.json();
+                  
+                  // Show success message
+                  toast({
+                    title: "Successfully converted to booking",
+                    description: `Booking #${result.booking_id} has been created. Redirecting...`,
+                  });
+                  
+                  // Redirect to the new booking page
+                  router.push(`/bookings/${result.booking_id}`);
+                } else {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error || 'Failed to convert to booking');
+                }
+              } catch (error) {
+                console.error('Error converting to booking:', error);
+                toast({
+                  title: "Error",
+                  description: error instanceof Error ? error.message : "Failed to convert to booking",
+                  variant: "destructive",
+                });
+              }
             }}
             isOrganizationMember={isOrganizationMember}
           />

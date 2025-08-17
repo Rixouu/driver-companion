@@ -450,7 +450,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Download buttons for paid status */}
             {quotation.status === 'paid' && (
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
                 <Button 
                   variant="outline" 
                   onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
@@ -474,7 +474,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Download buttons for converted status */}
             {quotation.status === 'converted' && (
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
                 <Button 
                   variant="outline" 
                   onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
@@ -529,27 +529,26 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           })()}
             
             {/* Action Buttons Row */}
-            <div className="flex flex-wrap gap-3 pt-2 border-t">
-              {/* Primary Action Buttons */}
-              {quotation.status === 'approved' ? (
-                <>
-                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
-                </>
-              ) : quotation.status === 'paid' || quotation.status === 'converted' ? (
-                // No buttons for paid or converted status - they have download buttons above
-                null
-              ) : (
-                <>
-                <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
-              {isOrganizationMember && quotation.status === 'draft' && (
-                <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                  <Mail className="h-4 w-4" />
-                  {t('quotations.actions.send')}
-                </Button>
-                  )}
-                </>
-              )}
-            </div>
+            {quotation.status !== 'paid' && quotation.status !== 'converted' && (
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
+                {/* Primary Action Buttons */}
+                {quotation.status === 'approved' ? (
+                  <>
+                  <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
+                  </>
+                ) : (
+                  <>
+                  <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
+                {isOrganizationMember && quotation.status === 'draft' && (
+                  <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+                    <Mail className="h-4 w-4" />
+                    {t('quotations.actions.send')}
+                  </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

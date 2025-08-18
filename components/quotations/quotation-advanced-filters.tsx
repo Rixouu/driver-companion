@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,16 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Filter, 
-  X, 
-  Search, 
-  Calendar, 
-  Currency, 
-  RefreshCw,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import { Filter, X, Search, Currency, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { DateRange } from 'react-day-picker';
 import { QuotationStatus } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
@@ -33,7 +24,7 @@ interface QuotationAdvancedFiltersProps {
     amountMin?: number;
     amountMax?: number;
   };
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: Record<string, unknown>) => void;
   onClearFilters: () => void;
 }
 
@@ -43,7 +34,6 @@ export function QuotationAdvancedFilters({
   onClearFilters
 }: QuotationAdvancedFiltersProps) {
   const { t } = useI18n();
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
@@ -71,7 +61,7 @@ export function QuotationAdvancedFilters({
     setActiveFilterCount(count);
   }, [currentFilters]);
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: string, value: unknown) => {
     setLocalFilters(prev => ({ ...prev, [key]: value }));
   };
 

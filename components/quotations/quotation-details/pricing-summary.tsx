@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Globe, Calculator, Package, Gift } from 'lucide-react';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
@@ -28,10 +27,7 @@ interface PricingSummaryProps {
   selectedPromotion?: PricingPromotion | null;
   discountPercentage?: number;
   taxPercentage?: number;
-  selectedCurrency: string;
-  onCurrencyChange: (currency: string) => void;
   formatCurrency: (amount: number | string | undefined, currency?: string) => string;
-  appliedTimeBasedRules?: TimeBasedRule[];
 }
 
 export function PricingSummary({
@@ -40,12 +36,8 @@ export function PricingSummary({
   selectedPromotion,
   discountPercentage = 0,
   taxPercentage = 0,
-  selectedCurrency,
-  onCurrencyChange,
-  formatCurrency,
-  appliedTimeBasedRules = []
+  formatCurrency
 }: PricingSummaryProps) {
-  const { t } = useI18n();
 
   // Calculate totals exactly like the PDF generator
   const calculateTotals = () => {

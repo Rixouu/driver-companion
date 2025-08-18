@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut, User as UserIcon } from "lucide-react"
+import { LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { useAuth } from "@/components/providers/auth-provider"
 
@@ -22,7 +22,6 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
   const router = useRouter()
-  const { user: authUser, loading, error } = useAuth()
   const initials = user.email?.charAt(0).toUpperCase() || "U"
 
   const handleLogout = async () => {

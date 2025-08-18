@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Check, ChevronsUpDown, Plus, Wrench } from "lucide-react"
+import { ChevronsUpDown, Plus, Wrench } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { cn } from "@/lib/utils/styles"
+
 import { useI18n } from "@/lib/i18n/context"
 import { getMaintenanceTaskTemplates, getMaintenanceTaskTemplateCategories } from "@/lib/services/maintenance-templates"
 import type { MaintenanceTaskTemplate } from "@/lib/services/maintenance-templates"

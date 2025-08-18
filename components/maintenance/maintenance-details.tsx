@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { ArrowLeft, Pencil, CheckCircle, Calendar, Clock, DollarSign, Wrench, AlertTriangle, Tag, BarChart, Car, Hash, Truck, FileText, Repeat, AlertCircle } from "lucide-react"
@@ -15,9 +15,6 @@ import { useRouter } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 
 interface MaintenanceDetailsProps {
   task: MaintenanceTask
@@ -28,7 +25,7 @@ interface ExtendedVehicle {
   id: string;
   name: string;
   plate_number: string;
-  image_url?: string;
+  image_url?: string | null;
   brand?: string;
   model?: string;
 }
@@ -549,7 +546,7 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
                   </h3>
                 </div>
                 <div>
-                  <Badge variant={getStatusVariant(task.status)}>
+                  <Badge variant="default">
                     {t(`maintenance.status.${task.status}`)}
                   </Badge>
                 </div>
@@ -637,63 +634,4 @@ ${t('maintenance.schedule.id')}: ${recurringInfo.scheduleId}
   );
 }
 
-function getStatusVariant(status: string) {
-  switch (status) {
-    case "completed":
-      return "success"
-    case "in_progress":
-      return "warning"
-    case "scheduled":
-    case "pending":
-      return "secondary"
-    case "overdue":
-      return "destructive"
-    default:
-      return "default"
-  }
-}
-
-function getPriorityVariant(priority: string) {
-  switch (priority) {
-    case "high":
-      return "destructive"
-    case "medium":
-      return "warning"
-    case "low":
-      return "secondary"
-    default:
-      return "default"
-  }
-}
-
-function getProgressValue(status: string): number {
-  switch (status) {
-    case "completed":
-      return 100
-    case "in_progress":
-      return 50
-    case "scheduled":
-    case "pending":
-      return 25
-    case "overdue":
-      return 25
-    default:
-      return 0
-  }
-}
-
-function getProgressDescription(status: string, t: any): string {
-  switch (status) {
-    case "completed":
-      return t("maintenance.details.progressStatus.completed")
-    case "in_progress":
-      return t("maintenance.details.progressStatus.inProgress")
-    case "scheduled":
-    case "pending":
-      return t("maintenance.details.progressStatus.scheduled")
-    case "overdue":
-      return t("maintenance.details.progressStatus.overdue")
-    default:
-      return ""
-  }
-} 
+ 

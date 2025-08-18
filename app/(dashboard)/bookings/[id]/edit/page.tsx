@@ -36,7 +36,8 @@ import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import Script from 'next/script'
-import { getDrivers } from '@/lib/services/drivers'
+// Fetch drivers via a server action to keep service client server-side
+import { getDriversAction } from '@/app/actions/drivers'
 import { getVehicles } from '@/lib/services/vehicles'
 import type { Driver } from '@/types/drivers'
 import type { Vehicle } from '@/types/vehicles'
@@ -137,8 +138,8 @@ export default function EditBookingPage() {
           coupon_discount_percentage: loadedBooking.coupon_discount_percentage?.toString() || ''
         })
 
-        // Fetch Drivers
-        const drivers = await getDrivers(); 
+        // Fetch Drivers via server action (server-side)
+        const drivers = await getDriversAction(); 
         setAvailableDrivers(drivers);
 
         // Fetch Vehicles
@@ -351,8 +352,8 @@ export default function EditBookingPage() {
 
   return (
     <>
-      <Script 
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,directions`}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,directions&loading=async`}
         strategy="afterInteractive"
       />
     

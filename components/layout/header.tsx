@@ -6,37 +6,17 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
-import { Gauge, LogOut, Moon, Globe, Bell, ArrowLeft } from "lucide-react"
-import { Separator } from "@/components/ui/separator"
-import { useTheme } from "next-themes"
-import { createClient } from "@/lib/supabase"
+import { ArrowLeft } from "lucide-react"
+
 import { useRouter } from "next/navigation"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useI18n } from "@/lib/i18n/context"
-import { MainNav } from "./main-nav"
-import { MobileNav } from "./mobile-nav"
 
 export function Header() {
   const pathname = usePathname()
   const { user, loading } = useAuth()
-  const { theme, setTheme } = useTheme()
   const router = useRouter()
-  const { t, language, setLanguage } = useI18n()
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    if (!supabase) {
-      console.error("Supabase client not available for logout in Header")
-      return
-    }
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-    router.refresh()
-  }
-
-  const handleThemeToggle = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
-  }
+  const { t } = useI18n()
 
   // Determine if we should show the back button and where it should go
   const getBackButtonInfo = () => {

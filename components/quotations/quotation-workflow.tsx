@@ -43,6 +43,7 @@ interface WorkflowStep {
     onClick: () => void;
     variant?: 'default' | 'outline' | 'destructive';
     disabled?: boolean;
+    icon?: React.ReactNode; // Added icon to action
   };
   warning?: string;
 }
@@ -97,6 +98,9 @@ export function QuotationWorkflow({
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
   const [includeDetails, setIncludeDetails] = useState(true);
   const [paymentLink, setPaymentLink] = useState<string>("");
+  
+  // Convert to Booking Loading State
+  const [isConvertingToBooking, setIsConvertingToBooking] = useState(false);
   
   // Mark As Paid Dialog State
   const [isMarkAsPaidDialogOpen, setIsMarkAsPaidDialogOpen] = useState(false);
@@ -537,10 +541,13 @@ export function QuotationWorkflow({
           date: quotation.booking_created_at,
           ...(quotation.status === 'paid' && !quotation.booking_created_at && isOrganizationMember ? {
             action: {
-              label: 'Convert to Booking',
+              label: isConvertingToBooking ? 'Converting...' : 'Convert to Booking',
               onClick: async () => {
+                if (isConvertingToBooking) return; // Prevent multiple clicks
+                
                 try {
                   // Create booking from quotation
+                  setIsConvertingToBooking(true);
                   const response = await fetch('/api/quotations/convert', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -557,16 +564,24 @@ export function QuotationWorkflow({
                       onCreateBooking();
                     }
                     
-                    // Show success message
-                    toast({
-                      title: "Successfully converted to booking",
-                      description: `Booking #${result.booking_id} has been created`,
-                      variant: "default",
-                    });
+                    // Show success message based on number of bookings created
+                    if (result.total_bookings > 1) {
+                      toast({
+                        title: "Successfully converted to bookings",
+                        description: `${result.total_bookings} bookings have been created from this quotation`,
+                        variant: "default",
+                      });
+                    } else {
+                      toast({
+                        title: "Successfully converted to booking",
+                        description: `Booking has been created successfully`,
+                        variant: "default",
+                      });
+                    }
                     
-                    // Redirect to the booking page instead of reloading
-                    if (result.booking_id) {
-                      window.location.href = `/bookings/${result.booking_id}`;
+                    // Redirect to the first booking page
+                    if (result.booking_ids && result.booking_ids.length > 0) {
+                      window.location.href = `/bookings/${result.booking_ids[0]}`;
                     } else {
                       // Fallback: refresh the page to show updated status
                       window.location.reload();
@@ -582,10 +597,13 @@ export function QuotationWorkflow({
                     description: error instanceof Error ? error.message : "Please try again later",
                     variant: "destructive",
                   });
+                } finally {
+                  setIsConvertingToBooking(false);
                 }
               },
               variant: 'default' as const,
-              disabled: false
+              disabled: isConvertingToBooking,
+              icon: isConvertingToBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined
             }
           } : {})
         }
@@ -716,6 +734,7 @@ export function QuotationWorkflow({
                               disabled={step.action.disabled}
                             >
                               {step.action.label}
+                              {step.action.icon}
                             </Button>
                           </div>
                         )}

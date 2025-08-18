@@ -31,7 +31,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Repeat, Info } from "lucide-react"
+import { CalendarIcon, Info } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils/styles"
 import { createMaintenanceScheduleAction } from "@/app/(dashboard)/maintenance/actions"
@@ -180,7 +180,7 @@ export function MaintenanceScheduleForm() {
   const handleTemplateSelect = (template: MaintenanceTaskTemplate) => {
     form.setValue('title', template.title)
     form.setValue('description', template.description)
-    form.setValue('priority', template.priority)
+    form.setValue('priority', template.priority as "low" | "medium" | "high")
     form.setValue('estimated_duration', template.estimated_duration.toString())
     form.setValue('estimated_cost', template.estimated_cost.toString())
     
@@ -294,9 +294,9 @@ export function MaintenanceScheduleForm() {
       router.push("/maintenance");
       router.refresh();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Submission error:", error);
-      toast({ title: "Submission Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+      toast({ title: "Submission Failed", description: error instanceof Error ? error.message : "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

@@ -2,6 +2,8 @@
 
 import { createServiceClient } from "@/lib/supabase/service-client"
 import { revalidatePath } from "next/cache"
+import type { Driver } from "@/types/drivers"
+import { getDrivers as getDriversService } from "@/lib/services/drivers"
 
 /**
  * Unassigns a specific vehicle from a specific driver.
@@ -158,3 +160,17 @@ export async function unassignVehicleFromDriverAction(
     return { success: false, message: errorMessage };
   }
 } 
+
+/**
+ * Server action: fetch drivers list on the server to avoid using the service client in the browser.
+ */
+export async function getDriversAction(): Promise<Driver[]> {
+  try {
+    // Reuse existing service logic which uses the Supabase service client
+    const drivers = await getDriversService()
+    return drivers
+  } catch (error) {
+    console.error('Error in getDriversAction:', error)
+    return []
+  }
+}

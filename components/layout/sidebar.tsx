@@ -10,7 +10,7 @@ import {
   Car, 
   ClipboardCheck, 
   Settings, 
-  LogOut, 
+  LogOut,
   Wrench, 
   User,
   Calendar,

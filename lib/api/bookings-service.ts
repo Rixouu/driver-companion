@@ -583,7 +583,7 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     
     // Additional metadata
     notes: booking.notes || undefined,
-    meta: booking.wp_meta || undefined,
+    meta: booking.meta || booking.wp_meta || undefined, // Preserve both meta and wp_meta
     created_at: booking.created_at,
     updated_at: booking.updated_at,
   }
@@ -1151,10 +1151,8 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     console.log(`[DB] Raw booking data from database:`, {
       id: bookingData.id,
       wp_id: bookingData.wp_id,
-      billing_company_name: bookingData.billing_company_name,
-      billing_tax_number: bookingData.billing_tax_number,
-      coupon_code: bookingData.coupon_code,
-      coupon_discount_percentage: bookingData.coupon_discount_percentage,
+      meta: bookingData.meta,
+      service_name: bookingData.service_name,
       all_keys: Object.keys(bookingData)
     })
     
@@ -1163,15 +1161,9 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     
     console.log(`[DB] Mapped booking data:`, {
       id: mappedBooking.id,
-      billing_fields_exist: !!(
-        mappedBooking.billing_company_name || 
-        mappedBooking.billing_tax_number || 
-        mappedBooking.billing_city
-      ),
-      coupon_fields_exist: !!(
-        mappedBooking.coupon_code || 
-        mappedBooking.coupon_discount_percentage
-      ),
+      meta: mappedBooking.meta,
+      vehicle_type: mappedBooking.meta?.vehicle_type,
+      service_type_name: mappedBooking.meta?.service_type_name,
       all_keys: Object.keys(mappedBooking)
     })
     

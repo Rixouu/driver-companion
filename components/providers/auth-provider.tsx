@@ -12,7 +12,7 @@ interface AuthContextType {
   loading: boolean
   error: string | null
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<{ success: boolean; error?: string }>
+  signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
   clearAuthAndRedirect: () => Promise<void>
@@ -154,10 +154,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
+  const signUp = async (email: string, password: string, metadata?: Record<string, unknown>) => {
     try {
       setLoading(true)
-      const { data, error: signUpError } = await supabaseClient.auth.signUp({
+      const { error: signUpError } = await supabaseClient.auth.signUp({
         email,
         password,
         options: { data: metadata }

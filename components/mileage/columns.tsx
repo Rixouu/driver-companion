@@ -3,10 +3,8 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { Edit } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { useI18n } from "@/lib/i18n/context"
 import type { MileageLog } from "@/types"
 
 export const columns: ColumnDef<MileageLog>[] = [
@@ -48,8 +46,6 @@ export const columns: ColumnDef<MileageLog>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const router = useRouter()
-      const { t } = useI18n()
       const log = row.original
 
       return (
@@ -62,11 +58,12 @@ export const columns: ColumnDef<MileageLog>[] = [
                 toast.error("Invalid log data")
                 return
               }
-              router.push(`/vehicles/${log.vehicle_id}/mileage/${log.id}/edit`)
+              // Use window.location for navigation since we can't use useRouter in cell function
+              window.location.href = `/vehicles/${log.vehicle_id}/mileage/${log.id}/edit`
             }}
           >
             <Edit className="h-4 w-4" />
-            <span className="sr-only">{t('common.edit')}</span>
+            <span className="sr-only">Edit</span>
           </Button>
         </div>
       )

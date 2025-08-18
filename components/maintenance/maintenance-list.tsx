@@ -31,7 +31,6 @@ import { createClient } from "@/lib/supabase"
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -45,19 +44,18 @@ interface MaintenanceListProps {
   tasks: MaintenanceTask[]
   vehicles?: DbVehicle[]
   currentPage?: number
-  totalPages?: number
 }
 
 const ITEMS_PER_PAGE = 6
 
-export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1, totalPages = 1 }: MaintenanceListProps) {
+export function MaintenanceList({ tasks = [], vehicles = [], currentPage = 1 }: MaintenanceListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [view, setView] = useState<"list" | "grid">("grid")
   const debouncedSearch = useDebounce(search, 500)
-  const { t, language } = useI18n()
+  const { t } = useI18n()
   const supabase = createClient()
   const [tasksWithVehicles, setTasksWithVehicles] = useState(tasks)
   const [brandFilter, setBrandFilter] = useState("all")

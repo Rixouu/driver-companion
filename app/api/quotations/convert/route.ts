@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
     console.log('Supabase service client created successfully');
 
-    // Get the quotation details
+    // Get the quotation details with items
     const { data: quotation, error: quotationError } = await supabase
       .from('quotations')
       .select(`
@@ -71,94 +71,111 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the booking with service information stored in meta
-    console.log('Creating booking with data:', {
-      customer_name: quotation.customer_name,
-      customer_email: quotation.customer_email,
-      service_name: quotation.title || 'Service from Quotation',
-      date: quotation.pickup_date || new Date().toISOString().split('T')[0],
-      price_amount: quotation.amount || 0
-    });
-
-    // Calculate the final amount including discounts and taxes
-    // Use total_amount if available, otherwise calculate from base amount
-    const baseAmount = quotation.total_amount || quotation.amount || 0;
-    const discountPercentage = quotation.discount_percentage || 0;
-    const taxPercentage = quotation.tax_percentage || 0;
-    const promotionDiscount = quotation.promotion_discount || 0;
+    // Get quotation items (services)
+    const quotationItems = quotation.quotation_items || [];
     
-    // If total_amount is available, use it directly (it already includes all calculations)
-    // Otherwise, calculate from base amount
-    let finalAmount = baseAmount;
-    let discountAmount = 0;
-    let taxAmount = 0;
-    
-    if (!quotation.total_amount) {
-      // Calculate manually only if total_amount is not available
-      discountAmount = baseAmount * (discountPercentage / 100);
-      const subtotal = baseAmount - discountAmount - promotionDiscount;
-      taxAmount = subtotal * (taxPercentage / 100);
-      finalAmount = subtotal + taxAmount;
-    }
-
-    // Get pickup and dropoff locations from quotation
-    const pickupLocation = quotation.pickup_location || 'Location to be confirmed';
-    const dropoffLocation = quotation.dropoff_location || 'Location to be confirmed';
-
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert({
-        wp_id: `QUO-${quotation.quote_number || Math.floor(Math.random() * 1000000)}`,
-        customer_name: quotation.customer_name,
-        customer_email: quotation.customer_email,
-        customer_phone: quotation.customer_phone,
-        service_name: quotation.title || 'Service from Quotation',
-        service_id: quotation.service_type_id,
-        date: quotation.pickup_date || new Date().toISOString().split('T')[0],
-        time: quotation.pickup_time || '09:00:00',
-        status: 'confirmed',
-        price_amount: finalAmount,
-        price_currency: quotation.currency || 'JPY',
-        payment_status: 'Payment Complete',
-        payment_method: 'Omise',
-        pickup_location: pickupLocation,
-        dropoff_location: dropoffLocation,
-        distance: '0', // Default distance as string
-        duration: `${quotation.duration_hours || 1}h`,
-        notes: `Converted from quotation #${quotation.quote_number || quotation.id}`,
-        billing_company_name: quotation.billing_company_name,
-        billing_tax_number: quotation.billing_tax_number,
-        billing_street_name: quotation.billing_street_name,
-        billing_street_number: quotation.billing_street_number,
-        billing_city: quotation.billing_city,
-        billing_state: quotation.billing_state,
-        billing_postal_code: quotation.billing_postal_code,
-        billing_country: quotation.billing_country,
-        meta: {
-          quotation_id: quotation_id,
-          original_amount: baseAmount,
-          discount_percentage: discountPercentage,
-          discount_amount: discountAmount,
-          promotion_discount: promotionDiscount,
-          tax_percentage: taxPercentage,
-          tax_amount: taxAmount,
-          final_amount: finalAmount,
-          quotation_items: quotation.quotation_items,
-          conversion_date: new Date().toISOString()
-        }
-      })
-      .select()
-      .single();
-
-    if (bookingError) {
-      console.error('Error creating booking:', bookingError);
+    if (quotationItems.length === 0) {
       return NextResponse.json(
-        { error: 'Failed to create booking' },
-        { status: 500 }
+        { error: 'No services found in quotation' },
+        { status: 400 }
       );
     }
 
-    console.log('Booking created successfully:', booking.id);
+    console.log(`Creating ${quotationItems.length} bookings for services`);
+
+    const createdBookings = [];
+    const baseQuotationNumber = quotation.quote_number || Math.floor(Math.random() * 1000000);
+
+    // Create a booking for each service
+    for (let i = 0; i < quotationItems.length; i++) {
+      const item = quotationItems[i];
+      
+      // Generate service name based on the item description
+      const serviceName = item.description || `Service ${i + 1} from Quotation`;
+      
+      // Get vehicle information from the item
+      const vehicleType = item.vehicle_type || 'Standard Vehicle';
+      const vehicleCategory = item.vehicle_category || 'Standard';
+      
+      // Calculate item total (including time-based adjustments)
+      const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);
+      const timeAdjustment = item.time_based_adjustment ? 
+        itemBasePrice * (item.time_based_adjustment / 100) : 0;
+      const itemTotal = itemBasePrice + timeAdjustment;
+
+      // Calculate proportional amount for this service
+      const totalQuotationAmount = quotation.total_amount || quotation.amount || 0;
+      const proportionalAmount = quotationItems.length > 1 ? 
+        (itemTotal / totalQuotationAmount) * totalQuotationAmount : totalQuotationAmount;
+
+      // Get pickup and dropoff locations from quotation
+      const pickupLocation = quotation.pickup_location || 'Location to be confirmed - Please edit booking details';
+      const dropoffLocation = quotation.dropoff_location || 'Location to be confirmed - Please edit booking details';
+
+      // Create booking for this service
+      const { data: booking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          wp_id: `QUO-${baseQuotationNumber}-${i + 1}`,
+          customer_name: quotation.customer_name,
+          customer_email: quotation.customer_email,
+          customer_phone: quotation.customer_phone,
+          service_name: serviceName,
+          service_id: item.service_type_id || quotation.service_type_id,
+          date: item.pickup_date || quotation.pickup_date || new Date().toISOString().split('T')[0],
+          time: item.pickup_time || quotation.pickup_time || '09:00:00',
+          status: 'confirmed',
+          price_amount: proportionalAmount,
+          price_currency: quotation.currency || 'JPY',
+          payment_status: 'Payment Complete',
+          payment_method: 'Omise',
+          pickup_location: pickupLocation,
+          dropoff_location: dropoffLocation,
+          distance: '0', // Default distance as string
+          duration: `${item.duration_hours || quotation.duration_hours || 1}h`,
+          notes: `Converted from quotation #${quotation.quote_number || quotation.id} - Service ${i + 1} of ${quotationItems.length}. Please edit pickup/dropoff locations as needed.`,
+          billing_company_name: quotation.billing_company_name,
+          billing_tax_number: quotation.billing_tax_number,
+          billing_street_name: quotation.billing_street_name,
+          billing_street_number: quotation.billing_street_number,
+          billing_city: quotation.billing_city,
+          billing_state: quotation.billing_state,
+          billing_postal_code: quotation.billing_postal_code,
+          billing_country: quotation.billing_country,
+          meta: {
+            quotation_id: quotation_id,
+            service_index: i,
+            total_services: quotationItems.length,
+            original_item_amount: itemTotal,
+            proportional_amount: proportionalAmount,
+            vehicle_type: vehicleType,
+            vehicle_category: vehicleCategory,
+            service_type_id: item.service_type_id,
+            duration_hours: item.duration_hours,
+            service_days: item.service_days,
+            hours_per_day: item.hours_per_day,
+            time_based_adjustment: item.time_based_adjustment,
+            quotation_items: [item], // Store only this item
+            conversion_date: new Date().toISOString(),
+            is_multi_service_booking: quotationItems.length > 1
+          }
+        })
+        .select()
+        .single();
+
+      if (bookingError) {
+        console.error(`Error creating booking for service ${i + 1}:`, bookingError);
+        return NextResponse.json(
+          { error: `Failed to create booking for service ${i + 1}` },
+          { status: 500 }
+        );
+      }
+
+      createdBookings.push(booking);
+      console.log(`Booking created for service ${i + 1}:`, booking.id);
+    }
+
+    console.log(`Successfully created ${createdBookings.length} bookings`);
 
     // Update quotation status to 'converted'
     const { error: updateError } = await supabase
@@ -171,7 +188,7 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('Error updating quotation status:', updateError);
-      // Continue anyway as the booking was created
+      // Continue anyway as the bookings were created
     }
 
     // Create activity record
@@ -182,7 +199,8 @@ export async function POST(request: NextRequest) {
           quotation_id: quotation_id,
           action: 'converted_to_booking',
           details: { 
-            booking_id: booking.id,
+            booking_ids: createdBookings.map(b => b.id),
+            total_bookings: createdBookings.length,
             action_type: 'conversion',
             timestamp: new Date().toISOString()
           },
@@ -203,8 +221,9 @@ export async function POST(request: NextRequest) {
     console.log('Quotation conversion completed successfully');
     return NextResponse.json({
       success: true,
-      booking_id: booking.id,
-      message: 'Quotation successfully converted to booking'
+      booking_ids: createdBookings.map(b => b.id),
+      total_bookings: createdBookings.length,
+      message: `Quotation successfully converted to ${createdBookings.length} booking${createdBookings.length > 1 ? 's' : ''}`
     });
 
   } catch (error) {

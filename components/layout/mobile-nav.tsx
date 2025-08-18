@@ -2,29 +2,13 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { useI18n } from "@/lib/i18n/context"
 import { cn } from "@/lib/utils/styles"
-import {
-  Home,
-  Car,
-  Wrench,
-  ClipboardCheck,
-  BarChart,
-  Settings,
-  User,
-  Calendar,
-  ChevronUp,
-  Package,
-  Clipboard,
-  FileText,
-  LayoutDashboard,
-  Tag
-} from "lucide-react"
+import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 // Define interfaces for menu items
 interface MenuGroup {

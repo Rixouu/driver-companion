@@ -171,13 +171,9 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       // Booking summary section
       const summarySection = createSection(t('bookings.details.sections.summary') || 'Booking Summary', [
         { label: t('bookings.details.fields.bookingId') || 'Booking ID', value: `#${booking?.id || booking?.booking_id || 'N/A'}` },
-        { label: t('bookings.details.fields.orderTotal') || 'Order Total', value: booking?.price ? 
-          (booking.price.formatted || `${booking.price.currency || 'THB'} ${booking.price.amount || '8,200'}`) : 
-          'THB 8,200' },
         { label: t('bookings.details.fields.pickupDate') || 'Pickup Date', value: booking?.date || 'N/A' },
-        { label: t('bookings.details.fields.pickupTime') || 'Pickup Time', value: booking?.time || 'N/A' },
-        { label: t('bookings.details.fields.paymentMethod') || 'Payment Method', value: booking?.payment_method || 'N/A' },
-        { label: t('bookings.details.fields.paymentStatus') || 'Payment Status', value: booking?.payment_status || 'Pending' }
+        { label: t('bookings.details.fields.pickupTime') || 'Pickup Time', value: booking?.time || 'N/A' }
+        // Removed Order Total, Payment Method, and Payment Status as requested
       ])
       
       // Add each section to the container
@@ -210,11 +206,22 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       
       // Vehicle section
       const vehicleSection = createSection(t('bookings.details.sections.vehicle') || 'Vehicle', [
-        { label: t('bookings.details.fields.vehicle') || 'Vehicle', value: booking?.vehicle?.make ? 
-          `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin' },
+        { label: t('bookings.details.fields.vehicle') || 'Vehicle', value: 
+          // Use vehicle_type from meta (which comes directly from quotations table)
+          booking?.meta?.vehicle_type || 'Toyota Hiace Grand Cabin' },
         { label: t('bookings.details.fields.vehicleId') || 'Vehicle ID', value: `#${booking?.vehicle?.id || 'N/A'}` },
-        { label: t('bookings.details.fields.capacity') || 'Capacity', value: '10 passengers' },
-        { label: t('bookings.details.fields.serviceType') || 'Service Type', value: 'Airport Transfer' }
+        { label: t('bookings.details.fields.vehicleCategory') || 'Vehicle Category', value: 
+          // Use vehicle_category from meta
+          booking?.meta?.vehicle_category || 'Not specified' },
+        { label: t('bookings.details.fields.hoursPerDay') || 'Hours Per Day', value: 
+          // Use hours_per_day from meta
+          booking?.meta?.hours_per_day || 'Not specified' },
+        { label: t('bookings.details.fields.durationHours') || 'Duration (hrs)', value: 
+          // Use duration_hours from meta
+          booking?.meta?.duration_hours || 'Not specified' },
+        { label: t('bookings.details.fields.serviceType') || 'Service Type', value: 
+          // Get service_type_name from the first quotation item
+          booking?.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer' }
       ])
       
       // Route section

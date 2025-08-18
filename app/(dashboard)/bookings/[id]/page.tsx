@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
 import { ContactButtons } from '@/components/bookings/contact-buttons'
-import { BookingActions } from '@/components/bookings/booking-actions'
+import BookingActions from '@/components/bookings/booking-actions'
 import { PageHeader } from '@/components/ui/page-header'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
@@ -61,7 +61,7 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
         strategy="afterInteractive"
       />
       
@@ -235,26 +235,19 @@ export default function BookingPage() {
                   <p className="mt-1">#{booking.id || booking.booking_id || '25346'}</p>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.orderTotal')}</h3>
-                  <p className="mt-1 font-semibold">
-                    {booking.price_currency || 'JPY'} {booking.price_amount?.toLocaleString() || '0'}
-                  </p>
-                </div>
+                                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
+                    <p className="mt-1">
+                      {/* Get service_type_name from the first quotation item */}
+                      {booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                    </p>
+                  </div>
                 
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupDate')}</h3>
                   <p className="mt-1 flex items-center">
                     <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
                     {booking.date || '2025-04-30'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentMethod')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <CreditCard className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.payment_method || 'IPPS Payment'}
                   </p>
                 </div>
                 
@@ -266,14 +259,7 @@ export default function BookingPage() {
                   </p>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentStatus')}</h3>
-                  <div className="mt-1">
-                    <Badge className={getPaymentStatusBadgeClasses(booking.payment_status || 'Pending')}>
-                      {booking.payment_status || 'Pending'}
-                    </Badge>
-                  </div>
-                </div>
+                {/* Removed Payment Method and Payment Status fields as requested */}
               </div>
               
               {/* Vehicle Information Section */}
@@ -283,22 +269,36 @@ export default function BookingPage() {
                   {t('bookings.details.sections.vehicle')}
                 </h2>
                 
+
+                
                 <div className="grid grid-cols-2 gap-y-6">
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
                     <p className="mt-1">
-                      {booking.vehicle?.make ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin'}
+                      {/* Use vehicle_type from meta (which comes directly from quotations table) */}
+                      {booking.meta?.vehicle_type || 'Toyota Hiace Grand Cabin'}
                     </p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.capacity')}</h3>
-                    <p className="mt-1">10 passengers</p>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
+                    <p className="mt-1">
+                      {booking.meta?.vehicle_category || 'Not specified'}
+                    </p>
                   </div>
-                  
+
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
-                    <p className="mt-1">Airport Transfer</p>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.hoursPerDay')}</h3>
+                    <p className="mt-1">
+                      {booking.meta?.hours_per_day || 'Not specified'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.durationHours')}</h3>
+                    <p className="mt-1">
+                      {booking.meta?.duration_hours || 'Not specified'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -315,6 +315,8 @@ export default function BookingPage() {
             </div>
             
             <div className="p-6">
+
+              
               {booking.pickup_location || booking.dropoff_location ? (
                 <div className="space-y-6">
                   <div className="flex items-start gap-3">
@@ -325,7 +327,9 @@ export default function BookingPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">{t('bookings.details.fields.pickupLocation')}</h3>
-                      <p className="text-muted-foreground mt-1">{booking.pickup_location || 'Suvarnabhumi Airport, Bangkok'}</p>
+                      <p className="text-muted-foreground mt-1">
+                        {booking.pickup_location || 'Suvarnabhumi Airport, Bangkok'}
+                      </p>
                     </div>
                   </div>
                   
@@ -342,6 +346,9 @@ export default function BookingPage() {
                     </a>
                   </div>
                   
+                  {/* Only show dropoff location for non-Charter Services */}
+                  {booking.dropoff_location && !booking.service_name?.toLowerCase().includes('charter') && (
+                    <>
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
@@ -350,7 +357,9 @@ export default function BookingPage() {
                     </div>
                     <div>
                       <h3 className="font-medium">{t('bookings.details.fields.dropoffLocation')}</h3>
-                      <p className="text-muted-foreground mt-1">{booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}</p>
+                          <p className="text-muted-foreground mt-1">
+                            {booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}
+                          </p>
                     </div>
                   </div>
                   
@@ -366,8 +375,20 @@ export default function BookingPage() {
                       {t('bookings.details.actions.navigateToDropoff')}
                     </a>
                   </div>
+                    </>
+                  )}
                   
-                  {booking.pickup_location && booking.dropoff_location && (
+                  {/* Show message for Charter Services */}
+                  {booking.service_name?.toLowerCase().includes('charter') && (
+                    <div className="ml-9 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/10 dark:border-blue-800">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Charter Service:</strong> This is a charter service with pickup location only. 
+                        Dropoff location will be determined during the service.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {booking.pickup_location && booking.dropoff_location && !booking.service_name?.toLowerCase().includes('charter') && (
                     <div className="mt-6">
                       <GoogleMap
                         pickupLocation={booking.pickup_location}
@@ -411,183 +432,7 @@ export default function BookingPage() {
             </div>
           </Card>
           
-          {/* Billing Address and Payment Link Section - Side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Billing Address Section */}
-            <Card className="h-full">
-              <div className="border-b py-4 px-6">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <FileText className="mr-2 h-5 w-5" />
-                  {t('bookings.details.sections.billingAddress')}
-                </h2>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-3">
-                  {booking.billing_company_name && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.companyName')}</h3>
-                      <p className="mt-1">{booking.billing_company_name}</p>
-                    </div>
-                  )}
-                  
-                  {booking.billing_tax_number && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.taxNumber')}</h3>
-                      <p className="mt-1">{booking.billing_tax_number}</p>
-                    </div>
-                  )}
-                  
-                  {(booking.billing_street_name || booking.billing_street_number) && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.street')}</h3>
-                      <p className="mt-1">
-                        {booking.billing_street_name} {booking.billing_street_number}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    {booking.billing_city && (
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.city')}</h3>
-                        <p className="mt-1">{booking.billing_city}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_state && (
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.state')}</h3>
-                        <p className="mt-1">{booking.billing_state}</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    {booking.billing_postal_code && (
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.postalCode')}</h3>
-                        <p className="mt-1">{booking.billing_postal_code}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_country && (
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.country')}</h3>
-                        <p className="mt-1">{booking.billing_country}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-            
-            {/* Payment Link Section */}
-            <Card className="h-full">
-              <div className="border-b py-4 px-6">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <CreditCard className="mr-2 h-5 w-5" />
-                  {t('bookings.details.sections.payment')}
-                </h2>
-              </div>
-              
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h3>
-                    <p className="mt-1">{booking.payment_status || 'Pending'}</p>
-                  </div>
-                  
-                  {/* Price Information - Updated with quotation conversion data */}
-                  {booking.meta && typeof booking.meta === 'object' && 'quotation_id' in booking.meta ? (
-                    <div className="space-y-2 pt-2">
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.originalPrice') || 'Original Price'}</h3>
-                        <p className="mt-1 text-muted-foreground line-through">
-                          {booking.meta.original_amount ? 
-                            `${booking.price_currency || 'JPY'} ${booking.meta.original_amount.toLocaleString()}` : 
-                            `${booking.price_currency || 'JPY'} ${booking.price_amount?.toLocaleString() || '0'}`
-                          }
-                        </p>
-                      </div>
-                      
-                      {/* Show discount if exists */}
-                      {booking.meta.discount_percentage && booking.meta.discount_percentage > 0 && (
-                        <div className="bg-secondary/50 px-3 py-2 rounded-md">
-                          <div className="flex items-center text-sm">
-                            <span className="flex-1 font-medium text-primary">{t('bookings.details.fields.discount') || 'Discount'}</span>
-                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-medium">
-                              -{booking.meta.discount_percentage}%
-                            </span>
-                          </div>
-                          <div className="flex items-center mt-1 text-sm">
-                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.discountAmount') || 'Discount Amount'}</span>
-                            <span className="font-medium">-{booking.price_currency || 'JPY'} {booking.meta.discount_amount?.toLocaleString() || '0'}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Show promotion discount if exists */}
-                      {booking.meta.promotion_discount && booking.meta.promotion_discount > 0 && (
-                        <div className="bg-blue-50 px-3 py-2 rounded-md">
-                          <div className="flex items-center text-sm">
-                            <span className="flex-1 font-medium text-blue-600">{t('bookings.details.fields.promotion') || 'Promotion'}</span>
-                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-medium">
-                              Promotion
-                            </span>
-                          </div>
-                          <div className="flex items-center mt-1 text-sm">
-                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.promotionDiscount') || 'Promotion Discount'}</span>
-                            <span className="font-medium text-blue-600">-{booking.price_currency || 'JPY'} {booking.meta.promotion_discount.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Show tax if exists */}
-                      {booking.meta.tax_percentage && booking.meta.tax_percentage > 0 && (
-                        <div className="bg-green-50 px-3 py-2 rounded-md">
-                          <div className="flex items-center text-sm">
-                            <span className="flex-1 font-medium text-green-600">{t('bookings.details.fields.tax') || 'Tax'}</span>
-                            <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded text-xs font-medium">
-                              {booking.meta.tax_percentage}%
-                            </span>
-                          </div>
-                          <div className="flex items-center mt-1 text-sm">
-                            <span className="flex-1 text-muted-foreground">{t('bookings.details.fields.taxAmount') || 'Tax Amount'}</span>
-                            <span className="font-medium text-green-600">+{booking.price_currency || 'JPY'} {booking.meta.tax_amount?.toLocaleString() || '0'}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-                  
-                  <div className={booking.meta && typeof booking.meta === 'object' && 'quotation_id' in booking.meta ? "pt-2 border-t" : ""}>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.finalAmount') || 'Final Amount'}</h3>
-                    <p className="mt-1 font-semibold text-lg">
-                      {booking.price_currency || 'JPY'} {booking.price_amount?.toLocaleString() || '0'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h3>
-                    {booking.payment_link ? (
-                      <a 
-                        href={booking.payment_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
-                      >
-                        <LinkIcon className="h-4 w-4 mr-1" />
-                        {t('bookings.details.actions.openPaymentLink')}
-                      </a>
-                    ) : (
-                      <p className="mt-1 text-muted-foreground">{t('bookings.details.placeholders.noPaymentLink')}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
+          {/* Removed Billing Address and Payment Link sections as requested */}
         </div>
         
         {/* Right Column: Combined Client Details & Additional Information, and Booking Actions */}
@@ -702,3 +547,4 @@ export default function BookingPage() {
     </div>
   );
 } 
+

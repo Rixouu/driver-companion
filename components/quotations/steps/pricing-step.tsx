@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { DollarSign, Globe, Gift, Timer, Package, X, CheckCircle, Tag, Percent, Calculator, TrendingUp, Clock, Info } from 'lucide-react';
+import { format } from 'date-fns';
+import { DollarSign, Globe, Gift, Timer, Package, X, CheckCircle, Tag, Percent, Calculator, TrendingUp, Clock, Info, RefreshCw, AlertCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/lib/services/currency-service';
@@ -28,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ServiceItemInput, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { ServiceCard } from '@/components/quotations/service-card';
 
@@ -288,26 +290,91 @@ export function PricingStep({
                     </div>
                   </div>
 
-                  {/* Currency info - compact, contained, trust-building */}
-                  <div className="rounded-md border bg-muted/20 p-3">
-                    <div className="flex items-start gap-3">
-                      <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div className="font-medium text-foreground">{t('quotations.form.currencyInfo.title')}</div>
-                        <p className="leading-relaxed">{t('quotations.form.currencyInfo.description')}</p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          {currencyLoading ? (
-                            <span>{t('common.loading')}</span>
-                          ) : currencyData ? (
-                            <span className="text-[10px]">Live rates loaded</span>
-                          ) : (
-                            <span className="text-[10px]">Using fallback rates</span>
-                          )}
-                          <span className="text-[10px]">Source: <a href="https://exchangerate.host" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2">exchangerate.host</a></span>
-                        </div>
-                        <div className="text-[10px]">{t('quotations.form.currencyInfo.disclaimer')}</div>
-                      </div>
+                  {/* Enhanced Currency Tooltip - Same as quotation details */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Live Exchange Rates</span>
+                      {currencyLoading ? (
+                        <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+                      ) : currencyData ? (
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-3 w-3 text-orange-500" />
+                      )}
                     </div>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="h-6 w-6 p-0 cursor-help flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors">
+                            <Info className="h-3 w-3" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="w-auto">
+                          <div className="space-y-3 max-w-xs">
+                            <div>
+                              <p className="font-medium">Exchange Rate Information</p>
+                              {selectedCurrency !== 'JPY' && currencyData?.rates[selectedCurrency] && (
+                                <div className="space-y-1 mt-2">
+                                  <p className="text-sm font-medium text-blue-600">
+                                    1 JPY = {currencyData.rates[selectedCurrency].toFixed(selectedCurrency === 'JPY' ? 0 : 4)} {selectedCurrency}
+                                  </p>
+                                  <p className="text-sm font-medium text-blue-600">
+                                    1 {selectedCurrency} = {(1 / currencyData.rates[selectedCurrency]).toFixed(4)} JPY
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-1 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Source:</span>
+                                <span className="font-medium text-green-600">
+                                  {currencyData?.source || 'exchangerate.host'}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Updated:</span>
+                                <span className="font-medium text-green-600">
+                                  {currencyData?.lastUpdated ? format(currencyData.lastUpdated, 'MMM dd, HH:mm') : 'N/A'}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Base:</span>
+                                <span className="font-medium">JPY</span>
+                              </div>
+                            </div>
+
+                            {/* Show all available exchange rates */}
+                            {currencyData?.rates && Object.keys(currencyData.rates).length > 1 && (
+                              <div className="pt-2 border-t">
+                                <p className="text-xs font-medium text-muted-foreground mb-2">All Rates (1 JPY):</p>
+                                <div className="space-y-1">
+                                  {Object.entries(currencyData.rates)
+                                    .filter(([code]) => code !== 'JPY')
+                                    .map(([code, rate]) => (
+                                      <div key={code} className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">{code}:</span>
+                                        <span className="font-mono font-medium">
+                                          {rate.toFixed(code === 'JPY' ? 0 : 4)}
+                                        </span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="pt-2 border-t">
+                              <p className="text-xs text-muted-foreground">
+                                Rates are for reference only and may not reflect real-time market conditions.
+                              </p>
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
 
                   <Separator />
@@ -376,21 +443,67 @@ export function PricingStep({
                               </div>
                             </div>
                           </FormControl>
-                          {/* Tax info and quick actions - compact panel to prevent overflow */}
-                          <div className="mt-3 rounded-md border bg-muted/20 p-3">
-                            <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                              <div className="space-y-1">
-                                <div className="font-medium text-foreground">{t('quotations.form.taxInfo.title')}</div>
-                                <p className="leading-relaxed">{t('quotations.form.taxInfo.japan')}</p>
-                                <p className="leading-relaxed">{t('quotations.form.taxInfo.thailand')}</p>
-                                <div className="pt-2 flex flex-wrap gap-2">
-                                  <Button type="button" variant="outline" size="sm" onClick={() => field.onChange(10)}>
-                                    {t('quotations.form.taxInfo.applyRecommended', { percent: 10 })}
-                                  </Button>
-                                  <Button type="button" variant="outline" size="sm" onClick={() => field.onChange(7)}>
-                                    {t('quotations.form.taxInfo.applyRecommended', { percent: 7 })}
-                                  </Button>
+                          {/* Enhanced Tax Guidelines - Better styling and information */}
+                          <div className="mt-3 rounded-lg border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="space-y-3 flex-1">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                                    <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                    Tax Guidelines & Recommendations
+                                  </h4>
+                                  <div className="space-y-2 text-xs text-blue-800 dark:text-blue-200">
+                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-blue-500">
+                                      <p className="font-medium">🇯🇵 Japan Consumption Tax</p>
+                                      <p className="text-xs">Standard rate: <span className="font-semibold">10%</span> (8% reduced for specific goods)</p>
+                                      <p className="text-xs">Transportation services: <span className="font-semibold">10%</span></p>
+                                    </div>
+                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-green-500">
+                                      <p className="font-medium">🇹🇭 Thailand VAT</p>
+                                      <p className="text-xs">Standard rate: <span className="font-semibold">7%</span></p>
+                                      <p className="text-xs">Tourism services: <span className="font-semibold">7%</span></p>
+                                    </div>
+                                    <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-purple-500">
+                                      <p className="font-medium">🌍 International Services</p>
+                                      <p className="text-xs">Cross-border services may have different tax implications</p>
+                                      <p className="text-xs">Consult with tax professionals for specific cases</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
+                                  <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-medium">
+                                    Quick Apply:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button 
+                                      type="button" 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => field.onChange(10)}
+                                      className="text-xs h-7 px-3 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                                    >
+                                      Apply 10% (Japan)
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => field.onChange(7)}
+                                      className="text-xs h-7 px-3 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/30"
+                                    >
+                                      Apply 7% (Thailand)
+                                    </Button>
+                                    <Button 
+                                      type="button" 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => field.onChange(0)}
+                                      className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900/30"
+                                    >
+                                      No Tax (0%)
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             </div>

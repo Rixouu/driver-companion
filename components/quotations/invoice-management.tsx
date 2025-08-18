@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { FileIcon, SendIcon, CopyIcon, DownloadIcon, RotateCwIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+
 
 interface InvoiceData {
   id: string;
@@ -83,7 +83,7 @@ export function InvoiceManagement({
         throw new Error(errorData.message || "Failed to create invoice");
       }
 
-      const data = await response.json();
+      await response.json();
       toast.success(t("invoices.messages.createSuccess"));
       
       // Refresh the page to show updated data
@@ -262,7 +262,7 @@ export function InvoiceManagement({
         throw new Error(errorData.message || "Failed to regenerate payment link");
       }
 
-      const data = await response.json();
+      await response.json();
       toast.success(t("payments.messages.regenerateSuccess"));
       
       // Refresh the page to show updated data

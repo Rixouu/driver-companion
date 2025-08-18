@@ -4,7 +4,7 @@ import { FileText, Mail } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { useState } from 'react'
 import { BookingButton } from './booking-button'
-import html2pdf from 'html2pdf.js'
+// Remove html2pdf import to prevent SSR issues
 import { toast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -711,6 +711,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
         
         if (!email) {
           // Generate and save PDF directly if not sending email
+          const html2pdf = (await import('html2pdf.js')).default;
           const worker = html2pdf()
             .set(pdfOptions)
             .from(pdfContainer);
@@ -724,6 +725,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
           });
         } else {
           // Get PDF blob for email attachment
+          const html2pdf = (await import('html2pdf.js')).default;
           pdfBlob = await html2pdf()
             .set({...pdfOptions, filename: undefined})
             .from(pdfContainer)

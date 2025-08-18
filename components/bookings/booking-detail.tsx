@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/use-toast'
 import { useI18n } from '@/lib/i18n/context'
 import { getStatusBadgeClasses } from '@/lib/utils/styles'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 interface BookingDetailProps {
   booking: Booking
@@ -170,13 +171,28 @@ export function BookingDetail({ booking }: BookingDetailProps) {
                   <div className="sm:col-span-2">
                     <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('bookings.details.fields.vehicle')}</dt>
                     <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                      {booking.vehicle.make} {booking.vehicle.model} ({booking.vehicle.year})
+                      {/* Use vehicle_type from quotation if available, otherwise fall back to vehicle object */}
+                      {booking.meta?.vehicle_type || 
+                       (booking.vehicle?.make && booking.vehicle?.model ? 
+                         `${booking.vehicle.make} ${booking.vehicle.model} (${booking.vehicle.year || 'N/A'})` : 
+                         'Toyota Hiace Grand Cabin')}
                     </dd>
                   </div>
-                  {booking.vehicle.license_plate && (
+                  {booking.vehicle?.license_plate && (
                     <div className="sm:col-span-2">
                       <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('bookings.details.fields.licensePlate')}</dt>
                       <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{booking.vehicle.license_plate}</dd>
+                    </div>
+                  )}
+                  {/* Show quotation info if this is a multi-service booking */}
+                  {booking.meta?.quotation_id && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">From Quotation</dt>
+                      <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                        <Link href={`/quotations/${booking.meta.quotation_id}`} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                          View Original Quotation
+                        </Link>
+                      </dd>
                     </div>
                   )}
                 </dl>

@@ -8,7 +8,7 @@ import { Calendar, Clock, CreditCard, FileText, Link as LinkIcon, MapPin, Printe
 import Script from 'next/script'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
 import { ContactButtons } from '@/components/bookings/contact-buttons'
-import { BookingActions } from '@/components/bookings/booking-actions'
+import BookingActions from '@/components/bookings/booking-actions'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
 import { Booking } from '@/types/bookings'
@@ -48,7 +48,7 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
         strategy="afterInteractive"
       />
       
@@ -260,9 +260,18 @@ export default function BookingDetailsContent({
             <CardContent className="space-y-6">
               {/* Service Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
-                  <p className="mt-1 font-medium">{booking.service_name || 'Airport Transfer'}</p>
+                                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
+                    <p className="mt-1 font-medium">
+                      {/* Get service_type_name from the first quotation item */}
+                      {booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                    </p>
+                  {/* Show multi-service information if this is part of a multi-service booking */}
+                  {booking.meta?.is_multi_service_booking && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Service {booking.meta.service_index + 1} of {booking.meta.total_services} from quotation
+                    </p>
+                  )}
                 </div>
                 
                 <div>
@@ -286,11 +295,50 @@ export default function BookingDetailsContent({
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
                     <p className="mt-1 flex items-center">
                       <Truck className="mr-1 h-4 w-4 text-muted-foreground" />
-                      {booking.vehicle.make ? `${booking.vehicle.make} ${booking.vehicle.model}` : 'Toyota Hiace Grand Cabin'}
+                      {/* Use vehicle_type from meta (which comes directly from quotations table) */}
+                      {booking.meta?.vehicle_type || 'Toyota Hiace Grand Cabin'}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Vehicle Details from Quotation */}
+                {booking.meta?.vehicle_category && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {booking.meta.vehicle_category}
+                    </p>
+                  </div>
+                )}
+                
+                {booking.meta?.hours_per_day && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.hoursPerDay')}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {booking.meta.hours_per_day} hour(s)
+                    </p>
+                  </div>
+                )}
+                
+                {booking.meta?.duration_hours && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.durationHours')}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {booking.meta.duration_hours} hour(s)
                     </p>
                   </div>
                 )}
               </div>
+              
+              {/* Multi-service booking notice */}
+              {booking.meta?.is_multi_service_booking && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Multi-Service Booking:</strong> This booking is part of a quotation with {booking.meta.total_services} services. 
+                    Please review and edit pickup/dropoff locations as needed for this specific service.
+                  </p>
+                </div>
+              )}
               
               {/* Additional Information Section */}
               <div className="pt-4 border-t">
@@ -381,6 +429,16 @@ export default function BookingDetailsContent({
                   </p>
                 </div>
               </div>
+              
+              {/* Message about editing locations for converted quotations */}
+              {booking.meta?.quotation_id && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Location Update Required:</strong> This booking was converted from a quotation. 
+                    Please edit the pickup and dropoff locations to match the specific requirements for this service.
+                  </p>
+                </div>
+              )}
               
               {booking.pickup_location && booking.dropoff_location && (
                 <GoogleMap 
@@ -480,11 +538,6 @@ export default function BookingDetailsContent({
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">Payment Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="text-xs font-medium text-muted-foreground">{t('bookings.details.fields.status')}</h4>
-                    <p className="mt-1">{booking.payment_status || 'Pending'}</p>
-                  </div>
-                  
-                  <div>
                     <h4 className="text-xs font-medium text-muted-foreground">{t('bookings.details.fields.amount')}</h4>
                     <p className="mt-1 font-semibold">
                       {booking.price ? 
@@ -492,6 +545,12 @@ export default function BookingDetailsContent({
                         'THB 8,200'
                       }
                     </p>
+                    {/* Show multi-service information in payment section */}
+                    {booking.meta?.is_multi_service_booking && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Price for {booking.meta.total_services} services from quotation
+                      </p>
+                    )}
                   </div>
                   
                   {/* Coupon Code Section */}
@@ -512,92 +571,29 @@ export default function BookingDetailsContent({
                     </>
                   )}
                   
-                  <div className="col-span-2">
-                    <h4 className="text-xs font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h4>
-                    {booking.payment_link ? (
-                      <a 
-                        href={booking.payment_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
+                  {/* Link to original quotation if converted */}
+                  {booking.meta?.quotation_id && (
+                    <div className="col-span-2">
+                      <h4 className="text-xs font-medium text-muted-foreground">Original Quotation</h4>
+                      <Link 
+                        href={`/quotations/${booking.meta.quotation_id}`}
                         className="mt-2 inline-flex items-center text-blue-500 hover:text-blue-600"
                       >
-                        <LinkIcon className="h-4 w-4 mr-1" />
-                        {t('bookings.details.actions.openPaymentLink')}
-                      </a>
-                    ) : (
-                      <p className="text-muted-foreground mt-1">
-                        {t('bookings.details.placeholders.noPaymentLink')}
-                      </p>
-                    )}
+                        <FileText className="h-4 w-4 mr-1" />
+                        View Original Quotation
+                      </Link>
+                    </div>
+                  )}
+                  
+                  <div className="col-span-2">
+                    <h4 className="text-xs font-medium text-muted-foreground">{t('bookings.details.fields.paymentLink')}</h4>
+                    {/* Removed payment link section as requested */}
                   </div>
                 </div>
               </div>
               
               {/* Billing Address - Only if billing data exists */}
-              {(booking.billing_company_name || 
-                booking.billing_tax_number || 
-                booking.billing_street_name || 
-                booking.billing_street_number || 
-                booking.billing_city || 
-                booking.billing_state || 
-                booking.billing_postal_code || 
-                booking.billing_country) && (
-                <div className="pt-4 border-t">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Billing Address</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {booking.billing_company_name && (
-                      <div className="col-span-2">
-                        <h4 className="text-xs font-medium text-muted-foreground">Company Name</h4>
-                        <p className="mt-1">{booking.billing_company_name}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_tax_number && (
-                      <div className="col-span-2">
-                        <h4 className="text-xs font-medium text-muted-foreground">Tax Number</h4>
-                        <p className="mt-1">{booking.billing_tax_number}</p>
-                      </div>
-                    )}
-                    
-                    {(booking.billing_street_name || booking.billing_street_number) && (
-                      <div className="col-span-2">
-                        <h4 className="text-xs font-medium text-muted-foreground">Street</h4>
-                        <p className="mt-1">
-                          {booking.billing_street_name} {booking.billing_street_number}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_city && (
-                      <div>
-                        <h4 className="text-xs font-medium text-muted-foreground">City</h4>
-                        <p className="mt-1">{booking.billing_city}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_state && (
-                      <div>
-                        <h4 className="text-xs font-medium text-muted-foreground">State</h4>
-                        <p className="mt-1">{booking.billing_state}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_postal_code && (
-                      <div>
-                        <h4 className="text-xs font-medium text-muted-foreground">Postal Code</h4>
-                        <p className="mt-1">{booking.billing_postal_code}</p>
-                      </div>
-                    )}
-                    
-                    {booking.billing_country && (
-                      <div>
-                        <h4 className="text-xs font-medium text-muted-foreground">Country</h4>
-                        <p className="mt-1">{booking.billing_country}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Removed Billing Address section as requested */}
             </CardContent>
           </Card>
         </div>

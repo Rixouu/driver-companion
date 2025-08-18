@@ -206,7 +206,7 @@ export function MaintenanceForm({ initialData, mode = 'create' }: MaintenanceFor
           // Consider adding description: t('maintenance.messages.updateSuccessDescription')
         })
       } else {
-        const { data: createdData, error: createError } = await createMaintenanceTask(formattedData) // Renamed to avoid conflict with error variable from outer scope
+        const { error: createError } = await createMaintenanceTask(formattedData) // Renamed to avoid conflict with error variable from outer scope
         if (createError) {
           console.error('Error:', createError)
           toast({

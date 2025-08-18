@@ -1965,7 +1965,10 @@ export const ja: TranslationValue = {
         promotion: "プロモーション",
         promotionDiscount: "プロモーション割引",
         tax: "税金",
-        taxAmount: "税額"
+        taxAmount: "税額",
+        vehicleCategory: "車両カテゴリ",
+        hoursPerDay: "1日あたりの時間",
+        durationHours: "期間（時間）"
       },
       actions: {
         navigateToPickup: "迎車場所へナビゲート",
@@ -2009,6 +2012,7 @@ export const ja: TranslationValue = {
       },
       bookingActions: {
         title: "予約アクション",
+        quickActions: "クイックアクション",
         addToGoogleCalendar: "Googleカレンダーに追加",
         managementActions: "管理アクション",
         editBooking: "予約を編集",

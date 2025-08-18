@@ -138,7 +138,7 @@ export function QuotationActivityContainer({ id }: { id: string }) {
 
   useEffect(() => {
     fetchActivities();
-  }, [id, toast]);
+  }, [id]);
 
   return (
     <QuotationActivityFeed

@@ -65,7 +65,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         
         {/* Main content area */}
         <div className="flex-1">
-          <PageContainer sidebarCollapsed={sidebarCollapsed}>{children}</PageContainer>
+          <PageContainer>{children}</PageContainer>
         </div>
         
         {/* Mobile navigation - visible on mobile, hidden on lg screens */}

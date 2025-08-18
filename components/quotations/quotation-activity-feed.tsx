@@ -1,15 +1,16 @@
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { 
-  Check, Clock, Edit, Mail, Send, X, AlertCircle, 
-  RefreshCw
+  Check, Clock, Edit, Mail, Send, X, 
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { QuotationActivity } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
-import { cn } from '@/lib/utils';
+
 
 interface QuotationActivityFeedProps {
   activities: QuotationActivity[];

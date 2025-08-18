@@ -777,10 +777,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   selectedPromotion={selectedPromotion}
                   discountPercentage={quotation.discount_percentage || 0}
                   taxPercentage={quotation.tax_percentage || 0}
-                  selectedCurrency={selectedCurrency}
-                  onCurrencyChange={handleCurrencyChange}
                   formatCurrency={formatCurrency}
-                  appliedTimeBasedRules={appliedTimeBasedRules}
                 />
               </div>
 
@@ -790,7 +787,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               {shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
                 <div className="mt-6">
                   <QuotationDetailsApprovalPanel 
-                    quotationId={quotation.id}
                     isProcessing={isLoading}
                     customerName={quotation.customer_name}
                     quotation={quotation as any}
@@ -1236,39 +1232,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               }
             }}
             onCreateBooking={async () => {
-              try {
-                // Create booking from quotation
-                const response = await fetch('/api/quotations/convert', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    quotation_id: quotation.id
-                  })
-                });
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  
-                  // Show success message
-                  toast({
-                    title: "Successfully converted to booking",
-                    description: `Booking #${result.booking_id} has been created. Redirecting...`,
-                  });
-                  
-                  // Redirect to the new booking page
-                  router.push(`/bookings/${result.booking_id}`);
-                } else {
-                  const errorData = await response.json();
-                  throw new Error(errorData.error || 'Failed to convert to booking');
-                }
-              } catch (error) {
-                console.error('Error converting to booking:', error);
-                toast({
-                  title: "Error",
-                  description: error instanceof Error ? error.message : "Failed to convert to booking",
-                  variant: "destructive",
-                });
-              }
+              // This is now handled in the QuotationWorkflow component
+              // No need to duplicate the conversion logic here
             }}
             isOrganizationMember={isOrganizationMember}
           />
@@ -1277,7 +1242,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           {!shouldMoveToMainContent && ['draft', 'sent'].includes(quotation.status) && (
             <div className="mt-4 xl:mt-6">
               <QuotationDetailsApprovalPanel 
-                quotationId={quotation.id}
                 isProcessing={isLoading}
                 customerName={quotation.customer_name}
                 quotation={quotation as any}

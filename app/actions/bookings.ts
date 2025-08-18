@@ -871,7 +871,7 @@ function getMockBookings(): Booking[] {
         make: "Toyota",
         model: "Camry",
         year: "2020",
-        registration: "ABC123"
+        created_at: new Date().toISOString()
       },
       // Add coupon fields for testing
       coupon_code: "SPRING25",
@@ -902,7 +902,8 @@ function getMockBookings(): Booking[] {
         id: "veh-002",
         make: "Honda",
         model: "Civic",
-        year: "2019"
+        year: "2019",
+        created_at: new Date().toISOString()
       },
       created_at: new Date(Date.now() - 43200000).toISOString(),
       updated_at: new Date().toISOString()
@@ -978,6 +979,7 @@ function processWordPressBooking(data: any): Booking {
   // Return a properly formatted booking object
   return {
     id: data.id.toString(),
+    supabase_id: data.id.toString(),
     booking_id: data.id.toString(),
     title: data.title,
     date: formattedDate || data.date?.split(' ')[0] || '',
@@ -997,6 +999,7 @@ function processWordPressBooking(data: any): Booking {
       make: 'Toyota', // Hardcoded based on vehicle name "Toyota Hiace Grand Cabin"
       model: data.meta.chbs_vehicle_name?.replace('Toyota ', '') || '',
       year: '',
+      created_at: new Date().toISOString()
     },
     
     // Route information
@@ -1113,12 +1116,11 @@ export async function updateBookingAction(
     delete updateData.id;
     delete updateData.wp_id;
     delete updateData.created_at;
-    delete updateData.synced_at;
     
     // Update booking in database using the correct internal UUID
     const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', bookingId)
       .select()
       .single();

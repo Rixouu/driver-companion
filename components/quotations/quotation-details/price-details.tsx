@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Globe, Clock, Timer, Package, Car } from 'lucide-react';
 import { QuotationItem } from '@/types/quotations';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 interface TimeBasedRule {
   id: string;
@@ -27,7 +27,6 @@ interface PriceDetailsProps {
   amount: number | string;
   discount_percentage?: number;
   tax_percentage?: number;
-  total_amount: number | string;
   vehicle_type?: string;
   hours_per_day?: number;
   duration_hours?: number;
@@ -39,9 +38,7 @@ interface PriceDetailsProps {
   calculateSubtotalAmount: (amount: number | string, discountPercentage: number) => number;
   calculateTaxAmount: (subtotalAmount: number | string, taxPercentage: number) => number;
   quotation_items?: QuotationItem[];
-  time_based_adjustment?: number;
-  package_discount?: number;
-  promotion_discount?: number;
+
   selectedPackage?: any;
   selectedPromotion?: any;
   appliedTimeBasedRules?: TimeBasedRule[];
@@ -53,14 +50,11 @@ export function PriceDetails({
   amount,
   discount_percentage = 0,
   tax_percentage = 0,
-  total_amount,
   selectedCurrency,
   onCurrencyChange,
   formatCurrency,
   quotation_items = [],
-  time_based_adjustment = 0,
-  package_discount = 0,
-  promotion_discount = 0,
+
   selectedPackage,
   selectedPromotion,
   appliedTimeBasedRules = [],

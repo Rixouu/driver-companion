@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Plus, Calendar } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { MaintenanceList } from "./maintenance-list"
 import type { MaintenanceTask } from "@/types"

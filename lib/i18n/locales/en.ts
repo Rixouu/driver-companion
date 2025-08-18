@@ -1979,7 +1979,10 @@ export const en: TranslationValue = {
         promotion: "Promotion",
         promotionDiscount: "Promotion Discount",
         tax: "Tax",
-        taxAmount: "Tax Amount"
+        taxAmount: "Tax Amount",
+        vehicleCategory: "Vehicle Category",
+        hoursPerDay: "Hours Per Day",
+        durationHours: "Duration (hrs)"
       },
       actions: {
         navigateToPickup: "Navigate to Pickup",
@@ -2023,6 +2026,7 @@ export const en: TranslationValue = {
       },
       bookingActions: {
         title: "Booking Actions",
+        quickActions: "Quick Actions",
         addToGoogleCalendar: "Add to Google Calendar",
         managementActions: "Management Actions",
         editBooking: "Edit Booking",

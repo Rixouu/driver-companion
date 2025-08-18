@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Check, X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { SignaturePad, SignaturePadHandle } from '@/components/ui/signature-pad';
@@ -13,7 +13,6 @@ import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface QuotationDetailsApprovalPanelProps {
-  quotationId: string;
   onApprove: (notes: string, signature?: string) => Promise<void>;
   onReject: (reason: string, signature?: string) => Promise<void>;
   isProcessing: boolean;
@@ -22,7 +21,6 @@ interface QuotationDetailsApprovalPanelProps {
 }
 
 export function QuotationDetailsApprovalPanel({
-  quotationId,
   onApprove,
   onReject,
   isProcessing,

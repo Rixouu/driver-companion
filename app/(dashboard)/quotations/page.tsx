@@ -13,7 +13,25 @@ import { Quotation } from '@/types/quotations';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-async function getQuotations({ query: searchTerm, status: statusFilter }: { query?: string; status?: string }) {
+const ITEMS_PER_PAGE = 10;
+
+async function getQuotations({ 
+  query: searchTerm, 
+  status: statusFilter,
+  page = 1,
+  dateFrom,
+  dateTo,
+  amountMin,
+  amountMax
+}: { 
+  query?: string; 
+  status?: string;
+  page?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+}) {
   const supabase = await getSupabaseServerClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   
@@ -39,6 +57,7 @@ async function getQuotations({ query: searchTerm, status: statusFilter }: { quer
       )
     `, { count: 'exact' });
 
+  // Apply search filter
   if (searchTerm) {
     queryBuilder = queryBuilder.or(
       `quote_number.ilike.%${searchTerm}%,` +
@@ -47,6 +66,8 @@ async function getQuotations({ query: searchTerm, status: statusFilter }: { quer
       `customers.email.ilike.%${searchTerm}%`
     );
   }
+
+  // Apply status filter
   if (statusFilter) {
     if (statusFilter === 'expired') {
       // For expired filter, get quotations that are either:
@@ -62,26 +83,81 @@ async function getQuotations({ query: searchTerm, status: statusFilter }: { quer
       queryBuilder = queryBuilder.eq('status', statusFilter);
     }
   }
+
+  // Apply date range filter
+  if (dateFrom) {
+    // Ensure the date is set to start of day for proper comparison
+    const fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    console.log('Date From Filter:', { original: dateFrom, processed: fromDate.toISOString() });
+    queryBuilder = queryBuilder.gte('created_at', fromDate.toISOString());
+  }
+  if (dateTo) {
+    // Ensure the date is set to end of day for proper comparison
+    const toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    console.log('Date To Filter:', { original: dateTo, processed: toDate.toISOString() });
+    queryBuilder = queryBuilder.lte('created_at', toDate.toISOString());
+  }
+
+  // Apply amount range filter - use total_amount if available, otherwise fall back to amount
+  if (amountMin !== undefined) {
+    console.log('Amount Min Filter:', amountMin);
+    // Use a simpler approach: just filter by total_amount for now
+    queryBuilder = queryBuilder.gte('total_amount', amountMin);
+  }
+  if (amountMax !== undefined) {
+    console.log('Amount Max Filter:', amountMax);
+    // Use a simpler approach: just filter by total_amount for now
+    queryBuilder = queryBuilder.lte('total_amount', amountMax);
+  }
   
   if (!isOrganizationMember && user.email) {
     queryBuilder = queryBuilder.eq('customer_email', user.email);
   }
   
-  const { data, error, count } = await queryBuilder.order('created_at', { ascending: false });
+  // Apply pagination
+  const from = (page - 1) * ITEMS_PER_PAGE;
+  const to = from + ITEMS_PER_PAGE - 1;
+  
+  console.log('Final query parameters:', {
+    searchTerm,
+    statusFilter,
+    page,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax,
+    from,
+    to
+  });
+  
+  const { data, error, count } = await queryBuilder
+    .order('created_at', { ascending: false })
+    .range(from, to);
   
   if (error) {
     console.error('Error fetching quotations:', error);
-    return { quotations: [], count: 0, isOrganizationMember };
+    return { quotations: [], count: 0, isOrganizationMember, totalPages: 0 };
   }
   
+  console.log('Query results:', { count, dataLength: data?.length });
+  
   const typedQuotations = (data || []) as unknown as Quotation[];
-  return { quotations: typedQuotations, count: count || 0, isOrganizationMember };
+  const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE);
+  
+  return { quotations: typedQuotations, count: count || 0, isOrganizationMember, totalPages };
 }
 
 interface QuotationsPageProps {
   searchParams: { 
     query?: string;
-    status?: string; 
+    status?: string;
+    page?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    amountMin?: string;
+    amountMax?: string;
   };
 }
 
@@ -91,8 +167,31 @@ export default async function QuotationsPage({ searchParams }: QuotationsPagePro
   const resolvedSearchParams = await searchParams;
   const pageQuery = resolvedSearchParams.query ? String(resolvedSearchParams.query) : undefined;
   const pageStatus = resolvedSearchParams.status ? String(resolvedSearchParams.status) : undefined;
+  const page = resolvedSearchParams.page ? parseInt(String(resolvedSearchParams.page)) : 1;
+  const dateFrom = resolvedSearchParams.dateFrom ? String(resolvedSearchParams.dateFrom) : undefined;
+  const dateTo = resolvedSearchParams.dateTo ? String(resolvedSearchParams.dateTo) : undefined;
+  const amountMin = resolvedSearchParams.amountMin ? parseFloat(String(resolvedSearchParams.amountMin)) : undefined;
+  const amountMax = resolvedSearchParams.amountMax ? parseFloat(String(resolvedSearchParams.amountMax)) : undefined;
 
-  const { quotations, count, isOrganizationMember } = await getQuotations({ query: pageQuery, status: pageStatus });
+  console.log('Received search params:', {
+    pageQuery,
+    pageStatus,
+    page,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax
+  });
+  
+  const { quotations, count, isOrganizationMember, totalPages } = await getQuotations({ 
+    query: pageQuery, 
+    status: pageStatus,
+    page,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax
+  });
   
   return (
     <div className="space-y-6">
@@ -114,7 +213,17 @@ export default async function QuotationsPage({ searchParams }: QuotationsPagePro
           <QuotationsTableClient 
             initialQuotations={quotations} 
             totalCount={count || 0}
+            totalPages={totalPages}
+            currentPage={page}
             isOrganizationMember={isOrganizationMember}
+            filterParams={{
+              query: pageQuery,
+              status: pageStatus,
+              dateFrom,
+              dateTo,
+              amountMin,
+              amountMax
+            }}
           />
         </Suspense>
       </Card>

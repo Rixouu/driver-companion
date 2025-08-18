@@ -460,8 +460,8 @@ export function QuotationWorkflow({
       icon: quotation.status === 'rejected' 
         ? <AlertTriangle className="h-4 w-4" />
         : <CheckCircle className="h-4 w-4" />,
-      status: quotation.status === 'approved' ? 'completed' :
-              quotation.status === 'rejected' ? 'completed' :
+      status: (quotation.status === 'approved' || quotation.approved_at) ? 'completed' :
+              (quotation.status === 'rejected' || quotation.rejected_at) ? 'completed' :
               ['sent'].includes(quotation.status) ? 'current' : 'pending',
       date: quotation.approved_at || quotation.rejected_at
     });

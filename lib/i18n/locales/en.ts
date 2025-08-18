@@ -833,15 +833,17 @@ export const en: TranslationValue = {
         test: "Test inspection template for development and training purposes."
       }
     },
-    typeValues: {
-      routine: "Routine",
-      safety: "Safety",
-      maintenance: "Maintenance",
-      daily: "Daily",
-      unspecified: "Unspecified",
-      daily_checklist_toyota: "Daily Checklist (Toyota)",
-      daily_checklist_mercedes: "Daily Checklist (Mercedes)"
-    },
+          typeValues: {
+        routine: "Routine",
+        safety: "Safety",
+        maintenance: "Maintenance",
+        daily: "Daily",
+        unspecified: "Unspecified",
+        daily_checklist_toyota: "Daily Checklist (Toyota)",
+        "Daily Checklist Toyota": "Daily Checklist (Toyota)",
+        daily_checklist_mercedes: "Daily Checklist (Mercedes)",
+        "Daily Checklist Mercedes": "Daily Checklist (Mercedes)"
+      },
     statusValues: {
       pass: "Pass",
       fail: "Fail",
@@ -3489,14 +3491,15 @@ export const en: TranslationValue = {
       deleteError: "Failed to delete package"
     }
   },
-  invoices: {
-    title: "Invoices",
-    description: "Manage and track customer invoices",
-    actions: {
-      downloadPdf: "Download Invoice PDF",
-      emailInvoice: "Email Invoice",
-      sending: "Sending..."
-    },
+      invoices: {
+      title: "Invoices",
+      description: "Manage and track customer invoices",
+      actions: {
+        downloadPdf: "Download Invoice",
+        emailInvoice: "Email Invoice",
+        generating: "Generating...",
+        sending: "Sending..."
+      },
     emailModal: {
       title: "Email Invoice",
       description: "This will send the invoice PDF to the customer.",

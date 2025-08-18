@@ -102,9 +102,23 @@ function generateInvoiceHtml(
           <p style="margin: 0 0 5px 0; color: #111827; font-size: 14px;">
             ${isJapanese ? '請求書発行日:' : 'Invoice Date:'} ${invoiceDate}
           </p>
-          <p style="margin: 0; color: #111827; font-size: 14px;">
+          <p style="margin: 0 0 5px 0; color: #111827; font-size: 14px;">
             ${isJapanese ? '見積参照:' : 'Quotation Ref:'} QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}
           </p>
+          
+          <!-- Status Badge for Paid Quotations -->
+          ${quotation.status === 'paid' ? `
+            <div style="background: #10b981; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+              ${isJapanese ? '✓ 支払い済み' : '✓ PAID'}
+            </div>
+            <p style="margin: 5px 0 0 0; font-size: 13px;">
+              ${quotation.payment_date ? 
+                `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${new Date(quotation.payment_date).toLocaleDateString(localeCode)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
+                quotation.payment_completed_at ? 
+                  `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                  `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${invoiceDate}`}
+            </p>
+          ` : ''}
         </div>
         
         <div style="text-align: right;">
@@ -157,11 +171,46 @@ function generateInvoiceHtml(
         ` : ''}
         
         ${quotation?.billing_country ? `
-          <p style=\"margin: 0; font-size: 13px; color: #111827;\">
+          <p style="margin: 0; font-size: 13px; color: #111827;">
             <strong>${isJapanese ? '国:' : 'Country:'}</strong> ${quotation.billing_country}
           </p>
         ` : ''}
       </div>
+      
+      <!-- Payment Information section for paid quotations -->
+      ${quotation.status === 'paid' ? `
+        <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+          <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
+            ${isJapanese ? '支払い情報' : 'Payment Information'}
+          </h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+            ${quotation.payment_date ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_completed_at ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '完了時刻:' : 'Completed at:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_amount ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い金額:' : 'Payment Amount:'}</strong>
+                <span style="color: #374151;"> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_method ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い方法:' : 'Payment Method:'}</strong>
+                <span style="color: #374151;"> ${quotation.payment_method}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
       
       <!-- Service Details Table -->
       <div style="margin-bottom: 25px;">
@@ -313,10 +362,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Only allow invoice generation for approved quotations
-    if (quotation.status !== 'approved') {
+    // Only allow invoice generation for approved or paid quotations
+    if (!['approved', 'paid'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: 'Can only generate invoices for approved quotations' },
+        { error: 'Can only generate invoices for approved or paid quotations' },
         { status: 400 }
       )
     }

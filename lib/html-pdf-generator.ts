@@ -531,15 +531,23 @@ export function generateQuotationHtml(
           <p style="margin: 0 0 5px 0; font-weight: normal; font-size: 13px;">
             ${quotationT.quotationNumber} ${formattedQuotationId}
           </p>
-          ${quotation.status === 'approved' || quotation.status === 'rejected' ? `
-            <div style="background: ${quotation.status === 'approved' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
-              ${quotation.status === 'approved' ? (isJapanese ? '✓ 承認済み' : '✓ APPROVED') : (isJapanese ? '✗ 却下済み' : '✗ REJECTED')}
+          ${quotation.status === 'approved' || quotation.status === 'rejected' || quotation.status === 'paid' ? `
+            <div style="background: ${quotation.status === 'approved' ? '#10b981' : quotation.status === 'paid' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
+              ${quotation.status === 'approved' ? (isJapanese ? '✓ 承認済み' : '✓ APPROVED') : 
+                quotation.status === 'paid' ? (isJapanese ? '✓ 支払い済み' : '✓ PAID') :
+                (isJapanese ? '✗ 却下済み' : '✗ REJECTED')}
             </div>
             <p style="margin: 5px 0 0 0; font-size: 13px;">
               ${quotation.status === 'approved' ? 
                 (quotation.approved_at ? 
                   `${isJapanese ? '承認日時:' : 'Approved on:'} ${new Date(quotation.approved_at).toLocaleDateString(localeCode)} ${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                   `${isJapanese ? '承認日時:' : 'Approved on:'} ${quotationDate}`) :
+                quotation.status === 'paid' ?
+                  (quotation.payment_date ? 
+                    `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${new Date(quotation.payment_date).toLocaleDateString(localeCode)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
+                    quotation.payment_completed_at ? 
+                      `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                      `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${quotationDate}`) :
                 (quotation.rejected_at ?
                   `${isJapanese ? '却下日時:' : 'Rejected on:'} ${new Date(quotation.rejected_at).toLocaleDateString(localeCode)} ${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                   `${isJapanese ? '却下日時:' : 'Rejected on:'} ${quotationDate}`)}
@@ -624,6 +632,41 @@ export function generateQuotationHtml(
           </p>
         ` : ''}
       </div>
+      
+      <!-- Payment Information section for paid quotations -->
+      ${quotation.status === 'paid' ? `
+        <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+          <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
+            ${isJapanese ? '支払い情報' : 'Payment Information'}
+          </h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+            ${quotation.payment_date ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_completed_at ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '完了時刻:' : 'Completed at:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_amount ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い金額:' : 'Payment Amount:'}</strong>
+                <span style="color: #374151;"> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_method ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い方法:' : 'Payment Method:'}</strong>
+                <span style="color: #374151;"> ${quotation.payment_method}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
       
       <!-- Price Details section with service breakdown -->
       <div style="margin-bottom: 15px; margin-top: 0px;">
@@ -783,12 +826,13 @@ export function generateQuotationHtml(
         
         const shouldShowSignature = showSignature && 
           ((quotation.status === 'approved' && quotation.approval_signature) || 
+           (quotation.status === 'paid') ||
            (quotation.status === 'rejected' && quotation.rejection_signature));
            
         console.log('PDF Generator - Should show signature:', shouldShowSignature);
         return '';
       })()}
-      ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
+      ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || quotation.status === 'paid' || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
         <div style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
           <!-- Right-aligned signature block like a letter -->
           <div style="display: flex; justify-content: flex-end;">
@@ -797,6 +841,8 @@ export function generateQuotationHtml(
               <div style="border: 1px solid #d1d5db; border-radius: 3px; padding: 10px; background: #f9fafb; min-height: 80px; max-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px;">
                 ${quotation.status === 'approved' && quotation.approval_signature ? `
                   <img src="${quotation.approval_signature}" alt="Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
+                ` : quotation.status === 'paid' ? `
+                  <div style="color: #10b981; font-size: 24px; font-weight: bold;">✓</div>
                 ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
                   <img src="${quotation.rejection_signature}" alt="Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                 ` : ''}
@@ -809,6 +855,12 @@ export function generateQuotationHtml(
                   (quotation.approved_at ? 
                     `${new Date(quotation.approved_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                     quotationDate) : 
+                  quotation.status === 'paid' ?
+                    (quotation.payment_date ? 
+                      `${new Date(quotation.payment_date).toLocaleDateString(localeCode)}<br/>${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
+                      quotation.payment_completed_at ? 
+                        `${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                        quotationDate) :
                   (quotation.rejected_at ?
                     `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                     quotationDate)}
@@ -817,6 +869,20 @@ export function generateQuotationHtml(
                 <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
                   <strong>Notes:</strong> ${quotation.approval_notes}
                 </p>
+              ` : quotation.status === 'paid' ? `
+                <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
+                  <strong>Status:</strong> Payment Completed
+                </p>
+                ${quotation.payment_amount ? `
+                <p style="margin: 4px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
+                  <strong>Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}
+                </p>
+                ` : ''}
+                ${quotation.payment_method ? `
+                <p style="margin: 4px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
+                  <strong>Method:</strong> ${quotation.payment_method}
+                </p>
+                ` : ''}
               ` : quotation.status === 'rejected' && quotation.rejection_reason ? `
                 <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
                   <strong>Reason:</strong> ${quotation.rejection_reason}

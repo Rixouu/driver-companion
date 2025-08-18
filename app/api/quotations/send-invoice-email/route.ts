@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if quotation is approved
-    if (quotationData.status !== 'approved') {
+    // Check if quotation is approved or paid
+    if (!['approved', 'paid'].includes(quotationData.status)) {
       return NextResponse.json(
-        { error: "Can only send invoices for approved quotations" },
+        { error: "Can only send invoices for approved or paid quotations" },
         { status: 400 }
       );
     }

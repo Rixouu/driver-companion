@@ -833,7 +833,9 @@ export const ja: TranslationValue = {
       daily: "日常点検",
       unspecified: "未指定",
       daily_checklist_toyota: "日常チェックリスト（トヨタ）",
-      daily_checklist_mercedes: "日常チェックリスト（メルセデス）"
+      "Daily Checklist Toyota": "日常チェックリスト（トヨタ）",
+      daily_checklist_mercedes: "日常チェックリスト（メルセデス）",
+      "Daily Checklist Mercedes": "日常チェックリスト（メルセデス）"
     },
     statusValues: {
       pass: "合格",
@@ -3467,8 +3469,9 @@ export const ja: TranslationValue = {
     title: "請求書",
     description: "顧客の請求書を管理・追跡します",
     actions: {
-      downloadPdf: "請求書PDFをダウンロード",
+      downloadPdf: "請求書をダウンロード",
       emailInvoice: "請求書をメール送信",
+      generating: "生成中...",
       sending: "送信中..."
     },
     emailModal: {

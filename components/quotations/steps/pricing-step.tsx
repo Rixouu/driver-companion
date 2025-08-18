@@ -5,6 +5,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { DollarSign, Globe, Gift, Timer, Package, X, CheckCircle, Tag, Percent, Calculator, TrendingUp, Clock, Info } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/lib/services/currency-service';
 import {
   FormControl,
   FormField,
@@ -57,10 +58,9 @@ export function PricingStep({
   const [promotionCode, setPromotionCode] = useState<string>('');
   const [promotionError, setPromotionError] = useState<string>('');
   const [timeBasedPricingEnabled, setTimeBasedPricingEnabled] = useState<boolean>(true);
-  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({ JPY: 1 });
-  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null);
-  const [isLoadingRates, setIsLoadingRates] = useState<boolean>(false);
-  const [ratesError, setRatesError] = useState<string | null>(null);
+  
+  // Use the same currency service as quotation-details.tsx
+  const { currencyData, isLoading: currencyLoading, formatCurrency: dynamicFormatCurrency, convertCurrency } = useCurrency('JPY');
 
   const discountPercentage = form.watch('discount_percentage');
   const taxPercentage = form.watch('tax_percentage');
@@ -81,11 +81,28 @@ export function PricingStep({
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // Enhanced currency formatting using the same logic as quotation-details.tsx
   const formatCurrency = (amount: number) => {
-    if (amount === undefined) return `¥0`;
-    const base = exchangeRates['JPY'] || 1;
-    const target = exchangeRates[selectedCurrency] || 1;
-    const convertedAmount = amount * (target / base);
+    if (amount === undefined) return dynamicFormatCurrency(0, selectedCurrency);
+    
+    // Use dynamic currency service if available, fallback to static rates
+    if (currencyData && !currencyLoading) {
+      const convertedAmount = convertCurrency(amount, 'JPY', selectedCurrency);
+      return dynamicFormatCurrency(convertedAmount, selectedCurrency);
+    }
+    
+    // Fallback to static rates (same as before)
+    const exchangeRates: Record<string, number> = {
+      'JPY': 1,
+      'USD': 0.0067,
+      'EUR': 0.0062,
+      'THB': 0.22,
+      'CNY': 0.048,
+      'SGD': 0.0091
+    };
+
+    const convertedAmount = amount * (exchangeRates[selectedCurrency] / exchangeRates['JPY']);
+    
     if (selectedCurrency === 'JPY' || selectedCurrency === 'CNY') {
       return selectedCurrency === 'JPY' 
         ? `¥${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
@@ -101,42 +118,6 @@ export function PricingStep({
       }).format(convertedAmount);
     }
   };
-
-  // Fetch live exchange rates with JPY base
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchRates() {
-      try {
-        setIsLoadingRates(true);
-        setRatesError(null);
-        // Free API without key; base JPY for simplicity
-        const res = await fetch('https://api.exchangerate.host/latest?base=JPY');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (isMounted && data && data.rates) {
-          // Pick only currencies we show; keep JPY:1
-          const allowed = ['JPY','USD','EUR','THB','CNY','SGD'];
-          const nextRates: Record<string, number> = { JPY: 1 };
-          for (const code of allowed) {
-            if (code === 'JPY') continue;
-            if (typeof data.rates[code] === 'number') nextRates[code] = data.rates[code];
-          }
-          setExchangeRates(nextRates);
-          setRatesUpdatedAt(new Date(data.date || Date.now()).toLocaleString());
-        }
-      } catch (err: any) {
-        if (isMounted) {
-          setRatesError(err?.message || 'Failed to load rates');
-          // Fallback static snapshot to avoid empty UI
-          setExchangeRates({ JPY: 1, USD: 0.0067, EUR: 0.0062, THB: 0.22, CNY: 0.048, SGD: 0.0091 });
-        }
-      } finally {
-        if (isMounted) setIsLoadingRates(false);
-      }
-    }
-    fetchRates();
-    return () => { isMounted = false };
-  }, []);
 
   const calculateTotalServiceAmount = () => {
     if (serviceItems.length === 0) return 0;
@@ -315,13 +296,13 @@ export function PricingStep({
                         <div className="font-medium text-foreground">{t('quotations.form.currencyInfo.title')}</div>
                         <p className="leading-relaxed">{t('quotations.form.currencyInfo.description')}</p>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          {isLoadingRates ? (
+                          {currencyLoading ? (
                             <span>{t('common.loading')}</span>
-                          ) : ratesError ? (
-                            <span className="text-red-600">{ratesError}</span>
-                          ) : ratesUpdatedAt ? (
-                            <span>{t('quotations.form.currencyInfo.lastUpdated', { date: ratesUpdatedAt })}</span>
-                          ) : null}
+                          ) : currencyData ? (
+                            <span className="text-[10px]">Live rates loaded</span>
+                          ) : (
+                            <span className="text-[10px]">Using fallback rates</span>
+                          )}
                           <span className="text-[10px]">Source: <a href="https://exchangerate.host" target="_blank" rel="noreferrer noopener" className="underline underline-offset-2">exchangerate.host</a></span>
                         </div>
                         <div className="text-[10px]">{t('quotations.form.currencyInfo.disclaimer')}</div>

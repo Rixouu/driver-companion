@@ -42,9 +42,19 @@ import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationStatusFilter } from './quotation-status-filter';
+import { QuotationAdvancedFilters } from './quotation-advanced-filters';
 import { cn } from '@/lib/utils';
 import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -54,6 +64,17 @@ interface QuotationListProps {
   onSend?: (id: string) => void;
   onRemind?: (id: string) => void;
   isOrganizationMember?: boolean;
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  filterParams: {
+    query?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    amountMin?: number;
+    amountMax?: number;
+  };
 }
 
 export default function QuotationList({
@@ -63,7 +84,11 @@ export default function QuotationList({
   onDelete,
   onSend,
   onRemind,
-  isOrganizationMember = true
+  isOrganizationMember = true,
+  totalCount,
+  totalPages,
+  currentPage,
+  filterParams
 }: QuotationListProps) {
   const { t } = useI18n();
   const { toast } = useToast();
@@ -451,6 +476,26 @@ export default function QuotationList({
           />
         </div>
 
+        {/* Advanced Filters */}
+        <QuotationAdvancedFilters
+          currentFilters={{
+            query: searchQuery,
+            status: statusFilter,
+            dateFrom: filterParams.dateFrom,
+            dateTo: filterParams.dateTo,
+            amountMin: filterParams.amountMin,
+            amountMax: filterParams.amountMax
+          }}
+          onFiltersChange={(filters) => {
+            // This will be handled by the URL navigation in the filters component
+          }}
+          onClearFilters={() => {
+            setSearchQuery('');
+            handleStatusFilterChange('all');
+            // Clear other filters will be handled by URL navigation
+          }}
+        />
+
         <div className="p-4">
           <div className="md:hidden space-y-4">
             {filteredQuotations.map((quotation) => (
@@ -702,6 +747,79 @@ export default function QuotationList({
             </Table>
           </div>
         </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t">
+            <Pagination>
+              <PaginationContent className="flex justify-center">
+                {/* Previous Page */}
+                <PaginationItem>
+                  <PaginationPrevious 
+                    href={`${pathname}?${new URLSearchParams({
+                      ...Object.fromEntries(currentSearchParams.entries()),
+                      page: (currentPage - 1).toString()
+                    }).toString()}`}
+                    className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+
+                {/* Page Numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  if (pageNum < 1 || pageNum > totalPages) return null;
+
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href={`${pathname}?${new URLSearchParams({
+                          ...Object.fromEntries(currentSearchParams.entries()),
+                          page: pageNum.toString()
+                        }).toString()}`}
+                        isActive={pageNum === currentPage}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                {/* Ellipsis for long page ranges */}
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                )}
+
+                {/* Next Page */}
+                <PaginationItem>
+                  <PaginationNext 
+                    href={`${pathname}?${new URLSearchParams({
+                      ...Object.fromEntries(currentSearchParams.entries()),
+                      page: (currentPage + 1).toString()
+                    }).toString()}`}
+                    className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            
+            {/* Page Info */}
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              Page {currentPage} of {totalPages} • Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalCount)} of {totalCount} quotations
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force dynamic rendering to avoid cookie issues
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    // Create server-side Supabase client with auth cookies
+    // Create server-side Supabase client with auth cookies for user validation
     const supabase = await getSupabaseServerClient();
     
     // Check authorization
@@ -14,6 +15,18 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Create service role client for database operations (bypasses RLS)
+    const serviceRoleClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
 
     // Parse form data
     const formData = await request.formData();
@@ -39,64 +52,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
     }
 
-    // Check if bucket exists and create if needed
-    let bucketName = 'receipts';
-    let bucketExists = false;
-    
-    // First, try to get the existing bucket
-    const { data: existingBucket } = await supabase.storage.getBucket(bucketName);
-    if (existingBucket) {
-      bucketExists = true;
-      console.log(`Using existing bucket: ${bucketName}`);
-    } else {
-      // Try to create bucket with different settings to avoid RLS issues
-      const bucketOptions = [
-        { public: true, allowedMimeTypes: ['image/*', 'application/pdf'] },
-        { public: false, allowedMimeTypes: ['image/*', 'application/pdf'] },
-        { public: true, allowedMimeTypes: null },
-        { public: false, allowedMimeTypes: null }
-      ];
-      
-      let bucketCreated = false;
-      for (const options of bucketOptions) {
-        try {
-          const { data: newBucket, error: createError } = await supabase.storage.createBucket(bucketName, options);
-          if (newBucket && !createError) {
-            bucketCreated = true;
-            bucketExists = true;
-            console.log(`Created bucket with options:`, options);
-            break;
-          }
-        } catch (error) {
-          console.log(`Failed to create bucket with options:`, options, error);
-          continue;
-        }
-      }
-      
-      if (!bucketCreated) {
-        // If all creation attempts fail, try to use an existing bucket as fallback
-        const { data: existingBuckets } = await supabase.storage.listBuckets();
-        const fallbackBucket = existingBuckets?.find(b => b.name && b.name !== bucketName);
-        
-        if (fallbackBucket) {
-          bucketName = fallbackBucket.name;
-          bucketExists = true;
-          console.log(`Using fallback bucket: ${bucketName}`);
-        } else {
-          return NextResponse.json(
-            { error: 'No storage buckets available and unable to create new bucket' },
-            { status: 500 }
-          );
-        }
-      }
-    }
+    // Use the existing receipts bucket directly
+    const bucketName = 'receipts';
+    console.log(`Using existing bucket: ${bucketName}`);
 
     // Generate unique filename
     const fileExt = receipt.name.split('.').pop();
     const fileName = `${user.id}/${quotationId}/${Date.now()}-receipt.${fileExt}`;
 
-    // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Upload file to storage using service role client
+    const { data: uploadData, error: uploadError } = await serviceRoleClient.storage
       .from(bucketName)
       .upload(fileName, receipt, {
         cacheControl: '3600',
@@ -109,12 +74,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = serviceRoleClient.storage
       .from(bucketName)
       .getPublicUrl(uploadData.path);
 
-    // Update quotation with receipt URL and payment details
-    const { error: updateError } = await supabase
+    // Update quotation with receipt URL and payment details using service role client
+    const { error: updateError } = await serviceRoleClient
       .from('quotations')
       .update({
         receipt_url: urlData.publicUrl,
@@ -129,13 +94,13 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating quotation:', updateError);
       // Delete uploaded file if update fails
-      await supabase.storage.from(bucketName).remove([fileName]);
+      await serviceRoleClient.storage.from(bucketName).remove([fileName]);
       return NextResponse.json({ error: 'Failed to update quotation' }, { status: 500 });
     }
 
-    // Log activity
+    // Log activity using service role client
     try {
-      await supabase
+      await serviceRoleClient
         .from('quotation_activities')
         .insert({
           quotation_id: quotationId,

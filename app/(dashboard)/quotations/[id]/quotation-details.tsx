@@ -451,14 +451,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Download buttons for paid status */}
             {quotation.status === 'paid' && (
               <div className="flex flex-wrap gap-3 pt-2 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
-                  className="gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Download Invoice
-                </Button>
+                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 
@@ -475,14 +468,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Download buttons for converted status */}
             {quotation.status === 'converted' && (
               <div className="flex flex-wrap gap-3 pt-2 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.open(`/api/quotations/download-invoice-pdf?quotationId=${quotation.id}`, '_blank')}
-                  className="gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Download Invoice
-                </Button>
+                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 
@@ -496,7 +482,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               </div>
             )}
             
-                      {/* Next Step Indicator */}
+            {/* Next Step Indicator */}
           {(() => {
             const getNextStep = () => {
               switch (quotation.status) {
@@ -509,6 +495,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     return 'Send Payment Link';
                   }
                   return 'Send Invoice';
+                case 'paid':
+                  return 'Convert to Booking';
                 default:
                   return null;
               }
@@ -528,8 +516,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             return null;
           })()}
             
-            {/* Action Buttons Row */}
-            {quotation.status !== 'paid' && quotation.status !== 'converted' && (
+            {/* Action Buttons Row - Only show for non-final statuses */}
+            {!['paid', 'converted'].includes(quotation.status) && (
               <div className="flex flex-wrap gap-3 pt-2 border-t">
                 {/* Primary Action Buttons */}
                 {quotation.status === 'approved' ? (

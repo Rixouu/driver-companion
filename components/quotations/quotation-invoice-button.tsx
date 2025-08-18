@@ -490,25 +490,30 @@ export function QuotationInvoiceButton({ quotation, onSuccess }: QuotationInvoic
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       
-      <Button 
-        onClick={handleEmailDialogOpen} 
-        disabled={isEmailing}
-        className="gap-2"
-      >
-        <Mail className="h-4 w-4" />
-        {isEmailing ? (t('invoices.actions.sending') || 'Sending...') : (t('invoices.actions.emailInvoice') || 'Email Invoice')}
-      </Button>
+      {/* Only show Email Invoice and Send Payment Link for non-paid statuses */}
+      {quotation.status !== 'paid' && (
+        <>
+          <Button 
+            onClick={handleEmailDialogOpen} 
+            disabled={isEmailing}
+            className="gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            {isEmailing ? (t('invoices.actions.sending') || 'Sending...') : (t('invoices.actions.emailInvoice') || 'Email Invoice')}
+          </Button>
 
-      {/* Admin-only Send Payment Link button */}
-      {isAdmin && (
-        <Button 
-          onClick={handlePaymentLinkDialogOpen} 
-          disabled={isSendingPaymentLink}
-          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <CreditCard className="h-4 w-4" />
-          {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
-        </Button>
+          {/* Admin-only Send Payment Link button */}
+          {isAdmin && (
+            <Button 
+              onClick={handlePaymentLinkDialogOpen} 
+              disabled={isSendingPaymentLink}
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <CreditCard className="h-4 w-4" />
+              {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
+            </Button>
+          )}
+        </>
       )}
       
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>

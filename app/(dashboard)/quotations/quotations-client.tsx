@@ -23,10 +23,27 @@ import { PlusCircle, Filter, Edit, Eye, Copy, Trash, Send, FileText, RefreshCw, 
 interface QuotationsTableClientProps {
   initialQuotations: Quotation[];
   totalCount: number;
+  totalPages: number;
+  currentPage: number;
   isOrganizationMember?: boolean;
+  filterParams: {
+    query?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    amountMin?: number;
+    amountMax?: number;
+  };
 }
 
-export default function QuotationsTableClient({ initialQuotations, totalCount, isOrganizationMember = true }: QuotationsTableClientProps) {
+export default function QuotationsTableClient({ 
+  initialQuotations, 
+  totalCount, 
+  totalPages,
+  currentPage,
+  isOrganizationMember = true,
+  filterParams
+}: QuotationsTableClientProps) {
   const { t } = useI18n();
   const [quotations, setQuotations] = useState<Quotation[]>(initialQuotations);
   const [isLoading, setIsLoading] = useState(false);
@@ -134,6 +151,10 @@ export default function QuotationsTableClient({ initialQuotations, totalCount, i
         onSend={isOrganizationMember ? handleSend : undefined}
         onRemind={isOrganizationMember ? handleRemind : undefined}
         isOrganizationMember={isOrganizationMember}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        filterParams={filterParams}
       />
       
       {/* Delete Confirmation Dialog */}

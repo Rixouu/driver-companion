@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
-import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
 
 // Force dynamic rendering to avoid cookie issues
@@ -201,6 +201,12 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
 
 export async function POST(request: NextRequest) {
   console.log('==================== APPROVE ROUTE START ====================');
+  
+  // Set up timeout for the entire request (45 seconds)
+  const timeoutId = setTimeout(() => {
+    console.error('❌ [APPROVE ROUTE] Request timeout after 45 seconds');
+  }, 45000);
+  
   try {
     console.log('Approve route - Parsing request body');
     const { id, notes, signature, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
@@ -402,15 +408,13 @@ export async function POST(request: NextRequest) {
         approvalSignaturePreview: updatedQuotation?.approval_signature?.substring(0, 50) + '...' || 'none'
       });
       
-      // Generate the HTML for the quotation with signature
-      const htmlContent = generateQuotationHtml(updatedQuotation || fullQuotation, 'en', selectedPackage, selectedPromotion, true);
-      
-      // Convert the HTML to a PDF
-      pdfBuffer = await generatePdfFromHtml(htmlContent, {
-        format: 'A4',
-        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-        printBackground: true
-      });
+      // Generate optimized PDF using the new generator
+      pdfBuffer = await generateOptimizedQuotationPDF(
+        updatedQuotation || fullQuotation, 
+        'en', 
+        selectedPackage, 
+        selectedPromotion
+      );
       
       console.log('Approve route - PDF generated successfully');
     } catch (pdfError) {
@@ -457,7 +461,9 @@ export async function POST(request: NextRequest) {
       // Generate styled email HTML using our helper function
       const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, notes);
       
-      const { data: emailData } = await resend.emails.send({
+      // Send email with timeout
+      console.log('🔄 [APPROVE ROUTE] Sending approval email via Resend...');
+      const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [emailAddress],
         subject: emailSubject,
@@ -469,6 +475,19 @@ export async function POST(request: NextRequest) {
           }
         ] : undefined
       });
+
+      // Add timeout for email sending (30 seconds)
+      const { data: emailData, error: resendError } = await Promise.race([
+        emailSendPromise,
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Email sending timeout after 30 seconds')), 30000)
+        )
+      ]);
+
+      if (resendError) {
+        console.error('❌ [APPROVE ROUTE] Error reported by Resend:', JSON.stringify(resendError, null, 2));
+        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
+      }
       
       const emailId = emailData?.id || 'unknown';
       console.log(`Approve route - Email sent successfully! ID: ${emailId}`);
@@ -481,21 +500,28 @@ export async function POST(request: NextRequest) {
         } as any)
         .eq('id', id);
       
+      clearTimeout(timeoutId);
       return NextResponse.json({ 
         message: 'Quotation approved and notification email sent', 
         emailId: emailId 
       }, { status: 200 });
     } catch (emailError) {
-      console.error('Approve route - Email sending error:', emailError);
+      console.error('❌ [APPROVE ROUTE] Email sending error:', emailError);
+      clearTimeout(timeoutId);
       return NextResponse.json({ 
         message: 'Quotation approved, but failed to send notification email',
-        error: emailError instanceof Error ? emailError.message : 'Unknown email error'
+        error: emailError instanceof Error ? emailError.message : 'Unknown email error',
+        code: 'EMAIL_SEND_ERROR',
+        timestamp: new Date().toISOString()
       }, { status: 200 });
     }
   } catch (error) {
-    console.error('Approve route - Unexpected error:', error);
+    console.error('❌ [APPROVE ROUTE] Unexpected error:', error);
+    clearTimeout(timeoutId);
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'An unexpected error occurred' 
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      code: 'INTERNAL_SERVER_ERROR',
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   } finally {
     console.log('==================== APPROVE ROUTE END ====================');

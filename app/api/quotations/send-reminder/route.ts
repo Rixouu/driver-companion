@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
-import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator'
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 // Email templates for different languages
@@ -32,7 +32,7 @@ const reminderTemplates = {
   }
 };
 
-// Function to generate custom PDF using HTML-to-PDF approach
+// Function to generate optimized PDF using the new generator
 async function generateQuotationPDF(
   quotation: any, 
   language: string,
@@ -40,19 +40,17 @@ async function generateQuotationPDF(
   selectedPromotion: PricingPromotion | null
 ): Promise<Buffer | null> {
   try {
-    console.log('🔄 [SEND-REMINDER API] Starting PDF generation with HTML-to-PDF');
+    console.log('🔄 [SEND-REMINDER API] Starting optimized PDF generation');
     
-    // Generate the HTML for the quotation including signatures
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion, true);
+    // Use the optimized PDF generator
+    const pdfBuffer = await generateOptimizedQuotationPDF(
+      quotation, 
+      language as 'en' | 'ja', 
+      selectedPackage, 
+      selectedPromotion
+    );
     
-    // Convert the HTML to a PDF
-    const pdfBuffer = await generatePdfFromHtml(htmlContent, {
-      format: 'A4',
-      margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-      printBackground: true
-    });
-    
-    console.log('✅ [SEND-REMINDER API] PDF generation successful!');
+    console.log('✅ [SEND-REMINDER API] Optimized PDF generation successful!');
     return pdfBuffer;
     
   } catch (error) {

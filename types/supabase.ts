@@ -527,6 +527,140 @@ export type Database = {
         }
         Relationships: []
       }
+      email_engagement_events: {
+        Row: {
+          created_at: string | null
+          email: string
+          email_id: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          provider: string
+          quotation_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          email_id: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          provider: string
+          quotation_id?: string | null
+          timestamp: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          email_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          quotation_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_engagement_events_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_engagement_events_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_statuses: {
+        Row: {
+          attempts: number | null
+          bounced_at: string | null
+          clicked_at: string | null
+          delivered_at: string | null
+          email: string
+          email_id: string
+          failed_at: string | null
+          id: string
+          last_updated: string | null
+          metadata: Json | null
+          opened_at: string | null
+          provider: string
+          quotation_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          delivered_at?: string | null
+          email: string
+          email_id: string
+          failed_at?: string | null
+          id?: string
+          last_updated?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider: string
+          quotation_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          delivered_at?: string | null
+          email?: string
+          email_id?: string
+          failed_at?: string | null
+          id?: string
+          last_updated?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider?: string
+          quotation_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_statuses_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "email_statuses_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_statuses_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fuel_entries: {
         Row: {
           created_at: string | null

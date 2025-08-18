@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
-// Remove jsPDF dependency - we're using Puppeteer now
-// Import our new HTML PDF generator
-import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator'
-// Import the new PDF helper utilities
-import { embedWorkSansFont, createQuotationHeader } from '@/lib/pdf-helpers'
+// Import optimized PDF generator
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
@@ -52,29 +49,25 @@ const emailTemplates: Record<'en' | 'ja', {
   }
 };
 
-// Function to generate custom PDF using HTML-to-PDF approach
+// Optimized PDF generation with caching and timeout handling
 async function generateQuotationPDF(
   quotation: any, 
   language: string,
   selectedPackage: PricingPackage | null,
   selectedPromotion: PricingPromotion | null
 ): Promise<Buffer | null> {
-  console.log(`🔄 [SEND-EMAIL API] Entering generateQuotationPDF for quote: ${quotation?.id}, lang: ${language}`);
+  console.log(`🔄 [SEND-EMAIL API] Starting optimized PDF generation for quote: ${quotation?.id}, lang: ${language}`);
   
   try {
-    console.log('🔄 [SEND-EMAIL API] Starting PDF generation with HTML-to-PDF');
+    // Use optimized PDF generator with caching
+    const pdfBuffer = await generateOptimizedQuotationPDF(
+      quotation, 
+      language, 
+      selectedPackage, 
+      selectedPromotion
+    );
     
-    // Generate the HTML for the quotation, passing all required data
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
-    
-    // Convert the HTML to a PDF
-    const pdfBuffer = await generatePdfFromHtml(htmlContent, {
-      format: 'A4',
-      margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-      printBackground: true
-    });
-    
-    console.log('✅ [SEND-EMAIL API] PDF generation successful!');
+    console.log('✅ [SEND-EMAIL API] Optimized PDF generation successful!');
     return pdfBuffer;
     
   } catch (error) {
@@ -84,7 +77,13 @@ async function generateQuotationPDF(
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🔄 [SEND-EMAIL API] Received POST request.'); // Log entry into POST
+  console.log('🔄 [SEND-EMAIL API] Received POST request.');
+  
+  // Set up timeout for the entire request (45 seconds)
+  const timeoutId = setTimeout(() => {
+    console.error('❌ [SEND-EMAIL API] Request timeout after 45 seconds');
+  }, 45000);
+  
   try {
     // Use formData to handle the multipart/form-data request
     const contentType = request.headers.get('content-type') || ''
@@ -215,7 +214,9 @@ export async function POST(request: NextRequest) {
     console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
     
     try {
-      const { data: emailData, error: resendError } = await resend.emails.send({
+      // Send email with timeout
+      console.log('🔄 [SEND-EMAIL API] Sending email via Resend...');
+      const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [email],
         subject: emailSubject,
@@ -223,14 +224,20 @@ export async function POST(request: NextRequest) {
         html: emailHtml,
         attachments: [{
           filename: `quotation-${formattedQuotationId}.pdf`,
-          content: pdfBuffer.toString('base64') // Ensure content is base64 encoded
+          content: pdfBuffer.toString('base64')
         }]
       });
+
+      // Add timeout for email sending (30 seconds)
+      const { data: emailData, error: resendError } = await Promise.race([
+        emailSendPromise,
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Email sending timeout after 30 seconds')), 30000)
+        )
+      ]);
     
       if (resendError) {
-        // Enhanced logging for Resend errors
         console.error('❌ [SEND-EMAIL API] Error reported by Resend:', JSON.stringify(resendError, null, 2));
-        // Rethrow the specific Resend error for clearer debugging upstream if needed
         throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
       }
       
@@ -266,6 +273,7 @@ export async function POST(request: NextRequest) {
           }
         });
       
+      clearTimeout(timeoutId);
       return NextResponse.json({ 
         success: true,
         message: 'Email sent successfully',
@@ -273,27 +281,37 @@ export async function POST(request: NextRequest) {
       });
       
     } catch (err) {
-      // Log the specific error type and message
       console.error(`❌ [SEND-EMAIL API] Error during email sending process: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
-      // Log the stack trace if available
       if (err instanceof Error && err.stack) {
           console.error('Stack trace:', err.stack);
       }
+      
+      // Return standardized JSON error response
+      clearTimeout(timeoutId);
       return NextResponse.json(
-        { error: err instanceof Error ? err.message : 'Failed to send email' },
+        { 
+          error: err instanceof Error ? err.message : 'Failed to send email',
+          code: 'EMAIL_SEND_ERROR',
+          timestamp: new Date().toISOString()
+        },
         { status: 500 }
       );
     }
     
   } catch (err) {
-    // Simplified catch block for broader logging
     console.error('❌ [SEND-EMAIL API] Unhandled error in POST handler:', err);
-    // Log stack trace if available
     if (err instanceof Error && err.stack) {
         console.error('[SEND-EMAIL API] POST Handler Stack Trace:', err.stack);
     }
+    
+    // Return standardized JSON error response
+    clearTimeout(timeoutId);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler' },
+      { 
+        error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler',
+        code: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }

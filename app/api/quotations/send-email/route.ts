@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { Resend } from 'resend';
-import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
+import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { Resend } from 'resend'
+// Import optimized PDF generator
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
@@ -59,8 +60,11 @@ async function generateQuotationPDF(
   
   try {
     // Use optimized PDF generator with caching
-    const pdfBuffer = await generatePdfFromHtml(
-      generateQuotationHtml(quotation, 'en', selectedPackage, selectedPromotion)
+    const pdfBuffer = await generateOptimizedQuotationPDF(
+      quotation, 
+      language, 
+      selectedPackage, 
+      selectedPromotion
     );
     
     console.log('✅ [SEND-EMAIL API] Optimized PDF generation successful!');

@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 // Remove jsPDF dependency - we're using Puppeteer now
 // Import our new HTML PDF generator
-import { generatePdfFromHtml, generateQuotationHtml } from '@/lib/html-pdf-generator';
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 // Email templates for different languages
@@ -42,9 +42,12 @@ async function generateQuotationPDF(
   try {
     console.log('🔄 [SEND-REMINDER API] Starting optimized PDF generation');
     
-    // Generate PDF using the ORIGINAL working generator
-    const pdfBuffer = await generatePdfFromHtml(
-      generateQuotationHtml(quotation, 'en', selectedPackage, selectedPromotion)
+    // Use the optimized PDF generator
+    const pdfBuffer = await generateOptimizedQuotationPDF(
+      quotation, 
+      language as 'en' | 'ja', 
+      selectedPackage, 
+      selectedPromotion
     );
     
     console.log('✅ [SEND-REMINDER API] Optimized PDF generation successful!');

@@ -478,10 +478,29 @@ async function attemptPdfGeneration(
   let browser: Browser | null = null;
   
   try {
-    // Launch browser with aggressive timeout
-    const browserLaunchPromise = puppeteer.launch(getOptimizedPuppeteerConfig());
+    // Check if we're in a serverless environment and use appropriate browser
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTIONS_WORKER_RUNTIME;
     
-    // Race browser launch against timeout
+    let browserLaunchPromise: Promise<Browser>;
+    
+    if (isServerless) {
+      // Use @sparticuz/chromium for serverless environments
+      console.log('🌐 [PDF GENERATOR] Using @sparticuz/chromium for serverless environment');
+      browserLaunchPromise = puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        timeout: 20000,
+        protocolTimeout: 20000
+      });
+    } else {
+      // Use regular puppeteer for non-serverless environments
+      console.log('🖥️  [PDF GENERATOR] Using regular puppeteer for non-serverless environment');
+      browserLaunchPromise = puppeteer.launch(getOptimizedPuppeteerConfig());
+    }
+    
+    // Launch browser with aggressive timeout
     browser = await Promise.race([
       browserLaunchPromise,
       new Promise<never>((_, reject) => 

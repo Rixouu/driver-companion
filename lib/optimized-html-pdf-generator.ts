@@ -375,24 +375,7 @@ export async function generateOptimizedPdfFromHtml(
 
     await browser.close();
     
-    const buffer = Buffer.from(pdfBuffer);
-    metrics.totalTime = Date.now() - metrics.startTime;
-    
-    console.log('📊 PDF Generation Performance:', {
-      totalTime: `${metrics.totalTime}ms`,
-      browserLaunch: `${metrics.browserLaunchTime}ms`,
-      pageCreate: `${metrics.pageCreateTime}ms`,
-      contentSet: `${metrics.contentSetTime}ms`,
-      pdfGeneration: `${metrics.pdfGenerationTime}ms`,
-      fromCache: false
-    });
-
-    // Cache the generated PDF in enhanced cache if quotation data is provided
-    if (cacheHash) {
-      await enhancedPdfCache.cachePDF(cacheHash, buffer);
-    }
-
-    return buffer;
+    return Buffer.from(pdfBuffer);
     
   } catch (error) {
     if (browser) {
@@ -478,15 +461,22 @@ async function attemptPdfGeneration(
   let browser: Browser | null = null;
   
   try {
-    // Check if we're in a serverless environment and use appropriate browser
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTIONS_WORKER_RUNTIME;
+    console.log(`🚀 [PDF GENERATOR] Attempt ${attemptNumber} - Starting optimized PDF generation...`);
     
-    let browserLaunchPromise: Promise<Browser>;
+    // Check if we're in Vercel and use their Chrome instance
+    const isVercel = process.env.VERCEL === '1';
     
-    if (isServerless) {
-      // Use @sparticuz/chromium for serverless environments
+    if (isVercel) {
+      console.log('🌐 [PDF GENERATOR] Using Vercel Chrome instance for optimal performance');
+      // Use Vercel's Chrome instance - much faster than launching our own
+      browser = await puppeteer.connect({
+        browserURL: 'http://localhost:9222',
+        defaultViewport: { width: 1200, height: 800 }
+      });
+    } else {
+      // Use @sparticuz/chromium for other serverless environments
       console.log('🌐 [PDF GENERATOR] Using @sparticuz/chromium for serverless environment');
-      browserLaunchPromise = puppeteer.launch({
+      browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
@@ -494,100 +484,73 @@ async function attemptPdfGeneration(
         timeout: 20000,
         protocolTimeout: 20000
       });
-    } else {
-      // Use regular puppeteer for non-serverless environments
-      console.log('🖥️  [PDF GENERATOR] Using regular puppeteer for non-serverless environment');
-      browserLaunchPromise = puppeteer.launch(getOptimizedPuppeteerConfig());
     }
-    
-    // Launch browser with aggressive timeout
-    browser = await Promise.race([
-      browserLaunchPromise,
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Browser launch timeout after 15 seconds')), 15000)
-      )
-    ]);
     
     const browserLaunchTime = Date.now() - startTime;
     console.log(`⏱️  Browser launched in ${browserLaunchTime}ms`);
     
-    if (!browser) {
-      throw new Error('Failed to launch browser');
-    }
-    
     // Create page with timeout
-    const page = await Promise.race([
-      browser.newPage(),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Page creation timeout after 10 seconds')), 10000)
-      )
-    ]);
-    
-    const pageCreateTime = Date.now() - startTime - browserLaunchTime;
+    const pageCreateStart = Date.now();
+    const page = await browser.newPage();
+    const pageCreateTime = Date.now() - pageCreateStart;
     console.log(`⏱️  Page created in ${pageCreateTime}ms`);
     
-    // Set aggressive timeouts for page operations
-    await page.setDefaultTimeout(20000);
-    await page.setDefaultNavigationTimeout(20000);
-    
-    // Generate HTML content
+    // Set content with timeout
+    const contentSetStart = Date.now();
     const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
     const optimizedHtml = createOptimizedHTMLTemplate(htmlContent);
     
-    // Set content with timeout
-    const contentSetPromise = page.setContent(optimizedHtml, { 
-      waitUntil: 'networkidle0',
-      timeout: 20000 
-    });
-    
     await Promise.race([
-      contentSetPromise,
+      page.setContent(optimizedHtml, { waitUntil: 'networkidle0' }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Content setting timeout after 20 seconds')), 20000)
+        setTimeout(() => reject(new Error('Content set timeout after 20 seconds')), 20000)
       )
     ]);
     
-    const contentSetTime = Date.now() - startTime - browserLaunchTime - pageCreateTime;
+    const contentSetTime = Date.now() - contentSetStart;
     console.log(`⏱️  Content set in ${contentSetTime}ms`);
     
-    // Wait for fonts to load with shorter timeout
-    try {
-      await Promise.race([
-        page.waitForFunction(() => document.fonts.ready, { timeout: 5000 }),
-        new Promise(resolve => setTimeout(resolve, 3000)) // Fallback after 3 seconds
-      ]);
-      console.log('⏱️  Font loading completed in 3ms');
-    } catch (fontError) {
-      console.log('⚠️  Font loading timeout, continuing anyway...');
-    }
+    // Wait for fonts to load
+    const fontLoadStart = Date.now();
+    await page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => resolve());
+        } else {
+          // Fallback for older browsers
+          setTimeout(resolve, 1000);
+        }
+      });
+    });
+    const fontLoadTime = Date.now() - fontLoadStart;
+    console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
     // Generate PDF with timeout
-    const pdfGenerationPromise = page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' },
-      timeout: 20000
-    });
-    
+    const pdfStart = Date.now();
     const pdfBuffer = await Promise.race([
-      pdfGenerationPromise,
+      page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
+      }),
       new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('PDF generation timeout after 20 seconds')), 20000)
       )
     ]);
     
-    const pdfGenerationTime = Date.now() - startTime - browserLaunchTime - pageCreateTime - contentSetTime;
-    console.log(`⏱️  PDF generated in ${pdfGenerationTime}ms`);
+    const pdfTime = Date.now() - pdfStart;
+    console.log(`⏱️  PDF generated in ${pdfTime}ms`);
     
+    // Log performance metrics
     const totalTime = Date.now() - startTime;
-    console.log(`📊 PDF Generation Performance (Attempt ${attemptNumber}): {
-  totalTime: '${totalTime}ms',
-  browserLaunch: '${browserLaunchTime}ms',
-  pageCreate: '${pageCreateTime}ms',
-  contentSet: '${contentSetTime}ms',
-  pdfGeneration: '${pdfGenerationTime}ms',
-  fromCache: false
-}`);
+    console.log(`📊 PDF Generation Performance (Attempt ${attemptNumber}):`, {
+      totalTime: `${totalTime}ms`,
+      browserLaunch: `${browserLaunchTime}ms`,
+      pageCreate: `${pageCreateTime}ms`,
+      contentSet: `${contentSetTime}ms`,
+      pdfGeneration: `${pdfTime}ms`,
+      fromCache: false
+    });
     
     // Cache the generated PDF
     const hash = enhancedPdfCache.generateHash(quotation.id + language + (selectedPackage?.id || '') + (selectedPromotion?.id || ''));
@@ -599,14 +562,13 @@ async function attemptPdfGeneration(
   } catch (error) {
     console.error(`❌ [PDF GENERATOR] Attempt ${attemptNumber} failed:`, error);
     throw error;
-    
   } finally {
     if (browser) {
       try {
         await browser.close();
         console.log('🔒 Browser closed successfully');
       } catch (closeError) {
-        console.warn('⚠️  Error closing browser:', closeError);
+        console.warn('⚠️  Browser close error:', closeError);
       }
     }
   }

@@ -53,7 +53,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Work Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {
@@ -98,93 +98,50 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
             <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
                    style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
               
-              <!-- HEADER -->
+              <!-- Header -->
               <tr>
-                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
-                  <table width="100%" role="presentation">
-                    <tr>
-                      <td align="center" style="padding:24px;">
-                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
-                          <tr><td align="center" valign="middle" style="text-align:center;">
-                              <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
-                          </td></tr>
-                        </table>
-                        <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${isJapanese ? '見積書が却下されました' : 'Quotation Rejected'}
-                        </h1>
-                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                          ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
+                <td align="center" style="padding:24px 24px 0;">
+                  <img src="${logoUrl}" alt="Driver Logo" style="height:40px; width:auto;" />
                 </td>
               </tr>
               
-              <!-- GREETING -->
+              <!-- Content -->
               <tr>
-                <td>
-                  <p class="greeting">
-                    ${t.greeting} ${customerName},<br><br>
-                    ${t.rejected}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- REASON SECTION -->
-              ${reason ? `
-              <tr>
-                <td style="padding:12px 24px;">
-                  <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D;">
-                    ${t.reasonLabel}
-                  </h3>
-                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: Work Sans, sans-serif; line-height: 1.6;">
-                    <p style="margin: 8px 0; font-size: 14px; color: #32325D;">${reason}</p>
+                <td style="padding:24px;">
+                  <div class="greeting">
+                    ${t.greeting} ${customerName},
                   </div>
-                </td>
-              </tr>
-              ` : ''}
-              
-              <!-- CTA SECTION -->
-              <tr>
-                <td style="padding:12px 24px 24px; text-align: center;">
-                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align: left;">
-                    ${t.contactUs}
-                  </p>
-                  <a href="${appUrl}/quotations/${quotation.id}"
-                     style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                            text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                            font-size:16px; font-weight:600; text-align: center;">
-                    ${t.viewDetails}
-                  </a>
-                </td>
-              </tr>
-              
-              <!-- ADDITIONAL INFO -->
-              <tr>
-                <td style="padding:0px 24px 24px;">
-                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.additionalInfo}
-                  </p>
-                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.closing}
-                  </p>
-                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.regards}<br>
-                    ${t.company}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- FOOTER -->
-              <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">${t.company}</p>
-                  <p style="margin:0;">
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                      japandriver.com
+                  
+                  <div style="color:#32325D; margin:16px 24px; line-height:1.4; font-size: 14px;">
+                    ${t.rejected}
+                    ${reason ? `<br><br><strong>${t.reasonLabel}</strong> ${reason}` : ''}
+                  </div>
+                  
+                  <div style="margin:24px;">
+                    <a href="${appUrl}/quotations/${formattedQuotationId}" 
+                       style="background:#5469D4; color:#FFFFFF; padding:12px 24px; text-decoration:none; border-radius:6px; display:inline-block; font-weight:500;">
+                      ${t.viewDetails}
                     </a>
-                  </p>
+                  </div>
+                  
+                  <div style="color:#525F7F; margin:16px 24px; line-height:1.4; font-size: 14px;">
+                    ${t.additionalInfo}
+                  </div>
+                  
+                  <div style="color:#525F7F; margin:16px 24px; line-height:1.4; font-size: 14px;">
+                    ${t.contactUs}
+                  </div>
+                  
+                  <div style="color:#525F7F; margin:16px 24px; line-height:1.4; font-size: 14px;">
+                    ${t.closing}
+                  </div>
+                  
+                  <div style="margin:24px 0 0; padding-top:24px; border-top:1px solid #E6EBF1;">
+                    <div style="color:#8898AA; font-size: 12px;">
+                      ${t.regards},<br>
+                      <strong>${t.company}</strong>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </table>
@@ -192,7 +149,8 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
         </tr>
       </table>
     </body>
-    </html>`;
+    </html>
+  `;
 }
 
 export async function POST(request: NextRequest) {
@@ -280,7 +238,7 @@ async function processRejectionInBackground(
           status: 'rejected',
           rejected_reason: reason,
           rejected_at: new Date().toISOString(),
-          rejected_by: 'system',
+          rejected_by: null,
           rejection_signature: signature
         })
         .eq('id', id);
@@ -297,12 +255,12 @@ async function processRejectionInBackground(
         .from('quotation_activities')
         .insert({
           quotation_id: id,
-          user_id: 'system',
+          user_id: null,
           action: 'rejected',
           details: {
             reason: reason || null,
             rejected_by_customer_id: customerId,
-            rejected_by_staff_id: 'system'
+            rejected_by_staff_id: null
           }
         });
     }
@@ -451,7 +409,7 @@ async function processRejectionInBackground(
         .from('quotation_activities')
         .insert({
           quotation_id: id,
-          user_id: 'system',
+          user_id: null,
           action: 'rejection_error',
           details: { 
             error: error instanceof Error ? error.message : 'Unknown error',

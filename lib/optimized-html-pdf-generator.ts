@@ -54,6 +54,20 @@ export async function generateOptimizedQuotationPDF(
       console.log('⚠️ Font loading timeout - continuing anyway');
     }
     
+    // Additional font loading check with fallback
+    try {
+      await page.evaluate(() => {
+        // Force font loading with timeout
+        return new Promise((resolve) => {
+          document.fonts.ready.then(() => resolve(true));
+          // Fallback timeout
+          setTimeout(() => resolve(true), 2000);
+        });
+      });
+    } catch (error) {
+      console.log('⚠️ Font loading check failed - continuing anyway');
+    }
+    
     // Generate PDF
     console.log('📊 Generating PDF...');
     const pdfBuffer = await page.pdf({
@@ -115,7 +129,6 @@ function generateQuotationHTML(
         @import url('https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
         
         /* Base styles with YOUR EXACT FONTS */
         * {
@@ -125,7 +138,7 @@ function generateQuotationHTML(
         }
         
         body {
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Work Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
           font-size: 12px;
           line-height: 1.4;
           color: #333;
@@ -134,15 +147,11 @@ function generateQuotationHTML(
         
         /* Multilingual font support - EXACTLY AS YOUR BRANDING */
         .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+          font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Roboto', sans-serif;
         }
         
         .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', sans-serif;
-        }
-        
-        .ko-text, [lang="ko"] {
-          font-family: 'Noto Sans KR', 'Malgun Gothic', 'AppleGothic', sans-serif;
+          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Roboto', sans-serif;
         }
         
         /* Layout styles */

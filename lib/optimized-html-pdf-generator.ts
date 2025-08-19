@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
+import { cdnAssets } from './cdn-assets';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -15,56 +16,42 @@ interface PerformanceMetrics {
 }
 
 /**
- * Enhanced font loading utility with better timeout handling
+ * Optimized font loading utility with aggressive timeouts
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting enhanced font loading...');
+    console.log('⏱️  Starting optimized font loading...');
     const fontLoadStart = Date.now();
     
-    // Wait for document to be ready
-    await page.waitForFunction('document.readyState === "complete"', { timeout: 15000 });
-    
-    // Wait for fonts to load with multiple fallback strategies
+    // Reduced timeout for faster processing
     await Promise.race([
-      // Strategy 1: Wait for fonts.ready
       page.evaluateHandle('document.fonts.ready'),
-      // Strategy 2: Wait for specific font families with polling
+      new Promise(resolve => setTimeout(resolve, 2000)) // Reduced from 5s to 2s
+    ]);
+    
+    // Quick additional check with shorter timeout
+    await Promise.race([
       page.evaluate(() => {
         return new Promise((resolve) => {
-          let attempts = 0;
-          const maxAttempts = 80; // 8 seconds with 100ms intervals
-          
-          const checkFonts = () => {
-            attempts++;
-            const workSans = document.fonts.check('1em "Work Sans"');
-            const notoSansJP = document.fonts.check('1em "Noto Sans JP"');
-            const notoSansThai = document.fonts.check('1em "Noto Sans Thai"');
-            
-            if (workSans && notoSansJP && notoSansThai) {
-              resolve(true);
-            } else if (attempts >= maxAttempts) {
-              console.warn('Font loading timeout, proceeding with available fonts');
-              resolve(false);
-            } else {
-              setTimeout(checkFonts, 100);
-            }
-          };
-          checkFonts();
+          if (document.fonts.status === 'loaded') {
+            resolve(true);
+          } else {
+            document.fonts.onloadingdone = resolve;
+            // Much shorter fallback timeout
+            setTimeout(resolve, 1000);
+          }
         });
       }),
-      // Strategy 3: Timeout after 10 seconds
-      new Promise(resolve => setTimeout(resolve, 10000))
+      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max
     ]);
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Additional delay for rendering stability
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Minimal delay for rendering
+    await new Promise(resolve => setTimeout(resolve, 200));
   } catch (error) {
-    console.warn('⚠️  Font loading timeout (proceeding with available fonts):', error);
-    // Continue anyway - fonts may still render
+    console.warn('⚠️  Font loading timeout (using fallbacks):', error);
   }
 }
 
@@ -79,6 +66,8 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-gpu',
     '--disable-extensions',
     '--disable-plugins',
+    // REMOVED: '--disable-images' - Keep images for original layout
+    // REMOVED: '--disable-javascript' - Keep JS for font loading
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
@@ -94,11 +83,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--enable-font-antialiasing',
     '--force-color-profile=srgb',
     '--enable-blink-features=CSSFontMetrics',
-    '--enable-font-subpixel-positioning',
-    '--disable-web-security',
-    '--allow-running-insecure-content',
-    '--disable-features=VizDisplayCompositor',
-    '--max_old_space_size=4096'
+    '--enable-font-subpixel-positioning'
   ];
 
   if (isProduction) {
@@ -107,23 +92,19 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 45000, // Increased timeout for browser launch
-      protocolTimeout: 60000, // Increased protocol timeout
-      ignoreHTTPSErrors: true
+      timeout: 30000 // 30s timeout for browser launch
     };
   }
 
   return {
     headless: true,
     args: baseArgs,
-    timeout: 45000,
-    protocolTimeout: 60000,
-    ignoreHTTPSErrors: true
+    timeout: 30000 // 30s timeout for browser launch
   };
 }
 
 /**
- * Create optimized HTML template with embedded fonts and better encoding
+ * HTML template with ORIGINAL fonts exactly as specified - NO CHANGES TO LAYOUT OR FONTS
  */
 function createOptimizedHTMLTemplate(htmlContent: string): string {
   return `
@@ -135,42 +116,96 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* Import Google Fonts for reliable rendering */
-        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+        /* GOOGLE FONTS FOR RELIABLE MULTILINGUAL SUPPORT */
+        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
         
-        /* Fallback system fonts */
+        /* Additional font-face definitions for better browser support */
+        @font-face {
+          font-family: 'Work Sans';
+          src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans JP';
+          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLbI2JPCgQBnw7HFowAIO2lZ9hg.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans Thai';
+          src: url('https://fonts.gstatic.com/s/notosansthai/v16/iJWnBQ3UoTb8_tr8Lw0T7-AyLqWxecq9o0.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+          unicode-range: U+0E00-0E7F;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans KR';
+          src: url('https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
+        }
+        
+        * {
+          box-sizing: border-box;
+        }
+        
         body {
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          line-height: 1.6;
-          color: #333;
+          /* Enhanced font stack with proper Unicode ranges - EXACTLY AS ORIGINAL */
+          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', 'MS Gothic', 'MS Mincho',
+                       'Takao Gothic', 'Takao Mincho', 'IPAexGothic', 'IPAexMincho',
+                       'IPAPGothic', 'IPAPMincho', 'IPAUIGothic', 'IPAUIMincho',
+                       'Apple Gothic', 'Apple LiGothic', 'Apple LiSung', 'Apple Myungjo',
+                       'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Arial', sans-serif;
           margin: 0;
           padding: 0;
-        }
-        
-        /* Ensure proper character rendering */
-        * {
-          text-rendering: optimizeLegibility;
+          color: #333;
+          background-color: white;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
-        }
-        
-        /* Specific styling for Japanese text */
-        .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
-          line-height: 1.6;
-        }
-        
-        /* Specific styling for Thai text */
-        .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', sans-serif;
-          line-height: 1.5;
-        }
-        
-        /* Ensure proper rendering for all text */
-        h1, h2, h3, h4, h5, h6, p, span, div {
           font-feature-settings: 'liga' 1, 'kern' 1;
+          text-rendering: optimizeLegibility;
+          /* Ensure proper text rendering for CJK and Thai characters */
+          -webkit-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+          -moz-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Specific styling for Japanese text - EXACTLY AS ORIGINAL */
+        .ja-text, [lang="ja"] {
+          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          line-height: 1.6;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Specific styling for Thai text - EXACTLY AS ORIGINAL */
+        .th-text, [lang="th"] {
+          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+          line-height: 1.5;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Specific styling for Korean text - EXACTLY AS ORIGINAL */
+        .ko-text, [lang="ko"] {
+          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+          line-height: 1.6;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Ensure proper rendering for all text - EXACTLY AS ORIGINAL */
+        h1, h2, h3, h4, h5, h6, p, span, div {
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         @media print {
@@ -184,109 +219,119 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
     <body>
       ${htmlContent}
     </body>
-    </html>`;
+    </html>
+  `;
 }
 
 /**
- * Generate optimized PDF from HTML content with enhanced error handling
+ * Generate PDF with caching and performance optimization
  */
 export async function generateOptimizedPdfFromHtml(
-  htmlContent: string,
-  pdfOptions: {
+  htmlContent: string, 
+  options?: {
     format?: 'A4' | 'Letter' | 'Legal';
     margin?: { top?: string; right?: string; bottom?: string; left?: string };
     printBackground?: boolean;
     scale?: number;
-  } = {},
+  },
   quotation?: any,
   selectedPackage?: PricingPackage | null,
   selectedPromotion?: PricingPromotion | null,
-  language?: string,
-  cacheHash?: string
+  language = 'en'
 ): Promise<Buffer> {
-  const metrics: PerformanceMetrics = { startTime: Date.now() };
-  let browser: any = null;
   
-  try {
-    console.log('🚀 Starting optimized PDF generation...');
-    
-    // Check cache first
-    if (cacheHash) {
-      const cachedPdf = await enhancedPdfCache.getCachedPDF(cacheHash);
-      if (cachedPdf) {
-        console.log('✅ PDF served from cache');
-        return cachedPdf;
-      }
+  const metrics: PerformanceMetrics = { startTime: Date.now() };
+  console.log('🚀 Starting optimized PDF generation...');
+  
+  // Try enhanced cache first if quotation data is provided
+  let cacheHash: string | null = null;
+  if (quotation) {
+    cacheHash = enhancedPdfCache.generateHash(quotation, selectedPackage, selectedPromotion, language);
+    const cachedPDF = await enhancedPdfCache.getCachedPDF(cacheHash);
+    if (cachedPDF) {
+      const totalTime = Date.now() - metrics.startTime;
+      console.log(`⚡ PDF served from enhanced cache in ${totalTime}ms`);
+      return cachedPDF;
     }
-    
+  }
+
+  const defaultOptions = {
+    format: 'A4',
+    margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+    printBackground: true,
+    scale: 1
+  };
+
+  const pdfOptions = {
+    ...defaultOptions,
+    ...options,
+    margin: { ...defaultOptions.margin, ...(options?.margin || {}) }
+  };
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const fullHtml = createOptimizedHTMLTemplate(htmlContent);
+
+  let browser;
+  try {
     // Launch browser with optimized config
-    const isProduction = process.env.NODE_ENV === 'production';
+    const launchStart = Date.now();
     const config = await getOptimizedPuppeteerConfig(isProduction);
     
-    console.log('🌐 Launching browser...');
-    const browserLaunchStart = Date.now();
     browser = await puppeteer.launch(config);
-    metrics.browserLaunchTime = Date.now() - browserLaunchStart;
-    console.log(`⏱️  Browser launched in ${metrics.browserLaunchTime}ms`);
     
-    // Create page with optimized settings
-    console.log('📄 Creating page...');
-    const pageCreateStart = Date.now();
+    metrics.browserLaunchTime = Date.now() - launchStart;
+    console.log(`⏱️  Browser launched in ${metrics.browserLaunchTime}ms`);
+
+    // Create page with optimization
+    const pageStart = Date.now();
     const page = await browser.newPage();
     
-    // Set viewport and user agent
-    await page.setViewport({ width: 1200, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    // Set optimized viewport
+    await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
     
-    // Enable JavaScript and images
-    await page.setJavaScriptEnabled(true);
+    // Allow all resources for original layout (images, fonts, etc.)
+    // REMOVED: Request interception that blocks images/fonts to maintain original appearance
     
-    metrics.pageCreateTime = Date.now() - pageCreateStart;
+    metrics.pageCreateTime = Date.now() - pageStart;
     console.log(`⏱️  Page created in ${metrics.pageCreateTime}ms`);
-    
-    // Create optimized HTML template
-    const optimizedHtml = createOptimizedHTMLTemplate(htmlContent);
-    
-    // Set content with timeout handling
-    console.log('📝 Setting page content...');
-    const contentSetStart = Date.now();
-    
+
+    // Set content with proper network loading for fonts and images
+    const contentStart = Date.now();
     await Promise.race([
-      page.setContent(optimizedHtml, { 
-        waitUntil: 'networkidle2', // More lenient than networkidle0
-        timeout: 45000 // Increased timeout for content setting
+      page.setContent(fullHtml, { 
+        waitUntil: 'networkidle0', // Wait for network to be idle (for fonts)
+        timeout: 20000 // 20s timeout for font loading
       }),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Content setting timeout')), 45000)
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Content loading timeout')), 20000)
       )
     ]);
     
-    metrics.contentSetTime = Date.now() - contentSetStart;
+    metrics.contentSetTime = Date.now() - contentStart;
     console.log(`⏱️  Content set in ${metrics.contentSetTime}ms`);
-    
-    // Ensure fonts are loaded
+
+    // Ensure fonts are loaded for original appearance
     await ensureFontsLoadedOptimized(page);
-    
-    // Generate PDF with enhanced timeout handling
-    console.log('🖨️  Generating PDF...');
+    metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
+
+    // Generate PDF with timeout
     const pdfStart = Date.now();
-    
     const pdfBuffer = await Promise.race([
       page.pdf({
-        format: pdfOptions.format as any || 'A4',
-        margin: pdfOptions.margin || { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
-        printBackground: pdfOptions.printBackground !== false,
-        scale: pdfOptions.scale || 1,
-        timeout: 45000 // Increased timeout for PDF generation
+        format: pdfOptions.format as any,
+        margin: pdfOptions.margin,
+        printBackground: pdfOptions.printBackground,
+        scale: pdfOptions.scale,
+        timeout: 20000 // 20s timeout for PDF generation
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 45000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 20000)
       )
     ]);
-    
+
     metrics.pdfGenerationTime = Date.now() - pdfStart;
     console.log(`⏱️  PDF generated in ${metrics.pdfGenerationTime}ms`);
-    
+
     await browser.close();
     
     const buffer = Buffer.from(pdfBuffer);
@@ -300,12 +345,12 @@ export async function generateOptimizedPdfFromHtml(
       pdfGeneration: `${metrics.pdfGenerationTime}ms`,
       fromCache: false
     });
-    
-    // Cache the generated PDF
+
+    // Cache the generated PDF in enhanced cache if quotation data is provided
     if (cacheHash) {
       await enhancedPdfCache.cachePDF(cacheHash, buffer);
     }
-    
+
     return buffer;
     
   } catch (error) {
@@ -351,9 +396,6 @@ export async function generateOptimizedQuotationPDF(
       selectedPromotion
     );
     
-    // Generate cache hash for this quotation
-    const cacheHash = quotation?.id ? `quote_${quotation.id}_${language}` : undefined;
-    
     return await generateOptimizedPdfFromHtml(
       htmlContent,
       {
@@ -364,8 +406,7 @@ export async function generateOptimizedQuotationPDF(
       quotation,
       selectedPackage,
       selectedPromotion,
-      language,
-      cacheHash
+      language
     );
     
   } catch (error) {

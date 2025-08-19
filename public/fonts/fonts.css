@@ -1,9 +1,12 @@
-/* Local Font Definitions - Optimized for PDF Generation */
+/* Font Definitions - Optimized for PDF Generation with Japanese and Thai Support */
+
+/* Import Google Fonts for reliable font loading */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
 /* Work Sans - Primary English Font */
 @font-face {
   font-family: 'Work Sans';
-  src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -12,7 +15,7 @@
 
 @font-face {
   font-family: 'Work Sans';
-  src: url('/fonts/WorkSans-Medium.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -21,7 +24,7 @@
 
 @font-face {
   font-family: 'Work Sans';
-  src: url('/fonts/WorkSans-SemiBold.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -30,7 +33,7 @@
 
 @font-face {
   font-family: 'Work Sans';
-  src: url('/fonts/WorkSans-Bold.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -40,7 +43,7 @@
 /* Noto Sans JP - Japanese Font */
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLbI2JPCgQBnw7HFowAIO2lZ9hg.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -49,7 +52,7 @@
 
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('/fonts/NotoSansJP-Medium.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLbI2JPCgQBnw7HFowAIO2lZ9hg.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -58,7 +61,7 @@
 
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('/fonts/NotoSansJP-Bold.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLbI2JPCgQBnw7HFowAIO2lZ9hg.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -68,7 +71,7 @@
 /* Noto Sans Thai - Thai Font */
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansthai/v16/iJWnBQ3UoTb8_tr8Lw0T7-AyLqWxecq9o0.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -77,7 +80,7 @@
 
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('/fonts/NotoSansThai-Medium.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansthai/v16/iJWnBQ3UoTb8_tr8Lw0T7-AyLqWxecq9o0.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -86,7 +89,7 @@
 
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('/fonts/NotoSansThai-Bold.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosansthai/v16/iJWnBQ3UoTb8_tr8Lw0T7-AyLqWxecq9o0.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -96,27 +99,65 @@
 /* Noto Sans KR - Korean Font */
 @font-face {
   font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
 }
 
 @font-face {
   font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Medium.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
 }
 
 @font-face {
   font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Bold.woff2') format('woff2');
+  src: url('https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
+}
+
+/* Font Family Definitions with Fallbacks */
+:root {
+  /* Primary font stack with proper fallbacks for multilingual support */
+  --font-primary: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
+                   'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho',
+                   'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+  
+  /* Japanese-specific font stack */
+  --font-japanese: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+  
+  /* Thai-specific font stack */
+  --font-thai: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+  
+  /* Korean-specific font stack */
+  --font-korean: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+}
+
+/* Global font application */
+body, html {
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Language-specific font overrides */
+[lang="ja"], .japanese {
+  font-family: var(--font-japanese);
+}
+
+[lang="th"], .thai {
+  font-family: var(--font-thai);
+}
+
+[lang="ko"], .korean {
+  font-family: var(--font-korean);
 }

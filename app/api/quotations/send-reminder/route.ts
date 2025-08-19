@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
-// Remove jsPDF dependency - we're using Puppeteer now
-// Import our new HTML PDF generator
-import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
-import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { Resend } from 'resend';
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
+import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
+
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
 
 // Email templates for different languages
 const reminderTemplates = {
@@ -40,7 +41,7 @@ async function generateQuotationPDF(
   selectedPromotion: PricingPromotion | null
 ): Promise<Buffer | null> {
   try {
-    console.log('🔄 [SEND-REMINDER API] Starting optimized PDF generation');
+    console.log('🔄 [ROBUST-SEND-REMINDER] Starting optimized PDF generation');
     
     // Use the optimized PDF generator
     const pdfBuffer = await generateOptimizedQuotationPDF(
@@ -50,255 +51,190 @@ async function generateQuotationPDF(
       selectedPromotion
     );
     
-    console.log('✅ [SEND-REMINDER API] Optimized PDF generation successful!');
+    console.log('✅ [ROBUST-SEND-REMINDER] Optimized PDF generation successful!');
     return pdfBuffer;
     
   } catch (error) {
-    console.error('❌ [SEND-REMINDER API] Error during PDF generation:', error);
+    console.error('❌ [ROBUST-SEND-REMINDER] Error during PDF generation:', error);
     return null;
   }
 }
 
 export async function POST(request: NextRequest) {
-  console.log('==================== SEND-REMINDER ROUTE START ====================');
+  console.log('🚀 [ROBUST-SEND-REMINDER] Starting robust reminder processing...');
+  
   try {
-    // Parse JSON request body
     const { id, language = 'en', includeQuotation = true } = await request.json();
     
-    console.log(`[SEND-REMINDER API] Request data: id=${id}, language=${language}, includeQuotation=${includeQuotation}`);
-    
     if (!id) {
-      console.log('[SEND-REMINDER API] Missing quotation ID');
-      return NextResponse.json(
-        { error: 'Quotation ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ 
+        error: 'Quotation ID is required',
+        code: 'MISSING_ID'
+      }, { status: 400 });
     }
+
+    // Step 1: Immediate response to client (202 Accepted)
+    const response = NextResponse.json({ 
+      message: 'Reminder processing started',
+      quotationId: id,
+      status: 'processing',
+      estimatedTime: '10-15 seconds'
+    }, { status: 202 });
+
+    // Step 2: Process reminder in background (don't await)
+    processReminderInBackground(id, language, includeQuotation);
+
+    return response;
+
+  } catch (error) {
+    console.error('❌ [ROBUST-SEND-REMINDER] Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to start reminder processing',
+      code: 'PROCESSING_ERROR'
+    }, { status: 500 });
+  }
+}
+
+async function processReminderInBackground(
+  id: string,
+  language: string,
+  includeQuotation: boolean
+) {
+  try {
+    console.log(`🔄 [ROBUST-SEND-REMINDER] Background processing started for quotation: ${id}`);
     
     // Get template based on language
     const lang = language === 'ja' ? 'ja' : 'en';
     const template = reminderTemplates[lang];
     
     // Create server client (relies on cookies for auth)
-    console.log('[SEND-REMINDER API] Creating Supabase server client');
     let supabase;
     try {
       supabase = await getSupabaseServerClient();
-      console.log('[SEND-REMINDER API] Supabase server client created successfully');
+      console.log('✅ [ROBUST-SEND-REMINDER] Supabase server client created successfully');
     } catch (serverClientError) {
-      console.error('[SEND-REMINDER API] Error creating server client:', serverClientError);
-      return NextResponse.json(
-        { error: 'Error connecting to database' },
-        { status: 500 }
-      );
+      console.error('❌ [ROBUST-SEND-REMINDER] Error creating server client:', serverClientError);
+      return;
     }
 
-    // Authenticate user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) {
-      console.error('[SEND-REMINDER API] Authentication error', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.log('[SEND-REMINDER API] User authenticated:', authUser.id);
-    
-    // Fetch quotation data
-    console.log(`[SEND-REMINDER API] Fetching quotation with ID: ${id}`);
-    const { data: quotationData, error } = await supabase
+    // Fetch the quotation
+    const { data: quotation, error: fetchError } = await supabase
       .from('quotations')
-      .select('*, quotation_items (*)')
+      .select('*, quotation_items (*), customers (*)')
       .eq('id', id)
       .single();
     
-    if (error || !quotationData) {
-      console.error('[SEND-REMINDER API] Error fetching quotation data:', error);
-      return NextResponse.json(
-        { error: 'Quotation not found' },
-        { status: 404 }
-      );
+    if (fetchError || !quotation) {
+      console.error('❌ [ROBUST-SEND-REMINDER] Error fetching quotation:', fetchError);
+      return;
     }
     
-    console.log(`[SEND-REMINDER API] Quotation fetched successfully. ID: ${quotationData.id}, Status: ${quotationData.status}`);
+    // Ensure we have a valid email address
+    const emailAddress = quotation.customer_email || 
+                      (quotation.customers ? quotation.customers.email : null);
     
-    const quotation = quotationData as Quotation;
-    
-    // Fetch associated package and promotion for the PDF
-    let selectedPackage: PricingPackage | null = null;
-    const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
-    if (packageId) {
-        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
-        selectedPackage = pkg as PricingPackage | null;
+    if (!emailAddress) {
+      console.log('❌ [ROBUST-SEND-REMINDER] No valid email address found for this quotation');
+      return;
     }
-
-    let selectedPromotion: PricingPromotion | null = null;
-    const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
-    if (promotionCode) {
-        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
-        selectedPromotion = promo as PricingPromotion | null;
-    }
-
-    // Check if API key is configured
-    if (!process.env.RESEND_API_KEY) {
-      console.error('[SEND-REMINDER API] RESEND_API_KEY environment variable is not configured');
-      return NextResponse.json(
-        { error: 'Email service not configured' },
-        { status: 500 }
-      );
-    }
-    
-    // Initialize Resend with API key
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    console.log('[SEND-REMINDER API] Resend client initialized');
-    
-    // Get email domain from env or fallback
-    const emailDomain = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com';
-    
-    // Get the public URL for the Driver logo
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
-    const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
-    
-    // Create the quotation view URL
-    const quotationUrl = `${appUrl}/quotations/${id}`;
-    
-    // Format quotation ID to use JPDR prefix
-    const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
-    
-    // Get customer email
-    const customerEmail = (quotation as any).customer_email || (quotation as any).email;
-    if (!customerEmail) {
-      console.error('[SEND-REMINDER API] No customer email found in quotation');
-      return NextResponse.json(
-        { error: 'No customer email found in quotation' },
-        { status: 400 }
-      );
-    }
-    
-    console.log(`[SEND-REMINDER API] Sending reminder to: ${customerEmail} for quotation: ${formattedQuotationId}`);
-    
-    // Customer name with fallback
-    const customerName = quotation.customer_name || 
-                        (customerEmail.split('@')[0]) || 
-                        (lang === 'ja' ? 'お客様' : 'Customer');
-    
-    // Email subject
-    const emailSubject = `${template.subject} - ${formattedQuotationId}`;
     
     // Generate PDF if requested
     let pdfBuffer: Buffer | null = null;
     if (includeQuotation) {
-      console.log('[SEND-REMINDER API] Generating PDF for attachment');
-      pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
+      console.log('🔄 [ROBUST-SEND-REMINDER] Generating PDF...');
       
-      if (!pdfBuffer) {
-        console.error('[SEND-REMINDER API] Failed to generate PDF');
-        return NextResponse.json(
-          { error: 'Failed to generate PDF attachment' },
-          { status: 500 }
-        );
+      // Fetch associated package and promotion for the PDF
+      let selectedPackage: PricingPackage | null = null;
+      const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
+      if (packageId) {
+          const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
+          selectedPackage = pkg as PricingPackage | null;
       }
-      console.log('[SEND-REMINDER API] PDF generated successfully');
-    }
-    
-    // Prepare email content
-    const emailContent = generateReminderEmail(template, customerName, formattedQuotationId, quotationUrl, appUrl, logoUrl);
-    const plainTextContent = generateReminderPlainText(template, customerName, formattedQuotationId, quotationUrl);
-    
-    // Prepare email with or without attachment
-    const emailOptions: any = {
-      from: `Driver Japan <booking@${emailDomain}>`,
-      to: [customerEmail],
-      subject: emailSubject,
-      text: plainTextContent,
-      html: emailContent
-    };
-    
-    // Add attachment if PDF was generated
-    if (pdfBuffer) {
-      emailOptions.attachments = [{
-        filename: `${formattedQuotationId}-quotation.pdf`,
-        content: pdfBuffer.toString('base64')
-      }];
-    }
-    
-    console.log('[SEND-REMINDER API] Sending email...');
-    
-    try {
-      const { data: emailData, error: resendError } = await resend.emails.send(emailOptions);
+
+      let selectedPromotion: PricingPromotion | null = null;
+      const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
+      if (promotionCode) {
+          const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
+          selectedPromotion = promo as PricingPromotion | null;
+      }
       
+      try {
+        pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
+        console.log('✅ [ROBUST-SEND-REMINDER] PDF generated successfully');
+      } catch (pdfError) {
+        console.error('❌ [ROBUST-SEND-REMINDER] PDF generation error:', pdfError);
+        // Continue without PDF
+      }
+    }
+    
+    // Send email notification
+    try {
+      console.log('🔄 [ROBUST-SEND-REMINDER] Sending reminder email...');
+      
+      // Initialize Resend with API key
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      
+      // Get email domain from env or fallback
+      const emailDomain = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com';
+      
+      // Get the public URL
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+      
+      // Format quotation ID
+      const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
+      
+      // Customer name with fallback
+      const customerName = (quotation.customers ? quotation.customers.name : null) || 
+                         quotation.customer_name || 
+                         'Customer';
+      
+      // Generate email HTML
+      const emailHtml = generateReminderEmailHtml(lang, customerName, formattedQuotationId, quotation, appUrl, template);
+      
+      const { data: emailData, error: resendError } = await resend.emails.send({
+        from: `Driver Japan <booking@${emailDomain}>`,
+        to: [emailAddress],
+        subject: template.subject,
+        html: emailHtml,
+        attachments: pdfBuffer ? [
+          {
+            filename: `${formattedQuotationId}-quotation.pdf`,
+            content: pdfBuffer.toString('base64')
+          }
+        ] : undefined
+      });
+
       if (resendError) {
-        console.error('[SEND-REMINDER API] Error reported by Resend:', JSON.stringify(resendError, null, 2));
         throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`);
       }
       
-      console.log('[SEND-REMINDER API] Email sent successfully! ID:', emailData?.id);
+      console.log('✅ [ROBUST-SEND-REMINDER] Email sent successfully:', emailData?.id);
       
-      // Update quotation with reminder sent timestamp
-      const now = new Date().toISOString();
+      // Update last_email_sent_at
       await supabase
         .from('quotations')
         .update({ 
-          reminder_sent_at: now,
-          updated_at: now
+          last_email_sent_at: new Date().toISOString() 
         } as any)
         .eq('id', id);
-      
-      // Log activity
-      await supabase
-        .from('quotation_activities')
-        .insert({
-          quotation_id: id,
-          user_id: authUser.id,
-          action: 'reminder_sent',
-          details: { 
-            email: customerEmail,
-            sent_at: now
-          }
-        });
-      
-      console.log('==================== SEND-REMINDER ROUTE END ====================');
-      
-      return NextResponse.json({ 
-        success: true,
-        message: 'Reminder email sent successfully',
-        emailId: emailData?.id 
-      });
-      
-    } catch (err) {
-      console.error(`[SEND-REMINDER API] Error during email sending process: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
-      if (err instanceof Error && err.stack) {
-        console.error('[SEND-REMINDER API] Stack trace:', err.stack);
-      }
-      
-      console.log('==================== SEND-REMINDER ROUTE END WITH ERROR ====================');
-      
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : 'Failed to send reminder email' },
-        { status: 500 }
-      );
+
+      console.log('✅ [ROBUST-SEND-REMINDER] Background processing completed successfully');
+
+    } catch (emailError) {
+      console.error('❌ [ROBUST-SEND-REMINDER] Email sending error:', emailError);
     }
-    
-  } catch (err) {
-    console.error('[SEND-REMINDER API] Unhandled error in POST handler:', err);
-    if (err instanceof Error && err.stack) {
-      console.error('[SEND-REMINDER API] POST Handler Stack Trace:', err.stack);
-    }
-    
-    console.log('==================== SEND-REMINDER ROUTE END WITH ERROR ====================');
-    
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler' },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('❌ [ROBUST-SEND-REMINDER] Background processing failed:', error);
   }
 }
 
-// Helper function to generate HTML email content
-function generateReminderEmail(template: any, customerName: string, quotationId: string, quotationUrl: string, appUrl: string, logoUrl: string): string {
-  // Determine if Japanese language is being used
-  const isJapanese = template === reminderTemplates.ja;
+// Helper function to generate reminder email HTML
+function generateReminderEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, template: any) {
+  const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
   
   return `
     <!DOCTYPE html>
-    <html lang="${isJapanese ? 'ja' : 'en'}">
+    <html lang="${language}">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -334,15 +270,6 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
           .container { width:100%!important; }
           .stack { display:block!important; width:100%!important; text-align:center!important; }
         }
-        .details-table td, .details-table th {
-          padding: 10px 0;
-          font-size: 14px;
-        }
-        .details-table th {
-           color: #8898AA;
-           text-transform: uppercase;
-           text-align: left;
-        }
       </style>
     </head>
     <body style="background:#F2F4F6; margin:0; padding:0;">
@@ -364,10 +291,10 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${isJapanese ? 'リマインダー: ドライバーからの見積書' : 'Reminder: Your Quotation from Driver'}
+                          ${template.subject}
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                          ${isJapanese ? '見積書番号' : 'Quotation'} #${quotationId}
+                          ${formattedQuotationId}
                         </p>
                       </td>
                     </tr>
@@ -380,15 +307,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
                 <td>
                   <p class="greeting">
                     ${template.greeting} ${customerName},<br><br>
-                    ${template.intro}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- REMINDER INFO -->
-              <tr>
-                <td style="padding:0 24px 24px;">
-                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6;">
+                    ${template.intro}<br><br>
                     ${template.followup}
                   </p>
                 </td>
@@ -397,7 +316,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               <!-- CTA SECTION -->
               <tr>
                 <td style="padding:12px 24px 24px; text-align: center;">
-                  <a href="${quotationUrl}"
+                  <a href="${appUrl}/quotations/${quotation.id}"
                      style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
                             text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
                             font-size:16px; font-weight:600; text-align: center;">
@@ -438,28 +357,5 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
         </tr>
       </table>
     </body>
-    </html>
-  `;
+    </html>`;
 }
-
-// Helper function for plain text email content
-function generateReminderPlainText(template: any, customerName: string, quotationId: string, quotationUrl: string): string {
-  return `
-${template.greeting} ${customerName},
-
-${template.intro}
-
-${template.followup}
-
-${template.additionalInfo}
-
-${template.callToAction}: ${quotationUrl}
-
-${template.closing}
-
-${template.regards},
-${template.company}
-
-© ${new Date().getFullYear()} Driver (Thailand) Company Limited. All rights reserved.
-  `.trim();
-} 

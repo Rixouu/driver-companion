@@ -1,9 +1,8 @@
-import puppeteer, { Browser, LaunchOptions, Page } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
 import { cdnAssets } from './cdn-assets';
-import { generateQuotationHtml } from './html-pdf-generator';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -59,97 +58,48 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
 /**
  * Optimized Puppeteer configuration for faster PDF generation
  */
-function getOptimizedPuppeteerConfig(): LaunchOptions {
-  // Check if we're in a serverless environment
-  const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTIONS_WORKER_RUNTIME;
-  
-  if (isServerless) {
-    // Minimal config for serverless environments
+async function getOptimizedPuppeteerConfig(isProduction: boolean) {
+  const baseArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--disable-extensions',
+    '--disable-plugins',
+    // REMOVED: '--disable-images' - Keep images for original layout
+    // REMOVED: '--disable-javascript' - Keep JS for font loading
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-default-apps',
+    '--mute-audio',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--font-render-hinting=none',
+    '--disable-font-subpixel-positioning',
+    '--lang=en-US,en,ja,th,fr',
+    '--enable-font-antialiasing',
+    '--force-color-profile=srgb',
+    '--enable-blink-features=CSSFontMetrics',
+    '--enable-font-subpixel-positioning'
+  ];
+
+  if (isProduction) {
     return {
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-background-timer-init',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-features=TranslateUI',
-        '--no-first-run',
-        '--mute-audio',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-background-networking',
-        '--disable-client-side-phishing-detection',
-        '--disable-hang-monitor',
-        '--disable-prompt-on-repost',
-        '--disable-web-resources',
-        '--metrics-recording-only',
-        '--safebrowsing-disable-auto-update',
-        '--enable-automation',
-        '--password-store=basic',
-        '--use-mock-keychain',
-        '--disable-component-extensions-with-background-pages',
-        '--disable-background-mode',
-        '--disable-features=NetworkService,NetworkServiceLogging'
-      ],
-      headless: true,
-      timeout: 20000, // Reduced timeout for serverless
-      protocolTimeout: 20000,
-      slowMo: 0,
-      pipe: true, // Use pipe instead of WebSocket for better serverless performance
-      dumpio: false
+      args: [...chromium.args, ...baseArgs],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      timeout: 30000 // 30s timeout for browser launch
     };
   }
-  
-  // Full config for non-serverless environments
+
   return {
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--disable-background-timer-init',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-features=TranslateUI',
-      '--disable-ipc-flooding-protection',
-      '--disable-default-apps',
-      '--disable-extensions',
-      '--disable-plugins',
-      '--disable-sync',
-      '--disable-translate',
-      '--hide-scrollbars',
-      '--mute-audio',
-      '--no-default-browser-check',
-      '--no-pings',
-      '--disable-web-security',
-      '--disable-features=VizDisplayCompositor',
-      '--disable-background-networking',
-      '--disable-client-side-phishing-detection',
-      '--disable-hang-monitor',
-      '--disable-prompt-on-repost',
-      '--disable-web-resources',
-      '--metrics-recording-only',
-      '--safebrowsing-disable-auto-update',
-      '--enable-automation',
-      '--password-store=basic',
-      '--use-mock-keychain',
-      '--disable-component-extensions-with-background-pages',
-      '--disable-background-mode',
-      '--disable-features=NetworkService,NetworkServiceLogging'
-    ],
     headless: true,
-    timeout: 30000, // 30 second timeout for browser launch
-    protocolTimeout: 30000,
-    slowMo: 0,
-    pipe: true, // Use pipe instead of WebSocket for better serverless performance
-    dumpio: false
+    args: baseArgs,
+    timeout: 30000 // 30s timeout for browser launch
   };
 }
 
@@ -316,7 +266,7 @@ export async function generateOptimizedPdfFromHtml(
   try {
     // Launch browser with optimized config
     const launchStart = Date.now();
-    const config = await getOptimizedPuppeteerConfig();
+    const config = await getOptimizedPuppeteerConfig(isProduction);
     
     browser = await puppeteer.launch(config);
     
@@ -375,7 +325,24 @@ export async function generateOptimizedPdfFromHtml(
 
     await browser.close();
     
-    return Buffer.from(pdfBuffer);
+    const buffer = Buffer.from(pdfBuffer);
+    metrics.totalTime = Date.now() - metrics.startTime;
+    
+    console.log('📊 PDF Generation Performance:', {
+      totalTime: `${metrics.totalTime}ms`,
+      browserLaunch: `${metrics.browserLaunchTime}ms`,
+      pageCreate: `${metrics.pageCreateTime}ms`,
+      contentSet: `${metrics.contentSetTime}ms`,
+      pdfGeneration: `${metrics.pdfGenerationTime}ms`,
+      fromCache: false
+    });
+
+    // Cache the generated PDF in enhanced cache if quotation data is provided
+    if (cacheHash) {
+      await enhancedPdfCache.cachePDF(cacheHash, buffer);
+    }
+
+    return buffer;
     
   } catch (error) {
     if (browser) {
@@ -403,315 +370,38 @@ export { generateQuotationHtml } from './html-pdf-generator';
  */
 export async function generateOptimizedQuotationPDF(
   quotation: any,
-  language: string = 'en',
-  selectedPackage?: any | null | undefined,
-  selectedPromotion?: any | null | undefined
-): Promise<Buffer> {
-  // Check if we're in production and use a different approach
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
-  
-  if (isProduction) {
-    console.log('🌐 [PDF GENERATOR] Production environment detected - using HTML-to-PDF conversion');
-    return generateProductionPDF(quotation, language, selectedPackage, selectedPromotion);
-  }
-  
-  const maxRetries = 3;
-  let lastError: Error | null = null;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`🚀 [PDF GENERATOR] Attempt ${attempt}/${maxRetries} - Starting optimized PDF generation...`);
-      
-      const result = await attemptPdfGeneration(quotation, language, selectedPackage, selectedPromotion, attempt);
-      return result;
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      console.error(`❌ [PDF GENERATOR] Attempt ${attempt}/${maxRetries} failed:`, lastError.message);
-      
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-        console.log(`⏳ [PDF GENERATOR] Waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  
-  // All retries failed - return a minimal fallback PDF
-  console.warn('⚠️ [PDF GENERATOR] All attempts failed, returning minimal fallback PDF');
-  return generateMinimalFallbackPDF(quotation);
-}
-
-async function generateProductionPDF(
-  quotation: any,
   language: string,
-  selectedPackage?: any | null | undefined,
-  selectedPromotion?: any | null | undefined
+  selectedPackage: PricingPackage | null,
+  selectedPromotion: PricingPromotion | null
 ): Promise<Buffer> {
-  try {
-    console.log('🔄 [PDF GENERATOR] Generating production PDF using HTML conversion...');
-    
-    // Generate the HTML content
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
-    const fullHtml = createOptimizedHTMLTemplate(htmlContent);
-    
-    // For production, we'll use a simple HTML-to-PDF approach
-    // Since we can't use Puppeteer in Vercel, we'll create a basic PDF structure
-    const pdfContent = createBasicPDFContent(quotation, htmlContent);
-    
-    console.log('✅ [PDF GENERATOR] Production PDF generated successfully');
-    return Buffer.from(pdfContent, 'utf-8');
-    
-  } catch (error) {
-    console.error('❌ [PDF GENERATOR] Production PDF generation failed:', error);
-    // Fallback to minimal PDF
-    return generateMinimalFallbackPDF(quotation);
-  }
-}
-
-function createBasicPDFContent(quotation: any, htmlContent: string): string {
-  // Create a basic PDF-like structure that can be opened by PDF readers
-  // This is a simplified approach for production environments
-  
-  const pdfHeader = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
->>
-endobj
-
-4 0 obj
-<<
-/Length 1000
->>
-stream
-BT
-/F1 12 Tf
-72 720 Td
-(Quotation #${quotation.quote_number || 'N/A'}) Tj
-0 -20 Td
-(${quotation.title || 'N/A'}) Tj
-0 -20 Td
-(Customer: ${quotation.customer_name || 'N/A'}) Tj
-0 -20 Td
-(Service: ${quotation.service_type || 'N/A'}) Tj
-0 -20 Td
-(Vehicle: ${quotation.vehicle_type || 'N/A'}) Tj
-0 -20 Td
-(Date: ${quotation.pickup_date || 'N/A'}) Tj
-0 -20 Td
-(Amount: ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || 'N/A'}) Tj
-ET
-endstream
-endobj
-
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-${1000 + 200}
-%%EOF`;
-
-  return pdfHeader;
-}
-
-function generateMinimalFallbackPDF(quotation: any): Buffer {
-  // Create a minimal PDF with just basic text to avoid complete failure
-  const minimalHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Quotation ${quotation.quote_number}</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .details { margin-bottom: 20px; }
-        .amount { font-size: 24px; font-weight: bold; text-align: center; margin: 30px 0; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>Quotation #${quotation.quote_number}</h1>
-        <p>${quotation.title}</p>
-      </div>
-      <div class="details">
-        <p><strong>Customer:</strong> ${quotation.customer_name}</p>
-        <p><strong>Service:</strong> ${quotation.service_type}</p>
-        <p><strong>Vehicle:</strong> ${quotation.vehicle_type}</p>
-        <p><strong>Date:</strong> ${quotation.pickup_date}</p>
-      </div>
-      <div class="amount">
-        <p>Total Amount: ${quotation.currency} ${quotation.total_amount?.toLocaleString()}</p>
-      </div>
-      <p style="text-align: center; color: #666; font-size: 12px;">
-        Note: This is a simplified PDF generated due to technical constraints.
-      </p>
-    </body>
-    </html>
-  `;
-  
-  // For now, return a simple text representation as a fallback
-  // This prevents the complete failure while we fix the PDF generation
-  const fallbackContent = `Quotation ${quotation.quote_number} - ${quotation.title} - ${quotation.customer_name} - ${quotation.currency} ${quotation.total_amount}`;
-  return Buffer.from(fallbackContent, 'utf-8');
-}
-
-async function attemptPdfGeneration(
-  quotation: any,
-  language: string,
-  selectedPackage: any | null | undefined,
-  selectedPromotion: any | null | undefined,
-  attemptNumber: number
-): Promise<Buffer> {
-  const startTime = Date.now();
-  let browser: Browser | null = null;
+  console.log(`🔄 Generating optimized PDF for quote: ${quotation?.id}, lang: ${language}`);
   
   try {
-    console.log(`🚀 [PDF GENERATOR] Attempt ${attemptNumber} - Starting optimized PDF generation...`);
+    // Import the HTML generator
+    const { generateQuotationHtml } = await import('./html-pdf-generator');
     
-    // Check if we're in Vercel environment
-    const isVercel = process.env.VERCEL;
-    let browserLaunchPromise: Promise<Browser>;
+    const htmlContent = generateQuotationHtml(
+      quotation, 
+      language as 'en' | 'ja', 
+      selectedPackage, 
+      selectedPromotion
+    );
     
-    if (isVercel) {
-      console.log('🌐 [PDF GENERATOR] Using Vercel Chrome instance for optimal performance');
-      // Use Vercel's Chrome instance - much faster than launching our own
-      browser = await puppeteer.connect({
-        browserURL: 'http://localhost:9222',
-        defaultViewport: { width: 1200, height: 800 }
-      });
-    } else {
-      // Use @sparticuz/chromium for other serverless environments
-      console.log('🌐 [PDF GENERATOR] Using @sparticuz/chromium for serverless environment');
-      browserLaunchPromise = puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-        timeout: 20000,
-        protocolTimeout: 20000
-      });
-      
-      browser = await Promise.race([
-        browserLaunchPromise,
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Browser launch timeout after 20 seconds')), 20000)
-        )
-      ]);
-    }
-    
-    const browserLaunchTime = Date.now() - startTime;
-    console.log(`⏱️  Browser launched in ${browserLaunchTime}ms`);
-    
-    // Create page with timeout
-    const pageCreateStart = Date.now();
-    const page = await browser.newPage();
-    const pageCreateTime = Date.now() - pageCreateStart;
-    console.log(`⏱️  Page created in ${pageCreateTime}ms`);
-    
-    // Set content with timeout
-    const contentSetStart = Date.now();
-    const htmlContent = generateQuotationHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion);
-    const optimizedHtml = createOptimizedHTMLTemplate(htmlContent);
-    
-    await Promise.race([
-      page.setContent(optimizedHtml, { waitUntil: 'networkidle0' }),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Content set timeout after 20 seconds')), 20000)
-      )
-    ]);
-    
-    const contentSetTime = Date.now() - contentSetStart;
-    console.log(`⏱️  Content set in ${contentSetTime}ms`);
-    
-    // Wait for fonts to load
-    const fontLoadStart = Date.now();
-    await page.evaluate(() => {
-      return new Promise<void>((resolve) => {
-        if (document.fonts && document.fonts.ready) {
-          document.fonts.ready.then(() => resolve());
-        } else {
-          // Fallback for older browsers
-          setTimeout(resolve, 1000);
-        }
-      });
-    });
-    const fontLoadTime = Date.now() - fontLoadStart;
-    console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
-    
-    // Generate PDF with timeout
-    const pdfStart = Date.now();
-    const pdfBuffer = await Promise.race([
-      page.pdf({
+    return await generateOptimizedPdfFromHtml(
+      htmlContent,
+      {
         format: 'A4',
-        printBackground: true,
-        margin: { top: '0.5in', right: '0.5in', bottom: '0.5in', left: '0.5in' }
-      }),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout after 20 seconds')), 20000)
-      )
-    ]);
-    
-    const pdfTime = Date.now() - pdfStart;
-    console.log(`⏱️  PDF generated in ${pdfTime}ms`);
-    
-    // Log performance metrics
-    const totalTime = Date.now() - startTime;
-    console.log(`📊 PDF Generation Performance (Attempt ${attemptNumber}):`, {
-      totalTime: `${totalTime}ms`,
-      browserLaunch: `${browserLaunchTime}ms`,
-      pageCreate: `${pageCreateTime}ms`,
-      contentSet: `${contentSetTime}ms`,
-      pdfGeneration: `${pdfTime}ms`,
-      fromCache: false
-    });
-    
-    // Cache the generated PDF
-    const hash = enhancedPdfCache.generateHash(quotation.id + language + (selectedPackage?.id || '') + (selectedPromotion?.id || ''));
-    await enhancedPdfCache.cachePDF(hash, Buffer.from(pdfBuffer));
-    console.log(`💾 PDF cached with hash: ${hash.substring(0, 8)}`);
-    
-    return Buffer.from(pdfBuffer);
+        margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+        printBackground: true
+      },
+      quotation,
+      selectedPackage,
+      selectedPromotion,
+      language
+    );
     
   } catch (error) {
-    console.error(`❌ [PDF GENERATOR] Attempt ${attemptNumber} failed:`, error);
+    console.error('❌ Error generating optimized quotation PDF:', error);
     throw error;
-  } finally {
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('🔒 Browser closed successfully');
-      } catch (closeError) {
-        console.warn('⚠️  Browser close error:', closeError);
-      }
-    }
   }
 }

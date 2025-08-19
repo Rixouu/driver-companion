@@ -386,10 +386,16 @@ async function processApprovalInBackground(
         selectedPromotion
       );
       
-      console.log('✅ [ROBUST-APPROVE] PDF generated successfully');
+      if (pdfBuffer) {
+        console.log('✅ [ROBUST-APPROVE] PDF generated successfully');
+      } else {
+        console.warn('⚠️ [ROBUST-APPROVE] PDF generation returned null - continuing without PDF');
+        pdfBuffer = null;
+      }
     } catch (pdfError) {
       console.error('❌ [ROBUST-APPROVE] PDF generation error:', pdfError);
-      return;
+      // Continue without PDF - don't fail the entire email process
+      pdfBuffer = null;
     }
     
     // Send email notification

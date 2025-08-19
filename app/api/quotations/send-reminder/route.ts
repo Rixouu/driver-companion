@@ -160,10 +160,15 @@ async function processReminderInBackground(
       
       try {
         pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
-        console.log('✅ [ROBUST-SEND-REMINDER] PDF generated successfully');
+        if (pdfBuffer) {
+          console.log('✅ [ROBUST-SEND-REMINDER] PDF generated successfully');
+        } else {
+          console.warn('⚠️ [ROBUST-SEND-REMINDER] PDF generation returned null - continuing without PDF');
+        }
       } catch (pdfError) {
         console.error('❌ [ROBUST-SEND-REMINDER] PDF generation error:', pdfError);
-        // Continue without PDF
+        // Continue without PDF - don't fail the entire email process
+        pdfBuffer = null;
       }
     }
     

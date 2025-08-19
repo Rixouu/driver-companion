@@ -20,16 +20,16 @@ interface PerformanceMetrics {
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting local font loading...');
+    console.log('⏱️  Starting simplified font loading...');
     const fontLoadStart = Date.now();
     
-    // Wait for fonts to be ready with longer timeout for local fonts
+    // Simplified font loading with shorter timeouts for serverless
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 5000)) // 5s for local fonts
+      new Promise(resolve => setTimeout(resolve, 2000)) // 2s for serverless
     ]);
     
-    // Additional check for font loading status
+    // Quick check for font loading status
     await Promise.race([
       page.evaluate(() => {
         return new Promise((resolve) => {
@@ -37,15 +37,15 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
             resolve(true);
           } else {
             document.fonts.onloadingdone = resolve;
-            // Fallback timeout for local fonts
-            setTimeout(resolve, 3000);
+            // Shorter timeout for serverless
+            setTimeout(resolve, 1000);
           }
         });
       }),
-      new Promise(resolve => setTimeout(resolve, 3000)) // 3s max
+      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max for serverless
     ]);
     
-    // Verify specific fonts are loaded
+    // Quick font verification
     const fontsLoaded = await page.evaluate(() => {
       const requiredFonts = [
         'Work Sans',
@@ -62,17 +62,17 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
     if (fontsLoaded) {
       console.log('✅ All required fonts loaded successfully');
     } else {
-      console.warn('⚠️  Some fonts may not be fully loaded');
+      console.warn('⚠️  Some fonts may not be fully loaded - continuing anyway');
     }
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Delay for rendering stability
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Minimal delay for rendering stability
+    await new Promise(resolve => setTimeout(resolve, 200));
   } catch (error) {
     console.warn('⚠️  Font loading error:', error);
-    // Continue with available fonts
+    // Continue with available fonts - don't fail the entire process
   }
 }
 
@@ -113,7 +113,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 30000 // 30s timeout for browser launch
+      timeout: 15000 // 15s timeout for browser launch (reduced for serverless)
     };
   }
 
@@ -139,6 +139,11 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <style>
         /* LOCAL FONTS FOR RELIABLE PDF GENERATION */
         @import url('/fonts/fonts.css');
+        
+        /* Fallback system fonts for reliability */
+        body {
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
         
         /* Additional font-face definitions for better browser support */
         @font-face {
@@ -286,7 +291,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         
         /* Specific styling for Japanese text - EXACTLY AS ORIGINAL */
         .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
@@ -402,10 +407,10 @@ export async function generateOptimizedPdfFromHtml(
     await Promise.race([
       page.setContent(fullHtml, { 
         waitUntil: 'networkidle0', // Wait for network to be idle (for fonts)
-        timeout: 20000 // 20s timeout for font loading
+        timeout: 10000 // 10s timeout for font loading (reduced for serverless)
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 20000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 10000)
       )
     ]);
     
@@ -417,7 +422,7 @@ export async function generateOptimizedPdfFromHtml(
     metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
     
     // Additional wait for rendering stability
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Generate PDF with timeout
     const pdfStart = Date.now();
@@ -427,10 +432,10 @@ export async function generateOptimizedPdfFromHtml(
         margin: pdfOptions.margin,
         printBackground: pdfOptions.printBackground,
         scale: pdfOptions.scale,
-        timeout: 20000 // 20s timeout for PDF generation
+        timeout: 10000 // 10s timeout for PDF generation (reduced for serverless)
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 20000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 10000)
       )
     ]);
 

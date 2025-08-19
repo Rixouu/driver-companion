@@ -370,10 +370,16 @@ async function processRejectionInBackground(
         selectedPromotion
       );
       
-      console.log('✅ [ROBUST-REJECT] PDF generated successfully');
+      if (pdfBuffer) {
+        console.log('✅ [ROBUST-REJECT] PDF generated successfully');
+      } else {
+        console.warn('⚠️ [ROBUST-REJECT] PDF generation returned null - continuing without PDF');
+        pdfBuffer = null;
+      }
     } catch (pdfError) {
       console.error('❌ [ROBUST-REJECT] PDF generation error:', pdfError);
-      return;
+      // Continue without PDF - don't fail the entire email process
+      pdfBuffer = null;
     }
     
     // Send email notification

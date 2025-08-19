@@ -110,7 +110,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${isJapanese ? '見積書が却下されました' : 'Your Quotation has been Rejected'}
+                          ${isJapanese ? '見積書が却下されました' : 'Quotation Rejected'}
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
                           ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
@@ -131,23 +131,16 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                 </td>
               </tr>
               
-              <!-- REASON BLOCK (IF ANY) -->
+              <!-- REASON SECTION -->
               ${reason ? `
               <tr>
-                <td style="padding:0 24px 24px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="details-table"
-                        style="background:#F8FAFC; border-radius:8px;">
-                    <tr>
-                      <td style="padding:16px;">
-                        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                          <tr>
-                            <th width="30%" style="vertical-align:top; padding-top:5px;">${t.reasonLabel}</th>
-                            <td style="font-size:14px; color:#32325D; line-height:1.6;">${reason}</td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
+                <td style="padding:12px 24px;">
+                  <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D;">
+                    ${t.reasonLabel}
+                  </h3>
+                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: Work Sans, sans-serif; line-height: 1.6;">
+                    <p style="margin: 8px 0; font-size: 14px; color: #32325D;">${reason}</p>
+                  </div>
                 </td>
               </tr>
               ` : ''}
@@ -155,6 +148,9 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <!-- CTA SECTION -->
               <tr>
                 <td style="padding:12px 24px 24px; text-align: center;">
+                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align: left;">
+                    ${t.contactUs}
+                  </p>
                   <a href="${appUrl}/quotations/${quotation.id}"
                      style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
                             text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
@@ -200,140 +196,125 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
 }
 
 export async function POST(request: NextRequest) {
-  console.log('==================== REJECT ROUTE START ====================');
+  console.log('🚀 [ROBUST-REJECT] Starting robust rejection processing...');
   
-  // Set up timeout for the entire request (45 seconds)
-  const timeoutId = setTimeout(() => {
-    console.error('❌ [REJECT ROUTE] Request timeout after 45 seconds');
-  }, 45000);
-  
-  // Get translations
-  console.log('Reject route - Getting translations');
-  const { t } = await getDictionary();
-  
-  // Create server client (relies on cookies for auth)
-  console.log('Reject route - Creating Supabase server client');
-  let supabase;
-  try {
-    supabase = await getSupabaseServerClient();
-    console.log('Reject route - Supabase server client created successfully');
-  } catch (serviceClientError) {
-    console.error('Reject route - Error creating server client:', serviceClientError);
-    return NextResponse.json(
-      { error: 'Error connecting to database' },
-      { status: 500 }
-    );
-  }
-
-  // Authenticate user (staff member performing the rejection)
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-  if (authError || !authUser) {
-    console.error('Reject route - Authentication error', authError);
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  console.log('Reject route - User authenticated:', authUser.id);
-
   try {
     const { id, reason, signature, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
     
-    console.log(`Reject route - Request data: id=${id}, reason=${reason || 'provided'}, customerId=${customerId || 'null'}, skipStatusCheck=${skipStatusCheck}, skipEmail=${skipEmail}`);
-    
     if (!id) {
-      console.log('Reject route - Missing required fields');
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        code: 'MISSING_FIELDS'
+      }, { status: 400 });
     }
+
+    // Step 1: Immediate response to client (202 Accepted)
+    const response = NextResponse.json({ 
+      message: 'Rejection processing started',
+      quotationId: id,
+      status: 'processing',
+      estimatedTime: '10-15 seconds'
+    }, { status: 202 });
+
+    // Step 2: Process rejection in background (don't await)
+    processRejectionInBackground(id, reason, signature, customerId, skipStatusCheck, skipEmail);
+
+    return response;
+
+  } catch (error) {
+    console.error('❌ [ROBUST-REJECT] Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to start rejection processing',
+      code: 'PROCESSING_ERROR'
+    }, { status: 500 });
+  }
+}
+
+async function processRejectionInBackground(
+  id: string,
+  reason: string,
+  signature: string,
+  customerId: string | null,
+  skipStatusCheck: boolean,
+  skipEmail: boolean
+) {
+  try {
+    console.log(`🔄 [ROBUST-REJECT] Background processing started for quotation: ${id}`);
     
-    // Fetch the quotation
-    console.log(`Reject route - Fetching quotation with ID: ${id}`);
-    let quotation;
+    // Get translations
+    const { t } = await getDictionary();
+    
+    // Create server client (relies on cookies for auth)
+    let supabase;
     try {
-      const { data, error: fetchError } = await supabase
-        .from('quotations')
-        .select('*, quotation_items (*)') // Include quotation_items
-        .eq('id', id)
-        .single();
-      
-      if (fetchError || !data) {
-        console.log(`Reject route - Error fetching quotation: ${fetchError?.message || 'Quotation not found'}`);
-        return NextResponse.json({ error: fetchError?.message || 'Quotation not found' }, { status: 404 });
-      }
-      
-      quotation = data as Quotation;
-      console.log(`Reject route - Quotation fetched successfully. ID: ${quotation.id}, Status: ${quotation.status}, Quote Number: ${quotation.quote_number}`);
-    } catch (fetchError) {
-      console.error('Reject route - Error fetching quotation:', fetchError);
-      return NextResponse.json({ error: fetchError instanceof Error ? fetchError.message : 'An error occurred' }, { status: 500 });
+      supabase = await getSupabaseServerClient();
+      console.log('✅ [ROBUST-REJECT] Supabase server client created successfully');
+    } catch (serviceClientError) {
+      console.error('❌ [ROBUST-REJECT] Error creating server client:', serviceClientError);
+      return;
+    }
+
+    // Fetch the quotation
+    const { data: quotation, error: fetchError } = await supabase
+      .from('quotations')
+      .select('*, quotation_items (*)')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError || !quotation) {
+      console.error('❌ [ROBUST-REJECT] Error fetching quotation:', fetchError);
+      return;
     }
     
     // Only check status if skipStatusCheck is false
     if (!skipStatusCheck && quotation.status === 'rejected') {
-      console.log(`Reject route - Cannot reject quotation with status: ${quotation.status}`);
-      return NextResponse.json({ error: `Cannot reject quotation with status: ${quotation.status}` }, { status: 400 });
+      console.log(`❌ [ROBUST-REJECT] Cannot reject quotation with status: ${quotation.status}`);
+      return;
     }
 
     // Only update status if needed
     if (!skipStatusCheck) {
-      console.log('Reject route - Updating quotation with signature:', {
-        id,
-        hasSignature: !!signature,
-        signatureLength: signature?.length || 0,
-        signaturePreview: signature?.substring(0, 50) + '...' || 'none'
-      });
-      
       const { error: updateError } = await supabase
         .from('quotations')
         .update({ 
           status: 'rejected',
           rejected_reason: reason,
           rejected_at: new Date().toISOString(),
-          rejected_by: authUser.id,
+          rejected_by: 'system',
           rejection_signature: signature
         })
         .eq('id', id);
       
       if (updateError) {
-        console.log(`Reject route - Error updating quotation: ${updateError.message}`);
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
+        console.error('❌ [ROBUST-REJECT] Error updating quotation:', updateError);
+        return;
       }
       
-      console.log('Reject route - Quotation status updated to rejected');
+      console.log('✅ [ROBUST-REJECT] Quotation status updated to rejected');
       
       // Log activity
       await supabase
         .from('quotation_activities')
         .insert({
           quotation_id: id,
-          user_id: authUser.id,
+          user_id: 'system',
           action: 'rejected',
           details: {
             reason: reason || null,
             rejected_by_customer_id: customerId,
-            rejected_by_staff_id: authUser.id
+            rejected_by_staff_id: 'system'
           }
         });
     }
     
     // Skip email if explicitly requested
     if (skipEmail) {
-      console.log('Reject route - Skipping email notification as requested');
-      return NextResponse.json({ 
-        message: 'Quotation rejected, email notification skipped' 
-      }, { status: 200 });
-    }
-    
-    // Check if quotation already has a recent rejection email
-    const lastEmailSent = new Date((quotation as any).last_email_sent_at || 0);
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    
-    if (quotation.status === 'rejected' && lastEmailSent > fiveMinutesAgo) {
-      console.log('Reject route - Skipping duplicate email, one was sent recently');
-      return NextResponse.json({ 
-        message: 'Quotation already rejected, avoiding duplicate email notification'
-      }, { status: 200 });
+      console.log('✅ [ROBUST-REJECT] Email notification skipped as requested');
+      return;
     }
     
     // Fetch full quotation with customer details for email
-    const { data: fullQuotationData, error: fetchError } = await supabase
+    const { data: fullQuotationData, error: fullQuotationError } = await supabase
       .from('quotations')
       .select('*, customers(*), quotation_items(*)')
       .eq('id', id)
@@ -341,12 +322,9 @@ export async function POST(request: NextRequest) {
       
     const fullQuotation = fullQuotationData as Quotation;
       
-    if (fetchError || !fullQuotation) {
-      console.log(`Reject route - Error fetching full quotation: ${fetchError?.message || 'Quotation not found'}`);
-      return NextResponse.json({ 
-        message: 'Quotation rejected, but failed to send notification email',
-        error: fetchError?.message 
-      }, { status: 200 });
+    if (fullQuotationError || !fullQuotation) {
+      console.error('❌ [ROBUST-REJECT] Error fetching full quotation:', fullQuotationError);
+      return;
     }
     
     // Fetch associated package and promotion for the PDF
@@ -369,15 +347,12 @@ export async function POST(request: NextRequest) {
                       (fullQuotation.customers ? fullQuotation.customers.email : null);
     
     if (!emailAddress) {
-      console.log('Reject route - No valid email address found for this quotation');
-      return NextResponse.json({ 
-        message: 'Quotation rejected, but no valid email address found',
-        error: 'Missing email address'
-      }, { status: 200 });
+      console.log('❌ [ROBUST-REJECT] No valid email address found for this quotation');
+      return;
     }
     
     // Generate PDF
-    console.log('Reject route - Generating PDF for email attachment');
+    console.log('🔄 [ROBUST-REJECT] Generating PDF...');
     let pdfBuffer;
     try {
       // Fetch the updated quotation to get the signature
@@ -395,27 +370,15 @@ export async function POST(request: NextRequest) {
         selectedPromotion
       );
       
-      console.log('Reject route - PDF generated successfully');
+      console.log('✅ [ROBUST-REJECT] PDF generated successfully');
     } catch (pdfError) {
-      console.error('Reject route - PDF generation error:', pdfError);
-      return NextResponse.json({ 
-        message: 'Quotation rejected, but failed to generate PDF for email', 
-        error: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error'
-      }, { status: 200 });
+      console.error('❌ [ROBUST-REJECT] PDF generation error:', pdfError);
+      return;
     }
     
     // Send email notification
     try {
-      console.log(`Reject route - Sending rejection email to: ${emailAddress}`);
-      
-      // Check if API key is configured
-      if (!process.env.RESEND_API_KEY) {
-        console.error('Reject route - RESEND_API_KEY environment variable is not configured');
-        return NextResponse.json(
-          { error: 'Email service not configured' },
-          { status: 500 }
-        );
-      }
+      console.log('🔄 [ROBUST-REJECT] Sending rejection email...');
       
       // Initialize Resend with API key
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -440,9 +403,7 @@ export async function POST(request: NextRequest) {
       // Generate styled email HTML using our helper function
       const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, reason);
       
-      // Send email with timeout
-      console.log('🔄 [REJECT ROUTE] Sending rejection email via Resend...');
-      const emailSendPromise = resend.emails.send({
+      const { data: emailData, error: resendError } = await resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [emailAddress],
         subject: emailSubject,
@@ -455,21 +416,11 @@ export async function POST(request: NextRequest) {
         ] : undefined
       });
 
-      // Add timeout for email sending (30 seconds)
-      const { data: emailData, error: resendError } = await Promise.race([
-        emailSendPromise,
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Email sending timeout after 30 seconds')), 30000)
-        )
-      ]);
-
       if (resendError) {
-        console.error('❌ [REJECT ROUTE] Error reported by Resend:', JSON.stringify(resendError, null, 2));
-        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
+        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`);
       }
       
-      const emailId = emailData?.id || 'unknown';
-      console.log(`Reject route - Email sent successfully! ID: ${emailId}`);
+      console.log('✅ [ROBUST-REJECT] Email sent successfully:', emailData?.id);
       
       // Update last_email_sent_at
       await supabase
@@ -478,31 +429,31 @@ export async function POST(request: NextRequest) {
           last_email_sent_at: new Date().toISOString() 
         } as any)
         .eq('id', id);
-      
-      clearTimeout(timeoutId);
-      return NextResponse.json({ 
-        message: 'Quotation rejected and notification email sent', 
-        emailId: emailId 
-      }, { status: 200 });
+
+      console.log('✅ [ROBUST-REJECT] Background processing completed successfully');
+
     } catch (emailError) {
-      console.error('❌ [REJECT ROUTE] Email sending error:', emailError);
-      clearTimeout(timeoutId);
-      return NextResponse.json({ 
-        message: 'Quotation rejected, but failed to send notification email',
-        error: emailError instanceof Error ? emailError.message : 'Unknown email error',
-        code: 'EMAIL_SEND_ERROR',
-        timestamp: new Date().toISOString()
-      }, { status: 200 });
+      console.error('❌ [ROBUST-REJECT] Email sending error:', emailError);
     }
   } catch (error) {
-    console.error('❌ [REJECT ROUTE] Unexpected error:', error);
-    clearTimeout(timeoutId);
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      code: 'INTERNAL_SERVER_ERROR',
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  } finally {
-    console.log('==================== REJECT ROUTE END ====================');
+    console.error('❌ [ROBUST-REJECT] Background processing failed:', error);
+    
+    // Log error to database
+    try {
+      const supabase = await getSupabaseServerClient();
+      await supabase
+        .from('quotation_activities')
+        .insert({
+          quotation_id: id,
+          user_id: 'system',
+          action: 'rejection_error',
+          details: { 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          }
+        });
+    } catch (logError) {
+      console.error('❌ [ROBUST-REJECT] Failed to log error:', logError);
+    }
   }
-} 
+}

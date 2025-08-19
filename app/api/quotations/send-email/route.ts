@@ -77,12 +77,7 @@ async function generateQuotationPDF(
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🔄 [SEND-EMAIL API] Received POST request.');
-  
-  // Set up timeout for the entire request (45 seconds)
-  const timeoutId = setTimeout(() => {
-    console.error('❌ [SEND-EMAIL API] Request timeout after 45 seconds');
-  }, 45000);
+  console.log('🚀 [ROBUST-SEND-EMAIL] Starting robust email processing...');
   
   try {
     // Use formData to handle the multipart/form-data request
@@ -94,52 +89,63 @@ export async function POST(request: NextRequest) {
     const languageParam = formData ? ((formData.get('language') as string) || 'en') : ((await request.json()).language || 'en');
     const language = (['en', 'ja'].includes(languageParam) ? languageParam : 'en') as 'en' | 'ja';
     
-    console.log('🔄 [SEND-EMAIL API] Received request for quotation:', quotationId);
-    
     if (!email || !quotationId) {
-      console.error('❌ [SEND-EMAIL API] Missing required fields');
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        code: 'MISSING_FIELDS'
+      }, { status: 400 });
     }
+
+    // Step 1: Immediate response to client (202 Accepted)
+    const response = NextResponse.json({ 
+      message: 'Email processing started',
+      quotationId,
+      status: 'processing',
+      estimatedTime: '10-15 seconds'
+    }, { status: 202 });
+
+    // Step 2: Process email in background (don't await)
+    processEmailInBackground(quotationId, email, language);
+
+    return response;
+
+  } catch (error) {
+    console.error('❌ [ROBUST-SEND-EMAIL] Error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to start email processing',
+      code: 'PROCESSING_ERROR'
+    }, { status: 500 });
+  }
+}
+
+async function processEmailInBackground(
+  quotationId: string, 
+  email: string, 
+  language: 'en' | 'ja'
+) {
+  try {
+    console.log(`🔄 [ROBUST-SEND-EMAIL] Background processing started for quotation: ${quotationId}`);
     
     // Create server client (relies on cookies for auth)
-    console.log('🔄 [SEND-EMAIL API] Creating Supabase server client');
     let supabase;
     try {
       supabase = await getSupabaseServerClient();
-      console.log('✅ [SEND-EMAIL API] Supabase server client created successfully');
+      console.log('✅ [ROBUST-SEND-EMAIL] Supabase server client created successfully');
     } catch (serverClientError) {
-      console.error('❌ [SEND-EMAIL API] Error creating server client:', serverClientError);
-      return NextResponse.json(
-        { error: 'Error connecting to database' },
-        { status: 500 }
-      );
+      console.error('❌ [ROBUST-SEND-EMAIL] Error creating server client:', serverClientError);
+      return;
     }
 
-    // Authenticate user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !authUser) {
-      console.error('❌ [SEND-EMAIL API] Authentication error', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.log('✅ [SEND-EMAIL API] User authenticated:', authUser.id);
-    
     // Fetch quotation data
-    console.log('🔄 [SEND-EMAIL API] Fetching latest quotation data');
     const { data: quotation, error } = await supabase
       .from('quotations')
-      .select('*, customers (*), quotation_items (*)') // Include quotation_items
+      .select('*, customers (*), quotation_items (*)')
       .eq('id', quotationId)
       .single();
     
     if (error || !quotation) {
-      console.error('❌ [SEND-EMAIL API] Error fetching quotation data:', error);
-      return NextResponse.json(
-        { error: 'Quotation not found' },
-        { status: 404 }
-      );
+      console.error('❌ [ROBUST-SEND-EMAIL] Error fetching quotation data:', error);
+      return;
     }
     
     // Fetch associated package and promotion
@@ -157,30 +163,16 @@ export async function POST(request: NextRequest) {
         selectedPromotion = promo as PricingPromotion | null;
     }
 
-    console.log('✅ [SEND-EMAIL API] Found quotation:', { id: quotation.id, email: quotation.customer_email });
-    
-    // Generate a fresh PDF from the latest data using the new function
-    console.log(`🔄 [SEND-EMAIL API] Calling generateQuotationPDF for quote: ${quotation.id}, lang: ${language}`); // Log before calling
-    
-    // Call the integrated PDF generation function, passing package and promotion
+    // Step 2: Generate PDF (with caching)
+    console.log('🔄 [ROBUST-SEND-EMAIL] Generating PDF...');
     const pdfBuffer = await generateQuotationPDF(quotation, language, selectedPackage, selectedPromotion);
     
     if (!pdfBuffer) {
-      console.error('❌ [SEND-EMAIL API] Failed to generate PDF');
-      return NextResponse.json(
-        { error: 'Failed to generate PDF attachment' },
-        { status: 500 }
-      );
+      throw new Error('Failed to generate PDF');
     }
-    
-    // Check if API key is configured
-    if (!process.env.RESEND_API_KEY) {
-      console.error('❌ [SEND-EMAIL API] RESEND_API_KEY environment variable is not configured');
-      return NextResponse.json(
-        { error: 'Email service not configured' },
-        { status: 500 }
-      );
-    }
+
+    // Step 3: Send email via Resend
+    console.log('🔄 [ROBUST-SEND-EMAIL] Sending email...');
     
     // Initialize Resend with API key
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -188,7 +180,7 @@ export async function POST(request: NextRequest) {
     // Get email domain from env or fallback
     const emailDomain = (process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com').replace(/%$/, '');
     
-    // Get the public URL for the Driver logo (needed for email body, not PDF)
+    // Get the public URL for the Driver logo
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
     
     // Format quotation ID to use JPDR prefix
@@ -211,109 +203,74 @@ export async function POST(request: NextRequest) {
     const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
     const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
     
-    console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
+    const { data: emailData, error: resendError } = await resend.emails.send({
+      from: `Driver Japan <booking@${emailDomain}>`,
+      to: [email],
+      subject: emailSubject,
+      text: textContent,
+      html: emailHtml,
+      attachments: [{
+        filename: `quotation-${formattedQuotationId}.pdf`,
+        content: pdfBuffer.toString('base64')
+      }]
+    });
+
+    if (resendError) {
+      throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`);
+    }
     
-    try {
-      // Send email with timeout
-      console.log('🔄 [SEND-EMAIL API] Sending email via Resend...');
-      const emailSendPromise = resend.emails.send({
-        from: `Driver Japan <booking@${emailDomain}>`,
-        to: [email],
-        subject: emailSubject,
-        text: textContent,
-        html: emailHtml,
-        attachments: [{
-          filename: `quotation-${formattedQuotationId}.pdf`,
-          content: pdfBuffer.toString('base64')
-        }]
+    console.log('✅ [ROBUST-SEND-EMAIL] Email sent successfully:', emailData?.id);
+    
+    // Step 4: Update quotation status
+    const createdDate = new Date(quotation.created_at);
+    const expiryDate = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+    
+    await supabase
+      .from('quotations')
+      .update({ 
+        status: 'sent',
+        last_sent_at: new Date().toISOString(),
+        last_sent_to: email,
+        expiry_date: expiryDate.toISOString()
+      })
+      .eq('id', quotationId);
+
+    // Step 5: Log success
+    await supabase
+      .from('quotation_activities')
+      .insert({
+        quotation_id: quotationId,
+        user_id: 'system',
+        action: 'email_sent',
+        details: { 
+          email: email,
+          sent_at: new Date().toISOString(),
+          sent_by: 'system'
+        }
       });
 
-      // Add timeout for email sending (30 seconds)
-      const { data: emailData, error: resendError } = await Promise.race([
-        emailSendPromise,
-        new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Email sending timeout after 30 seconds')), 30000)
-        )
-      ]);
+    console.log('✅ [ROBUST-SEND-EMAIL] Background processing completed successfully');
+
+  } catch (error) {
+    console.error('❌ [ROBUST-SEND-EMAIL] Background processing failed:', error);
     
-      if (resendError) {
-        console.error('❌ [SEND-EMAIL API] Error reported by Resend:', JSON.stringify(resendError, null, 2));
-        throw new Error(`Resend API Error: ${resendError.message || 'Unknown error'}`); 
-      }
-      
-      console.log('✅ [SEND-EMAIL API] Email sent successfully! ID:', emailData?.id);
-      
-      // Update quotation status to 'sent' and last_sent details
-      // Expiry date should be 2 days from creation date, not from sending
-      const createdDate = new Date(quotation.created_at);
-      const expiryDate = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-      
-      await supabase
-        .from('quotations')
-        .update({ 
-          status: 'sent',
-          last_sent_at: new Date().toISOString(),
-          last_sent_to: email,
-          // Expiry date: 2 days from creation (not from sending)
-          expiry_date: expiryDate.toISOString()
-        })
-        .eq('id', quotationId);
-    
-      // Log activity
+    // Log error to database
+    try {
+      const supabase = await getSupabaseServerClient();
       await supabase
         .from('quotation_activities')
         .insert({
           quotation_id: quotationId,
-          user_id: authUser.id,
-          action: 'email_sent',
+          user_id: 'system',
+          action: 'email_error',
           details: { 
-            email: email,
-            sent_at: new Date().toISOString(),
-            sent_by: 'system'
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
           }
         });
-      
-      clearTimeout(timeoutId);
-      return NextResponse.json({ 
-        success: true,
-        message: 'Email sent successfully',
-        emailId: emailData?.id 
-      });
-      
-    } catch (err) {
-      console.error(`❌ [SEND-EMAIL API] Error during email sending process: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`);
-      if (err instanceof Error && err.stack) {
-          console.error('Stack trace:', err.stack);
-      }
-      
-      // Return standardized JSON error response
-      clearTimeout(timeoutId);
-      return NextResponse.json(
-        { 
-          error: err instanceof Error ? err.message : 'Failed to send email',
-          code: 'EMAIL_SEND_ERROR',
-          timestamp: new Date().toISOString()
-        },
-        { status: 500 }
-      );
+    } catch (logError) {
+      console.error('❌ [ROBUST-SEND-EMAIL] Failed to log error:', logError);
     }
-    
-  } catch (err) {
-    console.error('❌ [SEND-EMAIL API] Unhandled error in POST handler:', err);
-    if (err instanceof Error && err.stack) {
-        console.error('[SEND-EMAIL API] POST Handler Stack Trace:', err.stack);
-    }
-    
-    // Return standardized JSON error response
-    clearTimeout(timeoutId);
-    return NextResponse.json(
-      { 
-        error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler',
-        code: 'INTERNAL_SERVER_ERROR',
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    );
   }
 }
 

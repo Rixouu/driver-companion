@@ -115,45 +115,111 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
-      <style>
-        /* GOOGLE FONTS FOR RELIABLE MULTILINGUAL SUPPORT */
-        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
-        
-        /* Additional font-face definitions for better browser support */
+        <style>
+        /* LOCAL FONT LOADING - RELIABLE FOR PDF GENERATION */
+        @import url('/fonts/fonts.css');
         @font-face {
           font-family: 'Work Sans';
-          src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVc6YT2QU.woff2') format('woff2');
+          src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
-          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        
+        @font-face {
+          font-family: 'Work Sans';
+          src: url('/fonts/WorkSans-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Work Sans';
+          src: url('/fonts/WorkSans-SemiBold.woff2') format('woff2');
+          font-weight: 600;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Work Sans';
+          src: url('/fonts/WorkSans-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
         }
         
         @font-face {
           font-family: 'Noto Sans JP';
-          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLbI2JPCgQBnw7HFowAIO2lZ9hg.woff2') format('woff2');
+          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
-          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans JP';
+          src: url('/fonts/NotoSansJP-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans JP';
+          src: url('/fonts/NotoSansJP-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
         }
         
         @font-face {
           font-family: 'Noto Sans Thai';
-          src: url('https://fonts.gstatic.com/s/notosansthai/v16/iJWnBQ3UoTb8_tr8Lw0T7-AyLqWxecq9o0.woff2') format('woff2');
+          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
-          unicode-range: U+0E00-0E7F;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans Thai';
+          src: url('/fonts/NotoSansThai-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans Thai';
+          src: url('/fonts/NotoSansThai-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
         }
         
         @font-face {
           font-family: 'Noto Sans KR';
-          src: url('https://fonts.gstatic.com/s/notosanskr/v36/PbykFmXiEBPT4ITbgNA5Cgm20xz64px_1hVWr0wuPNGmlQNMEfD4.woff2') format('woff2');
+          src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
-          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans KR';
+          src: url('/fonts/NotoSansKR-Medium.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans KR';
+          src: url('/fonts/NotoSansKR-Bold.woff2') format('woff2');
+          font-weight: 700;
+          font-style: normal;
+          font-display: swap;
         }
         
         * {

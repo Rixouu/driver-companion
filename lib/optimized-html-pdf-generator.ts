@@ -16,20 +16,20 @@ interface PerformanceMetrics {
 }
 
 /**
- * Optimized font loading utility with aggressive timeouts
+ * Optimized font loading utility with local font support
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting optimized font loading...');
+    console.log('⏱️  Starting local font loading...');
     const fontLoadStart = Date.now();
     
-    // Reduced timeout for faster processing
+    // Wait for fonts to be ready with longer timeout for local fonts
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 2000)) // Reduced from 5s to 2s
+      new Promise(resolve => setTimeout(resolve, 5000)) // 5s for local fonts
     ]);
     
-    // Quick additional check with shorter timeout
+    // Additional check for font loading status
     await Promise.race([
       page.evaluate(() => {
         return new Promise((resolve) => {
@@ -37,21 +37,42 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
             resolve(true);
           } else {
             document.fonts.onloadingdone = resolve;
-            // Much shorter fallback timeout
-            setTimeout(resolve, 1000);
+            // Fallback timeout for local fonts
+            setTimeout(resolve, 3000);
           }
         });
       }),
-      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max
+      new Promise(resolve => setTimeout(resolve, 3000)) // 3s max
     ]);
+    
+    // Verify specific fonts are loaded
+    const fontsLoaded = await page.evaluate(() => {
+      const requiredFonts = [
+        'Work Sans',
+        'Noto Sans JP', 
+        'Noto Sans Thai',
+        'Noto Sans KR'
+      ];
+      
+      return requiredFonts.every(font => {
+        return document.fonts.check(`12px ${font}`);
+      });
+    });
+    
+    if (fontsLoaded) {
+      console.log('✅ All required fonts loaded successfully');
+    } else {
+      console.warn('⚠️  Some fonts may not be fully loaded');
+    }
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Minimal delay for rendering
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Delay for rendering stability
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
-    console.warn('⚠️  Font loading timeout (using fallbacks):', error);
+    console.warn('⚠️  Font loading error:', error);
+    // Continue with available fonts
   }
 }
 
@@ -115,15 +136,18 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
-        <style>
-        /* LOCAL FONT LOADING - RELIABLE FOR PDF GENERATION */
+      <style>
+        /* LOCAL FONTS FOR RELIABLE PDF GENERATION */
         @import url('/fonts/fonts.css');
+        
+        /* Additional font-face definitions for better browser support */
         @font-face {
           font-family: 'Work Sans';
           src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
         
         @font-face {
@@ -132,6 +156,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 500;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
         
         @font-face {
@@ -140,6 +165,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 600;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
         
         @font-face {
@@ -148,6 +174,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 700;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
         }
         
         @font-face {
@@ -156,6 +183,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
         }
         
         @font-face {
@@ -164,6 +192,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 500;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
         }
         
         @font-face {
@@ -172,6 +201,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 700;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
         }
         
         @font-face {
@@ -180,6 +210,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0E00-0E7F;
         }
         
         @font-face {
@@ -188,6 +219,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 500;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0E00-0E7F;
         }
         
         @font-face {
@@ -196,6 +228,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 700;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+0E00-0E7F;
         }
         
         @font-face {
@@ -204,6 +237,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 400;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
         }
         
         @font-face {
@@ -212,6 +246,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 500;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
         }
         
         @font-face {
@@ -220,6 +255,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-weight: 700;
           font-style: normal;
           font-display: swap;
+          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
         }
         
         * {
@@ -379,6 +415,9 @@ export async function generateOptimizedPdfFromHtml(
     // Ensure fonts are loaded for original appearance
     await ensureFontsLoadedOptimized(page);
     metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
+    
+    // Additional wait for rendering stability
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Generate PDF with timeout
     const pdfStart = Date.now();

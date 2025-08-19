@@ -1,12 +1,13 @@
 /* Font Definitions - Optimized for PDF Generation with Japanese and Thai Support */
 
-/* Work Sans - Primary English Font */
+/* Local Font Definitions - No CDN dependencies for reliable PDF generation */
 @font-face {
   font-family: 'Work Sans';
   src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -15,6 +16,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -23,6 +25,7 @@
   font-weight: 600;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -31,6 +34,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /* Noto Sans JP - Japanese Font */
@@ -40,6 +44,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
 }
 
 @font-face {
@@ -48,6 +53,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
 }
 
 @font-face {
@@ -56,6 +62,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
 }
 
 /* Noto Sans Thai - Thai Font */
@@ -65,6 +72,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0E00-0E7F;
 }
 
 @font-face {
@@ -73,6 +81,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0E00-0E7F;
 }
 
 @font-face {
@@ -81,6 +90,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0E00-0E7F;
 }
 
 /* Noto Sans KR - Korean Font */
@@ -90,6 +100,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
 }
 
 @font-face {
@@ -98,6 +109,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
 }
 
 @font-face {
@@ -106,23 +118,22 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
 }
 
-/* Font Family Definitions with Fallbacks */
+/* Font Family Definitions with Local Fonts */
 :root {
-  /* Primary font stack with proper fallbacks for multilingual support */
-  --font-primary: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
-                   'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho',
-                   'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+  /* Primary font stack with local fonts for reliable PDF generation */
+  --font-primary: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', sans-serif;
   
   /* Japanese-specific font stack */
-  --font-japanese: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+  --font-japanese: 'Noto Sans JP', sans-serif;
   
   /* Thai-specific font stack */
-  --font-thai: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+  --font-thai: 'Noto Sans Thai', sans-serif;
   
   /* Korean-specific font stack */
-  --font-korean: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+  --font-korean: 'Noto Sans KR', sans-serif;
 }
 
 /* Global font application */

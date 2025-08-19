@@ -1,48 +1,12 @@
 import puppeteer from 'puppeteer';
 import { QuotationItem, PricingPackage, PricingPromotion } from '../types/quotations';
-import * as fs from 'fs';
-import * as path from 'path';
+
+// Use require for chromium to avoid import issues
+const chromium = require('@sparticuz/chromium');
 
 /**
- * Font data as base64 - embedded directly to ensure reliability
- */
-const FONT_DATA = {
-  'WorkSans-Regular': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'WorkSans-Medium': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'WorkSans-SemiBold': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'WorkSans-Bold': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansJP-Regular': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansJP-Medium': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansJP-Bold': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansThai-Regular': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansThai-Medium': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansThai-Bold': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansKR-Regular': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansKR-Medium': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E=',
-  'NotoSansKR-Bold': 'data:font/woff2;base64,U3RhdGVtZW50IG9mIHRoZSBVbml0ZWQgU3RhdGVzIG9mIEFtZXJpY2E='
-};
-
-/**
- * Try to load actual font files and convert to base64
- */
-function getFontBase64(fontName: string): string {
-  try {
-    const fontPath = path.join(process.cwd(), 'public', 'fonts', `${fontName}.woff2`);
-    if (fs.existsSync(fontPath)) {
-      const fontBuffer = fs.readFileSync(fontPath);
-      return `data:font/woff2;base64,${fontBuffer.toString('base64')}`;
-    }
-  } catch (error) {
-    console.log(`⚠️ Could not load font ${fontName}:`, error);
-  }
-  
-  // Fallback to system fonts
-  return '';
-}
-
-/**
- * Simple, reliable PDF generator for serverless environments
- * Uses embedded fonts to ensure Thai and Japanese characters display correctly
+ * Serverless-compatible PDF generator with embedded fonts
+ * Uses @sparticuz/chromium for reliable Chrome execution in serverless
  */
 export async function generateOptimizedQuotationPDF(
   quotation: any,
@@ -50,35 +14,20 @@ export async function generateOptimizedQuotationPDF(
   selectedPackage?: any,
   selectedPromotion?: any
 ): Promise<Buffer | null> {
-  console.log('🚀 Starting reliable PDF generation...');
+  console.log('🚀 Starting serverless PDF generation...');
   
   let browser: any = null;
   let page: any = null;
   
   try {
-    // Simple browser launch with minimal options for serverless
-    console.log('🌐 Launching browser...');
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--single-process',
-        '--no-zygote',
-        '--font-render-hinting=none',
-        '--disable-font-subpixel-positioning',
-        '--enable-font-antialiasing'
-      ],
-      timeout: 30000
-    });
+    // Use @sparticuz/chromium for serverless compatibility
+    console.log('🌐 Launching serverless browser...');
+          browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      });
     
     console.log('✅ Browser launched successfully');
     
@@ -89,18 +38,18 @@ export async function generateOptimizedQuotationPDF(
     // Generate HTML content with embedded fonts
     const htmlContent = generateQuotationHTML(quotation, language, selectedPackage, selectedPromotion);
     
-    // Set content with minimal waiting
+    // Set content
     console.log('📄 Setting content...');
     await page.setContent(htmlContent, { 
       waitUntil: 'domcontentloaded',
-      timeout: 15000
+      timeout: 30000
     });
     
     // Wait for fonts to load
     console.log('🔤 Waiting for fonts...');
     try {
       await page.evaluateHandle('document.fonts.ready');
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s for fonts
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s for fonts
     } catch (error) {
       console.log('⚠️ Font loading timeout - continuing anyway');
     }
@@ -154,24 +103,6 @@ function generateQuotationHTML(
   selectedPackage?: any, 
   selectedPromotion?: any
 ): string {
-  // Try to load actual font files
-  const workSansRegular = getFontBase64('WorkSans-Regular') || FONT_DATA['WorkSans-Regular'];
-  const workSansMedium = getFontBase64('WorkSans-Medium') || FONT_DATA['WorkSans-Medium'];
-  const workSansSemiBold = getFontBase64('WorkSans-SemiBold') || FONT_DATA['WorkSans-SemiBold'];
-  const workSansBold = getFontBase64('WorkSans-Bold') || FONT_DATA['WorkSans-Bold'];
-  
-  const notoSansJPRegular = getFontBase64('NotoSansJP-Regular') || FONT_DATA['NotoSansJP-Regular'];
-  const notoSansJPMedium = getFontBase64('NotoSansJP-Medium') || FONT_DATA['NotoSansJP-Medium'];
-  const notoSansJPBold = getFontBase64('NotoSansJP-Bold') || FONT_DATA['NotoSansJP-Bold'];
-  
-  const notoSansThaiRegular = getFontBase64('NotoSansThai-Regular') || FONT_DATA['NotoSansThai-Regular'];
-  const notoSansThaiMedium = getFontBase64('NotoSansThai-Medium') || FONT_DATA['NotoSansThai-Medium'];
-  const notoSansThaiBold = getFontBase64('NotoSansThai-Bold') || FONT_DATA['NotoSansThai-Bold'];
-  
-  const notoSansKRRegular = getFontBase64('NotoSansKR-Regular') || FONT_DATA['NotoSansKR-Regular'];
-  const notoSansKRMedium = getFontBase64('NotoSansKR-Medium') || FONT_DATA['NotoSansKR-Medium'];
-  const notoSansKRBold = getFontBase64('NotoSansKR-Bold') || FONT_DATA['NotoSansKR-Bold'];
-
   return `
     <!DOCTYPE html>
     <html lang="${language}">
@@ -180,113 +111,11 @@ function generateQuotationHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Quotation - ${quotation.quotation_number || 'Q-' + quotation.id}</title>
       <style>
-        /* EMBEDDED FONTS FOR RELIABLE PDF GENERATION */
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('${workSansRegular}') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('${workSansMedium}') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('${workSansSemiBold}') format('woff2');
-          font-weight: 600;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('${workSansBold}') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        /* Japanese Font - EMBEDDED */
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('${notoSansJPRegular}') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('${notoSansJPMedium}') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('${notoSansJPBold}') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        /* Thai Font - EMBEDDED */
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('${notoSansThaiRegular}') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('${notoSansThaiMedium}') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('${notoSansThaiBold}') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        /* Korean Font - EMBEDDED */
-        @font-face {
-          font-family: 'Noto Sans KR';
-          src: url('${notoSansKRRegular}') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans KR';
-          src: url('${notoSansKRMedium}') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans KR';
-          src: url('${notoSansKRBold}') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
+        /* EMBEDDED FONTS - WORK IN ANY ENVIRONMENT */
+        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
         
         /* Base styles with YOUR EXACT FONTS */
         * {

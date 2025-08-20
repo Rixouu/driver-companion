@@ -1,24 +1,6 @@
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '../types/quotations';
-import fs from 'fs';
-import path from 'path';
-
-/**
- * Get base64 encoded font data for embedding
- */
-function getFontBase64(fontPath: string): string {
-  try {
-    const fullPath = path.join(process.cwd(), 'public', 'fonts', fontPath);
-    if (fs.existsSync(fullPath)) {
-      const fontBuffer = fs.readFileSync(fullPath);
-      return `data:font/woff2;base64,${fontBuffer.toString('base64')}`;
-    }
-  } catch (error) {
-    console.warn(`Failed to load font ${fontPath}:`, error);
-  }
-  return '';
-}
 
 /**
  * Serverless-compatible PDF generator with properly embedded fonts
@@ -38,53 +20,82 @@ export async function generateOptimizedQuotationPDF(
   try {
     // Use @sparticuz/chromium for serverless compatibility
     console.log('🌐 Launching serverless browser...');
+    
+    // Enhanced args for better font rendering and stability in production
+    const enhancedArgs = [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=VizDisplayCompositor',
+      '--font-render-hinting=none',
+      '--disable-font-subpixel-positioning',
+    ];
+    
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: enhancedArgs,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
+      timeout: 60000, // Increase timeout for production
     });
     
     console.log('✅ Browser launched successfully');
     
-    // Create page
+    // Create page with enhanced settings for production
     page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 1600 });
     
-    // Generate HTML content with embedded fonts
-    const htmlContent = generateQuotationHTML(quotation, language, selectedPackage, selectedPromotion);
-    
-    // Set content
-    console.log('📄 Setting content...');
-    await page.setContent(htmlContent, { 
-      waitUntil: 'domcontentloaded',
-      timeout: 30000
+    // Set viewport and user agent for consistent rendering
+    await page.setViewport({ 
+      width: 1200, 
+      height: 1600,
+      deviceScaleFactor: 1
     });
     
-    // Wait for fonts to load
-    console.log('🔤 Waiting for fonts...');
-    try {
-      await page.evaluateHandle('document.fonts.ready');
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s for fonts
-    } catch (error) {
-      console.log('⚠️ Font loading timeout - continuing anyway');
-    }
+    // Set user agent to ensure proper font loading
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
     
-    // Additional font loading check with fallback
+    // Generate HTML content with Google Fonts
+    const htmlContent = generateQuotationHTML(quotation, language, selectedPackage, selectedPromotion);
+    
+    // Set content with enhanced waiting
+    console.log('📄 Setting content...');
+    await page.setContent(htmlContent, { 
+      waitUntil: 'networkidle0', // Wait for network to be idle (fonts loaded)
+      timeout: 60000
+    });
+    
+    // Enhanced font loading with multiple strategies
+    console.log('🔤 Waiting for fonts to load...');
     try {
+      // Wait for document fonts to be ready
+      await page.evaluateHandle('document.fonts.ready');
+      
+      // Additional wait for font rendering
       await page.evaluate(() => {
-        // Force font loading with timeout
         return new Promise((resolve) => {
-          document.fonts.ready.then(() => resolve(true));
-          // Fallback timeout
-          setTimeout(() => resolve(true), 2000);
+          // Check if fonts are loaded
+          if (document.fonts.status === 'loaded') {
+            setTimeout(resolve, 1000); // Small delay for rendering
+          } else {
+            // Wait for fonts to load with timeout
+            const timeout = setTimeout(() => resolve(true), 5000);
+            document.fonts.ready.then(() => {
+              clearTimeout(timeout);
+              setTimeout(resolve, 1000);
+            });
+          }
         });
       });
+      
+      console.log('✅ Fonts loaded successfully');
     } catch (error) {
-      console.log('⚠️ Font loading check failed - continuing anyway');
+      console.log('⚠️ Font loading timeout - continuing with fallback fonts');
     }
     
-    // Generate PDF
+    // Generate PDF with production-optimized settings
     console.log('📊 Generating PDF...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -95,7 +106,9 @@ export async function generateOptimizedQuotationPDF(
         bottom: '20mm',
         left: '20mm'
       },
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      timeout: 60000, // Increase timeout for production
+      omitBackground: false, // Ensure backgrounds are included
     });
     
     console.log('✅ PDF generated successfully');
@@ -103,6 +116,21 @@ export async function generateOptimizedQuotationPDF(
     
   } catch (error) {
     console.error('❌ PDF generation failed:', error);
+    
+    // Log detailed error information for debugging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Log system information for debugging
+    console.error('Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      platform: process.platform,
+      nodeVersion: process.version
+    });
+    
     return null;
   } finally {
     // Clean up resources
@@ -125,7 +153,7 @@ export async function generateOptimizedQuotationPDF(
 }
 
 /**
- * Generate quotation HTML with properly embedded fonts for reliable rendering
+ * Generate quotation HTML with Google Fonts for reliable rendering in production
  */
 function generateQuotationHTML(
   quotation: any, 
@@ -133,17 +161,6 @@ function generateQuotationHTML(
   selectedPackage?: any, 
   selectedPromotion?: any
 ): string {
-  // Get font data
-  const workSansRegular = getFontBase64('WorkSans-Regular.woff2');
-  const workSansMedium = getFontBase64('WorkSans-Medium.woff2');
-  const workSansBold = getFontBase64('WorkSans-Bold.woff2');
-  const notoSansJPRegular = getFontBase64('NotoSansJP-Regular.woff2');
-  const notoSansJPMedium = getFontBase64('NotoSansJP-Medium.woff2');
-  const notoSansJPBold = getFontBase64('NotoSansJP-Bold.woff2');
-  const notoSansThaiRegular = getFontBase64('NotoSansThai-Regular.woff2');
-  const notoSansThaiMedium = getFontBase64('NotoSansThai-Medium.woff2');
-  const notoSansThaiBold = getFontBase64('NotoSansThai-Bold.woff2');
-
   return `
     <!DOCTYPE html>
     <html lang="${language}">
@@ -152,78 +169,10 @@ function generateQuotationHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Quotation - ${quotation.quotation_number || 'Q-' + quotation.id}</title>
       <style>
-        /* EMBEDDED FONTS - WORK IN ANY ENVIRONMENT */
-        @font-face {
-          font-family: 'Work Sans';
-          font-style: normal;
-          font-weight: 400;
-          src: url('${workSansRegular}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          font-style: normal;
-          font-weight: 500;
-          src: url('${workSansMedium}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          font-style: normal;
-          font-weight: 700;
-          src: url('${workSansBold}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans JP';
-          font-style: normal;
-          font-weight: 400;
-          src: url('${notoSansJPRegular}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans JP';
-          font-style: normal;
-          font-weight: 500;
-          src: url('${notoSansJPMedium}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans JP';
-          font-style: normal;
-          font-weight: 700;
-          src: url('${notoSansJPBold}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          font-style: normal;
-          font-weight: 400;
-          src: url('${notoSansThaiRegular}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          font-style: normal;
-          font-weight: 500;
-          src: url('${notoSansThaiMedium}') format('woff2');
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          font-style: normal;
-          font-weight: 700;
-          src: url('${notoSansThaiBold}') format('woff2');
-          font-display: swap;
-        }
+        /* PRODUCTION-READY FONTS - GOOGLE FONTS CDN */
+        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap');
         
         /* Base styles with embedded fonts */
         * {

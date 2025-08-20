@@ -37,7 +37,7 @@
 /* Japanese Font: Noto Sans JP - Proper Japanese character support */
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansJP-Regular.woff2') format('woff2');
+  src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -46,7 +46,7 @@
 
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansJP-Medium.woff2') format('woff2');
+  src: url('/fonts/NotoSansJP-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -55,7 +55,7 @@
 
 @font-face {
   font-family: 'Noto Sans JP';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansJP-Bold.woff2') format('woff2');
+  src: url('/fonts/NotoSansJP-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -65,7 +65,7 @@
 /* Thai Font: Noto Sans Thai - Proper Thai character support */
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansThai-Regular.woff2') format('woff2');
+  src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -74,7 +74,7 @@
 
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansThai-Medium.woff2') format('woff2');
+  src: url('/fonts/NotoSansThai-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -83,7 +83,7 @@
 
 @font-face {
   font-family: 'Noto Sans Thai';
-  src: url('https://driver-companion.vercel.app/fonts/NotoSansThai-Bold.woff2') format('woff2');
+  src: url('/fonts/NotoSansThai-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;

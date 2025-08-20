@@ -55,7 +55,7 @@ Japan Driver Co., Ltd.
 japandriver.com`
   },
   ja: {
-    subject: 'ジャパンドライバーからの領収書',
+    subject: 'あなたの請求書',
     greeting: 'こんにちは',
     thankYou: 'ジャパンドライバーをご利用いただきありがとうございます。以下に領収書の詳細がございます。詳細な請求書をこのメールに添付しております。',
     serviceType: 'サービスタイプ',

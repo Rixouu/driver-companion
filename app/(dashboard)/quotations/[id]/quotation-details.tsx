@@ -305,6 +305,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     router.push('/quotations');
   };
 
+
+
   // Send the quotation to the customer
   const handleSend = async () => {
     setIsLoading(true);
@@ -1054,6 +1056,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 if (response.ok) {
                   setProgressValue(100);
                   setProgressLabel('Completed');
+                  toast({
+                    title: "Reminder sent successfully",
+                    variant: 'default',
+                  });
                   setTimeout(() => {
                     setProgressOpen(false);
                     router.refresh();

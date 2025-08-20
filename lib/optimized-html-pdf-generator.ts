@@ -141,6 +141,25 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
         @import url('/fonts/fonts.css');
         
+        /* Force font loading for critical languages */
+        @font-face {
+          font-family: 'Noto Sans JP';
+          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: block;
+          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FAF;
+        }
+        
+        @font-face {
+          font-family: 'Noto Sans Thai';
+          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
+          font-weight: 400;
+          font-style: normal;
+          font-display: block;
+          unicode-range: U+0E00-0E7F;
+        }
+        
         /* Critical font preloading for immediate availability */
         @font-face {
           font-family: 'Roboto';

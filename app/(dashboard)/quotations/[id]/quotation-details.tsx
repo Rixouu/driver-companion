@@ -1054,13 +1054,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 });
                 
                 if (response.ok) {
-                  setProgressValue(100);
-                  setProgressLabel('Completed');
-                  // Toast removed - SendReminderDialog handles its own toast
-                  setTimeout(() => {
-                    setProgressOpen(false);
-                    router.refresh();
-                  }, 500);
+                                      setProgressValue(100);
+                    setProgressLabel('Completed');
+                    // Toast removed - SendReminderDialog handles its own toast
+                    setTimeout(() => {
+                      setProgressOpen(false);
+                      router.refresh();
+                    }, 500);
                 } else {
                   throw new Error('Failed to send reminder');
                 }

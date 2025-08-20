@@ -381,18 +381,8 @@ export default function QuotationList({
   const handleRemindClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (onRemind) {
-      // Lightweight determinate feedback while backend runs
-      let step = 0;
-      const labels = ['Preparing reminder', 'Queuing', 'Sending'];
-      const interval = setInterval(() => {
-        step = Math.min(step + 1, labels.length - 1);
-        toast({ title: labels[step], description: `${Math.min(90, (step + 1) * 30)}%` });
-      }, 600);
-      Promise.resolve(onRemind(id))
-        .then(() => {
-          toast({ title: t('quotations.notifications.reminderSuccess') || 'Reminder sent successfully', description: '100%' });
-        })
-        .finally(() => clearInterval(interval));
+      // Just call the callback - let the dialog handle its own toasts
+      onRemind(id);
     }
   };
 

@@ -66,8 +66,8 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-gpu',
     '--disable-extensions',
     '--disable-plugins',
-    // REMOVED: '--disable-images' - Keep images for original layout
-    // REMOVED: '--disable-javascript' - Keep JS for font loading
+    '--disable-images', // Disable images for faster rendering
+    '--disable-javascript', // Disable JS for faster rendering
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
@@ -83,7 +83,29 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--enable-font-antialiasing',
     '--force-color-profile=srgb',
     '--enable-blink-features=CSSFontMetrics',
-    '--enable-font-subpixel-positioning'
+    '--enable-font-subpixel-positioning',
+    '--disable-web-security',
+    '--disable-features=VizDisplayCompositor',
+    '--disable-ipc-flooding-protection',
+    '--disable-hang-monitor',
+    '--disable-prompt-on-repost',
+    '--disable-client-side-phishing-detection',
+    '--disable-sync',
+    '--disable-translate',
+    '--disable-logging',
+    '--disable-in-process-stack-traces',
+    '--disable-histogram-customizer',
+    '--disable-gl-extensions',
+    '--disable-composited-antialiasing',
+    '--disable-canvas-aa',
+    '--disable-3d-apis',
+    '--disable-accelerated-2d-canvas',
+    '--disable-accelerated-jpeg-decoding',
+    '--disable-accelerated-mjpeg-decode',
+    '--disable-accelerated-video-decode',
+    '--disable-accelerated-video-encode',
+    '--memory-pressure-off',
+    '--max_old_space_size=4096'
   ];
 
   if (isProduction) {
@@ -116,47 +138,36 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* ENHANCED LOCAL FONT SYSTEM - OPTIMIZED FOR PDF GENERATION */
+        /* ROBOTO-BASED FONT SYSTEM - FAST, RELIABLE, MULTI-LANGUAGE */
         @import url('/fonts/fonts.css');
         
         /* Critical font preloading for immediate availability */
         @font-face {
-          font-family: 'Work Sans';
-          src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
+          font-family: 'Roboto';
+          src: local('Roboto'), 
+               local('Roboto-Regular'),
+               url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
         }
         
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans KR';
-          src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        /* Roboto fallback for maximum compatibility */
         @font-face {
           font-family: 'Roboto';
-          src: local('Roboto'), local('Roboto-Regular');
-          font-weight: 400;
+          src: local('Roboto'), 
+               local('Roboto-Medium'),
+               url('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2') format('woff2');
+          font-weight: 500;
+          font-style: normal;
+          font-display: swap;
+        }
+        
+        @font-face {
+          font-family: 'Roboto';
+          src: local('Roboto'), 
+               local('Roboto-Bold'),
+               url('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2') format('woff2');
+          font-weight: 700;
           font-style: normal;
           font-display: swap;
         }
@@ -166,13 +177,8 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         }
         
         body {
-          /* Enhanced font stack with proper Unicode ranges - EXACTLY AS ORIGINAL */
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', 'MS Gothic', 'MS Mincho',
-                       'Takao Gothic', 'Takao Mincho', 'IPAexGothic', 'IPAexMincho',
-                       'IPAPGothic', 'IPAPMincho', 'IPAUIGothic', 'IPAUIMincho',
-                       'Apple Gothic', 'Apple LiGothic', 'Apple LiSung', 'Apple Myungjo',
-                       'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Arial', sans-serif;
+          /* Universal Roboto font stack - works for all languages */
+          font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -187,23 +193,23 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Japanese text - EXACTLY AS ORIGINAL */
+        /* Specific styling for Japanese text - Using Roboto for speed */
         .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          font-family: 'Roboto', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Thai text - EXACTLY AS ORIGINAL */
+        /* Specific styling for Thai text - Using Roboto for speed */
         .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+          font-family: 'Roboto', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
           line-height: 1.5;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Korean text - EXACTLY AS ORIGINAL */
+        /* Specific styling for Korean text - Using Roboto for speed */
         .ko-text, [lang="ko"] {
-          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+          font-family: 'Roboto', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
@@ -304,11 +310,11 @@ export async function generateOptimizedPdfFromHtml(
     const contentStart = Date.now();
     await Promise.race([
       page.setContent(fullHtml, { 
-        waitUntil: 'networkidle0', // Wait for network to be idle (for fonts)
-        timeout: 20000 // 20s timeout for font loading
+        waitUntil: 'domcontentloaded', // Faster than networkidle0
+        timeout: 10000 // 10s timeout for font loading
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 20000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 10000)
       )
     ]);
     
@@ -327,10 +333,10 @@ export async function generateOptimizedPdfFromHtml(
         margin: pdfOptions.margin,
         printBackground: pdfOptions.printBackground,
         scale: pdfOptions.scale,
-        timeout: 20000 // 20s timeout for PDF generation
+        timeout: 10000 // 10s timeout for PDF generation
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 20000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 10000)
       )
     ]);
 

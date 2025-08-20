@@ -61,8 +61,18 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
       
       setProgressLabel('Sending email...')
       setProgressValue(80)
+      
+      // Wait for the actual email to be sent
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       setProgressValue(100)
       setProgressLabel('Completed')
+      
+      // Show success toast only after completion
+      toast({
+        title: t('quotations.notifications.reminderSent') || 'Reminder sent successfully',
+        variant: 'default',
+      });
       
       setTimeout(() => {
         setProgressOpen(false)

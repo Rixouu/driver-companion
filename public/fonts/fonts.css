@@ -90,34 +90,6 @@
   unicode-range: U+0E00-0E7F;
 }
 
-/* Korean Font: Noto Sans KR - Proper Korean character support */
-@font-face {
-  font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
-}
-
-@font-face {
-  font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
-}
-
-@font-face {
-  font-family: 'Noto Sans KR';
-  src: url('/fonts/NotoSansKR-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
-}
-
 /* System Font Fallbacks for Maximum Compatibility */
 @font-face {
   font-family: 'System Fallback';
@@ -140,13 +112,9 @@
   font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Roboto', Arial, sans-serif;
 }
 
-.font-korean {
-  font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', 'Roboto', sans-serif;
-}
-
 /* Universal Font Stack - Automatically selects best font for content */
 .font-universal {
-  font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', 'Roboto', 
-               'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi', 'Apple Gothic',
+  font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+               'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
                -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }

@@ -360,6 +360,13 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       
       setProgressValue(100)
       setProgressLabel('Completed')
+      
+      // Show success toast
+      toast({
+        title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
+        variant: 'default',
+      });
+      
       setTimeout(() => setProgressOpen(false), 400)
       setIsEmailDialogOpen(false);
       if (onSuccess) onSuccess();

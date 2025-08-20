@@ -178,8 +178,8 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         
         body {
           /* Enhanced multi-language font stack - automatically selects best font for content */
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', 'Roboto', 
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi', 'Apple Gothic',
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
                        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
@@ -209,12 +209,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Korean text - Enhanced font support */
-        .ko-text, [lang="ko"] {
-          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
-          line-height: 1.6;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-        }
+
         
         /* Ensure proper rendering for all text - EXACTLY AS ORIGINAL */
         h1, h2, h3, h4, h5, h6, p, span, div {

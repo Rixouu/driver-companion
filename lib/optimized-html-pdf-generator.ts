@@ -16,42 +16,53 @@ interface PerformanceMetrics {
 }
 
 /**
- * Optimized font loading utility with aggressive timeouts
+ * Enhanced font loading utility with aggressive font waiting
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting optimized font loading...');
+    console.log('⏱️  Starting enhanced font loading...');
     const fontLoadStart = Date.now();
     
-    // Reduced timeout for faster processing
+    // Wait for fonts to be ready with longer timeout for CJK fonts
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 2000)) // Reduced from 5s to 2s
+      new Promise(resolve => setTimeout(resolve, 5000)) // Increased to 5s for CJK fonts
     ]);
     
-    // Quick additional check with shorter timeout
-    await Promise.race([
-      page.evaluate(() => {
-        return new Promise((resolve) => {
-          if (document.fonts.status === 'loaded') {
+    // Force wait for specific fonts to load
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        const checkFonts = () => {
+          // Check if critical fonts are loaded
+          const jpFont = document.fonts.check('12px "Noto Sans JP"');
+          const thaiFont = document.fonts.check('12px "Noto Sans Thai"');
+          
+          if (jpFont && thaiFont) {
+            console.log('✅ Critical fonts loaded');
             resolve(true);
           } else {
-            document.fonts.onloadingdone = resolve;
-            // Much shorter fallback timeout
-            setTimeout(resolve, 1000);
+            console.log('⏳ Waiting for fonts...', { jpFont, thaiFont });
+            setTimeout(checkFonts, 100);
           }
-        });
-      }),
-      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max
-    ]);
+        };
+        
+        checkFonts();
+        
+        // Fallback timeout
+        setTimeout(() => {
+          console.log('⚠️ Font loading timeout, proceeding anyway');
+          resolve(true);
+        }, 8000);
+      });
+    });
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Minimal delay for rendering
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Additional delay for font rendering
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
-    console.warn('⚠️  Font loading timeout (using fallbacks):', error);
+    console.warn('⚠️  Font loading error (using fallbacks):', error);
   }
 }
 
@@ -139,12 +150,12 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <title>PDF Export</title>
       <style>
         /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
-        @import url('/fonts/fonts.css');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
         
-        /* Force font loading for critical languages */
+        /* Force font loading for critical languages with CDN fallbacks */
         @font-face {
           font-family: 'Noto Sans JP';
-          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
+          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFowAIO2lZ9hgI2.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: block;
@@ -153,7 +164,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         
         @font-face {
           font-family: 'Noto Sans Thai';
-          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
+          src: url('https://fonts.gstatic.com/s/notosansthai/v17/iJWQBXyNgD8MJ0R0J-syqEYtqYb9Zgw.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: block;
@@ -226,6 +237,20 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Force font application for billing address and customer info */
+        .billing-address, .customer-info, .customer-details,
+        [data-field="billing_address"], [data-field="customer_name"] {
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
+          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1 !important;
+        }
+        
+        /* Ensure Japanese characters render properly */
+        .billing-address *, .customer-info *, .customer-details * {
+          font-family: inherit !important;
         }
         
 
@@ -326,11 +351,11 @@ export async function generateOptimizedPdfFromHtml(
     const contentStart = Date.now();
     await Promise.race([
       page.setContent(fullHtml, { 
-        waitUntil: 'domcontentloaded', // Faster than networkidle0
-        timeout: 10000 // 10s timeout for font loading
+        waitUntil: 'networkidle0', // Wait for fonts to load completely
+        timeout: 15000 // 15s timeout for font loading
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 10000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 15000)
       )
     ]);
     

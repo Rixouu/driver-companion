@@ -154,11 +154,11 @@ export async function sendPaymentConfirmationEmail(params: PaymentConfirmationPa
 export async function sendInvoiceEmail(params: InvoiceEmailParams) {
   const { to, customerName, invoiceId, quotationId, amount, currencyCode = 'JPY', paymentLink, serviceName, pdfAttachment, quotationData, totals, selectedPackage, selectedPromotion } = params;
 
-  // Payment-focused subject line
-  const subject = `Payment for ${invoiceId}`;
-  
   // Check if payment link is provided to determine email type
   const hasPaymentLink = paymentLink && paymentLink.trim().length > 0;
+
+  // Payment-focused subject line
+  const subject = hasPaymentLink ? `Payment for ${invoiceId}` : `Your Invoice - ${invoiceId}`;
 
   // Currency formatting function
   const formatCurrency = (amount: number) => {
@@ -245,7 +245,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          Your Invoice
+                          ${hasPaymentLink ? 'Payment' : 'Your Invoice'}
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
                           ${invoiceId}

@@ -70,7 +70,7 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
       
       // Show success toast only after completion
       toast({
-        title: t('quotations.notifications.reminderSent') || 'Reminder sent successfully',
+        title: 'Reminder sent successfully',
         variant: 'default',
       });
       

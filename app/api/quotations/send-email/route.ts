@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     
     // Create email content with appropriate subject line
     const subjectPrefix = isUpdated ? 
-      (language === 'ja' ? '更新した見積書' : 'Updated Quotation') : 
+      (language === 'ja' ? '更新した見積書' : 'Your Updated Quotation') : 
       (language === 'ja' ? 'ドライバーからの見積書' : 'Your Quotation');
     
     const emailSubject = `${subjectPrefix} - ${formattedQuotationId}`;
@@ -512,7 +512,7 @@ function generateEmailHtml(
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
                           ${isJapanese ? 
                             `見積書${isUpdated ? '更新' : ''}` : 
-                            `${isUpdated ? 'Updated Quotation' : 'Your Quotation'} from Driver`}
+                            `${isUpdated ? 'Your Updated Quotation' : 'Your Quotation'} from Driver`}
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
                           ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}

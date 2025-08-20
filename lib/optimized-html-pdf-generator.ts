@@ -16,51 +16,24 @@ interface PerformanceMetrics {
 }
 
 /**
- * Enhanced font loading utility with aggressive font waiting
+ * Simple font loading utility with reliable fallbacks
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting enhanced font loading...');
+    console.log('⏱️  Starting simple font loading...');
     const fontLoadStart = Date.now();
     
-    // Wait for fonts to be ready with longer timeout for CJK fonts
+    // Simple font ready check with short timeout
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 5000)) // Increased to 5s for CJK fonts
+      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max
     ]);
-    
-    // Force wait for specific fonts to load
-    await page.evaluate(() => {
-      return new Promise((resolve) => {
-        const checkFonts = () => {
-          // Check if critical fonts are loaded
-          const jpFont = document.fonts.check('12px "Noto Sans JP"');
-          const thaiFont = document.fonts.check('12px "Noto Sans Thai"');
-          
-          if (jpFont && thaiFont) {
-            console.log('✅ Critical fonts loaded');
-            resolve(true);
-          } else {
-            console.log('⏳ Waiting for fonts...', { jpFont, thaiFont });
-            setTimeout(checkFonts, 100);
-          }
-        };
-        
-        checkFonts();
-        
-        // Fallback timeout
-        setTimeout(() => {
-          console.log('⚠️ Font loading timeout, proceeding anyway');
-          resolve(true);
-        }, 8000);
-      });
-    });
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Additional delay for font rendering
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Minimal delay for rendering
+    await new Promise(resolve => setTimeout(resolve, 200));
   } catch (error) {
     console.warn('⚠️  Font loading error (using fallbacks):', error);
   }
@@ -149,68 +122,25 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
+        /* SIMPLIFIED MULTI-LANGUAGE FONT SYSTEM */
         @import url('/fonts/fonts.css');
         
-        /* Force font loading for critical languages */
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: block;
-          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FAF;
-        }
+        /* Google Fonts CDN for Roboto - reliable fallback */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: block;
-          unicode-range: U+0E00-0E7F;
-        }
-        
-        /* Critical font preloading for immediate availability */
-        @font-face {
-          font-family: 'Roboto';
-          src: local('Roboto'), 
-               local('Roboto-Regular'),
-               url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Roboto';
-          src: local('Roboto'), 
-               local('Roboto-Medium'),
-               url('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Roboto';
-          src: local('Roboto'), 
-               local('Roboto-Bold'),
-               url('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc4.woff2') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
+        /* Google Fonts CDN for CJK support - reliable fallback */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
         
         * {
           box-sizing: border-box;
         }
         
         body {
-          /* Enhanced multi-language font stack - automatically selects best font for content */
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+          /* SIMPLIFIED multi-language font stack with reliable system fonts */
+          font-family: 'Roboto', 'Noto Sans JP', 'Noto Sans Thai',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
                        'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+                       'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -219,43 +149,17 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           -moz-osx-font-smoothing: grayscale;
           font-feature-settings: 'liga' 1, 'kern' 1;
           text-rendering: optimizeLegibility;
-          /* Ensure proper text rendering for CJK and Thai characters */
-          -webkit-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-          -moz-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Japanese text - Enhanced font support */
-        .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
-          line-height: 1.6;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-        }
-        
-        /* Specific styling for Thai text - Enhanced font support */
-        .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', sans-serif;
-          line-height: 1.6;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-        }
-        
-        /* CRITICAL: Force font application for billing address and customer info */
+        /* SIMPLIFIED: Force font application for billing address and customer info */
         .billing-address, .customer-info, .customer-details,
         [data-field="billing_address"], [data-field="customer_name"],
         .billing-address *, .customer-info *, .customer-details *,
         [data-field="billing_address"] *, [data-field="customer_name"] * {
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+          font-family: 'Roboto', 'Noto Sans JP', 'Noto Sans Thai',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
                        'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1 !important;
-        }
-        
-        /* Ensure Japanese characters render properly in all text fields */
-        .billing-address, .customer-info, .customer-details,
-        [data-field="billing_address"], [data-field="customer_name"] {
-          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
+                       'Helvetica Neue', Arial, sans-serif !important;
         }
         
         /* Ensure proper rendering for all text - EXACTLY AS ORIGINAL */
@@ -354,11 +258,11 @@ export async function generateOptimizedPdfFromHtml(
     const contentStart = Date.now();
     await Promise.race([
       page.setContent(fullHtml, { 
-        waitUntil: 'networkidle0', // Wait for fonts to load completely
-        timeout: 15000 // 15s timeout for font loading
+        waitUntil: 'domcontentloaded', // Faster than networkidle0
+        timeout: 8000 // 8s timeout for font loading
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 15000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 8000)
       )
     ]);
     

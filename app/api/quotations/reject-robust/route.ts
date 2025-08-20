@@ -86,35 +86,39 @@ async function processRejectionInBackground(
       throw new Error(`Failed to update quotation: ${updateError.message}`);
     }
 
-    // Step 3: Generate PDF if email is not skipped
-    if (!skipEmail) {
-      console.log('🔄 [ROBUST-REJECT] Generating PDF...');
-      const pdfBuffer = await generateOptimizedQuotationPDF(
-        quotation, 
-        'en', 
-        quotation.selected_package_id ? quotation.selected_package_id : null,
-        quotation.selected_promotion_id ? quotation.selected_promotion_id : null
-      );
+          // Step 3: Generate PDF if email is not skipped
+      if (!skipEmail) {
+        console.log('🔄 [ROBUST-REJECT] Generating PDF...');
+        const pdfBuffer = await generateOptimizedQuotationPDF(
+          quotation, 
+          'en', 
+          quotation.selected_package_id ? quotation.selected_package_id : null,
+          quotation.selected_promotion_id ? quotation.selected_promotion_id : null
+        );
 
-      // Step 4: Send rejection email
-      console.log('🔄 [ROBUST-REJECT] Sending rejection email...');
-      const resendResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'noreply@drivercompanion.com',
-          to: quotation.email || 'admin@drivercompanion.com',
-          subject: `Quotation ${quotation.quote_number} - Rejected`,
-          html: generateQuotationHtml(quotation, 'en'),
-          attachments: [{
-            filename: `quotation-${quotation.quote_number}-rejected.pdf`,
-            content: pdfBuffer.toString('base64'),
-          }],
-        }),
-      });
+        if (!pdfBuffer) {
+          throw new Error('Failed to generate PDF - PDF buffer is null');
+        }
+
+        // Step 4: Send rejection email
+        console.log('🔄 [ROBUST-REJECT] Sending rejection email...');
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'noreply@drivercompanion.com',
+            to: quotation.email || 'admin@drivercompanion.com',
+            subject: `Quotation ${quotation.quote_number} - Rejected`,
+            html: generateQuotationHtml(quotation, 'en'),
+            attachments: [{
+              filename: `quotation-${quotation.quote_number}-rejected.pdf`,
+              content: pdfBuffer.toString('base64'),
+            }],
+          }),
+        });
 
       if (!resendResponse.ok) {
         throw new Error(`Resend API error: ${resendResponse.statusText}`);

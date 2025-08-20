@@ -29,6 +29,12 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('@sparticuz/chromium');
+    }
+    return config;
+  },
   images: {
     domains: ['staging.japandriver.com'],
     remotePatterns: [

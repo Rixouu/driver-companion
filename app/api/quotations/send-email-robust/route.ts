@@ -75,6 +75,10 @@ async function processEmailInBackground(
       quotation.selected_promotion_id ? quotation.selected_promotion_id : null
     );
 
+    if (!pdfBuffer) {
+      throw new Error('Failed to generate PDF - PDF buffer is null');
+    }
+
     // Step 3: Send email via Resend
     console.log('🔄 [ROBUST-EMAIL] Sending email...');
     const resendResponse = await fetch('https://api.resend.com/emails', {

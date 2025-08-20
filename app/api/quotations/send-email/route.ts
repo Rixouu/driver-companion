@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 // Import optimized PDF generator
-import { generateBulletproofQuotationPDF } from '@/lib/bulletproof-pdf-generator'
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations'
 
 console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
@@ -60,7 +60,7 @@ async function generateQuotationPDF(
   
   try {
     // Use optimized PDF generator with caching
-          const pdfBuffer = await generateBulletproofQuotationPDF(
+    const pdfBuffer = await generateOptimizedQuotationPDF(
       quotation, 
       language, 
       selectedPackage, 

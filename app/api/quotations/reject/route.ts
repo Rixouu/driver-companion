@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
-import { generateBulletproofQuotationPDF } from '@/lib/bulletproof-pdf-generator';
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
 
 // Force dynamic rendering to avoid cookie issues
@@ -387,8 +387,8 @@ export async function POST(request: NextRequest) {
         .eq('id', id)
         .single();
       
-      // Generate bulletproof PDF using the new generator
-      pdfBuffer = await generateBulletproofQuotationPDF(
+      // Generate optimized PDF using the new generator
+      pdfBuffer = await generateOptimizedQuotationPDF(
         updatedQuotation || fullQuotation, 
         'en', 
         selectedPackage, 

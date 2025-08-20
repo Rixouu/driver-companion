@@ -120,3 +120,64 @@
   font-display: swap;
   unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
 }
+
+/* Roboto - Universal Fallback Font (System Font) */
+@font-face {
+  font-family: 'Roboto';
+  src: local('Roboto'), local('Roboto-Regular');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: local('Roboto Medium'), local('Roboto-Medium');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: local('Roboto Bold'), local('Roboto-Bold');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font Family Definitions with Fallbacks */
+:root {
+  /* Primary font stack with local fonts and Roboto fallback */
+  --font-primary: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Japanese-specific font stack */
+  --font-japanese: 'Noto Sans JP', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Thai-specific font stack */
+  --font-thai: 'Noto Sans Thai', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Korean-specific font stack */
+  --font-korean: 'Noto Sans KR', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Global font application */
+body, html {
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Language-specific font overrides */
+[lang="ja"], .japanese {
+  font-family: var(--font-japanese);
+}
+
+[lang="th"], .thai {
+  font-family: var(--font-thai);
+}
+
+[lang="ko"], .korean {
+  font-family: var(--font-korean);
+}

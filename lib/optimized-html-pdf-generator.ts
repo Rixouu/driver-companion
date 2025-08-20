@@ -150,12 +150,12 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <title>PDF Export</title>
       <style>
         /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+        @import url('/fonts/fonts.css');
         
-        /* Force font loading for critical languages with CDN fallbacks */
+        /* Force font loading for critical languages */
         @font-face {
           font-family: 'Noto Sans JP';
-          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFowAIO2lZ9hgI2.woff2') format('woff2');
+          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: block;
@@ -164,7 +164,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         
         @font-face {
           font-family: 'Noto Sans Thai';
-          src: url('https://fonts.gstatic.com/s/notosansthai/v17/iJWQBXyNgD8MJ0R0J-syqEYtqYb9Zgw.woff2') format('woff2');
+          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: block;
@@ -239,21 +239,24 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Force font application for billing address and customer info */
+        /* CRITICAL: Force font application for billing address and customer info */
         .billing-address, .customer-info, .customer-details,
-        [data-field="billing_address"], [data-field="customer_name"] {
+        [data-field="billing_address"], [data-field="customer_name"],
+        .billing-address *, .customer-info *, .customer-details *,
+        [data-field="billing_address"] *, [data-field="customer_name"] * {
           font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
                        'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
                        -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1 !important;
         }
         
-        /* Ensure Japanese characters render properly */
-        .billing-address *, .customer-info *, .customer-details * {
-          font-family: inherit !important;
+        /* Ensure Japanese characters render properly in all text fields */
+        .billing-address, .customer-info, .customer-details,
+        [data-field="billing_address"], [data-field="customer_name"] {
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif !important;
         }
-        
-
         
         /* Ensure proper rendering for all text - EXACTLY AS ORIGINAL */
         h1, h2, h3, h4, h5, h6, p, span, div {

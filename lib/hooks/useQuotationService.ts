@@ -989,10 +989,7 @@ export const useQuotationService = () => {
         throw error;
       }
 
-      toast({
-        title: t('quotations.notifications.deleteSuccess'),
-        description: '',
-      });
+      // Toast removed - let the component handle its own toast
       
       return true;
     } catch (err: any) {
@@ -1086,10 +1083,7 @@ export const useQuotationService = () => {
           details: { status: 'sent' }
         });
         
-      // Show success toast
-      // toast({
-      //   title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-      // });
+      // Toast removed - let the component handle its own toast
       
       setLoading(false);
       return true;
@@ -1097,12 +1091,7 @@ export const useQuotationService = () => {
       console.error('Error sending quotation:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       
-      // Show error toast
-      toast({
-        title: t('quotations.notifications.error') || 'Error',
-        description: err instanceof Error ? err.message : 'An error occurred',
-        variant: 'destructive',
-      });
+      // Error toast removed - let the component handle its own error toast
       
       setLoading(false);
       return false;

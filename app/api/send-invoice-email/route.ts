@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service-client'
 import { mapSupabaseBookingToBooking } from '@/lib/api/bookings-service'
 import { handleApiError } from '@/lib/errors/error-handler'
 import { ValidationError, NotFoundError, DatabaseError, ExternalServiceError, AppError } from '@/lib/errors/app-error'
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 
 // Email translations for different languages
 const translations = {
@@ -112,11 +113,11 @@ export async function POST(request: Request) {
     const includeDetails = formData.get('include_details') === 'true'
     const language = (formData.get('language') as string) || 'en' // Default to English if not specified
     
-    // Get the PDF file from the form data
-    const pdfFile = formData.get('invoice_pdf') as File
+    // Get the PDF file from the form data (optional)
+    const pdfFile = formData.get('invoice_pdf') as File | null
     
-    if (!email || !pdfFile || !bookingId) {
-      throw new ValidationError('Missing required fields: email, booking_id, and invoice_pdf are required.')
+    if (!email || !bookingId) {
+      throw new ValidationError('Missing required fields: email and booking_id are required.')
     }
     
     // Use only supported languages, default to English for unsupported ones
@@ -158,13 +159,41 @@ export async function POST(request: Request) {
     // Map to Booking type to use in the email
     const booking = mapSupabaseBookingToBooking(bookingData)
     
-    // Convert the file to a buffer for attachment
-    const arrayBuffer = await pdfFile.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    // Log PDF file size for debugging
-    const pdfSizeMB = buffer.length / (1024 * 1024);
-    console.log(`📄 [SEND-INVOICE-EMAIL] PDF size: ${pdfSizeMB.toFixed(2)}MB`);
+    // Convert the file to a buffer for attachment or generate one
+    let buffer: Buffer;
+    if (pdfFile) {
+      const arrayBuffer = await pdfFile.arrayBuffer()
+      buffer = Buffer.from(arrayBuffer)
+      
+      // Log PDF file size for debugging
+      const pdfSizeMB = buffer.length / (1024 * 1024);
+      console.log(`📄 [SEND-INVOICE-EMAIL] PDF size: ${pdfSizeMB.toFixed(2)}MB`);
+    } else {
+      // Generate a basic invoice PDF using the optimized generator
+      try {
+        console.log('[SEND-INVOICE-EMAIL] Generating basic invoice PDF');
+        // Create a simple HTML template for the invoice
+        const invoiceHtml = `
+          <div style="font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Roboto', sans-serif; padding: 20px;">
+            <h1>Invoice - ${bookingId}</h1>
+            <p><strong>Service:</strong> ${booking.service_name || 'Transportation Service'}</p>
+            <p><strong>Amount:</strong> ${booking.price?.formatted || 'N/A'}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+          </div>
+        `;
+        
+                 buffer = await generateOptimizedQuotationPDF(
+           { ...booking, id: bookingId } as any, 
+           lang, 
+           null, 
+           null
+         );
+        console.log('[SEND-INVOICE-EMAIL] Basic invoice PDF generated successfully');
+      } catch (pdfError) {
+        console.error('[SEND-INVOICE-EMAIL] PDF generation error:', pdfError);
+        throw new AppError('Failed to generate invoice PDF', 500, false);
+      }
+    }
     
     // Initialize Resend with API key
     const resend = new Resend(process.env.RESEND_API_KEY)
@@ -365,7 +394,7 @@ export async function POST(request: Request) {
       text: emailText, // Plain text version
       attachments: [
         {
-          filename: pdfFile.name || 'invoice.pdf',
+          filename: pdfFile?.name || 'invoice.pdf',
           content: buffer
         }
       ]

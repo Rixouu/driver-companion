@@ -1,4 +1,4 @@
-/* Roboto-Based Font System - Optimized for Fast PDF Generation */
+/* Enhanced Font System - Optimized for Multi-Language PDF Generation */
 
 /* Primary Font: Roboto - Fast, reliable, multi-language support */
 @font-face {
@@ -9,6 +9,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -19,6 +20,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -29,31 +31,122 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Fallback fonts for maximum compatibility */
+/* Japanese Font: Noto Sans JP - Proper Japanese character support */
 @font-face {
-  font-family: 'SystemFallback';
-  src: local('Arial'), local('Helvetica'), local('sans-serif');
+  font-family: 'Noto Sans JP';
+  src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FAF;
 }
 
-/* Universal font stack that works for all languages */
-body, html {
-  font-family: 'Roboto', 'SystemFallback', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('/fonts/NotoSansJP-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FAF;
+}
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('/fonts/NotoSansJP-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+FF00-FFEF, U+4E00-9FAF;
+}
+
+/* Thai Font: Noto Sans Thai - Proper Thai character support */
+@font-face {
+  font-family: 'Noto Sans Thai';
+  src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+  unicode-range: U+0E00-0E7F;
 }
 
-/* Font weight classes */
-.font-normal { font-weight: 400; }
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
+@font-face {
+  font-family: 'Noto Sans Thai';
+  src: url('/fonts/NotoSansThai-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0E00-0E7F;
+}
 
-/* Language-specific font stacks (fallbacks) */
-.font-english { font-family: 'Roboto', 'SystemFallback', Arial, sans-serif; }
-.font-japanese { font-family: 'Roboto', 'SystemFallback', 'Hiragino Sans', 'Yu Gothic', sans-serif; }
-.font-thai { font-family: 'Roboto', 'SystemFallback', 'Thonburi', 'Tahoma', sans-serif; }
-.font-korean { font-family: 'Roboto', 'SystemFallback', 'Malgun Gothic', sans-serif; }
+@font-face {
+  font-family: 'Noto Sans Thai';
+  src: url('/fonts/NotoSansThai-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0E00-0E7F;
+}
+
+/* Korean Font: Noto Sans KR - Proper Korean character support */
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/fonts/NotoSansKR-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
+}
+
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/fonts/NotoSansKR-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
+}
+
+/* System Font Fallbacks for Maximum Compatibility */
+@font-face {
+  font-family: 'System Fallback';
+  src: local('Hiragino Sans'), local('Yu Gothic'), local('Meiryo'), local('Segoe UI'), local('Arial Unicode MS');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font Stack Definitions */
+.font-english {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+.font-japanese {
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', 'Roboto', sans-serif;
+}
+
+.font-thai {
+  font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Roboto', Arial, sans-serif;
+}
+
+.font-korean {
+  font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', 'Roboto', sans-serif;
+}
+
+/* Universal Font Stack - Automatically selects best font for content */
+.font-universal {
+  font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', 'Roboto', 
+               'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi', 'Apple Gothic',
+               -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}

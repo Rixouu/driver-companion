@@ -66,8 +66,8 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-gpu',
     '--disable-extensions',
     '--disable-plugins',
-    '--disable-images', // Disable images for faster rendering
-    '--disable-javascript', // Disable JS for faster rendering
+    // REMOVED: '--disable-images' - Keep images for logos
+    // REMOVED: '--disable-javascript' - Keep JS for font loading
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
@@ -138,7 +138,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* ROBOTO-BASED FONT SYSTEM - FAST, RELIABLE, MULTI-LANGUAGE */
+        /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
         @import url('/fonts/fonts.css');
         
         /* Critical font preloading for immediate availability */
@@ -177,8 +177,10 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         }
         
         body {
-          /* Universal Roboto font stack - works for all languages */
-          font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+          /* Enhanced multi-language font stack - automatically selects best font for content */
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', 'Roboto', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi', 'Apple Gothic',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -193,23 +195,23 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Japanese text - Using Roboto for speed */
+        /* Specific styling for Japanese text - Enhanced font support */
         .ja-text, [lang="ja"] {
-          font-family: 'Roboto', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Thai text - Using Roboto for speed */
+        /* Specific styling for Thai text - Enhanced font support */
         .th-text, [lang="th"] {
-          font-family: 'Roboto', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
-          line-height: 1.5;
+          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', sans-serif;
+          line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Korean text - Using Roboto for speed */
+        /* Specific styling for Korean text - Enhanced font support */
         .ko-text, [lang="ko"] {
-          font-family: 'Roboto', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }

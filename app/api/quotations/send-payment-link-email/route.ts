@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/main";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { sendInvoiceEmail } from "@/lib/email/send-email";
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert File to Buffer
+    // Convert File to Buffer (will be updated after package/promotion fetch)
     let pdfBuffer: Buffer | null = null;
     if (pdfFile) {
       pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
@@ -232,6 +233,23 @@ export async function POST(req: NextRequest) {
     };
 
     const totals = calculateTotals();
+
+    // Generate PDF using optimized generator if no PDF file provided
+    if (!pdfFile && !pdfBuffer) {
+      try {
+        console.log('[SEND-PAYMENT-LINK-EMAIL] Generating PDF using optimized generator');
+        pdfBuffer = await generateOptimizedQuotationPDF(
+          quotationData, 
+          language || 'en', 
+          selectedPackage, 
+          selectedPromotion
+        );
+        console.log('[SEND-PAYMENT-LINK-EMAIL] PDF generated successfully');
+      } catch (pdfError) {
+        console.error('[SEND-PAYMENT-LINK-EMAIL] PDF generation error:', pdfError);
+        // Continue without PDF attachment
+      }
+    }
 
     // Prepare email data with payment link
     const emailData = {

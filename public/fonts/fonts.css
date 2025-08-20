@@ -1,6 +1,6 @@
-/* Font Definitions - Optimized for PDF Generation with Japanese and Thai Support */
+/* Local Font Definitions - Optimized for PDF Generation */
 
-/* Local Font Definitions - No CDN dependencies for reliable PDF generation */
+/* Work Sans - Primary English Font */
 @font-face {
   font-family: 'Work Sans';
   src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
@@ -100,7 +100,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
 }
 
 @font-face {
@@ -109,7 +109,7 @@
   font-weight: 500;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
 }
 
 @font-face {
@@ -118,41 +118,5 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F;
-}
-
-/* Font Family Definitions with Local Fonts */
-:root {
-  /* Primary font stack with local fonts for reliable PDF generation */
-  --font-primary: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR', sans-serif;
-  
-  /* Japanese-specific font stack */
-  --font-japanese: 'Noto Sans JP', sans-serif;
-  
-  /* Thai-specific font stack */
-  --font-thai: 'Noto Sans Thai', sans-serif;
-  
-  /* Korean-specific font stack */
-  --font-korean: 'Noto Sans KR', sans-serif;
-}
-
-/* Global font application */
-body, html {
-  font-family: var(--font-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* Language-specific font overrides */
-[lang="ja"], .japanese {
-  font-family: var(--font-japanese);
-}
-
-[lang="th"], .thai {
-  font-family: var(--font-thai);
-}
-
-[lang="ko"], .korean {
-  font-family: var(--font-korean);
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
 }

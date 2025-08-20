@@ -171,55 +171,33 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
   `;
 
   try {
-    // Check if we're in a production environment
-    const isProduction = process.env.NODE_ENV === 'production';
-    
-    let browser;
-    if (isProduction) {
-      // Use @sparticuz/chromium for serverless environments (production)
-      browser = await puppeteer.launch({
-        args: [
-          ...chromium.args,
-          '--font-render-hinting=none',
-          '--disable-font-subpixel-positioning',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--disable-gpu-sandbox',
-          '--disable-software-rasterizer',
-          '--disable-dev-shm-usage',
-          '--lang=en-US,en,ja,th,fr',
-          '--enable-font-antialiasing',
-          '--force-color-profile=srgb',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection',
-          '--enable-blink-features=CSSFontMetrics',
-          '--enable-font-antialiasing',
-          '--enable-font-subpixel-positioning'
-        ],
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      });
-    } else {
-      // Use regular Puppeteer for local development
-      browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox',
-          '--font-render-hinting=none',
-          '--disable-font-subpixel-positioning',
-          '--lang=en-US,en,ja,th,fr',
-          '--enable-font-antialiasing',
-          '--force-color-profile=srgb',
-          '--enable-blink-features=CSSFontMetrics',
-          '--enable-font-subpixel-positioning'
-        ]
-      });
-    }
+    // Use @sparticuz/chromium for serverless environments (both production and development)
+    const browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--font-render-hinting=none',
+        '--disable-font-subpixel-positioning',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-gpu-sandbox',
+        '--disable-software-rasterizer',
+        '--disable-dev-shm-usage',
+        '--lang=en-US,en,ja,th,fr',
+        '--enable-font-antialiasing',
+        '--force-color-profile=srgb',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--enable-blink-features=CSSFontMetrics',
+        '--enable-font-antialiasing',
+        '--enable-font-subpixel-positioning'
+      ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
 
     // Create a new page
     const page = await browser.newPage();

@@ -495,7 +495,7 @@ export function generateQuotationHtml(
       
       <!-- Logo -->
       <div style="text-align: left; margin-bottom: 20px; margin-top: 20px;">
-        <img src="${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
+        <img src="https://driver-companion.vercel.app/img/driver-header-logo.png" alt="Driver Logo" style="height: 50px;">
       </div>
       
 

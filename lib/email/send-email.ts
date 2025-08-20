@@ -156,9 +156,9 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
 
   // Check if payment link is provided to determine email type
   const hasPaymentLink = paymentLink && paymentLink.trim().length > 0;
-
+  
   // Payment-focused subject line
-  const subject = hasPaymentLink ? `Payment for ${invoiceId}` : `Your Invoice - ${invoiceId}`;
+  const subject = hasPaymentLink ? `Payment` : `Payment for ${invoiceId}`;
 
   // Currency formatting function
   const formatCurrency = (amount: number) => {
@@ -245,7 +245,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${hasPaymentLink ? 'Payment' : 'Your Invoice'}
+                          Your Invoice
                         </h1>
                         <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
                           ${invoiceId}

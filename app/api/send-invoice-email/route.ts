@@ -9,7 +9,7 @@ import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generato
 // Email translations for different languages
 const translations = {
   en: {
-    subject: 'Receipt from Japan Driver',
+    subject: 'Your Invoice',
     greeting: 'Hello',
     thankYou: 'Thank you for choosing Japan Driver. Please find your receipt details below. We\'ve attached a detailed invoice to this email for your records.',
     serviceType: 'SERVICE TYPE',

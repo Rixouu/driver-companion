@@ -139,7 +139,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <title>PDF Export</title>
       <style>
         /* ENHANCED MULTI-LANGUAGE FONT SYSTEM */
-        @import url('${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/fonts/fonts.css');
+        @import url('https://driver-companion.vercel.app/fonts/fonts.css');
         
         /* Critical font preloading for immediate availability */
         @font-face {

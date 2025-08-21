@@ -89,7 +89,36 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   })
   const [weeklyCompletedFilter, setWeeklyCompletedFilter] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [inspectorCache, setInspectorCache] = useState<Record<string, {id: string, name: string}>>({})
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
+
+  // Batch fetch inspector data to avoid individual queries
+  const fetchInspectorsBatch = async (inspectorIds: string[]) => {
+    try {
+      const uniqueIds = [...new Set(inspectorIds.filter(id => id && !inspectorCache[id]))]
+      if (uniqueIds.length === 0) return
+
+      const { data: inspectors, error } = await supabase
+        .from('drivers')
+        .select('id, first_name, last_name')
+        .in('id', uniqueIds)
+        .is('deleted_at', null)
+
+      if (error) throw error
+
+      const newInspectors = inspectors?.reduce((acc, inspector) => {
+        acc[inspector.id] = {
+          id: inspector.id,
+          name: `${inspector.first_name} ${inspector.last_name}`
+        }
+        return acc
+      }, {} as Record<string, {id: string, name: string}>) || {}
+
+      setInspectorCache(prev => ({ ...prev, ...newInspectors }))
+    } catch (error) {
+      console.error('Error fetching inspectors batch:', error)
+    }
+  }
 
   // Update URL params when filters change
   useEffect(() => {
@@ -104,88 +133,101 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Handle list view data loading
   useEffect(() => {
-    if (viewMode === "list") {
-      async function loadVehicleData() {
-        setIsLoading(true);
-        try {
-          // Get unique inspector IDs to batch fetch
-          const inspectorIds = inspections
-            .map(inspection => inspection.inspector_id)
-            .filter((id): id is string => id !== null && id !== undefined);
-          
-          // Batch fetch inspector data
-          let inspectorsData: any[] = [];
-          if (inspectorIds.length > 0) {
-            const { data: inspectors } = await supabase
-              .from('drivers')
-              .select('id, first_name, last_name')
-              .in('id', inspectorIds);
-            inspectorsData = inspectors || [];
-          }
-          
-          const updatedInspections = await Promise.all(
-            inspections.map(async (inspection) => {
-              let updatedInspection = { ...inspection } as ExtendedInspection;
-              
-              // Load vehicle data if available
-              if (inspection.vehicle_id) {
-                const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-                if (vehicle) {
-                  updatedInspection.vehicle = {
-                    ...vehicle,
-                    image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                    brand: vehicle.brand === null ? undefined : vehicle.brand,
-                    model: vehicle.model === null ? undefined : vehicle.model
-                  };
-                }
-                
-                // Load template display name
-                const templateName = await getTemplateDisplayName(inspection);
-                if (templateName) {
-                  // If we found a template name, use it as the type
-                  // Use 'as any' to bypass type checking since we're adding custom template types
-                  (updatedInspection as any).type = templateName;
-                }
-              }
-              
-              // Set inspector data from batch fetch
-              if (inspection.inspector_id) {
-                const inspector = inspectorsData.find(i => i.id === inspection.inspector_id);
-                if (inspector) {
-                  updatedInspection.inspector = {
-                    id: inspector.id,
-                    name: `${inspector.first_name} ${inspector.last_name}`
-                  };
-                }
-              }
-              
-              return updatedInspection;
-            })
-          );
-          
-          // Sort inspections by date (most recent first)
-          const sortedInspections = updatedInspections.sort((a, b) => 
-            new Date(b.date).getTime() - new Date(a.date).getTime()
-          ) as ExtendedInspection[];
-          
-          setInspectionsWithVehicles(sortedInspections);
-        } catch (error) {
-          console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
-        } finally {
-          setIsLoading(false);
+    // In list view, enrich the server-provided, paginated inspections
+    if (viewMode === "calendar") return
+    async function loadVehicleData() {
+      try {
+        setIsLoading(true)
+        
+        // Extract inspector IDs for batch fetching
+        const inspectorIds = inspections
+          .map(inspection => inspection.inspector_id)
+          .filter((id): id is string => id !== null && id !== undefined)
+
+        // Batch fetch inspector data if needed
+        if (inspectorIds.length > 0) {
+          await fetchInspectorsBatch(inspectorIds)
         }
+
+        const updatedInspections = await Promise.all(
+          inspections.map(async (inspection) => {
+            let updatedInspection = { ...inspection } as ExtendedInspection;
+            
+            // Load vehicle data if available
+            if (inspection.vehicle_id) {
+              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
+              if (vehicle) {
+                updatedInspection.vehicle = {
+                  ...vehicle,
+                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                  brand: vehicle.brand === null ? undefined : vehicle.brand,
+                  model: vehicle.model === null ? undefined : vehicle.model
+                };
+              }
+              
+              // Load template display name
+              const templateName = await getTemplateDisplayName(inspection);
+              if (templateName) {
+                // If we found a template name, use it as the type
+                // Use 'as any' to bypass type checking since we're adding custom template types
+                (updatedInspection as any).type = templateName;
+              }
+            }
+            
+            // Use cached inspector data
+            if (inspection.inspector_id && inspectorCache[inspection.inspector_id]) {
+              updatedInspection.inspector = inspectorCache[inspection.inspector_id];
+            } else if (inspection.inspector_id) {
+              // Fallback to individual fetch if not in cache
+              try {
+                const { data: inspectorData } = await supabase
+                  .from('drivers')
+                  .select('id, first_name, last_name')
+                  .eq('id', inspection.inspector_id)
+                  .is('deleted_at', null)
+                  .single();
+                
+                if (inspectorData) {
+                  const inspector = {
+                    id: inspectorData.id,
+                    name: `${inspectorData.first_name} ${inspectorData.last_name}`
+                  };
+                  updatedInspection.inspector = inspector;
+                  // Add to cache
+                  setInspectorCache(prev => ({ ...prev, [inspectorData.id]: inspector }));
+                }
+              } catch (error) {
+                console.error('Error fetching inspector data:', error);
+              }
+            }
+            
+            return updatedInspection;
+          })
+        );
+        
+        // Sort inspections by date (most recent first)
+        const sortedInspections = updatedInspections.sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        ) as ExtendedInspection[];
+        
+        setInspectionsWithVehicles(sortedInspections);
+      } catch (error) {
+        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
+      } finally {
+        setIsLoading(false);
       }
-
-      loadVehicleData();
     }
-  }, [inspections, vehicles, t, supabase, viewMode]);
 
-  // Calendar view: load all inspections for the visible date range regardless of list pagination
+    loadVehicleData();
+  }, [inspections, vehicles, t, supabase, viewMode, inspectorCache]);
+
+  // Calendar view: load only visible inspections with pagination
   useEffect(() => {
     if (viewMode !== "calendar") return
 
     const fetchCalendarInspections = async () => {
       try {
+        setIsLoading(true)
         const rangeStart = calendarView === "month" 
           ? startOfMonth(currentDate) 
           : startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -193,13 +235,16 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           ? endOfMonth(currentDate) 
           : endOfWeek(currentDate, { weekStartsOn: 1 })
 
+        // For calendar view, load only a reasonable amount of data
+        const limit = calendarView === "month" ? 100 : 50
+
         let query = supabase
           .from('inspections')
           .select(`*, vehicle:vehicles(id, name, plate_number, image_url, brand, model), inspector:drivers(id, first_name, last_name)`)
           .gte('date', rangeStart.toISOString())
           .lte('date', rangeEnd.toISOString())
           .order('date', { ascending: false })
-          .limit(50) // Limit to prevent loading too many inspections
+          .limit(limit)
 
         if (filters.statusFilter !== 'all') {
           query = query.eq('status', filters.statusFilter)
@@ -208,7 +253,17 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         const { data, error } = await query
         if (error) throw error
 
-        // Map and enrich with template display name similar to server-enriched flow
+        // Extract inspector IDs for batch fetching
+        const inspectorIds = (data || [])
+          .map(inspection => inspection.inspector_id)
+          .filter((id): id is string => id !== null && id !== undefined)
+
+        // Batch fetch inspector data if needed
+        if (inspectorIds.length > 0) {
+          await fetchInspectorsBatch(inspectorIds)
+        }
+
+        // Map and enrich with template display name
         const enriched = await Promise.all((data || []).map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
           
@@ -216,21 +271,24 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           if (inspection.vehicle) {
             updatedInspection.vehicle = {
               ...inspection.vehicle,
-              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url,
-              brand: inspection.vehicle.brand === null ? undefined : inspection.vehicle.brand,
-              model: inspection.vehicle.model === null ? undefined : inspection.vehicle.model
+              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url
             }
           }
           
-          // Ensure inspector data is properly formatted
+          // Use cached inspector data or format from direct query
           if (inspection.inspector) {
-            updatedInspection.inspector = {
-              id: inspection.inspector.id,
-              name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
+            const inspectorId = inspection.inspector.id
+            if (inspectorCache[inspectorId]) {
+              updatedInspection.inspector = inspectorCache[inspectorId]
+            } else {
+              updatedInspection.inspector = {
+                id: inspection.inspector.id,
+                name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
+              }
             }
           }
           
-          const templateName = await getTemplateDisplayName(inspection)
+          const templateName = await getTemplateDisplayName(updatedInspection)
           if (templateName) (updatedInspection as any).type = templateName
           return updatedInspection
         }))
@@ -248,11 +306,13 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         setInspectionsWithVehicles(sorted)
       } catch (err) {
         console.error('[INSPECTIONS_CALENDAR_FETCH] Failed to fetch inspections for calendar view:', err)
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, inspectorCache])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
@@ -458,12 +518,23 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
   }, [calendarView, currentDate])
 
-  // Get inspections for a specific date
+  // Get inspections for a specific date (limited for performance)
   const getInspectionsForDate = (date: Date) => {
-    return filteredInspections.filter(inspection => {
+    const dayInspections = filteredInspections.filter(inspection => {
       const inspectionDate = parseISO(inspection.date)
       return isValid(inspectionDate) && isSameDay(inspectionDate, date)
     })
+    
+    // Limit to first 5 inspections per day for performance
+    return dayInspections.slice(0, 5)
+  }
+
+  // Get total count for a date (for "View All" functionality)
+  const getInspectionCountForDate = (date: Date) => {
+    return filteredInspections.filter(inspection => {
+      const inspectionDate = parseISO(inspection.date)
+      return isValid(inspectionDate) && isSameDay(inspectionDate, date)
+    }).length
   }
 
   const ITEMS_PER_PAGE = 5;
@@ -1058,55 +1129,68 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
                     {t("inspections.calendar.inspectionsOnDate", { 
-                      count: selectedDateInspections.length,
+                      count: getInspectionCountForDate(selectedDate),
                       date: format(selectedDate, "MMMM d")
                     })}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 max-h-[calc(100vh-12rem)] overflow-y-auto p-3">
                   {selectedDateInspections.length > 0 ? (
-                    paginatedSidebarInspections.map((inspection) => (
-                      <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
-                        <div className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-sm truncate pr-2">
-                              {inspection.vehicle?.name || t("inspections.unnamedInspection")}
-                            </h4>
-                                                          <Badge 
-                              variant="outline" 
-                              className={cn("text-xs flex-shrink-0", getStatusBadgeClasses(inspection.status))}
-                            >
-                              {inspection.status ? (
-                                // Use a safer approach to access translation keys
-                                (() => {
-                                  console.log("[INSPECTION_LIST_BADGE] Status:", inspection.status);
-                                  const statusKey = `inspections.status.${inspection.status}`;
-                                  try {
-                                    return t(statusKey as any);
-                                  } catch (error) {
-                                    console.error(`Error translating status: ${statusKey}`, error);
-                                    return inspection.status;
-                                  }
-                                })()
-                              ) : t("common.notAvailable")}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <div><span className="font-medium">{inspection.vehicle?.plate_number || t("inspections.noVehicle")}</span> - {inspection.type || t("inspections.type.unspecified")}</div>
-                            <div className="flex justify-between mt-1">
-                              <div>
-                                <span className="text-xs text-muted-foreground">{t("inspections.fields.inspector")}:</span>{" "}
-                                <span className="text-xs font-medium">{inspection.inspector?.name || t("common.notAssigned")}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs text-muted-foreground">{t("common.time")}:</span>{" "}
-                                <span className="text-xs">{format(parseISO(inspection.date), "HH:mm")}</span>
+                    <>
+                      {paginatedSidebarInspections.map((inspection) => (
+                        <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
+                          <div className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-sm truncate pr-2">
+                                {inspection.vehicle?.name || t("inspections.unnamedInspection")}
+                              </h4>
+                              <Badge 
+                                variant="outline" 
+                                className={cn("text-xs flex-shrink-0", getStatusBadgeClasses(inspection.status))}
+                              >
+                                {inspection.status ? (
+                                  // Use a safer approach to access translation keys
+                                  (() => {
+                                    console.log("[INSPECTION_LIST_BADGE] Status:", inspection.status);
+                                    const statusKey = `inspections.status.${inspection.status}`;
+                                    try {
+                                      return t(statusKey as any);
+                                    } catch (error) {
+                                      console.error(`Error translating status: ${statusKey}`, error);
+                                      return inspection.status;
+                                    }
+                                  })()
+                                ) : t("common.notAvailable")}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <div><span className="font-medium">{inspection.vehicle?.plate_number || t("inspections.noVehicle")}</span> - {inspection.type || t("inspections.type.unspecified")}</div>
+                              <div className="flex justify-between mt-1">
+                                <div>
+                                  <span className="text-xs text-muted-foreground">{t("inspections.fields.inspector")}:</span>{" "}
+                                  <span className="text-xs font-medium">
+                                    {inspection.inspector?.name || (inspection.inspector_id ? 'Loading...' : t("common.notAssigned"))}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-muted-foreground">{t("common.time")}:</span>{" "}
+                                  <span className="text-xs">{format(parseISO(inspection.date), "HH:mm")}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
+                        </Link>
+                      ))}
+                      
+                      {/* Show "View All" button if there are more inspections */}
+                      {getInspectionCountForDate(selectedDate) > 5 && (
+                        <div className="p-3 border rounded-lg bg-muted/50">
+                          <Button variant="outline" size="sm" className="w-full">
+                            View All {getInspectionCountForDate(selectedDate)} Inspections
+                          </Button>
                         </div>
-                      </Link>
-                    ))
+                      )}
+                    </>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground text-sm">
                       {t("inspections.calendar.noInspectionsOnDate")}

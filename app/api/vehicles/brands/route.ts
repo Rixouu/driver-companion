@@ -8,6 +8,7 @@ export async function GET() {
     const { data: brands, error } = await supabase
       .from('vehicles')
       .select('brand')
+      .not('deleted_at', 'is', null)
       .order('brand')
 
     if (error) {

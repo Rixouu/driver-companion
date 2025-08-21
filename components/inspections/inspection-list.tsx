@@ -31,6 +31,23 @@ import {
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { InspectionFilter, InspectionFilterOptions } from "./inspection-filter"
 
+// Extended inspection type for this component
+interface ExtendedInspection extends Omit<Inspection, 'type'> {
+  vehicle?: {
+    id: string
+    name: string
+    plate_number: string
+    image_url?: string
+    brand?: string
+    model?: string
+  }
+  inspector?: {
+    id: string
+    name: string
+  }
+  type?: string // Custom type field for template display name
+}
+
 interface InspectionListProps {
   inspections: Inspection[]
   vehicles: DbVehicle[]
@@ -55,7 +72,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const searchParams = useSearchParams()
   const { t } = useI18n()
   const supabase = useSupabase()
-  const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState(inspections)
+  const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState<ExtendedInspection[]>([])
   const [calendarView, setCalendarView] = useState<CalendarView>("month")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -91,7 +108,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       try {
         const updatedInspections = await Promise.all(
           inspections.map(async (inspection) => {
-            let updatedInspection = { ...inspection } as Inspection;
+            let updatedInspection = { ...inspection } as ExtendedInspection;
             
             // Load vehicle data if available
             if (inspection.vehicle_id) {
@@ -99,7 +116,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               if (vehicle) {
                 updatedInspection.vehicle = {
                   ...vehicle,
-                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url
+                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                  brand: vehicle.brand === null ? undefined : vehicle.brand,
+                  model: vehicle.model === null ? undefined : vehicle.model
                 };
               }
               
@@ -139,7 +158,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         // Sort inspections by date (most recent first)
         const sortedInspections = updatedInspections.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
-        ) as Inspection[];
+        ) as ExtendedInspection[];
         
         setInspectionsWithVehicles(sortedInspections);
       } catch (error) {
@@ -165,7 +184,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
         let query = supabase
           .from('inspections')
-          .select(`*, vehicle:vehicles(id, name, plate_number, image_url)`)
+          .select(`*, vehicle:vehicles(id, name, plate_number, image_url, brand, model), inspector:drivers(id, first_name, last_name)`)
           .gte('date', rangeStart.toISOString())
           .lte('date', rangeEnd.toISOString())
           .order('date', { ascending: false })
@@ -180,12 +199,23 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         // Map and enrich with template display name similar to server-enriched flow
         const enriched = await Promise.all((data || []).map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
+          
+          // Ensure vehicle data is properly formatted
           if (inspection.vehicle) {
             updatedInspection.vehicle = {
               ...inspection.vehicle,
               image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url
             }
           }
+          
+          // Ensure inspector data is properly formatted
+          if (inspection.inspector) {
+            updatedInspection.inspector = {
+              id: inspection.inspector.id,
+              name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
+            }
+          }
+          
           const templateName = await getTemplateDisplayName(updatedInspection)
           if (templateName) (updatedInspection as any).type = templateName
           return updatedInspection
@@ -221,7 +251,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       const matchesStatus = filters.statusFilter === "all" || inspection.status === filters.statusFilter
       
       const matchesVehicle = filters.vehicleFilter === "all" || 
-        (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(filters.vehicleFilter.toLowerCase()))
+        (inspection.vehicle?.brand && inspection.vehicle.brand === filters.vehicleFilter)
       
       const matchesInspector = filters.inspectorFilter === "all" || 
         (filters.inspectorFilter === "assigned" && inspection.inspector_id) ||

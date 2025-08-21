@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Filter, Search, X, SortAsc, SortDesc, Calendar, Car, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 export interface InspectionFilterOptions {
   statusFilter: string
@@ -36,6 +37,34 @@ export function InspectionFilter({
   totalFailed,
   className = ""
 }: InspectionFilterProps) {
+  const [vehicleBrands, setVehicleBrands] = useState<string[]>([])
+  const [inspectors, setInspectors] = useState<Array<{id: string, name: string}>>([])
+
+  // Fetch vehicle brands and inspectors from the database
+  useEffect(() => {
+    const fetchFilterData = async () => {
+      try {
+        // Fetch vehicle brands
+        const vehiclesResponse = await fetch('/api/vehicles/brands')
+        if (vehiclesResponse.ok) {
+          const brands = await vehiclesResponse.json()
+          setVehicleBrands(brands)
+        }
+
+        // Fetch inspectors (drivers)
+        const inspectorsResponse = await fetch('/api/drivers/inspectors')
+        if (inspectorsResponse.ok) {
+          const inspectorsData = await inspectorsResponse.json()
+          setInspectors(inspectorsData)
+        }
+      } catch (error) {
+        console.error('Error fetching filter data:', error)
+      }
+    }
+
+    fetchFilterData()
+  }, [])
+
   const clearFilters = () => {
     onFiltersChange({
       statusFilter: 'all',
@@ -88,7 +117,7 @@ export function InspectionFilter({
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Vehicle Filter</label>
+            <label className="text-sm font-medium mb-2 block">Vehicle Brand</label>
             <Select 
               value={filters.vehicleFilter} 
               onValueChange={(value) => onFiltersChange({
@@ -97,14 +126,15 @@ export function InspectionFilter({
               })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Vehicles" />
+                <SelectValue placeholder="All Brands" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Vehicles</SelectItem>
-                <SelectItem value="car">Cars</SelectItem>
-                <SelectItem value="truck">Trucks</SelectItem>
-                <SelectItem value="van">Vans</SelectItem>
-                <SelectItem value="bus">Buses</SelectItem>
+                <SelectItem value="all">All Brands</SelectItem>
+                {vehicleBrands.map((brand) => (
+                  <SelectItem key={brand} value={brand}>
+                    {brand}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -125,6 +155,11 @@ export function InspectionFilter({
                 <SelectItem value="all">All Inspectors</SelectItem>
                 <SelectItem value="assigned">Assigned</SelectItem>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
+                {inspectors.map((inspector) => (
+                  <SelectItem key={inspector.id} value={inspector.id}>
+                    {inspector.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

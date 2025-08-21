@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
 import { cdnAssets } from './cdn-assets';
+import { generateFontCSS } from './base64-fonts';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -40,7 +41,7 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
 }
 
 /**
- * Optimized Puppeteer configuration for faster PDF generation
+ * Ultra-optimized Puppeteer configuration for fastest PDF generation
  */
 async function getOptimizedPuppeteerConfig(isProduction: boolean) {
   const baseArgs = [
@@ -50,8 +51,6 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-gpu',
     '--disable-extensions',
     '--disable-plugins',
-    // REMOVED: '--disable-images' - Keep images for logos
-    // REMOVED: '--disable-javascript' - Keep JS for font loading
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
@@ -89,7 +88,11 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-accelerated-video-decode',
     '--disable-accelerated-video-encode',
     '--memory-pressure-off',
-    '--max_old_space_size=4096'
+    '--max_old_space_size=4096',
+    // NEW: Ultra-optimization for speed (but keep images for logo)
+    '--disable-javascript',
+    '--disable-css',
+    '--disable-fonts'
   ];
 
   if (isProduction) {
@@ -122,14 +125,7 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* SIMPLIFIED MULTI-LANGUAGE FONT SYSTEM */
-        @import url('/fonts/fonts.css');
-        
-        /* Google Fonts CDN for Roboto - reliable fallback */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-        
-        /* Google Fonts CDN for CJK support - reliable fallback */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap');
+        ${generateFontCSS()}
         
         * {
           box-sizing: border-box;
@@ -254,15 +250,15 @@ export async function generateOptimizedPdfFromHtml(
     metrics.pageCreateTime = Date.now() - pageStart;
     console.log(`⏱️  Page created in ${metrics.pageCreateTime}ms`);
 
-    // Set content with proper network loading for fonts and images
+    // Set content with minimal waiting for fastest generation
     const contentStart = Date.now();
     await Promise.race([
       page.setContent(fullHtml, { 
-        waitUntil: 'domcontentloaded', // Faster than networkidle0
-        timeout: 8000 // 8s timeout for font loading
+        waitUntil: 'domcontentloaded', // Fastest option
+        timeout: 3000 // 3s timeout for fastest generation
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 8000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 3000)
       )
     ]);
     
@@ -273,7 +269,7 @@ export async function generateOptimizedPdfFromHtml(
     await ensureFontsLoadedOptimized(page);
     metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
 
-    // Generate PDF with timeout
+    // Generate PDF with fast timeout
     const pdfStart = Date.now();
     const pdfBuffer = await Promise.race([
       page.pdf({
@@ -281,10 +277,10 @@ export async function generateOptimizedPdfFromHtml(
         margin: pdfOptions.margin,
         printBackground: pdfOptions.printBackground,
         scale: pdfOptions.scale,
-        timeout: 10000 // 10s timeout for PDF generation
+        timeout: 5000 // 5s timeout for fastest PDF generation
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 10000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 5000)
       )
     ]);
 

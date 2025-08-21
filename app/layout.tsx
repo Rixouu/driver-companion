@@ -1,5 +1,6 @@
 import { Work_Sans } from "next/font/google"
 import { Providers } from "@/components/providers"
+import { FontProvider } from "@/components/providers/font-provider"
 // Toaster is typically rendered by Providers or at a similar top level
 import "@/styles/globals.css"
 import { cn } from "@/lib/utils/styles"
@@ -64,10 +65,12 @@ export default async function RootLayout({
         <SupabaseProvider>
           <QueryProvider>
             <I18nProvider>
-              <Providers> 
-                {children}
-                {/* Toaster is already inside Providers component, so not needed here. */}
-              </Providers>
+              <FontProvider>
+                <Providers> 
+                  {children}
+                  {/* Toaster is already inside Providers component, so not needed here. */}
+                </Providers>
+              </FontProvider>
             </I18nProvider>
           </QueryProvider>
         </SupabaseProvider>

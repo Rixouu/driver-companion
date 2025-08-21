@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
 import { cdnAssets } from './cdn-assets';
+import { generateFontCSS } from './base64-fonts';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -16,26 +17,41 @@ interface PerformanceMetrics {
 }
 
 /**
- * Fast font loading utility optimized for serverless
+ * Enhanced font loading utility specifically for base64 fonts
  */
-async function ensureFontsLoadedFast(page: any): Promise<void> {
+async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting fast font loading...');
+    console.log('⏱️  Starting base64 font loading...');
     const fontLoadStart = Date.now();
     
-    // Fast font ready check with minimal timeout
+    // Wait for fonts to be ready with longer timeout for base64 fonts
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max for speed
+      new Promise(resolve => setTimeout(resolve, 3000)) // 3s max for base64 fonts
     ]);
     
-    const fontLoadTime = Date.now() - fontLoadStart;
-    console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
+    // Additional wait for base64 fonts to fully load
+    await page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        // Check if our specific font is loaded
+        const checkFont = () => {
+          if (document.fonts.check('1em "Noto Sans"')) {
+            resolve();
+          } else {
+            setTimeout(checkFont, 100);
+          }
+        };
+        checkFont();
+      });
+    });
     
-    // Minimal delay for rendering
-    await new Promise(resolve => setTimeout(resolve, 200));
+    const fontLoadTime = Date.now() - fontLoadStart;
+    console.log(`⏱️  Base64 fonts loaded in ${fontLoadTime}ms`);
+    
+    // Give extra time for rendering
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
-    console.warn('⚠️  Font loading error (proceeding):', error);
+    console.warn('⚠️  Font loading error (using fallbacks):', error);
   }
 }
 
@@ -88,7 +104,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-accelerated-video-encode',
     '--memory-pressure-off',
     '--max_old_space_size=4096',
-    // REMOVED: --disable-fonts flag to allow local fonts
+    // REMOVED: --disable-fonts to allow custom fonts
     '--disable-javascript',
     '--disable-css'
   ];
@@ -99,19 +115,19 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
-      timeout: 15000 // 15s timeout for browser launch
+      timeout: 30000 // 30s timeout for browser launch
     };
   }
 
   return {
     headless: true,
     args: baseArgs,
-    timeout: 15000 // 15s timeout for browser launch
+    timeout: 30000 // 30s timeout for browser launch
   };
 }
 
 /**
- * HTML template with LOCAL fonts for fast, reliable rendering
+ * HTML template with OPTIMIZED base64 fonts for Japanese and Thai support
  */
 function createOptimizedHTMLTemplate(htmlContent: string): string {
   return `
@@ -123,71 +139,15 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* LOCAL FONTS - Fast and reliable for serverless */
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('/fonts/WorkSans-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('/fonts/WorkSans-Medium.woff2') format('woff2');
-          font-weight: 500;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        @font-face {
-          font-family: 'Work Sans';
-          src: url('/fonts/WorkSans-Bold.woff2') format('woff2');
-          font-weight: 700;
-          font-style: normal;
-          font-display: swap;
-        }
-        
-        /* Japanese Font - Local file */
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('/fonts/NotoSansJP-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
-        }
-        
-        /* Thai Font - Local file */
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('/fonts/NotoSansThai-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-          unicode-range: U+0E00-0E7F;
-        }
-        
-        /* Korean Font - Local file */
-        @font-face {
-          font-family: 'Noto Sans KR';
-          src: url('/fonts/NotoSansKR-Regular.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-          unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F, U+A960-A97F, U+D7B0-D7FF;
-        }
+        ${generateFontCSS()}
         
         * {
           box-sizing: border-box;
         }
         
         body {
-          /* OPTIMIZED font stack with local fonts first */
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       'Helvetica Neue', Arial, sans-serif;
+          /* Use ONLY the base64 Noto Sans font for consistent multi-language support */
+          font-family: 'Noto Sans', sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -198,15 +158,20 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           text-rendering: optimizeLegibility;
         }
         
-        /* Force font application for all text elements */
-        * {
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       'Helvetica Neue', Arial, sans-serif !important;
+        /* Force Noto Sans for all text elements to ensure Japanese/Thai rendering */
+        h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
+          font-family: 'Noto Sans', sans-serif !important;
         }
         
-        /* Ensure proper rendering for all text */
+        /* Specific styling for billing address and customer info */
+        .billing-address, .customer-info, .customer-details,
+        [data-field="billing_address"], [data-field="customer_name"],
+        .billing-address *, .customer-info *, .customer-details *,
+        [data-field="billing_address"] *, [data-field="customer_name"] * {
+          font-family: 'Noto Sans', sans-serif !important;
+        }
+        
+        /* Ensure proper rendering for all text with Noto Sans */
         h1, h2, h3, h4, h5, h6, p, span, div {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
@@ -292,6 +257,9 @@ export async function generateOptimizedPdfFromHtml(
     // Set optimized viewport
     await page.setViewport({ width: 1200, height: 1600, deviceScaleFactor: 1 });
     
+    // Allow all resources for original layout (images, fonts, etc.)
+    // REMOVED: Request interception that blocks images/fonts to maintain original appearance
+    
     metrics.pageCreateTime = Date.now() - pageStart;
     console.log(`⏱️  Page created in ${metrics.pageCreateTime}ms`);
 
@@ -300,18 +268,18 @@ export async function generateOptimizedPdfFromHtml(
     await Promise.race([
       page.setContent(fullHtml, { 
         waitUntil: 'domcontentloaded', // Fastest option
-        timeout: 5000 // 5s timeout for fastest generation
+        timeout: 3000 // 3s timeout for fastest generation
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 5000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 3000)
       )
     ]);
     
     metrics.contentSetTime = Date.now() - contentStart;
     console.log(`⏱️  Content set in ${metrics.contentSetTime}ms`);
 
-    // Fast font loading
-    await ensureFontsLoadedFast(page);
+    // Ensure fonts are loaded for original appearance
+    await ensureFontsLoadedOptimized(page);
     metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
 
     // Generate PDF with fast timeout
@@ -322,10 +290,10 @@ export async function generateOptimizedPdfFromHtml(
         margin: pdfOptions.margin,
         printBackground: pdfOptions.printBackground,
         scale: pdfOptions.scale,
-        timeout: 8000 // 8s timeout for fastest PDF generation
+        timeout: 5000 // 5s timeout for fastest PDF generation
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 8000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 5000)
       )
     ]);
 

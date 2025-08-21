@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { generateFontCSS } from './base64-fonts';
 
 /**
  * Font loading utility for production environments
@@ -72,28 +73,10 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
       <style>
-        /* Import fonts using @import for better compatibility */
-        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        /* Use base64 embedded fonts for reliable PDF generation */
+        ${generateFontCSS()}
         
-        /* Enhanced font definitions with better fallbacks */
-        @font-face {
-          font-family: 'Noto Sans JP';
-          src: url('https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFowAIO2lZ9hgI2.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-          unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+4E00-9FAF, U+FF00-FFEF;
-        }
-        
-        @font-face {
-          font-family: 'Noto Sans Thai';
-          src: url('https://fonts.gstatic.com/s/notosansthai/v17/iJWnBQcP9n9z1aPwQwb9J3JqJ8g.woff2') format('woff2');
-          font-weight: 400;
-          font-style: normal;
-          font-display: swap;
-          unicode-range: U+0E00-0E7F;
-        }
+        /* Additional font definitions for Work Sans */
         
         @font-face {
           font-family: 'Work Sans';
@@ -109,13 +92,8 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         }
         
         body {
-          /* Enhanced font stack with proper Unicode ranges */
-          font-family: 'Work Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans KR',
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Segoe UI', 'MS Gothic', 'MS Mincho',
-                       'Takao Gothic', 'Takao Mincho', 'IPAexGothic', 'IPAexMincho',
-                       'IPAPGothic', 'IPAPMincho', 'IPAUIGothic', 'IPAUIMincho',
-                       'Apple Gothic', 'Apple LiGothic', 'Apple LiSung', 'Apple Myungjo',
-                       'Thonburi', 'Tahoma', 'Arial Unicode MS', 'Arial', sans-serif;
+          /* Use base64 Noto Sans font for consistent multi-language support */
+          font-family: 'Noto Sans', 'Work Sans', sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -132,27 +110,28 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         
         /* Specific styling for Japanese text */
         .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'MS Gothic', 'MS Mincho', sans-serif;
+          font-family: 'Noto Sans', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         /* Specific styling for Thai text */
         .th-text, [lang="th"] {
-          font-family: 'Noto Sans Thai', 'Thonburi', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+          font-family: 'Noto Sans', sans-serif;
           line-height: 1.5;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         /* Specific styling for Korean text */
         .ko-text, [lang="ko"] {
-          font-family: 'Noto Sans KR', 'Apple Gothic', 'Malgun Gothic', 'Dotum', sans-serif;
+          font-family: 'Noto Sans', sans-serif;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Ensure proper rendering for all text */
-        h1, h2, h3, h4, h5, h6, p, span, div {
+        /* Ensure proper rendering for all text with base64 font */
+        h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
+          font-family: 'Noto Sans', sans-serif !important;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
-import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
+import { generatePdfFromHtml } from '@/lib/html-pdf-generator'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
 
 // Generate invoice HTML (similar to quotation but focused on invoice format)
@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
     const htmlContent = generateInvoiceHtml(quotation, language as 'en' | 'ja', selectedPackage, selectedPromotion)
     
     // Convert to PDF
-    const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {
+    const pdfBuffer = await generatePdfFromHtml(htmlContent, {
       format: 'A4',
       margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
       printBackground: true

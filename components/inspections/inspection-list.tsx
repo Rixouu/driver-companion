@@ -110,50 +110,61 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       try {
         setIsLoading(true)
         
+        if (!inspections || inspections.length === 0) {
+          setInspectionsWithVehicles([])
+          return
+        }
+
+        // Get all unique vehicle IDs and inspector IDs for batch fetching
+        const vehicleIds = [...new Set(inspections.map(i => i.vehicle_id).filter((id): id is string => id !== null))]
+        const inspectorIds = [...new Set(inspections.map(i => i.inspector_id).filter((id): id is string => id !== null))]
+
+        // Batch fetch all vehicles and inspectors in parallel
+        const [vehiclesResult, inspectorsResult] = await Promise.all([
+          vehicleIds.length > 0 ? supabase
+            .from('vehicles')
+            .select('id, name, plate_number, image_url, brand, model')
+            .in('id', vehicleIds) : Promise.resolve({ data: [] }),
+          inspectorIds.length > 0 ? supabase
+            .from('drivers')
+            .select('id, first_name, last_name')
+            .in('id', inspectorIds)
+            .is('deleted_at', null) : Promise.resolve({ data: [] })
+        ])
+
+        // Create lookup maps for fast access
+        const vehiclesMap = new Map(vehiclesResult.data?.map(v => [v.id, v]) || [])
+        const inspectorsMap = new Map(inspectorsResult.data?.map(i => [i.id, { 
+          id: i.id, 
+          name: `${i.first_name} ${i.last_name}` 
+        }]) || [])
+        
         const updatedInspections = await Promise.all(
           inspections.map(async (inspection) => {
             let updatedInspection = { ...inspection } as ExtendedInspection;
             
-            // Load vehicle data if available
-            if (inspection.vehicle_id) {
-              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-              if (vehicle) {
-                updatedInspection.vehicle = {
-                  ...vehicle,
-                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                  brand: vehicle.brand === null ? undefined : vehicle.brand,
-                  model: vehicle.model === null ? undefined : vehicle.model
-                };
-              }
-              
-              // Load template display name
-              const templateName = await getTemplateDisplayName(inspection);
-              if (templateName) {
-                // If we found a template name, use it as the type
-                // Use 'as any' to bypass type checking since we're adding custom template types
-                (updatedInspection as any).type = templateName;
-              }
+            // Load vehicle data from lookup map
+            if (inspection.vehicle_id && vehiclesMap.has(inspection.vehicle_id)) {
+              const vehicle = vehiclesMap.get(inspection.vehicle_id)!
+              updatedInspection.vehicle = {
+                ...vehicle,
+                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                brand: vehicle.brand === null ? undefined : vehicle.brand,
+                model: vehicle.model === null ? undefined : vehicle.model
+              };
             }
             
-            // Load inspector data if available
-            if (inspection.inspector_id) {
-              try {
-                const { data: inspectorData } = await supabase
-                  .from('drivers')
-                  .select('id, first_name, last_name')
-                  .eq('id', inspection.inspector_id)
-                  .is('deleted_at', null)
-                  .single();
-                
-                if (inspectorData) {
-                  updatedInspection.inspector = {
-                    id: inspectorData.id,
-                    name: `${inspectorData.first_name} ${inspectorData.last_name}`
-                  };
-                }
-              } catch (error) {
-                console.error('Error fetching inspector data:', error);
-              }
+            // Load inspector data from lookup map
+            if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
+              updatedInspection.inspector = inspectorsMap.get(inspection.inspector_id)!
+            }
+            
+            // Load template display name
+            const templateName = await getTemplateDisplayName(inspection);
+            if (templateName) {
+              // If we found a template name, use it as the type
+              // Use 'as any' to bypass type checking since we're adding custom template types
+              (updatedInspection as any).type = templateName;
             }
             
             return updatedInspection;
@@ -174,7 +185,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     loadVehicleData();
-  }, [inspections, vehicles, t, supabase, viewMode]);
+  }, [inspections, t, supabase, viewMode]);
 
   // Calendar view: load only visible inspections with pagination
   useEffect(() => {
@@ -185,7 +196,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         setIsLoading(true)
         const rangeStart = calendarView === "month" 
           ? startOfMonth(currentDate) 
-          : endOfMonth(currentDate)
+          : startOfWeek(currentDate, { weekStartsOn: 1 })
         const rangeEnd = calendarView === "month" 
           ? endOfMonth(currentDate) 
           : endOfWeek(currentDate, { weekStartsOn: 1 })
@@ -193,6 +204,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         // For calendar view, load only a reasonable amount of data
         const limit = calendarView === "month" ? 100 : 50
 
+        // First, get all inspections for the date range
         let query = supabase
           .from('inspections')
           .select('*')
@@ -205,49 +217,62 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           query = query.eq('status', filters.statusFilter)
         }
 
-        const { data, error } = await query
+        const { data: inspectionsData, error } = await query
         if (error) throw error
 
-        // Map and enrich with template display name and vehicle/inspector data
-        const enriched = await Promise.all((data || []).map(async (inspection: any) => {
+        if (!inspectionsData || inspectionsData.length === 0) {
+          setInspectionsWithVehicles([])
+          return
+        }
+
+        // Get all unique vehicle IDs and inspector IDs for batch fetching
+        const vehicleIds = [...new Set(inspectionsData.map(i => i.vehicle_id).filter((id): id is string => id !== null))]
+        const inspectorIds = [...new Set(inspectionsData.map(i => i.inspector_id).filter((id): id is string => id !== null))]
+
+        // Batch fetch all vehicles and inspectors in parallel
+        const [vehiclesResult, inspectorsResult] = await Promise.all([
+          vehicleIds.length > 0 ? supabase
+            .from('vehicles')
+            .select('id, name, plate_number, image_url, brand, model')
+            .in('id', vehicleIds) : Promise.resolve({ data: [] }),
+          inspectorIds.length > 0 ? supabase
+            .from('drivers')
+            .select('id, first_name, last_name')
+            .in('id', inspectorIds)
+            .is('deleted_at', null) : Promise.resolve({ data: [] })
+        ])
+
+        // Create lookup maps for fast access
+        const vehiclesMap = new Map(vehiclesResult.data?.map(v => [v.id, v]) || [])
+        const inspectorsMap = new Map(inspectorsResult.data?.map(i => [i.id, { 
+          id: i.id, 
+          name: `${i.first_name} ${i.last_name}` 
+        }]) || [])
+
+        // Map and enrich inspections with vehicle and inspector data
+        const enriched = await Promise.all(inspectionsData.map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
           
-          // Load vehicle data if available
-          if (inspection.vehicle_id) {
-            const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-            if (vehicle) {
-              updatedInspection.vehicle = {
-                ...vehicle,
-                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                brand: vehicle.brand === null ? undefined : vehicle.brand,
-                model: vehicle.model === null ? undefined : vehicle.model
-              };
+          // Add vehicle data from lookup map
+          if (inspection.vehicle_id && vehiclesMap.has(inspection.vehicle_id)) {
+            const vehicle = vehiclesMap.get(inspection.vehicle_id)!
+            updatedInspection.vehicle = {
+              ...vehicle,
+              image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+              brand: vehicle.brand === null ? undefined : vehicle.brand,
+              model: vehicle.model === null ? undefined : vehicle.model
             }
           }
           
-          // Load inspector data if available
-          if (inspection.inspector_id) {
-            try {
-              const { data: inspectorData } = await supabase
-                .from('drivers')
-                .select('id, first_name, last_name')
-                .eq('id', inspection.inspector_id)
-                .is('deleted_at', null)
-                .single();
-              
-              if (inspectorData) {
-                updatedInspection.inspector = {
-                  id: inspectorData.id,
-                  name: `${inspectorData.first_name} ${inspectorData.last_name}`
-                };
-              }
-            } catch (error) {
-              console.error('Error fetching inspector data:', error);
-            }
+          // Add inspector data from lookup map
+          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
+            updatedInspection.inspector = inspectorsMap.get(inspection.inspector_id)!
           }
           
+          // Load template display name
           const templateName = await getTemplateDisplayName(updatedInspection)
           if (templateName) (updatedInspection as any).type = templateName
+          
           return updatedInspection
         }))
 
@@ -270,7 +295,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, vehicles])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {

@@ -89,36 +89,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   })
   const [weeklyCompletedFilter, setWeeklyCompletedFilter] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [inspectorCache, setInspectorCache] = useState<Record<string, {id: string, name: string}>>({})
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
-
-  // Batch fetch inspector data to avoid individual queries
-  const fetchInspectorsBatch = async (inspectorIds: string[]) => {
-    try {
-      const uniqueIds = [...new Set(inspectorIds.filter(id => id && !inspectorCache[id]))]
-      if (uniqueIds.length === 0) return
-
-      const { data: inspectors, error } = await supabase
-        .from('drivers')
-        .select('id, first_name, last_name')
-        .in('id', uniqueIds)
-        .is('deleted_at', null)
-
-      if (error) throw error
-
-      const newInspectors = inspectors?.reduce((acc, inspector) => {
-        acc[inspector.id] = {
-          id: inspector.id,
-          name: `${inspector.first_name} ${inspector.last_name}`
-        }
-        return acc
-      }, {} as Record<string, {id: string, name: string}>) || {}
-
-      setInspectorCache(prev => ({ ...prev, ...newInspectors }))
-    } catch (error) {
-      console.error('Error fetching inspectors batch:', error)
-    }
-  }
 
   // Update URL params when filters change
   useEffect(() => {
@@ -139,16 +110,6 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       try {
         setIsLoading(true)
         
-        // Extract inspector IDs for batch fetching
-        const inspectorIds = inspections
-          .map(inspection => inspection.inspector_id)
-          .filter((id): id is string => id !== null && id !== undefined)
-
-        // Batch fetch inspector data if needed
-        if (inspectorIds.length > 0) {
-          await fetchInspectorsBatch(inspectorIds)
-        }
-
         const updatedInspections = await Promise.all(
           inspections.map(async (inspection) => {
             let updatedInspection = { ...inspection } as ExtendedInspection;
@@ -174,11 +135,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               }
             }
             
-            // Use cached inspector data
-            if (inspection.inspector_id && inspectorCache[inspection.inspector_id]) {
-              updatedInspection.inspector = inspectorCache[inspection.inspector_id];
-            } else if (inspection.inspector_id) {
-              // Fallback to individual fetch if not in cache
+            // Load inspector data if available
+            if (inspection.inspector_id) {
               try {
                 const { data: inspectorData } = await supabase
                   .from('drivers')
@@ -188,13 +146,10 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                   .single();
                 
                 if (inspectorData) {
-                  const inspector = {
+                  updatedInspection.inspector = {
                     id: inspectorData.id,
                     name: `${inspectorData.first_name} ${inspectorData.last_name}`
                   };
-                  updatedInspection.inspector = inspector;
-                  // Add to cache
-                  setInspectorCache(prev => ({ ...prev, [inspectorData.id]: inspector }));
                 }
               } catch (error) {
                 console.error('Error fetching inspector data:', error);
@@ -219,7 +174,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     loadVehicleData();
-  }, [inspections, vehicles, t, supabase, viewMode, inspectorCache]);
+  }, [inspections, vehicles, t, supabase, viewMode]);
 
   // Calendar view: load only visible inspections with pagination
   useEffect(() => {
@@ -253,16 +208,6 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         const { data, error } = await query
         if (error) throw error
 
-        // Extract inspector IDs for batch fetching
-        const inspectorIds = (data || [])
-          .map(inspection => inspection.inspector_id)
-          .filter((id): id is string => id !== null && id !== undefined)
-
-        // Batch fetch inspector data if needed
-        if (inspectorIds.length > 0) {
-          await fetchInspectorsBatch(inspectorIds)
-        }
-
         // Map and enrich with template display name
         const enriched = await Promise.all((data || []).map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
@@ -275,16 +220,11 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             }
           }
           
-          // Use cached inspector data or format from direct query
+          // Format inspector data
           if (inspection.inspector) {
-            const inspectorId = inspection.inspector.id
-            if (inspectorCache[inspectorId]) {
-              updatedInspection.inspector = inspectorCache[inspectorId]
-            } else {
-              updatedInspection.inspector = {
-                id: inspection.inspector.id,
-                name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
-              }
+            updatedInspection.inspector = {
+              id: inspection.inspector.id,
+              name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
             }
           }
           
@@ -312,7 +252,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, inspectorCache])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {

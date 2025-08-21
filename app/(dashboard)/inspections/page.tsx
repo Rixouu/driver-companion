@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 import { InspectionList } from "@/components/inspections/inspection-list"
 import { redirect } from "next/navigation"
-import type { DbInspection, Inspection } from "@/types"
+import type { OptimizedInspection } from "@/types"
 import type { DbVehicle } from "@/types"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { Suspense } from "react"
@@ -32,19 +32,24 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
     redirect('/login')
   }
 
-  // Pagination
+  // Pagination and search parameters
   const resolvedSearchParams = await searchParams
   const pageParam = Array.isArray(resolvedSearchParams?.page) ? resolvedSearchParams?.page[0] : resolvedSearchParams?.page
   const currentPage = Math.max(1, parseInt(String(pageParam || '1'), 10) || 1)
-  const from = (currentPage - 1) * ITEMS_PER_PAGE
-  const to = from + ITEMS_PER_PAGE - 1
+  const statusFilter = String(resolvedSearchParams?.status || 'all')
+  const searchQuery = String(resolvedSearchParams?.search || '')
 
-  const { data: inspectionsData, error: inspectionsError, count } = await supabase
-    .from('inspections')
-    .select('*', { count: 'exact' })
-    .order('date', { ascending: false })
-    .range(from, to)
+  // Call the optimized RPC function for all inspection data
+  const { data: inspectionsData, error: inspectionsError } = await supabase.rpc('get_inspections_with_details', {
+    page_num: currentPage,
+    page_size: ITEMS_PER_PAGE,
+    status_filter: statusFilter,
+    search_query: searchQuery
+  })
 
+  const inspections = (inspectionsData || []) as OptimizedInspection[]
+
+  // Still need vehicles for the filter dropdown
   const { data: vehiclesData, error: vehiclesError } = await supabase
     .from('vehicles')
     .select('*')
@@ -57,9 +62,10 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
     console.error("Error fetching vehicles:", vehiclesError.message)
   }
 
-  const inspections = ((inspectionsData || []) as unknown) as Inspection[]
+  // Calculate total pages from the count returned by the RPC function
+  const totalCount = (inspections?.[0]?.total_count as number) || 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE))
   const vehicles = ((vehiclesData || []) as unknown) as DbVehicle[]
-  const totalPages = Math.max(1, Math.ceil(((count as number) || 0) / ITEMS_PER_PAGE))
 
   return (
     <div className="space-y-6">

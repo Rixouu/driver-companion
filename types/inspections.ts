@@ -197,4 +197,30 @@ export interface InspectionTemplateWithRelations extends DbInspectionTemplate {
 
 export interface InspectionSectionWithRelations extends DbInspectionSection {
   items?: DbInspectionItem[]
+}
+
+// Optimized inspection type for the RPC function
+export interface OptimizedInspection {
+  id: string;
+  date: string;
+  status: string;
+  type: string;
+  vehicle_id: string;
+  inspector_id: string | null;
+  created_at: string;
+  updated_at: string;
+  notes: string | null;
+  // Vehicle fields (pre-joined)
+  vehicle_name: string;
+  vehicle_plate_number: string;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: string | null;
+  // Inspector fields (pre-joined)
+  inspector_name: string | null;
+  inspector_email: string | null;
+  // Template display name (pre-resolved)
+  template_display_name: string;
+  // Total count for pagination
+  total_count: number;
 } 

@@ -210,10 +210,10 @@ export interface OptimizedInspection {
   created_at: string;
   updated_at: string;
   notes: string | null;
-  // Vehicle fields (pre-joined)
+  // Vehicle fields (pre-joined) - matching RPC function return
   vehicle_name: string;
   vehicle_plate_number: string;
-  vehicle_make: string | null;
+  vehicle_brand: string | null;
   vehicle_model: string | null;
   vehicle_year: string | null;
   // Inspector fields (pre-joined)

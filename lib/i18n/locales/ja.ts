@@ -746,6 +746,7 @@ export const ja: TranslationValue = {
     title: "点検",
     description: "車両点検を管理・追跡します。",
     searchPlaceholder: "車両またはタイプで点検を検索...",
+    create: "点検を作成",
     createInspection: "点検を作成",
     createNewInspection: "新規点検を作成",
     createNewInspectionDescription: "詳細を入力して新しい点検記録を作成します。",

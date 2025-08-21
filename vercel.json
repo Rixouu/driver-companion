@@ -7,10 +7,30 @@
     "NEXT_TELEMETRY_DISABLED": "1",
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
+  "functions": {
+    "app/api/quotations/send-email/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/quotations/approve/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/quotations/reject/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/quotations/generate-pdf/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/quotations/generate-invoice-pdf/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/send-invoice-email/route.ts": {
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/bookings/sync?key=${API_SYNC_SECRET_KEY}",
       "schedule": "0 0 * * *"
-  }
+    }
   ]
 } 

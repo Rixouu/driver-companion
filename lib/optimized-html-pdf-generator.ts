@@ -1,9 +1,7 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
-import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
-import { cdnAssets } from './cdn-assets';
-import { generateFontCSS } from './base64-fonts';
+import { generateOptimizedFontCSS, createFontReadyCheck } from './optimized-fonts';
 
 // Performance monitoring
 interface PerformanceMetrics {
@@ -17,24 +15,21 @@ interface PerformanceMetrics {
 }
 
 /**
- * Simplified font loading utility for reliable PDF generation
+ * Ultra-optimized font loading utility for reliable PDF generation
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting font loading...');
+    console.log('⏱️  Starting optimized font loading...');
     const fontLoadStart = Date.now();
     
-    // Simple font ready check with reasonable timeout
-    await Promise.race([
-      page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 5000)) // 5s max
-    ]);
+    // Use the optimized font ready check
+    await page.evaluate(createFontReadyCheck());
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Fonts loaded in ${fontLoadTime}ms`);
     
-    // Give time for rendering
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Minimal wait for rendering stability
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
     console.warn('⚠️  Font loading error (proceeding anyway):', error);
   }
@@ -62,7 +57,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--no-default-browser-check',
     '--font-render-hinting=none',
     '--disable-font-subpixel-positioning',
-    '--lang=en-US,en,ja,th,fr',
+    '--lang=en-US,en,ja,th,fr,ko',
     '--enable-font-antialiasing',
     '--force-color-profile=srgb',
     '--enable-blink-features=CSSFontMetrics',
@@ -89,7 +84,6 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-accelerated-video-encode',
     '--memory-pressure-off',
     '--max_old_space_size=4096'
-    // REMOVED: --disable-javascript and --disable-css to allow proper rendering
   ];
 
   if (isProduction) {
@@ -110,7 +104,8 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
 }
 
 /**
- * HTML template with OPTIMIZED base64 fonts for Japanese and Thai support
+ * HTML template with OPTIMIZED CDN fonts for Japanese and Thai support
+ * Maintains exact layout while ensuring proper character rendering
  */
 function createOptimizedHTMLTemplate(htmlContent: string): string {
   return `
@@ -119,46 +114,41 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
     <head>
       <meta charset="utf-8">
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-      <meta http-equiv="Content-Language" content="en, ja, th, fr">
+      <meta http-equiv="Content-Language" content="en, ja, th, fr, ko">
       <title>PDF Export</title>
+      
+      <!-- Preload fonts for faster rendering -->
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      
       <style>
-        ${generateFontCSS()}
+        ${generateOptimizedFontCSS()}
         
         * {
           box-sizing: border-box;
         }
         
+        /* Ensure layout integrity - no font changes that affect spacing */
         body {
-          /* Use ONLY the base64 Noto Sans font for consistent multi-language support */
-          font-family: 'Noto Sans', sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
           background-color: white;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          font-feature-settings: 'liga' 1, 'kern' 1;
-          text-rendering: optimizeLegibility;
+          line-height: 1.4;
         }
         
-        /* Force Noto Sans for all text elements to ensure Japanese/Thai rendering */
-        h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
-          font-family: 'Noto Sans', sans-serif !important;
+        /* Maintain exact spacing and layout */
+        table, tr, td, th {
+          border-collapse: collapse;
+          border-spacing: 0;
         }
         
-        /* Specific styling for billing address and customer info */
-        .billing-address, .customer-info, .customer-details,
-        [data-field="billing_address"], [data-field="customer_name"],
-        .billing-address *, .customer-info *, .customer-details *,
-        [data-field="billing_address"] *, [data-field="customer_name"] * {
-          font-family: 'Noto Sans', sans-serif !important;
+        /* Preserve all original styling */
+        .quotation-content, .billing-address, .customer-info {
+          /* Keep original margins, padding, and positioning */
         }
         
-        /* Ensure proper rendering for all text with Noto Sans */
-        h1, h2, h3, h4, h5, h6, p, span, div {
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-        }
-        
+        /* Print optimizations */
         @media print {
           body {
             -webkit-print-color-adjust: exact;
@@ -186,8 +176,8 @@ export async function generateOptimizedPdfFromHtml(
     scale?: number;
   },
   quotation?: any,
-  selectedPackage?: PricingPackage | null,
-  selectedPromotion?: PricingPromotion | null,
+  selectedPackage?: any,
+  selectedPromotion?: any,
   language = 'en'
 ): Promise<Buffer> {
   
@@ -341,8 +331,8 @@ export { generateQuotationHtml } from './html-pdf-generator';
 export async function generateOptimizedQuotationPDF(
   quotation: any,
   language: string,
-  selectedPackage: PricingPackage | null,
-  selectedPromotion: PricingPromotion | null
+  selectedPackage: any,
+  selectedPromotion: any
 ): Promise<Buffer> {
   console.log(`🔄 Generating optimized PDF for quote: ${quotation?.id}, lang: ${language}`);
   

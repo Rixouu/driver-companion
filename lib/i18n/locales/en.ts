@@ -753,6 +753,7 @@ export const en: TranslationValue = {
     title: "Inspections",
     description: "Manage and track vehicle inspections.",
     searchPlaceholder: "Search inspections by vehicle or type...",
+    create: "Create Inspection",
     createInspection: "Create Inspection",
     createNewInspection: "Create New Inspection",
     createNewInspectionDescription: "Fill in the details to create a new inspection record.",

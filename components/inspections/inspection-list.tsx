@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3 } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3, TrendingUp, Users, CalendarDays, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import { EventsFilter, EventsFilterOptions } from "../sales/events-filter"
 
 interface InspectionListProps {
   inspections: Inspection[]
@@ -45,6 +46,8 @@ interface QuickStat {
   icon: React.ElementType
   color: string
   bgColor: string
+  action: string
+  description: string
 }
 
 export function InspectionList({ inspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
@@ -58,20 +61,27 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
-  const [search, setSearch] = useState(searchParams.get("search") || "")
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all")
-  const debouncedSearch = useDebounce(search, 500)
+  const [filters, setFilters] = useState<EventsFilterOptions>({
+    typeFilter: 'all',
+    statusFilter: 'all',
+    searchQuery: '',
+    sortBy: 'time',
+    sortOrder: 'asc',
+    groupBy: 'none'
+  })
+  const [weeklyCompletedFilter, setWeeklyCompletedFilter] = useState(false)
+  const debouncedSearch = useDebounce(filters.searchQuery, 500)
 
   // Update URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams()
     if (debouncedSearch) params.set("search", debouncedSearch)
-    if (statusFilter !== "all") params.set("status", statusFilter)
+    if (filters.statusFilter !== "all") params.set("status", filters.statusFilter)
     if (viewMode !== "calendar") params.set("view", viewMode)
     
     const newUrl = params.toString() ? `?${params.toString()}` : ""
     router.replace(newUrl as any, { scroll: false })
-  }, [debouncedSearch, statusFilter, viewMode, router])
+  }, [debouncedSearch, filters.statusFilter, viewMode, router])
 
   useEffect(() => {
     // In list view, enrich the server-provided, paginated inspections
@@ -159,8 +169,8 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           .lte('date', rangeEnd.toISOString())
           .order('date', { ascending: false })
 
-        if (statusFilter !== 'all') {
-          query = query.eq('status', statusFilter)
+        if (filters.statusFilter !== 'all') {
+          query = query.eq('status', filters.statusFilter)
         }
 
         const { data, error } = await query
@@ -197,21 +207,71 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, statusFilter, debouncedSearch, supabase])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
-    return inspectionsWithVehicles.filter((inspection) => {
-      const matchesSearch = !debouncedSearch || 
+    let filtered = inspectionsWithVehicles.filter((inspection) => {
+      const matchesSearch = !debouncedSearch ||
         (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
         (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
         (inspection.type && inspection.type.toLowerCase().includes(debouncedSearch.toLowerCase()))
       
-      const matchesStatus = statusFilter === "all" || inspection.status === statusFilter
+      const matchesStatus = filters.statusFilter === "all" || inspection.status === filters.statusFilter
       
-      return matchesSearch && matchesStatus
+      // Apply weekly completed filter if active
+      let matchesWeeklyCompleted = true
+      if (weeklyCompletedFilter) {
+        const today = new Date()
+        const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 })
+        const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 })
+        
+        const inspectionDate = parseISO(inspection.date)
+        const isInWeek = isValid(inspectionDate) && 
+                        inspectionDate >= startOfThisWeek && 
+                        inspectionDate <= endOfThisWeek
+        
+        matchesWeeklyCompleted = isInWeek && inspection.status === 'completed'
+      }
+      
+      return matchesSearch && matchesStatus && matchesWeeklyCompleted
     })
-  }, [inspectionsWithVehicles, debouncedSearch, statusFilter])
+
+    // Sort the filtered inspections
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any
+      
+      switch (filters.sortBy) {
+        case 'time':
+          aValue = a.date || '1970-01-01'
+          bValue = b.date || '1970-01-01'
+          break
+        case 'amount':
+          // For inspections, we might not have amounts, so sort by date instead
+          aValue = a.date || '1970-01-01'
+          bValue = b.date || '1970-01-01'
+          break
+        case 'customer':
+          aValue = a.vehicle?.name || ''
+          bValue = b.vehicle?.name || ''
+          break
+        case 'type':
+          aValue = a.type || ''
+          bValue = b.type || ''
+          break
+        default:
+          return 0
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+
+    return filtered
+  }, [inspectionsWithVehicles, debouncedSearch, filters.statusFilter, weeklyCompletedFilter, filters.sortBy, filters.sortOrder])
 
   // Server-provided pagination for list view
   const listCurrentPage = currentPage
@@ -259,33 +319,61 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       {
         title: t("inspections.quickStats.todaysInspections"),
         value: todaysInspections,
-        icon: CalendarIcon,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20"
+        icon: CalendarDays,
+        color: "text-blue-600 dark:text-blue-400",
+        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        action: "viewToday",
+        description: "View today's inspections"
       },
       {
         title: t("inspections.quickStats.pendingInspections"),
         value: pendingInspections,
         icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
+        color: "text-yellow-600 dark:text-yellow-400",
+        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+        action: "viewPending",
+        description: "Review pending inspections"
       },
       {
         title: t("inspections.quickStats.weeklyCompleted"),
         value: weeklyCompleted,
         icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-50 dark:bg-green-900/20"
+        color: "text-green-600 dark:text-green-400",
+        bgColor: "bg-green-50 dark:bg-green-900/20",
+        action: "viewWeeklyCompleted",
+        description: "View completed this week"
       },
       {
         title: t("inspections.quickStats.failedInspections"),
         value: failedInspections,
-        icon: AlertTriangle,
-        color: "text-red-600",
-        bgColor: "bg-red-50 dark:bg-red-900/20"
+        icon: AlertCircle,
+        color: "text-red-600 dark:text-red-400",
+        bgColor: "bg-red-50 dark:bg-red-900/20",
+        action: "viewFailed",
+        description: "Review failed inspections"
       }
     ]
   }, [filteredInspections, t])
+
+  // Handle quick stat card clicks
+  const handleQuickStatClick = (action: string) => {
+    switch (action) {
+      case 'viewToday':
+        setCurrentDate(new Date())
+        setSelectedDate(new Date())
+        break
+      case 'viewPending':
+        setFilters(prev => ({ ...prev, statusFilter: 'scheduled' }))
+        break
+      case 'viewWeeklyCompleted':
+        setWeeklyCompletedFilter(true)
+        setFilters(prev => ({ ...prev, statusFilter: 'completed' }))
+        break
+      case 'viewFailed':
+        setFilters(prev => ({ ...prev, statusFilter: 'failed' }))
+        break
+    }
+  }
 
   // Status filter options
   const statusOptions = useMemo(() => [
@@ -471,13 +559,13 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Clear search
   const clearSearch = () => {
-    setSearch("")
+    setFilters(prev => ({ ...prev, searchQuery: "" }))
   }
 
   // Clear all filters
   const clearFilters = () => {
-    setSearch("")
-    setStatusFilter("all")
+    setFilters(prev => ({ ...prev, statusFilter: "all", searchQuery: "" }))
+    setWeeklyCompletedFilter(false)
   }
 
   // Render list view
@@ -491,7 +579,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         <div className="md:hidden space-y-4">
           {filteredInspections.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              {debouncedSearch || statusFilter !== "all" 
+              {debouncedSearch || filters.statusFilter !== "all" 
                 ? t("common.noResults")
                 : t("inspections.noInspections")}
             </p>
@@ -556,7 +644,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
               {filteredInspections.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    {debouncedSearch || statusFilter !== "all" 
+                    {debouncedSearch || filters.statusFilter !== "all" 
                       ? t("common.noResults")
                       : t("inspections.noInspections")}
                   </TableCell>
@@ -729,50 +817,58 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         </div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder={t("inspections.searchPlaceholder")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {search && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={clearSearch}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+        <EventsFilter
+          filters={filters}
+          onFiltersChange={setFilters}
+          totalEvents={filteredInspections.length}
+          totalQuotations={0}
+          totalBookings={0}
+          showGrouping={false}
+          showSorting={true}
+          className="mb-6"
+        />
+
+        {/* Results Summary */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">{t("inspections.title")}</h2>
+            <p className="text-muted-foreground">
+              {weeklyCompletedFilter 
+                ? "Weekly completed inspections" 
+                : "Track and manage vehicle inspections"
+              }
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
+              {weeklyCompletedFilter && (
+                <span className="ml-2 text-green-600 dark:text-green-400">
+                  (Completed this week)
+                </span>
               )}
             </div>
           </div>
-          
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        </div>
 
-            {(search || statusFilter !== "all") && (
-              <Button variant="outline" onClick={clearFilters}>
-                <Filter className="mr-2 h-4 w-4" />
-                Clear
-              </Button>
+        {/* View Mode Toggle */}
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-4">
+            {/* Active Filters Display */}
+            {(filters.searchQuery || filters.statusFilter !== 'all' || weeklyCompletedFilter) && (
+              <div className="flex items-center gap-2">
+                {weeklyCompletedFilter && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
+                    Weekly Completed Only
+                  </Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear All Filters
+                </Button>
+              </div>
             )}
-
+            
             <div className="flex border rounded-md">
               <Button
                 variant={viewMode === "calendar" ? "default" : "ghost"}
@@ -800,18 +896,25 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         {quickStats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Card key={index} className="overflow-hidden">
+            <Card 
+              key={index} 
+              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-current"
+              onClick={() => handleQuickStatClick(stat.action)}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-lg", stat.bgColor)}>
+                  <div className={cn("p-3 rounded-lg transition-transform group-hover:scale-110", stat.bgColor)}>
                     <Icon className={cn("h-6 w-6", stat.color)} />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold">
+                    <p className={cn("text-2xl font-bold transition-colors", stat.color)}>
                       {stat.value}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {stat.description}
                     </p>
                   </div>
                 </div>

@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { EventsFilter, EventsFilterOptions } from "../sales/events-filter"
+import { InspectionFilter, InspectionFilterOptions } from "./inspection-filter"
 
 interface InspectionListProps {
   inspections: Inspection[]
@@ -61,13 +61,14 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
-  const [filters, setFilters] = useState<EventsFilterOptions>({
-    typeFilter: 'all',
+  const [filters, setFilters] = useState<InspectionFilterOptions>({
     statusFilter: 'all',
+    vehicleFilter: 'all',
+    inspectorFilter: 'all',
     searchQuery: '',
-    sortBy: 'time',
-    sortOrder: 'asc',
-    groupBy: 'none'
+    sortBy: 'date',
+    sortOrder: 'desc',
+    dateRange: 'all'
   })
   const [weeklyCompletedFilter, setWeeklyCompletedFilter] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
@@ -219,6 +220,13 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       
       const matchesStatus = filters.statusFilter === "all" || inspection.status === filters.statusFilter
       
+      const matchesVehicle = filters.vehicleFilter === "all" || 
+        (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(filters.vehicleFilter.toLowerCase()))
+      
+      const matchesInspector = filters.inspectorFilter === "all" || 
+        (filters.inspectorFilter === "assigned" && inspection.inspector_id) ||
+        (filters.inspectorFilter === "unassigned" && !inspection.inspector_id)
+      
       // Apply weekly completed filter if active
       let matchesWeeklyCompleted = true
       if (weeklyCompletedFilter) {
@@ -234,7 +242,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         matchesWeeklyCompleted = isInWeek && inspection.status === 'completed'
       }
       
-      return matchesSearch && matchesStatus && matchesWeeklyCompleted
+      return matchesSearch && matchesStatus && matchesVehicle && matchesInspector && matchesWeeklyCompleted
     })
 
     // Sort the filtered inspections
@@ -242,22 +250,25 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       let aValue: any, bValue: any
       
       switch (filters.sortBy) {
-        case 'time':
+        case 'date':
           aValue = a.date || '1970-01-01'
           bValue = b.date || '1970-01-01'
           break
-        case 'amount':
-          // For inspections, we might not have amounts, so sort by date instead
-          aValue = a.date || '1970-01-01'
-          bValue = b.date || '1970-01-01'
-          break
-        case 'customer':
+        case 'vehicle':
           aValue = a.vehicle?.name || ''
           bValue = b.vehicle?.name || ''
+          break
+        case 'inspector':
+          aValue = a.inspector?.name || ''
+          bValue = b.inspector?.name || ''
           break
         case 'type':
           aValue = a.type || ''
           bValue = b.type || ''
+          break
+        case 'status':
+          aValue = a.status || ''
+          bValue = b.status || ''
           break
         default:
           return 0
@@ -271,7 +282,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     })
 
     return filtered
-  }, [inspectionsWithVehicles, debouncedSearch, filters.statusFilter, weeklyCompletedFilter, filters.sortBy, filters.sortOrder])
+  }, [inspectionsWithVehicles, debouncedSearch, filters.statusFilter, filters.vehicleFilter, filters.inspectorFilter, weeklyCompletedFilter, filters.sortBy, filters.sortOrder])
 
   // Server-provided pagination for list view
   const listCurrentPage = currentPage
@@ -564,7 +575,14 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Clear all filters
   const clearFilters = () => {
-    setFilters(prev => ({ ...prev, statusFilter: "all", searchQuery: "" }))
+    setFilters(prev => ({
+      ...prev,
+      statusFilter: "all",
+      vehicleFilter: "all",
+      inspectorFilter: "all",
+      searchQuery: "",
+      dateRange: "all"
+    }))
     setWeeklyCompletedFilter(false)
   }
 
@@ -817,14 +835,13 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         </div>
 
         {/* Search and Filters */}
-        <EventsFilter
+        <InspectionFilter
           filters={filters}
           onFiltersChange={setFilters}
-          totalEvents={filteredInspections.length}
-          totalQuotations={0}
-          totalBookings={0}
-          showGrouping={false}
-          showSorting={true}
+          totalInspections={filteredInspections.length}
+          totalScheduled={filteredInspections.filter(i => i.status === 'scheduled').length}
+          totalCompleted={filteredInspections.filter(i => i.status === 'completed').length}
+          totalFailed={filteredInspections.filter(i => i.status === 'failed').length}
           className="mb-6"
         />
 

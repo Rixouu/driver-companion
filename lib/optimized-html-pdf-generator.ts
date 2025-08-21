@@ -17,24 +17,31 @@ interface PerformanceMetrics {
 }
 
 /**
- * Simple font loading utility with reliable fallbacks
+ * Enhanced font loading utility for base64 fonts
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting simple font loading...');
+    console.log('⏱️  Starting enhanced font loading for base64 fonts...');
     const fontLoadStart = Date.now();
     
-    // Simple font ready check with short timeout
+    // Wait for fonts to be ready with longer timeout for base64 fonts
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 1000)) // 1s max
+      new Promise(resolve => setTimeout(resolve, 3000)) // 3s max for base64 fonts
     ]);
+    
+    // Additional check to ensure Noto Sans is loaded
+    const fontsLoaded = await page.evaluate(() => {
+      return document.fonts.check('1em Noto Sans');
+    });
+    
+    console.log(`📝 Noto Sans font loaded: ${fontsLoaded}`);
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Font loading completed in ${fontLoadTime}ms`);
     
-    // Minimal delay for rendering
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Give more time for base64 fonts to render properly
+    await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
     console.warn('⚠️  Font loading error (using fallbacks):', error);
   }
@@ -92,7 +99,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     // NEW: Ultra-optimization for speed (but keep images for logo)
     '--disable-javascript',
     '--disable-css',
-    '--disable-fonts'
+    // '--disable-fonts' // REMOVED: This was preventing base64 fonts from loading
   ];
 
   if (isProduction) {
@@ -132,11 +139,11 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         }
         
         body {
-          /* SIMPLIFIED multi-language font stack with reliable system fonts */
-          font-family: 'Roboto', 'Noto Sans JP', 'Noto Sans Thai',
-                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
-                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
-                       'Helvetica Neue', Arial, sans-serif;
+                  /* OPTIMIZED multi-language font stack with base64 Noto Sans */
+        font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai',
+                     -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                     'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
+                     'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -147,12 +154,12 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
           text-rendering: optimizeLegibility;
         }
         
-        /* SIMPLIFIED: Force font application for billing address and customer info */
+        /* OPTIMIZED: Force font application for billing address and customer info */
         .billing-address, .customer-info, .customer-details,
         [data-field="billing_address"], [data-field="customer_name"],
         .billing-address *, .customer-info *, .customer-details *,
         [data-field="billing_address"] *, [data-field="customer_name"] * {
-          font-family: 'Roboto', 'Noto Sans JP', 'Noto Sans Thai',
+          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai',
                        -apple-system, BlinkMacSystemFont, 'Segoe UI', 
                        'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
                        'Helvetica Neue', Arial, sans-serif !important;
@@ -161,6 +168,27 @@ function createOptimizedHTMLTemplate(htmlContent: string): string {
         /* Ensure proper rendering for all text - EXACTLY AS ORIGINAL */
         h1, h2, h3, h4, h5, h6, p, span, div {
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        }
+        
+        /* Force base64 font application for all text elements */
+        * {
+          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai',
+                       -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+                       'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Thonburi',
+                       'Helvetica Neue', Arial, sans-serif !important;
+        }
+        
+        /* Debug: Add visible indicator that fonts are loaded */
+        body::before {
+          content: 'Fonts: Noto Sans (Base64) Loaded';
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          background: rgba(0,0,0,0.1);
+          padding: 5px;
+          font-size: 10px;
+          z-index: 9999;
+          font-family: 'Noto Sans', sans-serif;
         }
         
         @media print {

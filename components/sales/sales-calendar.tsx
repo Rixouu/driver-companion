@@ -746,34 +746,62 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         {/* Search and Filters */}
         <EventsFilter
           filters={filters}
-          onFiltersChange={handleFiltersChange}
+          onFiltersChange={setFilters}
           totalEvents={filteredEvents.length}
           totalQuotations={filteredEvents.filter(e => e.type === 'quotation').length}
           totalBookings={filteredEvents.filter(e => e.type === 'booking').length}
           showGrouping={false}
-          showSorting={false}
+          showSorting={true}
           className="mb-6"
         />
 
-        {/* View Mode Toggle */}
-        <div className="flex justify-end mb-4">
-          <div className="flex border rounded-md">
-            <Button
-              variant={viewMode === "calendar" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("calendar")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
+        {/* View Mode Toggle and Results Summary - Better Spacing */}
+        <div className="flex items-center justify-between mb-6 mt-8">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredEvents.length} of {salesEvents.length} total events
+            {weeklyRevenueFilter && (
+              <span className="ml-2 text-green-600 dark:text-green-400">
+                (Weekly Revenue Only)
+              </span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Active Filters Display */}
+            {(filters.searchQuery || filters.statusFilter !== 'all' || filters.typeFilter !== 'all' || weeklyRevenueFilter) && (
+              <div className="flex items-center gap-2">
+                {weeklyRevenueFilter && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
+                    Weekly Revenue Only
+                  </Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === "calendar" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("calendar")}
+                className="rounded-r-none px-3"
+              >
+                <Grid3X3 className="h-4 w-4 mr-2" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="rounded-l-none px-3"
+              >
+                <List className="h-4 w-4 mr-2" />
+                List
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -785,7 +813,13 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
           return (
             <Card 
               key={index} 
-              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-current"
+              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 hover:border-l-current"
+              style={{ 
+                borderLeftColor: stat.color === 'text-blue-600 dark:text-blue-400' ? '#2563eb' : 
+                               stat.color === 'text-yellow-600 dark:text-yellow-400' ? '#ca8a04' :
+                               stat.color === 'text-green-600 dark:text-green-400' ? '#16a34a' :
+                               stat.color === 'text-purple-600 dark:text-purple-400' ? '#9333ea' : '#6b7280' 
+              }}
               onClick={() => handleQuickStatClick(stat.action)}
             >
               <CardContent className="p-6">
@@ -809,61 +843,6 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
             </Card>
           )
         })}
-      </div>
-
-      {/* Sort Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Sort by:</label>
-            <Select 
-              value={filters.sortBy} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value as 'time' | 'amount' | 'customer' | 'type' }))}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="time">Time</SelectItem>
-                <SelectItem value="amount">Amount</SelectItem>
-                <SelectItem value="customer">Customer</SelectItem>
-                <SelectItem value="type">Type</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFilters(prev => ({ ...prev, sortOrder: prev.sortOrder === 'asc' ? 'desc' : 'asc' }))}
-              className="p-2"
-            >
-              {filters.sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
-            </Button>
-          </div>
-          
-          {/* Active Filters Display */}
-          {(filters.searchQuery || filters.statusFilter !== 'all' || filters.typeFilter !== 'all' || weeklyRevenueFilter) && (
-            <div className="flex items-center gap-2">
-              {weeklyRevenueFilter && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
-                  Weekly Revenue Only
-                </Badge>
-              )}
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-2" />
-                Clear All Filters
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        <div className="text-sm text-muted-foreground">
-          Showing {filteredEvents.length} of {salesEvents.length} total events
-          {weeklyRevenueFilter && (
-            <span className="ml-2 text-green-600 dark:text-green-400">
-              (Revenue-generating events this week)
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Main Content - Calendar or List View */}

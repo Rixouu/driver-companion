@@ -91,6 +91,47 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const [isLoading, setIsLoading] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
 
+  // Simple inspector loading function
+  const loadInspectorData = async (inspectorId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', inspectorId)
+        .single()
+      
+      if (data) {
+        return { id: data.id, name: data.full_name }
+      }
+    } catch (error) {
+      console.error('Error loading inspector:', error)
+    }
+    return null
+  }
+
+  // Batch load inspector data for multiple inspections
+  const loadInspectorsBatch = async (inspectorIds: string[]) => {
+    try {
+      const uniqueIds = [...new Set(inspectorIds.filter(id => id && id !== null))]
+      if (uniqueIds.length === 0) return new Map()
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', uniqueIds)
+      
+      if (data) {
+        return new Map(data.map(i => [
+          i.id, 
+          { id: i.id, name: i.full_name }
+        ]))
+      }
+    } catch (error) {
+      console.error('Error batch loading inspectors:', error)
+    }
+    return new Map()
+  }
+
   // Update URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams()
@@ -110,69 +151,50 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
       try {
         setIsLoading(true)
         
-        if (!inspections || inspections.length === 0) {
-          setInspectionsWithVehicles([])
-          return
-        }
-
-        // Get all unique vehicle IDs and inspector IDs for batch fetching
-        const vehicleIds = [...new Set(inspections.map(i => i.vehicle_id).filter((id): id is string => id !== null))]
-        const inspectorIds = [...new Set(inspections.map(i => i.inspector_id).filter((id): id is string => id !== null))]
-
-        // Batch fetch all vehicles and inspectors in parallel
-        const [vehiclesResult, inspectorsResult] = await Promise.all([
-          vehicleIds.length > 0 ? supabase
-            .from('vehicles')
-            .select('id, name, plate_number, image_url, brand, model')
-            .in('id', vehicleIds) : Promise.resolve({ data: [] }),
-          inspectorIds.length > 0 ? supabase
-            .from('drivers')
-            .select('id, first_name, last_name')
-            .in('id', inspectorIds)
-            .is('deleted_at', null) : Promise.resolve({ data: [] })
-        ])
-
-        // Create lookup maps for fast access
-        const vehiclesMap = new Map(vehiclesResult.data?.map(v => [v.id, v]) || [])
-        const inspectorsMap = new Map(inspectorsResult.data?.map(i => [i.id, { 
-          id: i.id, 
-          name: `${i.first_name} ${i.last_name}` 
-        }]) || [])
-        
         const updatedInspections = await Promise.all(
           inspections.map(async (inspection) => {
             let updatedInspection = { ...inspection } as ExtendedInspection;
             
-            // Load vehicle data from lookup map
-            if (inspection.vehicle_id && vehiclesMap.has(inspection.vehicle_id)) {
-              const vehicle = vehiclesMap.get(inspection.vehicle_id)!
-              updatedInspection.vehicle = {
-                ...vehicle,
-                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                brand: vehicle.brand === null ? undefined : vehicle.brand,
-                model: vehicle.model === null ? undefined : vehicle.model
-              };
-            }
-            
-            // Load inspector data from lookup map
-            if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
-              updatedInspection.inspector = inspectorsMap.get(inspection.inspector_id)!
-            }
-            
-            // Load template display name
-            const templateName = await getTemplateDisplayName(inspection);
-            if (templateName) {
-              // If we found a template name, use it as the type
-              // Use 'as any' to bypass type checking since we're adding custom template types
-              (updatedInspection as any).type = templateName;
+            // Load vehicle data if available
+            if (inspection.vehicle_id) {
+              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
+              if (vehicle) {
+                updatedInspection.vehicle = {
+                  ...vehicle,
+                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                  brand: vehicle.brand === null ? undefined : vehicle.brand,
+                  model: vehicle.model === null ? undefined : vehicle.model
+                };
+              }
+              
+              // Load template display name
+              const templateName = await getTemplateDisplayName(inspection);
+              if (templateName) {
+                (updatedInspection as any).type = templateName;
+              }
             }
             
             return updatedInspection;
           })
         );
+
+        // Batch load all inspector data
+        const inspectorIds = inspections
+          .map(i => i.inspector_id)
+          .filter((id): id is string => id !== null && id !== undefined)
+        
+        const inspectorsMap = await loadInspectorsBatch(inspectorIds)
+        
+        // Add inspector data to inspections
+        const withInspectors = updatedInspections.map(inspection => {
+          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
+            inspection.inspector = inspectorsMap.get(inspection.inspector_id)
+          }
+          return inspection
+        })
         
         // Sort inspections by date (most recent first)
-        const sortedInspections = updatedInspections.sort((a, b) => 
+        const sortedInspections = withInspectors.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
         ) as ExtendedInspection[];
         
@@ -185,7 +207,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     loadVehicleData();
-  }, [inspections, t, supabase, viewMode]);
+  }, [inspections, vehicles, t, viewMode]);
 
   // Calendar view: load only visible inspections with pagination
   useEffect(() => {
@@ -204,7 +226,6 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         // For calendar view, load only a reasonable amount of data
         const limit = calendarView === "month" ? 100 : 50
 
-        // First, get all inspections for the date range
         let query = supabase
           .from('inspections')
           .select('*')
@@ -217,56 +238,24 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           query = query.eq('status', filters.statusFilter)
         }
 
-        const { data: inspectionsData, error } = await query
+        const { data, error } = await query
         if (error) throw error
 
-        if (!inspectionsData || inspectionsData.length === 0) {
-          setInspectionsWithVehicles([])
-          return
-        }
-
-        // Get all unique vehicle IDs and inspector IDs for batch fetching
-        const vehicleIds = [...new Set(inspectionsData.map(i => i.vehicle_id).filter((id): id is string => id !== null))]
-        const inspectorIds = [...new Set(inspectionsData.map(i => i.inspector_id).filter((id): id is string => id !== null))]
-
-        // Batch fetch all vehicles and inspectors in parallel
-        const [vehiclesResult, inspectorsResult] = await Promise.all([
-          vehicleIds.length > 0 ? supabase
-            .from('vehicles')
-            .select('id, name, plate_number, image_url, brand, model')
-            .in('id', vehicleIds) : Promise.resolve({ data: [] }),
-          inspectorIds.length > 0 ? supabase
-            .from('drivers')
-            .select('id, first_name, last_name')
-            .in('id', inspectorIds)
-            .is('deleted_at', null) : Promise.resolve({ data: [] })
-        ])
-
-        // Create lookup maps for fast access
-        const vehiclesMap = new Map(vehiclesResult.data?.map(v => [v.id, v]) || [])
-        const inspectorsMap = new Map(inspectorsResult.data?.map(i => [i.id, { 
-          id: i.id, 
-          name: `${i.first_name} ${i.last_name}` 
-        }]) || [])
-
-        // Map and enrich inspections with vehicle and inspector data
-        const enriched = await Promise.all(inspectionsData.map(async (inspection: any) => {
+        // Map and enrich with template display name and vehicle data
+        const enriched = await Promise.all((data || []).map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
           
-          // Add vehicle data from lookup map
-          if (inspection.vehicle_id && vehiclesMap.has(inspection.vehicle_id)) {
-            const vehicle = vehiclesMap.get(inspection.vehicle_id)!
-            updatedInspection.vehicle = {
-              ...vehicle,
-              image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-              brand: vehicle.brand === null ? undefined : vehicle.brand,
-              model: vehicle.model === null ? undefined : vehicle.model
+          // Load vehicle data if available
+          if (inspection.vehicle_id) {
+            const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
+            if (vehicle) {
+              updatedInspection.vehicle = {
+                ...vehicle,
+                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                brand: vehicle.brand === null ? undefined : vehicle.brand,
+                model: vehicle.model === null ? undefined : vehicle.model
+              };
             }
-          }
-          
-          // Add inspector data from lookup map
-          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
-            updatedInspection.inspector = inspectorsMap.get(inspection.inspector_id)!
           }
           
           // Load template display name
@@ -276,9 +265,24 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           return updatedInspection
         }))
 
+        // Batch load all inspector data
+        const inspectorIds = (data || [])
+          .map(i => i.inspector_id)
+          .filter((id): id is string => id !== null && id !== undefined)
+        
+        const inspectorsMap = await loadInspectorsBatch(inspectorIds)
+        
+        // Add inspector data to enriched inspections
+        const withInspectors = enriched.map(inspection => {
+          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
+            inspection.inspector = inspectorsMap.get(inspection.inspector_id)
+          }
+          return inspection
+        })
+
         // Apply client-side search filter (by vehicle name/plate/type)
         const searchLower = (debouncedSearch || '').toLowerCase()
-        const searched = !searchLower ? enriched : enriched.filter((inspection: any) => (
+        const searched = !searchLower ? withInspectors : withInspectors.filter((inspection: any) => (
           (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(searchLower)) ||
           (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(searchLower)) ||
           (inspection.type && String(inspection.type).toLowerCase().includes(searchLower))
@@ -295,7 +299,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, vehicles])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {
@@ -925,9 +929,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             <p className="text-muted-foreground">{t("inspections.description")}</p>
           </div>
           <Button asChild>
-            <Link href="/inspections/new">
-              <Plus className="mr-2 h-4 w-4" />
-              {t("inspections.createInspection")}
+            <Link href="/inspections/create">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("inspections.create")}
             </Link>
           </Button>
         </div>
@@ -936,44 +940,23 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         <InspectionFilter
           filters={filters}
           onFiltersChange={setFilters}
-          totalInspections={filteredInspections.length}
-          totalScheduled={filteredInspections.filter(i => i.status === 'scheduled').length}
-          totalCompleted={filteredInspections.filter(i => i.status === 'completed').length}
-          totalFailed={filteredInspections.filter(i => i.status === 'failed').length}
-          className="mb-6"
+          totalInspections={inspectionsWithVehicles.length}
+          totalScheduled={inspectionsWithVehicles.filter(i => i.status === 'scheduled').length}
+          totalCompleted={inspectionsWithVehicles.filter(i => i.status === 'completed').length}
+          totalFailed={inspectionsWithVehicles.filter(i => i.status === 'failed').length}
         />
 
-        {/* Results Summary */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">{t("inspections.title")}</h2>
-            <p className="text-muted-foreground">
-              {weeklyCompletedFilter 
-                ? "Weekly completed inspections" 
-                : "Track and manage vehicle inspections"
-              }
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                Loading...
-              </div>
+        {/* View Mode Toggle and Results Summary - Better Spacing */}
+        <div className="flex items-center justify-between mb-6 mt-8">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
+            {weeklyCompletedFilter && (
+              <span className="ml-2 text-green-600 dark:text-green-400">
+                (Completed this week)
+              </span>
             )}
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
-              {weeklyCompletedFilter && (
-                <span className="ml-2 text-green-600 dark:text-green-400">
-                  (Completed this week)
-                </span>
-              )}
-            </div>
           </div>
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex justify-end mb-4">
+          
           <div className="flex items-center gap-4">
             {/* Active Filters Display */}
             {(filters.searchQuery || filters.statusFilter !== 'all' || weeklyCompletedFilter) && (
@@ -995,17 +978,19 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
                 variant={viewMode === "calendar" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("calendar")}
-                className="rounded-r-none"
+                className="rounded-r-none px-3"
               >
-                <Grid3X3 className="h-4 w-4" />
+                <Grid3X3 className="h-4 w-4 mr-2" />
+                Grid
               </Button>
               <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("list")}
-                className="rounded-l-none"
+                className="rounded-l-none px-3"
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4 mr-2" />
+                List
               </Button>
             </div>
           </div>
@@ -1019,22 +1004,28 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           return (
             <Card 
               key={index} 
-              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-current"
+              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 hover:border-l-current"
+              style={{ 
+                borderLeftColor: stat.color === 'text-blue-600 dark:text-blue-400' ? '#2563eb' : 
+                                 stat.color === 'text-yellow-600 dark:text-yellow-400' ? '#ca8a04' :
+                                 stat.color === 'text-green-600 dark:text-green-400' ? '#16a34a' :
+                                 stat.color === 'text-red-600 dark:text-red-400' ? '#dc2626' : '#6b7280' 
+              }}
               onClick={() => handleQuickStatClick(stat.action)}
             >
               <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-lg transition-transform group-hover:scale-110", stat.bgColor)}>
+                <div className="flex items-start gap-4">
+                  <div className={cn("p-3 rounded-xl transition-transform group-hover:scale-110 flex-shrink-0", stat.bgColor)}>
                     <Icon className={cn("h-6 w-6", stat.color)} />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-tight mb-2">
                       {stat.title}
                     </p>
-                    <p className={cn("text-2xl font-bold transition-colors", stat.color)}>
+                    <p className="text-2xl font-bold text-foreground group-hover:text-foreground transition-colors">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors mt-1">
                       {stat.description}
                     </p>
                   </div>

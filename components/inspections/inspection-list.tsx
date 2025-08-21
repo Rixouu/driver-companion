@@ -88,6 +88,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     dateRange: 'all'
   })
   const [weeklyCompletedFilter, setWeeklyCompletedFilter] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
 
   // Update URL params when filters change
@@ -101,72 +102,82 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     router.replace(newUrl as any, { scroll: false })
   }, [debouncedSearch, filters.statusFilter, viewMode, router])
 
+  // Handle list view data loading
   useEffect(() => {
-    // In list view, enrich the server-provided, paginated inspections
-    if (viewMode === "calendar") return
-    async function loadVehicleData() {
-      try {
-        const updatedInspections = await Promise.all(
-          inspections.map(async (inspection) => {
-            let updatedInspection = { ...inspection } as ExtendedInspection;
-            
-            // Load vehicle data if available
-            if (inspection.vehicle_id) {
-              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-              if (vehicle) {
-                updatedInspection.vehicle = {
-                  ...vehicle,
-                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                  brand: vehicle.brand === null ? undefined : vehicle.brand,
-                  model: vehicle.model === null ? undefined : vehicle.model
-                };
-              }
+    if (viewMode === "list") {
+      async function loadVehicleData() {
+        setIsLoading(true);
+        try {
+          // Get unique inspector IDs to batch fetch
+          const inspectorIds = inspections
+            .map(inspection => inspection.inspector_id)
+            .filter((id): id is string => id !== null && id !== undefined);
+          
+          // Batch fetch inspector data
+          let inspectorsData: any[] = [];
+          if (inspectorIds.length > 0) {
+            const { data: inspectors } = await supabase
+              .from('drivers')
+              .select('id, first_name, last_name')
+              .in('id', inspectorIds);
+            inspectorsData = inspectors || [];
+          }
+          
+          const updatedInspections = await Promise.all(
+            inspections.map(async (inspection) => {
+              let updatedInspection = { ...inspection } as ExtendedInspection;
               
-              // Load template display name
-              const templateName = await getTemplateDisplayName(inspection);
-              if (templateName) {
-                // If we found a template name, use it as the type
-                // Use 'as any' to bypass type checking since we're adding custom template types
-                (updatedInspection as any).type = templateName;
-              }
-            }
-            
-            // Load inspector data if available
-            if (inspection.inspector_id) {
-              try {
-                const { data: inspectorData } = await supabase
-                  .from('profiles')
-                  .select('id, full_name')
-                  .eq('id', inspection.inspector_id)
-                  .single();
-                
-                if (inspectorData) {
-                  updatedInspection.inspector = {
-                    id: inspectorData.id,
-                    name: inspectorData.full_name || t('common.notAssigned')
+              // Load vehicle data if available
+              if (inspection.vehicle_id) {
+                const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
+                if (vehicle) {
+                  updatedInspection.vehicle = {
+                    ...vehicle,
+                    image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                    brand: vehicle.brand === null ? undefined : vehicle.brand,
+                    model: vehicle.model === null ? undefined : vehicle.model
                   };
                 }
-              } catch (error) {
-                console.error('Error fetching inspector data:', error);
+                
+                // Load template display name
+                const templateName = await getTemplateDisplayName(inspection);
+                if (templateName) {
+                  // If we found a template name, use it as the type
+                  // Use 'as any' to bypass type checking since we're adding custom template types
+                  (updatedInspection as any).type = templateName;
+                }
               }
-            }
-            
-            return updatedInspection;
-          })
-        );
-        
-        // Sort inspections by date (most recent first)
-        const sortedInspections = updatedInspections.sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        ) as ExtendedInspection[];
-        
-        setInspectionsWithVehicles(sortedInspections);
-      } catch (error) {
-        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
+              
+              // Set inspector data from batch fetch
+              if (inspection.inspector_id) {
+                const inspector = inspectorsData.find(i => i.id === inspection.inspector_id);
+                if (inspector) {
+                  updatedInspection.inspector = {
+                    id: inspector.id,
+                    name: `${inspector.first_name} ${inspector.last_name}`
+                  };
+                }
+              }
+              
+              return updatedInspection;
+            })
+          );
+          
+          // Sort inspections by date (most recent first)
+          const sortedInspections = updatedInspections.sort((a, b) => 
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+          ) as ExtendedInspection[];
+          
+          setInspectionsWithVehicles(sortedInspections);
+        } catch (error) {
+          console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
+        } finally {
+          setIsLoading(false);
+        }
       }
-    }
 
-    loadVehicleData();
+      loadVehicleData();
+    }
   }, [inspections, vehicles, t, supabase, viewMode]);
 
   // Calendar view: load all inspections for the visible date range regardless of list pagination
@@ -188,6 +199,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           .gte('date', rangeStart.toISOString())
           .lte('date', rangeEnd.toISOString())
           .order('date', { ascending: false })
+          .limit(50) // Limit to prevent loading too many inspections
 
         if (filters.statusFilter !== 'all') {
           query = query.eq('status', filters.statusFilter)
@@ -204,7 +216,9 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
           if (inspection.vehicle) {
             updatedInspection.vehicle = {
               ...inspection.vehicle,
-              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url
+              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url,
+              brand: inspection.vehicle.brand === null ? undefined : inspection.vehicle.brand,
+              model: inspection.vehicle.model === null ? undefined : inspection.vehicle.model
             }
           }
           
@@ -216,7 +230,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             }
           }
           
-          const templateName = await getTemplateDisplayName(updatedInspection)
+          const templateName = await getTemplateDisplayName(inspection)
           if (templateName) (updatedInspection as any).type = templateName
           return updatedInspection
         }))
@@ -887,6 +901,12 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                Loading...
+              </div>
+            )}
             <div className="text-sm text-muted-foreground">
               Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
               {weeklyCompletedFilter && (

@@ -17,41 +17,26 @@ interface PerformanceMetrics {
 }
 
 /**
- * Enhanced font loading utility specifically for base64 fonts
+ * Simplified font loading utility for reliable PDF generation
  */
 async function ensureFontsLoadedOptimized(page: any): Promise<void> {
   try {
-    console.log('⏱️  Starting base64 font loading...');
+    console.log('⏱️  Starting font loading...');
     const fontLoadStart = Date.now();
     
-    // Wait for fonts to be ready with longer timeout for base64 fonts
+    // Simple font ready check with reasonable timeout
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
-      new Promise(resolve => setTimeout(resolve, 3000)) // 3s max for base64 fonts
+      new Promise(resolve => setTimeout(resolve, 5000)) // 5s max
     ]);
     
-    // Additional wait for base64 fonts to fully load
-    await page.evaluate(() => {
-      return new Promise<void>((resolve) => {
-        // Check if our specific font is loaded
-        const checkFont = () => {
-          if (document.fonts.check('1em "Noto Sans"')) {
-            resolve();
-          } else {
-            setTimeout(checkFont, 100);
-          }
-        };
-        checkFont();
-      });
-    });
-    
     const fontLoadTime = Date.now() - fontLoadStart;
-    console.log(`⏱️  Base64 fonts loaded in ${fontLoadTime}ms`);
+    console.log(`⏱️  Fonts loaded in ${fontLoadTime}ms`);
     
-    // Give extra time for rendering
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Give time for rendering
+    await new Promise(resolve => setTimeout(resolve, 1000));
   } catch (error) {
-    console.warn('⚠️  Font loading error (using fallbacks):', error);
+    console.warn('⚠️  Font loading error (proceeding anyway):', error);
   }
 }
 
@@ -103,10 +88,8 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--disable-accelerated-video-decode',
     '--disable-accelerated-video-encode',
     '--memory-pressure-off',
-    '--max_old_space_size=4096',
-    // REMOVED: --disable-fonts to allow custom fonts
-    '--disable-javascript',
-    '--disable-css'
+    '--max_old_space_size=4096'
+    // REMOVED: --disable-javascript and --disable-css to allow proper rendering
   ];
 
   if (isProduction) {
@@ -263,26 +246,26 @@ export async function generateOptimizedPdfFromHtml(
     metrics.pageCreateTime = Date.now() - pageStart;
     console.log(`⏱️  Page created in ${metrics.pageCreateTime}ms`);
 
-    // Set content with minimal waiting for fastest generation
+    // Set content with reasonable waiting for reliable generation
     const contentStart = Date.now();
     await Promise.race([
       page.setContent(fullHtml, { 
-        waitUntil: 'domcontentloaded', // Fastest option
-        timeout: 3000 // 3s timeout for fastest generation
+        waitUntil: 'domcontentloaded', // Reliable option
+        timeout: 10000 // 10s timeout for reliable generation
       }),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Content loading timeout')), 3000)
+        setTimeout(() => reject(new Error('Content loading timeout')), 10000)
       )
     ]);
     
     metrics.contentSetTime = Date.now() - contentStart;
     console.log(`⏱️  Content set in ${metrics.contentSetTime}ms`);
 
-    // Ensure fonts are loaded for original appearance
+    // Ensure fonts are loaded for reliable appearance
     await ensureFontsLoadedOptimized(page);
     metrics.fontLoadTime = Date.now() - (contentStart + (metrics.contentSetTime || 0));
 
-    // Generate PDF with fast timeout
+    // Generate PDF with reasonable timeout
     const pdfStart = Date.now();
     const pdfBuffer = await Promise.race([
       page.pdf({
@@ -290,10 +273,10 @@ export async function generateOptimizedPdfFromHtml(
         margin: pdfOptions.margin,
         printBackground: pdfOptions.printBackground,
         scale: pdfOptions.scale,
-        timeout: 5000 // 5s timeout for fastest PDF generation
+        timeout: 15000 // 15s timeout for reliable PDF generation
       }),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('PDF generation timeout')), 5000)
+        setTimeout(() => reject(new Error('PDF generation timeout')), 15000)
       )
     ]);
 
@@ -327,13 +310,23 @@ export async function generateOptimizedPdfFromHtml(
     }
     
     metrics.totalTime = Date.now() - metrics.startTime;
-    console.error('❌ PDF generation failed:', {
+    console.error('❌ Optimized PDF generation failed, trying fallback:', {
       error: error instanceof Error ? error.message : String(error),
       totalTime: `${metrics.totalTime}ms`,
       metrics
     });
     
-    throw new Error(`Optimized PDF generation failed: ${(error as Error).message}`);
+    // Try fallback to regular generator
+    try {
+      console.log('🔄 Attempting fallback to regular PDF generator...');
+      const { generatePdfFromHtml } = await import('./html-pdf-generator');
+      const fallbackBuffer = await generatePdfFromHtml(htmlContent, options);
+      console.log('✅ Fallback PDF generation successful');
+      return fallbackBuffer;
+    } catch (fallbackError) {
+      console.error('❌ Fallback PDF generation also failed:', fallbackError);
+      throw new Error(`PDF generation failed (optimized + fallback): ${(error as Error).message}`);
+    }
   }
 }
 

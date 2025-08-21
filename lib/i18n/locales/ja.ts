@@ -770,6 +770,36 @@ export const ja: TranslationValue = {
       vehicle: "車両",
       none: "なし"
     },
+    filters: {
+      title: "点検フィルターと検索",
+      status: "ステータス",
+      vehicleBrand: "車両ブランド",
+      inspector: "点検員",
+      dateRange: "期間",
+      search: "検索",
+      allStatuses: "すべてのステータス",
+      allBrands: "すべてのブランド",
+      allInspectors: "すべての点検員",
+      allDates: "すべての日付",
+      today: "今日",
+      thisWeek: "今週",
+      thisMonth: "今月",
+      assigned: "割り当て済み",
+      unassigned: "未割り当て",
+      searchPlaceholder: "車両、ナンバープレート、点検員で検索...",
+      clearAllFilters: "すべてのフィルターをクリア",
+      filteredResults: "フィルター結果: {count}件の点検",
+      showingAll: "すべての{count}件の点検を表示",
+      sortBy: "並び替え",
+      sortOrder: "並び替え順",
+      sortOptions: {
+        date: "日付",
+        vehicle: "車両",
+        inspector: "点検員",
+        type: "タイプ",
+        status: "ステータス"
+      }
+    },
     quickStats: {
       title: "点検概要",
       todaysInspections: "本日の点検",

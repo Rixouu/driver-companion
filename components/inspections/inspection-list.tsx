@@ -9,7 +9,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
-import type { Inspection, DbVehicle } from "@/types"
+import type { OptimizedInspection, DbVehicle } from "@/types"
 import { format, parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, addWeeks, subWeeks, startOfDay, endOfDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useDebounce } from "@/lib/hooks/use-debounce"
@@ -32,7 +32,7 @@ import { useSupabase } from "@/components/providers/supabase-provider"
 import { InspectionFilter, InspectionFilterOptions } from "./inspection-filter"
 
 // Extended inspection type for this component
-interface ExtendedInspection extends Omit<Inspection, 'type'> {
+interface ExtendedInspection extends Omit<OptimizedInspection, 'type'> {
   vehicle?: {
     id: string
     name: string
@@ -49,7 +49,8 @@ interface ExtendedInspection extends Omit<Inspection, 'type'> {
 }
 
 interface InspectionListProps {
-  inspections: Inspection[]
+  inspections: OptimizedInspection[]
+  allInspections: any[] // Full dataset for calendar view
   vehicles: DbVehicle[]
   currentPage?: number
   totalPages?: number
@@ -67,12 +68,14 @@ interface QuickStat {
   description: string
 }
 
-export function InspectionList({ inspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
+export function InspectionList({ inspections = [], allInspections = [], vehicles = [], currentPage = 1, totalPages = 1 }: InspectionListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useI18n()
   const supabase = useSupabase()
   const [inspectionsWithVehicles, setInspectionsWithVehicles] = useState<ExtendedInspection[]>([])
+  const [allInspectionsWithVehicles, setAllInspectionsWithVehicles] = useState<ExtendedInspection[]>([])
+  const [filteredInspections, setFilteredInspections] = useState<ExtendedInspection[]>([])
   const [calendarView, setCalendarView] = useState<CalendarView>("month")
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -80,7 +83,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
   const [filters, setFilters] = useState<InspectionFilterOptions>({
     statusFilter: 'all',
-    vehicleFilter: 'all',
+    vehicleModelFilter: 'all', // Changed from vehicleFilter
     inspectorFilter: 'all',
     searchQuery: '',
     sortBy: 'date',
@@ -143,237 +146,297 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     router.replace(newUrl as any, { scroll: false })
   }, [debouncedSearch, filters.statusFilter, viewMode, router])
 
-  // Handle list view data loading
+  // Single data transformation - happens once when data changes, not on view changes
   useEffect(() => {
-    // In list view, enrich the server-provided, paginated inspections
-    if (viewMode === "calendar") return
-    async function loadVehicleData() {
-      try {
-        setIsLoading(true)
-        
-        const updatedInspections = await Promise.all(
-          inspections.map(async (inspection) => {
-            let updatedInspection = { ...inspection } as ExtendedInspection;
-            
-            // Load vehicle data if available
-            if (inspection.vehicle_id) {
-              const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-              if (vehicle) {
-                updatedInspection.vehicle = {
-                  ...vehicle,
-                  image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                  brand: vehicle.brand === null ? undefined : vehicle.brand,
-                  model: vehicle.model === null ? undefined : vehicle.model
-                };
-              }
-              
-              // Load template display name
-              const templateName = await getTemplateDisplayName(inspection);
-              if (templateName) {
-                (updatedInspection as any).type = templateName;
-              }
-            }
-            
-            return updatedInspection;
-          })
-        );
-
-        // Batch load all inspector data
-        const inspectorIds = inspections
-          .map(i => i.inspector_id)
-          .filter((id): id is string => id !== null && id !== undefined)
-        
-        const inspectorsMap = await loadInspectorsBatch(inspectorIds)
-        
-        // Add inspector data to inspections
-        const withInspectors = updatedInspections.map(inspection => {
-          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
-            inspection.inspector = inspectorsMap.get(inspection.inspector_id)
-          }
-          return inspection
-        })
-        
-        // Sort inspections by date (most recent first)
-        const sortedInspections = withInspectors.sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        ) as ExtendedInspection[];
-        
-        setInspectionsWithVehicles(sortedInspections);
-      } catch (error) {
-        console.error(t('errors.failedToLoadData', { entity: 'vehicle data' }), error);
-      } finally {
-        setIsLoading(false);
-      }
+    if (!inspections || inspections.length === 0) {
+      setInspectionsWithVehicles([]);
+      setFilteredInspections([]);
+      return;
     }
 
-    loadVehicleData();
-  }, [inspections, vehicles, t, viewMode]);
+    console.log('🔍 [DATA_TRANSFORM] Raw inspection data sample:', {
+      first: inspections[0],
+      fields: Object.keys(inspections[0] || {}),
+      vehicleFields: {
+        vehicle_name: inspections[0]?.vehicle_name,
+        vehicle_brand: inspections[0]?.vehicle_brand,
+        vehicle_model: inspections[0]?.vehicle_model
+      }
+    });
 
-  // Calendar view: load only visible inspections with pagination
-  useEffect(() => {
-    if (viewMode !== "calendar") return
-
-    const fetchCalendarInspections = async () => {
-      try {
-        setIsLoading(true)
-        const rangeStart = calendarView === "month" 
-          ? startOfMonth(currentDate) 
-          : startOfWeek(currentDate, { weekStartsOn: 1 })
-        const rangeEnd = calendarView === "month" 
-          ? endOfMonth(currentDate) 
-          : endOfWeek(currentDate, { weekStartsOn: 1 })
-
-        // For calendar view, load only a reasonable amount of data
-        const limit = calendarView === "month" ? 100 : 50
-
-        let query = supabase
-          .from('inspections')
-          .select('*')
-          .gte('date', rangeStart.toISOString())
-          .lte('date', rangeEnd.toISOString())
-          .order('date', { ascending: false })
-          .limit(limit)
-
-        if (filters.statusFilter !== 'all') {
-          query = query.eq('status', filters.statusFilter)
+    try {
+      setIsLoading(true)
+      
+      // Transform the pre-joined data once
+      const transformedInspections = inspections.map((inspection) => {
+        const transformed = { ...inspection } as ExtendedInspection;
+        
+        // Vehicle data is already pre-joined
+        if (inspection.vehicle_name) {
+          transformed.vehicle = {
+            id: inspection.vehicle_id,
+            name: inspection.vehicle_name,
+            plate_number: inspection.vehicle_plate_number,
+            brand: inspection.vehicle_brand || undefined,
+            model: inspection.vehicle_model || undefined,
+            image_url: undefined
+          };
         }
-
-        const { data, error } = await query
-        if (error) throw error
-
-        // Map and enrich with template display name and vehicle data
-        const enriched = await Promise.all((data || []).map(async (inspection: any) => {
-          const updatedInspection: any = { ...inspection }
-          
-          // Load vehicle data if available
-          if (inspection.vehicle_id) {
-            const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
-            if (vehicle) {
-              updatedInspection.vehicle = {
-                ...vehicle,
-                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
-                brand: vehicle.brand === null ? undefined : vehicle.brand,
-                model: vehicle.model === null ? undefined : vehicle.model
-              };
-            }
-          }
-          
-          // Load template display name
-          const templateName = await getTemplateDisplayName(updatedInspection)
-          if (templateName) (updatedInspection as any).type = templateName
-          
-          return updatedInspection
-        }))
-
-        // Batch load all inspector data
-        const inspectorIds = (data || [])
-          .map(i => i.inspector_id)
-          .filter((id): id is string => id !== null && id !== undefined)
         
-        const inspectorsMap = await loadInspectorsBatch(inspectorIds)
+        // Inspector data is already pre-joined
+        if (inspection.inspector_name) {
+          transformed.inspector = {
+            id: inspection.inspector_id || '',
+            name: inspection.inspector_name
+          };
+        }
         
-        // Add inspector data to enriched inspections
-        const withInspectors = enriched.map(inspection => {
-          if (inspection.inspector_id && inspectorsMap.has(inspection.inspector_id)) {
-            inspection.inspector = inspectorsMap.get(inspection.inspector_id)
+        // Use template_display_name if available
+        if (inspection.template_display_name) {
+          (transformed as any).type = inspection.template_display_name;
+        }
+        
+        return transformed;
+      });
+      
+      // Sort by date (most recent first)
+      const sortedInspections = transformedInspections.sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      
+      setInspectionsWithVehicles(sortedInspections);
+      setFilteredInspections(sortedInspections); // Initialize filtered data with all data
+      
+      // Set calendar to show the month with the most recent inspection
+      if (sortedInspections.length > 0) {
+        const mostRecentDate = new Date(sortedInspections[0].date);
+        setCurrentDate(mostRecentDate);
+        console.log('📅 [INSPECTION_LIST] Setting calendar to inspection date:', mostRecentDate.toISOString());
+      }
+    } catch (error) {
+      console.error('Error transforming inspection data:', error);
+      setInspectionsWithVehicles(inspections as any);
+      setFilteredInspections(inspections as any);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [inspections]); // Only depend on inspections data, not view mode
+
+  // Transform all inspections for calendar view
+  useEffect(() => {
+    if (!allInspections || allInspections.length === 0) return;
+    
+    try {
+      // Transform all inspections for calendar view
+      const transformedAllInspections = allInspections.map((item: any) => {
+        const transformed = { ...item } as ExtendedInspection;
+        
+        // Vehicle data
+        if (item.vehicle_name || item.vehicle_brand) {
+          transformed.vehicle = {
+            id: item.vehicle_id,
+            name: item.vehicle_name || '',
+            plate_number: item.vehicle_plate_number || '',
+            brand: item.vehicle_brand || undefined,
+            model: item.vehicle_model || undefined,
+            image_url: undefined
+          };
+        }
+        
+        // Inspector data (we'll get this from the main inspections data)
+        if (item.inspector_id) {
+          // Find the inspector data from the main inspections
+          const mainInspection = inspections.find(i => i.id === item.id);
+          if (mainInspection?.inspector_name) {
+            transformed.inspector = {
+              id: item.inspector_id,
+              name: mainInspection.inspector_name
+            };
           }
-          return inspection
-        })
+        }
+        
+        // Use type as template display name
+        (transformed as any).type = item.type || 'routine';
+        
+        return transformed;
+      });
+      
+      // Store all inspections for calendar view
+      setAllInspectionsWithVehicles(transformedAllInspections);
+    } catch (error) {
+      console.error('Error transforming all inspection data:', error);
+    }
+  }, [allInspections, inspections]);
 
-        // Apply client-side search filter (by vehicle name/plate/type)
-        const searchLower = (debouncedSearch || '').toLowerCase()
-        const searched = !searchLower ? withInspectors : withInspectors.filter((inspection: any) => (
-          (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(searchLower)) ||
-          (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(searchLower)) ||
-          (inspection.type && String(inspection.type).toLowerCase().includes(searchLower))
-        ))
+  // View-specific filtering - no data reloading, just filtering existing data
+  useEffect(() => {
+    if (!inspectionsWithVehicles || inspectionsWithVehicles.length === 0) return;
 
-        // Sort newest first and set
-        const sorted = searched.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        setInspectionsWithVehicles(sorted)
-      } catch (err) {
-        console.error('[INSPECTIONS_CALENDAR_FETCH] Failed to fetch inspections for calendar view:', err)
-      } finally {
-        setIsLoading(false)
+    console.log('🔍 [INSPECTION_LIST] Applying filters:', {
+      viewMode,
+      calendarView,
+      currentDate,
+      filters,
+      totalInspections: inspectionsWithVehicles.length
+    });
+
+    // For calendar view, we need to use all inspections initially, then apply filters
+    // For list view, we use the paginated inspections
+    let dataToFilter = viewMode === "calendar" ? allInspectionsWithVehicles : inspectionsWithVehicles;
+    
+    if (!dataToFilter || dataToFilter.length === 0) {
+      dataToFilter = inspectionsWithVehicles; // Fallback
+    }
+
+    let filteredData = [...dataToFilter];
+
+    // Apply calendar view date filtering if needed
+    if (viewMode === "calendar") {
+      const rangeStart = calendarView === "month" 
+        ? startOfMonth(currentDate) 
+        : startOfWeek(currentDate, { weekStartsOn: 1 })
+      const rangeEnd = calendarView === "month" 
+        ? endOfMonth(currentDate) 
+        : endOfWeek(currentDate, { weekStartsOn: 1 })
+      
+      console.log('📅 [INSPECTION_LIST] Calendar date range:', {
+        rangeStart: rangeStart.toISOString(),
+        rangeEnd: rangeEnd.toISOString(),
+        currentDate: currentDate.toISOString()
+      });
+      
+      filteredData = filteredData.filter(inspection => {
+        const inspectionDate = new Date(inspection.date)
+        return inspectionDate >= rangeStart && inspectionDate <= rangeEnd
+      });
+      
+      console.log('📅 [INSPECTION_LIST] After calendar filtering:', filteredData.length, 'inspections');
+    }
+
+    // Apply date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date()
+      const today = startOfDay(now)
+      const endOfToday = endOfDay(now)
+      
+      switch (filters.dateRange) {
+        case 'today':
+          filteredData = filteredData.filter(inspection => {
+            const inspectionDate = new Date(inspection.date)
+            return inspectionDate >= today && inspectionDate <= endOfToday
+          })
+          break
+        case 'week':
+          const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 })
+          const endOfThisWeek = endOfWeek(now, { weekStartsOn: 1 })
+          filteredData = filteredData.filter(inspection => {
+            const inspectionDate = new Date(inspection.date)
+            return inspectionDate >= startOfThisWeek && inspectionDate <= endOfThisWeek
+          })
+          break
+        case 'month':
+          const startOfThisMonth = startOfMonth(now)
+          const endOfThisMonth = endOfMonth(now)
+          filteredData = filteredData.filter(inspection => {
+            const inspectionDate = new Date(inspection.date)
+            return inspectionDate >= startOfThisMonth && inspectionDate <= endOfThisMonth
+          })
+          break
       }
     }
 
-    fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, vehicles])
+    // Apply other filters (status, vehicle, inspector, search)
+    filteredData = filteredData.filter((inspection: ExtendedInspection) => {
+      // Status filter
+      const matchesStatus = filters.statusFilter === 'all' || inspection.status === filters.statusFilter
+      if (!matchesStatus) return false
 
-  // Filter inspections based on search and status
-  const filteredInspections = useMemo(() => {
-    let filtered = inspectionsWithVehicles.filter((inspection) => {
-      const matchesSearch = !debouncedSearch ||
-        (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
-        (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
-        (inspection.type && inspection.type.toLowerCase().includes(debouncedSearch.toLowerCase()))
-      
-      const matchesStatus = filters.statusFilter === "all" || inspection.status === filters.statusFilter
-      
-      const matchesVehicle = filters.vehicleFilter === "all" || 
-        (inspection.vehicle?.brand && inspection.vehicle.brand === filters.vehicleFilter)
-      
-      const matchesInspector = filters.inspectorFilter === "all" || 
-        (filters.inspectorFilter === "assigned" && inspection.inspector_id) ||
-        (filters.inspectorFilter === "unassigned" && !inspection.inspector_id)
-      
-      // Apply weekly completed filter if active
-      let matchesWeeklyCompleted = true
-      if (weeklyCompletedFilter) {
-        const today = new Date()
-        const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 })
-        const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 })
-        
-        const inspectionDate = parseISO(inspection.date)
-        const isInWeek = isValid(inspectionDate) && 
-                        inspectionDate >= startOfThisWeek && 
-                        inspectionDate <= endOfThisWeek
-        
-        matchesWeeklyCompleted = isInWeek && inspection.status === 'completed'
+      // Vehicle model filter (changed from brand)
+      if (filters.vehicleModelFilter !== 'all') {
+        console.log('🔍 [VEHICLE_FILTER] Filtering by model:', {
+          filterModel: filters.vehicleModelFilter,
+          inspectionModel: inspection.vehicle?.model,
+          vehicleName: inspection.vehicle?.name,
+          vehicleId: inspection.vehicle_id,
+          vehicleObject: inspection.vehicle,
+          matches: inspection.vehicle?.model === filters.vehicleModelFilter
+        });
+        const matchesVehicle = inspection.vehicle?.model === filters.vehicleModelFilter
+        if (!matchesVehicle) return false
       }
-      
-      return matchesSearch && matchesStatus && matchesVehicle && matchesInspector && matchesWeeklyCompleted
-    })
 
-    // Sort the filtered inspections
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any
-      
+      // Inspector filter
+      if (filters.inspectorFilter !== 'all') {
+        console.log('🔍 [INSPECTOR_FILTER] Filtering by inspector:', {
+          filterInspector: filters.inspectorFilter,
+          inspectionInspectorId: inspection.inspector_id,
+          inspectionInspectorName: inspection.inspector?.name,
+          matches: inspection.inspector_id === filters.inspectorFilter
+        });
+        
+        if (filters.inspectorFilter === 'assigned') {
+          if (!inspection.inspector_id) return false
+        } else if (filters.inspectorFilter === 'unassigned') {
+          if (inspection.inspector_id) return false
+        } else {
+          // Specific inspector ID (which is inspector_id from profiles)
+          if (inspection.inspector_id !== filters.inspectorFilter) return false
+        }
+      }
+
+      // Weekly completed filter
+      if (weeklyCompletedFilter) {
+        const inspectionDate = parseISO(inspection.date)
+        const startOfThisWeek = startOfWeek(new Date(), { weekStartsOn: 1 })
+        const endOfThisWeek = endOfWeek(new Date(), { weekStartsOn: 1 })
+        const isInWeek = isValid(inspectionDate) &&
+          inspectionDate >= startOfThisWeek &&
+          inspectionDate <= endOfThisWeek
+        const matchesWeeklyCompleted = isInWeek && inspection.status === 'completed'
+        if (!matchesWeeklyCompleted) return false
+      }
+
+      return true
+    });
+
+    // Apply search filter
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase()
+      filteredData = filteredData.filter((inspection: ExtendedInspection) => (
+        (inspection.vehicle?.name && inspection.vehicle.name.toLowerCase().includes(searchLower)) ||
+        (inspection.vehicle?.plate_number && inspection.vehicle.plate_number.toLowerCase().includes(searchLower)) ||
+        (inspection.type && inspection.type.toLowerCase().includes(searchLower))
+      ))
+    }
+
+    // Sort the filtered data
+    filteredData.sort((a, b) => {
       switch (filters.sortBy) {
         case 'date':
-          aValue = a.date || '1970-01-01'
-          bValue = b.date || '1970-01-01'
-          break
+          return filters.sortOrder === 'asc' 
+            ? new Date(a.date).getTime() - new Date(b.date).getTime()
+            : new Date(b.date).getTime() - new Date(a.date).getTime()
         case 'vehicle':
-          aValue = a.vehicle?.name || ''
-          bValue = b.vehicle?.name || ''
-          break
-        case 'inspector':
-          aValue = a.inspector?.name || ''
-          bValue = b.inspector?.name || ''
-          break
-        case 'type':
-          aValue = a.type || ''
-          bValue = b.type || ''
-          break
+          return filters.sortOrder === 'asc'
+            ? (a.vehicle?.name || '').localeCompare(b.vehicle?.name || '')
+            : (b.vehicle?.name || '').localeCompare(a.vehicle?.name || '')
         case 'status':
-          aValue = a.status || ''
-          bValue = b.status || ''
-          break
+          return filters.sortOrder === 'asc'
+            ? a.status.localeCompare(b.status)
+            : b.status.localeCompare(a.status)
         default:
-          return 0
+          return new Date(b.date).getTime() - new Date(a.date).getTime()
       }
-      
-      if (filters.sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
-    })
+    });
 
-    return filtered
-  }, [inspectionsWithVehicles, debouncedSearch, filters.statusFilter, filters.vehicleFilter, filters.inspectorFilter, weeklyCompletedFilter, filters.sortBy, filters.sortOrder])
+    console.log('✅ [INSPECTION_LIST] Final filtered data:', {
+      total: filteredData.length,
+      sample: filteredData.slice(0, 2).map(i => ({ id: i.id, date: i.date, vehicle: i.vehicle?.name }))
+    });
+
+    // Update the filtered inspections state
+    setFilteredInspections(filteredData);
+  }, [inspectionsWithVehicles, allInspectionsWithVehicles, viewMode, calendarView, currentDate, filters, debouncedSearch, weeklyCompletedFilter]);
 
   // Server-provided pagination for list view
   const listCurrentPage = currentPage
@@ -507,7 +570,10 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Get inspections for a specific date (limited for performance)
   const getInspectionsForDate = (date: Date) => {
-    const dayInspections = filteredInspections.filter(inspection => {
+    // For calendar view, use filtered inspections to respect filters
+    const dataToFilter = viewMode === "calendar" ? filteredInspections : filteredInspections;
+    
+    const dayInspections = dataToFilter.filter(inspection => {
       const inspectionDate = parseISO(inspection.date)
       return isValid(inspectionDate) && isSameDay(inspectionDate, date)
     })
@@ -518,7 +584,10 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
   // Get total count for a date (for "View All" functionality)
   const getInspectionCountForDate = (date: Date) => {
-    return filteredInspections.filter(inspection => {
+    // For calendar view, use filtered inspections to respect filters
+    const dataToFilter = viewMode === "calendar" ? filteredInspections : filteredInspections;
+    
+    return dataToFilter.filter(inspection => {
       const inspectionDate = parseISO(inspection.date)
       return isValid(inspectionDate) && isSameDay(inspectionDate, date)
     }).length
@@ -623,6 +692,15 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     const isSelected = selectedDate && isSameDay(date, selectedDate)
     const inspectionCount = dayInspections.length
 
+    // Debug: Log calendar day data
+    if (date.getDate() === 1) { // Only log for first day to avoid spam
+      console.log('📅 [CALENDAR_DAY] Rendering day:', {
+        date: date.toISOString(),
+        inspectionCount,
+        dayInspections: dayInspections.map(i => ({ id: i.id, vehicle: i.vehicle?.name, status: i.status }))
+      });
+    }
+
     return (
       <div
         key={date.toISOString()}
@@ -680,7 +758,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     setFilters(prev => ({
       ...prev,
       statusFilter: "all",
-      vehicleFilter: "all",
+      vehicleModelFilter: "all",
       inspectorFilter: "all",
       searchQuery: "",
       dateRange: "all"
@@ -870,7 +948,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
   };
 
   // Function to get template display name for an inspection
-  const getTemplateDisplayName = async (inspection: Inspection): Promise<string | null> => {
+  const getTemplateDisplayName = async (inspection: OptimizedInspection): Promise<string | null> => {
     if (!inspection.vehicle_id) return null;
     
     try {

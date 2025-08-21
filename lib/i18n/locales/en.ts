@@ -777,6 +777,36 @@ export const en: TranslationValue = {
       vehicle: "Vehicle",
       none: "None"
     },
+    filters: {
+      title: "Inspection Filters & Search",
+      status: "Status",
+      vehicleBrand: "Vehicle Brand",
+      inspector: "Inspector",
+      dateRange: "Date Range",
+      search: "Search",
+      allStatuses: "All Statuses",
+      allBrands: "All Brands",
+      allInspectors: "All Inspectors",
+      allDates: "All Dates",
+      today: "Today",
+      thisWeek: "This Week",
+      thisMonth: "This Month",
+      assigned: "Assigned",
+      unassigned: "Unassigned",
+      searchPlaceholder: "Search vehicles, plates, inspectors...",
+      clearAllFilters: "Clear All Filters",
+      filteredResults: "Filtered results: {count} inspections",
+      showingAll: "Showing all {count} inspections",
+      sortBy: "Sort by",
+      sortOrder: "Sort order",
+      sortOptions: {
+        date: "Date",
+        vehicle: "Vehicle",
+        inspector: "Inspector",
+        type: "Type",
+        status: "Status"
+      }
+    },
     quickStats: {
       title: "Inspection Overview",
       todaysInspections: "Today's Inspections",

@@ -15,8 +15,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch vehicle brands' }, { status: 500 })
     }
 
-    // Extract unique brands and filter out nulls
-    const uniqueBrands = [...new Set(brands?.map(v => v.brand).filter(Boolean) || [])]
+    // Extract unique brands, trim whitespace, and filter out nulls
+    const uniqueBrands = [...new Set(
+      brands
+        ?.map(v => v.brand?.trim()) // Trim whitespace
+        .filter(Boolean) // Filter out nulls and empty strings
+        || []
+    )]
     
     return NextResponse.json(uniqueBrands)
   } catch (error) {

@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Filter, Search, X, SortAsc, SortDesc, Calendar, Car, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 
 export interface InspectionFilterOptions {
   statusFilter: string
-  vehicleFilter: string
+  vehicleModelFilter: string // Changed from vehicleFilter to vehicleModelFilter
   inspectorFilter: string
   searchQuery: string
   sortBy: 'date' | 'vehicle' | 'inspector' | 'type' | 'status'
@@ -37,25 +38,32 @@ export function InspectionFilter({
   totalFailed,
   className = ""
 }: InspectionFilterProps) {
-  const [vehicleBrands, setVehicleBrands] = useState<string[]>([])
-  const [inspectors, setInspectors] = useState<Array<{id: string, name: string}>>([])
+  const { t } = useI18n()
+  const [vehicleModels, setVehicleModels] = useState<string[]>([])
+  const [inspectors, setInspectors] = useState<Array<{id: string, full_name: string}>>([])
 
-  // Fetch vehicle brands and inspectors from the database
+  // Fetch vehicle models and inspectors from the database
   useEffect(() => {
     const fetchFilterData = async () => {
       try {
-        // Fetch vehicle brands
-        const vehiclesResponse = await fetch('/api/vehicles/brands')
-        if (vehiclesResponse.ok) {
-          const brands = await vehiclesResponse.json()
-          setVehicleBrands(brands)
+        // Fetch vehicle models instead of brands
+        const modelsResponse = await fetch('/api/vehicles/models')
+        if (modelsResponse.ok) {
+          const modelsData = await modelsResponse.json()
+          setVehicleModels(modelsData)
         }
 
-        // Fetch inspectors (drivers)
-        const inspectorsResponse = await fetch('/api/drivers/inspectors')
+        // Fetch inspectors from profiles table (since inspector_id links to profiles)
+        const inspectorsResponse = await fetch('/api/inspectors')
         if (inspectorsResponse.ok) {
           const inspectorsData = await inspectorsResponse.json()
+          console.log('🔍 [INSPECTION_FILTER] Received inspectors:', {
+            count: inspectorsData.length,
+            sample: inspectorsData.slice(0, 3)
+          })
           setInspectors(inspectorsData)
+        } else {
+          console.error('Failed to fetch inspectors:', inspectorsResponse.status)
         }
       } catch (error) {
         console.error('Error fetching filter data:', error)
@@ -68,7 +76,7 @@ export function InspectionFilter({
   const clearFilters = () => {
     onFiltersChange({
       statusFilter: 'all',
-      vehicleFilter: 'all',
+      vehicleModelFilter: 'all',
       inspectorFilter: 'all',
       searchQuery: '',
       sortBy: 'date',
@@ -78,7 +86,7 @@ export function InspectionFilter({
   }
 
   const hasActiveFilters = filters.statusFilter !== 'all' || 
-                          filters.vehicleFilter !== 'all' || 
+                          filters.vehicleModelFilter !== 'all' || 
                           filters.inspectorFilter !== 'all' || 
                           filters.searchQuery || 
                           filters.dateRange !== 'all'
@@ -88,13 +96,13 @@ export function InspectionFilter({
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Filter className="h-5 w-5" />
-          Inspection Filters & Search
+          {t("inspections.filters.title")}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">Status</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.status")}</label>
             <Select 
               value={filters.statusFilter} 
               onValueChange={(value) => onFiltersChange({
@@ -103,36 +111,36 @@ export function InspectionFilter({
               })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
+                <SelectValue placeholder={t("inspections.filters.allStatuses")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all">{t("inspections.filters.allStatuses")}</SelectItem>
+                <SelectItem value="scheduled">{t("inspections.status.scheduled")}</SelectItem>
+                <SelectItem value="in_progress">{t("inspections.status.in_progress")}</SelectItem>
+                <SelectItem value="completed">{t("inspections.status.completed")}</SelectItem>
+                <SelectItem value="cancelled">{t("inspections.status.cancelled")}</SelectItem>
+                <SelectItem value="failed">{t("inspections.status.failed")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Vehicle Brand</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.vehicleBrand")}</label>
             <Select 
-              value={filters.vehicleFilter} 
+              value={filters.vehicleModelFilter} 
               onValueChange={(value) => onFiltersChange({
                 ...filters,
-                vehicleFilter: value
+                vehicleModelFilter: value
               })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Brands" />
+                <SelectValue placeholder={t("inspections.filters.allBrands")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {vehicleBrands.map((brand) => (
-                  <SelectItem key={brand} value={brand}>
-                    {brand}
+                <SelectItem value="all">{t("inspections.filters.allBrands")}</SelectItem>
+                {vehicleModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -140,7 +148,7 @@ export function InspectionFilter({
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Inspector</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.inspector")}</label>
             <Select 
               value={filters.inspectorFilter} 
               onValueChange={(value) => onFiltersChange({
@@ -149,23 +157,27 @@ export function InspectionFilter({
               })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Inspectors" />
+                <SelectValue placeholder={t("inspections.filters.allInspectors")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Inspectors</SelectItem>
-                <SelectItem value="assigned">Assigned</SelectItem>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {inspectors.map((inspector) => (
-                  <SelectItem key={inspector.id} value={inspector.id}>
-                    {inspector.name}
+                <SelectItem value="all">{t("inspections.filters.allInspectors")}</SelectItem>
+                {inspectors.length > 0 ? (
+                  inspectors.map((inspector) => (
+                    <SelectItem key={inspector.id} value={inspector.id}>
+                      {inspector.full_name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="debug" disabled>
+                    Debug: {inspectors.length} inspectors loaded
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Date Range</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.dateRange")}</label>
             <Select 
               value={filters.dateRange} 
               onValueChange={(value) => onFiltersChange({
@@ -174,13 +186,13 @@ export function InspectionFilter({
               })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Dates" />
+                <SelectValue placeholder={t("inspections.filters.allDates")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Dates</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="all">{t("inspections.filters.allDates")}</SelectItem>
+                <SelectItem value="today">{t("inspections.filters.today")}</SelectItem>
+                <SelectItem value="week">{t("inspections.filters.thisWeek")}</SelectItem>
+                <SelectItem value="month">{t("inspections.filters.thisMonth")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -188,36 +200,22 @@ export function InspectionFilter({
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">Search</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.search")}</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search vehicles, plates, inspectors..."
+                placeholder={t("inspections.filters.searchPlaceholder")}
                 value={filters.searchQuery}
                 onChange={(e) => onFiltersChange({
                   ...filters,
                   searchQuery: e.target.value
                 })}
-                className="pl-10 pr-10"
               />
-              {filters.searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={() => onFiltersChange({
-                    ...filters,
-                    searchQuery: ''
-                  })}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">Sort by</label>
+            <label className="text-sm font-medium mb-2 block">{t("inspections.filters.sortBy")}</label>
             <div className="flex gap-2">
               <Select 
                 value={filters.sortBy} 
@@ -230,11 +228,11 @@ export function InspectionFilter({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="vehicle">Vehicle</SelectItem>
-                  <SelectItem value="inspector">Inspector</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="date">{t("inspections.filters.sortOptions.date")}</SelectItem>
+                  <SelectItem value="vehicle">{t("inspections.filters.sortOptions.vehicle")}</SelectItem>
+                  <SelectItem value="inspector">{t("inspections.filters.sortOptions.inspector")}</SelectItem>
+                  <SelectItem value="type">{t("inspections.filters.sortOptions.type")}</SelectItem>
+                  <SelectItem value="status">{t("inspections.filters.sortOptions.status")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -245,6 +243,7 @@ export function InspectionFilter({
                   sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
                 })}
                 className="p-2"
+                title={t("inspections.filters.sortOrder")}
               >
                 {filters.sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
               </Button>
@@ -256,7 +255,7 @@ export function InspectionFilter({
           <div className="flex justify-center">
             <Button variant="outline" size="sm" onClick={clearFilters}>
               <X className="h-4 w-4 mr-2" />
-              Clear All Filters
+              {t("inspections.filters.clearAllFilters")}
             </Button>
           </div>
         )}
@@ -265,20 +264,20 @@ export function InspectionFilter({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t">
           <div className="text-sm text-muted-foreground">
             {hasActiveFilters ? (
-              <span>Filtered results: {totalInspections} inspections</span>
+              <span>{t("inspections.filters.filteredResults", { count: totalInspections })}</span>
             ) : (
-              <span>Showing all {totalInspections} inspections</span>
+              <span>{t("inspections.filters.showingAll", { count: totalInspections })}</span>
             )}
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
-              {totalScheduled} Scheduled
+              {totalScheduled} {t("inspections.status.scheduled")}
             </Badge>
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
-              {totalCompleted} Completed
+              {totalCompleted} {t("inspections.status.completed")}
             </Badge>
             <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">
-              {totalFailed} Failed
+              {totalFailed} {t("inspections.status.failed")}
             </Badge>
           </div>
         </div>

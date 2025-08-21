@@ -207,6 +207,8 @@ export interface OptimizedInspection {
   type: string;
   vehicle_id: string;
   inspector_id: string | null;
+  driver_id: string | null; // Add driver_id for driver linking
+  created_by: string | null; // Add created_by for user linking
   created_at: string;
   updated_at: string;
   notes: string | null;
@@ -219,6 +221,9 @@ export interface OptimizedInspection {
   // Inspector fields (pre-joined)
   inspector_name: string | null;
   inspector_email: string | null;
+  // Driver fields (pre-joined)
+  driver_name: string | null;
+  driver_email: string | null;
   // Template display name (pre-resolved)
   template_display_name: string;
   // Total count for pagination

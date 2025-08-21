@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3, FileText, ShoppingCart } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3, FileText, ShoppingCart, TrendingUp, DollarSign, Users, CalendarDays, SortAsc, SortDesc } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import { EventsFilter, EventsFilterOptions } from "./events-filter"
 
 interface SalesEvent {
   id: string
@@ -59,6 +60,8 @@ interface QuickStat {
   icon: React.ElementType
   color: string
   bgColor: string
+  action: string
+  description: string
 }
 
 export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarProps) {
@@ -73,22 +76,28 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
-  const [search, setSearch] = useState(searchParams.get("search") || "")
-  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all")
-  const [typeFilter, setTypeFilter] = useState(searchParams.get("type") || "all")
-  const debouncedSearch = useDebounce(search, 500)
+  const [filters, setFilters] = useState<EventsFilterOptions>({
+    typeFilter: 'all',
+    statusFilter: 'all',
+    searchQuery: '',
+    sortBy: 'time',
+    sortOrder: 'asc',
+    groupBy: 'none'
+  })
+  const [weeklyRevenueFilter, setWeeklyRevenueFilter] = useState(false)
+  const debouncedSearch = useDebounce(filters.searchQuery, 500)
 
   // Update URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams()
     if (debouncedSearch) params.set("search", debouncedSearch)
-    if (statusFilter !== "all") params.set("status", statusFilter)
-    if (typeFilter !== "all") params.set("type", typeFilter)
+    if (filters.statusFilter !== "all") params.set("status", filters.statusFilter)
+    if (filters.typeFilter !== "all") params.set("type", filters.typeFilter)
     if (viewMode !== "calendar") params.set("view", viewMode)
     
     const newUrl = params.toString() ? `?${params.toString()}` : ""
     router.replace(newUrl as any, { scroll: false })
-  }, [debouncedSearch, statusFilter, typeFilter, viewMode, router])
+  }, [debouncedSearch, filters.statusFilter, filters.typeFilter, viewMode, router])
 
   // Transform quotations and bookings into unified sales events
   useEffect(() => {
@@ -144,27 +153,83 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
 
   // Filter events based on search, status, and type
   const filteredEvents = useMemo(() => {
-    return salesEvents.filter((event) => {
+    let filtered = salesEvents.filter((event) => {
       const matchesSearch = !debouncedSearch || 
         event.customer_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         event.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (event.customer_email && event.customer_email.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
         (event.vehicle_type && event.vehicle_type.toLowerCase().includes(debouncedSearch.toLowerCase()))
       
-      const matchesStatus = statusFilter === "all" || event.status === statusFilter
-      const matchesType = typeFilter === "all" || event.type === typeFilter
+      const matchesStatus = filters.statusFilter === "all" || event.status === filters.statusFilter
+      const matchesType = filters.typeFilter === "all" || event.type === filters.typeFilter
       
-      return matchesSearch && matchesStatus && matchesType
+      // Apply weekly revenue filter if active
+      let matchesWeeklyRevenue = true
+      if (weeklyRevenueFilter) {
+        const today = new Date()
+        const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 })
+        const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 })
+        
+        const eventDate = parseISO(event.date)
+        const isInWeek = isValid(eventDate) && 
+                        eventDate >= startOfThisWeek && 
+                        eventDate <= endOfThisWeek
+        
+        // Only include events that contribute to revenue
+        const countsAsRevenue = event.type === 'quotation' 
+          ? (event.status === 'approved' || event.status === 'paid')
+          : (event.status === 'confirmed' || event.status === 'completed' || event.status === 'paid')
+        
+        matchesWeeklyRevenue = Boolean(isInWeek && countsAsRevenue && (event.total_amount ?? 0) > 0)
+      }
+      
+      return matchesSearch && matchesStatus && matchesType && matchesWeeklyRevenue
     })
-  }, [salesEvents, debouncedSearch, statusFilter, typeFilter])
 
-  // Calculate quick stats
+    // Sort the filtered events
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any
+      
+      switch (filters.sortBy) {
+        case 'time':
+          aValue = a.pickup_time || '00:00:00'
+          bValue = b.pickup_time || '00:00:00'
+          break
+        case 'amount':
+          aValue = a.total_amount || 0
+          bValue = b.total_amount || 0
+          break
+        case 'customer':
+          aValue = a.customer_name.toLowerCase()
+          bValue = b.customer_name.toLowerCase()
+          break
+        case 'type':
+          aValue = a.type
+          bValue = b.type
+          break
+        default:
+          return 0
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+
+    return filtered
+  }, [salesEvents, debouncedSearch, filters.statusFilter, filters.typeFilter, filters.sortBy, filters.sortOrder, weeklyRevenueFilter])
+
+  // Calculate quick stats with enhanced data
   const quickStats = useMemo((): QuickStat[] => {
     const today = new Date()
     const startOfToday = startOfDay(today)
     const endOfToday = endOfDay(today)
     const startOfThisWeek = startOfWeek(today, { weekStartsOn: 1 })
     const endOfThisWeek = endOfWeek(today, { weekStartsOn: 1 })
+    const startOfThisMonth = startOfMonth(today)
+    const endOfThisMonth = endOfMonth(today)
 
     const todaysEvents = filteredEvents.filter(event => {
       const eventDate = parseISO(event.date)
@@ -177,16 +242,17 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
       event => event.type === 'quotation' && (event.status === 'sent' || event.status === 'draft')
     ).length
 
+    // Calculate weekly revenue from ALL events (not filtered) to get the total
     const weeklyRevenue = salesEvents.filter(event => {
       const eventDate = parseISO(event.date)
       const isInWeek = isValid(eventDate) && 
                       eventDate >= startOfThisWeek && 
                       eventDate <= endOfThisWeek
       
-      // Count approved quotations and confirmed/completed bookings
+      // Count approved/paid quotations and confirmed/completed/paid bookings
       const countsAsRevenue = event.type === 'quotation' 
-        ? event.status === 'approved'
-        : (event.status === 'confirmed' || event.status === 'completed')
+        ? (event.status === 'approved' || event.status === 'paid')
+        : (event.status === 'confirmed' || event.status === 'completed' || event.status === 'paid')
       
       return isInWeek && countsAsRevenue && event.total_amount && event.total_amount > 0
     }).reduce((sum, event) => sum + (event.total_amount || 0), 0)
@@ -199,33 +265,69 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
       {
         title: "Today's Events",
         value: todaysEvents,
-        icon: CalendarIcon,
-        color: "text-blue-600",
-        bgColor: "bg-blue-50 dark:bg-blue-900/20"
+        icon: CalendarDays,
+        color: "text-blue-600 dark:text-blue-400",
+        bgColor: "bg-blue-50 dark:bg-blue-900/20",
+        action: "viewToday",
+        description: "View today's schedule"
       },
       {
         title: "Pending Quotations",
         value: pendingQuotations,
         icon: Clock,
-        color: "text-yellow-600",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20"
+        color: "text-yellow-600 dark:text-yellow-400",
+        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+        action: "viewPending",
+        description: "Review pending quotes"
       },
       {
         title: "Weekly Revenue",
         value: `¥${weeklyRevenue.toLocaleString()}`,
-        icon: CheckCircle,
-        color: "text-green-600",
-        bgColor: "bg-green-50 dark:bg-green-900/20"
+        icon: TrendingUp,
+        color: "text-green-600 dark:text-green-400",
+        bgColor: "bg-green-50 dark:bg-green-900/20",
+        action: "viewRevenue",
+        description: "Revenue analytics"
       },
       {
         title: "Confirmed Bookings",
         value: confirmedBookings,
-        icon: ShoppingCart,
-        color: "text-purple-600",
-        bgColor: "bg-purple-50 dark:bg-purple-900/20"
+        icon: Users,
+        color: "text-purple-600 dark:text-purple-400",
+        bgColor: "bg-purple-50 dark:bg-purple-900/20",
+        action: "viewBookings",
+        description: "Manage bookings"
       }
     ]
-  }, [filteredEvents])
+  }, [filteredEvents, salesEvents])
+
+  // Handle quick stat card clicks
+  const handleQuickStatClick = (action: string) => {
+    switch (action) {
+      case 'viewToday':
+        setCurrentDate(new Date())
+        setSelectedDate(new Date())
+        break
+      case 'viewPending':
+        setFilters(prev => ({ ...prev, typeFilter: 'quotation', statusFilter: 'sent' }))
+        break
+      case 'viewRevenue':
+        // Filter to show only weekly revenue-generating events
+        setWeeklyRevenueFilter(true)
+        setFilters(prev => ({ 
+          ...prev, 
+          typeFilter: 'all', 
+          statusFilter: 'all',
+          searchQuery: '',
+          sortBy: 'amount',
+          sortOrder: 'desc'
+        }))
+        break
+      case 'viewBookings':
+        setFilters(prev => ({ ...prev, typeFilter: 'booking', statusFilter: 'confirmed' }))
+        break
+    }
+  }
 
   // Status filter options
   const statusOptions = useMemo(() => [
@@ -233,6 +335,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     { value: "draft", label: "Draft" },
     { value: "sent", label: "Sent" },
     { value: "approved", label: "Approved" },
+    { value: "paid", label: "Paid" },
     { value: "rejected", label: "Rejected" },
     { value: "confirmed", label: "Confirmed" },
     { value: "completed", label: "Completed" },
@@ -272,7 +375,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     })
   }
 
-  const ITEMS_PER_PAGE = 5
+  const ITEMS_PER_PAGE = 3
 
   // Get selected date events
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : []
@@ -328,6 +431,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     if (type === 'quotation') {
       switch (status?.toLowerCase()) {
         case 'approved':
+        case 'paid':
           return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
         case 'sent':
           return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
@@ -341,6 +445,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     } else {
       switch (status?.toLowerCase()) {
         case 'completed':
+        case 'paid':
           return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
         case 'confirmed':
           return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
@@ -357,6 +462,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     if (type === 'quotation') {
       switch (status) {
         case "approved":
+        case "paid":
           return "bg-green-500"
         case "sent":
           return "bg-blue-500"
@@ -370,6 +476,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     } else {
       switch (status) {
         case "completed":
+        case "paid":
           return "bg-green-500"
         case "confirmed":
           return "bg-blue-500"
@@ -422,7 +529,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         {/* Status dots for quick visual overview */}
         {eventCount > 0 && (
           <div className="flex flex-wrap gap-1">
-            {dayEvents.slice(0, 4).map((event, index) => (
+            {dayEvents.slice(0, 3).map((event, index) => (
               <div
                 key={index}
                 className={cn(
@@ -432,8 +539,13 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                 title={`${event.title} - ${event.status}`}
               />
             ))}
-            {eventCount > 4 && (
-              <span className="text-xs text-muted-foreground">+{eventCount - 4}</span>
+            {eventCount > 3 && (
+              <span 
+                className="text-xs text-muted-foreground cursor-help" 
+                title={`Click to view all ${eventCount} events`}
+              >
+                +{eventCount - 3}
+              </span>
             )}
           </div>
         )}
@@ -441,16 +553,22 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     )
   }
 
-  // Clear search
-  const clearSearch = () => {
-    setSearch("")
-  }
-
   // Clear all filters
   const clearFilters = () => {
-    setSearch("")
-    setStatusFilter("all")
-    setTypeFilter("all")
+    setFilters({
+      typeFilter: 'all',
+      statusFilter: 'all',
+      searchQuery: '',
+      sortBy: 'time',
+      sortOrder: 'asc',
+      groupBy: 'none'
+    })
+    setWeeklyRevenueFilter(false)
+  }
+
+  // Handle filters change
+  const handleFiltersChange = (newFilters: EventsFilterOptions) => {
+    setFilters(newFilters)
   }
 
   // Render list view
@@ -464,7 +582,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         <div className="md:hidden space-y-4">
           {filteredEvents.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              {debouncedSearch || statusFilter !== "all" || typeFilter !== "all"
+              {debouncedSearch || filters.statusFilter !== "all" || filters.typeFilter !== "all"
                 ? t("common.noResults")
                 : "No sales events found"}
             </p>
@@ -533,7 +651,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
               {filteredEvents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    {debouncedSearch || statusFilter !== "all" || typeFilter !== "all"
+                    {debouncedSearch || filters.statusFilter !== "all" || filters.typeFilter !== "all"
                       ? t("common.noResults")
                       : "No sales events found"}
                   </TableCell>
@@ -626,102 +744,64 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         </div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search customers, services, or vehicle types..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {search && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={clearSearch}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                {typeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <EventsFilter
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalEvents={filteredEvents.length}
+          totalQuotations={filteredEvents.filter(e => e.type === 'quotation').length}
+          totalBookings={filteredEvents.filter(e => e.type === 'booking').length}
+          showGrouping={false}
+          showSorting={false}
+          className="mb-6"
+        />
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {(search || statusFilter !== "all" || typeFilter !== "all") && (
-              <Button variant="outline" onClick={clearFilters}>
-                <Filter className="mr-2 h-4 w-4" />
-                Clear
-              </Button>
-            )}
-
-            <div className="flex border rounded-md">
-              <Button
-                variant={viewMode === "calendar" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("calendar")}
-                className="rounded-r-none"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* View Mode Toggle */}
+        <div className="flex justify-end mb-4">
+          <div className="flex border rounded-md">
+            <Button
+              variant={viewMode === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Enhanced Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Card key={index} className="overflow-hidden">
+            <Card 
+              key={index} 
+              className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4 border-l-transparent hover:border-l-current"
+              onClick={() => handleQuickStatClick(stat.action)}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-lg", stat.bgColor)}>
+                  <div className={cn("p-3 rounded-lg transition-transform group-hover:scale-110", stat.bgColor)}>
                     <Icon className={cn("h-6 w-6", stat.color)} />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold">
+                    <p className={cn("text-2xl font-bold transition-colors", stat.color)}>
                       {stat.value}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {stat.description}
                     </p>
                   </div>
                 </div>
@@ -729,6 +809,61 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
             </Card>
           )
         })}
+      </div>
+
+      {/* Sort Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Sort by:</label>
+            <Select 
+              value={filters.sortBy} 
+              onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value as 'time' | 'amount' | 'customer' | 'type' }))}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="time">Time</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="type">Type</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilters(prev => ({ ...prev, sortOrder: prev.sortOrder === 'asc' ? 'desc' : 'asc' }))}
+              className="p-2"
+            >
+              {filters.sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+          </div>
+          
+          {/* Active Filters Display */}
+          {(filters.searchQuery || filters.statusFilter !== 'all' || filters.typeFilter !== 'all' || weeklyRevenueFilter) && (
+            <div className="flex items-center gap-2">
+              {weeklyRevenueFilter && (
+                <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
+                  Weekly Revenue Only
+                </Badge>
+              )}
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear All Filters
+              </Button>
+            </div>
+          )}
+        </div>
+        
+        <div className="text-sm text-muted-foreground">
+          Showing {filteredEvents.length} of {salesEvents.length} total events
+          {weeklyRevenueFilter && (
+            <span className="ml-2 text-green-600 dark:text-green-400">
+              (Revenue-generating events this week)
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Main Content - Calendar or List View */}
@@ -798,6 +933,11 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                   </CardTitle>
                   <div className="text-sm text-muted-foreground">
                     {selectedDateEvents.length} events on {format(selectedDate, "MMMM d")}
+                    {selectedDateEvents.length > ITEMS_PER_PAGE && (
+                      <span className="block text-xs mt-1">
+                        Showing first {ITEMS_PER_PAGE} events
+                      </span>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 p-3">
@@ -852,6 +992,20 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                     </div>
                   )}
                 </CardContent>
+                {selectedDateEvents.length > ITEMS_PER_PAGE && (
+                  <div className="px-3 pb-3 border-t pt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      asChild
+                    >
+                      <Link href={`/sales/calendar/date/${format(selectedDate, 'yyyy-MM-dd')}`}>
+                        View All {selectedDateEvents.length} Events
+                      </Link>
+                    </Button>
+                  </div>
+                )}
                 {totalSidebarPages > 1 && (
                   <CardFooter className="flex justify-between items-center pt-3 pb-3 border-t">
                     <Button

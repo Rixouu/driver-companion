@@ -185,7 +185,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         setIsLoading(true)
         const rangeStart = calendarView === "month" 
           ? startOfMonth(currentDate) 
-          : startOfWeek(currentDate, { weekStartsOn: 1 })
+          : endOfMonth(currentDate)
         const rangeEnd = calendarView === "month" 
           ? endOfMonth(currentDate) 
           : endOfWeek(currentDate, { weekStartsOn: 1 })
@@ -195,7 +195,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
 
         let query = supabase
           .from('inspections')
-          .select(`*, vehicle:vehicles(id, name, plate_number, image_url, brand, model), inspector:drivers(id, first_name, last_name)`)
+          .select('*')
           .gte('date', rangeStart.toISOString())
           .lte('date', rangeEnd.toISOString())
           .order('date', { ascending: false })
@@ -208,23 +208,41 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
         const { data, error } = await query
         if (error) throw error
 
-        // Map and enrich with template display name
+        // Map and enrich with template display name and vehicle/inspector data
         const enriched = await Promise.all((data || []).map(async (inspection: any) => {
           const updatedInspection: any = { ...inspection }
           
-          // Ensure vehicle data is properly formatted
-          if (inspection.vehicle) {
-            updatedInspection.vehicle = {
-              ...inspection.vehicle,
-              image_url: inspection.vehicle.image_url === null ? undefined : inspection.vehicle.image_url
+          // Load vehicle data if available
+          if (inspection.vehicle_id) {
+            const vehicle = vehicles.find(v => v.id === inspection.vehicle_id);
+            if (vehicle) {
+              updatedInspection.vehicle = {
+                ...vehicle,
+                image_url: vehicle.image_url === null ? undefined : vehicle.image_url,
+                brand: vehicle.brand === null ? undefined : vehicle.brand,
+                model: vehicle.model === null ? undefined : vehicle.model
+              };
             }
           }
           
-          // Format inspector data
-          if (inspection.inspector) {
-            updatedInspection.inspector = {
-              id: inspection.inspector.id,
-              name: `${inspection.inspector.first_name} ${inspection.inspector.last_name}`
+          // Load inspector data if available
+          if (inspection.inspector_id) {
+            try {
+              const { data: inspectorData } = await supabase
+                .from('drivers')
+                .select('id, first_name, last_name')
+                .eq('id', inspection.inspector_id)
+                .is('deleted_at', null)
+                .single();
+              
+              if (inspectorData) {
+                updatedInspection.inspector = {
+                  id: inspectorData.id,
+                  name: `${inspectorData.first_name} ${inspectorData.last_name}`
+                };
+              }
+            } catch (error) {
+              console.error('Error fetching inspector data:', error);
             }
           }
           
@@ -252,7 +270,7 @@ export function InspectionList({ inspections = [], vehicles = [], currentPage = 
     }
 
     fetchCalendarInspections()
-  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase])
+  }, [viewMode, calendarView, currentDate, filters.statusFilter, debouncedSearch, supabase, vehicles])
 
   // Filter inspections based on search and status
   const filteredInspections = useMemo(() => {

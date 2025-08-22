@@ -260,45 +260,9 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     console.log('⏳ Waiting for content to stabilize...');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Verify that the base64 font is loaded
-    console.log('🔍 Verifying base64 font loading...');
-    await page.evaluate(() => {
-      return new Promise((resolve) => {
-        // Check if our base64 font is loaded
-        const testElement = document.createElement('div');
-        testElement.style.fontFamily = 'Noto Sans';
-        testElement.style.position = 'absolute';
-        testElement.style.visibility = 'hidden';
-        testElement.textContent = 'あア美咲みさきกขคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮ';
-        document.body.appendChild(testElement);
-        
-        // Wait for the font to be fully loaded
-        setTimeout(() => {
-          document.body.removeChild(testElement);
-          resolve(true);
-        }, 1000);
-      });
-    });
-    
-    // Additional verification that fonts are working
-    console.log('🔍 Testing font rendering...');
-    const fontTest = await page.evaluate(() => {
-      const testElement = document.createElement('div');
-      testElement.style.fontFamily = 'Noto Sans';
-      testElement.style.position = 'absolute';
-      testElement.style.visibility = 'hidden';
-      testElement.textContent = 'あア美咲みさきกขคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮ';
-      document.body.appendChild(testElement);
-      
-      // Get the computed font to verify it's loaded
-      const computedStyle = window.getComputedStyle(testElement);
-      const fontFamily = computedStyle.fontFamily;
-      
-      document.body.removeChild(testElement);
-      return { fontFamily, success: true };
-    });
-    
-    console.log('🔍 Font test result:', fontTest);
+    // Additional wait to ensure all content is rendered
+    console.log('⏳ Waiting for content to stabilize...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Generate PDF
     const pdfBuffer = await page.pdf({
@@ -603,9 +567,9 @@ export function generateQuotationHtml(
           </p>
           ${quotation.status === 'approved' || quotation.status === 'rejected' || quotation.status === 'paid' ? `
             <div style="background: ${quotation.status === 'approved' ? '#10b981' : quotation.status === 'paid' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
-              ${quotation.status === 'approved' ? (isJapanese ? '✓ 承認済み' : '✓ APPROVED') : 
-                quotation.status === 'paid' ? (isJapanese ? '✓ 支払い済み' : '✓ PAID') :
-                (isJapanese ? '✗ 却下済み' : '✗ REJECTED')}
+              ${quotation.status === 'approved' ? (isJapanese ? '&#10004; 承認済み' : '&#10004; APPROVED') : 
+                quotation.status === 'paid' ? (isJapanese ? '&#10004; 支払い済み' : '&#10004; PAID') :
+                (isJapanese ? '&#10006; 却下済み' : '&#10006; REJECTED')}
             </div>
             <p style="margin: 5px 0 0 0; font-size: 13px;">
               ${quotation.status === 'approved' ? 
@@ -883,32 +847,44 @@ export function generateQuotationHtml(
         </div>
       </div>
       
-      <!-- Signature Section placed right under totals -->
+      <!-- Signature Section removed from first page -->
+      
+      <!-- Page break before Terms and Conditions -->
+      <div style="page-break-before: always; margin-top: 20px;"></div>
+      
+      <!-- Signature Section on second page above Terms and Conditions -->
       ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || quotation.status === 'paid' || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
-        <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
+        <div style="margin-bottom: 30px; margin-top: 20px;">
           <!-- Customer Signature Section -->
-          <div style="margin-bottom: 15px;">        
+          <div style="margin-bottom: 20px;">        
             <!-- Right-aligned signature block -->
             <div style="display: flex; justify-content: flex-end;">
-              <div style="max-width: 300px; text-align: center;">
-                <!-- Signature image or placeholder -->
-                <div style="border: 2px solid #d1d5db; border-radius: 6px; padding: 12px; background: #f9fafb; min-height: 80px; max-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
+              <div style="max-width: 400px; text-align: center;">
+                <!-- Customer Signature label at the top -->
+                <div style="margin-bottom: 15px;">
+                  <h4 style="margin: 0; color: #333; font-size: 16px; font-weight: bold; text-align: center;">
+                    Customer Signature
+                  </h4>
+                </div>
+                
+                <!-- Signature image or placeholder - bigger size -->
+                <div style="border: 2px solid #d1d5db; border-radius: 8px; padding: 20px; background: #f9fafb; min-height: 120px; max-height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                   ${quotation.status === 'approved' && quotation.approval_signature ? `
-                    <img src="${quotation.approval_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
+                    <img src="${quotation.approval_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
                   ` : quotation.status === 'paid' ? `
-                    <div style="color: #10b981; font-size: 28px; font-weight: bold;">✓</div>
+                    <div style="color: #10b981; font-size: 48px; font-weight: bold;">&#10004;</div>
                   ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
-                    <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
+                    <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
                   ` : `
-                    <div style="color: #9ca3af; font-size: 14px; text-align: center; line-height: 1.4;">
+                    <div style="color: #9ca3af; font-size: 18px; text-align: center; line-height: 1.4;">
                       Customer<br>Signature
                     </div>
                   `}
                 </div>
                 
                 <!-- Signature line with date and time side by side -->
-                <div style="border-top: 1px solid #333; padding-top: 8px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #666;">
+                <div style="border-top: 1px solid #333; padding-top: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #666;">
                     <span>
                       Date: ${quotation.status === 'approved' ? 
                         (quotation.approved_at ? 
@@ -942,30 +918,30 @@ export function generateQuotationHtml(
                 
                 <!-- Additional notes or status info -->
                 ${quotation.status === 'approved' && quotation.approval_notes ? `
-                  <div style="margin-top: 10px; padding: 8px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 11px; color: #0369a1; line-height: 1.3;">
+                  <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
                       <strong>Notes:</strong> ${quotation.approval_notes}
                     </p>
                   </div>
                 ` : quotation.status === 'paid' ? `
-                  <div style="margin-top: 10px; padding: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 11px; color: #166534; line-height: 1.3;">
+                  <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Status:</strong> Payment Completed
                     </p>
                     ${quotation.payment_amount ? `
-                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #166534; line-height: 1.3;">
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}
                     </p>
                     ` : ''}
                     ${quotation.payment_method ? `
-                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #166534; line-height: 1.3;">
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Method:</strong> ${quotation.payment_method}
                     </p>
                     ` : ''}
                   </div>
                 ` : quotation.status === 'rejected' && quotation.rejection_reason ? `
-                  <div style="margin-top: 10px; padding: 8px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px;">
-                    <p style="margin: 0; font-size: 11px; color: #dc2626; line-height: 1.3;">
+                  <div style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 12px; color: #dc2626; line-height: 1.3;">
                       <strong>Reason:</strong> ${quotation.rejection_reason}
                     </p>
                   </div>
@@ -975,9 +951,6 @@ export function generateQuotationHtml(
           </div>
         </div>
       ` : ''}
-      
-      <!-- Page break before Terms and Conditions -->
-      <div style="page-break-before: always; margin-top: 20px;"></div>
       
       <!-- Terms and Conditions -->
       <div style="margin-bottom: 25px; margin-top: 20px;">

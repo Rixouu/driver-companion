@@ -54,22 +54,10 @@ export default function QuotationsTableClient({
   
   const { 
     deleteQuotation, 
-    sendQuotation,
-    listQuotations 
+    sendQuotation
   } = useQuotationService();
 
-  // Refresh quotation list
-  const handleRefresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { data } = await listQuotations();
-      setQuotations(data as unknown as Quotation[]);
-    } catch (error) {
-      console.error('Error refreshing quotations:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [listQuotations]);
+
 
   // Delete a quotation
   const handleDelete = useCallback((id: string) => {
@@ -146,7 +134,6 @@ export default function QuotationsTableClient({
       <QuotationList
         quotations={quotations}
         isLoading={isLoading}
-        onRefresh={handleRefresh}
         onDelete={isOrganizationMember ? handleDelete : undefined}
         onSend={isOrganizationMember ? handleSend : undefined}
         onRemind={isOrganizationMember ? handleRemind : undefined}

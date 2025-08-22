@@ -35,8 +35,7 @@ import {
   TrashIcon,
   CopyIcon,
   BellIcon,
-  AlertCircleIcon,
-  RefreshCwIcon
+  AlertCircleIcon
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
@@ -58,7 +57,6 @@ import {
 interface QuotationListProps {
   quotations: Quotation[];
   isLoading?: boolean;
-  onRefresh?: () => void;
   onDelete?: (id: string) => void;
   onSend?: (id: string) => void;
   onRemind?: (id: string) => void;
@@ -79,7 +77,6 @@ interface QuotationListProps {
 export default function QuotationList({
   quotations,
   isLoading = false,
-  onRefresh,
   onDelete,
   onSend,
   onRemind,
@@ -486,18 +483,10 @@ export default function QuotationList({
     <Card className="w-full">
       <CardContent className="p-0">
         <div className="p-4 border-b">
-          <div className="flex justify-end">
-            {onRefresh && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={onRefresh}
-                className="h-9 w-9 shrink-0"
-                disabled={isLoading}
-              >
-                <RefreshCwIcon className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-foreground">
+              {t('quotations.filters.title') || 'Filters & Search'}
+            </h3>
           </div>
         </div>
         
@@ -565,15 +554,9 @@ export default function QuotationList({
                       <>
                         {quotation.status === 'sent' && !isExpired(quotation) && onRemind && (
                           <Button 
-                            variant={needsReminder(quotation) ? "secondary" : "ghost"} 
+                            variant="ghost" 
                             size="icon"
-                            className={cn(
-                              "h-8 w-8",
-                              needsReminder(quotation) 
-                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500 hover:border-yellow-600' 
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                              'transition-colors'
-                            )}
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                             onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
                             title={t('quotations.actions.remind')}
                           >
@@ -725,16 +708,11 @@ export default function QuotationList({
                         
                         {isOrganizationMember && onRemind && (
                           <Button
-                            variant={needsReminder(quotation) ? 'secondary' : 'ghost'}
+                            variant="ghost"
                             size="icon"
                             onClick={(e) => handleRemindClick(e, quotation.id)}
                             title={t('quotations.actions.remind')}
-                            className={cn(
-                              needsReminder(quotation) 
-                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500 hover:border-yellow-600' 
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                              'transition-colors'
-                            )}
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
                           >
                             <BellIcon className="h-4 w-4" />
                           </Button>

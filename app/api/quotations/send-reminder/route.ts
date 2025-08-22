@@ -61,6 +61,12 @@ async function generateQuotationPDF(
 
 export async function POST(request: NextRequest) {
   console.log('==================== SEND-REMINDER ROUTE START ====================');
+  
+  // Set up timeout for the entire request (45 seconds)
+  const timeoutId = setTimeout(() => {
+    console.error('❌ [SEND-REMINDER API] Request timeout after 45 seconds');
+  }, 45000);
+  
   try {
     // Parse JSON request body
     const { id, language = 'en', includeQuotation = true } = await request.json();
@@ -69,6 +75,7 @@ export async function POST(request: NextRequest) {
     
     if (!id) {
       console.log('[SEND-REMINDER API] Missing quotation ID');
+      clearTimeout(timeoutId);
       return NextResponse.json(
         { error: 'Quotation ID is required' },
         { status: 400 }
@@ -87,6 +94,7 @@ export async function POST(request: NextRequest) {
       console.log('[SEND-REMINDER API] Supabase server client created successfully');
     } catch (serverClientError) {
       console.error('[SEND-REMINDER API] Error creating server client:', serverClientError);
+      clearTimeout(timeoutId);
       return NextResponse.json(
         { error: 'Error connecting to database' },
         { status: 500 }
@@ -97,6 +105,7 @@ export async function POST(request: NextRequest) {
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
     if (authError || !authUser) {
       console.error('[SEND-REMINDER API] Authentication error', authError);
+      clearTimeout(timeoutId);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.log('[SEND-REMINDER API] User authenticated:', authUser.id);
@@ -111,6 +120,7 @@ export async function POST(request: NextRequest) {
     
     if (error || !quotationData) {
       console.error('[SEND-REMINDER API] Error fetching quotation data:', error);
+      clearTimeout(timeoutId);
       return NextResponse.json(
         { error: 'Quotation not found' },
         { status: 404 }
@@ -139,6 +149,7 @@ export async function POST(request: NextRequest) {
     // Check if API key is configured
     if (!process.env.RESEND_API_KEY) {
       console.error('[SEND-REMINDER API] RESEND_API_KEY environment variable is not configured');
+      clearTimeout(timeoutId);
       return NextResponse.json(
         { error: 'Email service not configured' },
         { status: 500 }
@@ -256,6 +267,7 @@ export async function POST(request: NextRequest) {
       
       console.log('==================== SEND-REMINDER ROUTE END ====================');
       
+      clearTimeout(timeoutId);
       return NextResponse.json({ 
         success: true,
         message: 'Reminder email sent successfully',
@@ -270,6 +282,7 @@ export async function POST(request: NextRequest) {
       
       console.log('==================== SEND-REMINDER ROUTE END WITH ERROR ====================');
       
+      clearTimeout(timeoutId);
       return NextResponse.json(
         { error: err instanceof Error ? err.message : 'Failed to send reminder email' },
         { status: 500 }
@@ -284,6 +297,7 @@ export async function POST(request: NextRequest) {
     
     console.log('==================== SEND-REMINDER ROUTE END WITH ERROR ====================');
     
+    clearTimeout(timeoutId);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'An unexpected error occurred in POST handler' },
       { status: 500 }

@@ -877,24 +877,37 @@ export function generateQuotationHtml(
                   <img src="${quotation.rejection_signature}" alt="Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                 ` : ''}
               </div>
-              <!-- Signature line -->
-              <div style="border-top: 1px solid #333; margin-bottom: 8px;"></div>
-              <!-- Date and time -->
-              <p style="margin: 0; font-size: 11px; color: #666; line-height: 1.3;">
-                ${quotation.status === 'approved' ? 
-                  (quotation.approved_at ? 
-                    `${new Date(quotation.approved_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
-                    quotationDate) : 
-                  quotation.status === 'paid' ?
-                    (quotation.payment_date ? 
-                      `${new Date(quotation.payment_date).toLocaleDateString(localeCode)}<br/>${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
-                      quotation.payment_completed_at ? 
-                        `${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
-                        quotationDate) :
-                  (quotation.rejected_at ?
-                    `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}<br/>${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
-                    quotationDate)}
-              </p>
+              <!-- Signature line with date and time inline -->
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #333; margin-bottom: 8px; padding-top: 5px;">
+                <span style="font-size: 11px; color: #666;">
+                  ${quotation.status === 'approved' ? 
+                    (quotation.approved_at ? 
+                      `${new Date(quotation.approved_at).toLocaleDateString(localeCode)}` :
+                      quotationDate) : 
+                    quotation.status === 'paid' ?
+                      (quotation.payment_date ? 
+                        `${new Date(quotation.payment_date).toLocaleDateString(localeCode)}` :
+                        quotation.payment_completed_at ? 
+                          `${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)}` :
+                          quotationDate) :
+                      (quotation.rejected_at ?
+                        `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}` :
+                        quotationDate)}
+                </span>
+                <span style="font-size: 11px; color: #666;">
+                  ${quotation.status === 'approved' ? 
+                    (quotation.approved_at ? 
+                      `${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                      '') : 
+                    quotation.status === 'paid' ?
+                      (quotation.payment_completed_at ? 
+                        `${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                        '') :
+                      (quotation.rejected_at ?
+                        `${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                        '')}
+                </span>
+              </div>
               ${quotation.status === 'approved' && quotation.approval_notes ? `
                 <p style="margin: 8px 0 0 0; font-size: 10px; color: #666; text-align: left; line-height: 1.2;">
                   <strong>Notes:</strong> ${quotation.approval_notes}

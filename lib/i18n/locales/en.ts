@@ -2921,6 +2921,7 @@ export const en: TranslationValue = {
       updateSuccess: "Quotation updated successfully",
       deleteSuccess: "Quotation deleted successfully",
       reminderSuccess: "Reminder sent successfully",
+      reminderSent: "Reminder sent successfully",
       deleteConfirmation: "Are you sure you want to delete this quotation?",
       error: "Error",
       success: "Success",

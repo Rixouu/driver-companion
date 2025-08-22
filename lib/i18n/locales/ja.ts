@@ -2898,6 +2898,7 @@ export const ja: TranslationValue = {
       updateSuccess: "見積りが正常に更新されました",
       deleteSuccess: "見積りが正常に削除されました",
       reminderSuccess: "リマインダーが正常に送信されました",
+      reminderSent: "リマインダーが正常に送信されました",
       deleteConfirmation: "この見積を削除してもよろしいですか？",
       error: "エラー",
       success: "成功",

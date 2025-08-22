@@ -414,7 +414,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result) {
             await sendQuotation(initialData.id);
             advance('Emailing customer');
-            toast({ title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully' });
+            // Toast removed to prevent double toast - handled by sendQuotation component
           }
         } else {
           // If only a package is selected and no serviceItems, still create with empty array
@@ -424,7 +424,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result?.id) {
             await sendQuotation(result.id);
             advance('Emailing customer');
-            toast({ title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully' });
+            // Toast removed to prevent double toast - handled by sendQuotation component
           }
         }
       } else {
@@ -434,7 +434,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result) {
             await sendQuotation(initialData.id);
             advance('Emailing customer');
-            toast({ title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully' });
+            // Toast removed to prevent double toast - handled by sendQuotation component
           }
         } else {
           result = await createQuotation(input);
@@ -442,7 +442,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result?.id) {
             await sendQuotation(result.id);
             advance('Emailing customer');
-            toast({ title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully' });
+            // Toast removed to prevent double toast - handled by sendQuotation component
           }
         }
       }

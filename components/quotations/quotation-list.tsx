@@ -41,8 +41,7 @@ import {
 import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
-import { QuotationStatusFilter } from './quotation-status-filter';
-import { QuotationAdvancedFilters } from './quotation-advanced-filters';
+import { QuotationFilters, QuotationFilterOptions } from './quotation-filters';
 import { cn } from '@/lib/utils';
 import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
 import { useToast } from '@/components/ui/use-toast';
@@ -98,9 +97,21 @@ export default function QuotationList({
 
   const initialSearchQuery = currentSearchParams.get('query') || '';
   const initialStatusFilter = (currentSearchParams.get('status') as QuotationStatus | 'all') || 'all';
+  const initialDateFrom = currentSearchParams.get('dateFrom') || '';
+  const initialDateTo = currentSearchParams.get('dateTo') || '';
+  const initialAmountMin = currentSearchParams.get('amountMin') ? parseFloat(currentSearchParams.get('amountMin')!) : undefined;
+  const initialAmountMax = currentSearchParams.get('amountMax') ? parseFloat(currentSearchParams.get('amountMax')!) : undefined;
 
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
-  const [statusFilter, setStatusFilter] = useState<QuotationStatus | 'all'>(initialStatusFilter);
+  const [filters, setFilters] = useState<QuotationFilterOptions>({
+    statusFilter: initialStatusFilter,
+    searchQuery: initialSearchQuery,
+    sortBy: 'time',
+    sortOrder: 'desc',
+    dateFrom: initialDateFrom || undefined,
+    dateTo: initialDateTo || undefined,
+    amountMin: initialAmountMin,
+    amountMax: initialAmountMax
+  });
 
   // Check if quotation is expired - Updated to use 2 days from creation
   const isExpired = (quotation: Quotation) => {
@@ -111,21 +122,21 @@ export default function QuotationList({
     return isAfter(now, properExpiryDate);
   };
 
-  // Derived list based on current query + status filter
+  // Derived list based on current filters
   const filteredQuotations = useMemo(() => {
     let list = [...quotations];
 
     // Apply status filter (client-side safeguard)
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'expired') {
+    if (filters.statusFilter !== 'all') {
+      if (filters.statusFilter === 'expired') {
         list = list.filter((q) => q.status === 'expired' || isExpired(q));
       } else {
-        list = list.filter((q) => q.status === statusFilter);
+        list = list.filter((q) => q.status === filters.statusFilter);
       }
     }
 
     // Apply basic text search over customer name / email / quote number
-    const q = searchQuery.trim().toLowerCase();
+    const q = filters.searchQuery.trim().toLowerCase();
     if (q) {
       list = list.filter((quotation) => {
         const numberMatch = String(quotation.quote_number ?? '').includes(q);
@@ -136,47 +147,81 @@ export default function QuotationList({
     }
 
     return list;
-  }, [quotations, statusFilter, searchQuery]);
+  }, [quotations, filters.statusFilter, filters.searchQuery]);
 
-  const debouncedUpdateUrlQuery = useCallback(
-    (newQuery: string) => {
+  const updateUrlWithFilters = useCallback(
+    (newFilters: QuotationFilterOptions) => {
       const params = new URLSearchParams(currentSearchParams.toString());
-      if (newQuery.trim() !== '') {
-        params.set('query', newQuery.trim());
+      
+      if (newFilters.searchQuery.trim() !== '') {
+        params.set('query', newFilters.searchQuery.trim());
       } else {
         params.delete('query');
       }
+      
+      if (newFilters.statusFilter !== 'all') {
+        params.set('status', newFilters.statusFilter);
+      } else {
+        params.delete('status');
+      }
+      
+      if (newFilters.dateFrom) {
+        params.set('dateFrom', newFilters.dateFrom);
+      } else {
+        params.delete('dateFrom');
+      }
+      
+      if (newFilters.dateTo) {
+        params.set('dateTo', newFilters.dateTo);
+      } else {
+        params.delete('dateTo');
+      }
+      
+      if (newFilters.amountMin !== undefined) {
+        params.set('amountMin', newFilters.amountMin.toString());
+      } else {
+        params.delete('amountMin');
+      }
+      
+      if (newFilters.amountMax !== undefined) {
+        params.set('amountMax', newFilters.amountMax.toString());
+      } else {
+        params.delete('amountMax');
+      }
+      
       if (pathname) router.push(`${pathname}?${params.toString()}` as any, { scroll: false });
     },
     [currentSearchParams, pathname, router]
   );
 
   useEffect(() => {
-    setSearchQuery(initialSearchQuery);
-    setStatusFilter(initialStatusFilter);
-  }, [initialSearchQuery, initialStatusFilter]);
+    setFilters({
+      statusFilter: initialStatusFilter,
+      searchQuery: initialSearchQuery,
+      sortBy: 'time',
+      sortOrder: 'desc',
+      dateFrom: initialDateFrom || undefined,
+      dateTo: initialDateTo || undefined,
+      amountMin: initialAmountMin,
+      amountMax: initialAmountMax
+    });
+  }, [initialSearchQuery, initialStatusFilter, initialDateFrom, initialDateTo, initialAmountMin, initialAmountMax]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (searchQuery !== initialSearchQuery) {
-        debouncedUpdateUrlQuery(searchQuery);
+      if (filters.searchQuery !== initialSearchQuery) {
+        updateUrlWithFilters(filters);
       }
     }, 500);
     return () => clearTimeout(handler);
-  }, [searchQuery, debouncedUpdateUrlQuery, initialSearchQuery]);
+  }, [filters.searchQuery, updateUrlWithFilters, initialSearchQuery]);
   
-  const handleStatusFilterChange = useCallback(
-    (newStatus: QuotationStatus | 'all') => {
-      setStatusFilter(newStatus);
-      const params = new URLSearchParams(currentSearchParams.toString());
-      if (newStatus !== 'all') {
-        params.set('status', newStatus);
-      } else {
-        params.delete('status');
-      }
-      if (pathname) router.push(`${pathname}?${params.toString()}` as any, { scroll: false });
+  const handleFiltersChange = useCallback(
+    (newFilters: QuotationFilterOptions) => {
+      setFilters(newFilters);
+      updateUrlWithFilters(newFilters);
     },
-    [currentSearchParams, pathname, router, setStatusFilter]
+    [updateUrlWithFilters]
   );
 
   // Format currency
@@ -394,7 +439,7 @@ export default function QuotationList({
     );
   }
 
-  if (filteredQuotations.length === 0 && (searchQuery || statusFilter !== 'all')) {
+  if (filteredQuotations.length === 0 && (filters.searchQuery || filters.statusFilter !== 'all')) {
     return (
       <EmptyState
         icon={<SearchIcon className="h-10 w-10 text-muted-foreground" />}
@@ -402,8 +447,15 @@ export default function QuotationList({
         description={t('quotations.empty.noResultsDescription')}
         action={
           <Button variant="outline" onClick={() => {
-            setSearchQuery('');
-            handleStatusFilterChange('all');
+            handleFiltersChange({
+              ...filters,
+              searchQuery: '',
+              statusFilter: 'all',
+              dateFrom: undefined,
+              dateTo: undefined,
+              amountMin: undefined,
+              amountMax: undefined
+            });
           }}>
             {t('quotations.empty.clearFilters')}
           </Button>
@@ -434,17 +486,7 @@ export default function QuotationList({
     <Card className="w-full">
       <CardContent className="p-0">
         <div className="p-4 border-b">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder={t('quotations.filters.searchPlaceholder')}
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div className="flex justify-end">
             {onRefresh && (
               <Button 
                 variant="outline" 
@@ -459,31 +501,11 @@ export default function QuotationList({
           </div>
         </div>
         
-        <div className="p-4 bg-muted/10 border-b">
-          <QuotationStatusFilter 
-            currentStatus={statusFilter}
-            onChange={handleStatusFilterChange}
-          />
-        </div>
-
-        {/* Advanced Filters */}
-        <QuotationAdvancedFilters
-          currentFilters={{
-            query: searchQuery,
-            status: statusFilter,
-            dateFrom: filterParams.dateFrom,
-            dateTo: filterParams.dateTo,
-            amountMin: filterParams.amountMin,
-            amountMax: filterParams.amountMax
-          }}
-          onFiltersChange={(filters) => {
-            // This will be handled by the URL navigation in the filters component
-          }}
-          onClearFilters={() => {
-            setSearchQuery('');
-            handleStatusFilterChange('all');
-            // Clear other filters will be handled by URL navigation
-          }}
+        {/* Quotation Filters */}
+        <QuotationFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalQuotations={totalCount}
         />
 
         <div className="p-4">

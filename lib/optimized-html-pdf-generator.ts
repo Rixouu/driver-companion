@@ -22,8 +22,20 @@ async function ensureFontsLoadedOptimized(page: any): Promise<void> {
     console.log('⏱️  Starting optimized font loading...');
     const fontLoadStart = Date.now();
     
-    // Use the optimized font ready check
-    await page.evaluate(createFontReadyCheck());
+    // Use a simpler font loading approach
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            // Wait a bit more for fonts to fully load
+            setTimeout(resolve, 500);
+          });
+        } else {
+          // Fallback for older browsers
+          setTimeout(resolve, 1000);
+        }
+      });
+    });
     
     const fontLoadTime = Date.now() - fontLoadStart;
     console.log(`⏱️  Fonts loaded in ${fontLoadTime}ms`);

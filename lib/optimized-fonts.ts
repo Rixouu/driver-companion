@@ -115,6 +115,6 @@ export function createFontReadyCheck(): string {
     }
     
     // Wait for fonts to be ready
-    await checkFontsReady();
+    checkFontsReady();
   `;
 }

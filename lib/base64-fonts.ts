@@ -35,6 +35,19 @@ export function generateFontCSS(): string {
     h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
       font-family: 'Noto Sans', sans-serif !important;
     }
+    
+    /* Ensure billing address and customer info use the font */
+    .billing-address, .customer-info, 
+    .billing-address *, .customer-info * {
+      font-family: 'Noto Sans', sans-serif !important;
+    }
+    
+    /* Force specific elements that might have Japanese/Thai text */
+    [data-field="billing_address"], [data-field="customer_name"],
+    [data-field="billing_company_name"], [data-field="billing_city"],
+    [data-field="billing_state"], [data-field="billing_country"] {
+      font-family: 'Noto Sans', sans-serif !important;
+    }
   `;
 }
 

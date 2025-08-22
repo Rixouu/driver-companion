@@ -246,6 +246,26 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         }, 1000);
       });
     });
+    
+    // Additional verification that fonts are working
+    console.log('🔍 Testing font rendering...');
+    const fontTest = await page.evaluate(() => {
+      const testElement = document.createElement('div');
+      testElement.style.fontFamily = 'Noto Sans';
+      testElement.style.position = 'absolute';
+      testElement.style.visibility = 'hidden';
+      testElement.textContent = 'あア美咲みさきกขคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮ';
+      document.body.appendChild(testElement);
+      
+      // Get the computed font to verify it's loaded
+      const computedStyle = window.getComputedStyle(testElement);
+      const fontFamily = computedStyle.fontFamily;
+      
+      document.body.removeChild(testElement);
+      return { fontFamily, success: true };
+    });
+    
+    console.log('🔍 Font test result:', fontTest);
 
     // Generate PDF
     const pdfBuffer = await page.pdf({

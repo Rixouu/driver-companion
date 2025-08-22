@@ -3,6 +3,8 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
 
+import { safeEncodeText } from '@/lib/utils/character-encoding';
+
 // Generate invoice HTML (similar to quotation but focused on invoice format)
 function generateInvoiceHtml(
   quotation: any, 
@@ -137,42 +139,42 @@ function generateInvoiceHtml(
           ${isJapanese ? '請求先住所:' : 'BILLING ADDRESS:'}
         </h3>
         <p style="margin: 0 0 3px 0; font-weight: normal; color: #111827; font-size: 13px;">
-          ${quotation?.customer_name || 'N/A'}
+          ${safeEncodeText(quotation?.customer_name)}
         </p>
         <p style="margin: 0 0 3px 0; color: #111827; font-size: 13px;">
-          ${quotation?.customer_email || 'N/A'}
+          ${safeEncodeText(quotation?.customer_email)}
         </p>
         <p style="margin: 0 0 15px 0; color: #111827; font-size: 13px;">
-          ${quotation?.customer_phone || 'N/A'}
+          ${safeEncodeText(quotation?.customer_phone)}
         </p>
         
         ${quotation?.billing_company_name ? `
           <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
-            <strong>${isJapanese ? '会社名:' : 'Company:'}</strong> ${quotation.billing_company_name}
+            <strong>${isJapanese ? '会社名:' : 'Company:'}</strong> ${safeEncodeText(quotation.billing_company_name)}
           </p>
         ` : ''}
         
         ${quotation?.billing_tax_number ? `
           <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
-            <strong>${isJapanese ? '税番号:' : 'Tax ID:'}</strong> ${quotation.billing_tax_number}
+            <strong>${isJapanese ? '税番号:' : 'Tax ID:'}</strong> ${safeEncodeText(quotation.billing_tax_number)}
           </p>
         ` : ''}
         
         ${(quotation?.billing_street_name || quotation?.billing_street_number) ? `
           <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
-            <strong>${isJapanese ? '住所:' : 'Address:'}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}
+            <strong>${isJapanese ? '住所:' : 'Address:'}</strong> ${safeEncodeText(quotation.billing_street_name || '')} ${safeEncodeText(quotation.billing_street_number || '')}
           </p>
         ` : ''}
         
         ${(quotation?.billing_city || quotation?.billing_state || quotation?.billing_postal_code) ? `
           <p style=\"margin: 0 0 3px 0; font-size: 13px; color: #111827;\">
-            <strong>${isJapanese ? '市区町村/都道府県/郵便番号:' : 'City/State/Postal:'}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}
+            <strong>${isJapanese ? '市区町村/都道府県/郵便番号:' : 'City/State/Postal:'}</strong> ${safeEncodeText(quotation.billing_city || '')} ${quotation.billing_state ? ', ' + safeEncodeText(quotation.billing_state) : ''} ${quotation.billing_postal_code ? ', ' + safeEncodeText(quotation.billing_postal_code) : ''}
           </p>
         ` : ''}
         
         ${quotation?.billing_country ? `
           <p style="margin: 0; font-size: 13px; color: #111827;">
-            <strong>${isJapanese ? '国:' : 'Country:'}</strong> ${quotation.billing_country}
+            <strong>${isJapanese ? '国:' : 'Country:'}</strong> ${safeEncodeText(quotation.billing_country)}
           </p>
         ` : ''}
       </div>

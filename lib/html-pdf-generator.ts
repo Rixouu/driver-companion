@@ -219,6 +219,8 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
   }
 }
 
+import { safeEncodeText } from '@/lib/utils/character-encoding';
+
 /**
  * Generates HTML for quotation that exactly matches the design in quotation-pdf-button.tsx
  * 
@@ -550,42 +552,42 @@ export function generateQuotationHtml(
           ${quotationT.billingAddress}
         </h3>
         <p style="margin: 0 0 3px 0; font-weight: normal; font-size: 13px;">
-          ${quotation?.customer_name || 'N/A'}
+          ${safeEncodeText(quotation?.customer_name)}
         </p>
         <p style="margin: 0 0 3px 0; font-size: 13px;">
-          ${quotation?.customer_email || 'N/A'}
+          ${safeEncodeText(quotation?.customer_email)}
         </p>
         <p style="margin: 0 0 15px 0; font-size: 13px;">
-          ${quotation?.customer_phone || 'N/A'}
+          ${safeEncodeText(quotation?.customer_phone)}
         </p>
         
         ${quotation?.billing_company_name ? `
           <p style="margin: 0 0 3px 0; font-size: 13px;">
-            <strong>${quotationT.companyNameLabel}</strong> ${quotation.billing_company_name}
+            <strong>${quotationT.companyNameLabel}</strong> ${safeEncodeText(quotation.billing_company_name)}
           </p>
         ` : ''}
         
         ${quotation?.billing_tax_number ? `
           <p style="margin: 0 0 3px 0; font-size: 13px;">
-            <strong>${quotationT.taxNumber}</strong> ${quotation.billing_tax_number}
+            <strong>${quotationT.taxNumber}</strong> ${safeEncodeText(quotation.billing_tax_number)}
           </p>
         ` : ''}
         
         ${(quotation?.billing_street_name || quotation?.billing_street_number) ? `
           <p style="margin: 0 0 3px 0; font-size: 13px;">
-            <strong>${quotationT.address}</strong> ${quotation.billing_street_name || ''} ${quotation.billing_street_number || ''}
+            <strong>${quotationT.address}</strong> ${safeEncodeText(quotation.billing_street_name || '')} ${safeEncodeText(quotation.billing_street_number || '')}
           </p>
         ` : ''}
         
         ${(quotation?.billing_city || quotation?.billing_state || quotation?.billing_postal_code) ? `
           <p style="margin: 0 0 3px 0; font-size: 13px;">
-            <strong>${quotationT.cityStatePostal}</strong> ${quotation.billing_city || ''} ${quotation.billing_state ? ', ' + quotation.billing_state : ''} ${quotation.billing_postal_code ? ', ' + quotation.billing_postal_code : ''}
+            <strong>${quotationT.cityStatePostal}</strong> ${safeEncodeText(quotation.billing_city || '')} ${quotation.billing_state ? ', ' + safeEncodeText(quotation.billing_state) : ''} ${quotation.billing_postal_code ? ', ' + safeEncodeText(quotation.billing_postal_code) : ''}
           </p>
         ` : ''}
         
         ${quotation?.billing_country ? `
           <p style="margin: 0; font-size: 13px;">
-            <strong>${quotationT.country}</strong> ${quotation.billing_country}
+            <strong>${quotationT.country}</strong> ${safeEncodeText(quotation.billing_country)}
           </p>
         ` : ''}
       </div>

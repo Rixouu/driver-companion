@@ -18,6 +18,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client'
 import { PricingPackage, PricingPromotion, Quotation, QuotationItem } from '@/types/quotations'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
+import { safeEncodeText } from '@/lib/utils/character-encoding';
+
 // Client-side HTML generator (simplified version without Puppeteer dependencies)
 function generateClientQuotationHtml(
   quotation: any, 
@@ -94,8 +96,8 @@ function generateClientQuotationHtml(
         <h3 style="font-size: 14px; font-weight: bold; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px;">
           Customer Information
         </h3>
-        <p style="margin: 5px 0;">${quotation?.customer_name || 'N/A'}</p>
-        <p style="margin: 5px 0;">${quotation?.customer_email || 'N/A'}</p>
+        <p style="margin: 5px 0;">${safeEncodeText(quotation?.customer_name)}</p>
+        <p style="margin: 5px 0;">${safeEncodeText(quotation?.customer_email)}</p>
       </div>
       
       <div style="margin: 30px 0;">

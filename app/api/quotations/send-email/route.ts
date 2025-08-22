@@ -557,10 +557,10 @@ function generateEmailHtml(
                 </td>
               </tr>
               
-              <!-- PRICE DETAILS BLOCK (using recalculated values) -->
+              <!-- PRICE DETAILS BLOCK (EXACT same styling as payment link email) -->
               <tr>
-                <td style="padding:12px 24px 24px;">
-                  <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D; text-transform: uppercase;">
+                <td style="padding:0 24px 24px;">
+                  <h3 style="margin:0 0 12px; font-size:16px; color:#32325D; text-transform: uppercase;">
                     ${isJapanese ? '価格詳細' : 'PRICE DETAILS'}
                   </h3>
                   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="price-table"
@@ -569,66 +569,66 @@ function generateEmailHtml(
                       <td style="padding:12px;">
                         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
                           <tr>
-                            <th align="left" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                            <th align="left" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; font-size: 14px; color: #8898AA; text-transform: uppercase;">
                               ${isJapanese ? '内容' : 'DESCRIPTION'}
                             </th>
-                            <th align="right" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                            <th align="right" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; font-size: 14px; color: #8898AA; text-transform: uppercase;">
                               ${isJapanese ? '価格' : 'PRICE'}
                             </th>
                           </tr>
                           ${
-                            // Check if we have multiple service items
-                            quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ?
-                              // If we have items, display each one
-                              quotation.quotation_items.map((item: QuotationItem, index: number) => {
-                                const isPackage = item.service_type_name?.toLowerCase().includes('package');
+                            // Check if we have detailed quotation data and totals
+                            quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0 ? (() => {
+                              // Check if we have multiple service items
+                              if (quotation.quotation_items && Array.isArray(quotation.quotation_items) && quotation.quotation_items.length > 0) {
+                                // If we have items, display each one
+                                return quotation.quotation_items.map((item: QuotationItem, index: number) => {
+                                  const isPackage = item.service_type_name?.toLowerCase().includes('package');
+                                  return `
+                                  <tr>
+                                    <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
+                                      <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
+                                        ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
+                                      </div>
+                                      ${!isPackage && item.service_type_name?.toLowerCase().includes('charter') ?
+                                        `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` : ''}
+                                      ${selectedPackage && isPackage ? `
+                                        <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
+                                          <strong>${isJapanese ? 'サービス内容:' : 'Services Included:'}</strong><br>
+                                          ${selectedPackage.items && selectedPackage.items.length > 0 ? 
+                                            selectedPackage.items.map(pkgItem => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
+                                            '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
+                                          }
+                                        </div>
+                                      ` : ''}
+                                    </td>
+                                    <td align="right" style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}; vertical-align: top;">
+                                      ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
+                                    </td>
+                                  </tr>
+                                `}).join('');
+                              } else {
+                                // Fallback to simple service display
                                 return `
                                 <tr>
-                                  <td style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}">
-                                    <div style="font-weight: ${index === 0 ? 'medium' : 'normal'}; font-size: 14px;">
-                                      ${item.description || `${item.service_type_name || 'Service'} - ${item.vehicle_type || 'Standard Vehicle'}`}
-                                    </div>
-                                    ${!isPackage && item.service_type_name?.toLowerCase().includes('charter') ?
-                                      `<div style="font-size: 13px; color: #666;">${item.service_days || 1} ${isJapanese ? '日' : 'days'}, ${item.hours_per_day || 8} ${isJapanese ? '時間/日' : 'hours/day'}</div>` : ''}
-                                    ${selectedPackage && isPackage ? `
-                                      <div style="font-size: 12px; color: #666; margin-top: 5px; padding-left: 10px;">
-                                        <strong>${isJapanese ? 'サービス内容:' : 'Services Included:'}</strong><br>
-                                        ${selectedPackage.items && selectedPackage.items.length > 0 ? 
-                                          selectedPackage.items.map(pkgItem => `<span style="color: #8b5cf6; font-weight: 500;">• ${pkgItem.name}${pkgItem.vehicle_type ? ` <span style="color: #666;">(${pkgItem.vehicle_type})</span>` : ''}</span>`).join('<br>') :
-                                          '<span style="color: #8b5cf6; font-weight: 500;">• All package services included</span>'
-                                        }
-                                      </div>
-                                    ` : ''}
-                                  </td>
-                                  <td align="right" style="padding-top: ${index === 0 ? '15px' : '10px'}; padding-bottom: 5px; ${index < quotation.quotation_items.length - 1 ? 'border-bottom: 1px solid #f0f0f0;' : ''}; vertical-align: top;">
-                                    ${formatCurrency(item.total_price || (item.unit_price * (item.quantity || 1)))}
-                                  </td>
-                                </tr>
-                              `}).join('')
-                              :
-                              // Fallback to the original display if no items
-                              `<tr>
-                                <td style="padding-top: 15px;">${vehicleType}</td>
-                                <td align="right" style="padding-top: 15px;"></td>
-                              </tr>
-                              <tr>
-                                <td>${isJapanese ? `時間料金 (${hours} 時間 / 日)` : `Hourly Rate (${hours} hours / day)`}</td>
-                                <td align="right">${formatCurrency(totals.serviceBaseTotal / serviceDays)}</td>
-                              </tr>
-                              ${serviceDays > 1 ? `
-                              <tr>
-                                <td style="color: #666;">${isJapanese ? '日数' : 'Number of Days'}</td>
-                                <td align="right">× ${serviceDays}</td>
-                              </tr>
-                              ` : ''}`
+                                  <td style="padding-top: 15px;">${vehicleType}</td>
+                                  <td align="right" style="padding-top: 15px;">${formatCurrency(totals.serviceTotal)}</td>
+                                </tr>`;
+                              }
+                            })() : `
+                            <tr>
+                              <td style="padding-top: 15px;">${vehicleType}</td>
+                              <td align="right" style="padding-top: 15px;">${formatCurrency(totals.serviceTotal)}</td>
+                            </tr>`
                           }
+                          ${totals ? `
                           <tr>
-                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? 'サービス小計' : 'Services Subtotal'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.serviceTotal)}</td>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 500;">${isJapanese ? 'サービス小計' : 'Services Subtotal'}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 500;">${formatCurrency(totals.serviceTotal)}</td>
                           </tr>
                           ${selectedPackage ? `
                           <tr>
-                            <td style="padding-top: 10px; padding-bottom: 5px;">
+                            <td style="padding-top: 8px; padding-bottom: 5px;">
                               <div style="font-weight: medium; font-size: 14px; color: #8b5cf6;">
                                 ${isJapanese ? 'パッケージ' : 'Package'}: ${selectedPackage.name}
                               </div>
@@ -642,7 +642,7 @@ function generateEmailHtml(
                                 </div>
                               ` : ''}
                             </td>
-                            <td align="right" style="padding-top: 10px; padding-bottom: 5px; vertical-align: top; color: #8b5cf6; font-weight: 500;">
+                            <td align="right" style="padding-top: 8px; padding-bottom: 5px; vertical-align: top; color: #8b5cf6; font-weight: 500;">
                               ${formatCurrency(selectedPackage.base_price)}
                             </td>
                           </tr>
@@ -651,44 +651,44 @@ function generateEmailHtml(
                             // Package discount
                             if (quotation.selected_package_id && quotation.package_discount) {
                               return `
-                              <tr>
-                                <td style="color: #3b82f6;">
-                                  ${isJapanese ? 'パッケージ割引' : 'Package Discount'}
-                                </td>
-                                <td align="right" style="color: #3b82f6;">
-                                  -${formatCurrency(quotation.package_discount)}
-                                </td>
-                              </tr>`;
+                                                        <tr>
+                            <td style="color: #3b82f6; padding-top: 5px;">
+                              ${isJapanese ? 'パッケージ割引' : 'Package Discount'}
+                            </td>
+                            <td align="right" style="color: #3b82f6; padding-top: 5px;">
+                              -${formatCurrency(quotation.package_discount)}
+                            </td>
+                          </tr>`;
                             }
                             return '';
                           })()}
                           ${totals.promotionDiscount > 0 ? `
                           <tr>
-                            <td style="color: #10b981;">
+                            <td style="color: #10b981; padding-top: 5px;">
                               ${isJapanese ? 'プロモーション' : 'Promotion'}: ${selectedPromotion?.name || quotation.selected_promotion_name || 'Discount'}
                             </td>
-                            <td align="right" style="color: #10b981;">
+                            <td align="right" style="color: #10b981; padding-top: 5px;">
                               -${formatCurrency(totals.promotionDiscount)}
                             </td>
                           </tr>` : totals.regularDiscount > 0 ? `
                           <tr>
-                            <td style="color: #e53e3e;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
-                            <td align="right" style="color: #e53e3e;">-${formatCurrency(totals.regularDiscount)}</td>
+                            <td style="color: #e53e3e; padding-top: 5px;">${isJapanese ? `割引 (${quotation.discount_percentage}%)` : `Discount (${quotation.discount_percentage}%)`}</td>
+                            <td align="right" style="color: #e53e3e; padding-top: 5px;">-${formatCurrency(totals.regularDiscount)}</td>
                           </tr>
                           <tr>
-                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 500;">${isJapanese ? '小計' : 'Subtotal'}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 500;">${formatCurrency(totals.subtotal)}</td>
                           </tr>
                           ` : ''}
                           ${totals.taxAmount > 0 ? `
                           <tr>
-                            <td style="color: #666;">${isJapanese ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}</td>
-                            <td align="right" style="color: #666;">+${formatCurrency(totals.taxAmount)}</td>
+                            <td style="color: #666; padding-top: 5px;">${isJapanese ? `税金 (${quotation.tax_percentage}%)` : `Tax (${quotation.tax_percentage}%)`}</td>
+                            <td align="right" style="color: #666; padding-top: 5px;">+${formatCurrency(totals.taxAmount)}</td>
                           </tr>
-                          ` : ''}
+                          ` : ''}` : ''}
                           <tr>
-                            <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${isJapanese ? '合計金額' : 'Total Amount'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${formatCurrency(totals.finalTotal)}</td>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 700;">${isJapanese ? '合計金額' : 'Total Amount Due'}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 700;">${formatCurrency(totals?.finalTotal)}</td>
                           </tr>
                         </table>
                       </td>

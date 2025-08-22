@@ -9,7 +9,7 @@ import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
 // Email templates for different languages
 const reminderTemplates = {
   en: {
-    subject: 'Reminder: Your Quotation from Driver',
+    subject: 'Reminder: Your Quotation',
     greeting: 'Hello',
     intro: 'We wanted to remind you about the quotation we sent recently.',
     followup: 'Your quotation is still available for review. If you would like to proceed, please click the button below.',
@@ -20,7 +20,7 @@ const reminderTemplates = {
     company: 'Driver (Thailand) Company Limited'
   },
   ja: {
-    subject: 'リマインダー: ドライバーからの見積書',
+    subject: 'リマインダー: あなたの見積書',
     greeting: 'こんにちは',
     intro: '先日お送りした見積書についてリマインドさせていただきます。',
     followup: 'お見積もりはまだご確認いただけます。ご検討いただける場合は、以下のボタンをクリックしてください。',

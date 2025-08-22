@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { generateFontCSS } from './base64-fonts';
@@ -154,59 +154,82 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     </html>
   `;
 
+  let browser: any;
+  
   try {
-    // Use @sparticuz/chromium for serverless environments (both production and development)
-    const browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--font-render-hinting=none',
-        '--disable-font-subpixel-positioning',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-gpu-sandbox',
-        '--disable-software-rasterizer',
-        '--disable-dev-shm-usage',
-        '--lang=en-US,en,ja,th,fr',
-        '--enable-font-antialiasing',
-        '--force-color-profile=srgb',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection',
-        '--enable-blink-features=CSSFontMetrics',
-        '--enable-font-antialiasing',
-        '--enable-font-subpixel-positioning',
-        '--enable-font-subpixel-positioning',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-hang-monitor',
-        '--disable-prompt-on-repost',
-        '--disable-client-side-phishing-detection',
-        '--disable-sync',
-        '--disable-translate',
-        '--disable-logging',
-        '--disable-in-process-stack-traces',
-        '--disable-histogram-customizer',
-        '--disable-gl-extensions',
-        '--disable-composited-antialiasing',
-        '--disable-canvas-aa',
-        '--disable-3d-apis',
-        '--disable-accelerated-2d-canvas',
-        '--disable-accelerated-jpeg-decoding',
-        '--disable-accelerated-mjpeg-decode',
-        '--disable-accelerated-video-decode',
-        '--disable-accelerated-video-encode',
-        '--memory-pressure-off',
-        '--max_old_space_size=4096'
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      // Production/Serverless environment - use @sparticuz/chromium
+      console.log('🚀 Using @sparticuz/chromium for production/serverless');
+      browser = await puppeteer.launch({
+        args: [
+          ...chromium.args,
+          '--font-render-hinting=none',
+          '--disable-font-subpixel-positioning',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-gpu-sandbox',
+          '--disable-software-rasterizer',
+          '--disable-dev-shm-usage',
+          '--lang=en-US,en,ja,th,fr',
+          '--enable-font-antialiasing',
+          '--force-color-profile=srgb',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--enable-blink-features=CSSFontMetrics',
+          '--enable-font-antialiasing',
+          '--enable-font-subpixel-positioning',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--disable-hang-monitor',
+          '--disable-prompt-on-repost',
+          '--disable-client-side-phishing-detection',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-logging',
+          '--disable-in-process-stack-traces',
+          '--disable-histogram-customizer',
+          '--disable-gl-extensions',
+          '--disable-composited-antialiasing',
+          '--disable-canvas-aa',
+          '--disable-3d-apis',
+          '--disable-accelerated-2d-canvas',
+          '--disable-accelerated-jpeg-decoding',
+          '--disable-accelerated-mjpeg-decode',
+          '--disable-accelerated-video-decode',
+          '--disable-accelerated-video-encode',
+          '--memory-pressure-off',
+          '--max_old_space_size=4096'
+        ],
+        defaultViewport: chromium.defaultViewport,
+        headless: chromium.headless,
+        executablePath: await chromium.executablePath()
+      });
+    } else {
+      // Development environment - use full puppeteer
+      console.log('🔧 Using full puppeteer for development');
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--font-render-hinting=none',
+          '--disable-font-subpixel-positioning',
+          '--lang=en-US,en,ja,th,fr'
+        ]
+      });
+    }
 
     // Create a new page
     const page = await browser.newPage();
+    
+    // Set timeouts for page operations
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
     
     // Set extra HTTP headers for better font loading
     await page.setExtraHTTPHeaders({
@@ -217,7 +240,17 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     
     // Set content and wait for network idle and fonts to load
     console.log('📄 Setting HTML content for PDF generation...');
-    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    try {
+      await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    } catch (error) {
+      console.log('⚠️ networkidle0 failed, trying domcontentloaded...');
+      try {
+        await page.setContent(fullHtml, { waitUntil: 'domcontentloaded' });
+      } catch (fallbackError) {
+        console.log('⚠️ domcontentloaded failed, using basic setContent...');
+        await page.setContent(fullHtml);
+      }
+    }
     
     // Use the enhanced font loading utility
     console.log('🔤 Ensuring fonts are loaded...');
@@ -280,15 +313,22 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       scale: pdfOptions.scale
     });
 
-    // Close the browser
-    await browser.close();
-
     // Convert to proper Buffer
     return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('Error generating PDF:', error);
     // It's often better to throw a custom error or re-throw if you can't handle it
     throw new Error(`PDF generation failed: ${(error as Error).message}`);
+  } finally {
+    // Always close the browser to prevent memory leaks
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('🧹 Browser closed successfully');
+      } catch (closeError) {
+        console.error('⚠️ Error closing browser:', closeError);
+      }
+    }
   }
 }
 
@@ -844,55 +884,26 @@ export function generateQuotationHtml(
       </div>
       
       <!-- Signature Section placed right under totals -->
-      ${(() => {
-        console.log('PDF Generator - Signature check:', {
-          showSignature,
-          quotationStatus: quotation.status,
-          hasApprovalSignature: !!quotation.approval_signature,
-          hasRejectionSignature: !!quotation.rejection_signature,
-          approvalSignatureLength: quotation.approval_signature?.length || 0,
-          rejectionSignatureLength: quotation.rejection_signature?.length || 0
-        });
-        
-        const shouldShowSignature = showSignature && 
-          ((quotation.status === 'approved' && quotation.approval_signature) || 
-           (quotation.status === 'paid') ||
-           (quotation.status === 'rejected' && quotation.rejection_signature));
-           
-        console.log('PDF Generator - Should show signature:', shouldShowSignature);
-        return '';
-      })()}
       ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || quotation.status === 'paid' || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
-        <div style="border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 20px;">
+        <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
           <!-- Customer Signature Section -->
-          <div style="margin-bottom: 20px;">
-            <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px; font-weight: bold; text-align: center;">
-              Customer Signature
-            </h3>
-            
+          <div style="margin-bottom: 15px;">        
             <!-- Right-aligned signature block -->
             <div style="display: flex; justify-content: flex-end;">
               <div style="max-width: 300px; text-align: center;">
                 <!-- Signature image or placeholder -->
-                <div style="border: 2px solid #d1d5db; border-radius: 6px; padding: 15px; background: #f9fafb; min-height: 100px; max-height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                <div style="border: 2px solid #d1d5db; border-radius: 6px; padding: 12px; background: #f9fafb; min-height: 80px; max-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">
                   ${quotation.status === 'approved' && quotation.approval_signature ? `
-                    <img src="${quotation.approval_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 90px; object-fit: contain;">
+                    <img src="${quotation.approval_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                   ` : quotation.status === 'paid' ? `
-                    <div style="color: #10b981; font-size: 32px; font-weight: bold;">✓</div>
+                    <div style="color: #10b981; font-size: 28px; font-weight: bold;">✓</div>
                   ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
-                    <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 90px; object-fit: contain;">
+                    <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 70px; object-fit: contain;">
                   ` : `
                     <div style="color: #9ca3af; font-size: 14px; text-align: center; line-height: 1.4;">
                       Customer<br>Signature
                     </div>
                   `}
-                </div>
-                
-                <!-- Customer Name -->
-                <div style="margin-bottom: 10px;">
-                  <span style="font-size: 14px; font-weight: bold; color: #333;">
-                    ${quotation.customer_name || quotation.customers?.name || 'Customer Name'}
-                  </span>
                 </div>
                 
                 <!-- Signature line with date and time side by side -->
@@ -966,7 +977,7 @@ export function generateQuotationHtml(
       ` : ''}
       
       <!-- Page break before Terms and Conditions -->
-      <div style="page-break-after: always; height: 1px;"></div>
+      <div style="page-break-before: always; margin-top: 20px;"></div>
       
       <!-- Terms and Conditions -->
       <div style="margin-bottom: 25px; margin-top: 20px;">

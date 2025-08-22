@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import chromium from '@sparticuz/chromium';
 import { enhancedPdfCache } from './enhanced-pdf-cache';
 import { generateOptimizedFontCSS, createFontReadyCheck } from './optimized-fonts';
@@ -98,7 +98,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--max_old_space_size=4096'
   ];
 
-  if (isProduction) {
+  if (isProduction || process.env.VERCEL) {
     return {
       args: [...chromium.args, ...baseArgs],
       defaultViewport: chromium.defaultViewport,
@@ -307,8 +307,14 @@ export async function generateOptimizedPdfFromHtml(
     return buffer;
     
   } catch (error) {
+    // Always close the browser to prevent memory leaks
     if (browser) {
-      await browser.close().catch(() => {});
+      try {
+        await browser.close();
+        console.log('🧹 Browser closed successfully');
+      } catch (closeError) {
+        console.error('⚠️ Error closing browser:', closeError);
+      }
     }
     
     metrics.totalTime = Date.now() - metrics.startTime;
@@ -317,6 +323,7 @@ export async function generateOptimizedPdfFromHtml(
       totalTime: `${metrics.totalTime}ms`,
       metrics
     });
+
     
     // Try fallback to regular generator
     try {

@@ -3106,6 +3106,14 @@ export const ja: TranslationValue = {
       downloadQuotation: "見積書をダウンロード",
       email: "見積をメール送信",
       emailQuote: "見積をメール送信",
+      emailQuotation: {
+        approved: {
+          subject: "あなたの見積書が承認されました"
+        },
+        rejected: {
+          subject: "あなたの見積書が却下されました"
+        }
+      },
       generating: "生成中..."
     },
     share: {

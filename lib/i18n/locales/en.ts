@@ -3131,6 +3131,14 @@ export const en: TranslationValue = {
       downloadQuotation: "Download Quotation",
       email: "Email Quotation",
       emailQuote: "Email Quotation",
+      emailQuotation: {
+        approved: {
+          subject: "Your Quotation has been Approved"
+        },
+        rejected: {
+          subject: "Your Quotation has been Rejected"
+        }
+      },
       generating: "Generating..."
     },
     share: {

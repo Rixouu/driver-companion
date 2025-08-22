@@ -35,12 +35,14 @@ import {
   TrashIcon,
   CopyIcon,
   BellIcon,
-  AlertCircleIcon
+  AlertCircleIcon,
+  Filter
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationFilters, QuotationFilterOptions } from './quotation-filters';
+import { QuotationStatusFilter } from './quotation-status-filter';
 import { cn } from '@/lib/utils';
 import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
 import { useToast } from '@/components/ui/use-toast';
@@ -109,6 +111,8 @@ export default function QuotationList({
     amountMin: initialAmountMin,
     amountMax: initialAmountMax
   });
+  
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Check if quotation is expired - Updated to use 2 days from creation
   const isExpired = (quotation: Quotation) => {
@@ -482,20 +486,36 @@ export default function QuotationList({
   return (
     <Card className="w-full">
       <CardContent className="p-0">
-        <div className="p-4 border-b">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-foreground">
-              {t('quotations.filters.title') || 'Filters & Search'}
-            </h3>
-          </div>
+        <div className="p-4 bg-muted/10 border-b">
+          <QuotationStatusFilter 
+            currentStatus={filters.statusFilter as QuotationStatus | 'all'}
+            onChange={(newStatus) => handleFiltersChange({ ...filters, statusFilter: newStatus })}
+          />
         </div>
         
-        {/* Quotation Filters */}
-        <QuotationFilters
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          totalQuotations={totalCount}
-        />
+        {/* Collapsible Quotation Filters */}
+        <div className="border-b">
+          <Button
+            variant="ghost"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="w-full justify-between p-4 rounded-none border-b-0"
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">{t('quotations.filters.title') || 'Filters & Search'}</span>
+            </div>
+            <ChevronDownIcon className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+          </Button>
+          
+          {filtersOpen && (
+            <QuotationFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              totalQuotations={totalCount}
+              className="border-t-0"
+            />
+          )}
+        </div>
 
         <div className="p-4">
           <div className="md:hidden space-y-4">

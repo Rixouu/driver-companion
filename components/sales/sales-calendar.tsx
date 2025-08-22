@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3, FileText, ShoppingCart, TrendingUp, DollarSign, Users, CalendarDays, SortAsc, SortDesc } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, CheckCircle, AlertTriangle, Eye, Search, X, Filter, List, Grid3X3, FileText, ShoppingCart, TrendingUp, DollarSign, Users, CalendarDays, SortAsc, SortDesc, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -85,6 +85,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     groupBy: 'none'
   })
   const [weeklyRevenueFilter, setWeeklyRevenueFilter] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
 
   // Update URL params when filters change
@@ -743,17 +744,33 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <EventsFilter
-          filters={filters}
-          onFiltersChange={setFilters}
-          totalEvents={filteredEvents.length}
-          totalQuotations={filteredEvents.filter(e => e.type === 'quotation').length}
-          totalBookings={filteredEvents.filter(e => e.type === 'booking').length}
-          showGrouping={false}
-          showSorting={true}
-          className="mb-6"
-        />
+        {/* Collapsible Search and Filters */}
+        <div className="border rounded-lg mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            className="w-full justify-between p-4 rounded-none border-b-0"
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">Filters & Search</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+          </Button>
+          
+          {filtersOpen && (
+            <EventsFilter
+              filters={filters}
+              onFiltersChange={setFilters}
+              totalEvents={filteredEvents.length}
+              totalQuotations={filteredEvents.filter(e => e.type === 'quotation').length}
+              totalBookings={filteredEvents.filter(e => e.type === 'booking').length}
+              showGrouping={false}
+              showSorting={true}
+              className="border-t-0"
+            />
+          )}
+        </div>
 
         {/* View Mode Toggle and Results Summary - Better Spacing */}
         <div className="flex items-center justify-between mb-6 mt-8">

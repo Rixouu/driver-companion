@@ -450,8 +450,8 @@ export async function POST(request: NextRequest) {
       // Format quotation ID
       const formattedQuotationId = `QUO-JPDR-${fullQuotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
-      // Use translation key for subject
-      const emailSubject = `${t('email.quotation.approved.subject')} - ${formattedQuotationId}`;
+      // Use simple subject like other emails
+      const emailSubject = `Your Quotation has been Approved - ${formattedQuotationId}`;
       
       // Customer name with fallback
       const customerName = (fullQuotation.customers ? fullQuotation.customers.name : null) || 

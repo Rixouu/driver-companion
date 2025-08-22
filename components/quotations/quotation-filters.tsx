@@ -56,7 +56,7 @@ export function QuotationFilters({
                           filters.amountMax !== undefined
 
   return (
-    <Card className={className}>
+        <Card className={className}>
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Filter className="h-5 w-5" />

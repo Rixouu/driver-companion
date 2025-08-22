@@ -9,6 +9,9 @@ import { safeEncodeText } from '@/lib/utils/character-encoding';
  */
 async function ensureFontsLoaded(page: any): Promise<void> {
   try {
+    console.log('⏱️  Starting font loading for PDF generation...');
+    const fontLoadStart = Date.now();
+    
     // Wait for fonts to load with a timeout
     await Promise.race([
       page.evaluateHandle('document.fonts.ready'),
@@ -29,7 +32,10 @@ async function ensureFontsLoaded(page: any): Promise<void> {
     });
     
     // Force a small delay to ensure rendering is complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const fontLoadTime = Date.now() - fontLoadStart;
+    console.log(`⏱️  Fonts loaded in ${fontLoadTime}ms`);
   } catch (error) {
     console.warn('Font loading timeout, proceeding with available fonts:', error);
   }
@@ -81,11 +87,6 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       <style>
         /* Use base64 embedded fonts for reliable PDF generation */
         ${generateFontCSS()}
-        
-        /* Import CDN fonts for reliable Japanese and Thai support */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:ital,wght@0,400;0,500;0,700;1,400&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,700;1,400&display=swap');
         
         /* Additional font definitions for Work Sans */
         @font-face {
@@ -215,10 +216,36 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     });
     
     // Set content and wait for network idle and fonts to load
+    console.log('📄 Setting HTML content for PDF generation...');
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     
     // Use the enhanced font loading utility
+    console.log('🔤 Ensuring fonts are loaded...');
     await ensureFontsLoaded(page);
+    
+    // Additional wait to ensure all content is rendered
+    console.log('⏳ Waiting for content to stabilize...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Verify that the base64 font is loaded
+    console.log('🔍 Verifying base64 font loading...');
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        // Check if our base64 font is loaded
+        const testElement = document.createElement('div');
+        testElement.style.fontFamily = 'Noto Sans';
+        testElement.style.position = 'absolute';
+        testElement.style.visibility = 'hidden';
+        testElement.textContent = 'あア美咲みさきกขคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮ';
+        document.body.appendChild(testElement);
+        
+        // Wait for the font to be fully loaded
+        setTimeout(() => {
+          document.body.removeChild(testElement);
+          resolve(true);
+        }, 1000);
+      });
+    });
 
     // Generate PDF
     const pdfBuffer = await page.pdf({

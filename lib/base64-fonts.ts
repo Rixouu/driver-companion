@@ -27,8 +27,13 @@ export function generateFontCSS(): string {
     }
     
     /* Ensure proper rendering for Japanese and Thai text */
-    .japanese-text, .thai-text {
-      font-family: 'Noto Sans', sans-serif;
+    .japanese-text, .thai-text, .billing-address, .customer-info {
+      font-family: 'Noto Sans', sans-serif !important;
+    }
+    
+    /* Force all text elements to use the base64 font */
+    h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
+      font-family: 'Noto Sans', sans-serif !important;
     }
   `;
 }

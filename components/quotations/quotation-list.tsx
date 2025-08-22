@@ -529,7 +529,7 @@ export default function QuotationList({
                         );
                       })()}
                       {needsReminder(quotation) && (
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">
                           <AlertCircleIcon className="h-3 w-3 mr-1" />
                           {t('quotations.actions.remind')}
                         </Badge>
@@ -567,7 +567,13 @@ export default function QuotationList({
                           <Button 
                             variant={needsReminder(quotation) ? "secondary" : "ghost"} 
                             size="icon"
-                            className="h-8 w-8"
+                            className={cn(
+                              "h-8 w-8",
+                              needsReminder(quotation) 
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500 hover:border-yellow-600' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                              'transition-colors'
+                            )}
                             onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
                             title={t('quotations.actions.remind')}
                           >
@@ -677,7 +683,7 @@ export default function QuotationList({
                       <div className="flex flex-col items-start gap-1">
                         <span>{getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'dd MMM yyyy') : t('common.notAvailableShort')}</span>
                         {needsReminder(quotation) && (
-                          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 inline-flex items-center mt-1">
+                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700 inline-flex items-center mt-1">
                             <AlertCircleIcon className="h-3 w-3 mr-1" />
                             {t('quotations.actions.remind')}
                           </Badge>
@@ -723,7 +729,12 @@ export default function QuotationList({
                             size="icon"
                             onClick={(e) => handleRemindClick(e, quotation.id)}
                             title={t('quotations.actions.remind')}
-                            className={`text-white ${needsReminder(quotation) ? 'hover:text-yellow-600 hover:text-yellow-600' : 'hover:text-yellow-600'}`}
+                            className={cn(
+                              needsReminder(quotation) 
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500 hover:border-yellow-600' 
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                              'transition-colors'
+                            )}
                           >
                             <BellIcon className="h-4 w-4" />
                           </Button>

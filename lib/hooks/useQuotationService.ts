@@ -1083,7 +1083,7 @@ export const useQuotationService = () => {
           details: { status: 'sent' }
         });
         
-      // Toast removed - let the component handle its own toast
+      // No toast here - let the calling component handle it
       
       setLoading(false);
       return true;

@@ -37,8 +37,7 @@ BEGIN
   result_text := replace(result_text, '&#39;', '''');
   result_text := replace(result_text, '&nbsp;', ' ');
   
-  -- Remove null bytes and normalize whitespace
-  result_text := replace(result_text, E'\x00', '');
+  -- Normalize whitespace
   result_text := regexp_replace(result_text, '\s+', ' ', 'g');
   result_text := trim(result_text);
   

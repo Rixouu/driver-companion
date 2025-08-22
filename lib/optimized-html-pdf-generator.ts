@@ -57,7 +57,7 @@ async function getOptimizedPuppeteerConfig(isProduction: boolean) {
     '--no-default-browser-check',
     '--font-render-hinting=none',
     '--disable-font-subpixel-positioning',
-    '--lang=en-US,en,ja,th,fr,ko',
+            '--lang=en-US,en,ja,th,fr',
     '--enable-font-antialiasing',
     '--force-color-profile=srgb',
     '--enable-blink-features=CSSFontMetrics',

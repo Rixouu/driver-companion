@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { generateFontCSS } from './base64-fonts';
+import { safeEncodeText } from '@/lib/utils/character-encoding';
 
 /**
  * Font loading utility for production environments
@@ -72,12 +73,21 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
       <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
       <meta http-equiv="Content-Language" content="en, ja, th, fr">
       <title>PDF Export</title>
+      
+      <!-- Preload fonts for faster rendering -->
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      
       <style>
         /* Use base64 embedded fonts for reliable PDF generation */
         ${generateFontCSS()}
         
-        /* Additional font definitions for Work Sans */
+        /* Import CDN fonts for reliable Japanese and Thai support */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:ital,wght@0,400;0,500;0,700;1,400&display=swap');
         
+        /* Additional font definitions for Work Sans */
         @font-face {
           font-family: 'Work Sans';
           src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jow.woff2') format('woff2');
@@ -92,47 +102,41 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         }
         
         body {
-          /* Use base64 Noto Sans font for consistent multi-language support */
-          font-family: 'Noto Sans', 'Work Sans', sans-serif;
+          /* Use optimized font stack for multi-language support */
+          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
           background-color: white;
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
-          font-feature-settings: 'liga' 1, 'kern' 1;
-          text-rendering: optimizeLegibility;
-          /* Ensure proper text rendering for CJK and Thai characters */
-          -webkit-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
-          -moz-font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+          text-rendering: optimizeLegibility;
         }
         
         /* Specific styling for Japanese text */
-        .ja-text, [lang="ja"] {
-          font-family: 'Noto Sans', sans-serif;
+        .ja-text, [lang="ja"], .billing-address, .customer-info {
+          font-family: 'Noto Sans JP', 'Noto Sans', sans-serif !important;
           line-height: 1.6;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
         /* Specific styling for Thai text */
         .th-text, [lang="th"] {
-          font-family: 'Noto Sans', sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif !important;
           line-height: 1.5;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Specific styling for Korean text */
-        .ko-text, [lang="ko"] {
-          font-family: 'Noto Sans', sans-serif;
-          line-height: 1.6;
+        /* Ensure proper rendering for all text elements */
+        h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
+          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai', sans-serif !important;
           font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
         }
         
-        /* Ensure proper rendering for all text with base64 font */
-        h1, h2, h3, h4, h5, h6, p, span, div, td, th, label, input, textarea {
-          font-family: 'Noto Sans', sans-serif !important;
-          font-feature-settings: 'liga' 1, 'kern' 1, 'locl' 1;
+        /* Special handling for billing address and customer info */
+        .billing-address *, .customer-info * {
+          font-family: 'Noto Sans JP', 'Noto Sans Thai', 'Noto Sans', sans-serif !important;
         }
         
         @media print {
@@ -171,7 +175,29 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         '--disable-ipc-flooding-protection',
         '--enable-blink-features=CSSFontMetrics',
         '--enable-font-antialiasing',
-        '--enable-font-subpixel-positioning'
+        '--enable-font-subpixel-positioning',
+        '--enable-font-subpixel-positioning',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-hang-monitor',
+        '--disable-prompt-on-repost',
+        '--disable-client-side-phishing-detection',
+        '--disable-sync',
+        '--disable-translate',
+        '--disable-logging',
+        '--disable-in-process-stack-traces',
+        '--disable-histogram-customizer',
+        '--disable-gl-extensions',
+        '--disable-composited-antialiasing',
+        '--disable-canvas-aa',
+        '--disable-3d-apis',
+        '--disable-accelerated-2d-canvas',
+        '--disable-accelerated-jpeg-decoding',
+        '--disable-accelerated-mjpeg-decode',
+        '--disable-accelerated-video-decode',
+        '--disable-accelerated-video-encode',
+        '--memory-pressure-off',
+        '--max_old_space_size=4096'
       ],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
@@ -218,8 +244,6 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
     throw new Error(`PDF generation failed: ${(error as Error).message}`);
   }
 }
-
-import { safeEncodeText } from '@/lib/utils/character-encoding';
 
 /**
  * Generates HTML for quotation that exactly matches the design in quotation-pdf-button.tsx

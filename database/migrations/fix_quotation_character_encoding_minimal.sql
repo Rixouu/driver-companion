@@ -80,3 +80,4 @@ CREATE TRIGGER quotation_text_cleaning_trigger
 
 -- Step 5: Verify the function works
 SELECT 'Migration completed - function created successfully' as status;
+

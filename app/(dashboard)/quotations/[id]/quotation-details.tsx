@@ -46,9 +46,7 @@ import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
 import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';
-import { useQuotationMessages } from '@/lib/hooks/useQuotationMessages';
-import { QuotationActivityFeed } from '@/components/quotations/quotation-activity-feed';
-import QuotationMessageBlock from '@/components/quotations/quotation-message-block';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,16 +122,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   
   const { approveQuotation, rejectQuotation, sendQuotation, updateQuotation, getPricingPackages, getPricingPromotions } = useQuotationService();
 
-  // Add the messages hook
-  const {
-    activities,
-    messages,
-    isLoadingActivities,
-    isLoadingMessages,
-    sendMessage,
-    refreshActivities,
-    refreshMessages
-  } = useQuotationMessages(quotation.id);
+
 
   // Load packages, promotions, and time-based pricing data
   useEffect(() => {
@@ -361,11 +350,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
   // Helper functions moved to PricingBreakdown component
 
-  // Function to handle both refreshing activities and messages
-  const handleRefreshActivityFeed = () => {
-    refreshActivities();
-    refreshMessages();
-  };
+
 
   // Add scroll handler for approval positioning
   useEffect(() => {
@@ -959,31 +944,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             </CardContent>
           </Card>
           
-          {/* Message Block - Clean */}
-          {quotation.status !== 'approved' && (
-            <Card className="mt-8 lg:mt-12">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-muted rounded-lg">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">
-                      {t('quotations.messageBlock.title') || 'Conversation'}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">Messages and updates</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <QuotationMessageBlock 
-                  messages={messages}
-                  isLoading={isLoadingMessages}
-                  onSendMessage={sendMessage}
-                />
-              </CardContent>
-            </Card>
-          )}
+
         </div>
         
         {/* Sidebar - Enhanced */}
@@ -1323,38 +1284,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           )}
 
 
-          {/* Activity Feed - Clean */}
-          <div className="mt-4 xl:mt-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-muted rounded-lg">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold">
-                      {t('quotations.details.activityFeed') || 'Activity Feed'}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">Recent actions and updates</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshActivityFeed}
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <QuotationActivityFeed 
-                  activities={activities} 
-                  isLoading={isLoadingActivities}
-                  onRefresh={handleRefreshActivityFeed}
-                />
-              </CardContent>
-            </Card>
-          </div>
+
 
          
         </div>

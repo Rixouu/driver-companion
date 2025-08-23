@@ -34,6 +34,9 @@ export async function middleware(request: NextRequest) {
   const isQuotationDetailsPage = request.nextUrl.pathname.match(/^\/(dashboard\/)?quotations\/[^\/]+$/)
   const isQuotationsListPage = request.nextUrl.pathname === '/quotations' || request.nextUrl.pathname === '/dashboard/quotations'
   
+  // Check if this is a magic link quote access page
+  const isQuoteAccessPage = request.nextUrl.pathname.startsWith('/quote-access/')
+  
   // Check if user is from the organization
   const isOrganizationMember = isAuth && 
     sessionUser.email?.endsWith(`@${ORGANIZATION_DOMAIN}`)
@@ -52,6 +55,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(targetPath, request.url))
     }
     // Allow access to auth pages for non-authenticated users
+    return response
+  }
+  
+  // Special handling for magic link quote access pages - allow public access
+  if (isQuoteAccessPage) {
+    // Allow access to quote access pages without authentication
     return response
   }
   
@@ -134,7 +143,8 @@ export const config = {
      * - public folder assets
      * - api (API routes must not be handled by middleware to avoid HTML redirects)
      * - auth folder (except for signout)
+     * - quote-access (magic link pages)
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|api/|.*\\.(?:svg|ico|jpg|jpeg|png|gif|webp|woff2|ttf)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|api/|quote-access|.*\\.(?:svg|ico|jpg|jpeg|png|gif|webp|woff2|ttf)$).*)',
   ],
 } 

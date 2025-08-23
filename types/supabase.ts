@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_users: {
@@ -2101,6 +2126,64 @@ export type Database = {
           },
         ]
       }
+      quotation_magic_links: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          expires_at: string
+          id: string
+          is_used: boolean | null
+          quotation_id: string
+          token: string
+          updated_at: string | null
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          expires_at: string
+          id?: string
+          is_used?: boolean | null
+          quotation_id: string
+          token: string
+          updated_at?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          expires_at?: string
+          id?: string
+          is_used?: boolean | null
+          quotation_id?: string
+          token?: string
+          updated_at?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_magic_links_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "quotation_magic_links_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_magic_links_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotation_messages: {
         Row: {
           created_at: string
@@ -2166,6 +2249,67 @@ export type Database = {
           },
         ]
       }
+      quotation_payments: {
+        Row: {
+          amount: number
+          charge_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          currency: string
+          id: string
+          payment_method: string
+          quotation_id: string | null
+          reference: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          charge_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          currency: string
+          id?: string
+          payment_method: string
+          quotation_id?: string | null
+          reference?: string | null
+          status: string
+        }
+        Update: {
+          amount?: number
+          charge_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          currency?: string
+          id?: string
+          payment_method?: string
+          quotation_id?: string | null
+          reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_payments_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_diagnostic_view"
+            referencedColumns: ["quotation_id"]
+          },
+          {
+            foreignKeyName: "quotation_payments_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_summary_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_payments_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotations: {
         Row: {
           amount: number
@@ -2199,6 +2343,8 @@ export type Database = {
           hours_per_day: number | null
           id: string
           invoice_generated_at: string | null
+          magic_link_expires_at: string | null
+          magic_link_generated_at: string | null
           merchant_id: string | null
           merchant_notes: string | null
           package_discount: number | null
@@ -2206,6 +2352,9 @@ export type Database = {
           payment_amount: number | null
           payment_completed_at: string | null
           payment_date: string | null
+          payment_link: string | null
+          payment_link_expires_at: string | null
+          payment_link_generated_at: string | null
           payment_link_sent_at: string | null
           payment_method: string | null
           pickup_date: string | null
@@ -2271,6 +2420,8 @@ export type Database = {
           hours_per_day?: number | null
           id?: string
           invoice_generated_at?: string | null
+          magic_link_expires_at?: string | null
+          magic_link_generated_at?: string | null
           merchant_id?: string | null
           merchant_notes?: string | null
           package_discount?: number | null
@@ -2278,6 +2429,9 @@ export type Database = {
           payment_amount?: number | null
           payment_completed_at?: string | null
           payment_date?: string | null
+          payment_link?: string | null
+          payment_link_expires_at?: string | null
+          payment_link_generated_at?: string | null
           payment_link_sent_at?: string | null
           payment_method?: string | null
           pickup_date?: string | null
@@ -2343,6 +2497,8 @@ export type Database = {
           hours_per_day?: number | null
           id?: string
           invoice_generated_at?: string | null
+          magic_link_expires_at?: string | null
+          magic_link_generated_at?: string | null
           merchant_id?: string | null
           merchant_notes?: string | null
           package_discount?: number | null
@@ -2350,6 +2506,9 @@ export type Database = {
           payment_amount?: number | null
           payment_completed_at?: string | null
           payment_date?: string | null
+          payment_link?: string | null
+          payment_link_expires_at?: string | null
+          payment_link_generated_at?: string | null
           payment_link_sent_at?: string | null
           payment_method?: string | null
           pickup_date?: string | null
@@ -2776,39 +2935,41 @@ export type Database = {
       quotation_summary_view: {
         Row: {
           amount: number | null
-          booking_status: string | null
-          calculated_amount: number | null
-          converted_to_booking_id: string | null
+          billing_city: string | null
+          billing_company_name: string | null
+          billing_country: string | null
           created_at: string | null
           currency: string | null
           customer_email: string | null
           customer_name: string | null
-          days_count: number | null
-          discount_percentage: number | null
-          duration_hours: number | null
-          expiry_date: string | null
           id: string | null
-          is_converted: boolean | null
-          is_expired: boolean | null
-          merchant_id: string | null
-          quote_number: number | null
-          service_type: string | null
           status: string | null
-          tax_percentage: number | null
-          title: string | null
-          total_amount: number | null
-          updated_at: string | null
-          vehicle_type: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "quotations_converted_to_booking_id_fkey"
-            columns: ["converted_to_booking_id"]
-            isOneToOne: false
-            referencedRelation: "bookings"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: {
+          amount?: number | null
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -2817,6 +2978,24 @@ export type Database = {
           | { base_price: number; days_count: number }
           | { base_price: number; days_count: number; quotation_id?: string }
         Returns: number
+      }
+      check_quotation_encoding_issues: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          field_name: string
+          has_encoding_issues: boolean
+          issue_type: string
+          original_value: string
+          record_id: string
+        }[]
+      }
+      clean_quotation_text: {
+        Args: { input_text: string }
+        Returns: string
+      }
+      clean_quotation_text_comprehensive: {
+        Args: { input_text: string }
+        Returns: string
       }
       get_correct_price_for_duration: {
         Args:
@@ -2840,6 +3019,36 @@ export type Database = {
           currency: string
           duration_hours: number
           price: number
+        }[]
+      }
+      get_inspections_with_details: {
+        Args: {
+          date_from?: string
+          date_to?: string
+          page_num: number
+          page_size: number
+          search_query?: string
+          status_filter?: string
+        }
+        Returns: {
+          created_at: string
+          date: string
+          id: string
+          inspector_email: string
+          inspector_id: string
+          inspector_name: string
+          notes: string
+          status: string
+          template_display_name: string
+          total_count: number
+          type: string
+          updated_at: string
+          vehicle_brand: string
+          vehicle_id: string
+          vehicle_model: string
+          vehicle_name: string
+          vehicle_plate_number: string
+          vehicle_year: string
         }[]
       }
       recalculate_quotation_totals: {
@@ -2974,6 +3183,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       template_status_type: ["draft", "active", "inactive", "archived"],

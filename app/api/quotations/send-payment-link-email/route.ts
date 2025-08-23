@@ -27,28 +27,60 @@ export async function POST(req: NextRequest) {
         email: formData.get('email') as string,
         quotation_id: formData.get('quotation_id') as string,
         customer_name: formData.get('customer_name') as string,
-        include_details: formData.get('include_details') === 'true',
         language: formData.get('language') as string || 'en',
-        payment_link: formData.get('payment_link') as string
+        payment_link: formData.get('payment_link') as string,
+        custom_payment_name: formData.get('custom_payment_name') as string
       };
     } else {
       requestData = await req.json();
     }
     
-    const { email, quotation_id: quotationId, customer_name: customerName, include_details: includeDetails, language, payment_link: paymentLink } = requestData;
+    const { email, quotation_id: quotationId, customer_name: customerName, language, payment_link: paymentLink, custom_payment_name: customPaymentName } = requestData;
     
     // Get PDF file if it exists (for multipart requests)
     const pdfFile = formData ? (formData.get('invoice_pdf') as File) : null;
 
-    if (!email || !quotationId || !paymentLink) {
+    if (!email || !quotationId) {
       return NextResponse.json(
-        { error: "Missing required fields: email, quotation_id, and payment_link are required" },
+        { error: "Missing required fields: email and quotation_id are required" },
         { status: 400 }
       );
     }
 
+    // If no payment link provided, generate one using Omise
+    let finalPaymentLink = paymentLink;
+    if (!finalPaymentLink) {
+      try {
+        const omiseResponse = await fetch(`${req.nextUrl.origin}/api/quotations/generate-omise-payment-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            quotation_id: quotationId,
+            customName: customPaymentName
+          })
+        });
+
+        if (omiseResponse.ok) {
+          const omiseData = await omiseResponse.json();
+          finalPaymentLink = omiseData.paymentUrl;
+        } else {
+          console.error('Failed to generate Omise payment link:', await omiseResponse.text());
+          return NextResponse.json(
+            { error: "Failed to generate payment link" },
+            { status: 500 }
+          );
+        }
+      } catch (error) {
+        console.error('Error generating Omise payment link:', error);
+        return NextResponse.json(
+          { error: "Failed to generate payment link" },
+          { status: 500 }
+        );
+      }
+    }
+
     // Validate payment link format
-    if (!paymentLink.startsWith('http')) {
+    if (!finalPaymentLink || !finalPaymentLink.startsWith('http')) {
       return NextResponse.json(
         { error: "Invalid payment link format. Must be a valid URL." },
         { status: 400 }
@@ -259,7 +291,7 @@ export async function POST(req: NextRequest) {
       quotationId: `QUO-JPDR-${String(quotationData.quote_number || 0).padStart(6, '0')}`,
       amount: quotationData.total_amount || totals.finalTotal, // Use calculated final total
       currencyCode: displayCurrency,
-      paymentLink: paymentLink, // Use the provided payment link
+      paymentLink: finalPaymentLink, // Use the generated or provided payment link
       serviceName: serviceSummary,
       pdfAttachment: pdfBuffer || undefined,
       // Add breakdown details for enhanced email template

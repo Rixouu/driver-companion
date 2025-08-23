@@ -100,6 +100,7 @@ interface EnhancedQuotationItem extends QuotationItem {
 }
 
 export function QuotationDetails({ quotation, isOrganizationMember = true }: QuotationDetailsProps) {
+  const workflowRef = useRef<{ openPaymentLinkDialog: () => void }>(null);
   const { t } = useI18n();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -524,7 +525,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 {/* Primary Action Buttons */}
                 {quotation.status === 'approved' ? (
                   <>
-                  <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
+                  <QuotationInvoiceButton 
+                    quotation={quotation} 
+                    onSuccess={() => router.refresh()} 
+                    onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
+                  />
                   </>
                 ) : (
                   <>
@@ -1000,6 +1005,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
           
           {/* Quotation Workflow - Replaces "Other Actions" */}
           <QuotationWorkflow
+            ref={workflowRef}
             quotation={{
               id: quotation.id,
               status: quotation.status,
@@ -1012,6 +1018,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               invoice_generated_at: (quotation as any).invoice_generated_at,
               payment_completed_at: (quotation as any).payment_completed_at,
               payment_link_sent_at: (quotation as any).payment_link_sent_at,
+              payment_link: (quotation as any).payment_link,
+              payment_link_generated_at: (quotation as any).payment_link_generated_at,
+              payment_link_expires_at: (quotation as any).payment_link_expires_at,
               booking_created_at: (quotation as any).booking_created_at || (quotation.status === 'converted' ? quotation.updated_at : undefined),
               quote_number: quotation.quote_number,
               customer_email: quotation.customer_email,
@@ -1171,64 +1180,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 setIsLoading(false);
               }
             }}
-            onSendPaymentLink={async () => {
-              setIsLoading(true);
-              setProgressOpen(true);
-              setProgressTitle('Sending Payment Link');
-              setProgressLabel('Preparing payment link...');
-              setProgressValue(10);
-              
-              try {
-                const steps = [
-                  { label: 'Preparing payment link...', value: 30 },
-                  { label: 'Generating payment URL...', value: 60 },
-                  { label: 'Sending email...', value: 90 }
-                ];
-                
-                for (const step of steps) {
-                  setProgressLabel(step.label);
-                  setProgressValue(step.value);
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                }
-                
-                // Send payment link email
-                const response = await fetch('/api/quotations/send-payment-link-email', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ 
-                    quotation_id: quotation.id,
-                    language: 'en',
-                    customer_email: quotation.customer_email,
-                    customer_name: quotation.customer_name
-                  })
-                });
-                
-                if (response.ok) {
-                  setProgressValue(100);
-                  setProgressLabel('Completed');
-                  toast({
-                    title: "Payment link sent successfully",
-                    variant: 'default',
-                  });
-                  setTimeout(() => {
-                    setProgressOpen(false);
-                    router.refresh();
-                  }, 500);
-                } else {
-                  throw new Error('Failed to send payment link');
-                }
-              } catch (error) {
-                console.error('Error sending payment link:', error);
-                setProgressLabel('Failed');
-                toast({
-                  title: "Failed to send payment link",
-                  description: "Please try again later",
-                  variant: 'destructive',
-                });
-                setTimeout(() => setProgressOpen(false), 1000);
-              } finally {
-                setIsLoading(false);
-              }
+            onSendPaymentLink={() => {
+              // Open the payment link dialog in QuotationWorkflow
+              workflowRef.current?.openPaymentLinkDialog();
             }}
             onCreateBooking={async () => {
               // This is now handled in the QuotationWorkflow component

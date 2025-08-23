@@ -25,7 +25,8 @@ import {
   Mail,
   ExternalLink,
   Loader2,
-  Link2
+  Link2,
+  RefreshCw
 } from 'lucide-react';
 import { format, parseISO, addDays, differenceInDays, isAfter } from 'date-fns';
 import { QuotationStatus } from '@/types/quotations';
@@ -61,6 +62,9 @@ interface QuotationWorkflowProps {
     invoice_generated_at?: string;
     payment_completed_at?: string;
     payment_link_sent_at?: string;
+    payment_link?: string;
+    payment_link_generated_at?: string;
+    payment_link_expires_at?: string;
     booking_created_at?: string;
     quote_number?: number;
     customer_email?: string;
@@ -77,9 +81,10 @@ interface QuotationWorkflowProps {
   onCreateBooking?: () => void;
   onRefresh?: () => void;
   isOrganizationMember?: boolean;
+
 }
 
-export function QuotationWorkflow({ 
+export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () => void }, QuotationWorkflowProps>(({ 
   quotation, 
   onSendQuotation,
   onSendReminder,
@@ -87,8 +92,8 @@ export function QuotationWorkflow({
   onSendPaymentLink,
   onCreateBooking,
   onRefresh,
-  isOrganizationMember = false 
-}: QuotationWorkflowProps) {
+  isOrganizationMember = false
+}, ref) => {
   const { t, language } = useI18n();
 
   // Payment Link Dialog State
@@ -96,8 +101,11 @@ export function QuotationWorkflow({
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
-  const [includeDetails, setIncludeDetails] = useState(true);
   const [paymentLink, setPaymentLink] = useState<string>("");
+  const [customPaymentName, setCustomPaymentName] = useState<string>("");
+  const [paymentLinkSent, setPaymentLinkSent] = useState<boolean>(false);
+  const [paymentLinkSentAt, setPaymentLinkSentAt] = useState<string | null>(null);
+  const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
   
   // Convert to Booking Loading State
   const [isConvertingToBooking, setIsConvertingToBooking] = useState(false);
@@ -123,6 +131,22 @@ export function QuotationWorkflow({
     });
     setPaymentAmount(newAmount);
   }, [quotation.total_amount, quotation.amount, quotation.receipt_url]);
+
+  // Check if payment link was already sent
+  React.useEffect(() => {
+    if ((quotation as any).payment_link_sent_at) {
+      setPaymentLinkSent(true);
+      setPaymentLinkSentAt((quotation as any).payment_link_sent_at);
+    }
+    if ((quotation as any).payment_link) {
+      setPaymentLink((quotation as any).payment_link);
+    }
+  }, [(quotation as any).payment_link_sent_at, (quotation as any).payment_link]);
+
+  // Expose methods to parent via ref
+  React.useImperativeHandle(ref, () => ({
+    openPaymentLinkDialog: () => setIsPaymentLinkDialogOpen(true)
+  }));
   
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false);
@@ -141,13 +165,10 @@ export function QuotationWorkflow({
       return;
     }
 
+    // If no payment link provided, we'll generate one via the API
     if (!paymentLink || !paymentLink.includes('http')) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid payment link",
-        variant: "destructive",
-      });
-      return;
+      // Set a placeholder for now - the API will generate the actual link
+      setPaymentLink('https://placeholder.com/generate-payment-link');
     }
 
     if (!quotation.id) {
@@ -179,7 +200,7 @@ export function QuotationWorkflow({
       console.log('Email:', emailAddress);
       console.log('Language:', emailLanguage);
       console.log('Payment Link:', paymentLink);
-      console.log('Include Details:', includeDetails);
+      console.log('Include Details: true');
       
       // Generate the PDF using server-side generation for proper discount calculations
       const pdfResponse = await fetch('/api/quotations/generate-invoice-pdf', {
@@ -188,7 +209,7 @@ export function QuotationWorkflow({
         body: JSON.stringify({
           quotation_id: quotation.id,
           language: emailLanguage,
-          include_details: includeDetails
+          include_details: true
         })
       });
 
@@ -214,9 +235,16 @@ export function QuotationWorkflow({
       formData.append('email', emailAddress);
       formData.append('quotation_id', quotation.id);
       formData.append('customer_name', quotation.customer_name || quotation.customer_email?.split('@')[0] || 'Customer');
-      formData.append('include_details', includeDetails.toString());
+      formData.append('include_details', 'true');
       formData.append('language', emailLanguage);
-      formData.append('payment_link', paymentLink);
+      // Only send payment_link if it's a real URL, otherwise let the API generate one
+      if (paymentLink && !paymentLink.includes('placeholder.com')) {
+        formData.append('payment_link', paymentLink);
+      }
+      // Add custom payment name if provided
+      if (customPaymentName) {
+        formData.append('custom_payment_name', customPaymentName);
+      }
       formData.append('invoice_pdf', pdfBlob, `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}.pdf`);
 
       console.log('Form data prepared, sending email...');
@@ -256,6 +284,9 @@ export function QuotationWorkflow({
         
         if (updateResponse.ok) {
           console.log('Quotation status updated successfully');
+          // Mark payment link as sent locally
+          setPaymentLinkSent(true);
+          setPaymentLinkSentAt(new Date().toISOString());
         } else {
           console.warn('Failed to update quotation status, but payment link was sent');
         }
@@ -288,6 +319,45 @@ export function QuotationWorkflow({
       });
     } finally {
       setIsSendingPaymentLink(false);
+    }
+  };
+
+  // Handle checking Omise payment status
+  const handleCheckPaymentStatus = async () => {
+    if (!quotation.id) return;
+    
+    setIsCheckingPayment(true);
+    try {
+      const response = await fetch('/api/quotations/download-omise-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotation_id: quotation.id })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Payment Status Retrieved",
+          description: result.message,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Payment Check Failed",
+          description: result.error || "Could not retrieve payment status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check payment status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingPayment(false);
     }
   };
 
@@ -865,6 +935,29 @@ export function QuotationWorkflow({
             </div>
 
             <div className="grid gap-2">
+              <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
+              <Input
+                id="custom-payment-name"
+                type="text"
+                value={customPaymentName}
+                onChange={(e) => setCustomPaymentName(e.target.value)}
+                placeholder="e.g., Vehicle Inspection Service - Premium Package"
+              />
+              <p className="text-xs text-muted-foreground">
+                Custom name for the payment link. Leave empty to use default.
+              </p>
+            </div>
+
+            {paymentLinkSent && (
+              <div className="grid gap-2">
+                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <CheckCircle className="h-4 w-4" />
+                  Payment link sent on {paymentLinkSentAt ? new Date(paymentLinkSentAt).toLocaleDateString() : 'recently'}
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-2">
               <Label htmlFor="payment-link-url">Payment Link</Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -875,31 +968,79 @@ export function QuotationWorkflow({
                   placeholder="https://linksplus.omise.co/..."
                   required
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      setProgressOpen(true);
+                      setProgressTitle('Generating Payment Link');
+                      setProgressLabel('Creating Omise payment link...');
+                      setProgressValue(25);
+                      
+                      const response = await fetch('/api/quotations/generate-omise-payment-link', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                          quotation_id: quotation.id,
+                          regenerate: true,
+                          customName: customPaymentName || undefined
+                        })
+                      });
+                      
+                      if (response.ok) {
+                        const data = await response.json();
+                        setPaymentLink(data.paymentUrl);
+                        setProgressValue(100);
+                        setProgressLabel('Payment link generated!');
+                        toast({
+                          title: "Payment Link Generated",
+                          description: "New Omise payment link has been created",
+                          variant: "default",
+                        });
+                      } else {
+                        throw new Error('Failed to generate payment link');
+                      }
+                    } catch (error) {
+                      console.error('Error generating payment link:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to generate payment link",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setTimeout(() => setProgressOpen(false), 1000);
+                    }
+                  }}
+                  className="px-3"
+                >
+                  Generate
+                </Button>
                 <Link2 className="h-4 w-4 text-muted-foreground" />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Leave empty to auto-generate, or click Generate to create a new Omise payment link
+              </p>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="payment-include-details" 
-                checked={includeDetails}
-                onCheckedChange={(checked) => setIncludeDetails(!!checked)}
-              />
-              <Label htmlFor="payment-include-details" className="text-sm">
-                Include detailed service information
-              </Label>
-            </div>
+
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPaymentLinkDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSendPaymentLink} disabled={isSendingPaymentLink || !emailAddress || !paymentLink}>
+            <Button onClick={handleSendPaymentLink} disabled={isSendingPaymentLink || !emailAddress}>
               {isSendingPaymentLink ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Sending...
+                </>
+              ) : paymentLinkSent ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Regenerate & Resend
                 </>
               ) : (
                 <>
@@ -980,43 +1121,62 @@ export function QuotationWorkflow({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="receipt-upload">Receipt (Optional)</Label>
-              <Input
-                id="receipt-upload"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                className="cursor-pointer"
-              />
-              <p className="text-xs text-muted-foreground">
-                Accepted formats: PDF, JPG, PNG, DOC, DOCX
-              </p>
-              
-              {/* Show existing receipt if available */}
-              {quotation.receipt_url && (
-                <div className="mt-2 p-3 bg-muted rounded-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Receipt className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Receipt uploaded</span>
+              <Label htmlFor="receipt-upload">Receipt</Label>
+              <div className="space-y-3">
+                {/* Check Omise Payment Status */}
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleCheckPaymentStatus}
+                  disabled={isCheckingPayment}
+                  className="w-full"
+                >
+                  {isCheckingPayment ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Check Omise Payment Status
+                    </>
+                  )}
+                </Button>
+                
+                {/* Upload Receipt */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <Input
+                    id="receipt-upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Accepted formats: PDF, JPG, PNG, DOC, DOCX
+                  </p>
+                </div>
+                
+                {/* Show existing receipt if available */}
+                {quotation.receipt_url && (
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Receipt uploaded</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(quotation.receipt_url, '_blank')}
+                      >
+                        Download Receipt
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(quotation.receipt_url, '_blank')}
-                    >
-                      Download Receipt
-                    </Button>
                   </div>
-                </div>
-              )}
-              
-              {/* Debug info - remove this later */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-2 p-2 bg-yellow-100 text-xs text-gray-600 rounded">
-                  Debug: receipt_url = {quotation.receipt_url || 'undefined'}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
           
@@ -1042,5 +1202,5 @@ export function QuotationWorkflow({
       </Dialog>
     </Card>
   );
-}
+});
 

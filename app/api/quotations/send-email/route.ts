@@ -197,19 +197,44 @@ export async function POST(request: NextRequest) {
     // Determine if this is an updated quotation (only if it was previously sent)
     const isUpdated = quotation.status === 'sent' && (quotation as any).last_sent_at;
     
-    // Create email content with appropriate subject line
-    const subjectPrefix = isUpdated ? 
-      (language === 'ja' ? '更新した見積書' : 'Your Updated Quotation') : 
-      (language === 'ja' ? 'ドライバーからの見積書' : 'Your Quotation');
-    
-    const emailSubject = `${subjectPrefix} - ${formattedQuotationId}`;
-    
-    // Format the customer name nicely
-    const customerName = quotation.customer_name || email.split('@')[0];
-    
-    // Create the email content using existing helper functions
-    const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
-    const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion);
+          // Generate magic link for secure quote access
+      let magicLink = null;
+      try {
+        const magicLinkResponse = await fetch(`${appUrl}/api/quotations/create-magic-link`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            quotation_id: quotationId,
+            customer_email: email,
+          }),
+        });
+        
+        if (magicLinkResponse.ok) {
+          const magicLinkData = await magicLinkResponse.json();
+          magicLink = magicLinkData.magic_link;
+          console.log('✅ [SEND-EMAIL API] Magic link generated successfully');
+        } else {
+          console.warn('⚠️ [SEND-EMAIL API] Failed to generate magic link, continuing without it');
+        }
+      } catch (error) {
+        console.warn('⚠️ [SEND-EMAIL API] Error generating magic link:', error);
+      }
+      
+      // Create email content with appropriate subject line
+      const subjectPrefix = isUpdated ? 
+        (language === 'ja' ? '更新した見積書' : 'Your Updated Quotation') : 
+        (language === 'ja' ? 'ドライバーからの見積書' : 'Your Quotation');
+      
+      const emailSubject = `${subjectPrefix} - ${formattedQuotationId}`;
+      
+      // Format the customer name nicely
+      const customerName = quotation.customer_name || email.split('@')[0];
+      
+      // Create the email content using existing helper functions
+      const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
+      const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
     
     console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
     
@@ -326,7 +351,8 @@ function generateEmailHtml(
   appUrl: string, 
   isUpdated: boolean = false,
   selectedPackage: PricingPackage | null,
-  selectedPromotion: PricingPromotion | null
+  selectedPromotion: PricingPromotion | null,
+  magicLink: string | null = null
 ) {
   const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
   const isJapanese = language === 'ja';
@@ -706,9 +732,26 @@ function generateEmailHtml(
                   <a href="${appUrl}/quotations/${quotation.id}"
                      style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
                             text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                            font-size:16px; font-weight:600; text-align: center;">
+                            font-size:16px; font-weight:600; text-align: center; margin-bottom: 12px;">
                     ${template.callToAction}
                   </a>
+                  
+                  ${magicLink ? `
+                    <div style="margin-top: 16px; padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                        ${isJapanese ? 'または、以下のリンクから直接アクセス:' : 'Or access directly via this secure link:'}
+                      </p>
+                      <a href="${magicLink}"
+                         style="display: inline-block; padding: 8px 16px; background: #64748B; color: #FFF;
+                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                font-size: 14px; font-weight: 500; text-align: center; word-break: break-all;">
+                        ${isJapanese ? 'セキュアリンクで見積書を表示' : 'View Quote via Secure Link'}
+                      </a>
+                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                        ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+                      </p>
+                    </div>
+                  ` : ''}
                 </td>
               </tr>
               
@@ -758,7 +801,8 @@ function generateEmailText(
   appUrl: string, 
   isUpdated: boolean = false,
   selectedPackage: PricingPackage | null,
-  selectedPromotion: PricingPromotion | null
+  selectedPromotion: PricingPromotion | null,
+  magicLink: string | null = null
 ) {
   const template = emailTemplates[language];
   const isJapanese = language === 'ja';
@@ -885,7 +929,12 @@ ${template.followup}
 
 ${template.callToAction}: ${appUrl}/quotations/${quotation.id}
 
-${template.additionalInfo}
+${magicLink ? `
+${isJapanese ? 'または、以下のセキュアリンクから直接アクセス:' : 'Or access directly via this secure link:'}
+${magicLink}
+${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+
+` : ''}${template.additionalInfo}
 ${template.closing}
 
 ${template.regards}

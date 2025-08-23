@@ -63,7 +63,7 @@ import { QuotationInfoCard } from '@/components/quotations/quotation-details/quo
 import { ServiceCard } from '@/components/quotations/service-card';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
 import { QuotationWorkflow } from '@/components/quotations/quotation-workflow';
-import { MagicLinkGenerator } from '@/components/quotations/magic-link-generator';
+
 import { Dialog, DialogTitle, DialogContent, DialogDescription, DialogHeader } from '@/components/ui/dialog';
 
 interface QuotationDetailsProps {
@@ -965,14 +965,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             onRefresh={() => router.refresh()}
           />
           
-          {/* Magic Link Generator */}
-          <MagicLinkGenerator
-            quotationId={quotation.id}
-            customerEmail={quotation.customer_email}
-            customerName={quotation.customer_name || 'Customer'}
-            quoteNumber={quotation.quote_number || 0}
-            onSuccess={() => router.refresh()}
-          />
+
 
           {/* Quotation Workflow - Replaces "Other Actions" */}
           <QuotationWorkflow

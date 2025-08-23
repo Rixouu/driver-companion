@@ -16,13 +16,12 @@ import {
   MapPin, 
   CreditCard,
   Car,
-  Calculator,
   Clock,
   AlertCircle,
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+
 
 interface QuotationData {
   id: string;
@@ -62,6 +61,14 @@ interface QuotationItem {
 export default function QuoteAccessPage() {
   const params = useParams();
   const token = params.token as string;
+  
+  // Simple currency formatter
+  const formatCurrency = (amount: number, currency: string = 'JPY') => {
+    if (currency === 'JPY') {
+      return `¥${amount.toLocaleString()}`;
+    }
+    return `${currency} ${amount.toLocaleString()}`;
+  };
   
   const [quotation, setQuotation] = useState<QuotationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

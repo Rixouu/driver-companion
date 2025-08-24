@@ -150,11 +150,11 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ [SEND-MAGIC-LINK-EMAIL API] Email sent successfully! ID:', emailData?.id);
 
-      // Update quotation to mark magic link as sent
+      // Update quotation to mark magic link as generated
       await supabase
         .from('quotations')
         .update({ 
-          magic_link_sent_at: new Date().toISOString(),
+          magic_link_generated_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', quotation_id);

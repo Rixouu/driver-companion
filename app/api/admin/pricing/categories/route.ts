@@ -49,30 +49,31 @@ export async function POST(req: NextRequest) {
       
       if (stError) {
         console.error('Error fetching service types for category creation:', stError);
-        // Decide if this is a hard error or if we can proceed without names
-        // For now, proceed, names will be derived or empty
+        // Continue with empty service types if we can't fetch them
+        serviceTypeNames = [];
+      } else if (serviceTypes) {
+        // Map service type IDs to names
+        serviceTypeNames = service_type_ids.map(id => {
+          const serviceType = serviceTypes.find(st => st.id === id);
+          return serviceType ? serviceType.name : `service_${id.substring(0, 8)}`;
+        });
       }
-      
-      const serviceTypeMap = new Map<string, string>();
-      if (serviceTypes) {
-        serviceTypes.forEach(st => serviceTypeMap.set(st.id, st.name));
-      }
-      
-      serviceTypeNames = service_type_ids.map(id => 
-        serviceTypeMap.get(id) || `service_${id.substring(0, 8)}`
-      );
     }
 
+    // Log what we're trying to insert for debugging
+    const insertData = {
+      name,
+      description: description || null,
+      service_types: serviceTypeNames, // Storing resolved names
+      sort_order,
+      is_active: is_active === undefined ? true : is_active,
+    };
+    
+    console.log('Inserting pricing category with data:', insertData);
+    
     const { data, error: insertError } = await supabase
       .from('pricing_categories')
-      .insert({
-        name,
-        description: description || null,
-        service_types: serviceTypeNames, // Storing resolved names
-        service_type_ids: service_type_ids || [], // Storing original IDs
-        sort_order,
-        is_active: is_active === undefined ? true : is_active,
-      })
+      .insert(insertData)
       .select()
       .single();
 

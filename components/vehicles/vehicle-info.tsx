@@ -16,15 +16,21 @@ import {
   Calendar,
   Activity,
   CircleDot,
-  FileText
+  FileText,
+  Tag
 } from "lucide-react"
 import { DbVehicle } from "@/types"
 import { useI18n } from "@/lib/i18n/context"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
 
 interface VehicleInfoProps {
   vehicle: DbVehicle
+}
+
+interface VehiclePricingCategoriesProps {
+  vehicleId: string;
 }
 
 export function VehicleInfo({ vehicle }: VehicleInfoProps) {
@@ -148,7 +154,7 @@ export function VehicleInfo({ vehicle }: VehicleInfoProps) {
       </Card>
 
       {/* Vehicle Information Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Basic Information */}
         <Card className="shadow-sm border border-border/50">
           <CardHeader className="pb-4">
@@ -247,7 +253,76 @@ export function VehicleInfo({ vehicle }: VehicleInfoProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pricing Categories */}
+        <Card className="shadow-sm border border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Tag className="h-5 w-5 text-orange-600" />
+              Pricing Categories
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VehiclePricingCategories vehicleId={vehicle.id} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
+}
+
+function VehiclePricingCategories({ vehicleId }: VehiclePricingCategoriesProps) {
+  const { t } = useI18n();
+  const { categories, isLoading, error } = useVehiclePricingCategories(vehicleId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="h-4 bg-muted rounded animate-pulse"></div>
+        <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Error loading pricing categories
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        No pricing categories assigned
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {categories.map((category) => (
+        <div key={category.id} className="flex items-center justify-between py-2 border-b border-border/40 last:border-b-0">
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-xs",
+                category.is_active ? "border-green-300 text-green-700" : "border-gray-300 text-gray-500"
+              )}
+            >
+              {category.name}
+            </Badge>
+            {!category.is_active && (
+              <span className="text-xs text-muted-foreground">(Inactive)</span>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            #{category.sort_order}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 } 

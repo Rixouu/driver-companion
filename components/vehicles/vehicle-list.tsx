@@ -38,7 +38,8 @@ import {
 import { SearchFilterBar } from "@/components/ui/search-filter-bar"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { Car } from "lucide-react"
+import { Car, Tag } from "lucide-react"
+import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
 
 interface VehicleListProps {
   vehicles: DbVehicle[];
@@ -391,11 +392,15 @@ export function VehicleList({
                               "font-medium border",
                               vehicle.status === 'active' && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
                               vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700",
-                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700"
+                              vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-green-300 dark:border-green-700"
                             )}
                           >
                             {t(`vehicles.status.${vehicle.status}`)}
                           </Badge>
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <VehiclePricingCategoriesBadges vehicleId={vehicle.id} />
                         </div>
                         
                         <div className="flex justify-end">
@@ -573,6 +578,54 @@ export function VehicleList({
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+interface VehiclePricingCategoriesBadgesProps {
+  vehicleId: string;
+}
+
+function VehiclePricingCategoriesBadges({ vehicleId }: VehiclePricingCategoriesBadgesProps) {
+  const { categories, isLoading } = useVehiclePricingCategories(vehicleId);
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-1">
+        <div className="h-5 w-12 bg-muted rounded animate-pulse"></div>
+        <div className="h-5 w-8 bg-muted rounded animate-pulse"></div>
+      </div>
+    );
+  }
+
+  if (!categories || categories.length === 0) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        No categories
+      </div>
+    );
+  }
+
+  // Show only the first 2 categories to avoid cluttering
+  const displayCategories = categories.slice(0, 2);
+  const hasMore = categories.length > 2;
+
+  return (
+    <div className="flex flex-wrap gap-1 items-center">
+      {displayCategories.map((category) => (
+        <Badge
+          key={category.id}
+          variant="outline"
+          className="text-xs px-2 py-1 h-5"
+        >
+          {category.name}
+        </Badge>
+      ))}
+      {hasMore && (
+        <Badge variant="secondary" className="text-xs px-2 py-1 h-5">
+          +{categories.length - 2}
+        </Badge>
       )}
     </div>
   );

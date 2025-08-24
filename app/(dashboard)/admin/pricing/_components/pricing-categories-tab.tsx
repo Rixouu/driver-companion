@@ -27,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon } from "lucide-react";
+import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon, GripVertical } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
@@ -36,9 +36,30 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 import type { Vehicle } from "@/types/vehicles";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Extend PricingCategory to include vehicle_ids coming from the new junction table
 type CategoryWithVehicles = PricingCategory & { vehicle_ids?: string[] };
+
+
 
 export default function PricingCategoriesTab() {
   const [categories, setCategories] = useState<CategoryWithVehicles[]>([]);
@@ -62,6 +83,14 @@ export default function PricingCategoriesTab() {
   const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory, addVehiclesToCategory, removeVehiclesFromCategory, replaceServiceTypesOfCategory } = useQuotationService();
   const { t } = useI18n();
   
+  // Drag & Drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
   // Function to refresh categories
   const refreshCategories = useCallback(async () => {
     setIsLoading(true);
@@ -75,6 +104,48 @@ export default function PricingCategoriesTab() {
       setIsLoading(false);
     }
   }, [getPricingCategories]);
+  
+  // Handle drag end for reordering
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (active.id !== over?.id) {
+      const oldIndex = categories.findIndex(cat => cat.id === active.id);
+      const newIndex = categories.findIndex(cat => cat.id === over?.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newCategories = arrayMove(categories, oldIndex, newIndex);
+        setCategories(newCategories);
+        
+        // Update the sort_order for all affected categories
+        try {
+          const updates = newCategories.map((cat, index) => ({
+            id: cat.id,
+            updates: { sort_order: index + 1 }
+          }));
+          
+          // Update each category's sort order
+          for (const update of updates) {
+            await updatePricingCategory(update.id, update.updates);
+          }
+          
+          toast({
+            title: t("pricing.categories.toast.orderUpdated"),
+            description: t("pricing.categories.toast.orderUpdatedDescription"),
+          });
+        } catch (error) {
+          console.error("Error updating category order:", error);
+          toast({
+            title: t("common.error"),
+            description: t("pricing.categories.toast.orderUpdateError"),
+            variant: 'destructive',
+          });
+          // Revert to original order
+          await refreshCategories();
+        }
+      }
+    }
+  };
 
   // Function to fix service types display
   const fixServiceTypes = async () => {
@@ -328,6 +399,107 @@ export default function PricingCategoriesTab() {
     }
   };
   
+  // Sortable Table Row Component
+  function SortableTableRow({ category }: { category: CategoryWithVehicles }) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: category.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style} className={cn(isDragging && "bg-muted/50")}>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/50 rounded"
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div>
+              <div className="font-medium">{category.name}</div>
+              <div className="text-sm text-muted-foreground">{category.description}</div>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Button variant="link" onClick={() => handleOpenLinkDialog(category)} className="px-2 py-1 h-auto">
+            {category.service_type_ids?.length || 0}
+          </Button>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant="outline"
+            className={cn("text-xs", getStatusBadgeClasses(category.is_active ? 'active' : 'inactive'))}
+          >
+            {category.is_active ? t('common.status.active') : t('common.status.inactive')}
+          </Badge>
+        </TableCell>
+        <TableCell>{category.sort_order}</TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Link Services"
+              onClick={() => handleOpenLinkDialog(category)}
+            >
+              <LinkIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title={t("common.edit")}
+              onClick={() => handleOpenDialog(category)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title={category.is_active ? t("common.deactivate") : t("common.activate")}
+              onClick={() => openStatusConfirm(category.id, !category.is_active)}
+            >
+              {category.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive"
+              title={t("common.delete")}
+              onClick={() => openDeleteConfirm(category.id)}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title={t('pricing.categories.actions.manageVehicles')}
+              onClick={() => handleOpenVehicleDialog(category)}
+            >
+              <Car className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   if (isLoading) {
     return <div className="p-4 text-center">Loading pricing categories...</div>;
   }
@@ -349,90 +521,34 @@ export default function PricingCategoriesTab() {
           ) : categories.length === 0 ? (
             <p>No categories found. Click 'Add New' to create one.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('common.details')}</TableHead>
-                  <TableHead>{t('pricing.categories.table.services')}</TableHead>
-                  <TableHead>{t('common.status.type')}</TableHead>
-                  <TableHead>{t('common.order')}</TableHead>
-                  <TableHead>{t('common.actions.default')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      <div className="font-medium">{category.name}</div>
-                      <div className="text-sm text-muted-foreground">{category.description}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="link" onClick={() => handleOpenLinkDialog(category)} className="px-2 py-1 h-auto">
-                        {category.service_type_ids?.length || 0}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn("text-xs", getStatusBadgeClasses(category.is_active ? 'active' : 'inactive'))}
-                      >
-                        {category.is_active ? t('common.status.active') : t('common.status.inactive')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{category.sort_order}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title="Link Services"
-                          onClick={() => handleOpenLinkDialog(category)}
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title={t("common.edit")}
-                          onClick={() => handleOpenDialog(category)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title={category.is_active ? t("common.deactivate") : t("common.activate")}
-                          onClick={() => openStatusConfirm(category.id, !category.is_active)}
-                        >
-                          {category.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          title={t("common.delete")}
-                          onClick={() => openDeleteConfirm(category.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title={t('pricing.categories.actions.manageVehicles')}
-                          onClick={() => handleOpenVehicleDialog(category)}
-                        >
-                          <Car className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead></TableHead>
+                    <TableHead>{t('common.details')}</TableHead>
+                    <TableHead>{t('pricing.categories.table.services')}</TableHead>
+                    <TableHead>{t('common.status.type')}</TableHead>
+                    <TableHead>{t('common.order')}</TableHead>
+                    <TableHead>{t('common.actions.default')}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  <SortableContext
+                    items={categories.map(cat => cat.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {categories.map((category) => (
+                      <SortableTableRow key={category.id} category={category} />
+                    ))}
+                  </SortableContext>
+                </TableBody>
+              </Table>
+            </DndContext>
           )}
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -636,52 +752,127 @@ export default function PricingCategoriesTab() {
 
           {/* Manage Vehicles Dialog */}
           <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-5xl">
               <DialogHeader>
                 <DialogTitle>{t('pricing.categories.vehicleDialog.title', { categoryName: categoryForVehicles?.name || '' })}</DialogTitle>
                 <DialogDescription>{t('pricing.categories.vehicleDialog.description')}</DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[70vh]">
                 <div>
-                  <Label>{t('pricing.categories.vehicleDialog.available')}</Label>
-                  <ScrollArea className="h-[45vh] border rounded-md p-2">
-                    {allVehicles.map(v => {
-                      const checked = selectedVehicleIds.has(v.id);
-                      return (
-                        <div key={v.id} className="flex items-center gap-2 py-1">
-                          <Checkbox checked={checked} onCheckedChange={(val) => {
-                            setSelectedVehicleIds(prev => {
-                              const set = new Set(prev);
-                              if (val) set.add(v.id); else set.delete(v.id);
-                              return set;
-                            });
-                          }} />
-                          <span className="text-sm">{v.name} ({v.plate_number})</span>
-                        </div>
-                      );
-                    })}
+                  <Label className="text-base font-medium">{t('pricing.categories.vehicleDialog.available')}</Label>
+                  <ScrollArea className="h-[50vh] border rounded-md p-3">
+                    <div className="space-y-2">
+                      {allVehicles.map(v => {
+                        const checked = selectedVehicleIds.has(v.id);
+                        return (
+                          <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg border hover:bg-muted/50 transition-colors">
+                            <Checkbox checked={checked} onCheckedChange={(val) => {
+                              setSelectedVehicleIds(prev => {
+                                const set = new Set(prev);
+                                if (val) set.add(v.id); else set.delete(v.id);
+                                return set;
+                              });
+                            }} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm truncate">{v.name || 'Unnamed Vehicle'}</span>
+                                {v.status && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {v.status}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                                <div>
+                                  <span className="font-medium">Brand:</span> {v.brand || v.make || 'N/A'}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Model:</span> {v.model || 'N/A'}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Year:</span> {v.year || 'N/A'}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Plate:</span> {v.plate_number || v.license_plate || 'N/A'}
+                                </div>
+                              </div>
+                              {v.mileage && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  <span className="font-medium">Mileage:</span> {v.mileage.toLocaleString()} km
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </ScrollArea>
                 </div>
                 <div>
-                  <Label>{t('pricing.categories.vehicleDialog.selected')}</Label>
-                  <ScrollArea className="h-[45vh] border rounded-md p-2">
-                    {[...selectedVehicleIds].map(id => {
-                      const v = allVehicles.find(av => av.id === id);
-                      if (!v) return null;
-                      return (
-                        <Badge key={id} className="mr-2 mb-2 inline-flex items-center gap-1">
-                          {v.name}
-                          <X className="h-3 w-3 cursor-pointer" onClick={() => {
-                            setSelectedVehicleIds(prev => {
-                              const set = new Set(prev);
-                              set.delete(id);
-                              return set;
-                            });
-                          }} />
-                        </Badge>
-                      );
-                    })}
-                    {selectedVehicleIds.size === 0 && <p className="text-sm text-muted-foreground p-2">{t('pricing.categories.vehicleDialog.noVehicles')}</p>}
+                  <Label className="text-base font-medium">{t('pricing.categories.vehicleDialog.selected')}</Label>
+                  <ScrollArea className="h-[50vh] border rounded-md p-3">
+                    <div className="space-y-2">
+                      {[...selectedVehicleIds].map(id => {
+                        const v = allVehicles.find(av => av.id === id);
+                        if (!v) return null;
+                        return (
+                          <div key={id} className="p-3 rounded-lg border bg-muted/30">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-medium text-sm">{v.name || 'Unnamed Vehicle'}</span>
+                                  {v.status && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {v.status}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                                  <div>
+                                    <span className="font-medium">Brand:</span> {v.brand || v.make || 'N/A'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Model:</span> {v.model || 'N/A'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Year:</span> {v.year || 'N/A'}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Plate:</span> {v.plate_number || v.license_plate || 'N/A'}
+                                  </div>
+                                </div>
+                                {v.mileage && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    <span className="font-medium">Mileage:</span> {v.mileage.toLocaleString()} km
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  setSelectedVehicleIds(prev => {
+                                    const set = new Set(prev);
+                                    set.delete(id);
+                                    return set;
+                                  });
+                                }}
+                                title="Remove vehicle"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {selectedVehicleIds.size === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Car className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">{t('pricing.categories.vehicleDialog.noVehicles')}</p>
+                        </div>
+                      )}
+                    </div>
                   </ScrollArea>
                 </div>
               </div>

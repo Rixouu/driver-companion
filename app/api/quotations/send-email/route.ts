@@ -189,7 +189,18 @@ export async function POST(request: NextRequest) {
     const emailDomain = (process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com').replace(/%$/, '');
     
     // Get the public URL for the Driver logo (needed for email body, not PDF)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    // Detect environment and use appropriate URL
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      // Fallback based on environment
+      if (process.env.NODE_ENV === 'production') {
+        appUrl = 'https://driver-companion.vercel.app';
+      } else if (process.env.NODE_ENV === 'development') {
+        appUrl = 'http://localhost:3000';
+      } else {
+        appUrl = 'https://driver-companion.vercel.app'; // Default to production
+      }
+    }
     
     // Format quotation ID to use JPDR prefix
     const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
@@ -729,22 +740,16 @@ function generateEmailHtml(
                   <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align: left;">
                     ${template.followup}
                   </p>
-                  <a href="${appUrl}/quotations/${quotation.id}"
-                     style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                            text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                            font-size:16px; font-weight:600; text-align: center; margin-bottom: 12px;">
-                    ${template.callToAction}
-                  </a>
                   
                   ${magicLink ? `
-                    <div style="margin-top: 16px; padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+                    <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
                       <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
-                        ${isJapanese ? 'または、以下のリンクから直接アクセス:' : 'Or access directly via this secure link:'}
+                        ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
                       </p>
                       <a href="${magicLink}"
-                         style="display: inline-block; padding: 8px 16px; background: #64748B; color: #FFF;
+                         style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
                                 text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
-                                font-size: 14px; font-weight: 500; text-align: center; word-break: break-all;">
+                                font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
                         ${isJapanese ? 'セキュアリンクで見積書を表示' : 'View Quote via Secure Link'}
                       </a>
                       <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
@@ -927,10 +932,8 @@ ${isJapanese ? '価格詳細' : 'PRICE DETAILS'}:
 
 ${template.followup}
 
-${template.callToAction}: ${appUrl}/quotations/${quotation.id}
-
 ${magicLink ? `
-${isJapanese ? 'または、以下のセキュアリンクから直接アクセス:' : 'Or access directly via this secure link:'}
+${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
 ${magicLink}
 ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
 

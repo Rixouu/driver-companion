@@ -164,11 +164,19 @@ export async function POST(request: NextRequest) {
     const emailDomain = process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com';
     
     // Get the public URL for the Driver logo
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    // Detect environment and use appropriate URL
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      // Fallback based on environment
+      if (process.env.NODE_ENV === 'production') {
+        appUrl = 'https://driver-companion.vercel.app';
+      } else if (process.env.NODE_ENV === 'development') {
+        appUrl = 'http://localhost:3000';
+      } else {
+        appUrl = 'https://driver-companion.vercel.app'; // Default to production
+      }
+    }
     const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
-    
-    // Create the quotation view URL
-    const quotationUrl = `${appUrl}/quotations/${id}`;
     
     // Format quotation ID to use JPDR prefix
     const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
@@ -182,6 +190,34 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Generate magic link for secure quote access
+    let magicLink = null;
+    try {
+      const magicLinkResponse = await fetch(`${appUrl}/api/quotations/create-magic-link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quotation_id: id,
+          customer_email: customerEmail,
+        }),
+      });
+      
+      if (magicLinkResponse.ok) {
+        const magicLinkData = await magicLinkResponse.json();
+        magicLink = magicLinkData.magic_link;
+        console.log('✅ [SEND-REMINDER API] Magic link generated successfully');
+      } else {
+        console.warn('⚠️ [SEND-REMINDER API] Failed to generate magic link, continuing without it');
+      }
+    } catch (error) {
+      console.warn('⚠️ [SEND-REMINDER API] Error generating magic link:', error);
+    }
+    
+    // Use magic link if available, otherwise fallback to regular URL
+    const quotationUrl = magicLink || `${appUrl}/quotations/${id}`;
     
     console.log(`[SEND-REMINDER API] Sending reminder to: ${customerEmail} for quotation: ${formattedQuotationId}`);
     
@@ -411,12 +447,29 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               <!-- CTA SECTION -->
               <tr>
                 <td style="padding:12px 24px 24px; text-align: center;">
-                  <a href="${quotationUrl}"
-                     style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                            text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                            font-size:16px; font-weight:600; text-align: center;">
-                    ${template.callToAction}
-                  </a>
+                  ${quotationUrl.includes('/quote-access/') ? `
+                    <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                        ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
+                      </p>
+                      <a href="${quotationUrl}"
+                         style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
+                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
+                        ${template.callToAction}
+                      </a>
+                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                        ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+                      </p>
+                    </div>
+                  ` : `
+                    <a href="${quotationUrl}"
+                       style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
+                              text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
+                              font-size:16px; font-weight:600; text-align: center;">
+                      ${template.callToAction}
+                    </a>
+                  `}
                 </td>
               </tr>
               

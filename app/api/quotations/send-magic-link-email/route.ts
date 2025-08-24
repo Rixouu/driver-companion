@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Generate HTML email content
+// Generate HTML email content - EXACT same template as send-email route
 function generateEmailHtml(
   language: string, 
   customerName: string, 
@@ -189,70 +189,182 @@ function generateEmailHtml(
   magicLink: string | null
 ): string {
   const template = emailTemplates[language as keyof typeof emailTemplates];
+  const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
+  const isJapanese = language === 'ja';
   
-  return `
+  // Email HTML template - EXACT same as send-email route
+  const emailHtml = `
     <!DOCTYPE html>
     <html lang="${language}">
     <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <title>${template.subject}</title>
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
-        .content { background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
-        .button { display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef; color: #6c757d; font-size: 14px; }
-        .magic-link-info { background: #e7f3ff; padding: 15px; border-radius: 6px; border-left: 4px solid #007bff; margin: 20px 0; }
+        body, table, td, a {
+          -webkit-text-size-adjust:100%;
+          -ms-text-size-adjust:100%;
+          font-family: Work Sans, sans-serif;
+        }
+        table, td { mso-table-lspace:0; mso-table-rspace:0; }
+        img {
+          border:0;
+          line-height:100%;
+          outline:none;
+          text-decoration:none;
+          -ms-interpolation-mode:bicubic;
+        }
+        table { border-collapse:collapse!important; }
+        body {
+          margin:0;
+          padding:0;
+          width:100%!important;
+          background:#F2F4F6;
+        }
+        .greeting {
+          color:#32325D;
+          margin:24px 24px 16px;
+          line-height:1.4;
+          font-size: 14px;
+        }
+        @media only screen and (max-width:600px) {
+          .container { width:100%!important; }
+          .stack { display:block!important; width:100%!important; text-align:center!important; }
+        }
+        .details-table td, .details-table th {
+          padding: 10px 0;
+          font-size: 14px;
+        }
+        .details-table th {
+           color: #8898AA;
+           text-transform: uppercase;
+           text-align: left;
+        }
+        .price-table th, .price-table td {
+           padding: 10px 0;
+           font-size: 14px;
+        }
+         .price-table th {
+           color: #8898AA;
+           text-transform: uppercase;
+        }
       </style>
     </head>
-    <body>
-      <div class="header">
-        <h1 style="margin: 0; color: #007bff;">Driver Japan</h1>
-        <p style="margin: 5px 0 0 0; color: #6c757d;">${template.subject}</p>
-      </div>
-      
-      <div class="content">
-        <p>${template.greeting} ${customerName},</p>
-        
-        <p>${template.intro}</p>
-        
-        <div class="magic-link-info">
-          <h3 style="margin-top: 0; color: #007bff;">Quotation Details</h3>
-          <p><strong>Quotation ID:</strong> ${formattedQuotationId}</p>
-          <p><strong>Service:</strong> ${quotation.title || 'Transportation Service'}</p>
-          <p><strong>Amount:</strong> ¥${quotation.amount?.toLocaleString() || 'N/A'}</p>
-        </div>
-        
-        ${magicLink ? `
-          <div style="text-align: center;">
-            <a href="${magicLink}" class="button">View Your Quotation</a>
-          </div>
-          
-          <div class="magic-link-info">
-            <p><strong>Important:</strong> This magic link will expire in 7 days for security reasons.</p>
-            <p>If you cannot click the button above, copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">${magicLink}</p>
-          </div>
-        ` : `
-          <p><em>Note: Magic link generation failed. Please contact support for assistance.</em></p>
-        `}
-        
-        <p>${template.followup}</p>
-        
-        <p>${template.closing}</p>
-        
-        <p>${template.regards}<br>
-        <strong>${template.company}</strong></p>
-      </div>
-      
-      <div class="footer">
-        <p>This email was sent to ${quotation.customer_email}</p>
-        <p>If you have any questions, please contact our support team.</p>
-      </div>
+    <body style="background:#F2F4F6; margin:0; padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td align="center" style="padding:24px;">
+            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
+              
+              <!-- HEADER -->
+              <tr>
+                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
+                  <table width="100%" role="presentation">
+                    <tr>
+                      <td align="center" style="padding:24px;">
+                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                          <tr><td align="center" valign="middle" style="text-align:center;">
+                              <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                          </td></tr>
+                        </table>
+                        <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
+                          ${isJapanese ? '新しいマジックリンク' : 'New Magic Link for Your Quotation'}
+                        </h1>
+                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                          ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              
+              <!-- GREETING -->
+              <tr>
+                <td>
+                  <p class="greeting">
+                    ${template.greeting} ${customerName},<br><br>
+                    ${template.intro}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- QUOTATION DETAILS BLOCK -->
+              <tr>
+                <td style="padding:12px 24px 12px;">
+                  <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D; text-transform: uppercase;">
+                    ${isJapanese ? '見積書詳細' : 'QUOTATION DETAILS'}
+                  </h3>
+                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: Work Sans, sans-serif; line-height: 1.6;">
+                    <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Quotation ID:</strong> ${formattedQuotationId}</p>
+                    <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Service:</strong> ${quotation.title || 'Transportation Service'}</p>
+                    <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Amount:</strong> ¥${quotation.amount?.toLocaleString() || 'N/A'}</p>
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- MAGIC LINK SECTION -->
+              <tr>
+                <td style="padding:12px 24px 24px; text-align: center;">
+                  ${magicLink ? `
+                    <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                        ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
+                      </p>
+                      <a href="${magicLink}"
+                         style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
+                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
+                        ${isJapanese ? 'セキュアリンクで見積書を表示' : 'View Quote via Secure Link'}
+                      </a>
+                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                        ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+                      </p>
+                    </div>
+                  ` : `
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #E53E3E; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                      <em>Note: Magic link generation failed. Please contact support for assistance.</em>
+                    </p>
+                  `}
+                </td>
+              </tr>
+              
+              <!-- CLOSING -->
+              <tr>
+                <td style="padding:0px 24px 24px;">
+                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.followup}
+                  </p>
+                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.closing}
+                  </p>
+                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                    ${template.regards}<br>
+                    ${template.company}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- FOOTER -->
+              <tr>
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                  <p style="margin:0 0 4px;">${template.company}</p>
+                  <p style="margin:0;">
+                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
+                      japandriver.com
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
-    </html>
-  `;
+    </html>`;
+  
+  return emailHtml;
 }
 
 // Generate plain text email content

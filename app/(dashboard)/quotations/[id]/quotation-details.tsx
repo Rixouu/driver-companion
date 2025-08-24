@@ -298,6 +298,81 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
 
 
+  // Regenerate magic link for the quotation
+  const handleRegenerateMagicLink = async () => {
+    setIsLoading(true);
+    setProgressOpen(true);
+    setProgressTitle('Regenerating Magic Link');
+    setProgressLabel('Creating new secure link...');
+    setProgressValue(10);
+    
+    try {
+      // Simulate progress steps
+      const steps = [
+        { label: 'Creating new secure link...', value: 30 },
+        { label: 'Generating token...', value: 60 },
+        { label: 'Storing in database...', value: 80 }
+      ];
+      
+      for (const step of steps) {
+        setProgressLabel(step.label);
+        setProgressValue(step.value);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      const response = await fetch('/api/quotations/create-magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quotation_id: quotation.id,
+          customer_email: quotation.customer_email,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProgressValue(100);
+        setProgressLabel('Completed');
+        
+        // Copy the magic link to clipboard
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(data.magic_link);
+          toast({
+            title: "Magic Link Regenerated",
+            description: "New magic link has been copied to clipboard",
+            variant: 'default',
+          });
+        } else {
+          // Fallback: show the link in a toast
+          toast({
+            title: "Magic Link Regenerated",
+            description: `New magic link: ${data.magic_link}`,
+            variant: 'default',
+          });
+        }
+        
+        setTimeout(() => {
+          setProgressOpen(false);
+        }, 1000);
+      } else {
+        throw new Error('Failed to regenerate magic link');
+      }
+    } catch (error) {
+      console.error('Error regenerating magic link:', error);
+      setProgressLabel('Failed');
+      toast({
+        title: "Failed to regenerate magic link",
+        description: "Please try again later",
+        variant: 'destructive',
+      });
+      setTimeout(() => setProgressOpen(false), 1000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Send the quotation to the customer
   const handleSend = async () => {
     setIsLoading(true);
@@ -528,6 +603,34 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     )}
                   </>
                 )}
+                
+                {/* Regenerate Magic Link Button - Show for all statuses except final ones */}
+                {isOrganizationMember && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRegenerateMagicLink} 
+                    disabled={isLoading}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Regenerate Magic Link
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Regenerate Magic Link Button - Show for final statuses too */}
+            {['paid', 'converted'].includes(quotation.status) && isOrganizationMember && (
+              <div className="flex flex-wrap gap-3 pt-2 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={handleRegenerateMagicLink} 
+                  disabled={isLoading}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Regenerate Magic Link
+                </Button>
               </div>
             )}
           </div>
@@ -964,6 +1067,32 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             }}
             onRefresh={() => router.refresh()}
           />
+          
+          {/* Magic Link Management Card */}
+          {isOrganizationMember && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Magic Link</CardTitle>
+                </div>
+                <CardDescription>
+                  Generate a new secure link for customer access
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleRegenerateMagicLink} 
+                  disabled={isLoading}
+                  variant="outline"
+                  className="w-full gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Regenerate Magic Link
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           
 
 

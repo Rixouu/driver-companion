@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
 import type { Vehicle } from "@/types/vehicles";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import {
   DndContext,
   closestCenter,
@@ -56,8 +57,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// Extend PricingCategory to include vehicle_ids coming from the new junction table
-type CategoryWithVehicles = PricingCategory & { vehicle_ids?: string[] };
+// Use the base PricingCategory type - vehicles are managed through junction table
+type CategoryWithVehicles = PricingCategory;
 
 
 
@@ -82,6 +83,9 @@ export default function PricingCategoriesTab() {
   
   const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory, addVehiclesToCategory, removeVehiclesFromCategory, replaceServiceTypesOfCategory } = useQuotationService();
   const { t } = useI18n();
+  
+  // Initialize Supabase client
+  const supabase = createClientComponentClient();
   
   // Drag & Drop sensors
   const sensors = useSensors(
@@ -374,25 +378,72 @@ export default function PricingCategoriesTab() {
         console.error('Error loading vehicles', err);
       }
     }
-    setSelectedVehicleIds(new Set(category.vehicle_ids || []));
+    // Load currently linked vehicles for this category from junction table
+    try {
+      const { data: linkedVehicles } = await supabase
+        .from('pricing_category_vehicles')
+        .select('vehicle_id')
+        .eq('category_id', category.id);
+      
+      if (linkedVehicles) {
+        const linkedIds = linkedVehicles.map(lv => lv.vehicle_id);
+        setSelectedVehicleIds(new Set(linkedIds));
+      } else {
+        setSelectedVehicleIds(new Set());
+      }
+    } catch (err) {
+      console.error('Error loading linked vehicles:', err);
+      setSelectedVehicleIds(new Set());
+    }
     setIsVehicleDialogOpen(true);
   };
   
   const handleSaveVehicles = async () => {
     if (!categoryForVehicles) return;
-    const originalIds = new Set(categoryForVehicles.vehicle_ids || []);
-    const newIds = selectedVehicleIds;
-    const toAdd: string[] = [];
-    const toRemove: string[] = [];
-    newIds.forEach(id => { if (!originalIds.has(id)) toAdd.push(id); });
-    originalIds.forEach(id => { if (!newIds.has(id)) toRemove.push(id); });
+    
     try {
-      if (toAdd.length) await addVehiclesToCategory(categoryForVehicles.id, toAdd);
-      if (toRemove.length) await removeVehiclesFromCategory(categoryForVehicles.id, toRemove);
+      // Get current linked vehicles from junction table
+      const { data: currentLinkedVehicles } = await supabase
+        .from('pricing_category_vehicles')
+        .select('vehicle_id')
+        .eq('category_id', categoryForVehicles.id);
+      
+      const currentIds = new Set(currentLinkedVehicles?.map(lv => lv.vehicle_id) || []);
+      const newIds = selectedVehicleIds;
+      
+      const toAdd: string[] = [];
+      const toRemove: string[] = [];
+      
+      newIds.forEach(id => { if (!currentIds.has(id)) toAdd.push(id); });
+      currentIds.forEach(id => { if (!newIds.has(id)) toRemove.push(id); });
+      
+      // Add new vehicles
+      if (toAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from('pricing_category_vehicles')
+          .insert(toAdd.map(vehicleId => ({
+            category_id: categoryForVehicles.id,
+            vehicle_id: vehicleId
+          })));
+        
+        if (addError) throw addError;
+      }
+      
+      // Remove vehicles
+      if (toRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from('pricing_category_vehicles')
+          .delete()
+          .eq('category_id', categoryForVehicles.id)
+          .in('vehicle_id', toRemove);
+        
+        if (removeError) throw removeError;
+      }
+      
       toast({ title: t('pricing.categories.toast.vehiclesUpdated') });
       await refreshCategories();
     } catch (err) {
-      console.error(err);
+      console.error('Error saving vehicles:', err);
       toast({ title: t('common.error'), description: t('pricing.categories.toast.vehiclesUpdateError'), variant: 'destructive' });
     } finally {
       setIsVehicleDialogOpen(false);

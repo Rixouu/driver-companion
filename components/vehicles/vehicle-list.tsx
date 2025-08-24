@@ -49,9 +49,11 @@ interface VehicleListProps {
     status?: string;
     brand?: string;
     model?: string;
+    category?: string;
   };
   brandOptions?: { value: string; label: string }[];
   modelOptions?: { value: string; label: string }[];
+  categoryOptions?: { value: string; label: string }[];
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -62,7 +64,8 @@ export function VehicleList({
   totalPages = 1, 
   initialFilters, 
   brandOptions = [], 
-  modelOptions = [] 
+  modelOptions = [],
+  categoryOptions = []
 }: VehicleListProps) {
   const router = useRouter();
   const currentSearchParams = useSearchParams();
@@ -72,7 +75,7 @@ export function VehicleList({
     statusFilter: initialFilters?.status || 'all',
     brandFilter: initialFilters?.brand || 'all',
     modelFilter: initialFilters?.model || 'all',
-    categoryFilter: 'all',
+    categoryFilter: initialFilters?.category || 'all',
     sortBy: 'name',
     sortOrder: 'asc'
   });
@@ -87,7 +90,7 @@ export function VehicleList({
       statusFilter: initialFilters?.status || 'all',
       brandFilter: initialFilters?.brand || 'all',
       modelFilter: initialFilters?.model || 'all',
-      categoryFilter: 'all',
+      categoryFilter: initialFilters?.category || 'all',
       sortBy: 'name',
       sortOrder: 'asc'
     });
@@ -108,13 +111,17 @@ export function VehicleList({
     if (filters.modelFilter !== 'all') params.set('model', filters.modelFilter);
     else params.delete('model');
     
+    if (filters.categoryFilter !== 'all') params.set('category', filters.categoryFilter);
+    else params.delete('category');
+    
     // Only reset to page 1 if filters actually changed, not on initial load
     const currentParams = new URLSearchParams(currentSearchParams?.toString() || '');
     const hasFilterChanges = (
       (debouncedSearch !== (currentParams.get('query') || '')) ||
       (filters.statusFilter !== (currentParams.get('status') || 'all')) ||
       (filters.brandFilter !== (currentParams.get('brand') || 'all')) ||
-      (filters.modelFilter !== (currentParams.get('model') || 'all'))
+      (filters.modelFilter !== (currentParams.get('model') || 'all')) ||
+      (filters.categoryFilter !== (currentParams.get('category') || 'all'))
     );
     
     if (hasFilterChanges) {
@@ -125,7 +132,7 @@ export function VehicleList({
     if (params.toString() !== currentParams.toString()) {
        router.push(`/vehicles?${params.toString()}`);
     }
-  }, [debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter, router, currentSearchParams]);
+  }, [debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter, filters.categoryFilter, router, currentSearchParams]);
 
   // Extract unique brands and models for filters
   // Use normalized brand options passed from server to avoid duplicates like 'Toyota' vs 'toyota'
@@ -185,9 +192,13 @@ export function VehicleList({
       const matchesModel = filters.modelFilter === 'all' || 
         vehicle.model?.trim() === filters.modelFilter;
 
-      return matchesSearch && matchesStatus && matchesBrand && matchesModel;
+      // Category filter - for now, we'll skip this since we need to fetch vehicle categories
+      // TODO: Implement category filtering when vehicle-category relationship is available
+      const matchesCategory = filters.categoryFilter === 'all';
+
+      return matchesSearch && matchesStatus && matchesBrand && matchesModel && matchesCategory;
     });
-  }, [vehicles, debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter]);
+      }, [vehicles, debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter, filters.categoryFilter]);
 
   // Sort vehicles
   const sortedVehicles = useMemo(() => {
@@ -263,7 +274,7 @@ export function VehicleList({
           totalVehicles={filteredVehicles.length}
           brandOptions={brands}
           modelOptions={models}
-          categoryOptions={[]} // TODO: Add category options when available
+          categoryOptions={categoryOptions}
         />
         
         <div className="flex items-center justify-end">

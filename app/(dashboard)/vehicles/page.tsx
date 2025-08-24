@@ -41,6 +41,7 @@ export default async function VehiclesPage({
     status?: string; 
     brand?: string; 
     model?: string; 
+    category?: string; 
   }>
 }) {
   // Await searchParams before accessing its properties
@@ -51,6 +52,7 @@ export default async function VehiclesPage({
   const statusFilter = resolvedSearchParams?.status;
   const brandFilter = resolvedSearchParams?.brand;
   const modelFilter = resolvedSearchParams?.model;
+  const categoryFilter = resolvedSearchParams?.category;
 
   const supabase = await getSupabaseServerClient();
   const { t } = await getDictionary()
@@ -66,8 +68,7 @@ export default async function VehiclesPage({
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE - 1;
 
-  // Helpers for brand normalization and grouping of variants
-  const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
+
 
   // Base query for vehicles
   let vehiclesQuery = supabase
@@ -95,6 +96,25 @@ export default async function VehiclesPage({
     vehiclesQuery = vehiclesQuery.eq('model', modelFilter);
     countQuery = countQuery.eq('model', modelFilter);
   }
+  
+  // Apply category filter if provided
+  if (categoryFilter && categoryFilter !== 'all') {
+    // Get vehicle IDs for the selected category
+    const { data: categoryVehicles } = await supabase
+      .from('pricing_category_vehicles')
+      .select('vehicle_id')
+      .eq('category_id', categoryFilter);
+    
+    if (categoryVehicles && categoryVehicles.length > 0) {
+      const vehicleIds = categoryVehicles.map(cv => cv.vehicle_id);
+      vehiclesQuery = vehiclesQuery.in('id', vehicleIds);
+      countQuery = countQuery.in('id', vehicleIds);
+    } else {
+      // No vehicles in this category, return empty result
+      vehiclesQuery = vehiclesQuery.eq('id', 'no-match');
+      countQuery = countQuery.eq('id', 'no-match');
+    }
+  }
 
   // Fetch paginated vehicles with filters
   const { data: vehicles, error: vehiclesError } = await vehiclesQuery.range(startIndex, endIndex);
@@ -115,28 +135,37 @@ export default async function VehiclesPage({
     .not('model', 'is', null)
     .neq('model', '');
 
-  // Build brand groups (normalized key -> set of raw variants)
-  const brandGroups = new Map<string, Set<string>>();
-  (distinctBrands || []).forEach((row: any) => {
-    const raw = row.brand as string;
-    const key = normalizeBrand(raw);
-    if (!key) return;
-    if (!brandGroups.has(key)) brandGroups.set(key, new Set<string>());
-    brandGroups.get(key)!.add(raw);
+  // Fetch pricing categories for the category filter
+  const { data: pricingCategories, error: categoriesError } = await supabase
+    .from('pricing_categories')
+    .select('id, name')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  // Build brand options with case-insensitive deduplication
+  const brandMap = new Map();
+  (distinctBrands || []).forEach(item => {
+    if (item.brand) {
+      const normalizedBrand = item.brand.trim();
+      const lowerBrand = normalizedBrand.toLowerCase();
+      if (!brandMap.has(lowerBrand)) {
+        brandMap.set(lowerBrand, normalizedBrand);
+      }
+    }
   });
+  
+  const brandOptions = Array.from(brandMap.values())
+    .map(brand => ({ value: brand, label: brand }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   if (brandFilter && brandFilter !== 'all') {
-    const key = normalizeBrand(brandFilter);
-    const variants = Array.from(brandGroups.get(key) || []);
-    if (variants.length > 0) {
-      vehiclesQuery = vehiclesQuery.in('brand', variants);
-      countQuery = countQuery.in('brand', variants);
-      modelsQuery = modelsQuery.in('brand', variants);
-    } else {
-      // Fallback: case-insensitive prefix match
-      vehiclesQuery = vehiclesQuery.ilike('brand', `${key}%`);
-      countQuery = countQuery.ilike('brand', `${key}%`);
-      modelsQuery = modelsQuery.ilike('brand', `${key}%`);
+    // Find the actual brand value from the normalized brand options
+    const selectedBrand = brandOptions.find(brand => brand.value === brandFilter);
+    if (selectedBrand) {
+      // Use the actual brand value from the database for filtering
+      vehiclesQuery = vehiclesQuery.eq('brand', selectedBrand.value);
+      countQuery = countQuery.eq('brand', selectedBrand.value);
+      modelsQuery = modelsQuery.eq('brand', selectedBrand.value);
     }
   }
   const { data: distinctModels, error: modelsError } = await modelsQuery;
@@ -153,14 +182,27 @@ export default async function VehiclesPage({
   const totalItems = count || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
-  // Build canonical brand options from groups
-  const brandOptions = Array.from(brandGroups.entries()).map(([key, set]) => {
-    const sample = Array.from(set)[0] as string;
-    // Simple capitalization for display
-    const display = sample.trim();
-    return { value: key, label: display };
-  }).sort((a, b) => a.label.localeCompare(b.label));
-  const modelOptions = [...new Set((distinctModels || []).map(item => item.model).filter(Boolean))].map(m => ({ value: m, label: m }));
+  // Build model options with case-insensitive deduplication
+  const modelMap = new Map();
+  (distinctModels || []).forEach(item => {
+    if (item.model) {
+      const normalizedModel = item.model.trim();
+      const lowerModel = normalizedModel.toLowerCase();
+      if (!modelMap.has(lowerModel)) {
+        modelMap.set(lowerModel, normalizedModel);
+      }
+    }
+  });
+  
+  const modelOptions = Array.from(modelMap.values())
+    .map(model => ({ value: model, label: model }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  
+  // Build category options
+  const categoryOptions = (pricingCategories || []).map(cat => ({ 
+    value: cat.id, 
+    label: cat.name 
+  }));
 
   return (
     <VehiclesPageContent 
@@ -172,9 +214,11 @@ export default async function VehiclesPage({
         status: statusFilter,
         brand: brandFilter,
         model: modelFilter,
+        category: categoryFilter,
       }}
       brandOptions={brandOptions}
       modelOptions={modelOptions}
+      categoryOptions={categoryOptions}
     />
   )
 } 

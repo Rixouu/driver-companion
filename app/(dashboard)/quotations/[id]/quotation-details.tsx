@@ -1059,31 +1059,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             onRefresh={() => router.refresh()}
           />
           
-          {/* Magic Link Management Card */}
-          {isOrganizationMember && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">Magic Link</CardTitle>
-                </div>
-                <CardDescription>
-                  Send a new secure link to customer by email
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={handleRegenerateMagicLink} 
-                  disabled={isLoading}
-                  variant="outline"
-                  className="w-full gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Send New Magic Link
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+
           
 
 

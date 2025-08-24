@@ -16,9 +16,11 @@ interface VehiclesPageContentProps {
     status?: string
     brand?: string
     model?: string
+    category?: string
   }
   brandOptions?: { value: string; label: string }[]
   modelOptions?: { value: string; label: string }[]
+  categoryOptions?: { value: string; label: string }[]
 }
 
 export function VehiclesPageContent({ 
@@ -27,7 +29,8 @@ export function VehiclesPageContent({
   totalPages, 
   initialFilters, 
   brandOptions, 
-  modelOptions 
+  modelOptions,
+  categoryOptions
 }: VehiclesPageContentProps) {
   const { t } = useI18n()
 
@@ -54,6 +57,7 @@ export function VehiclesPageContent({
         initialFilters={initialFilters}
         brandOptions={brandOptions}
         modelOptions={modelOptions}
+        categoryOptions={categoryOptions}
       />
     </div>
   );

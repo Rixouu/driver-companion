@@ -524,14 +524,15 @@ export default function QuoteAccessPage() {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      const response = await fetch('/api/quotations/generate-pdf', {
+      const response = await fetch('/api/quotations/generate-pdf-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           quotation_id: quotation.id,
-          language: 'en'
+          language: 'en',
+          token: token
         }),
       });
       
@@ -593,14 +594,15 @@ export default function QuoteAccessPage() {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      const response = await fetch('/api/quotations/generate-invoice-pdf', {
+      const response = await fetch('/api/quotations/generate-invoice-pdf-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           quotation_id: quotation.id,
-          language: 'en'
+          language: 'en',
+          token: token
         }),
       });
       

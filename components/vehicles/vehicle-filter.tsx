@@ -256,7 +256,7 @@ export function VehicleFilter({
                 )}
                 {filters.categoryFilter !== 'all' && (
                   <Badge variant="outline" className="text-xs">
-                    Category: {filters.categoryFilter}
+                    Category: {categoryOptions.find(cat => cat.value === filters.categoryFilter)?.label || filters.categoryFilter}
                     <Button
                       variant="ghost"
                       size="sm"

@@ -42,9 +42,11 @@ interface VehicleListProps {
     status?: string;
     brand?: string;
     model?: string;
+    category?: string;
   };
   brandOptions?: { value: string; label: string }[];
   modelOptions?: { value: string; label: string }[];
+  categoryOptions?: { value: string; label: string }[];
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -55,7 +57,8 @@ export function VehicleList({
   totalPages = 1, 
   initialFilters, 
   brandOptions = [], 
-  modelOptions = [] 
+  modelOptions = [],
+  categoryOptions = []
 }: VehicleListProps) {
   const router = useRouter();
   const currentSearchParams = useSearchParams();
@@ -65,7 +68,7 @@ export function VehicleList({
     statusFilter: initialFilters?.status || 'all',
     brandFilter: initialFilters?.brand || 'all',
     modelFilter: initialFilters?.model || 'all',
-    categoryFilter: 'all',
+    categoryFilter: initialFilters?.category || 'all',
     sortBy: 'name',
     sortOrder: 'asc'
   });
@@ -80,7 +83,7 @@ export function VehicleList({
       statusFilter: initialFilters?.status || 'all',
       brandFilter: initialFilters?.brand || 'all',
       modelFilter: initialFilters?.model || 'all',
-      categoryFilter: 'all',
+      categoryFilter: initialFilters?.category || 'all',
       sortBy: 'name',
       sortOrder: 'asc'
     });
@@ -101,31 +104,33 @@ export function VehicleList({
     if (filters.modelFilter !== 'all') params.set('model', filters.modelFilter);
     else params.delete('model');
     
+    if (filters.categoryFilter !== 'all') params.set('category', filters.categoryFilter);
+    else params.delete('category');
+    
     const newUrl = params.toString() ? `?${params.toString()}` : ""
     router.replace(newUrl as any, { scroll: false })
-  }, [debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter, router])
+  }, [debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter, filters.categoryFilter, router])
 
-  // Extract unique brands and models for filters
-  const brands = brandOptions.length
-    ? brandOptions
-    : Array.from(new Set(vehicles.filter(v => v.brand).map(v => (v.brand as string).trim())))
-        .map(brand => ({ value: brand.toLowerCase(), label: brand }))
+  // Use brand options from server
+  const brands = brandOptions
   
-  // Get models based on selected brand
+  // Use model options from server, filtered by selected brand
   const models = useMemo(() => {
-    if (filters.brandFilter === "all") return []
-    const key = filters.brandFilter.toLowerCase();
-    return Array.from(new Set(
-      vehicles
-        .filter(v => v.model && (v.brand || '').trim().toLowerCase() === key)
-        .map(v => v.model as string)
-    )).map(model => ({ value: model, label: model }))
-  }, [vehicles, filters.brandFilter])
+    if (filters.brandFilter === "all") return modelOptions;
+    return modelOptions.filter(model => {
+      // Find vehicles with this model and check if they match the selected brand
+      return vehicles.some(v => 
+        v.model === model.value && 
+        v.brand?.toLowerCase() === filters.brandFilter.toLowerCase()
+      );
+    });
+  }, [modelOptions, vehicles, filters.brandFilter])
 
   // Filter vehicles based on search and filters
+  // Note: Most filtering is done server-side, this is just for search and local state
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(vehicle => {
-      // Search filter
+      // Search filter (local)
       const searchLower = debouncedSearch.toLowerCase();
       const matchesSearch = !debouncedSearch || 
         vehicle.name?.toLowerCase().includes(searchLower) ||
@@ -133,20 +138,10 @@ export function VehicleList({
         vehicle.brand?.toLowerCase().includes(searchLower) ||
         vehicle.model?.toLowerCase().includes(searchLower);
 
-      // Status filter
-      const matchesStatus = filters.statusFilter === 'all' || vehicle.status === filters.statusFilter;
-
-      // Brand filter
-      const matchesBrand = filters.brandFilter === 'all' || 
-        vehicle.brand?.toLowerCase() === filters.brandFilter.toLowerCase();
-
-      // Model filter
-      const matchesModel = filters.modelFilter === 'all' || 
-        vehicle.model?.toLowerCase() === filters.modelFilter.toLowerCase();
-
-      return matchesSearch && matchesStatus && matchesBrand && matchesModel;
+      // Other filters are handled server-side, so we just return true
+      return matchesSearch;
     });
-  }, [vehicles, debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter]);
+  }, [vehicles, debouncedSearch]);
 
   // Sort vehicles
   const sortedVehicles = useMemo(() => {
@@ -213,6 +208,21 @@ export function VehicleList({
     setFilters(newFilters);
   };
 
+  const clearFilters = () => {
+    setFilters({
+      searchQuery: '',
+      statusFilter: 'all',
+      brandFilter: 'all',
+      modelFilter: 'all',
+      categoryFilter: 'all',
+      sortBy: 'name',
+      sortOrder: 'asc'
+    });
+    
+    // Clear URL parameters and navigate to base vehicles page
+    router.push('/vehicles');
+  };
+
   // Get status button classes
   const getStatusButtonClass = (status: string, isSelected: boolean) => {
     const baseClasses = {
@@ -241,7 +251,7 @@ export function VehicleList({
           totalVehicles={filteredVehicles.length}
           brandOptions={brands}
           modelOptions={models}
-          categoryOptions={[]} // TODO: Add category options when available
+          categoryOptions={categoryOptions}
         />
         
         <div className="flex items-center justify-end">

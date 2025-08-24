@@ -15,7 +15,7 @@ import type { NextWebVitalsMetric } from 'next/app';
 // import { SupabaseProvider } from "@/components/providers/supabase-provider" 
 import { QueryProvider } from "@/components/providers/query-provider"
 import { SupabaseProvider } from "@/components/providers/supabase-provider"
-import SpeedInsights from "@vercel/speed-insights"
+import SpeedInsightsClient from "@/components/speed-insights-client"
 
 
 const workSans = Work_Sans({
@@ -76,7 +76,7 @@ export default async function RootLayout({
           </QueryProvider>
         </SupabaseProvider>
         
-        <SpeedInsights />
+        <SpeedInsightsClient />
 
       </body>
     </html>

@@ -3305,7 +3305,10 @@ export const en: TranslationValue = {
         fixServiceTypesError: "Failed to fix service types",
         nameRequiredError: "Category name is required",
         vehiclesUpdated: "Vehicles updated successfully",
-        vehiclesUpdateError: "Failed to update vehicles"
+        vehiclesUpdateError: "Failed to update vehicles",
+        orderUpdated: "Category Order Updated",
+        orderUpdatedDescription: "The category order has been updated successfully",
+        orderUpdateError: "Failed to update category order"
       },
       buttons: {
         fixServiceTypes: "Fix Service Types",

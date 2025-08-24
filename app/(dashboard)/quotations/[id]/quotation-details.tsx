@@ -298,7 +298,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
 
 
 
-  // Regenerate magic link for the quotation
+  // Regenerate magic link for the quotation and send by email
   const handleRegenerateMagicLink = async () => {
     setIsLoading(true);
     setProgressOpen(true);
@@ -311,7 +311,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       const steps = [
         { label: 'Creating new secure link...', value: 30 },
         { label: 'Generating token...', value: 60 },
-        { label: 'Storing in database...', value: 80 }
+        { label: 'Sending email to customer...', value: 80 }
       ];
       
       for (const step of steps) {
@@ -320,7 +320,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      const response = await fetch('/api/quotations/create-magic-link', {
+      const response = await fetch('/api/quotations/send-magic-link-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -328,6 +328,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         body: JSON.stringify({
           quotation_id: quotation.id,
           customer_email: quotation.customer_email,
+          language: 'en', // Default to English, could be made configurable
         }),
       });
       
@@ -336,35 +337,25 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         setProgressValue(100);
         setProgressLabel('Completed');
         
-        // Copy the magic link to clipboard
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(data.magic_link);
-          toast({
-            title: "Magic Link Regenerated",
-            description: "New magic link has been copied to clipboard",
-            variant: 'default',
-          });
-        } else {
-          // Fallback: show the link in a toast
-          toast({
-            title: "Magic Link Regenerated",
-            description: `New magic link: ${data.magic_link}`,
-            variant: 'default',
-          });
-        }
+        toast({
+          title: "Magic Link Regenerated & Sent",
+          description: `New magic link has been sent to ${quotation.customer_email}`,
+          variant: 'default',
+        });
         
         setTimeout(() => {
           setProgressOpen(false);
         }, 1000);
       } else {
-        throw new Error('Failed to regenerate magic link');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate magic link');
       }
     } catch (error) {
       console.error('Error regenerating magic link:', error);
       setProgressLabel('Failed');
       toast({
         title: "Failed to regenerate magic link",
-        description: "Please try again later",
+        description: error instanceof Error ? error.message : "Please try again later",
         variant: 'destructive',
       });
       setTimeout(() => setProgressOpen(false), 1000);
@@ -613,7 +604,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     className="gap-2"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Regenerate Magic Link
+                    Send New Magic Link
                   </Button>
                 )}
               </div>
@@ -629,7 +620,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   className="gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Regenerate Magic Link
+                  Send New Magic Link
                 </Button>
               </div>
             )}
@@ -1077,7 +1068,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <CardTitle className="text-lg">Magic Link</CardTitle>
                 </div>
                 <CardDescription>
-                  Generate a new secure link for customer access
+                  Send a new secure link to customer by email
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1088,7 +1079,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   className="w-full gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Regenerate Magic Link
+                  Send New Magic Link
                 </Button>
               </CardContent>
             </Card>

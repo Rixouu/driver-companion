@@ -1308,7 +1308,7 @@ export default function QuoteAccessPage() {
                       <div className="flex justify-between items-center py-1 text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
                         <span className="flex items-center gap-1 text-sm">
                           <Gift className="h-3 w-3" />
-                          Promotion: {quotation.selected_promotion_name || 'Discount'}
+                          Promotion: {quotation.selected_promotion_name || 'Discount'} ({Math.round((quotation.promotion_discount / quotation.amount) * 100)}%)
                         </span>
                         <span className="text-sm font-semibold">-{formatCurrency(quotation.promotion_discount, selectedCurrency)}</span>
                       </div>
@@ -1344,10 +1344,8 @@ export default function QuoteAccessPage() {
                         )}</span>
                       </div>
                     )}
-                  </div>
-                  
-                  {/* Total Amount - Same styling as Services Subtotal */}
-                  <div className="bg-muted/30 rounded-lg p-3 border border-muted/50">
+                    
+                    {/* Total Amount Due - Same styling as Services Subtotal */}
                     <div className="flex justify-between items-center py-1">
                       <span className="text-sm font-medium text-foreground">Total Amount Due</span>
                       <span className="text-sm font-semibold text-foreground">{formatCurrency(quotation.total_amount, selectedCurrency)}</span>

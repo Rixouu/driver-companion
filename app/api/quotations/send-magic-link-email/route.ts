@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Check if Resend API key is configured
     const resendApiKey = process.env.RESEND_API_KEY;
-    const emailDomain = process.env.EMAIL_DOMAIN || 'driver.com';
+    const emailDomain = (process.env.NEXT_PUBLIC_EMAIL_DOMAIN || 'japandriver.com').replace(/%$/, '');
     
     if (!resendApiKey) {
       console.error('❌ [SEND-MAGIC-LINK-EMAIL API] Resend API key not configured');

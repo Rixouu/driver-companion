@@ -129,24 +129,114 @@ export function VehicleList({
 
   // Extract unique brands and models for filters
   // Use normalized brand options passed from server to avoid duplicates like 'Toyota' vs 'toyota'
-  const brands = brandOptions.length
-    ? brandOptions
-    : Array.from(new Set(vehicles.filter(v => v.brand).map(v => (v.brand as string).trim())))
-        .map(brand => ({ value: brand.toLowerCase(), label: brand }))
+  const brands = useMemo(() => {
+    if (brandOptions.length > 0) {
+      return brandOptions;
+    }
+    // Fallback: extract from vehicles if no brand options provided
+    const uniqueBrands = new Set<string>();
+    vehicles.forEach(vehicle => {
+      if (vehicle.brand) {
+        uniqueBrands.add(vehicle.brand.trim());
+      }
+    });
+    return Array.from(uniqueBrands)
+      .sort()
+      .map(brand => ({ value: brand, label: brand }));
+  }, [brandOptions, vehicles]);
   
   // Get models based on selected brand
   const models = useMemo(() => {
-    if (filters.brandFilter === "all") return []
-    const key = filters.brandFilter.toLowerCase();
-    return Array.from(new Set(
-      vehicles
-        .filter(v => v.model && (v.brand || '').trim().toLowerCase() === key)
-        .map(v => v.model as string)
-    )).map(model => ({ value: model, label: model }))
-  }, [vehicles, filters.brandFilter])
+    if (filters.brandFilter === "all") return [];
+    
+    const selectedBrand = filters.brandFilter;
+    const uniqueModels = new Set<string>();
+    
+    vehicles.forEach(vehicle => {
+      if (vehicle.model && vehicle.brand && vehicle.brand.trim() === selectedBrand) {
+        uniqueModels.add(vehicle.model.trim());
+      }
+    });
+    
+    return Array.from(uniqueModels)
+      .sort()
+      .map(model => ({ value: model, label: model }));
+  }, [vehicles, filters.brandFilter]);
+
+  // Filter vehicles based on search and filters
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter(vehicle => {
+      // Search filter
+      const searchLower = debouncedSearch.toLowerCase();
+      const matchesSearch = !debouncedSearch || 
+        vehicle.name?.toLowerCase().includes(searchLower) ||
+        vehicle.plate_number?.toLowerCase().includes(searchLower) ||
+        vehicle.brand?.toLowerCase().includes(searchLower) ||
+        vehicle.model?.toLowerCase().includes(searchLower);
+
+      // Status filter
+      const matchesStatus = filters.statusFilter === 'all' || vehicle.status === filters.statusFilter;
+
+      // Brand filter
+      const matchesBrand = filters.brandFilter === 'all' || 
+        vehicle.brand?.trim() === filters.brandFilter;
+
+      // Model filter
+      const matchesModel = filters.modelFilter === 'all' || 
+        vehicle.model?.trim() === filters.modelFilter;
+
+      return matchesSearch && matchesStatus && matchesBrand && matchesModel;
+    });
+  }, [vehicles, debouncedSearch, filters.statusFilter, filters.brandFilter, filters.modelFilter]);
+
+  // Sort vehicles
+  const sortedVehicles = useMemo(() => {
+    return [...filteredVehicles].sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (filters.sortBy) {
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'plate_number':
+          aValue = a.plate_number || '';
+          bValue = b.plate_number || '';
+          break;
+        case 'brand':
+          aValue = a.brand || '';
+          bValue = b.brand || '';
+          break;
+        case 'model':
+          aValue = a.model || '';
+          bValue = b.model || '';
+          break;
+        case 'year':
+          aValue = a.year || 0;
+          bValue = b.year || 0;
+          break;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at || '').getTime();
+          bValue = new Date(b.created_at || '').getTime();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [filteredVehicles, filters.sortBy, filters.sortOrder]);
 
   // Calculate pagination
-  const paginatedVehicles = vehicles;
+  const paginatedVehicles = sortedVehicles;
   const displayTotalPages = totalPages;
   const displayCurrentPage = currentPage;
   
@@ -164,113 +254,19 @@ export function VehicleList({
     setFilters(newFilters);
   };
 
-  function getStatusVariant(status: string) {
-    switch (status) {
-      case "active":
-        return "success"
-      case "maintenance":
-        return "warning"
-      case "inactive":
-        return "destructive"
-      default:
-        return "default"
-    }
-  }
-
-  // Get colored status button class
-  function getStatusButtonClass(status: string, isSelected: boolean) {
-    const baseClasses = {
-      active: 'border-green-300 text-green-800 dark:border-green-700 dark:text-green-300',
-      maintenance: 'border-orange-300 text-orange-800 dark:border-orange-700 dark:text-orange-300',
-      inactive: 'border-gray-300 text-gray-800 dark:border-gray-700 dark:text-gray-300',
-    };
-
-    const selectedClasses = {
-      active: 'bg-green-600 text-white hover:bg-green-700',
-      maintenance: 'bg-orange-600 text-white hover:bg-orange-700',
-      inactive: 'bg-gray-600 text-white hover:bg-gray-700',
-    };
-
-    const unselectedClasses = {
-      active: 'bg-green-100 hover:bg-green-200 dark:bg-green-900/20 dark:hover:bg-green-900/40',
-      maintenance: 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/20 dark:hover:bg-orange-900/40',
-      inactive: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-900/20 dark:hover:bg-gray-900/40',
-    };
-
-    const statusKey = status as keyof typeof baseClasses;
-
-    if (isSelected) {
-      return cn(baseClasses[statusKey], selectedClasses[statusKey]);
-    }
-    if (status === 'all') {
-      return "border-border text-foreground hover:bg-accent"
-    }
-    return cn(baseClasses[statusKey], unselectedClasses[statusKey]);
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <VehicleFilter 
           filters={filters}
           onFiltersChange={handleFiltersChange}
-          totalVehicles={vehicles.length}
-          brandOptions={brandOptions}
+          totalVehicles={filteredVehicles.length}
+          brandOptions={brands}
           modelOptions={models}
           categoryOptions={[]} // TODO: Add category options when available
         />
         
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap gap-2">
-            <div className="sm:hidden">
-              <Select
-                value={statusFilterState}
-                onValueChange={handleStatusFilterChange}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder={t("common.filter")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("common.all")}</SelectItem>
-                  <SelectItem value="active">{t("vehicles.status.active")}</SelectItem>
-                  <SelectItem value="maintenance">{t("vehicles.status.maintenance")}</SelectItem>
-                  <SelectItem value="inactive">{t("vehicles.status.inactive")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="hidden sm:flex flex-wrap gap-2">
-              <Button 
-                variant={statusFilterState === 'all' ? 'default' : 'outline'}
-                onClick={() => handleStatusFilterChange('all')}
-                className={cn(
-                  statusFilterState === 'all' ? '' : 'border-border text-foreground hover:bg-accent'
-                )}
-              >
-                {t("common.all")}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleStatusFilterChange('active')}
-                className={cn(getStatusButtonClass('active', statusFilterState === 'active'))}
-              >
-                {t("vehicles.status.active")}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleStatusFilterChange('maintenance')}
-                className={cn(getStatusButtonClass('maintenance', statusFilterState === 'maintenance'))}
-              >
-                {t("vehicles.status.maintenance")}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleStatusFilterChange('inactive')}
-                className={cn(getStatusButtonClass('inactive', statusFilterState === 'inactive'))}
-              >
-                {t("vehicles.status.inactive")}
-              </Button>
-            </div>
-          </div>
+        <div className="flex items-center justify-end">
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>
@@ -360,7 +356,7 @@ export function VehicleList({
                       </div>
                       
                       {/* Vehicle Info - Flexbox layout */}
-                      <div className="flex-1 grid grid-cols-4 items-center gap-4">
+                      <div className="flex-1 grid grid-cols-5 items-center gap-4">
                         <div className="space-y-1">
                           <h3 className="font-semibold text-lg">{vehicle.name}</h3>
                           <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
@@ -393,8 +389,10 @@ export function VehicleList({
                         </div>
                         
                         <div className="flex justify-end">
-                          <Button variant="outline" size="sm">
-                            {t("common.view")}
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/vehicles/${vehicle.id}`}>
+                              View
+                            </Link>
                           </Button>
                         </div>
                       </div>
@@ -403,42 +401,37 @@ export function VehicleList({
                 ))}
               </div>
 
-              {/* Mobile Card View */}
-              <div className="grid grid-cols-1 gap-4 sm:hidden">
+              {/* Mobile Grid View */}
+              <div className="sm:hidden grid gap-4 grid-cols-1">
                 {paginatedVehicles.map((vehicle) => (
-                  <Card 
-                    key={vehicle.id} 
-                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => router.push(`/vehicles/${vehicle.id}`)}
-                  >
-                    <div className="flex">
-                      {/* Vehicle Thumbnail */}
-                      <div className="w-28 h-20 relative flex-shrink-0">
+                  <Card key={vehicle.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                    <Link href={`/vehicles/${vehicle.id}`}>
+                      <div className="relative aspect-video w-full">
                         {vehicle.image_url ? (
                           <Image
                             src={vehicle.image_url}
                             alt={vehicle.name}
                             fill
-                            sizes="112px"
-                            className="object-cover"
+                            className="object-cover rounded-t-lg"
+                            sizes="(max-width: 640px) 100vw"
                           />
                         ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <Car className="h-6 w-6 text-muted-foreground/30" />
+                          <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-lg">
+                            <Car className="h-12 w-12 text-muted-foreground/30" />
                           </div>
                         )}
                       </div>
-                      
-                      {/* Vehicle Info */}
-                      <div className="flex-1 p-3 space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <h3 className="font-semibold text-base">{vehicle.name}</h3>
-                            <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
-                          </div>
+                    </Link>
+                    <CardContent className="p-4">
+                      <div className="flex flex-col space-y-3">
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-lg">{vehicle.name}</h3>
+                          <p className="text-sm text-muted-foreground font-mono">{vehicle.plate_number}</p>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <Badge 
                             className={cn(
-                              "text-xs font-medium border-0",
+                              "font-medium border-0",
                               vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
                               vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
                               vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
@@ -446,25 +439,19 @@ export function VehicleList({
                           >
                             {t(`vehicles.status.${vehicle.status}`)}
                           </Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
                           <Badge variant="outline" className="text-xs">
                             {vehicle.brand} {vehicle.model}
                           </Badge>
-                          {vehicle.year && (
-                            <span className="text-xs text-muted-foreground">{vehicle.year}</span>
-                          )}
                         </div>
                       </div>
-                    </div>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
             </>
           )}
 
-          {/* Improved Pagination */}
+          {/* Pagination */}
           {displayTotalPages > 1 && (
             <div className="flex justify-center">
               <Pagination>
@@ -617,5 +604,5 @@ function VehiclePricingCategoriesBadges({ vehicleId }: VehiclePricingCategoriesB
         </Badge>
       )}
     </div>
-  );
+    );
 } 

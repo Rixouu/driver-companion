@@ -48,7 +48,7 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       {/* Desktop Tabs */}
       <div className="hidden md:block">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+        <TabsList className="w-full grid grid-cols-4 gap-0 rounded-none border-b bg-transparent p-0">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}

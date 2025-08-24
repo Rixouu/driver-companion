@@ -254,99 +254,223 @@ export default function PricingPromotionsTab() {
     
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit Promotion" : "Create New Promotion"}</DialogTitle>
+            <DialogTitle className="text-xl">{isEditing ? "Edit Promotion" : "Create New Promotion"}</DialogTitle>
             <DialogDescription>
               {isEditing ? "Update the promotion details below" : "Fill in the details to create a new promotion"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="promo-name">Promotion Name</Label>
-                <Input id="promo-name" placeholder="Enter promotion name" value={currentPromotion.name || ""} onChange={(e) => handleInputChange("name", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="promo-code">Promo Code</Label>
-                <Input id="promo-code" placeholder="e.g. SUMMER2023" value={currentPromotion.code || ""} onChange={(e) => handleInputChange("code", e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="promo-description">Description</Label>
-                <Textarea id="promo-description" placeholder="Enter promotion description" value={currentPromotion.description || ""} onChange={(e) => handleInputChange("description", e.target.value)} rows={3} />
-              </div>
-              <div className="space-y-2">
-                <Label>Valid Period</Label>
-                <CalendarDateRangePicker date={dateRange} onSelect={setDateRange} />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex space-x-4">
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="discount-type">Discount Type</Label>
-                  <Select value={currentPromotion.discount_type || "percentage"} onValueChange={(value) => handleInputChange("discount_type", value)}>
-                    <SelectTrigger id="discount-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="discount-value">Discount Value</Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      {currentPromotion.discount_type === "percentage" ? <Percent className="h-4 w-4 text-gray-400" /> : <DollarSign className="h-4 w-4 text-gray-400" />}
-                    </div>
-                    <Input id="discount-value" type="number" min="0" className="pl-10" value={currentPromotion.discount_value || 0} onChange={(e) => handleInputChange("discount_value", parseFloat(e.target.value))} />
+          
+          <div className="space-y-6 py-4">
+            {/* Basic Information Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="promo-name">Promotion Name *</Label>
+                    <Input 
+                      id="promo-name" 
+                      placeholder="Enter promotion name" 
+                      value={currentPromotion.name || ""} 
+                      onChange={(e) => handleInputChange("name", e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="promo-code">Promo Code *</Label>
+                    <Input 
+                      id="promo-code" 
+                      placeholder="e.g. SUMMER2023" 
+                      value={currentPromotion.code || ""} 
+                      onChange={(e) => handleInputChange("code", e.target.value)} 
+                    />
                   </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Applicable Services</Label>
-                <ScrollArea className="h-24 rounded-md border p-2">
-                  {allServiceTypes.map(serviceType => (
-                    <div key={serviceType.id} className="flex items-center space-x-2">
-                      <Checkbox id={`service-${serviceType.id}`} checked={(currentPromotion.applicable_service_type_ids || []).includes(serviceType.id)} onCheckedChange={(checked) => {
-                        const currentSelectedIds = [...(currentPromotion.applicable_service_type_ids || [])];
-                        if (checked) {
-                          if (!currentSelectedIds.includes(serviceType.id)) currentSelectedIds.push(serviceType.id);
-                        } else {
-                          const index = currentSelectedIds.indexOf(serviceType.id);
-                          if (index > -1) currentSelectedIds.splice(index, 1);
+                <div className="space-y-2">
+                  <Label htmlFor="promo-description">Description</Label>
+                  <Textarea 
+                    id="promo-description" 
+                    placeholder="Enter promotion description" 
+                    value={currentPromotion.description || ""} 
+                    onChange={(e) => handleInputChange("description", e.target.value)} 
+                    rows={3} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Discount Configuration Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Percent className="h-5 w-5" />
+                  Discount Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="discount-type">Discount Type *</Label>
+                    <Select value={currentPromotion.discount_type || "percentage"} onValueChange={(value) => handleInputChange("discount_type", value)}>
+                      <SelectTrigger id="discount-type">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">Percentage</SelectItem>
+                        <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="discount-value">Discount Value *</Label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        {currentPromotion.discount_type === "percentage" ? 
+                          <Percent className="h-4 w-4 text-muted-foreground" /> : 
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
                         }
-                        handleInputChange("applicable_service_type_ids", currentSelectedIds);
-                      }} />
-                      <Label htmlFor={`service-${serviceType.id}`} className="text-sm cursor-pointer">{serviceType.name}</Label>
+                      </div>
+                      <Input 
+                        id="discount-value" 
+                        type="number" 
+                        min="0" 
+                        className="pl-10" 
+                        value={currentPromotion.discount_value || 0} 
+                        onChange={(e) => handleInputChange("discount_value", parseFloat(e.target.value))} 
+                      />
                     </div>
-                  ))}
-                </ScrollArea>
-              </div>
-              <div className="space-y-2">
-                <Label>Applicable Vehicles</Label>
-                <ScrollArea className="h-24 rounded-md border p-2">
-                  {vehicleTypes.map(vehicle => (
-                    <div key={vehicle} className="flex items-center space-x-2">
-                      <Checkbox id={`vehicle-${vehicle}`} checked={(currentPromotion.applicable_vehicle_types || []).includes(vehicle)} onCheckedChange={(checked) => {
-                        const vehicles = [...(currentPromotion.applicable_vehicle_types || [])];
-                        if (checked) {
-                          if (!vehicles.includes(vehicle)) vehicles.push(vehicle);
-                        } else {
-                          const index = vehicles.indexOf(vehicle);
-                          if (index > -1) vehicles.splice(index, 1);
-                        }
-                        handleInputChange("applicable_vehicle_types", vehicles);
-                      }} />
-                      <Label htmlFor={`vehicle-${vehicle}`} className="text-sm cursor-pointer">{vehicle}</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Validity Period Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Validity Period
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label>Valid Period</Label>
+                  <CalendarDateRangePicker date={dateRange} onSelect={setDateRange} />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty for no date limit
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Applicable Services & Vehicles Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Applicable Services
+                  </CardTitle>
+                  <CardDescription>
+                    Select specific services or leave empty for all services
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-48 rounded-md border p-3">
+                    <div className="space-y-2">
+                      {allServiceTypes.map(serviceType => (
+                        <div key={serviceType.id} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`service-${serviceType.id}`} 
+                            checked={(currentPromotion.applicable_service_type_ids || []).includes(serviceType.id)} 
+                            onCheckedChange={(checked) => {
+                              const currentSelectedIds = [...(currentPromotion.applicable_service_type_ids || [])];
+                              if (checked) {
+                                if (!currentSelectedIds.includes(serviceType.id)) currentSelectedIds.push(serviceType.id);
+                              } else {
+                                const index = currentSelectedIds.indexOf(serviceType.id);
+                                if (index > -1) currentSelectedIds.splice(index, 1);
+                              }
+                              handleInputChange("applicable_service_type_ids", currentSelectedIds);
+                            }} 
+                          />
+                          <Label htmlFor={`service-${serviceType.id}`} className="text-sm cursor-pointer">
+                            {serviceType.name}
+                          </Label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </ScrollArea>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="is-active" checked={currentPromotion.is_active} onCheckedChange={(checked) => handleInputChange("is_active", !!checked)} />
-                <Label htmlFor="is-active">Active</Label>
-              </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Applicable Vehicles
+                  </CardTitle>
+                  <CardDescription>
+                    Select specific vehicle types or leave empty for all vehicles
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-48 rounded-md border p-3">
+                    <div className="space-y-2">
+                      {vehicleTypes.map(vehicle => (
+                        <div key={vehicle} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`vehicle-${vehicle}`} 
+                            checked={(currentPromotion.applicable_vehicle_types || []).includes(vehicle)} 
+                            onCheckedChange={(checked) => {
+                              const vehicles = [...(currentPromotion.applicable_vehicle_types || [])];
+                              if (checked) {
+                                if (!vehicles.includes(vehicle)) vehicles.push(vehicle);
+                              } else {
+                                const index = vehicles.indexOf(vehicle);
+                                if (index > -1) vehicles.splice(index, 1);
+                              }
+                              handleInputChange("applicable_vehicle_types", vehicles);
+                            }} 
+                          />
+                          <Label htmlFor={`vehicle-${vehicle}`} className="text-sm cursor-pointer">
+                            {vehicle}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Status Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Check className="h-5 w-5" />
+                  Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="is-active" 
+                    checked={currentPromotion.is_active} 
+                    onCheckedChange={(checked) => handleInputChange("is_active", !!checked)} 
+                  />
+                  <Label htmlFor="is-active" className="text-sm">
+                    Active - This promotion will be available for use
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
@@ -382,85 +506,126 @@ export default function PricingPromotionsTab() {
           </Button>
         </div>
       ) : (
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Promotion</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Applies To</TableHead>
-                <TableHead>Validity</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">{t('common.actions.default')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {promotions.map(promotion => {
-                const status = getPromotionStatus(promotion);
-                
-                const applicableServices = promotion.applicable_service_type_ids && promotion.applicable_service_type_ids.length > 0
-                  ? promotion.applicable_service_type_ids.map(id => allServiceTypes.find(s => s.id === id)?.name || id).join(', ')
-                  : 'All Services';
-                
-                const applicableVehicles = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
-                  ? promotion.applicable_vehicle_types.join(', ')
-                  : 'All Vehicles';
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {promotions.map(promotion => {
+            const status = getPromotionStatus(promotion);
+            
+            const applicableServices = promotion.applicable_service_type_ids && promotion.applicable_service_type_ids.length > 0
+              ? promotion.applicable_service_type_ids.map(id => allServiceTypes.find(s => s.id === id)?.name || id).join(', ')
+              : 'All Services';
+            
+            const applicableVehicles = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
+              ? promotion.applicable_vehicle_types.join(', ')
+              : 'All Vehicles';
 
-                return (
-                  <TableRow key={promotion.id}>
-                    <TableCell>
-                      <div className="font-medium">{promotion.name}</div>
-                      <div className="text-sm text-muted-foreground">Code: {promotion.code}</div>
-                    </TableCell>
-                    <TableCell>
-                      {promotion.discount_type === 'percentage'
-                        ? `${promotion.discount_value}%`
-                        : `${promotion.discount_value} JPY`}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">{applicableServices}</div>
-                      <div className="text-xs text-muted-foreground">{applicableVehicles}</div>
-                    </TableCell>
-                    <TableCell>{formatDateRange(promotion.start_date, promotion.end_date)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn('text-xs', getStatusBadgeClasses(status))}
-                      >
-                        {getStatusBadgeLabel(status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                       <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleTogglePromotionStatus(promotion.id, !promotion.is_active)}
+            return (
+              <Card key={promotion.id} className={cn(
+                "transition-all hover:shadow-md",
+                status === 'inactive' && "opacity-75 bg-muted/20",
+                status === 'expired' && "opacity-75 bg-muted/20"
+              )}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle className="text-lg">{promotion.name}</CardTitle>
+                        <Badge
+                          variant="outline"
+                          className={cn('text-xs', getStatusBadgeClasses(status))}
                         >
-                          {promotion.is_active ? <Ban className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditPromotion(promotion)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDeletePromotion(promotion.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                          {getStatusBadgeLabel(status)}
+                        </Badge>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      <CardDescription className="text-sm">
+                        Code: <span className="font-mono font-medium">{promotion.code}</span>
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleTogglePromotionStatus(promotion.id, !promotion.is_active)}
+                        title={promotion.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        {promotion.is_active ? <Ban className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleEditPromotion(promotion)}
+                        title="Edit"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => handleDeletePromotion(promotion.id)}
+                        title="Delete"
+                      >
+                        <Trash className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-3">
+                  {/* Discount Section */}
+                  <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {promotion.discount_type === 'percentage' ? (
+                        <Percent className="h-5 w-5 text-primary" />
+                      ) : (
+                        <DollarSign className="h-5 w-5 text-primary" />
+                      )}
+                      <span className="text-lg font-bold text-primary">
+                        {promotion.discount_type === 'percentage'
+                          ? `${promotion.discount_value}%`
+                          : `${promotion.discount_value} JPY`}
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {promotion.discount_type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
+                    </Badge>
+                  </div>
+
+                  {/* Applicable Services & Vehicles */}
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="text-sm">
+                        <span className="font-medium text-muted-foreground">Services:</span>
+                        <div className="text-xs">{applicableServices}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="text-sm">
+                        <span className="font-medium text-muted-foreground">Vehicles:</span>
+                        <div className="text-xs">{applicableVehicles}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validity Period */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDateRange(promotion.start_date, promotion.end_date)}</span>
+                  </div>
+
+                  {/* Description */}
+                  {promotion.description && (
+                    <div className="text-sm text-muted-foreground border-t pt-2">
+                      {promotion.description}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
       {renderPromotionDialog()}

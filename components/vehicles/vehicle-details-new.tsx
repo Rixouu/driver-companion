@@ -36,7 +36,6 @@ import {
   FileText,
   Tag,
   ArrowLeft,
-  Star,
   MapPin,
   Clock
 } from "lucide-react"
@@ -73,7 +72,6 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("information")
 
   const supabase = useSupabase()
   const queryClient = useQueryClient()
@@ -132,31 +130,14 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
     return new Date(dateString).toLocaleDateString()
   }
 
-  const tabs = [
-    { id: "information", label: "Information", icon: Info },
-    { id: "history", label: "History", icon: Activity },
-    { id: "bookings", label: "Bookings", icon: Calendar },
-    { id: "inspections", label: "Inspections", icon: CircleDot },
-  ]
-
   return (
     <div className="space-y-6">
-      {/* Back Navigation */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/vehicles">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Vehicles
-          </Link>
-        </Button>
-      </div>
-
       {/* Main Layout Grid - 2/3 + 1/3 */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Main Content Area - 2/3 (3 columns) */}
         <div className="xl:col-span-3 space-y-6">
           {/* Vehicle Hero Section */}
-          <Card className="overflow-hidden">
+          <Card>
             <div className="flex flex-col lg:flex-row">
               {/* Vehicle Image */}
               <div className="relative w-full lg:w-80 h-48 lg:h-48 flex-shrink-0">
@@ -167,8 +148,8 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                    <Car className="h-20 w-20 text-muted-foreground/30" />
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <Car className="h-20 w-20 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -176,7 +157,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               {/* Vehicle Info */}
               <div className="flex-1 p-6">
                 <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h1 className="text-3xl font-bold">{vehicle.name}</h1>
                     <div className="flex items-center gap-4 text-lg text-muted-foreground">
                       <span className="flex items-center gap-2 font-mono">
@@ -190,29 +171,29 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
                         </span>
                       )}
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant="outline"
+                        className={cn(
+                          "text-sm",
+                          vehicle.status === 'active' && "border-green-200 text-green-700",
+                          vehicle.status === 'maintenance' && "border-orange-200 text-orange-700",
+                          vehicle.status === 'inactive' && "border-gray-200 text-gray-700"
+                        )}
+                      >
+                        {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
+                      </Badge>
+                      {vehicle.year && (
+                        <span className="text-sm text-muted-foreground">({vehicle.year})</span>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="flex flex-col items-end gap-3">
-                    <Badge 
-                      className={cn(
-                        "text-sm px-3 py-1 border-0",
-                        vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                        vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                        vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-2 h-2 rounded-full mr-2",
-                        vehicle.status === 'active' && "bg-green-500",
-                        vehicle.status === 'maintenance' && "bg-orange-500", 
-                        vehicle.status === 'inactive' && "bg-gray-500"
-                      )}></div>
-                      {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
-                    </Badge>
+                  <div className="flex items-center gap-3">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/vehicles/${vehicle.id}/edit`}>
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit Vehicle
+                        Edit
                       </Link>
                     </Button>
                   </div>
@@ -221,193 +202,73 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             </div>
           </Card>
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Button asChild variant="outline" className="h-auto flex-col p-4 gap-2 hover:bg-muted/50">
-                  <Link href={`/vehicles/${vehicle.id}?tab=history`}>
-                    <Activity className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium">View History</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-auto flex-col p-4 gap-2 hover:bg-muted/50">
-                  <Link href={`/vehicles/${vehicle.id}?tab=bookings`}>
-                    <Calendar className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium">View Bookings</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-auto flex-col p-4 gap-2 hover:bg-muted/50">
-                  <Link href={`/vehicles/${vehicle.id}?tab=inspections`}>
-                    <CircleDot className="h-5 w-5 text-orange-600" />
-                    <span className="text-sm font-medium">View Inspections</span>
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-auto flex-col p-4 gap-2 hover:bg-muted/50">
-                  <Link href={`/vehicles/${vehicle.id}/edit`}>
-                    <FileText className="h-5 w-5 text-purple-600" />
-                    <span className="text-sm font-medium">Edit Vehicle</span>
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tabs Navigation */}
-          <Card>
-            <CardHeader className="pb-0">
-              <div className="flex space-x-1">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <Button
-                      key={tab.id}
-                      variant={activeTab === tab.id ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setActiveTab(tab.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </Button>
-                  )
-                })}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {/* Tab Content */}
-              {activeTab === "information" && (
-                <div className="space-y-6">
-                  {/* Basic Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Info className="h-5 w-5 text-blue-600" />
-                          Basic Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-sm text-muted-foreground">Brand</span>
-                          <span className="font-medium">{vehicle.brand || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-sm text-muted-foreground">Model</span>
-                          <span className="font-medium">{vehicle.model || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-sm text-muted-foreground">Year</span>
-                          <span className="font-medium">{vehicle.year || 'N/A'}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-2">
-                          <span className="text-sm text-muted-foreground">Plate Number</span>
-                          <span className="font-medium font-mono">{vehicle.plate_number}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Settings className="h-5 w-5 text-green-600" />
-                          Specifications
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-sm text-muted-foreground">VIN</span>
-                          <span className="font-medium font-mono text-sm">
-                            {vehicle.vin ? vehicle.vin.slice(-8) : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Passenger Capacity
-                          </span>
-                          <span className="font-medium">
-                            {vehicle.passenger_capacity ? `${vehicle.passenger_capacity}` : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-2">
-                          <span className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Package className="h-4 w-4" />
-                            Luggage Capacity
-                          </span>
-                          <span className="font-medium">
-                            {vehicle.luggage_capacity ? `${vehicle.luggage_capacity}` : 'N/A'}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Additional Details */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-purple-600" />
-                        Additional Details
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center py-2 border-b border-border/50">
-                            <span className="text-sm text-muted-foreground">Status</span>
-                            <Badge 
-                              className={cn(
-                                "text-xs border-0",
-                                vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                                vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                                vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                              )}
-                            >
-                              {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center py-2">
-                            <span className="text-sm text-muted-foreground">Added On</span>
-                            <span className="font-medium text-sm">
-                              {vehicle.created_at ? formatDate(vehicle.created_at) : 'N/A'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          {/* Vehicle Information Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">Brand</span>
+                  <span className="font-medium">{vehicle.brand || 'N/A'}</span>
                 </div>
-              )}
-
-              {activeTab === "history" && (
-                <div className="text-center py-12">
-                  <Activity className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">History</h3>
-                  <p className="text-muted-foreground">Vehicle history and maintenance logs will appear here.</p>
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">Model</span>
+                  <span className="font-medium">{vehicle.model || 'N/A'}</span>
                 </div>
-              )}
-
-              {activeTab === "bookings" && (
-                <div className="text-center py-12">
-                  <Calendar className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Bookings</h3>
-                  <p className="text-muted-foreground">Vehicle bookings and reservations will appear here.</p>
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">Year</span>
+                  <span className="font-medium">{vehicle.year || 'N/A'}</span>
                 </div>
-              )}
-
-              {activeTab === "inspections" && (
-                <div className="text-center py-12">
-                  <CircleDot className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Inspections</h3>
-                  <p className="text-muted-foreground">Vehicle inspection records will appear here.</p>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">Plate Number</span>
+                  <span className="font-medium font-mono">{vehicle.plate_number}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Specifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">VIN</span>
+                  <span className="font-medium font-mono text-sm">
+                    {vehicle.vin ? vehicle.vin.slice(-8) : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Passenger Capacity
+                  </span>
+                  <span className="font-medium">
+                    {vehicle.passenger_capacity ? `${vehicle.passenger_capacity}` : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Luggage Capacity
+                  </span>
+                  <span className="font-medium">
+                    {vehicle.luggage_capacity ? `${vehicle.luggage_capacity}` : 'N/A'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Vehicle Tabs - Main Content */}
+          <VehicleTabs vehicle={vehicle} />
         </div>
 
         {/* Sidebar - 1/3 (1 column) */}
@@ -416,7 +277,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Tag className="h-5 w-5 text-orange-600" />
+                <Tag className="h-5 w-5" />
                 Pricing Categories
               </CardTitle>
             </CardHeader>
@@ -425,32 +286,66 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             </CardContent>
           </Card>
 
+          {/* Additional Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Additional Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <Badge 
+                    variant="outline"
+                    className={cn(
+                      "text-xs",
+                      vehicle.status === 'active' && "border-green-200 text-green-700",
+                      vehicle.status === 'maintenance' && "border-orange-200 text-orange-700",
+                      vehicle.status === 'inactive' && "border-gray-200 text-gray-700"
+                    )}
+                  >
+                    {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-muted-foreground">Added On</span>
+                  <span className="font-medium text-sm">
+                    {vehicle.created_at ? formatDate(vehicle.created_at) : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Quick Stats */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
+                <Activity className="h-5 w-5" />
                 Quick Stats
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <Calendar className="h-4 w-4" />
                   <span className="text-sm">Total Bookings</span>
                 </div>
                 <span className="font-semibold">0</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <CircleDot className="h-4 w-4 text-orange-600" />
+                  <CircleDot className="h-4 w-4" />
                   <span className="text-sm">Inspections</span>
                 </div>
                 <span className="font-semibold">0</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-green-600" />
+                  <Clock className="h-4 w-4" />
                   <span className="text-sm">Last Service</span>
                 </div>
                 <span className="text-sm text-muted-foreground">Never</span>
@@ -458,19 +353,19 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             </CardContent>
           </Card>
 
-          {/* Danger Zone */}
-          <Card className="border-red-200 dark:border-red-800">
+          {/* Danger Zone - Less Prominent */}
+          <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-red-600 dark:text-red-400">
+              <CardTitle className="text-lg font-medium text-muted-foreground">
                 Danger Zone
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Button 
-                variant="destructive" 
+                variant="outline" 
                 size="sm" 
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="w-full"
+                className="w-full text-muted-foreground hover:text-destructive hover:border-destructive"
               >
                 Delete Vehicle
               </Button>
@@ -546,10 +441,7 @@ function VehiclePricingCategoriesSidebar({ vehicleId }: VehiclePricingCategories
           <div className="flex items-center gap-2">
             <Badge 
               variant="outline" 
-              className={cn(
-                "text-xs",
-                category.is_active ? "border-green-300 text-green-700" : "border-gray-300 text-gray-500"
-              )}
+              className="text-xs"
             >
               {category.name}
             </Badge>

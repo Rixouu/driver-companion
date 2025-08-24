@@ -265,7 +265,7 @@ function generateEmailHtml(
                       <td align="center" style="padding:24px;">
                         <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
                           <tr><td align="center" valign="middle" style="text-align:center;">
-                              <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                              <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
                           </td></tr>
                         </table>
                         <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">

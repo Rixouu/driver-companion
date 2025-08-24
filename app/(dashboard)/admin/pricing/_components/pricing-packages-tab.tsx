@@ -87,6 +87,7 @@ export default function PricingPackagesTab() {
   const [selectedItems, setSelectedItems] = useState<{[key: string]: PackageServiceItem}>({});
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeVehicleType, setActiveVehicleType] = useState<string>("all");
+  const [activeServiceType, setActiveServiceType] = useState<string>("all");
   const [availableVehicleTypes, setAvailableVehicleTypes] = useState<string[]>([]);
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -186,6 +187,10 @@ export default function PricingPackagesTab() {
         return false;
       }
       
+      if (activeServiceType !== "all" && item.service_type_id !== activeServiceType) {
+        return false;
+      }
+      
       return true;
     });
   };
@@ -208,6 +213,7 @@ export default function PricingPackagesTab() {
     setSelectedCurrency("JPY");
     setActiveCategory("all");
     setActiveVehicleType("all");
+    setActiveServiceType("all");
     setIsEditing(false);
     setIsDialogOpen(true);
   };
@@ -454,30 +460,24 @@ export default function PricingPackagesTab() {
     
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
-          <DialogHeader className="pb-4">
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Package className="h-6 w-6" />
-              {isEditing ? "Edit Package" : "Create New Package"}
-            </DialogTitle>
-            <DialogDescription className="text-base">
-              {isEditing ? "Update package details and services" : "Create a new service package"}
-            </DialogDescription>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{isEditing ? "Edit Package" : "Create New Package"}</DialogTitle>
+            <DialogDescription>{isEditing ? "Update package details and services" : "Create a new service package"}</DialogDescription>
           </DialogHeader>
           
-          <div className="flex gap-6 h-[calc(95vh-200px)]">
-            {/* Left Side - Package Configuration */}
-            <div className="flex-1 space-y-6 overflow-y-auto pr-2">
-              {/* Package Details Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Tag className="h-5 w-5" />
-                    Package Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-6 py-4">
+            {/* Package Details Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Package Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="pkg-name">Package Name *</Label>
                       <Input 
@@ -501,9 +501,6 @@ export default function PricingPackagesTab() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display-order">Display Order</Label>
                       <Input 
@@ -514,58 +511,233 @@ export default function PricingPackagesTab() {
                         onChange={(e) => handleInputChange("sort_order", parseInt(e.target.value))} 
                       />
                     </div>
+                  </div>
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Valid Period (Optional)</Label>
                       <CalendarDateRangePicker date={dateRange} onSelect={setDateRange} />
+                      <p className="text-xs text-muted-foreground">
+                        Leave empty for no date limit
+                      </p>
+                    </div>
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="is-active" 
+                          checked={currentPackage.is_active !== false} 
+                          onCheckedChange={(checked) => handleInputChange("is_active", !!checked)} 
+                        />
+                        <Label htmlFor="is-active">Active</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="is-featured" 
+                          checked={currentPackage.is_featured} 
+                          onCheckedChange={(checked) => handleInputChange("is_featured", !!checked)} 
+                        />
+                        <Label htmlFor="is-featured">Featured</Label>
+                      </div>
                     </div>
                   </div>
-                  
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pkg-description">Description</Label>
+                  <Textarea 
+                    id="pkg-description" 
+                    placeholder="Enter package description" 
+                    value={currentPackage.description || ""} 
+                    onChange={(e) => handleInputChange("description", e.target.value)} 
+                    rows={3} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            {/* Services Selection Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Select Services
+                </CardTitle>
+                <CardDescription>
+                  Choose services to include in this package. Use filters to find specific services.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Filters Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="space-y-2">
-                    <Label htmlFor="pkg-description">Description</Label>
-                    <Textarea 
-                      id="pkg-description" 
-                      placeholder="Enter package description" 
-                      value={currentPackage.description || ""} 
-                      onChange={(e) => handleInputChange("description", e.target.value)} 
-                      rows={3} 
-                    />
+                    <Label>Filter by Category</Label>
+                    <Select value={activeCategory} onValueChange={setActiveCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <div className="flex items-center gap-6 pt-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="is-active" 
-                        checked={currentPackage.is_active !== false} 
-                        onCheckedChange={(checked) => handleInputChange("is_active", !!checked)} 
-                      />
-                      <Label htmlFor="is-active" className="text-sm">Active</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="is-featured" 
-                        checked={currentPackage.is_featured} 
-                        onCheckedChange={(checked) => handleInputChange("is_featured", !!checked)} 
-                      />
-                      <Label htmlFor="is-featured" className="text-sm">Featured</Label>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Filter by Service Type</Label>
+                    <Select value={activeServiceType} onValueChange={setActiveServiceType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Service Types</SelectItem>
+                        {allServiceTypes.map(serviceType => (
+                          <SelectItem key={serviceType.id} value={serviceType.id}>{serviceType.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="space-y-2">
+                    <Label>Filter by Vehicle Type</Label>
+                    <Select value={activeVehicleType} onValueChange={setActiveVehicleType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select vehicle type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Vehicles</SelectItem>
+                        {availableVehicleTypes.map(vehicle => (
+                          <SelectItem key={vehicle} value={vehicle}>{vehicle}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-              {/* Pricing Configuration Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Pricing Configuration
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Currency: {selectedCurrency}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Services Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Available Services */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Available Services</Label>
+                      <Badge variant="outline">
+                        {getFilteredItems().length} services available
+                      </Badge>
+                    </div>
+                    <ScrollArea className="h-[400px] border rounded-md p-3">
+                      {getFilteredItems().length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No services match your filters</p>
+                          <p className="text-xs">Try adjusting the filters above</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {getFilteredItems().map(item => {
+                            const serviceTypeName = item.service_type_name || getServiceTypeName(item.service_type_id);
+                            const isSelected = !!selectedItems[item.id];
+                            return (
+                              <div 
+                                key={item.id} 
+                                className={cn(
+                                  "flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer hover:bg-muted/50",
+                                  isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
+                                )}
+                                onClick={() => handleToggleItemSelection(item, !isSelected)}
+                              >
+                                <div className="flex items-start gap-3 flex-1">
+                                  <Checkbox 
+                                    id={`select-${item.id}`} 
+                                    checked={isSelected} 
+                                    onCheckedChange={(checked) => handleToggleItemSelection(item, !!checked)}
+                                    className="mt-0.5"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <Label htmlFor={`select-${item.id}`} className="font-medium cursor-pointer text-sm">
+                                      {serviceTypeName}
+                                    </Label>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {item.duration_hours}h • {item.vehicle_type}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right ml-4">
+                                  <div className="font-semibold text-primary">
+                                    {formatCurrency(item.price, item.currency)}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+
+                  {/* Selected Services */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-medium">Selected Services</Label>
+                      <Badge variant="secondary">
+                        {Object.keys(selectedItems).length} items selected
+                      </Badge>
+                    </div>
+                    <div className="border rounded-md p-3 h-[400px] overflow-y-auto">
+                      {Object.keys(selectedItems).length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No services selected</p>
+                          <p className="text-xs">Select services from the left panel</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {Object.values(selectedItems).map(item => (
+                            <div 
+                              key={item.pricing_item_id} 
+                              className="flex items-center justify-between border rounded-lg p-3 bg-muted/30"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm">{item.service_type_name}</div>
+                                <div className="text-xs text-muted-foreground">{item.vehicle_type}</div>
+                              </div>
+                              <div className="flex items-center space-x-3 ml-4">
+                                <div className="font-semibold text-primary">
+                                  {formatCurrency(item.price)}
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-muted-foreground hover:text-destructive" 
+                                  onClick={() => { 
+                                    const newItems = { ...selectedItems }; 
+                                    delete newItems[item.pricing_item_id]; 
+                                    setSelectedItems(newItems); 
+                                  }}
+                                  title="Remove service"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Pricing Configuration Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Pricing Configuration
+                </CardTitle>
+                <CardDescription>
+                  Set the package price and view pricing summary
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Package Price Input */}
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="base-price">Package Price *</Label>
                       <div className="relative">
@@ -576,223 +748,55 @@ export default function PricingPackagesTab() {
                           id="base-price" 
                           type="number" 
                           min="0" 
-                          className="pl-10 text-lg font-medium" 
+                          className="pl-10" 
                           value={currentPackage.base_price || 0} 
                           onChange={(e) => handleInputChange("base_price", parseFloat(e.target.value))} 
                         />
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Set the final price customers will pay for this package
+                      </p>
                     </div>
                     
-                    <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-4 rounded-lg border border-primary/20">
-                      <h4 className="font-semibold mb-3 text-primary">Package Summary</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Individual Services:</span>
-                          <span className="font-medium">{formatCurrency(calculateTotalServicePrice())}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Package Price:</span>
-                          <span className="font-medium">{formatCurrency(currentPackage.base_price || 0)}</span>
-                        </div>
-                        {calculateDiscountAmount() > 0 && (
-                          <div className="flex justify-between text-green-600 font-medium">
-                            <span>Package Savings:</span>
-                            <span>- {formatCurrency(calculateDiscountAmount())} ({calculateDiscountPercentage()}%)</span>
-                          </div>
-                        )}
-                        <Separator className="my-2" />
-                        <div className="flex justify-between text-lg font-bold text-primary">
-                          <span>Final Price:</span>
-                          <span>{formatCurrency(currentPackage.base_price || 0)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Side - Service Selection */}
-            <div className="flex-1 space-y-6 overflow-y-auto">
-              {/* Service Selection Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Service Selection
-                  </CardTitle>
-                  <CardDescription>
-                    Select services to include in this package
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Filters */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Filter by Category</Label>
-                      <Select value={activeCategory} onValueChange={setActiveCategory}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          {categories.map(category => (
-                            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Filter by Vehicle Type</Label>
-                      <Select value={activeVehicleType} onValueChange={setActiveVehicleType}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select vehicle type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Vehicles</SelectItem>
-                          {availableVehicleTypes.map(vehicle => (
-                            <SelectItem key={vehicle} value={vehicle}>{vehicle}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <Label className="text-sm">Currency: {selectedCurrency}</Label>
                     </div>
                   </div>
 
-                  {/* Services Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Available Services */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Available Services</Label>
-                        <Badge variant="outline" className="text-xs">
-                          {getFilteredItems().length} services
-                        </Badge>
+                  {/* Package Summary */}
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h4 className="font-medium mb-4 text-base">Package Summary</h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Individual Services Total:</span>
+                        <span className="font-medium">{formatCurrency(calculateTotalServicePrice())}</span>
                       </div>
-                      <ScrollArea className="h-[400px] border rounded-lg p-3">
-                        {getFilteredItems().length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No services match your filters</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {getFilteredItems().map(item => {
-                              const serviceTypeName = item.service_type_name || getServiceTypeName(item.service_type_id);
-                              const isSelected = !!selectedItems[item.id];
-                              return (
-                                <div 
-                                  key={item.id} 
-                                  className={cn(
-                                    "flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer hover:bg-muted/50",
-                                    isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
-                                  )}
-                                  onClick={() => handleToggleItemSelection(item, !isSelected)}
-                                >
-                                  <div className="flex items-start gap-3 flex-1">
-                                    <Checkbox 
-                                      id={`select-${item.id}`} 
-                                      checked={isSelected} 
-                                      onCheckedChange={(checked) => handleToggleItemSelection(item, !!checked)}
-                                      className="mt-1"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <Label htmlFor={`select-${item.id}`} className="font-medium cursor-pointer block">
-                                        {serviceTypeName}
-                                      </Label>
-                                      <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                                        <Clock className="h-3 w-3" />
-                                        <span>{item.duration_hours}h</span>
-                                        <span>•</span>
-                                        <span>{item.vehicle_type}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="text-right ml-4">
-                                    <div className="font-semibold text-primary">
-                                      {formatCurrency(item.price, item.currency)}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </ScrollArea>
-                    </div>
-
-                    {/* Selected Services */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Selected Services</Label>
-                        <Badge variant="secondary" className="text-xs">
-                          {Object.keys(selectedItems).length} items
-                        </Badge>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Package Price:</span>
+                        <span className="font-semibold text-primary">{formatCurrency(currentPackage.base_price || 0)}</span>
                       </div>
-                      <ScrollArea className="h-[400px] border rounded-lg p-3">
-                        {Object.keys(selectedItems).length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No services selected</p>
-                            <p className="text-xs">Select services from the left panel</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {Object.values(selectedItems).map(item => (
-                              <div 
-                                key={item.pricing_item_id} 
-                                className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-medium text-sm">{item.service_type_name}</div>
-                                  <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{item.duration_hours}h</span>
-                                    <span>•</span>
-                                    <span>{item.vehicle_type}</span>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-3 ml-4">
-                                  <div className="font-semibold text-primary">
-                                    {formatCurrency(item.price)}
-                                  </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                    onClick={() => { 
-                                      const newItems = { ...selectedItems }; 
-                                      delete newItems[item.pricing_item_id]; 
-                                      setSelectedItems(newItems); 
-                                    }}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </ScrollArea>
+                      {calculateDiscountAmount() > 0 && (
+                        <div className="flex justify-between items-center text-green-600">
+                          <span>Package Savings:</span>
+                          <span className="font-semibold">- {formatCurrency(calculateDiscountAmount())} ({calculateDiscountPercentage()}%)</span>
+                        </div>
+                      )}
+                      <Separator className="my-3" />
+                      <div className="flex justify-between items-center font-bold text-base">
+                        <span>Final Price:</span>
+                        <span className="text-lg text-primary">{formatCurrency(currentPackage.base_price || 0)}</span>
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          <DialogFooter className="p-4 border-t bg-muted/30">
-            <Button variant="outline" onClick={handleCloseDialog}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSavePackage} 
-              disabled={!currentPackage.name?.trim()}
-              className="min-w-[140px]"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isEditing ? "Update Package" : "Create Package"}
-            </Button>
+          
+          <DialogFooter className="p-4 border-t">
+            <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
+            <Button onClick={handleSavePackage} disabled={!currentPackage.name?.trim()}><Save className="h-4 w-4 mr-2" />{isEditing ? "Update Package" : "Create Package"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

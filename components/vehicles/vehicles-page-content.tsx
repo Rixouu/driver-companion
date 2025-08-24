@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { VehicleList } from "@/components/vehicles/vehicle-list"
+import { VehicleList } from "@/components/vehicles/vehicle-list-new"
 import { DbVehicle } from "@/types"
 
 interface VehiclesPageContentProps {

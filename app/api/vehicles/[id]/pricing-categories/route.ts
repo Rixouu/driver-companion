@@ -6,11 +6,11 @@ export const dynamic = "force-dynamic";
 // GET: Fetch pricing categories for a vehicle
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
-    const vehicleId = params.id;
+    const { id: vehicleId } = await params;
 
     // Fetch pricing categories linked to this vehicle
     const { data: pricingCategories, error } = await supabase
@@ -54,11 +54,11 @@ export async function GET(
 // POST: Update pricing categories for a vehicle
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
-    const vehicleId = params.id;
+    const { id: vehicleId } = await params;
     const { categoryIds } = await req.json();
 
     if (!Array.isArray(categoryIds)) {

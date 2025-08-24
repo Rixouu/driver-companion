@@ -46,29 +46,11 @@ const getDurationOptions = (t: Function) => [
   { value: 72, label: t("pricing.items.durations.days", { count: 3 }) },
 ];
 
-// Types for price table
-interface PriceData {
-  price: number;
-  currency: string;
-  itemId: string;
-  isActive: boolean;
-}
-
-interface PriceRow {
-  duration: number;
-  // vehicleType: string; // Removed
-  prices: Record<string, PriceData>;
-}
-
-interface DurationGroup {
-  duration: number;
-  rows: PriceRow[]; // Each row is now just a duration with prices for different service types
-}
-
-interface PriceTableData {
-  durations: number[];
-  serviceTypes: { id: string; name: string }[];
-  groupedRows: DurationGroup[];
+// Types for grouped pricing items
+interface ServiceTypeGroup {
+  serviceTypeId: string;
+  serviceTypeName: string;
+  items: PricingItem[];
 }
 
 export default function PricingItemsTab() {
@@ -98,6 +80,30 @@ export default function PricingItemsTab() {
     deletePricingItem
   } = useQuotationService();
   const { t, language } = useI18n();
+  
+  // Group items by service type for better organization
+  const groupItemsByServiceType = useCallback((items: PricingItem[]): ServiceTypeGroup[] => {
+    const groups: Record<string, ServiceTypeGroup> = {};
+    
+    items.forEach(item => {
+      const key = item.service_type_id;
+      if (!groups[key]) {
+        groups[key] = {
+          serviceTypeId: key,
+          serviceTypeName: item.service_type_name || 'Unknown Service',
+          items: []
+        };
+      }
+      groups[key].items.push(item);
+    });
+    
+    // Sort items within each group by duration
+    Object.values(groups).forEach(group => {
+      group.items.sort((a, b) => a.duration_hours - b.duration_hours);
+    });
+    
+    return Object.values(groups).sort((a, b) => a.serviceTypeName.localeCompare(b.serviceTypeName));
+  }, []);
   
   const durationOptions = useMemo(() => getDurationOptions(t), [t]);
   
@@ -168,8 +174,8 @@ export default function PricingItemsTab() {
     setSelectedServiceType("all");
   };
 
-  const handleOpenDialog = (item?: Partial<PricingItem>) => {
-    const defaultServiceTypeId = allServiceTypes.length > 0 ? allServiceTypes[0].id : undefined;
+  const handleOpenDialog = (item?: Partial<PricingItem>, serviceTypeId?: string) => {
+    const defaultServiceTypeId = serviceTypeId || (allServiceTypes.length > 0 ? allServiceTypes[0].id : undefined);
     if (item && 'id' in item && item.id) {
       setCurrentItem({ ...item });
       setIsEditing(true);
@@ -493,55 +499,92 @@ export default function PricingItemsTab() {
           {t("pricing.items.emptyState.noItemsFound")}
         </div>
       ) : (
-        <ScrollArea className="whitespace-nowrap rounded-md border">
-          <Table className="min-w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">{t("pricing.items.table.serviceType")}</TableHead>
-                <TableHead className="w-[120px]">{t("pricing.items.table.durationHours")}</TableHead>
-                <TableHead className="w-[120px]">{t("pricing.items.table.price")}</TableHead>
-                <TableHead className="w-[100px] text-center">{t("pricing.items.table.status")}</TableHead>
-                <TableHead className="w-[120px] text-right">{t("common.actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
-                    {item.service_type_name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
-                    {item.duration_hours}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground sticky left-0 z-10 bg-background group-hover:bg-muted/10 whitespace-nowrap">
-                    {item.currency} {item.price.toLocaleString(undefined, { style: 'currency', currency: item.currency, minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={cn("text-xs", getStatusBadgeClasses(item.is_active ? 'active' : 'inactive'))}
-                    >
-                      {item.is_active ? t('common.status.active') : t('common.status.inactive')}
+        <div className="space-y-4">
+          {/* Group items by service type for better organization */}
+          {groupItemsByServiceType(filteredItems).map((serviceGroup) => (
+            <Card key={serviceGroup.serviceTypeId} className="overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">{serviceGroup.serviceTypeName}</h3>
+                    <Badge variant="outline" className="text-xs">
+                      {serviceGroup.items.length} pricing options
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openStatusConfirm(item)}>
-                        {item.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(item)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => openDeleteConfirm(item.id)}>
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                  </div>
+                  <Button 
+                    onClick={() => handleOpenDialog(null, serviceGroup.serviceTypeId)} 
+                    size="sm" 
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add {serviceGroup.serviceTypeName}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                  {serviceGroup.items.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className={cn(
+                        "p-4 rounded-lg border transition-all hover:shadow-md",
+                        item.is_active ? "bg-background" : "bg-muted/20 opacity-75"
+                      )}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge 
+                              variant="outline" 
+                              className={cn("text-xs", getStatusBadgeClasses(item.is_active ? 'active' : 'inactive'))}
+                            >
+                              {item.is_active ? t('common.status.active') : t('common.status.inactive')}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {item.duration_hours === 1 ? '1 hour' : `${item.duration_hours} hours`}
+                            </span>
+                          </div>
+                          <div className="text-2xl font-bold text-primary">
+                            {item.currency} {item.price.toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => openStatusConfirm(item)}
+                            title={item.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {item.is_active ? <X className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7" 
+                            onClick={() => handleOpenDialog(item)}
+                            title="Edit"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-destructive" 
+                            onClick={() => openDeleteConfirm(item.id)}
+                            title="Delete"
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

@@ -1347,7 +1347,7 @@ export default function QuoteAccessPage() {
                     
                   </div>
                   
-                  {/* Total Amount Due - Same styling as Services Subtotal */}
+                  {/* Total Amount Due - Separate section with same styling as Services Subtotal */}
                   <div className="bg-muted/30 rounded-lg p-3 border border-muted/50">
                     <div className="flex justify-between items-center py-1">
                       <span className="text-sm font-medium text-foreground">Total Amount Due</span>

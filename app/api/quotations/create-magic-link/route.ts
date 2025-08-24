@@ -40,7 +40,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate the magic link URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      // Fallback based on environment
+      if (process.env.NODE_ENV === 'production') {
+        baseUrl = 'https://driver-companion.vercel.app';
+      } else if (process.env.NODE_ENV === 'development') {
+        baseUrl = 'http://localhost:3000';
+      } else {
+        baseUrl = 'https://driver-companion.vercel.app'; // Default to production
+      }
+    }
     const magicLinkUrl = `${baseUrl}/quote-access/${token}`;
 
     return NextResponse.json({

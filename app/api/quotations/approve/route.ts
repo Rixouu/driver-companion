@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 // Helper function to generate email HTML with styling exactly matching send-email
 function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, magicLink?: string) {
   const isJapanese = language === 'ja';
-  const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
+  // Use japandriver.com for logo to match email sender domain and avoid image blocking
+const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
   
   const translations = {
     en: {

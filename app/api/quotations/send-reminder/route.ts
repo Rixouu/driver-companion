@@ -176,7 +176,8 @@ export async function POST(request: NextRequest) {
         appUrl = 'https://driver-companion.vercel.app'; // Default to production
       }
     }
-    const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
+    // Use japandriver.com for logo to match email sender domain and avoid image blocking
+    const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
     
     // Format quotation ID to use JPDR prefix
     const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;

@@ -365,7 +365,8 @@ function generateEmailHtml(
   selectedPromotion: PricingPromotion | null,
   magicLink: string | null = null
 ) {
-  const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
+  // Use japandriver.com for logo to match email sender domain and avoid image blocking
+  const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
   const isJapanese = language === 'ja';
   const template = emailTemplates[language];
     

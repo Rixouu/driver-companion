@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service-client';
 import { Resend } from 'resend';
 
 console.log('✅ [SEND-MAGIC-LINK-EMAIL API] Module loaded, imports successful.');
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const validLanguage = (['en', 'ja'].includes(language) ? language : 'en') as 'en' | 'ja';
     
     // Initialize Supabase client
-    const supabase = getSupabaseServerClient();
+    const supabase = createServiceClient();
     
     // Get quotation details
     const { data: quotation, error: quotationError } = await supabase

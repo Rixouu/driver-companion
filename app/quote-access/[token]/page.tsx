@@ -1127,7 +1127,7 @@ export default function QuoteAccessPage() {
                 ))}
                 
                 {/* Services Summary */}
-                <Card className="bg-muted/30">
+                <Card className="bg-muted/30 border border-muted/70 dark:border-muted/60">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">Services Subtotal</span>
@@ -1348,9 +1348,9 @@ export default function QuoteAccessPage() {
                   </div>
                   
                   {/* Total Amount Due - Larger font with stroke/border like Services Subtotal */}
-                  <div className="bg-muted/30 rounded-lg p-3 border border-muted/50">
+                  <div className="bg-muted/30 rounded-lg p-3 border border-muted/70 dark:border-muted/60">
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-lg font-medium text-foreground">Total Amount Due</span>
+                      <span className="text-lg font-semibold text-foreground">Total Amount Due</span>
                       <span className="text-lg font-semibold text-foreground">{formatCurrency(quotation.total_amount, selectedCurrency)}</span>
                     </div>
                   </div>

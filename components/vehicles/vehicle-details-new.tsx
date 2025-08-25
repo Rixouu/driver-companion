@@ -350,17 +350,21 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
   const [availableCategories, setAvailableCategories] = useState<Array<{id: string, name: string, description: string, is_active: boolean}>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { categories, isLoading: isLoadingCategories, error, updateCategories } = useVehiclePricingCategories(vehicleId);
+  const { categories, isLoading: isLoadingCategories, error } = useVehiclePricingCategories(vehicleId);
 
   // Fetch available pricing categories
   useEffect(() => {
     async function fetchAvailableCategories() {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/admin/pricing/categories');
+        const response = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`);
         if (response.ok) {
           const data = await response.json();
-          setAvailableCategories(data);
+          setAvailableCategories(data.categories || []);
+          // Update selected categories based on API response
+          if (data.currentCategoryIds) {
+            setSelectedCategoryIds(data.currentCategoryIds);
+          }
         }
       } catch (error) {
         console.error('Error fetching available categories:', error);
@@ -370,7 +374,7 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
     }
 
     fetchAvailableCategories();
-  }, []);
+  }, [vehicleId]);
 
   // Update selected categories when categories change
   useEffect(() => {
@@ -392,13 +396,29 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
     
     setIsSaving(true);
     try {
-      const success = await updateCategories(selectedCategoryIds);
-      if (success) {
+      const response = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categoryIds: selectedCategoryIds }),
+      });
+
+      if (response.ok) {
         setIsEditing(false);
+        // Refresh the categories data
+        const refreshResponse = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`);
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          setAvailableCategories(refreshData.categories || []);
+        }
+        
         toast({
           title: "Pricing categories updated successfully",
           description: "Vehicle pricing categories have been updated.",
         });
+      } else {
+        throw new Error('Failed to update pricing categories');
       }
     } catch (error) {
       toast({

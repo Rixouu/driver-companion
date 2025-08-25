@@ -1,111 +1,164 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase/service-client';
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { Database } from '@/types/supabase'
 
-export const dynamic = "force-dynamic";
+async function createSupabaseServer() {
+  const cookieStore = await cookies()
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+}
 
-// GET: Fetch pricing categories for a vehicle
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServiceClient();
-    const { id: vehicleId } = await params;
+    const supabase = await createSupabaseServer()
+    const resolvedParams = await params
+    const vehicleId = resolvedParams.id
 
-    // Fetch pricing categories linked to this vehicle
-    const { data: pricingCategories, error } = await supabase
-      .from('pricing_category_vehicles')
-      .select(`
-        category_id,
-        pricing_categories (
-          id,
-          name,
-          description,
-          is_active,
-          sort_order
-        )
-      `)
-      .eq('vehicle_id', vehicleId);
-
-    if (error) {
-      console.error('Error fetching vehicle pricing categories:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!vehicleId) {
+      return NextResponse.json(
+        { error: 'Vehicle ID is required' },
+        { status: 400 }
+      )
     }
 
-    // Transform the data to a cleaner format
-    const categories = pricingCategories?.map(pc => ({
-      id: pc.pricing_categories.id,
-      name: pc.pricing_categories.name,
-      description: pc.pricing_categories.description,
-      is_active: pc.pricing_categories.is_active,
-      sort_order: pc.pricing_categories.sort_order
-    })) || [];
+    // Fetch all available pricing categories
+    const { data: categories, error: categoriesError } = await supabase
+      .from('pricing_categories')
+      .select('id, name, description, is_active, sort_order')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
 
-    return NextResponse.json({ categories });
+    if (categoriesError) {
+      console.error('Error fetching pricing categories:', categoriesError)
+      return NextResponse.json(
+        { error: 'Failed to fetch pricing categories' },
+        { status: 500 }
+      )
+    }
+
+    // Fetch current vehicle pricing categories
+    const { data: vehicleCategories, error: vehicleCategoriesError } = await supabase
+      .from('pricing_category_vehicles')
+      .select('category_id')
+      .eq('vehicle_id', vehicleId)
+
+    if (vehicleCategoriesError) {
+      console.error('Error fetching vehicle pricing categories:', vehicleCategoriesError)
+      return NextResponse.json(
+        { error: 'Failed to fetch vehicle pricing categories' },
+        { status: 500 }
+      )
+    }
+
+    const currentCategoryIds = vehicleCategories?.map(vc => vc.category_id) || []
+
+    // Return categories with selection status
+    const categoriesWithSelection = categories?.map(category => ({
+      ...category,
+      isSelected: currentCategoryIds.includes(category.id)
+    })) || []
+
+    return NextResponse.json({
+      categories: categoriesWithSelection,
+      currentCategoryIds
+    })
   } catch (error) {
-    console.error('Error handling GET request for vehicle pricing categories:', error);
+    console.error('Error in vehicle pricing categories API:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
+      { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }
 
-// POST: Update pricing categories for a vehicle
-export async function POST(
-  req: NextRequest,
+export async function PUT(
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServiceClient();
-    const { id: vehicleId } = await params;
-    const { categoryIds } = await req.json();
+    const supabase = await createSupabaseServer()
+    const resolvedParams = await params
+    const vehicleId = resolvedParams.id
 
-    if (!Array.isArray(categoryIds)) {
-      return NextResponse.json({ error: 'categoryIds must be an array' }, { status: 400 });
+    if (!vehicleId) {
+      return NextResponse.json(
+        { error: 'Vehicle ID is required' },
+        { status: 400 }
+      )
     }
 
-    // First, remove all existing links for this vehicle
+    const body = await request.json()
+    const { categoryIds } = body
+
+    if (!Array.isArray(categoryIds)) {
+      return NextResponse.json(
+        { error: 'Category IDs must be an array' },
+        { status: 400 }
+      )
+    }
+
+    // Remove all existing vehicle-category relationships
     const { error: deleteError } = await supabase
       .from('pricing_category_vehicles')
       .delete()
-      .eq('vehicle_id', vehicleId);
+      .eq('vehicle_id', vehicleId)
 
     if (deleteError) {
-      console.error('Error removing existing vehicle pricing categories:', deleteError);
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      console.error('Error deleting existing vehicle pricing categories:', deleteError)
+      return NextResponse.json(
+        { error: 'Failed to update pricing categories' },
+        { status: 500 }
+      )
     }
 
-    // If no categories selected, we're done
-    if (categoryIds.length === 0) {
-      return NextResponse.json({ success: true, message: 'Vehicle pricing categories updated' });
-    }
+    // Add new vehicle-category relationships
+    if (categoryIds.length > 0) {
+      const vehicleCategories = categoryIds.map(categoryId => ({
+        vehicle_id: vehicleId,
+        category_id: categoryId
+      }))
 
-    // Add new links
-    const newLinks = categoryIds.map(categoryId => ({
-      vehicle_id: vehicleId,
-      category_id: categoryId
-    }));
+      const { error: insertError } = await supabase
+        .from('pricing_category_vehicles')
+        .insert(vehicleCategories)
 
-    const { error: insertError } = await supabase
-      .from('pricing_category_vehicles')
-      .insert(newLinks);
-
-    if (insertError) {
-      console.error('Error adding new vehicle pricing categories:', insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      if (insertError) {
+        console.error('Error inserting vehicle pricing categories:', insertError)
+        return NextResponse.json(
+          { error: 'Failed to update pricing categories' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Vehicle pricing categories updated successfully',
-      updatedCategories: categoryIds.length
-    });
+      message: 'Vehicle pricing categories updated successfully' 
+    })
   } catch (error) {
-    console.error('Error handling POST request for vehicle pricing categories:', error);
+    console.error('Error updating vehicle pricing categories:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
+      { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }

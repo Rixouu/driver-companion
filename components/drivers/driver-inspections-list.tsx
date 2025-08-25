@@ -38,10 +38,13 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
     )
   }
 
+  // Limit to 3 inspections
+  const limitedInspections = inspections.slice(0, 3)
+
   // Mobile card view (for smaller screens)
   const mobileView = (
     <div className="sm:hidden space-y-3">
-      {inspections.map((inspection) => (
+      {limitedInspections.map((inspection) => (
         <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
           <div className="border rounded-lg p-3 hover:bg-accent/50 transition-colors">
             <div className="flex items-center justify-between mb-2">
@@ -70,7 +73,7 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
   const desktopView = (
     <div className="hidden sm:block">
       <div className="space-y-3">
-        {inspections.map((inspection) => (
+        {limitedInspections.map((inspection) => (
           <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
             <div className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
               <div className="flex items-start sm:gap-3 justify-between">
@@ -116,6 +119,18 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
     <>
       {mobileView}
       {desktopView}
+      
+      {/* Show "View All" link if there are more than 3 inspections */}
+      {inspections.length > 3 && (
+        <div className="mt-4 text-center">
+          <Link 
+            href={`/inspections?inspector=${inspections[0]?.id?.split('-')[0] || 'all'}`}
+            className="text-sm text-primary hover:underline"
+          >
+            View All {inspections.length} Inspections →
+          </Link>
+        </div>
+      )}
     </>
   );
 } 

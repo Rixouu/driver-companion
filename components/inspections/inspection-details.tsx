@@ -200,8 +200,8 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
     if (currentInspectorId && (!inspection.inspector || inspection.inspector.id !== currentInspectorId)) {
       const fetchInspectorDetails = async (inspectorId: string) => {
         const { data: inspectorData, error: inspectorError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
+          .from('drivers')
+          .select('id, first_name, last_name, email')
           .eq('id', inspectorId)
           .single();
 
@@ -216,7 +216,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             ...prev, 
             inspector: { 
               id: inspectorData.id,
-              name: inspectorData.full_name || inspectorData.email || t('common.notAssigned'),
+              name: `${inspectorData.first_name} ${inspectorData.last_name}` || inspectorData.email || t('common.notAssigned'),
               email: inspectorData.email || ''
             } 
           }));

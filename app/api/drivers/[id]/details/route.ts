@@ -16,7 +16,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const driverId = params.id
+    const driverId = (await params).id
     if (!driverId) {
       return NextResponse.json({ message: 'Driver ID is required' }, { status: 400 })
     }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin, Settings, MoreVertical, CheckCircle, Clock, Truck } from "lucide-react"
+import { Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin, Settings, MoreVertical, CheckCircle, Clock, Truck, ExternalLink } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -47,8 +47,47 @@ export function DriverDetailsContent({
   const [currentAvailabilityStatus, setCurrentAvailabilityStatus] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false)
 
   const id = driverId
+
+  // Action handlers
+  const handleCall = () => {
+    if (driver?.phone) {
+      window.open(`tel:${driver.phone}`, '_self')
+    } else {
+      // Show toast or alert that phone number is not available
+      alert(t("drivers.messages.noPhoneNumber"))
+    }
+  }
+
+  const handleEmail = () => {
+    if (driver?.email) {
+      window.open(`mailto:${driver.email}`, '_self')
+    } else {
+      alert(t("drivers.messages.noEmail"))
+    }
+  }
+
+  const handleLINE = () => {
+    if (driver?.line_id) {
+      // Open LINE app or web version
+      window.open(`https://line.me/ti/p/${driver.line_id}`, '_blank')
+    } else {
+      alert(t("drivers.messages.noLineId"))
+    }
+  }
+
+  const handleWhatsApp = () => {
+    if (driver?.phone) {
+      // WhatsApp web link format: https://wa.me/PHONE_NUMBER
+      const phoneNumber = driver.phone.replace(/\D/g, '') // Remove non-digits
+      window.open(`https://wa.me/${phoneNumber}`, '_blank')
+    } else {
+      alert(t("drivers.messages.noPhoneNumber"))
+    }
+  }
 
   const processAndSetAvailability = useCallback((currentDriver: Driver | null, records: DriverAvailability[]) => {
     const today = formatDate(new Date(), "yyyy-MM-dd")
@@ -205,7 +244,13 @@ export function DriverDetailsContent({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCall}
+                disabled={!driver?.phone}
+                title={driver?.phone ? `Call ${driver.phone}` : 'No phone number available'}
+              >
                 <Phone className="h-4 w-4 mr-2" />
                 {t("common.call")}
               </Button>
@@ -222,13 +267,17 @@ export function DriverDetailsContent({
                       {t("drivers.actions.editDriver")}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEmail} disabled={!driver?.email}>
                     <Mail className="h-4 w-4 mr-2" />
                     {t("common.email")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLINE} disabled={!driver?.line_id}>
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    {t("common.actions.chat")}
+                    LINE
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleWhatsApp} disabled={!driver?.phone}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    WhatsApp
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -308,6 +357,18 @@ export function DriverDetailsContent({
                     </div>
                   </div>
                 )}
+
+                {driver.line_id && (
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium">LINE ID</p>
+                        <p className="text-sm text-muted-foreground">{driver.line_id}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -326,7 +387,7 @@ export function DriverDetailsContent({
                     <div className="text-xs text-muted-foreground">Total Bookings</div>
                   </div>
                   <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">{inspectionDetails?.length || 0}</div>
+                    <div className="text-2xl font-bold text-primary">{inspections?.length || 0}</div>
                     <div className="text-xs text-muted-foreground">Inspections</div>
                   </div>
                 </div>

@@ -53,7 +53,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
     .select(`
       *,
       vehicles(name, plate_number, brand, model, year),
-      drivers(id, first_name, last_name, email, user_id)
+      drivers!inspections_driver_id_fkey(id, first_name, last_name, email, user_id)
     `)
     .order('created_at', { ascending: false })
     .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1)
@@ -64,11 +64,11 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
     .select(`
       *,
       vehicles(name, plate_number, brand, model, year),
-      drivers(id, first_name, last_name, email, user_id)
+      drivers!inspections_driver_id_fkey(id, first_name, last_name, email, user_id)
     `)
     .order('created_at', { ascending: false })
 
-  // Get inspector data separately since there's no foreign key constraint
+  // Get inspector data from drivers table since inspector_id now links to drivers
   let inspectorData: any = {}
   
   // Get inspector IDs from both paginated and full datasets
@@ -87,14 +87,14 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   }
   
   if (allInspectorIds.size > 0) {
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('id, full_name, email')
+    const { data: driversData } = await supabase
+      .from('drivers')
+      .select('id, first_name, last_name, email')
       .in('id', Array.from(allInspectorIds))
     
-    if (profilesData) {
-      inspectorData = profilesData.reduce((acc, profile) => {
-        acc[profile.id] = profile
+    if (driversData) {
+      inspectorData = driversData.reduce((acc, driver) => {
+        acc[driver.id] = driver
         return acc
       }, {} as any)
     }
@@ -115,7 +115,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   
   if (inspectionsData && Array.isArray(inspectionsData)) {
     inspections = inspectionsData.map(item => {
-      // Get inspector data from profiles table (not drivers)
+      // Get inspector data from drivers table (now inspector_id links to drivers)
       const inspector = item.inspector_id ? inspectorData[item.inspector_id] : null
       
       return {
@@ -135,7 +135,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
         vehicle_brand: item.vehicles?.brand || null,
         vehicle_model: item.vehicles?.model || null,
         vehicle_year: item.vehicles?.year || null,
-        inspector_name: inspector?.full_name || null,
+        inspector_name: inspector ? `${inspector.first_name} ${inspector.last_name}` : null,
         inspector_email: inspector?.email || null,
         driver_name: item.drivers ? `${item.drivers.first_name} ${item.drivers.last_name}` : null,
         driver_email: item.drivers?.email || null,
@@ -149,7 +149,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
   let allInspectionsTransformed: OptimizedInspection[] = []
   if (allInspectionsWithJoins && Array.isArray(allInspectionsWithJoins)) {
     allInspectionsTransformed = allInspectionsWithJoins.map(item => {
-      // Get inspector data from profiles table (not drivers)
+      // Get inspector data from drivers table (now inspector_id links to drivers)
       const inspector = item.inspector_id ? inspectorData[item.inspector_id] : null
       
       return {
@@ -169,7 +169,7 @@ export default async function InspectionsPage({ searchParams }: { searchParams: 
         vehicle_brand: item.vehicles?.brand || null,
         vehicle_model: item.vehicles?.model || null,
         vehicle_year: item.vehicles?.year || null,
-        inspector_name: inspector?.full_name || null,
+        inspector_name: inspector ? `${inspector.first_name} ${inspector.last_name}` : null,
         inspector_email: inspector?.email || null,
         driver_name: item.drivers ? `${item.drivers.first_name} ${item.drivers.last_name}` : null,
         driver_email: item.drivers?.email || null,

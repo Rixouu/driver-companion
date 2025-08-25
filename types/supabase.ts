@@ -214,6 +214,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "bookings_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -344,6 +358,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "dispatch_assignments_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -403,6 +431,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "dispatch_entries_vehicle_id_fkey"
@@ -492,6 +534,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
         ]
       }
@@ -1109,6 +1165,41 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -1510,6 +1601,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          service_type_ids: string[] | null
           service_types: string[]
           sort_order: number
           updated_at: string
@@ -1520,6 +1612,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          service_type_ids?: string[] | null
           service_types: string[]
           sort_order?: number
           updated_at?: string
@@ -1530,6 +1623,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          service_type_ids?: string[] | null
           service_types?: string[]
           sort_order?: number
           updated_at?: string
@@ -2645,6 +2739,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "tracking_devices_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -2694,6 +2802,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
@@ -2799,6 +2921,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "vehicle_locations_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -2891,20 +3027,41 @@ export type Database = {
     Views: {
       inspection_details: {
         Row: {
+          booking_id: string | null
+          brand: string | null
           created_at: string | null
           date: string | null
+          driver_email: string | null
+          driver_id: string | null
+          driver_name: string | null
+          driver_phone: string | null
+          due_date: string | null
           id: string | null
           inspector_email: string | null
           inspector_id: string | null
           inspector_name: string | null
+          inspector_phone: string | null
+          items: Json | null
           model: string | null
+          notes: string | null
           plate_number: string | null
+          schedule_type: string | null
+          started_at: string | null
           status: string | null
+          type: string | null
+          updated_at: string | null
           vehicle_id: string | null
           vehicle_name: string | null
           year: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inspections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]

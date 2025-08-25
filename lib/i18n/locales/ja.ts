@@ -213,6 +213,9 @@ export const ja: TranslationValue = {
       unassignMultipleVehicles: "{count}台の車両の割り当てを解除",
       manageVehiclesFor: "{name}の車両を管理"
     },
+    editDriver: {
+      description: "ドライバーの個人情報と職業上の詳細を更新します。すべての変更は即座に保存されます。",
+    },
     fields: {
       firstName: "名",
       lastName: "姓",
@@ -407,7 +410,12 @@ export const ja: TranslationValue = {
       unassignSuccessDescription: "このドライバーから車両の割り当てが解除されました。",
       multipleUnassignSuccessDescription: "{count}台の車両がこのドライバーから割り当て解除されました。",
       unassignError: "車両の割り当て解除に失敗しました",
-      unassignErrorDescription: "ドライバーから車両の割り当てを解除できませんでした。再試行してください。"
+      unassignErrorDescription: "ドライバーから車両の割り当てを解除できませんでした。再試行してください。",
+      noPhoneNumber: "このドライバーの電話番号は利用できません",
+      noEmail: "このドライバーのメールアドレスは利用できません",
+      noLineId: "このドライバーのLINE IDは利用できません",
+      updateSuccess: "ドライバーが正常に更新されました",
+      updateSuccessDescription: "ドライバー情報が正常に更新されました。"
     }
   },
   vehicles: {

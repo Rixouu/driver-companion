@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Clock, MapPin, User, Car, CalendarOff, XCircle, Eye, CalendarX, Info } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Car, CalendarOff, XCircle, Eye, CalendarX, Info, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { format } from 'date-fns'
 import { getDriverBookings } from '@/app/actions/bookings'
 import { Booking } from '@/types/bookings'
@@ -27,6 +28,10 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortBy, setSortBy] = useState<'date' | 'status' | 'customer'>('date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [itemsPerPage] = useState(1) // Show 1 booking per page
 
 
   const { t } = useI18n()
@@ -49,7 +54,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
         } else {
             const upcoming = (allBookings || []).filter(
             (b: Booking) => b.status !== 'completed' && b.status !== 'cancelled'
-          ).sort((a: Booking, b: Booking) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          );
           
           setBookings(upcoming)
         }
@@ -78,6 +83,40 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   }, [driverId, limit])
 
 
+
+  // Sorting and pagination logic
+  const sortedBookings = [...bookings].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case 'date':
+        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+        break;
+      case 'status':
+        comparison = a.status.localeCompare(b.status);
+        break;
+      case 'customer':
+        comparison = (a.customer_name || '').localeCompare(b.customer_name || '');
+        break;
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  const totalPages = Math.ceil(sortedBookings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentBookings = sortedBookings.slice(startIndex, endIndex);
+
+  const handleSort = (field: 'date' | 'status' | 'customer') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
 
   const renderBookingStatus = (status: string) => {
     const statusMap: Record<string, { label: string, variant: "default" | "outline" | "secondary" | "destructive" | "success" }> = {
@@ -153,12 +192,73 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
 
   return (
     <div className="space-y-4">
-      {bookings.map(booking => (
-        <BookingCard 
-          key={booking.id} 
-          booking={booking} 
-        />
-      ))}
+      {/* Sorting Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{t('common.sortBy')}:</span>
+          <div className="flex gap-1">
+            {(['date', 'status', 'customer'] as const).map((field) => (
+              <Button
+                key={field}
+                size="sm"
+                variant={sortBy === field ? "default" : "outline"}
+                onClick={() => handleSort(field)}
+                className="flex items-center gap-1"
+              >
+                {t(`bookings.fields.${field}`)}
+                {sortBy === field && (
+                  sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                )}
+              </Button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="text-sm text-muted-foreground">
+          {t('common.showingResults', { 
+            start: startIndex + 1, 
+            end: Math.min(endIndex, sortedBookings.length), 
+            total: sortedBookings.length 
+          })}
+        </div>
+      </div>
+
+      {/* Bookings List */}
+      <div className="space-y-4">
+        {currentBookings.map(booking => (
+          <BookingCard 
+            key={booking.id} 
+            booking={booking} 
+          />
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            {t('common.previous')}
+          </Button>
+          
+          <span className="text-sm text-muted-foreground">
+            {t('common.pagination.pageOf', { page: currentPage, total: totalPages })}
+          </span>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            {t('common.next')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

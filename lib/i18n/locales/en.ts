@@ -136,6 +136,7 @@ export const en: TranslationValue = {
     duplicate: "Duplicate",
     time: "Time",
     showingResults: "Showing {start}-{end} of {total} results",
+    sortBy: "Sort by",
     nameEn: "Name (English)",
     nameJa: "Name (Japanese)", 
     descriptionEn: "Description (English)",
@@ -221,6 +222,9 @@ export const en: TranslationValue = {
       unassignVehicle: "Unassign Vehicle",
       unassignMultipleVehicles: "Unassign {count} Vehicles",
       manageVehiclesFor: "Manage Vehicles for {name}",
+    },
+    editDriver: {
+      description: "Update the driver's personal and professional details. All changes will be saved immediately.",
     },
     fields: {
       firstName: "First Name",
@@ -414,7 +418,12 @@ export const en: TranslationValue = {
       unassignSuccessDescription: "The vehicle has been unassigned from this driver.",
       multipleUnassignSuccessDescription: "{count} vehicles have been unassigned from this driver.",
       unassignError: "Failed to unassign vehicle",
-      unassignErrorDescription: "Could not unassign vehicle from driver. Please try again."
+      unassignErrorDescription: "Could not unassign vehicle from driver. Please try again.",
+      noPhoneNumber: "No phone number available for this driver",
+      noEmail: "No email available for this driver",
+      noLineId: "No LINE ID available for this driver",
+      updateSuccess: "Driver updated successfully",
+      updateSuccessDescription: "The driver information has been updated successfully."
     }
   },
   vehicles: {
@@ -1811,9 +1820,14 @@ export const en: TranslationValue = {
       immediateTaskDescription: "Create this task immediately, in addition to any recurring schedule."
     }
   },
-  bookings: {
-    title: "Bookings",
-    description: "View and manage your vehicle bookings",
+      bookings: {
+      title: "Bookings",
+      description: "View and manage your vehicle bookings",
+      fields: {
+        date: "Date",
+        status: "Status",
+        customer: "Customer"
+      },
     backToBooking: "Back to Booking",
     search: {
       text: "Search bookings...",

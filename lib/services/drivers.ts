@@ -393,7 +393,7 @@ export async function getDriverInspections(driverId: string) {
             image_url
           )
         `)
-        .eq('driver_id', driverId)
+        .eq('inspector_id', driverId)
         .order('created_at', { ascending: false })
 
       if (!error) {
@@ -401,8 +401,8 @@ export async function getDriverInspections(driverId: string) {
       }
       
       // If there's a "column does not exist" error, we'll return an empty array
-      if (error.code === '42703' && error.message.includes('driver_id does not exist')) {
-        console.log("driver_id column doesn't exist in inspections table yet")
+      if (error.code === '42703' && error.message.includes('inspector_id does not exist')) {
+        console.log("inspector_id column doesn't exist in inspections table yet")
         return []
       }
       
@@ -448,15 +448,15 @@ export async function assignVehicleToDriver(driverId: string, vehicleId: string)
 
     if (assignmentError) throw assignmentError;
     
-    // Also update any inspections for this vehicle with the driver_id
+    // Also update any inspections for this vehicle with the inspector_id
     const { error: inspectionError } = await supabase
       .from('inspections')
       .update({ 
-        driver_id: driverId,
+        inspector_id: driverId,
         updated_at: new Date().toISOString()
       })
       .eq('vehicle_id', vehicleId)
-      .is('driver_id', null);
+      .is('inspector_id', null);
 
     if (inspectionError) {
         // Log the error but don't necessarily throw, assignment was successful

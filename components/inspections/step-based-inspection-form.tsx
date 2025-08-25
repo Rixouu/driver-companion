@@ -558,6 +558,29 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       setIsSubmitting(true)
       try {
         const supabaseClient = createClient()
+        // Auto-find driver ID based on user email
+        const { data: driverData, error: driverError } = await supabaseClient
+          .from('drivers')
+          .select('id')
+          .eq('email', user.email)
+          .single()
+
+        if (driverError || !driverData) {
+          toast({
+            title: "Driver Not Found",
+            description: "Your email is not associated with a driver account. Please contact an administrator.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Show confirmation toast with driver info
+        toast({
+          title: "Driver Confirmed",
+          description: `Inspection will be performed by: ${user.email}`,
+          variant: "default",
+        });
+
         const { data: newInspection, error } = await supabaseClient
           .from("inspections")
           .insert({
@@ -565,7 +588,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
             type: selectedType,
             status: "in_progress",
             created_by: user.id,
-            inspector_id: user.id,
+            inspector_id: driverData.id, // Use auto-found driver ID
             date: new Date().toISOString(),
           })
           .select("id")
@@ -1346,6 +1369,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     <div className="space-y-8">
       <h2 className="text-xl font-semibold">{t("inspections.steps.selectType")}</h2>
 
+
+
       <FormProvider {...methods}>
         <InspectionTypeSelector
           control={methods.control}
@@ -1366,7 +1391,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.back")}
         </Button>
         {availableTemplateTypes.length > 0 && (
-          <Button onClick={handleStartInspection} disabled={isSubmitting}>
+          <Button 
+            onClick={handleStartInspection} 
+            disabled={isSubmitting}
+          >
             {isSubmitting ? t("common.creating") : t("inspections.actions.startInspection")}{" "}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

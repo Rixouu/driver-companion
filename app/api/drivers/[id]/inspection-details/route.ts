@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
 
 async function createSupabaseServer() {
-  const cookieStore = await cookies()
-  return createServerClient<Database>(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      }
     }
   )
 }
@@ -29,9 +20,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('🔍 API: Starting inspection details fetch for driver')
     const supabase = await createSupabaseServer()
-    const resolvedParams = await params
-    const driverId = resolvedParams.id
+    const driverId = (await params).id
+
+    console.log('🔍 API: Driver ID:', driverId)
 
     if (!driverId) {
       return NextResponse.json(
@@ -41,6 +34,7 @@ export async function GET(
     }
 
     // Get driver email first
+    console.log('🔍 API: Fetching driver email...')
     const { data: driver, error: driverError } = await supabase
       .from('drivers')
       .select('email')
@@ -48,33 +42,41 @@ export async function GET(
       .single()
 
     if (driverError) {
-      console.error('Error fetching driver:', driverError)
+      console.error('❌ API: Error fetching driver:', driverError)
       return NextResponse.json(
         { error: 'Failed to fetch driver' },
         { status: 500 }
       )
     }
 
-    // Get inspection details where this driver is the inspector
-    const { data: inspectionDetails, error: inspectionError } = await supabase
-      .from('inspection_details')
-      .select('*')
-      .eq('inspector_email', driver.email)
-      .order('created_at', { ascending: false })
+    console.log('🔍 API: Driver email:', driver.email)
+
+                 // Use the new, properly organized inspection_details view
+             console.log('🔍 API: Fetching inspections from new view...')
+             
+             const { data: inspectionDetails, error: inspectionError } = await supabase
+               .from('inspection_details')
+               .select('*')
+               .eq('inspector_id', driverId)
+               .order('date', { ascending: false })
 
     if (inspectionError) {
-      console.error('Error fetching inspection details:', inspectionError)
+      console.error('❌ API: Error fetching inspections:', inspectionError)
       return NextResponse.json(
-        { error: 'Failed to fetch inspection details' },
+        { error: 'Failed to fetch inspections' },
         { status: 500 }
       )
     }
+
+
+
+    console.log('✅ API: Successfully fetched inspection details:', inspectionDetails?.length || 0)
 
     return NextResponse.json({
       inspectionDetails: inspectionDetails || []
     })
   } catch (error) {
-    console.error('Error in driver inspection details API:', error)
+    console.error('❌ API: Error in driver inspection details API:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -20,15 +20,24 @@ export async function GET() {
     // Extract unique models and trim whitespace
     const uniqueModels = [...new Set(
       vehicles
-        ?.map(v => v.model?.trim()) // Trim whitespace
+        ?.map(v => v.model?.trim().toLowerCase()) // Trim whitespace and convert to lowercase
         .filter(Boolean) // Filter out nulls and empty strings
         || []
     )]
 
-    // Sort alphabetically
-    uniqueModels.sort()
+    // Convert back to proper case (first letter capitalized) and sort alphabetically
+    const formattedModels = uniqueModels
+      .map(model => model.charAt(0).toUpperCase() + model.slice(1))
+      .sort()
 
-    return NextResponse.json(uniqueModels)
+    console.log('🔍 [VEHICLE_MODELS_API] Processing models:', {
+      rawCount: vehicles?.length || 0,
+      uniqueCount: uniqueModels.length,
+      formattedCount: formattedModels.length,
+      sample: formattedModels.slice(0, 5)
+    })
+
+    return NextResponse.json(formattedModels)
   } catch (error) {
     console.error('Error in vehicle models API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

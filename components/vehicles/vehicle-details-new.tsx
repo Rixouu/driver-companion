@@ -455,6 +455,9 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
       <div className="space-y-4">
         {categories && categories.length > 0 ? (
           <div className="space-y-3">
+            <div className="text-sm text-muted-foreground mb-2">
+              This vehicle is assigned to the following pricing categories:
+            </div>
             {categories.map((category) => (
               <div key={category.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-2">
@@ -476,7 +479,7 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">
-            No pricing categories assigned
+            This vehicle has no pricing categories assigned.
           </div>
         )}
         
@@ -487,7 +490,7 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
           onClick={() => setIsEditing(true)}
           className="w-full"
         >
-          Edit Pricing Categories
+          {categories && categories.length > 0 ? 'Edit Pricing Categories' : 'Assign Pricing Categories'}
         </Button>
       </div>
     );
@@ -496,27 +499,33 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        Select the pricing categories this vehicle belongs to. This will determine which pricing rules apply to this vehicle.
+        Check/uncheck the pricing categories you want to assign to this vehicle:
       </div>
       
-      <div className="space-y-3 max-h-40 overflow-y-auto">
-        {availableCategories.map((category) => (
-          <div key={category.id} className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id={`edit-category-${category.id}`}
-              checked={selectedCategoryIds.includes(category.id)}
-              onChange={(e) => handleCategoryToggle(category.id, e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor={`edit-category-${category.id}`} className="text-sm cursor-pointer">
-              {category.name}
-              {!category.is_active && (
-                <span className="ml-2 text-xs text-muted-foreground">(Inactive)</span>
-              )}
-            </label>
-          </div>
-        ))}
+      <div className="space-y-3 max-h-40 overflow-y-auto border rounded-lg p-3">
+        {availableCategories.map((category) => {
+          const isCurrentlyAssigned = categories?.some(cat => cat.id === category.id);
+          return (
+            <div key={category.id} className="flex items-center space-x-2 p-2 rounded hover:bg-muted/30">
+              <input
+                type="checkbox"
+                id={`edit-category-${category.id}`}
+                checked={selectedCategoryIds.includes(category.id)}
+                onChange={(e) => handleCategoryToggle(category.id, e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor={`edit-category-${category.id}`} className="text-sm cursor-pointer flex-1">
+                <span className="font-medium">{category.name}</span>
+                {isCurrentlyAssigned && (
+                  <span className="ml-2 text-xs text-green-600 dark:text-green-400">(Currently assigned)</span>
+                )}
+                {!category.is_active && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Inactive)</span>
+                )}
+              </label>
+            </div>
+          );
+        })}
       </div>
 
       {availableCategories.length === 0 && (
@@ -532,6 +541,7 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
           size="sm"
           onClick={() => setIsEditing(false)}
           className="flex-1"
+          disabled={isSaving}
         >
           Cancel
         </Button>

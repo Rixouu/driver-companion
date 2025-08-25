@@ -442,6 +442,8 @@ export const en: TranslationValue = {
       page: "Page {page}",
       of: "of {total}"
     },
+    showing: "Showing",
+    vehicles: "vehicles",
     fields: {
       name: "Vehicle Name",
       nameDescription: "A friendly name to identify this vehicle",

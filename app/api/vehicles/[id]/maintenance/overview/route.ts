@@ -26,13 +26,34 @@ async function getSupabaseClient() {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await getSupabaseClient()
     
     const resolvedParams = await params
+    const { searchParams } = new URL(request.url)
+    const latestOnly = searchParams.get('latestOnly') === 'true'
+
+    if (latestOnly) {
+      // Return only the latest service for quickstats
+      const { data: latestTask } = await supabase
+        .from("maintenance_tasks")
+        .select("id, title, due_date, created_at")
+        .eq("vehicle_id", resolvedParams.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+
+      return NextResponse.json({ 
+        latestService: latestTask?.[0] ? {
+          id: latestTask[0].id,
+          title: latestTask[0].title,
+          date: latestTask[0].due_date || latestTask[0].created_at
+        } : null
+      })
+    }
+
     const { data: tasks } = await supabase
       .from("maintenance_tasks")
       .select("*")

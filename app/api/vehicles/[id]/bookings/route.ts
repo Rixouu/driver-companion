@@ -40,6 +40,27 @@ export async function GET(
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const countOnly = searchParams.get('countOnly') === 'true'
+
+    if (countOnly) {
+      // Return only the count for quickstats
+      const { count, error } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('vehicle_id', vehicleId)
+
+      if (error) {
+        console.error('Error counting vehicle bookings:', error)
+        return NextResponse.json(
+          { error: 'Failed to count bookings' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ count: count || 0 })
+    }
+
     // Fetch bookings for the vehicle
     const { data: bookings, error } = await supabase
       .from('bookings')

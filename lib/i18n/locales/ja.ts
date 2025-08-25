@@ -435,6 +435,8 @@ export const ja: TranslationValue = {
       page: "ページ {page}",
       of: "/ {total}"
     },
+    showing: "表示中",
+    vehicles: "台の車両",
     fields: {
       name: "車両名",
       nameDescription: "この車両を識別するための分かりやすい名前",

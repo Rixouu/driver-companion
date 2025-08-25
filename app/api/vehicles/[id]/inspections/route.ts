@@ -40,6 +40,27 @@ export async function GET(
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const countOnly = searchParams.get('countOnly') === 'true'
+
+    if (countOnly) {
+      // Return only the count for quickstats
+      const { count, error } = await supabase
+        .from('inspections')
+        .select('*', { count: 'exact', head: true })
+        .eq('vehicle_id', vehicleId)
+
+      if (error) {
+        console.error('Error counting vehicle inspections:', error)
+        return NextResponse.json(
+          { error: 'Failed to count inspections' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ count: count || 0 })
+    }
+
     // Fetch inspections for the vehicle
     const { data: inspections, error } = await supabase
       .from('inspections')

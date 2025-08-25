@@ -230,27 +230,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">Total Bookings</span>
-                </div>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CircleDot className="h-4 w-4" />
-                  <span className="text-sm">Inspections</span>
-                </div>
-                <span className="font-semibold">0</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm">Last Service</span>
-                </div>
-                <span className="text-sm text-muted-foreground">Never</span>
-              </div>
+              <VehicleQuickStats vehicleId={vehicle.id} />
             </CardContent>
           </Card>
 
@@ -355,6 +335,114 @@ function VehiclePricingCategoriesSidebar({ vehicleId }: VehiclePricingCategories
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+interface VehicleQuickStatsProps {
+  vehicleId: string;
+}
+
+function VehicleQuickStats({ vehicleId }: VehicleQuickStatsProps) {
+  const { t } = useI18n();
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalInspections: 0,
+    lastService: null as string | null
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch bookings count
+        const bookingsResponse = await fetch(`/api/vehicles/${vehicleId}/bookings?countOnly=true`);
+        const bookingsData = await bookingsResponse.json();
+        
+        // Fetch inspections count
+        const inspectionsResponse = await fetch(`/api/vehicles/${vehicleId}/inspections?countOnly=true`);
+        const inspectionsData = await inspectionsResponse.json();
+        
+        // Fetch last maintenance/service
+        const maintenanceResponse = await fetch(`/api/vehicles/${vehicleId}/maintenance/overview?latestOnly=true`);
+        const maintenanceData = await maintenanceResponse.json();
+        
+        setStats({
+          totalBookings: bookingsData.count || 0,
+          totalInspections: inspectionsData.count || 0,
+          lastService: maintenanceData.latestService?.date || null
+        });
+      } catch (error) {
+        console.error('Error fetching vehicle stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (vehicleId) {
+      fetchStats();
+    }
+  }, [vehicleId]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="text-sm">Total Bookings</span>
+          </div>
+          <div className="h-4 w-8 bg-muted rounded animate-pulse"></div>
+        </div>
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CircleDot className="h-4 w-4" />
+            <span className="text-sm">Inspections</span>
+          </div>
+          <div className="h-4 w-8 bg-muted rounded animate-pulse"></div>
+        </div>
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span className="text-sm">Last Service</span>
+          </div>
+          <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          <span className="text-sm">Total Bookings</span>
+        </div>
+        <span className="font-semibold">{stats.totalBookings}</span>
+      </div>
+      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-2">
+          <CircleDot className="h-4 w-4" />
+          <span className="text-sm">Inspections</span>
+        </div>
+        <span className="font-semibold">{stats.totalInspections}</span>
+      </div>
+      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          <span className="text-sm">Last Service</span>
+        </div>
+        <span className="text-sm text-muted-foreground">
+          {stats.lastService ? formatDate(stats.lastService) : 'Never'}
+        </span>
+      </div>
     </div>
   );
 }

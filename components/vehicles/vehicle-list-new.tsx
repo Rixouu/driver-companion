@@ -254,7 +254,10 @@ export function VehicleList({
           categoryOptions={categoryOptions}
         />
         
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {t("vehicles.showing")} {filteredVehicles.length} {t("vehicles.vehicles")}
+          </div>
           <ViewToggle view={view} onViewChange={setView} />
         </div>
       </div>

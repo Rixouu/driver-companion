@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Clock, Car, Wrench, FileText, ExternalLink, Calendar } from "lucide-react"
+import { Clock, Car, Wrench, FileText, ExternalLink, Calendar, Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { createClient } from "@/lib/supabase"
 import { Database } from "@/types/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 
 interface Activity {
   id: string
@@ -28,8 +30,38 @@ interface DriverActivityFeedProps {
 export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps) {
   const { t } = useI18n()
   const [activities, setActivities] = useState<Activity[]>([])
+  const [allActivities, setAllActivities] = useState<Activity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [filterType, setFilterType] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   const supabase = createClient();
+
+  const applyFiltersAndPagination = (activities: Activity[], typeFilter: string, page: number) => {
+    let filtered = activities;
+    
+    // Apply type filter
+    if (typeFilter !== "all") {
+      filtered = activities.filter(activity => activity.type === typeFilter);
+    }
+    
+    // Apply pagination
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginated = filtered.slice(startIndex, endIndex);
+    
+    setActivities(paginated);
+    setCurrentPage(page);
+  };
+
+  const handleFilterChange = (value: string) => {
+    setFilterType(value);
+    applyFiltersAndPagination(allActivities, value, 1);
+  };
+
+  const handlePageChange = (page: number) => {
+    applyFiltersAndPagination(allActivities, filterType, page);
+  };
 
   useEffect(() => {
     async function loadActivities() {
@@ -157,8 +189,16 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           new Date(b.date).getTime() - new Date(a.date).getTime()
         )
 
-        // Apply limit if specified
-        setActivities(limit ? allActivities.slice(0, limit) : allActivities)
+        // Store all activities
+        setAllActivities(allActivities)
+        
+        // Apply limit if specified (for backward compatibility)
+        if (limit) {
+          setActivities(allActivities.slice(0, limit))
+        } else {
+          // Apply filtering and pagination
+          applyFiltersAndPagination(allActivities, filterType, 1)
+        }
       } catch (error) {
         console.error("Error loading activities:", error)
       } finally {
@@ -184,6 +224,42 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         <CardDescription>{t("drivers.recentActivity.description")}</CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Filters and Pagination */}
+        {!limit && allActivities.length > 0 && (
+          <div className="mb-6 space-y-4">
+            {/* Filter Controls */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filter by:</span>
+              </div>
+              <Select value={filterType} onValueChange={handleFilterChange}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All Activities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activities</SelectItem>
+                  <SelectItem value="booking">Bookings</SelectItem>
+                  <SelectItem value="inspection">Inspections</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Activity Count */}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {allActivities.filter(a => filterType === "all" || a.type === filterType).length} activities
+              </Badge>
+              {filterType !== "all" && (
+                <Badge variant="secondary">
+                  {filterType.charAt(0).toUpperCase() + filterType.slice(1)} only
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
         {activities.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-muted/30 rounded-lg min-h-[150px]">
              <Clock className="h-10 w-10 text-muted-foreground mb-3" />
@@ -234,6 +310,41 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!limit && allActivities.length > 0 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, allActivities.filter(a => filterType === "all" || a.type === filterType).length)} of {allActivities.filter(a => filterType === "all" || a.type === filterType).length} activities
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {Math.ceil(allActivities.filter(a => filterType === "all" || a.type === filterType).length / itemsPerPage)}
+              </span>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= Math.ceil(allActivities.filter(a => filterType === "all" || a.type === filterType).length / itemsPerPage)}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

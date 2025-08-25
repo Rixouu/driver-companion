@@ -14,7 +14,7 @@ import { Booking } from '@/types/bookings'
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'; // Ensure Database type is imported
-import { EmptyState } from "@/components/empty-state"
+
 import { getStatusBadgeClasses, cn } from '@/lib/utils/styles'
 
 
@@ -141,12 +141,12 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
 
   if (bookings.length === 0) {
     return (
-      <div className="text-center py-8">
-        <EmptyState
-          icon={<CalendarX className="h-10 w-10 text-muted-foreground" />}
-          title={t('drivers.upcomingBookings.empty.title')}
-          description={t('drivers.upcomingBookings.empty.description')}
-        />
+      <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-muted/30 rounded-lg min-h-[150px]">
+        <CalendarX className="h-10 w-10 text-muted-foreground mb-3" />
+        <h3 className="text-lg font-medium mb-1">{t('drivers.upcomingBookings.empty.title')}</h3>
+        <p className="text-muted-foreground text-sm mb-4 max-w-md">
+          {t('drivers.upcomingBookings.empty.description')}
+        </p>
       </div>
     )
   }

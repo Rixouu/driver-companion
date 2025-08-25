@@ -35,7 +35,9 @@ export function useVehiclePricingCategories(vehicleId: string): UseVehiclePricin
       }
       
       const data = await response.json();
-      setCategories(data.categories || []);
+      // Filter to show only categories that are actually linked to this vehicle
+      const linkedCategories = data.categories?.filter((cat: any) => cat.isSelected) || [];
+      setCategories(linkedCategories);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pricing categories';
       setError(errorMessage);

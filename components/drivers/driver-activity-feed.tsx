@@ -211,8 +211,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     onClick={() => handleFilterChange("all")}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                       filterType === "all"
-                        ? "bg-white text-gray-900 border-white"
-                        : "text-gray-300 border-gray-600 hover:bg-gray-800"
+                        ? "bg-white text-gray-900 border-gray-300 shadow-sm"
+                        : "text-gray-600 border-gray-300 bg-gray-50 hover:bg-gray-100"
                     }`}
                   >
                     All Activities
@@ -221,8 +221,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     onClick={() => handleFilterChange("booking")}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                       filterType === "booking"
-                        ? "bg-blue-800 text-white border-blue-600"
-                        : "text-blue-300 border-blue-600 hover:bg-blue-900/20"
+                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                        : "text-blue-700 border-blue-300 bg-blue-50 hover:bg-blue-100"
                     }`}
                   >
                     Bookings
@@ -231,8 +231,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     onClick={() => handleFilterChange("inspection")}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                       filterType === "inspection"
-                        ? "bg-green-800 text-white border-green-600"
-                        : "text-green-300 border-green-600 hover:bg-green-900/20"
+                        ? "bg-green-600 text-white border-green-600 shadow-sm"
+                        : "text-green-700 border-green-300 bg-green-50 hover:bg-green-100"
                     }`}
                   >
                     Inspections
@@ -241,8 +241,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     onClick={() => handleFilterChange("maintenance")}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                       filterType === "maintenance"
-                        ? "bg-orange-800 text-white border-orange-600"
-                        : "text-orange-300 border-orange-600 hover:bg-orange-900/20"
+                        ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                        : "text-orange-700 border-orange-300 bg-orange-50 hover:bg-orange-100"
                     }`}
                   >
                     Maintenance
@@ -357,12 +357,12 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                         {/* Activity type label - same style as filter badges */}
                         <span className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors hover:bg-gray-800 ${
                           activity.type === "booking" 
-                            ? "text-blue-300 border-blue-600 hover:bg-blue-900/20" 
+                            ? "text-blue-700 border-blue-300 bg-blue-50 hover:bg-blue-100" 
                             : activity.type === "inspection" 
-                            ? "text-green-300 border-green-600 hover:bg-green-900/20"
+                            ? "text-green-700 border-green-300 bg-green-50 hover:bg-green-100"
                             : activity.type === "maintenance" 
-                            ? "text-orange-300 border-orange-600 hover:bg-orange-900/20"
-                            : "text-purple-300 border-purple-600 hover:bg-purple-900/20"
+                            ? "text-orange-700 border-orange-300 bg-orange-50 hover:bg-orange-100"
+                            : "text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100"
                         }`}>
                           {activity.type === "booking" && "Booking"}
                           {activity.type === "inspection" && "Inspection"}

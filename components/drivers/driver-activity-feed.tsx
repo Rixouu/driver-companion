@@ -2,16 +2,17 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Clock, Car, Wrench, FileText, ExternalLink, Calendar, Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Clock, Car, Wrench, FileText, ExternalLink, Calendar, Filter, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { createClient } from "@/lib/supabase"
-import { Database } from "@/types/supabase"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { CalendarDateRangePicker } from "@/components/date-range-picker"
+import { DateRange } from "react-day-picker"
 
 interface Activity {
   id: string
@@ -35,7 +36,12 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
   const [filterType, setFilterType] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
-  const supabase = createClient();
+  const [totalActivities, setTotalActivities] = useState(0)
+  
+  // New filter states
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+
 
   const applyFiltersAndPagination = (activities: Activity[], typeFilter: string, page: number) => {
     let filtered = activities;
@@ -45,6 +51,25 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
       filtered = activities.filter(activity => activity.type === typeFilter);
     }
     
+    // Apply date range filter
+    if (dateRange?.from || dateRange?.to) {
+      filtered = filtered.filter(activity => {
+        const activityDate = new Date(activity.date);
+        if (dateRange?.from && activityDate < dateRange.from) return false;
+        if (dateRange?.to && activityDate > dateRange.to) return false;
+        return true;
+      });
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return sortOrder === 'newest' 
+        ? dateB.getTime() - dateA.getTime()
+        : dateA.getTime() - dateB.getTime();
+    });
+    
     // Apply pagination
     const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -52,6 +77,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
     
     setActivities(paginated);
     setCurrentPage(page);
+    setTotalActivities(filtered.length);
   };
 
   const handleFilterChange = (value: string) => {
@@ -69,115 +95,23 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
       console.log('🔍 DriverActivityFeed: Starting to load activities for driverId:', driverId)
       
       try {
-        // Get driver email first
-        console.log('🔍 DriverActivityFeed: Fetching driver email...')
-        const { data: driverData, error: driverError } = await supabase
-          .from('drivers')
-          .select('email')
-          .eq('id', driverId)
-          .single()
+        // Use the consolidated API endpoint to avoid permission issues
+        console.log('🔍 DriverActivityFeed: Fetching consolidated activities...')
+        const response = await fetch(`/api/drivers/${driverId}/activities`)
+        if (!response.ok) throw new Error('Failed to fetch driver activities')
+        const data = await response.json()
+        
+        console.log('🔍 DriverActivityFeed: Consolidated data result:', data)
 
-        console.log('🔍 DriverActivityFeed: Driver data result:', { driverData, driverError })
-        if (driverError) throw driverError
-
-        // Get inspections from inspection_details table (where this driver is the inspector)
-        console.log('🔍 DriverActivityFeed: Fetching inspection details for email:', driverData.email)
-        const { data: inspectionDetails, error: inspectionError } = await supabase
-          .from('inspection_details')
-          .select(`
-            id,
-            model,
-            year,
-            inspector_email,
-            inspector_name,
-            created_at
-          `)
-          .eq('inspector_email', driverData.email)
-          .order('created_at', { ascending: false })
-          .limit(limit || 50)
-
-        console.log('🔍 DriverActivityFeed: Inspection details result:', { 
-          count: inspectionDetails?.length, 
-          inspectionError,
-          sampleData: inspectionDetails?.slice(0, 2)
-        })
-        if (inspectionError) throw inspectionError
-
-        // Get bookings
-        console.log('🔍 DriverActivityFeed: Fetching bookings for driverId:', driverId)
-        const { data: bookings, error: bookingsError } = await supabase
-          .from('bookings')
-          .select(`
-            id,
-            date,
-            time,
-            status,
-            customer_name,
-            pickup_location,
-            dropoff_location,
-            vehicle:vehicles (
-              id,
-              name
-            )
-          `)
-          .eq('driver_id', driverId)
-          .order('date', { ascending: false })
-          .limit(limit || 50)
-
-        console.log('🔍 DriverActivityFeed: Bookings result:', { 
-          count: bookings?.length, 
-          bookingsError,
-          sampleData: bookings?.slice(0, 2)
-        })
-        if (bookingsError) throw bookingsError
-
-        // Get vehicle IDs assigned to this driver from the vehicle_assignments table
-        const { data: vehicleAssignments, error: assignmentError } = await supabase
-          .from('vehicle_assignments')
-          .select('vehicle_id')
-          .eq('driver_id', driverId)
-          .eq('status', 'active')
-
-        if (assignmentError) throw assignmentError
-
-        let maintenanceTasks: any[] = []
-        if (vehicleAssignments && vehicleAssignments.length > 0) {
-          const vehicleIds = vehicleAssignments.map(v => v.vehicle_id)
-          
-          // Get details of assigned vehicles
-          const { data: vehicles, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id, name')
-            .in('id', vehicleIds)
-            
-          if (vehicleError) throw vehicleError
-          
-          // Get maintenance tasks for assigned vehicles
-          const { data: maintenance, error: maintenanceError } = await supabase
-            .from('maintenance_tasks')
-            .select(`
-              id,
-              title,
-              due_date,
-              status,
-              vehicle:vehicles (
-                id,
-                name
-              )
-            `)
-            .in('vehicle_id', vehicleIds)
-            .order('due_date', { ascending: false })
-            .limit(limit || 50)
-
-          if (maintenanceError) throw maintenanceError
-          maintenanceTasks = maintenance || []
-        }
+        const inspectionDetails = data.inspections || []
+        const bookings = data.bookings || []
+        const maintenanceTasks = data.maintenance || []
 
         // Combine activities
         console.log('🔍 DriverActivityFeed: Combining activities...')
         const allActivities = [
           // Map bookings to activities
-          ...(bookings || []).map(booking => ({
+          ...(bookings || []).map((booking: any) => ({
             id: `booking-${booking.id}`,
             type: "booking" as const,
             date: booking.date,
@@ -186,18 +120,18 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
             link: `/bookings/${booking.id}`
           })),
           
-          // Map inspection details to activities
-          ...(inspectionDetails || []).map(inspection => ({
+          // Map inspections to activities
+          ...(inspectionDetails || []).map((inspection: any) => ({
             id: `inspection-${inspection.id}`,
             type: "inspection" as const,
-            date: inspection.created_at || new Date().toISOString(),
-            title: `Vehicle Inspection - ${inspection.model} ${inspection.year}`,
-            description: `Inspected ${inspection.model} (${inspection.year})`,
-            link: `/inspection-details/${inspection.id}`
+            date: inspection.date || new Date().toISOString(),
+            title: `Vehicle Inspection - ${inspection.model || 'Unknown'} ${inspection.year || ''}`,
+            description: `Inspected ${inspection.vehicle_name || 'Vehicle'} (${inspection.status})`,
+            link: `/inspections/${inspection.id}`
           })),
           
           // Map maintenance tasks to activities
-          ...maintenanceTasks.map(task => ({
+          ...maintenanceTasks.map((task: any) => ({
             id: `maintenance-${task.id}`,
             type: "maintenance" as const,
             date: task.due_date,
@@ -264,32 +198,109 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         {/* Filters and Pagination */}
         {!limit && allActivities.length > 0 && (
           <div className="mb-6 space-y-4">
-            {/* Filter Controls */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filter by:</span>
+            {/* Filter Controls - Compact Layout */}
+            <div className="flex flex-col gap-4">
+              {/* Filter by type - using clickable badges instead of dropdown */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filter by:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleFilterChange("all")}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                      filterType === "all"
+                        ? "bg-white text-gray-900 border-white"
+                        : "text-gray-300 border-gray-600 hover:bg-gray-800"
+                    }`}
+                  >
+                    All Activities
+                  </button>
+                  <button
+                    onClick={() => handleFilterChange("booking")}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                      filterType === "booking"
+                        ? "bg-blue-800 text-white border-blue-600"
+                        : "text-blue-300 border-blue-600 hover:bg-blue-900/20"
+                    }`}
+                  >
+                    Bookings
+                  </button>
+                  <button
+                    onClick={() => handleFilterChange("inspection")}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                      filterType === "inspection"
+                        ? "bg-green-800 text-white border-green-600"
+                        : "text-green-300 border-green-600 hover:bg-green-900/20"
+                    }`}
+                  >
+                    Inspections
+                  </button>
+                  <button
+                    onClick={() => handleFilterChange("maintenance")}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                      filterType === "maintenance"
+                        ? "bg-orange-800 text-white border-orange-600"
+                        : "text-orange-300 border-orange-600 hover:bg-orange-900/20"
+                    }`}
+                  >
+                    Maintenance
+                  </button>
+                </div>
               </div>
-              <Select value={filterType} onValueChange={handleFilterChange}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="All Activities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Activities</SelectItem>
-                  <SelectItem value="booking">Bookings</SelectItem>
-                  <SelectItem value="inspection">Inspections</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
+              
+              {/* Date and Sort controls - keeping original two-line layout */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Date:</span>
+                  <CalendarDateRangePicker
+                    date={dateRange}
+                    onSelect={(newDateRange) => {
+                      setDateRange(newDateRange);
+                      applyFiltersAndPagination(allActivities, filterType, 1);
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Sort:</span>
+                  <Select value={sortOrder} onValueChange={(value: 'newest' | 'oldest') => {
+                    setSortOrder(value);
+                    applyFiltersAndPagination(allActivities, filterType, 1);
+                  }}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
             
             {/* Activity Count */}
             <div className="flex items-center gap-2">
-              <Badge variant="outline">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                 {allActivities.filter(a => filterType === "all" || a.type === filterType).length} activities
               </Badge>
               {filterType !== "all" && (
-                <Badge variant="secondary">
+                <Badge 
+                  variant="secondary" 
+                  className={`${
+                    filterType === "booking" 
+                      ? "bg-blue-100 text-blue-800 border-blue-200" 
+                      : filterType === "inspection" 
+                      ? "bg-green-100 text-green-800 border-green-200"
+                      : filterType === "maintenance" 
+                      ? "bg-orange-100 text-orange-800 border-orange-200"
+                      : "bg-purple-100 text-purple-800 border-purple-200"
+                  }`}
+                >
                   {filterType.charAt(0).toUpperCase() + filterType.slice(1)} only
                 </Badge>
               )}
@@ -311,29 +322,55 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
               <Link
                 key={activity.id}
                 href={{pathname: activity.link}} passHref
-                className="block p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors" 
+                className="block p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/30 transition-all duration-200 hover:shadow-sm" 
               >
                 <div className="flex items-start gap-3 justify-between">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
-                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      {/* Color-coded activity type icon with background */}
+                      <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${
+                        activity.type === "booking" 
+                          ? "bg-blue-500/10 text-blue-600" 
+                          : activity.type === "inspection" 
+                          ? "bg-green-500/10 text-green-600"
+                          : activity.type === "maintenance" 
+                          ? "bg-orange-500/10 text-orange-600"
+                          : "bg-purple-500/10 text-purple-600"
+                      }`}>
                         {activity.type === "booking" && (
-                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                         )}
                         {activity.type === "inspection" && (
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                          <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                         )}
                         {activity.type === "maintenance" && (
-                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
                         )}
                         {activity.type === "vehicle_assignment" && (
-                          <Car className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                          <Car className="h-4 w-4 sm:h-5 sm:w-5" />
                         )}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{activity.title}</h4>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{activity.title}</h4>
+                        {/* Activity type label - same style as filter badges */}
+                        <span className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors hover:bg-gray-800 ${
+                          activity.type === "booking" 
+                            ? "text-blue-300 border-blue-600 hover:bg-blue-900/20" 
+                            : activity.type === "inspection" 
+                            ? "text-green-300 border-green-600 hover:bg-green-900/20"
+                            : activity.type === "maintenance" 
+                            ? "text-orange-300 border-orange-600 hover:bg-orange-900/20"
+                            : "text-purple-300 border-purple-600 hover:bg-purple-900/20"
+                        }`}>
+                          {activity.type === "booking" && "Booking"}
+                          {activity.type === "inspection" && "Inspection"}
+                          {activity.type === "maintenance" && "Maintenance"}
+                          {activity.type === "vehicle_assignment" && "Assignment"}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {activity.description}
                       </p>
                     </div>

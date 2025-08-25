@@ -277,15 +277,7 @@ export function VehicleFilter({
         )}
       </div>
 
-      {/* Results Summary */}
-      <div className="text-sm text-muted-foreground">
-        Showing {totalVehicles} vehicles
-        {hasActiveFilters && (
-          <span className="ml-2 text-foreground">
-            (filtered from total)
-          </span>
-        )}
-      </div>
+      {/* Results Summary - Removed duplicate showing text */}
     </div>
   )
 }

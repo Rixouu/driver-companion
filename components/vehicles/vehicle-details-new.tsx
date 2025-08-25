@@ -217,7 +217,7 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <VehiclePricingCategoriesSidebar vehicleId={vehicle.id} />
+              <EditableVehiclePricingCategories vehicleId={vehicle.id} />
             </CardContent>
           </Card>
 
@@ -335,6 +335,195 @@ function VehiclePricingCategoriesSidebar({ vehicleId }: VehiclePricingCategories
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+interface EditableVehiclePricingCategoriesProps {
+  vehicleId: string;
+}
+
+function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingCategoriesProps) {
+  const { t } = useI18n();
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Array<{id: string, name: string, description: string, is_active: boolean}>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { categories, isLoading: isLoadingCategories, error, updateCategories } = useVehiclePricingCategories(vehicleId);
+
+  // Fetch available pricing categories
+  useEffect(() => {
+    async function fetchAvailableCategories() {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/admin/pricing/categories');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableCategories(data);
+        }
+      } catch (error) {
+        console.error('Error fetching available categories:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAvailableCategories();
+  }, []);
+
+  // Update selected categories when categories change
+  useEffect(() => {
+    if (categories) {
+      setSelectedCategoryIds(categories.map(cat => cat.id));
+    }
+  }, [categories]);
+
+  const handleCategoryToggle = (categoryId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategoryIds(prev => [...prev, categoryId]);
+    } else {
+      setSelectedCategoryIds(prev => prev.filter(id => id !== categoryId));
+    }
+  };
+
+  const handleSaveCategories = async () => {
+    if (!vehicleId) return;
+    
+    setIsSaving(true);
+    try {
+      const success = await updateCategories(selectedCategoryIds);
+      if (success) {
+        setIsEditing(false);
+        toast({
+          title: "Pricing categories updated successfully",
+          description: "Vehicle pricing categories have been updated.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error updating pricing categories",
+        description: "Failed to update vehicle pricing categories.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading || isLoadingCategories) {
+    return (
+      <div className="space-y-3">
+        <div className="h-4 bg-muted rounded animate-pulse"></div>
+        <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-sm text-red-600">
+        Error loading pricing categories: {error}
+      </div>
+    );
+  }
+
+  if (!isEditing) {
+    return (
+      <div className="space-y-4">
+        {categories && categories.length > 0 ? (
+          <div className="space-y-3">
+            {categories.map((category) => (
+              <div key={category.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs"
+                  >
+                    {category.name}
+                  </Badge>
+                  {!category.is_active && (
+                    <span className="text-xs text-muted-foreground">(Inactive)</span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground font-mono">
+                  #{category.sort_order}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            No pricing categories assigned
+          </div>
+        )}
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsEditing(true)}
+          className="w-full"
+        >
+          Edit Pricing Categories
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground">
+        Select the pricing categories this vehicle belongs to. This will determine which pricing rules apply to this vehicle.
+      </div>
+      
+      <div className="space-y-3 max-h-40 overflow-y-auto">
+        {availableCategories.map((category) => (
+          <div key={category.id} className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id={`edit-category-${category.id}`}
+              checked={selectedCategoryIds.includes(category.id)}
+              onChange={(e) => handleCategoryToggle(category.id, e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <label htmlFor={`edit-category-${category.id}`} className="text-sm cursor-pointer">
+              {category.name}
+              {!category.is_active && (
+                <span className="ml-2 text-xs text-muted-foreground">(Inactive)</span>
+              )}
+            </label>
+          </div>
+        ))}
+      </div>
+
+      {availableCategories.length === 0 && (
+        <div className="text-sm text-muted-foreground">
+          No pricing categories available. Create some in the Pricing Management section.
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsEditing(false)}
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          onClick={handleSaveCategories}
+          disabled={isSaving}
+          className="flex-1"
+        >
+          {isSaving ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -66,18 +66,22 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
   useEffect(() => {
     async function loadActivities() {
       setIsLoading(true)
+      console.log('🔍 DriverActivityFeed: Starting to load activities for driverId:', driverId)
       
       try {
         // Get driver email first
+        console.log('🔍 DriverActivityFeed: Fetching driver email...')
         const { data: driverData, error: driverError } = await supabase
           .from('drivers')
           .select('email')
           .eq('id', driverId)
           .single()
 
+        console.log('🔍 DriverActivityFeed: Driver data result:', { driverData, driverError })
         if (driverError) throw driverError
 
         // Get inspections from inspection_details table (where this driver is the inspector)
+        console.log('🔍 DriverActivityFeed: Fetching inspection details for email:', driverData.email)
         const { data: inspectionDetails, error: inspectionError } = await supabase
           .from('inspection_details')
           .select(`
@@ -92,9 +96,15 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           .order('created_at', { ascending: false })
           .limit(limit || 50)
 
+        console.log('🔍 DriverActivityFeed: Inspection details result:', { 
+          count: inspectionDetails?.length, 
+          inspectionError,
+          sampleData: inspectionDetails?.slice(0, 2)
+        })
         if (inspectionError) throw inspectionError
 
         // Get bookings
+        console.log('🔍 DriverActivityFeed: Fetching bookings for driverId:', driverId)
         const { data: bookings, error: bookingsError } = await supabase
           .from('bookings')
           .select(`
@@ -114,6 +124,11 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           .order('date', { ascending: false })
           .limit(limit || 50)
 
+        console.log('🔍 DriverActivityFeed: Bookings result:', { 
+          count: bookings?.length, 
+          bookingsError,
+          sampleData: bookings?.slice(0, 2)
+        })
         if (bookingsError) throw bookingsError
 
         // Get vehicle IDs assigned to this driver from the vehicle_assignments table
@@ -159,6 +174,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         }
 
         // Combine activities
+        console.log('🔍 DriverActivityFeed: Combining activities...')
         const allActivities = [
           // Map bookings to activities
           ...(bookings || []).map(booking => ({
@@ -191,6 +207,14 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           }))
         ]
 
+        console.log('🔍 DriverActivityFeed: Combined activities result:', {
+          totalActivities: allActivities.length,
+          bookingsCount: bookings?.length || 0,
+          inspectionDetailsCount: inspectionDetails?.length || 0,
+          maintenanceTasksCount: maintenanceTasks?.length || 0,
+          sampleActivities: allActivities.slice(0, 3)
+        })
+
         // Sort by date descending
         allActivities.sort((a, b) => 
           new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -207,7 +231,13 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           applyFiltersAndPagination(allActivities, filterType, 1)
         }
       } catch (error) {
-        console.error("Error loading activities:", error)
+        console.error("❌ DriverActivityFeed: Error loading activities:", error)
+        console.error("❌ DriverActivityFeed: Error details:", {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          driverId,
+          error
+        })
       } finally {
         setIsLoading(false)
       }

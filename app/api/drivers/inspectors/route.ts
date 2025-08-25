@@ -19,7 +19,7 @@ export async function GET() {
     // Format driver names
     const inspectors = drivers?.map(driver => ({
       id: driver.id,
-      name: `${driver.first_name} ${driver.last_name}`
+      full_name: `${driver.first_name} ${driver.last_name}`
     })) || []
     
     return NextResponse.json(inspectors)

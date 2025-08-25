@@ -53,8 +53,8 @@ export function InspectionFilter({
           setVehicleModels(modelsData)
         }
 
-        // Fetch inspectors from profiles table (since inspector_id links to profiles)
-        const inspectorsResponse = await fetch('/api/inspectors')
+        // Fetch inspectors from drivers table (since inspector_id links to drivers)
+        const inspectorsResponse = await fetch('/api/drivers/inspectors')
         if (inspectorsResponse.ok) {
           const inspectorsData = await inspectorsResponse.json()
           console.log('🔍 [INSPECTION_FILTER] Received inspectors:', {

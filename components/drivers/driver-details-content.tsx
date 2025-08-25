@@ -42,6 +42,7 @@ export function DriverDetailsContent({
   const [driver, setDriver] = useState<Driver | null>(initialDriver)
   const [availabilityRecords, setAvailabilityRecords] = useState<DriverAvailability[]>(initialAvailability)
   const [inspections, setInspections] = useState<Inspection[]>(initialInspections)
+  const [bookings, setBookings] = useState<any[]>([])
   const [currentAvailabilityStatus, setCurrentAvailabilityStatus] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
@@ -83,23 +84,26 @@ export function DriverDetailsContent({
     if (!id) return
     setIsLoading(true)
     try {
-      const [driverRes, availabilityRes, inspectionsRes] = await Promise.all([
+      const [driverRes, availabilityRes, inspectionsRes, bookingsRes] = await Promise.all([
         fetch(`/api/drivers/${id}/details`),
         fetch(`/api/drivers/${id}/availability`),
         fetch(`/api/drivers/${id}/inspections`),
+        fetch(`/api/drivers/${id}/bookings`),
       ])
 
-      if (!driverRes.ok || !availabilityRes.ok || !inspectionsRes.ok) {
+      if (!driverRes.ok || !availabilityRes.ok || !inspectionsRes.ok || !bookingsRes.ok) {
         throw new Error(t("drivers.messages.refreshError"))
       }
 
       const driverData: Driver = await driverRes.json()
       const availabilityData: DriverAvailability[] = await availabilityRes.json()
       const inspectionsData: Inspection[] = await inspectionsRes.json()
+      const bookingsData = await bookingsRes.json()
 
       setDriver(driverData)
       setAvailabilityRecords(availabilityData)
       setInspections(inspectionsData)
+      setBookings(bookingsData.bookings || [])
       processAndSetAvailability(driverData, availabilityData)
 
     } catch (error) {
@@ -300,6 +304,28 @@ export function DriverDetailsContent({
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Settings className="h-5 w-5 mr-2" />
+                  Quick Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{bookings?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">Total Bookings</div>
+                  </div>
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{inspections?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">Inspections</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

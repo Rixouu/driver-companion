@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Clock, Car, Wrench, FileText, ExternalLink } from "lucide-react"
+import { Clock, Car, Wrench, FileText, ExternalLink, Calendar } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { formatDate } from "@/lib/utils/formatting"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 interface Activity {
   id: string
-  type: "inspection" | "maintenance" | "vehicle_assignment"
+  type: "booking" | "inspection" | "maintenance" | "vehicle_assignment"
   date: string
   title: string
   description: string
@@ -54,6 +54,28 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           .limit(limit || 50)
 
         if (inspectionError) throw inspectionError
+
+        // Get bookings
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select(`
+            id,
+            date,
+            time,
+            status,
+            customer_name,
+            pickup_location,
+            dropoff_location,
+            vehicle:vehicles (
+              id,
+              name
+            )
+          `)
+          .eq('driver_id', driverId)
+          .order('date', { ascending: false })
+          .limit(limit || 50)
+
+        if (bookingsError) throw bookingsError
 
         // Get vehicle IDs assigned to this driver from the vehicle_assignments table
         const { data: vehicleAssignments, error: assignmentError } = await supabase
@@ -99,6 +121,16 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
 
         // Combine activities
         const allActivities = [
+          // Map bookings to activities
+          ...(bookings || []).map(booking => ({
+            id: `booking-${booking.id}`,
+            type: "booking" as const,
+            date: booking.date,
+            title: `Booking #${booking.id?.slice(-5)}`,
+            description: `${booking.customer_name || 'Customer'} • ${booking.pickup_location} → ${booking.dropoff_location}`,
+            link: `/bookings/${booking.id}`
+          })),
+          
           // Map inspections to activities
           ...(inspections || []).map(inspection => ({
             id: `inspection-${inspection.id}`,
@@ -172,6 +204,9 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
                       <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        {activity.type === "booking" && (
+                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                        )}
                         {activity.type === "inspection" && (
                           <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                         )}

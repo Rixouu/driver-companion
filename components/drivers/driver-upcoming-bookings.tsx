@@ -2,31 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Clock, MapPin, User, Car, CalendarOff, XCircle, Trash2, Eye, CalendarX, Info } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Car, CalendarOff, XCircle, Eye, CalendarX, Info } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { format } from 'date-fns'
-import { getDriverBookings, unassignBookingFromDriver } from '@/app/actions/bookings'
+import { getDriverBookings } from '@/app/actions/bookings'
 import { Booking } from '@/types/bookings'
-import { useToast } from '@/components/ui/use-toast'
+
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/types/supabase'; // Ensure Database type is imported
 import { EmptyState } from "@/components/empty-state"
 import { getStatusBadgeClasses, cn } from '@/lib/utils/styles'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+
 
 interface DriverUpcomingBookingsProps {
   driverId: string
@@ -37,8 +27,8 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   const [bookings, setBookings] = useState<Booking[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isUnassigning, setIsUnassigning] = useState<string | null>(null)
-  const { toast } = useToast()
+
+
   const { t } = useI18n()
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,24 +77,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
     }
   }, [driverId, limit])
 
-  const handleUnassign = async (bookingId: string) => {
-    setIsUnassigning(bookingId)
-    try {
-      await unassignBookingFromDriver(bookingId, driverId)
-      setBookings(prev => prev.filter(b => b.id !== bookingId))
-      toast({
-        title: t("drivers.upcomingBookings.unassignSuccess"),
-        description: t("drivers.upcomingBookings.unassignSuccessDescription"),
-      })
-    } catch (error) {
-      toast({
-        title: t("drivers.upcomingBookings.unassignError"),
-        variant: "destructive",
-      })
-    } finally {
-      setIsUnassigning(null)
-    }
-  }
+
 
   const renderBookingStatus = (status: string) => {
     const statusMap: Record<string, { label: string, variant: "default" | "outline" | "secondary" | "destructive" | "success" }> = {
@@ -184,15 +157,13 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
         <BookingCard 
           key={booking.id} 
           booking={booking} 
-          onUnassign={handleUnassign}
-          isUnassigning={isUnassigning === booking.id}
         />
       ))}
     </div>
   );
 }
 
-function BookingCard({ booking, onUnassign, isUnassigning }: { booking: Booking, onUnassign: (id: string) => void, isUnassigning: boolean }) {
+function BookingCard({ booking }: { booking: Booking }) {
   const { t } = useI18n()
   const pickupDateTime = `${booking.date}T${booking.time}`
   
@@ -254,30 +225,6 @@ function BookingCard({ booking, onUnassign, isUnassigning }: { booking: Booking,
       </div>
       
       <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="flex items-center gap-1 text-destructive hover:text-destructive/90 border-destructive/50 hover:border-destructive/80 dark:text-red-500 dark:border-red-500/50 dark:hover:border-red-500/80 dark:hover:bg-red-900/20"
-              disabled={isUnassigning}
-            > 
-              <Trash2 className="h-3 w-3"/> 
-              {isUnassigning ? t('common.deleting') : t('common.unassign', { defaultValue: 'Unassign' }) }
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("dispatch.assignments.messages.unassignSuccess")}</AlertDialogTitle>
-              <AlertDialogDescription>{t("dispatch.assignments.messages.unassignError")}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onUnassign(booking.id || '')}>{t("common.unassign")}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
         <Button size="sm" variant="outline" asChild>
           <Link href={`/bookings/${booking.id}`} className="flex items-center gap-1">
             <Eye className="h-3 w-3"/> {t('common.view')}

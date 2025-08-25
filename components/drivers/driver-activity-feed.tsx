@@ -68,21 +68,28 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
       setIsLoading(true)
       
       try {
-        // Get inspections (where this driver is the inspector OR the driver being inspected)
-        const { data: inspections, error: inspectionError } = await supabase
-          .from('inspections')
+        // Get driver email first
+        const { data: driverData, error: driverError } = await supabase
+          .from('drivers')
+          .select('email')
+          .eq('id', driverId)
+          .single()
+
+        if (driverError) throw driverError
+
+        // Get inspections from inspection_details table (where this driver is the inspector)
+        const { data: inspectionDetails, error: inspectionError } = await supabase
+          .from('inspection_details')
           .select(`
             id,
-            date,
-            type,
-            status,
-            vehicle:vehicles (
-              id,
-              name
-            )
+            model,
+            year,
+            inspector_email,
+            inspector_name,
+            created_at
           `)
-          .or(`inspector_id.eq.${driverId},driver_id.eq.${driverId}`)
-          .order('date', { ascending: false })
+          .eq('inspector_email', driverData.email)
+          .order('created_at', { ascending: false })
           .limit(limit || 50)
 
         if (inspectionError) throw inspectionError
@@ -163,14 +170,14 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
             link: `/bookings/${booking.id}`
           })),
           
-          // Map inspections to activities
-          ...(inspections || []).map(inspection => ({
+          // Map inspection details to activities
+          ...(inspectionDetails || []).map(inspection => ({
             id: `inspection-${inspection.id}`,
             type: "inspection" as const,
-            date: inspection.date,
-            title: `${t(`inspections.type.${inspection.type}`)} - ${inspection.vehicle?.name || 'Vehicle'}`,
-            description: `Inspection performed on ${inspection.vehicle?.name || 'vehicle'}`,
-            link: `/inspections/${inspection.id}`
+            date: inspection.created_at || new Date().toISOString(),
+            title: `Vehicle Inspection - ${inspection.model} ${inspection.year}`,
+            description: `Inspected ${inspection.model} (${inspection.year})`,
+            link: `/inspection-details/${inspection.id}`
           })),
           
           // Map maintenance tasks to activities

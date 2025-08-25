@@ -352,29 +352,31 @@ function EditableVehiclePricingCategories({ vehicleId }: EditableVehiclePricingC
   const [isSaving, setIsSaving] = useState(false);
   const { categories, isLoading: isLoadingCategories, error } = useVehiclePricingCategories(vehicleId);
 
-  // Fetch available pricing categories
+  // Fetch available pricing categories only when editing
   useEffect(() => {
-    async function fetchAvailableCategories() {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`);
-        if (response.ok) {
-          const data = await response.json();
-          setAvailableCategories(data.categories || []);
-          // Update selected categories based on API response
-          if (data.currentCategoryIds) {
-            setSelectedCategoryIds(data.currentCategoryIds);
+    if (isEditing) {
+      async function fetchAvailableCategories() {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`);
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableCategories(data.categories || []);
+            // Update selected categories based on API response
+            if (data.currentCategoryIds) {
+              setSelectedCategoryIds(data.currentCategoryIds);
+            }
           }
+        } catch (error) {
+          console.error('Error fetching available categories:', error);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching available categories:', error);
-      } finally {
-        setIsLoading(false);
       }
-    }
 
-    fetchAvailableCategories();
-  }, [vehicleId]);
+      fetchAvailableCategories();
+    }
+  }, [vehicleId, isEditing]);
 
   // Update selected categories when categories change
   useEffect(() => {

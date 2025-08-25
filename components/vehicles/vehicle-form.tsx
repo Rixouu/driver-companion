@@ -29,7 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/context"
 import { vehicleSchema, type VehicleFormData } from "@/lib/validations/vehicle"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { Car, Tag } from "lucide-react"
+import { Car } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/components/providers/auth-provider"
 import type { Database } from '@/types/supabase';
@@ -411,18 +411,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             </CardContent>
           </Card>
 
-          {/* Pricing Categories Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Pricing Categories
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <VehiclePricingCategoriesEditor vehicleId={vehicle?.id} />
-            </CardContent>
-          </Card>
+          {/* Pricing Categories section removed - managed in vehicle details page */}
         </div>
         
         <div className="flex justify-end gap-4">
@@ -449,126 +438,4 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
   )
 }
 
-interface VehiclePricingCategoriesEditorProps {
-  vehicleId?: string;
-}
-
-function VehiclePricingCategoriesEditor({ vehicleId }: VehiclePricingCategoriesEditorProps) {
-  const { t } = useI18n();
-  const { categories, isLoading, error, updateCategories } = useVehiclePricingCategories(vehicleId || '');
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<Array<{id: string, name: string}>>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
-
-  // Fetch available pricing categories
-  useEffect(() => {
-    async function fetchAvailableCategories() {
-      if (!vehicleId) return;
-      
-      setIsLoadingCategories(true);
-      try {
-        const response = await fetch('/api/admin/pricing/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setAvailableCategories(data);
-        }
-      } catch (error) {
-        console.error('Error fetching available categories:', error);
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    }
-
-    fetchAvailableCategories();
-  }, [vehicleId]);
-
-  // Update selected categories when categories change
-  useEffect(() => {
-    if (categories) {
-      setSelectedCategoryIds(categories.map(cat => cat.id));
-    }
-  }, [categories]);
-
-  const handleCategoryToggle = (categoryId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategoryIds(prev => [...prev, categoryId]);
-    } else {
-      setSelectedCategoryIds(prev => prev.filter(id => id !== categoryId));
-    }
-  };
-
-  const handleSaveCategories = async () => {
-    if (!vehicleId) return;
-    
-    const success = await updateCategories(selectedCategoryIds);
-    if (success) {
-      // Categories are automatically refreshed by the hook
-    }
-  };
-
-  if (!vehicleId) {
-    return (
-      <div className="text-sm text-muted-foreground">
-        Save the vehicle first to manage pricing categories
-      </div>
-    );
-  }
-
-  if (isLoading || isLoadingCategories) {
-    return (
-      <div className="space-y-3">
-        <div className="h-4 bg-muted rounded animate-pulse"></div>
-        <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-sm text-red-600">
-        Error loading pricing categories: {error}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
-        Select the pricing categories this vehicle belongs to. This will determine which pricing rules apply to this vehicle.
-      </div>
-      
-      <div className="space-y-3">
-        {availableCategories.map((category) => (
-          <div key={category.id} className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id={`category-${category.id}`}
-              checked={selectedCategoryIds.includes(category.id)}
-              onChange={(e) => handleCategoryToggle(category.id, e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor={`category-${category.id}`} className="text-sm cursor-pointer">
-              {category.name}
-            </label>
-          </div>
-        ))}
-      </div>
-
-      {availableCategories.length === 0 && (
-        <div className="text-sm text-muted-foreground">
-          No pricing categories available. Create some in the Pricing Management section.
-        </div>
-      )}
-
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={handleSaveCategories}
-        className="w-full"
-      >
-        Update Pricing Categories
-      </Button>
-    </div>
-  );
-}  
+// Pricing Categories Editor removed - now managed in vehicle details page  

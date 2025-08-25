@@ -68,7 +68,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
       setIsLoading(true)
       
       try {
-        // Get inspections
+        // Get inspections (where this driver is the inspector OR the driver being inspected)
         const { data: inspections, error: inspectionError } = await supabase
           .from('inspections')
           .select(`
@@ -81,7 +81,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
               name
             )
           `)
-          .eq('driver_id', driverId)
+          .or(`inspector_id.eq.${driverId},driver_id.eq.${driverId}`)
           .order('date', { ascending: false })
           .limit(limit || 50)
 
@@ -168,8 +168,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
             id: `inspection-${inspection.id}`,
             type: "inspection" as const,
             date: inspection.date,
-            title: t(`inspections.type.${inspection.type}`),
-            description: `${t("maintenance.fields.vehicle")}: ${inspection.vehicle?.name}`,
+            title: `${t(`inspections.type.${inspection.type}`)} - ${inspection.vehicle?.name || 'Vehicle'}`,
+            description: `Inspection performed on ${inspection.vehicle?.name || 'vehicle'}`,
             link: `/inspections/${inspection.id}`
           })),
           

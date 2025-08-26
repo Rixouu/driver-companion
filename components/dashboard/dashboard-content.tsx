@@ -549,11 +549,11 @@ export function DashboardContent({
                 </div>
                 
                 {/* Charts Row: Revenue + Quote Status Side by Side */}
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-8">
                   {/* Revenue Trend Chart */}
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.revenueTrend")}</h4>
-                    <div className="h-32">
+                    <div className="h-40">
                       {dailyRevenueData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={dailyRevenueData}>
@@ -600,7 +600,7 @@ export function DashboardContent({
                   {/* Quote Status Chart */}
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.quoteStatus")}</h4>
-                    <div className="h-32">
+                    <div className="h-40">
                       {statusDistributionData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={statusDistributionData}>
@@ -688,7 +688,7 @@ export function DashboardContent({
                 <div className="pt-2">
                   <Link href="/sales/calendar" className="w-full">
                     <Button variant="outline" className="w-full bg-background border-border hover:bg-muted/50">
-                      <span className="text-foreground">View Sales Calendar</span>
+                      <span className="text-foreground">販売カレンダーを表示</span>
                       <ArrowRight className="ml-2 h-4 w-4 text-foreground" />
                     </Button>
                   </Link>

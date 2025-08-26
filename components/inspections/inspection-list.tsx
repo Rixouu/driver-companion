@@ -77,7 +77,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const [allInspectionsWithVehicles, setAllInspectionsWithVehicles] = useState<ExtendedInspection[]>([])
   const [filteredInspections, setFilteredInspections] = useState<ExtendedInspection[]>([])
   const [calendarView, setCalendarView] = useState<CalendarView>("month")
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState(startOfDay(new Date()))
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
@@ -553,16 +553,27 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
 
   // Get calendar dates based on view
   const calendarDates = useMemo(() => {
+    // Ensure currentDate is properly set to start of day to avoid timezone issues
+    const normalizedCurrentDate = startOfDay(currentDate)
+    
+    // Debug: Log current date info
+    console.log('📅 [CALENDAR] Current date info:', {
+      original: currentDate.toISOString(),
+      normalized: normalizedCurrentDate.toISOString(),
+      dayOfWeek: format(normalizedCurrentDate, 'EEEE'),
+      view: calendarView
+    });
+    
     switch (calendarView) {
       case "month":
         return eachDayOfInterval({
-          start: startOfMonth(currentDate),
-          end: endOfMonth(currentDate)
+          start: startOfMonth(normalizedCurrentDate),
+          end: endOfMonth(normalizedCurrentDate)
         })
       case "week":
         return eachDayOfInterval({
-          start: startOfWeek(currentDate, { weekStartsOn: 1 }),
-          end: endOfWeek(currentDate, { weekStartsOn: 1 })
+          start: startOfWeek(normalizedCurrentDate),
+          end: endOfWeek(normalizedCurrentDate)
         })
       default:
         return []
@@ -608,10 +619,10 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const navigatePrevious = () => {
     switch (calendarView) {
       case "month":
-        setCurrentDate(subMonths(currentDate, 1))
+        setCurrentDate(startOfDay(subMonths(currentDate, 1)))
         break
       case "week":
-        setCurrentDate(subWeeks(currentDate, 1))
+        setCurrentDate(startOfDay(subWeeks(currentDate, 1)))
         break
     }
   }
@@ -619,26 +630,30 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const navigateNext = () => {
     switch (calendarView) {
       case "month":
-        setCurrentDate(addMonths(currentDate, 1))
+        setCurrentDate(startOfDay(addMonths(currentDate, 1)))
         break
       case "week":
-        setCurrentDate(addWeeks(currentDate, 1))
+        setCurrentDate(startOfDay(addWeeks(currentDate, 1)))
         break
     }
   }
 
   const goToToday = () => {
-    setCurrentDate(new Date())
+    // Ensure we set the date to start of day to avoid timezone issues
+    setCurrentDate(startOfDay(new Date()))
   }
 
   // Get calendar title
   const getCalendarTitle = () => {
+    // Ensure currentDate is properly set to start of day to avoid timezone issues
+    const normalizedCurrentDate = startOfDay(currentDate)
+    
     switch (calendarView) {
       case "month":
-        return format(currentDate, "MMMM yyyy")
+        return format(normalizedCurrentDate, "MMMM yyyy")
       case "week":
-        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
-        const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
+        const weekStart = startOfWeek(normalizedCurrentDate)
+        const weekEnd = endOfWeek(normalizedCurrentDate)
         return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
       default:
         return ""
@@ -697,6 +712,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
     if (date.getDate() === 1) { // Only log for first day to avoid spam
       console.log('📅 [CALENDAR_DAY] Rendering day:', {
         date: date.toISOString(),
+        dayOfWeek: format(date, 'EEEE'),
         inspectionCount,
         dayInspections: dayInspections.map(i => ({ id: i.id, vehicle: i.vehicle?.name, status: i.status }))
       });

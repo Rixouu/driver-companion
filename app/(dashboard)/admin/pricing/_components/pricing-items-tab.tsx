@@ -24,7 +24,9 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
 import { Plus, Edit, Trash, Check, X, Filter, Search } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { toast } from "@/components/ui/use-toast";
@@ -407,17 +409,28 @@ export default function PricingItemsTab() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="flex items-center">
-            <Filter className="h-5 w-5 mr-2 text-muted-foreground" />
-            {t("pricing.items.filters.title")}
-          </div>
-          <Button onClick={() => handleOpenDialog()} size="sm" disabled={!selectedCategory}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t("pricing.items.buttons.addItemToCategory", { categoryName: currentCategoryName || "..." })}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <PricingTabHeader
+          title={t("pricing.items.filters.title")}
+          description="Manage individual pricing items for your categories and service types."
+          icon={<Filter className="h-5 w-5" />}
+          badges={
+            <>
+              {selectedCategory && (
+                <StatusBadge type="info">📁 {currentCategoryName}</StatusBadge>
+              )}
+              {!isLoading && items.length > 0 && (
+                <StatusBadge type="success">⚡ {items.length} items loaded</StatusBadge>
+              )}
+            </>
+          }
+          actions={
+            <Button onClick={() => handleOpenDialog()} size="sm" disabled={!selectedCategory} variant="default">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("pricing.items.buttons.addItemToCategory", { categoryName: currentCategoryName || "..." })}
+            </Button>
+          }
+        />
+        <CardContent className="space-y-6 pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
             <div>
               <Label htmlFor="service-type-select" className="text-sm font-medium mb-1 block">{t("quotations.form.services.serviceType")}</Label>
@@ -503,7 +516,7 @@ export default function PricingItemsTab() {
           {/* Group items by service type for better organization */}
           {groupItemsByServiceType(filteredItems).map((serviceGroup) => (
             <Card key={serviceGroup.serviceTypeId} className="overflow-hidden">
-              <CardHeader className="bg-muted/30 pb-3">
+              <div className="bg-muted/30 pb-3 px-6 pt-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-lg font-semibold">{serviceGroup.serviceTypeName}</h3>
@@ -520,7 +533,7 @@ export default function PricingItemsTab() {
                     Add {serviceGroup.serviceTypeName}
                   </Button>
                 </div>
-              </CardHeader>
+              </div>
               <CardContent className="p-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
                   {serviceGroup.items.map((item) => (

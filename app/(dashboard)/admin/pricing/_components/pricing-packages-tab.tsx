@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
@@ -805,80 +807,129 @@ export default function PricingPackagesTab() {
   
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 mt-6">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-2xl font-semibold leading-none">{t('pricing.packages.title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('pricing.packages.description')}</p>
-        </div>
-        <Button onClick={handleCreatePackage} className="shrink-0 mt-2">
-          <Plus className="h-4 w-4 mr-2" />
-          {t('pricing.packages.addPackage')}
-        </Button>
-      </div>
+      <Card>
+        <PricingTabHeader
+          title={t('pricing.packages.title')}
+          description={t('pricing.packages.description')}
+          icon={<Package className="h-5 w-5" />}
+          badges={
+            <>
+              {!isLoading && packages.length > 0 && (
+                <StatusBadge type="info">⚡ {packages.length} packages loaded</StatusBadge>
+              )}
+            </>
+          }
+          actions={
+            <Button onClick={handleCreatePackage} variant="default">
+              <Plus className="h-4 w-4 mr-2" />
+              {t('pricing.packages.addPackage')}
+            </Button>
+          }
+        />
+        <CardContent className="pt-6">
       
-      {isLoading ? <div className="text-center py-4">Loading packages...</div> : 
-       packages.length === 0 ? (
-        <div className="text-center py-8 border rounded-md">
-          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground mb-4">No packages found</p>
-          <Button onClick={handleCreatePackage}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create your first package
-          </Button>
-        </div>
-      ) : (
-        <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Package</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Validity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {packages.map(pkg => (
-              <TableRow key={pkg.id}>
-                <TableCell>
-                  <div className="font-medium">{pkg.name}</div>
-                  <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{pkg.package_type}</Badge>
-                </TableCell>
-                <TableCell>{formatCurrency(pkg.base_price, pkg.currency)}</TableCell>
-                <TableCell>
-                  {pkg.valid_from && pkg.valid_to ? 
-                    `${format(new Date(pkg.valid_from), 'MMM d, yyyy')} - ${format(new Date(pkg.valid_to), 'MMM d, yyyy')}` : 
-                    'Always valid'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getStatusBadgeClasses(getPackageStatus(pkg.is_active))}>
-                      {pkg.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                    {pkg.is_featured && <Badge variant="secondary"><Tag className="h-3 w-3 mr-1" />Featured</Badge>}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end items-center">
-                    <Button variant="ghost" size="icon" onClick={() => handleEditPackage(pkg)}><Edit className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeletePackage(pkg.id)}><Trash className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleTogglePackageStatus(pkg.id, !pkg.is_active)}>
-                      {pkg.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
-      )}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+                <div className="space-y-2">
+                  <p className="text-lg font-medium text-foreground">Loading Packages</p>
+                  <p className="text-sm text-muted-foreground">Please wait while we fetch your packages...</p>
+                </div>
+              </div>
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="bg-gradient-to-br from-muted/30 to-muted/20 dark:from-muted/20 dark:to-muted/10 border border-muted rounded-xl p-12 text-center">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+                  <Package className="h-8 w-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">No Packages Found</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Get started by creating your first package to offer bundled services and special pricing.
+                  </p>
+                </div>
+                <Button onClick={handleCreatePackage} variant="default">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Package
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <PricingResponsiveTable>
+                <PricingTableHeader>
+                  <PricingTableHead>Package</PricingTableHead>
+                  <PricingTableHead>Type</PricingTableHead>
+                  <PricingTableHead>Price</PricingTableHead>
+                  <PricingTableHead>Validity</PricingTableHead>
+                  <PricingTableHead>Status</PricingTableHead>
+                  <PricingTableHead className="text-right">Actions</PricingTableHead>
+                </PricingTableHeader>
+                <TableBody>
+                  {packages.map((pkg, index) => (
+                    <PricingTableRow key={pkg.id} index={index}>
+                      <PricingTableCell>
+                        <div className="font-medium text-foreground">{pkg.name}</div>
+                        <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
+                      </PricingTableCell>
+                      <PricingTableCell>
+                        <Badge variant="outline">{pkg.package_type}</Badge>
+                      </PricingTableCell>
+                      <PricingTableCell>{formatCurrency(pkg.base_price, pkg.currency)}</PricingTableCell>
+                      <PricingTableCell>
+                        {pkg.valid_from && pkg.valid_to ? 
+                          `${format(new Date(pkg.valid_from), 'MMM d, yyyy')} - ${format(new Date(pkg.valid_to), 'MMM d, yyyy')}` : 
+                          'Always valid'}
+                      </PricingTableCell>
+                      <PricingTableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={getStatusBadgeClasses(getPackageStatus(pkg.is_active))}>
+                            {pkg.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          {pkg.is_featured && <Badge variant="secondary"><Tag className="h-3 w-3 mr-1" />Featured</Badge>}
+                        </div>
+                      </PricingTableCell>
+                      <PricingTableCell className="text-right">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            onClick={() => handleEditPackage(pkg)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeletePackage(pkg.id)}
+                          >
+                            <Trash className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            onClick={() => handleTogglePackageStatus(pkg.id, !pkg.is_active)}
+                          >
+                            {pkg.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+                            {pkg.is_active ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        </div>
+                      </PricingTableCell>
+                    </PricingTableRow>
+                  ))}
+                </TableBody>
+              </PricingResponsiveTable>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {renderPackageDialog()}
     </div>

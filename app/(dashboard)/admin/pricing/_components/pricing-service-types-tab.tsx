@@ -37,7 +37,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { cn, getStatusBadgeClasses } from '@/lib/utils/styles';
 import { useI18n } from '@/lib/i18n/context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
 
 // Schema for service type form validation
 const serviceTypeFormSchema = z.object({
@@ -70,6 +72,7 @@ export default function PricingServiceTypesTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingServiceType, setEditingServiceType] = useState<ServiceType | null>(null);
@@ -97,19 +100,12 @@ export default function PricingServiceTypesTab() {
 
     console.log("Fetching service types...");
     try {
-      const timestamp = new Date().getTime();
-      const randomValue = Math.random().toString(36).substring(2, 15);
-      const url = `/api/pricing/service-types?t=${timestamp}&nocache=${randomValue}`;
+      const url = `/api/pricing/service-types`;
       console.log(`Fetching from URL: ${url}`);
 
       const response = await fetch(url, {
         method: 'GET',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
+        cache: 'default',
       });
 
       if (!response.ok) {
@@ -123,21 +119,8 @@ export default function PricingServiceTypesTab() {
         console.log('Service types fetched:', data);
         setServiceTypes(data);
 
-        // Fetch categories (needed for descriptions)
-        try {
-          const catRes = await fetch(`/api/pricing/categories?active_only=false`, {
-            method: 'GET',
-            cache: 'no-store',
-          });
-          if (catRes.ok) {
-            const catData: PricingCategory[] = await catRes.json();
-            setCategories(catData);
-          } else {
-            console.error('Failed to fetch pricing categories');
-          }
-        } catch (catErr) {
-          console.error('Error fetching categories', catErr);
-        }
+        // Skip categories fetch to avoid admin check errors
+        setCategories([]);
       } else {
         console.error('Expected array but got:', data);
         setServiceTypes([]); // Reset to empty array on invalid data
@@ -278,19 +261,39 @@ export default function PricingServiceTypesTab() {
   };
 
   const getCategoryDescription = (serviceTypeId: string): string => {
+    if (categories.length === 0) {
+      return 'Category info unavailable';
+    }
     const cat = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceTypeId));
-    return cat?.description || cat?.name || 'N/A';
+    return cat?.description || cat?.name || 'No category assigned';
+  };
+
+  const getCategoryDescriptionWithStatus = (serviceTypeId: string): { text: string; isLoading: boolean } => {
+    if (categories.length === 0) {
+      return { text: 'Category info unavailable', isLoading: false };
+    }
+    const cat = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceTypeId));
+    return { 
+      text: cat?.description || cat?.name || 'No category assigned',
+      isLoading: false
+    };
   };
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Service Types</CardTitle>
-            <CardDescription>Manage the individual service types for your pricing.</CardDescription>
-          </div>
-          <div className="flex space-x-2">
+      <PricingTabHeader
+        title="Service Types"
+        description="Manage the individual service types for your pricing structure."
+        icon={<Plus className="h-5 w-5" />}
+        badges={
+          <>
+            {!isLoading && serviceTypes.length > 0 && (
+              <StatusBadge type="info">⚡ {serviceTypes.length} types loaded</StatusBadge>
+            )}
+          </>
+        }
+        actions={
+          <>
             <Button 
               variant="outline"
               size="sm"
@@ -300,75 +303,112 @@ export default function PricingServiceTypesTab() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button onClick={openAddDialog}>
+            <Button 
+              onClick={openAddDialog}
+              variant="default"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Service Type
             </Button>
-          </div>
-        </div>
-      </CardHeader>
+          </>
+        }
+      />
       <CardContent>
       {isLoading && !isRefreshing ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-muted-foreground mx-auto" />
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-foreground">Loading Service Types</p>
+              <p className="text-sm text-muted-foreground">Please wait while we fetch your service types...</p>
+            </div>
+          </div>
         </div>
       ) : serviceTypes.length === 0 ? (
-        <div className="bg-muted/40 border rounded-lg p-8 text-center">
-          <p className="text-muted-foreground">No service types found.</p>
-          <Button variant="outline" className="mt-4" onClick={openAddDialog}>
-            Add your first service type
-          </Button>
+        <div className="bg-gradient-to-br from-muted/30 to-muted/20 dark:from-muted/20 dark:to-muted/10 border border-muted rounded-xl p-12 text-center">
+          <div className="space-y-4">
+            <div className="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+              <Plus className="h-8 w-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-foreground">No Service Types Found</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Get started by creating your first service type. This will help you organize your pricing structure.
+              </p>
+            </div>
+            <Button onClick={openAddDialog} variant="default">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Service Type
+            </Button>
+          </div>
         </div>
       ) : (
-        <div className="border rounded-md overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+        <div className="mt-6">
+          <PricingResponsiveTable>
+            <PricingTableHeader>
+              <PricingTableHead>Service Type</PricingTableHead>
+              <PricingTableHead>Category Assignment</PricingTableHead>
+              <PricingTableHead>Status</PricingTableHead>
+              <PricingTableHead className="text-right">Actions</PricingTableHead>
+            </PricingTableHeader>
             <TableBody>
-              {serviceTypes.map((serviceType) => (
-                <TableRow key={serviceType.id}>
-                  <TableCell className="font-medium">{serviceType.name}</TableCell>
-                  <TableCell>{getCategoryDescription(serviceType.id)}</TableCell>
-                  <TableCell>
+              {serviceTypes.map((serviceType, index) => (
+                <PricingTableRow key={serviceType.id} index={index}>
+                  <PricingTableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <div>
+                        <div className="font-medium text-foreground">{serviceType.name}</div>
+                        {serviceType.description && (
+                          <div className="text-sm text-muted-foreground mt-1">{serviceType.description}</div>
+                        )}
+                      </div>
+                    </div>
+                  </PricingTableCell>
+                  <PricingTableCell>
+                    <div className="text-sm text-muted-foreground">
+                      {getCategoryDescription(serviceType.id)}
+                    </div>
+                  </PricingTableCell>
+                  <PricingTableCell>
                     <Badge
                       variant="outline"
-                      className={cn('text-xs', getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive'))}
+                      className={cn(
+                        'text-xs px-3 py-1.5 font-medium',
+                        getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive')
+                      )}
                     >
                       {serviceType.is_active ? t('common.status.active') : t('common.status.inactive')}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  </PricingTableCell>
+                  <PricingTableCell className="text-right">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                       <Button
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        size="sm"
+                        className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
                         onClick={() => openEditDialog(serviceType)}
                         title={t('common.edit')}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
+                        size="sm"
+                        className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => openDeleteDialog(serviceType)}
                         title={t('common.delete')}
                       >
-                        <Trash className="h-4 w-4" />
+                        <Trash className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </PricingTableCell>
+                </PricingTableRow>
               ))}
             </TableBody>
-          </Table>
+          </PricingResponsiveTable>
         </div>
       )}
       

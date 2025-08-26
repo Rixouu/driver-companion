@@ -31,7 +31,9 @@ import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon, GripVertical, MoreH
 import { useI18n } from "@/lib/i18n/context";
 import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
@@ -581,64 +583,82 @@ export default function PricingCategoriesTab() {
   
   return (
     <>
-      {/* Page-level header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">{t("pricing.categories.title")}</h2>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="mr-2 h-4 w-4" /> {t("pricing.categories.buttons.addCategory")}
-        </Button>
-      </div>
-
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-0">
+      <Card>
+        <PricingTabHeader
+          title={t("pricing.categories.title")}
+          description="Manage your pricing categories and their associated services and vehicles."
+          icon={<Plus className="h-5 w-5" />}
+          badges={
+            <>
+              {!isLoading && categories.length > 0 && (
+                <StatusBadge type="info">⚡ {categories.length} categories loaded</StatusBadge>
+              )}
+            </>
+          }
+          actions={
+            <Button onClick={() => handleOpenDialog()} variant="default">
+              <Plus className="mr-2 h-4 w-4" /> {t("pricing.categories.buttons.addCategory")}
+            </Button>
+          }
+        />
+        <CardContent className="pt-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">{t("common.loading")}</p>
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+                <div className="space-y-2">
+                  <p className="text-lg font-medium text-foreground">Loading Pricing Categories</p>
+                  <p className="text-sm text-muted-foreground">Please wait while we fetch your categories...</p>
+                </div>
               </div>
             </div>
           ) : categories.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="mx-auto w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-4">
-                <Plus className="h-8 w-8 text-muted-foreground" />
+            <div className="bg-gradient-to-br from-muted/30 to-muted/20 dark:from-muted/20 dark:to-muted/10 border border-muted rounded-xl p-12 text-center">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+                  <Plus className="h-8 w-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">No Categories Found</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Get started by creating your first pricing category. This will help you organize your pricing structure.
+                  </p>
+                </div>
+                <Button onClick={() => handleOpenDialog()} variant="default">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Category
+                </Button>
               </div>
-              <h3 className="text-lg font-semibold mb-2">No categories found</h3>
-              <p className="text-muted-foreground mb-4">Get started by creating your first pricing category.</p>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t("pricing.categories.buttons.addCategory")}
-              </Button>
             </div>
           ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b bg-muted/30">
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">{t('common.details')}</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground text-center">{t('pricing.categories.table.services')}</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.status.default')}</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.order')}</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.actions.default')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <SortableContext
-                    items={categories.map(cat => cat.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {categories.map((category) => (
-                      <SortableTableRow key={category.id} category={category} />
-                    ))}
-                  </SortableContext>
-                </TableBody>
-              </Table>
-            </DndContext>
+            <div className="mt-6">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <PricingResponsiveTable>
+                  <PricingTableHeader>
+                    <PricingTableHead className="w-12"> </PricingTableHead>
+                    <PricingTableHead>{t('common.details')}</PricingTableHead>
+                    <PricingTableHead className="text-center">{t('pricing.categories.table.services')}</PricingTableHead>
+                    <PricingTableHead className="text-center">{t('common.status.default')}</PricingTableHead>
+                    <PricingTableHead className="text-center">{t('common.order')}</PricingTableHead>
+                    <PricingTableHead className="text-center">{t('common.actions.default')}</PricingTableHead>
+                  </PricingTableHeader>
+                  <TableBody>
+                    <SortableContext
+                      items={categories.map(cat => cat.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {categories.map((category) => (
+                        <SortableTableRow key={category.id} category={category} />
+                      ))}
+                    </SortableContext>
+                  </TableBody>
+                </PricingResponsiveTable>
+              </DndContext>
+            </div>
           )}
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

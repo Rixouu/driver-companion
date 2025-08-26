@@ -156,13 +156,59 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid service type ID format' }, { status: 400 });
     }
 
-    // The rest of the DELETE handler logic was removed in a previous incorrect edit.
-    // Placeholder for the actual delete logic:
-    // console.log(`[DELETE /api/pricing/service-types/[id]] Attempting to delete service type: ${idToDelete}`);
-    // Perform deletion from 'service_types' and handle related tables (e.g., 'pricing_categories')
-
-    // For now, return a placeholder response until the logic is restored.
-    return NextResponse.json({ message: `DELETE operation for ${idToDelete} needs to be fully implemented.` });
+    console.log(`[DELETE /api/pricing/service-types/[id]] Attempting to delete service type: ${idToDelete}`);
+    
+    // First, check if this service type is used in any pricing categories
+    const { data: categoriesUsingService, error: categoryCheckError } = await supabase
+      .from('pricing_categories')
+      .select('id, name')
+      .contains('service_type_ids', [idToDelete]);
+    
+    if (categoryCheckError) {
+      console.error('[DELETE /api/pricing/service-types/[id]] Error checking category usage:', categoryCheckError);
+      return NextResponse.json({ error: 'Failed to check if service type is in use', details: categoryCheckError.message }, { status: 500 });
+    }
+    
+    if (categoriesUsingService && categoriesUsingService.length > 0) {
+      const categoryNames = categoriesUsingService.map(c => c.name).join(', ');
+      return NextResponse.json({ 
+        error: 'Cannot delete service type', 
+        details: `Service type is currently used in the following categories: ${categoryNames}. Please remove it from these categories first.` 
+      }, { status: 409 });
+    }
+    
+    // Check if this service type is used in any pricing items
+    const { data: itemsUsingService, error: itemCheckError } = await supabase
+      .from('pricing_items')
+      .select('id')
+      .eq('service_type_id', idToDelete)
+      .limit(1);
+    
+    if (itemCheckError) {
+      console.error('[DELETE /api/pricing/service-types/[id]] Error checking item usage:', itemCheckError);
+      return NextResponse.json({ error: 'Failed to check if service type is in use', details: itemCheckError.message }, { status: 500 });
+    }
+    
+    if (itemsUsingService && itemsUsingService.length > 0) {
+      return NextResponse.json({ 
+        error: 'Cannot delete service type', 
+        details: 'Service type is currently used in pricing items. Please remove all pricing items for this service type first.' 
+      }, { status: 409 });
+    }
+    
+    // Now delete the service type
+    const { error: deleteError } = await supabase
+      .from('service_types')
+      .delete()
+      .eq('id', idToDelete);
+    
+    if (deleteError) {
+      console.error('[DELETE /api/pricing/service-types/[id]] Error deleting service type:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete service type', details: deleteError.message }, { status: 500 });
+    }
+    
+    console.log(`[DELETE /api/pricing/service-types/[id]] Service type ${idToDelete} deleted successfully`);
+    return NextResponse.json({ message: 'Service type deleted successfully' });
 
   } catch (error) {
     console.error('[DELETE /api/pricing/service-types/[id]] Unexpected error:', error);

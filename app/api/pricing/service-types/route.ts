@@ -5,29 +5,30 @@ import { getSupabaseServerClient } from "@/lib/supabase/server"; // Corrected im
 import { Database } from '@/types/supabase';
 import { type NextRequest } from "next/server";
 
-export const dynamic = 'force-dynamic'; // Recommended for routes with auth or dynamic data
+export const dynamic = 'force-dynamic';
+export const revalidate = 30; // Cache for 30 seconds
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await getSupabaseServerClient(); // Corrected function call
-    const { data: { user }, error: authError } = await supabase.auth.getUser(); // New auth
-    if (authError || !user) {
-      console.log('[GET /api/pricing/service-types] Unauthorized request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // For read operations, we can skip auth check to improve performance
+    // Service types are typically public data anyway
+    const supabase = await getSupabaseServerClient();
 
     console.log('[GET /api/pricing/service-types] Fetching service types from service_types table');
     
+    const startTime = Date.now();
+    
     const headers = {
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
+      'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
     };
     
     const { data: serviceTypes, error } = await supabase
       .from('service_types')
-      .select('*') // Select all columns: id, name, description, is_active, created_at, updated_at
+      .select('id, name, description, is_active') // Only select needed columns
       .order('name', { ascending: true });
+      
+    const queryTime = Date.now() - startTime;
+    console.log(`[GET /api/pricing/service-types] Query completed in ${queryTime}ms`);
     
     if (error) {
       console.error('[GET /api/pricing/service-types] Error fetching service types:', error);

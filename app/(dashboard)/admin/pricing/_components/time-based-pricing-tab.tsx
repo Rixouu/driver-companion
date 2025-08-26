@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -402,109 +404,144 @@ export default function TimeBasedPricingTab() {
 
   return (
     <div className="space-y-4">
-      {/* Section header with consistent styling */}
-      <div className="flex items-center justify-between mb-4 mt-6">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-2xl font-semibold leading-none">{t("pricing.items.timeBasedPricing.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("pricing.items.timeBasedPricing.description")}</p>
-        </div>
-        <Button onClick={() => handleOpenDialog("add") } className="shrink-0 mt-2">
-          <Plus className="mr-2 h-4 w-4" /> {t("pricing.items.timeBasedPricing.buttons.addRule")}
-        </Button>
-      </div>
+      <Card>
+        <PricingTabHeader
+          title={t("pricing.items.timeBasedPricing.title")}
+          description={t("pricing.items.timeBasedPricing.description")}
+          icon={<Clock className="h-5 w-5" />}
+          badges={
+            <>
+              {!loading && rules.length > 0 && (
+                <StatusBadge type="info">⚡ {rules.length} rules loaded</StatusBadge>
+              )}
+              {selectedCategoryId && (
+                <StatusBadge type="success">📁 Category filtered</StatusBadge>
+              )}
+            </>
+          }
+          actions={
+            <Button onClick={() => handleOpenDialog("add")} variant="default">
+              <Plus className="mr-2 h-4 w-4" /> {t("pricing.items.timeBasedPricing.buttons.addRule")}
+            </Button>
+          }
+        />
+        <CardContent className="pt-6">
           
-      {loading && <p className="text-center py-4">{t("common.loading")}</p>}
-      {!loading && rules.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground border rounded-md">
-            <p>
-              {selectedCategoryId 
-                ? t("pricing.items.timeBasedPricing.emptyState.noRulesForCategory")
-                : t("pricing.items.timeBasedPricing.emptyState.selectCategoryOrAddRule")}
-            </p>
-        </div>
-      )}
+                {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
+                <div className="space-y-2">
+                  <p className="text-lg font-medium text-foreground">Loading Time-based Rules</p>
+                  <p className="text-sm text-muted-foreground">Please wait while we fetch your rules...</p>
+                </div>
+              </div>
+            </div>
+          ) : rules.length === 0 ? (
+            <div className="bg-gradient-to-br from-muted/30 to-muted/20 dark:from-muted/20 dark:to-muted/10 border border-muted rounded-xl p-12 text-center">
+              <div className="space-y-4">
+                <div className="w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+                  <Clock className="h-8 w-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">No Time-based Rules Found</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    {selectedCategoryId 
+                      ? t("pricing.items.timeBasedPricing.emptyState.noRulesForCategory")
+                      : t("pricing.items.timeBasedPricing.emptyState.selectCategoryOrAddRule")}
+                  </p>
+                </div>
+                <Button onClick={() => handleOpenDialog("add")} variant="default">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Rule
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
-      {!loading && rules.length > 0 && (
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("pricing.items.timeBasedPricing.table.ruleName")}</TableHead>
-                <TableHead>{t("pricing.items.timeBasedPricing.table.appliesTo")}</TableHead>
-                <TableHead>{t("pricing.items.timeBasedPricing.table.timeRange")}</TableHead>
-                <TableHead>{t("pricing.items.timeBasedPricing.table.days")}</TableHead>
-                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.adjustment")}</TableHead>
-                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.priority")}</TableHead>
-                <TableHead className="text-center">{t("pricing.items.timeBasedPricing.table.status")}</TableHead>
-                <TableHead className="text-right">{t("common.actions.default")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rules.map((rule) => (
-                <TableRow key={rule.id}>
-                  <TableCell>
-                    <div className="font-medium">{rule.name}</div>
-                    {rule.description && (
-                      <div className="text-sm text-muted-foreground">{rule.description}</div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {rule.category_id
-                      ? categories.find(c => c.id === rule.category_id)?.name || "-"
-                      : t("pricing.items.timeBasedPricing.allCategories")}
-                    {rule.service_type_id && (
-                      <>
-                        <br />
-                        <span className="text-xs text-muted-foreground">
-                          {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
+          {!loading && rules.length > 0 && (
+            <div className="mt-6">
+              <PricingResponsiveTable>
+                <PricingTableHeader>
+                  <PricingTableHead>{t("pricing.items.timeBasedPricing.table.ruleName")}</PricingTableHead>
+                  <PricingTableHead>{t("pricing.items.timeBasedPricing.table.appliesTo")}</PricingTableHead>
+                  <PricingTableHead>{t("pricing.items.timeBasedPricing.table.timeRange")}</PricingTableHead>
+                  <PricingTableHead>{t("pricing.items.timeBasedPricing.table.days")}</PricingTableHead>
+                  <PricingTableHead className="text-center">{t("pricing.items.timeBasedPricing.table.adjustment")}</PricingTableHead>
+                  <PricingTableHead className="text-center">{t("pricing.items.timeBasedPricing.table.priority")}</PricingTableHead>
+                  <PricingTableHead className="text-center">{t("pricing.items.timeBasedPricing.table.status")}</PricingTableHead>
+                  <PricingTableHead className="text-right">{t("common.actions.default")}</PricingTableHead>
+                </PricingTableHeader>
+                <TableBody>
+                  {rules.map((rule, index) => (
+                    <PricingTableRow key={rule.id} index={index}>
+                      <PricingTableCell>
+                        <div className="font-medium text-foreground">{rule.name}</div>
+                        {rule.description && (
+                          <div className="text-sm text-muted-foreground">{rule.description}</div>
+                        )}
+                      </PricingTableCell>
+                      <PricingTableCell>
+                        {rule.category_id
+                          ? categories.find(c => c.id === rule.category_id)?.name || "-"
+                          : t("pricing.items.timeBasedPricing.allCategories")}
+                        {rule.service_type_id && (
+                          <>
+                            <br />
+                            <span className="text-xs text-muted-foreground">
+                              {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
+                            </span>
+                          </>
+                        )}
+                      </PricingTableCell>
+                      <PricingTableCell>{formatTime(rule.start_time)} - {formatTime(rule.end_time)}</PricingTableCell>
+                      <PricingTableCell>{formatDays(rule.days_of_week)}</PricingTableCell>
+                      <PricingTableCell className="text-center">
+                        <span className={rule.adjustment_percentage > 0 ? "text-green-600" : rule.adjustment_percentage < 0 ? "text-red-600" : ""}>
+                          {rule.adjustment_percentage > 0 ? "+" : ""}
+                          {rule.adjustment_percentage}%
                         </span>
-                      </>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatTime(rule.start_time)} - {formatTime(rule.end_time)}</TableCell>
-                  <TableCell>{formatDays(rule.days_of_week)}</TableCell>
-                  <TableCell>
-                    <span className={rule.adjustment_percentage > 0 ? "text-green-600" : rule.adjustment_percentage < 0 ? "text-red-600" : ""}>
-                      {rule.adjustment_percentage > 0 ? "+" : ""}
-                      {rule.adjustment_percentage}%
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">{rule.priority}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs', getStatusBadgeClasses(rule.is_active ? 'active' : 'inactive'))}
-                    >
-                      {rule.is_active ? t('common.status.active') : t('common.status.inactive')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleOpenDialog("edit", rule)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => openDeleteConfirm(rule.id!)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
+                      </PricingTableCell>
+                      <PricingTableCell className="text-center">{rule.priority}</PricingTableCell>
+                      <PricingTableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className={cn('text-xs', getStatusBadgeClasses(rule.is_active ? 'active' : 'inactive'))}
+                        >
+                          {rule.is_active ? t('common.status.active') : t('common.status.inactive')}
+                        </Badge>
+                      </PricingTableCell>
+                      <PricingTableCell className="text-right">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            onClick={() => handleOpenDialog("edit", rule)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => openDeleteConfirm(rule.id!)}
+                          >
+                            <Trash className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </PricingTableCell>
+                    </PricingTableRow>
+                  ))}
+                </TableBody>
+              </PricingResponsiveTable>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
       {/* Add/Edit Rule Dialog */}
       <Dialog open={dialog.open} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-[600px]">

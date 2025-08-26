@@ -27,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash, Check, X, Car, Link as LinkIcon, GripVertical, MoreHorizontal, Search as SearchIcon } from "lucide-react";
 import { useI18n } from "@/lib/i18n/context";
 import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
@@ -56,6 +56,13 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Use the base PricingCategory type - vehicles are managed through junction table
 type CategoryWithVehicles = PricingCategory;
@@ -240,13 +247,25 @@ export default function PricingCategoriesTab() {
 
     let result: CategoryWithVehicles | null = null;
     if (isEditing && currentCategory.id) {
-      // Update existing category
-      const { id, created_at, updated_at, ...updateData } = currentCategory as CategoryWithVehicles;
-      result = await updatePricingCategory(id, updateData);
+      // Update existing category - only send the fields that exist
+      const updateData = {
+        name: currentCategory.name,
+        description: currentCategory.description,
+        sort_order: currentCategory.sort_order,
+        is_active: currentCategory.is_active,
+        service_type_ids: currentCategory.service_type_ids
+      };
+      result = await updatePricingCategory(currentCategory.id, updateData);
     } else {
       // Create new category
-      const { id, created_at, updated_at, ...createData } = currentCategory; // currentCategory is Partial here
-      result = await createPricingCategory(createData as Omit<CategoryWithVehicles, 'id' | 'created_at' | 'updated_at'>);
+      const createData = {
+        name: currentCategory.name!,
+        description: currentCategory.description,
+        sort_order: currentCategory.sort_order || 0,
+        is_active: currentCategory.is_active ?? true,
+        service_type_ids: currentCategory.service_type_ids || []
+      };
+      result = await createPricingCategory(createData);
     }
 
     if (result) {
@@ -468,83 +487,88 @@ export default function PricingCategoriesTab() {
     };
 
     return (
-      <TableRow ref={setNodeRef} style={style} className={cn(isDragging && "bg-muted/50")}>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <div
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/50 rounded"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div>
-              <div className="font-medium">{category.name}</div>
-              <div className="text-sm text-muted-foreground">{category.description}</div>
-            </div>
+      <TableRow ref={setNodeRef} style={style} className={cn(
+        "hover:bg-muted/30 transition-colors",
+        isDragging && "bg-muted/50"
+      )}>
+        <TableCell className="w-12">
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-2 hover:bg-muted/50 rounded transition-colors"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
         </TableCell>
         <TableCell>
-          <Button variant="link" onClick={() => handleOpenLinkDialog(category)} className="px-2 py-1 h-auto">
-            {category.service_type_ids?.length || 0}
+          <div className="space-y-1">
+            <div className="font-semibold text-foreground">{category.name}</div>
+            <div className="text-sm text-muted-foreground">{category.description}</div>
+          </div>
+        </TableCell>
+        <TableCell className="text-center">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => handleOpenLinkDialog(category)} 
+            className="h-8 px-3 hover:bg-primary/10 hover:text-primary transition-colors"
+          >
+            <span className="font-medium">{category.service_type_ids?.length || 0}</span>
+            <span className="text-xs text-muted-foreground ml-1">services</span>
           </Button>
         </TableCell>
-        <TableCell>
+        <TableCell className="text-center">
           <Badge
             variant="outline"
-            className={cn("text-xs", getStatusBadgeClasses(category.is_active ? 'active' : 'inactive'))}
+            className={cn(
+              "text-xs font-medium px-2 py-1",
+              getStatusBadgeClasses(category.is_active ? 'active' : 'inactive')
+            )}
           >
             {category.is_active ? t('common.status.active') : t('common.status.inactive')}
           </Badge>
         </TableCell>
-        <TableCell>{category.sort_order}</TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
+        <TableCell className="text-center">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted/50 text-sm font-medium">
+            {category.sort_order}
+          </div>
+        </TableCell>
+        <TableCell className="text-center">
+          <div className="flex items-center justify-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
-              title="Link Services"
-              onClick={() => handleOpenLinkDialog(category)}
-            >
-              <LinkIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              title={t("common.edit")}
-              onClick={() => handleOpenDialog(category)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              title={category.is_active ? t("common.deactivate") : t("common.activate")}
-              onClick={() => openStatusConfirm(category.id, !category.is_active)}
-            >
-              {category.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive"
-              title={t("common.delete")}
-              onClick={() => openDeleteConfirm(category.id)}
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400 transition-colors"
               title={t('pricing.categories.actions.manageVehicles')}
               onClick={() => handleOpenVehicleDialog(category)}
             >
               <Car className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950/50 dark:hover:text-green-400 transition-colors"
+              title={t('common.edit')}
+              onClick={() => handleOpenDialog(category)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50 transition-colors">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => openDeleteConfirm(category.id)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  {t("common.delete")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </TableCell>
       </TableRow>
@@ -565,12 +589,27 @@ export default function PricingCategoriesTab() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent>
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-0">
           {isLoading ? (
-            <p>{t("common.loading")}</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">{t("common.loading")}</p>
+              </div>
+            </div>
           ) : categories.length === 0 ? (
-            <p>No categories found. Click 'Add New' to create one.</p>
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-4">
+                <Plus className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No categories found</h3>
+              <p className="text-muted-foreground mb-4">Get started by creating your first pricing category.</p>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t("pricing.categories.buttons.addCategory")}
+              </Button>
+            </div>
           ) : (
             <DndContext
               sensors={sensors}
@@ -579,13 +618,13 @@ export default function PricingCategoriesTab() {
             >
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead></TableHead>
-                    <TableHead>{t('common.details')}</TableHead>
-                    <TableHead>{t('pricing.categories.table.services')}</TableHead>
-                    <TableHead>{t('common.status.type')}</TableHead>
-                    <TableHead>{t('common.order')}</TableHead>
-                    <TableHead>{t('common.actions.default')}</TableHead>
+                  <TableRow className="border-b bg-muted/30">
+                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">{t('common.details')}</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground text-center">{t('pricing.categories.table.services')}</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.status.default')}</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.order')}</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground text-center">{t('common.actions.default')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -616,61 +655,105 @@ export default function PricingCategoriesTab() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">{t("pricing.categories.fields.name")}</Label>
-                  <Input
-                    id="name"
-                    value={currentCategory?.name || ""}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder={t("pricing.categories.placeholders.name")}
-                  />
+              <div className="space-y-6 py-4">
+                {/* Basic Information Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {t("pricing.categories.sections.basicInfo")}
+                    </h3>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name" className="text-sm font-medium">
+                        {t("pricing.categories.fields.name")} *
+                      </Label>
+                      <Input
+                        id="name"
+                        value={currentCategory?.name || ""}
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        placeholder={t("pricing.categories.placeholders.name")}
+                        className="h-10"
+                      />
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="description" className="text-sm font-medium">
+                        {t("pricing.categories.fields.descriptionOptional")}
+                      </Label>
+                      <Textarea
+                        id="description"
+                        value={currentCategory?.description || ""}
+                        onChange={(e) => handleInputChange("description", e.target.value)}
+                        placeholder={t("pricing.categories.placeholders.description")}
+                        className="min-h-[80px] resize-none"
+                      />
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="description">{t("pricing.categories.fields.descriptionOptional")}</Label>
-                  <Textarea
-                    id="description"
-                    value={currentCategory?.description || ""}
-                    onChange={(e) => handleInputChange("description", e.target.value)}
-                    placeholder={t("pricing.categories.placeholders.description")}
-                  />
+
+                {/* Settings Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {t("pricing.categories.sections.settings")}
+                    </h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="sort_order" className="text-sm font-medium">
+                        {t("pricing.categories.fields.sortOrder")}
+                      </Label>
+                      <Input
+                        id="sort_order"
+                        type="number"
+                        value={currentCategory?.sort_order || 0}
+                        onChange={(e) => handleInputChange("sort_order", parseInt(e.target.value))}
+                        className="h-10"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 pt-6">
+                      <Switch
+                        id="is_active"
+                        checked={currentCategory?.is_active ?? true}
+                        onCheckedChange={(checked) => handleInputChange("is_active", checked)}
+                      />
+                      <Label htmlFor="is_active" className="text-sm font-medium">
+                        {t("pricing.categories.fields.isActive")}
+                      </Label>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="sort_order">{t("pricing.categories.fields.sortOrder")}</Label>
-                  <Input
-                    id="sort_order"
-                    type="number"
-                    value={currentCategory?.sort_order || 0}
-                    onChange={(e) => handleInputChange("sort_order", parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="is_active"
-                    checked={currentCategory?.is_active ?? true}
-                    onCheckedChange={(checked) => handleInputChange("is_active", checked === true)}
-                  />
-                  <Label htmlFor="is_active">{t("pricing.categories.fields.isActive")}</Label>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label>{t("pricing.categories.fields.serviceTypes")}</Label>
-                  <div className="p-2 border rounded-md grid grid-cols-2 gap-2 h-32 overflow-y-auto">
-                    {allServiceTypes.map(st => (
-                      <div key={st.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`st-${st.id}`}
-                          checked={currentCategory?.service_type_ids?.includes(st.id) || false}
-                          onCheckedChange={(checked) => handleServiceTypeToggle(st.id, !!checked)}
-                        />
-                        <label htmlFor={`st-${st.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                          {st.name}
-                        </label>
-                      </div>
-                    ))}
+
+                {/* Service Types Section */}
+                <div className="space-y-4">
+                  <div className="border-b pb-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {t("pricing.categories.sections.serviceTypes")}
+                    </h3>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-muted/30">
+                    <div className="grid grid-cols-1 gap-3 max-h-40 overflow-y-auto">
+                      {allServiceTypes.map(st => (
+                        <div key={st.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={`st-${st.id}`}
+                            checked={currentCategory?.service_type_ids?.includes(st.id) || false}
+                            onCheckedChange={(checked) => handleServiceTypeToggle(st.id, !!checked)}
+                          />
+                          <label 
+                            htmlFor={`st-${st.id}`} 
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {st.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -803,53 +886,178 @@ export default function PricingCategoriesTab() {
 
           {/* Manage Vehicles Dialog */}
           <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
-            <DialogContent className="max-w-5xl">
+            <DialogContent className="max-w-6xl max-h-[90vh] w-[95vw] max-w-[95vw] xl:max-w-6xl">
               <DialogHeader>
-                <DialogTitle>{t('pricing.categories.vehicleDialog.title', { categoryName: categoryForVehicles?.name || '' })}</DialogTitle>
-                <DialogDescription>{t('pricing.categories.vehicleDialog.description')}</DialogDescription>
+                <DialogTitle className="text-xl font-semibold">
+                  {t('pricing.categories.vehicleDialog.title', { categoryName: categoryForVehicles?.name || '' })}
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  {t('pricing.categories.vehicleDialog.description')}
+                </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[70vh]">
-                <div>
-                  <Label className="text-base font-medium">{t('pricing.categories.vehicleDialog.available')}</Label>
-                  <ScrollArea className="h-[50vh] border rounded-md p-3">
-                    <div className="space-y-2">
+              
+              {/* Search and Filters Section - Above both columns */}
+              <div className="space-y-4 pb-6 border-b">
+                {/* Search Bar */}
+                <div className="relative w-full max-w-md">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search vehicles by name, brand, model, or plate..."
+                    className="pl-10 h-9"
+                    onChange={(e) => {
+                      // Add search functionality here if needed
+                    }}
+                  />
+                </div>
+                
+                {/* Filters Row - Responsive */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                  {/* Brand Filter */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">{t('pricing.categories.vehicleDialog.filters.brand')}</span>
+                    <div className="flex gap-1 flex-wrap">
+                      <Badge 
+                        variant="default" 
+                        className="cursor-pointer text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white border-0"
+                      >
+                        {t('pricing.categories.vehicleDialog.filters.allBrands')}
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer text-xs px-3 py-1.5 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        Mercedes
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer text-xs px-3 py-1.5 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        Toyota
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Year Filter */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <span className="text-sm text-muted-nowrap">{t('pricing.categories.vehicleDialog.filters.year')}</span>
+                    <div className="flex gap-1 flex-wrap">
+                      <Badge 
+                        variant="default" 
+                        className="cursor-pointer text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white border-0"
+                      >
+                        {t('pricing.categories.vehicleDialog.filters.allYears')}
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer text-xs px-3 py-1.5 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        2024
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer text-xs px-3 py-1.5 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        2023
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="cursor-pointer text-xs px-3 py-1.5 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                      >
+                        2021
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Columns - Perfectly Aligned */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-[50vh] lg:h-[60vh]">
+                {/* Available Vehicles Panel */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">{t('pricing.categories.vehicleDialog.available')}</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const allIds = allVehicles.map(v => v.id);
+                        setSelectedVehicleIds(new Set(allIds));
+                      }}
+                      className="text-xs h-7 px-2"
+                    >
+                      {t('pricing.categories.vehicleDialog.selectAll')}
+                    </Button>
+                  </div>
+                  
+                  <ScrollArea className="h-[40vh] lg:h-[45vh] border rounded-lg">
+                    <div className="p-3 space-y-2">
                       {allVehicles.map(v => {
                         const checked = selectedVehicleIds.has(v.id);
                         return (
-                          <div key={v.id} className="flex items-center gap-3 p-2 rounded-lg border hover:bg-muted/50 transition-colors">
-                            <Checkbox checked={checked} onCheckedChange={(val) => {
+                          <div 
+                            key={v.id} 
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer",
+                              checked 
+                                ? "border-primary bg-primary/5 hover:bg-primary/10" 
+                                : "hover:border-primary/50 hover:bg-muted/30"
+                            )}
+                            onClick={() => {
                               setSelectedVehicleIds(prev => {
                                 const set = new Set(prev);
-                                if (val) set.add(v.id); else set.delete(v.id);
+                                if (checked) set.delete(v.id); else set.add(v.id);
                                 return set;
                               });
-                            }} />
+                            }}
+                          >
+                            <Checkbox 
+                              checked={checked} 
+                              onCheckedChange={(val) => {
+                                setSelectedVehicleIds(prev => {
+                                  const set = new Set(prev);
+                                  if (val) set.add(v.id); else set.delete(v.id);
+                                  return set;
+                                });
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            />
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-sm truncate">{v.name || 'Unnamed Vehicle'}</span>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-semibold text-sm truncate">{v.name || 'Unnamed Vehicle'}</span>
                                 {v.status && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-xs",
+                                      getStatusBadgeClasses(v.status === 'active' ? 'active' : 'inactive')
+                                    )}
+                                  >
                                     {v.status}
                                   </Badge>
                                 )}
                               </div>
-                              <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                                <div>
-                                  <span className="font-medium">Brand:</span> {v.brand || v.make || 'N/A'}
+                              <div className="grid grid-cols-2 gap-x-3 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-primary">Brand:</span> 
+                                  <span className="truncate">{v.brand || v.make || 'N/A'}</span>
                                 </div>
-                                <div>
-                                  <span className="font-medium">Model:</span> {v.model || 'N/A'}
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-primary">Model:</span> 
+                                  <span className="truncate">{v.model || 'N/A'}</span>
                                 </div>
-                                <div>
-                                  <span className="font-medium">Year:</span> {v.year || 'N/A'}
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-primary">Year:</span> 
+                                  <span className="truncate">{v.year || 'N/A'}</span>
                                 </div>
-                                <div>
-                                  <span className="font-medium">Plate:</span> {v.plate_number || v.license_plate || 'N/A'}
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-primary">Plate:</span> 
+                                  <span className="truncate">{v.plate_number || v.license_plate || 'N/A'}</span>
                                 </div>
                               </div>
                               {v.mileage && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  <span className="font-medium">Mileage:</span> {v.mileage.toLocaleString()} km
+                                <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                  <span className="font-medium text-primary">Mileage:</span> 
+                                  <span>{v.mileage.toLocaleString()} km</span>
                                 </div>
                               )}
                             </div>
@@ -859,49 +1067,82 @@ export default function PricingCategoriesTab() {
                     </div>
                   </ScrollArea>
                 </div>
-                <div>
-                  <Label className="text-base font-medium">{t('pricing.categories.vehicleDialog.selected')}</Label>
-                  <ScrollArea className="h-[50vh] border rounded-md p-3">
-                    <div className="space-y-2">
+
+                {/* Selected Vehicles Panel */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">
+                      {t('pricing.categories.vehicleDialog.selected')}
+                      <span className="ml-2 text-sm font-normal text-muted-foreground">
+                        ({selectedVehicleIds.size} selected)
+                      </span>
+                    </Label>
+                    {selectedVehicleIds.size > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedVehicleIds(new Set())}
+                        className="text-xs h-7 px-2 text-destructive hover:text-destructive"
+                      >
+                        {t('pricing.categories.vehicleDialog.clearAll')}
+                      </Button>
+                    )}
+                  </div>
+                  
+
+                  
+                  <ScrollArea className="h-[40vh] lg:h-[45vh] border rounded-lg">
+                    <div className="p-3 space-y-2">
                       {[...selectedVehicleIds].map(id => {
                         const v = allVehicles.find(av => av.id === id);
                         if (!v) return null;
                         return (
-                          <div key={id} className="p-3 rounded-lg border bg-muted/30">
-                            <div className="flex items-start justify-between gap-2">
+                          <div key={id} className="p-3 rounded-lg border bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+                            <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <span className="font-medium text-sm">{v.name || 'Unnamed Vehicle'}</span>
+                                  <span className="font-semibold text-sm">{v.name || 'Unnamed Vehicle'}</span>
                                   {v.status && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs",
+                                        getStatusBadgeClasses(v.status === 'active' ? 'active' : 'inactive')
+                                      )}
+                                    >
                                       {v.status}
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                                  <div>
-                                    <span className="font-medium">Brand:</span> {v.brand || v.make || 'N/A'}
+                                <div className="grid grid-cols-2 gap-x-3 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-primary">Brand:</span> 
+                                    <span className="truncate">{v.brand || v.make || 'N/A'}</span>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Model:</span> {v.model || 'N/A'}
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-primary">Model:</span> 
+                                    <span className="truncate">{v.model || 'N/A'}</span>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Year:</span> {v.year || 'N/A'}
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-primary">Year:</span> 
+                                    <span className="truncate">{v.year || 'N/A'}</span>
                                   </div>
-                                  <div>
-                                    <span className="font-medium">Plate:</span> {v.plate_number || v.license_plate || 'N/A'}
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-primary">Plate:</span> 
+                                    <span className="truncate">{v.plate_number || v.license_plate || 'N/A'}</span>
                                   </div>
                                 </div>
                                 {v.mileage && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    <span className="font-medium">Mileage:</span> {v.mileage.toLocaleString()} km
+                                  <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                    <span className="font-medium text-primary">Mileage:</span> 
+                                    <span>{v.mileage.toLocaleString()} km</span>
                                   </div>
                                 )}
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                                 onClick={() => {
                                   setSelectedVehicleIds(prev => {
                                     const set = new Set(prev);
@@ -918,18 +1159,39 @@ export default function PricingCategoriesTab() {
                         );
                       })}
                       {selectedVehicleIds.size === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Car className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">{t('pricing.categories.vehicleDialog.noVehicles')}</p>
+                        <div className="text-center py-12 text-muted-foreground">
+                          <Car className="h-16 w-16 mx-auto mb-3 opacity-40" />
+                          <p className="text-sm font-medium mb-1">{t('pricing.categories.vehicleDialog.noVehiclesSelected')}</p>
+                          <p className="text-xs">{t('pricing.categories.vehicleDialog.selectFromLeft')}</p>
                         </div>
                       )}
                     </div>
                   </ScrollArea>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsVehicleDialogOpen(false)}>{t('common.cancel')}</Button>
-                <Button onClick={handleSaveVehicles}>{t('common.save')}</Button>
+              
+              <DialogFooter className="border-t pt-4 px-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+                  <div className="text-sm text-muted-foreground order-2 sm:order-1">
+                    <span>{t('pricing.categories.vehicleDialog.totalVehicles', { count: selectedVehicleIds.size })}</span>
+                  </div>
+                  <div className="flex items-center gap-3 w-full sm:w-auto order-1 sm:order-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsVehicleDialogOpen(false)}
+                      className="flex-1 sm:flex-none min-h-10"
+                    >
+                      {t('common.cancel')}
+                    </Button>
+                    <Button 
+                      onClick={handleSaveVehicles} 
+                      disabled={selectedVehicleIds.size === 0}
+                      className="flex-1 sm:flex-none min-h-10"
+                    >
+                      {t('common.save')}
+                    </Button>
+                  </div>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>

@@ -14,6 +14,7 @@ export const en: TranslationValue = {
       completed: "Completed",
       scheduled: "Scheduled",
       type: "Type",
+      default: "Status",
       pass: "Pass",
       fail: "Fail",
       pending: "Pending"
@@ -2834,6 +2835,7 @@ export const en: TranslationValue = {
         maxDiscount: "Max discount: {amount}",
         create: "Create Promotion",
         createSuccess: "Promotion created successfully",
+        createSuccessDescription: "The new promotion has been added",
         createError: "Failed to create promotion",
         updateSuccess: "Promotion updated successfully",
         updateSuccessDescription: "The promotion has been updated",
@@ -3365,6 +3367,11 @@ export const en: TranslationValue = {
         isActive: "Active",
         serviceTypes: "Service Types"
       },
+      sections: {
+        basicInfo: "Basic Information",
+        settings: "Settings",
+        serviceTypes: "Service Types"
+      },
       placeholders: {
         name: "Enter category name",
         description: "Enter category description"
@@ -3380,7 +3387,8 @@ export const en: TranslationValue = {
         noSelectedServiceTypes: "No service types selected."
       },
       actions: {
-        manageVehicles: "Manage Vehicles"
+        manageVehicles: "Manage Vehicles",
+        manageServices: "Manage Services"
       },
       vehicleDialog: {
         title: "Manage Vehicles for {categoryName}",
@@ -3388,7 +3396,18 @@ export const en: TranslationValue = {
         available: "Available Vehicles",
         selected: "Selected Vehicles",
         noVehicles: "No vehicles available",
-        save: "Save Vehicles"
+        save: "Save Vehicles",
+        selectAll: "Select All",
+        clearAll: "Clear All",
+        totalVehicles: "Total vehicles in category: {count}",
+        noVehiclesSelected: "No vehicles selected",
+        selectFromLeft: "Select vehicles from the left panel to add them to this category",
+        filters: {
+          brand: "Brand:",
+          year: "Year:",
+          allBrands: "All Brands",
+          allYears: "All Years"
+        }
       },
       vehicleToast: {
         vehiclesUpdated: "Vehicles updated successfully",
@@ -3409,7 +3428,13 @@ export const en: TranslationValue = {
         deleteFailed: "Failed to delete pricing item",
         statusToggleFailed: "Failed to toggle item status",
         deleteSuccess: "Pricing item deleted successfully",
-        statusUpdateSuccess: "Item status updated successfully"
+        deleteError: "Failed to delete pricing item",
+        statusUpdateSuccess: "Item status updated successfully",
+        updateSuccess: "Pricing item updated successfully",
+        updateSuccessTitle: "Pricing Item Updated",
+        updateError: "Failed to update pricing item",
+        createSuccess: "Pricing item created successfully",
+        createError: "Failed to create pricing item"
       },
       errors: {
         categoryRequired: "Category is required for pricing item",
@@ -3547,6 +3572,7 @@ export const en: TranslationValue = {
       description: "Manage promotional codes and discounts",
       create: "Create Promotion",
       createSuccess: "Promotion created successfully",
+      createSuccessDescription: "The new promotion has been added",
       createError: "Failed to create promotion",
       updateSuccess: "Promotion updated successfully",
       updateSuccessDescription: "The promotion has been updated",

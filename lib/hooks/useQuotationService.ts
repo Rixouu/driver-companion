@@ -1327,7 +1327,6 @@ export const useQuotationService = () => {
       const categoriesData = (data || []).map((category: any) => ({
         ...category,
         service_type_ids: (category.service_types || []).map((st: any) => st.service_type_id),
-        vehicle_ids: (category.vehicles || []).map((v: any) => v.vehicle_id),
       })) as PricingCategory[];
 
       pricingCache.categories = categoriesData;

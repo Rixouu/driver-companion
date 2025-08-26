@@ -14,6 +14,7 @@ export const ja: TranslationValue = {
       completed: "完了",
       scheduled: "スケジュール済み",
       type: "タイプ",
+      default: "ステータス",
       pass: "合格",
       fail: "不合格",
       pending: "保留中"
@@ -3289,7 +3290,10 @@ export const ja: TranslationValue = {
         fixServiceTypesError: "サービスタイプの修正に失敗しました",
         nameRequiredError: "カテゴリ名は必須です",
         vehiclesUpdated: "車両が正常に更新されました",
-        vehiclesUpdateError: "車両の更新に失敗しました"
+        vehiclesUpdateError: "車両の更新に失敗しました",
+        orderUpdated: "カテゴリ順序が更新されました",
+        orderUpdatedDescription: "カテゴリ順序が正常に更新されました",
+        orderUpdateError: "カテゴリ順序の更新に失敗しました"
       },
       buttons: {
         fixServiceTypes: "サービスタイプを修正",
@@ -3330,6 +3334,11 @@ export const ja: TranslationValue = {
         isActive: "有効",
         serviceTypes: "サービスタイプ"
       },
+      sections: {
+        basicInfo: "基本情報",
+        settings: "設定",
+        serviceTypes: "サービスタイプ"
+      },
       placeholders: {
         name: "カテゴリ名を入力",
         description: "カテゴリの説明を入力"
@@ -3345,7 +3354,8 @@ export const ja: TranslationValue = {
         noSelectedServiceTypes: "選択されたサービスタイプはありません。"
       },
       actions: {
-        manageVehicles: "車両を管理"
+        manageVehicles: "車両を管理",
+        manageServices: "サービスを管理"
       },
       vehicleDialog: {
         title: "{categoryName}の車両を管理",
@@ -3353,7 +3363,18 @@ export const ja: TranslationValue = {
         available: "利用可能な車両",
         selected: "選択された車両",
         noVehicles: "利用可能な車両がありません",
-        save: "車両を保存"
+        save: "車両を保存",
+        selectAll: "すべて選択",
+        clearAll: "すべてクリア",
+        totalVehicles: "カテゴリ内の車両総数: {count}",
+        noVehiclesSelected: "車両が選択されていません",
+        selectFromLeft: "左パネルから車両を選択してこのカテゴリに追加してください",
+        filters: {
+          brand: "ブランド:",
+          year: "年:",
+          allBrands: "すべてのブランド",
+          allYears: "すべての年"
+        }
       },
       vehicleToast: {
         vehiclesUpdated: "車両が正常に更新されました",
@@ -3364,7 +3385,7 @@ export const ja: TranslationValue = {
     },
     items: {
       title: "価格品目",
-      description: "選択したカテゴリの個々の価格品目を管理します",
+      description: "選択されたカテゴリの個別価格品目を管理します",
       active: "有効",
       inactive: "無効",
       toast: {
@@ -3374,12 +3395,18 @@ export const ja: TranslationValue = {
         deleteFailed: "価格品目の削除に失敗しました",
         statusToggleFailed: "品目ステータスの切り替えに失敗しました",
         deleteSuccess: "価格品目が正常に削除されました",
-        statusUpdateSuccess: "品目ステータスが正常に更新されました"
+        deleteError: "価格品目の削除に失敗しました",
+        statusUpdateSuccess: "品目ステータスが正常に更新されました",
+        updateSuccess: "価格品目が正常に更新されました",
+        updateSuccessTitle: "価格品目が更新されました",
+        updateError: "価格品目の更新に失敗しました",
+        createSuccess: "価格品目が正常に作成されました",
+        createError: "価格品目の作成に失敗しました"
       },
       errors: {
         categoryRequired: "価格品目にはカテゴリが必要です",
         serviceTypeRequired: "価格品目にはサービスタイプが必要です",
-        priceRequired: "価格は必須であり、有効な数値である必要があります"
+        priceRequired: "価格は必須で、有効な数値である必要があります"
       },
       filters: {
         title: "フィルターとアクション",
@@ -3393,16 +3420,16 @@ export const ja: TranslationValue = {
         allDurations: "すべての期間",
         customDuration: "カスタム期間",
         customDurationLabel: "カスタム期間（時間）",
-        customDurationPlaceholder: "時間数を入力"
+        customDurationPlaceholder: "時間を入力"
       },
       buttons: {
         addNew: "新しい価格品目を追加",
         addItemToCategory: "{categoryName}に品目を追加"
       },
       emptyState: {
-        selectCategory: "品目を表示または追加するには、価格カテゴリを選択してください。",
-        selectCategoryPrompt: "その価格品目を管理するには、上のカテゴリを選択してください。",
-        noItemsFound: "選択したカテゴリ/フィルターに価格品目が見つかりません。"
+        selectCategory: "価格品目を表示または追加するには、価格カテゴリを選択してください。",
+        selectCategoryPrompt: "上記でカテゴリを選択して、その価格品目を管理してください。",
+        noItemsFound: "選択されたカテゴリ/フィルターの価格品目が見つかりません。"
       },
       loadingItemsFor: "{categoryName}の価格品目を読み込み中...",
       table: {
@@ -3414,11 +3441,11 @@ export const ja: TranslationValue = {
       dialog: {
         createTitle: "新しい価格品目を作成",
         editTitle: "価格品目を編集",
-        descriptionCreate: "選択したカテゴリに新しい価格品目を追加します。",
+        descriptionCreate: "選択されたカテゴリに新しい価格品目を追加します。",
         descriptionEdit: "この価格品目の詳細を編集します。",
         serviceTypeLabel: "サービスタイプ",
         serviceTypePlaceholder: "サービスタイプを選択",
-        noServiceTypesInCategory: "選択したカテゴリにはサービスタイプがありません。カテゴリを編集して追加してください。",
+        noServiceTypesInCategory: "選択されたカテゴリにはサービスタイプがありません。カテゴリを編集して追加してください。",
         durationLabel: "期間（時間）",
         durationPlaceholder: "期間を選択または入力",
         customDurationLabel: "カスタム期間（時間）",
@@ -3481,7 +3508,7 @@ export const ja: TranslationValue = {
           addRule: "新しいルールを追加"
         },
         emptyState: {
-          noRulesForCategory: "このカテゴリの時間帯ルールは見つかりません。",
+          noRulesForCategory: "このカテゴリの時間帯ルールが見つかりません。",
           selectCategoryOrAddRule: "ルールを表示するにはカテゴリを選択するか、新しいグローバルルールを追加してください。"
         },
         table: {
@@ -3501,7 +3528,7 @@ export const ja: TranslationValue = {
           thursday: "木曜日",
           friday: "金曜日",
           saturday: "土曜日",
-          all: "全曜日",
+          all: "すべての曜日",
           weekdays: "平日",
           weekends: "週末"
         }
@@ -3512,6 +3539,7 @@ export const ja: TranslationValue = {
       description: "プロモーションコードと割引を管理します",
       create: "プロモーションを作成",
       createSuccess: "プロモーションが正常に作成されました",
+      createSuccessDescription: "新しいプロモーションが追加されました",
       createError: "プロモーションの作成に失敗しました",
       updateSuccess: "プロモーションが正常に更新されました",
       updateSuccessDescription: "プロモーションが更新されました",

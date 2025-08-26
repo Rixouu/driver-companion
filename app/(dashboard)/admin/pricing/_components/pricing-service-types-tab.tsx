@@ -119,8 +119,8 @@ export default function PricingServiceTypesTab() {
         console.log('Service types fetched:', data);
         setServiceTypes(data);
 
-        // Skip categories fetch to avoid admin check errors
-        setCategories([]);
+        // Now fetch categories for display
+        await fetchCategories();
       } else {
         console.error('Expected array but got:', data);
         setServiceTypes([]); // Reset to empty array on invalid data
@@ -144,9 +144,45 @@ export default function PricingServiceTypesTab() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      console.log("Fetching categories for display...");
+      const url = `/api/pricing/categories/display`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'default',
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to fetch categories for display:', response.status);
+        setCategories([]);
+        return;
+      }
+      
+      const data: PricingCategory[] = await response.json();
+      
+      if (Array.isArray(data)) {
+        console.log('Categories fetched for display:', data);
+        setCategories(data);
+      } else {
+        console.warn('Invalid categories data format:', data);
+        setCategories([]);
+      }
+    } catch (error) {
+      console.warn('Error fetching categories for display:', error);
+      setCategories([]);
+      // Don't show error toast for categories - it's not critical
+    }
+  };
+
   const refreshServiceTypes = () => {
     setIsRefreshing(true);
     fetchServiceTypes();
+  };
+
+  const refreshCategories = () => {
+    fetchCategories();
   };
 
   const openAddDialog = () => {
@@ -262,19 +298,28 @@ export default function PricingServiceTypesTab() {
 
   const getCategoryDescription = (serviceTypeId: string): string => {
     if (categories.length === 0) {
-      return 'Category info unavailable';
+      return 'Loading categories...';
     }
     const cat = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceTypeId));
-    return cat?.description || cat?.name || 'No category assigned';
+    if (cat) {
+      return cat.description || cat.name;
+    }
+    return 'No category assigned';
   };
 
   const getCategoryDescriptionWithStatus = (serviceTypeId: string): { text: string; isLoading: boolean } => {
     if (categories.length === 0) {
-      return { text: 'Category info unavailable', isLoading: false };
+      return { text: 'Loading categories...', isLoading: true };
     }
     const cat = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceTypeId));
+    if (cat) {
+      return { 
+        text: cat.description || cat.name,
+        isLoading: false
+      };
+    }
     return { 
-      text: cat?.description || cat?.name || 'No category assigned',
+      text: 'No category assigned',
       isLoading: false
     };
   };
@@ -290,6 +335,9 @@ export default function PricingServiceTypesTab() {
             {!isLoading && serviceTypes.length > 0 && (
               <StatusBadge type="info">⚡ {serviceTypes.length} types loaded</StatusBadge>
             )}
+            {!isLoading && categories.length > 0 && (
+              <StatusBadge type="success">📁 {categories.length} categories</StatusBadge>
+            )}
           </>
         }
         actions={
@@ -297,7 +345,10 @@ export default function PricingServiceTypesTab() {
             <Button 
               variant="outline"
               size="sm"
-              onClick={refreshServiceTypes}
+              onClick={() => {
+                refreshServiceTypes();
+                refreshCategories();
+              }}
               disabled={isLoading || isRefreshing}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -366,8 +417,32 @@ export default function PricingServiceTypesTab() {
                     </div>
                   </PricingTableCell>
                   <PricingTableCell>
-                    <div className="text-sm text-muted-foreground">
-                      {getCategoryDescription(serviceType.id)}
+                    <div className="space-y-1">
+                      {(() => {
+                        const category = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceType.id));
+                        if (categories.length === 0) {
+                          return (
+                            <div className="text-sm text-muted-foreground">
+                              <div className="animate-pulse bg-muted h-4 w-24 rounded"></div>
+                            </div>
+                          );
+                        }
+                        if (category) {
+                          return (
+                            <div>
+                              <div className="font-medium text-foreground">{category.name}</div>
+                              {category.description && (
+                                <div className="text-xs text-muted-foreground">{category.description}</div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="text-sm text-muted-foreground">
+                            No category assigned
+                          </div>
+                        );
+                      })()}
                     </div>
                   </PricingTableCell>
                   <PricingTableCell>

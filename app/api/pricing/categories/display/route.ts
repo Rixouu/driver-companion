@@ -27,7 +27,11 @@ export async function GET(req: NextRequest) {
       throw new DatabaseError('Error fetching pricing categories.', { cause: queryError });
     }
 
-    return NextResponse.json(data);
+    // Add caching headers for better performance
+    const response = NextResponse.json(data);
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
+    
+    return response;
   } catch (error) {
     console.error('Error handling GET request for pricing categories display:', error);
     if (error instanceof AppError) {

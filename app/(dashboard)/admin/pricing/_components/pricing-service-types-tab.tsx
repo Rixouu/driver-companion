@@ -94,54 +94,77 @@ export default function PricingServiceTypesTab() {
     fetchServiceTypes();
   }, []);
 
-  const fetchServiceTypes = async () => {
+  const fetchData = async () => {
     // Determine if this is the initial load or a subsequent refresh
     if (!isRefreshing) setIsLoading(true);
 
-    console.log("Fetching service types...");
+    console.log("Fetching data in parallel...");
     try {
-      const url = `/api/pricing/service-types`;
-      console.log(`Fetching from URL: ${url}`);
+      // Fetch both service types and categories in parallel for faster loading
+      const [serviceTypesResponse, categoriesResponse] = await Promise.all([
+        fetch('/api/pricing/service-types', {
+          method: 'GET',
+          cache: 'default',
+        }),
+        fetch('/api/pricing/categories/display', {
+          method: 'GET',
+          cache: 'default',
+        })
+      ]);
 
-      const response = await fetch(url, {
-        method: 'GET',
-        cache: 'default',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: `HTTP error ${response.status}`}));
-        throw new Error(errorData.error || `Failed to fetch service types: ${response.statusText}`);
+      // Handle service types response
+      if (!serviceTypesResponse.ok) {
+        const errorData = await serviceTypesResponse.json().catch(() => ({ error: `HTTP error ${serviceTypesResponse.status}`}));
+        throw new Error(errorData.error || `Failed to fetch service types: ${serviceTypesResponse.statusText}`);
       }
       
-      const data: ServiceType[] = await response.json();
+      const serviceTypesData: ServiceType[] = await serviceTypesResponse.json();
       
-      if (Array.isArray(data)) {
-        console.log('Service types fetched:', data);
-        setServiceTypes(data);
-
-        // Now fetch categories for display
-        await fetchCategories();
+      if (Array.isArray(serviceTypesData)) {
+        console.log('Service types fetched:', serviceTypesData);
+        setServiceTypes(serviceTypesData);
       } else {
-        console.error('Expected array but got:', data);
-        setServiceTypes([]); // Reset to empty array on invalid data
+        console.error('Expected array but got:', serviceTypesData);
+        setServiceTypes([]);
         toast({
           title: 'Error',
           description: 'Received invalid data format from server.',
           variant: 'destructive',
         });
       }
+
+      // Handle categories response
+      if (categoriesResponse.ok) {
+        const categoriesData: PricingCategory[] = await categoriesResponse.json();
+        if (Array.isArray(categoriesData)) {
+          console.log('Categories fetched for display:', categoriesData);
+          setCategories(categoriesData);
+        } else {
+          console.warn('Invalid categories data format:', categoriesData);
+          setCategories([]);
+        }
+      } else {
+        console.warn('Failed to fetch categories for display:', categoriesResponse.status);
+        setCategories([]);
+      }
+
     } catch (error) {
-      console.error('Error fetching service types:', error);
-      setServiceTypes([]); // Reset to empty array on error
+      console.error('Error fetching data:', error);
+      setServiceTypes([]);
+      setCategories([]);
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to load service types.',
+        description: error instanceof Error ? error.message : 'Failed to load data.',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  const fetchServiceTypes = async () => {
+    await fetchData();
   };
 
   const fetchCategories = async () => {
@@ -335,9 +358,11 @@ export default function PricingServiceTypesTab() {
             {!isLoading && serviceTypes.length > 0 && (
               <StatusBadge type="info">⚡ {serviceTypes.length} types loaded</StatusBadge>
             )}
-            {!isLoading && categories.length > 0 && (
+            {categories.length > 0 ? (
               <StatusBadge type="success">📁 {categories.length} categories</StatusBadge>
-            )}
+            ) : !isLoading ? (
+              <StatusBadge type="warning">📁 Loading categories...</StatusBadge>
+            ) : null}
           </>
         }
         actions={
@@ -346,8 +371,8 @@ export default function PricingServiceTypesTab() {
               variant="outline"
               size="sm"
               onClick={() => {
-                refreshServiceTypes();
-                refreshCategories();
+                setIsRefreshing(true);
+                fetchData(); // Use the optimized parallel fetch
               }}
               disabled={isLoading || isRefreshing}
             >
@@ -406,12 +431,12 @@ export default function PricingServiceTypesTab() {
               {serviceTypes.map((serviceType, index) => (
                 <PricingTableRow key={serviceType.id} index={index}>
                   <PricingTableCell>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-primary"></div>
-                      <div>
-                        <div className="font-medium text-foreground">{serviceType.name}</div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-foreground text-sm sm:text-base">{serviceType.name}</div>
                         {serviceType.description && (
-                          <div className="text-sm text-muted-foreground mt-1">{serviceType.description}</div>
+                          <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{serviceType.description}</div>
                         )}
                       </div>
                     </div>
@@ -419,27 +444,43 @@ export default function PricingServiceTypesTab() {
                   <PricingTableCell>
                     <div className="space-y-1">
                       {(() => {
-                        const category = categories.find(c => Array.isArray(c.service_type_ids) && c.service_type_ids.includes(serviceType.id));
                         if (categories.length === 0) {
                           return (
                             <div className="text-sm text-muted-foreground">
                               <div className="animate-pulse bg-muted h-4 w-24 rounded"></div>
+                              <div className="animate-pulse bg-muted h-3 w-32 rounded mt-1"></div>
                             </div>
                           );
                         }
-                        if (category) {
+                        
+                        // Find ALL categories that this service type is linked to
+                        const linkedCategories = categories.filter(c => 
+                          Array.isArray(c.service_type_ids) && 
+                          c.service_type_ids.includes(serviceType.id)
+                        );
+                        
+                        if (linkedCategories.length === 0) {
                           return (
-                            <div>
-                              <div className="font-medium text-foreground">{category.name}</div>
-                              {category.description && (
-                                <div className="text-xs text-muted-foreground">{category.description}</div>
-                              )}
+                            <div className="text-sm text-muted-foreground">
+                              No category assigned
                             </div>
                           );
                         }
+                        
+                        // Show all linked categories
                         return (
-                          <div className="text-sm text-muted-foreground">
-                            No category assigned
+                          <div className="space-y-1">
+                            {linkedCategories.map((category, idx) => (
+                              <div key={category.id} className="flex items-start gap-2">
+                                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium text-foreground text-sm sm:text-base">{category.name}</div>
+                                  {category.description && (
+                                    <div className="text-xs text-muted-foreground line-clamp-2">{category.description}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         );
                       })()}

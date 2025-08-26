@@ -77,7 +77,23 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const [allInspectionsWithVehicles, setAllInspectionsWithVehicles] = useState<ExtendedInspection[]>([])
   const [filteredInspections, setFilteredInspections] = useState<ExtendedInspection[]>([])
   const [calendarView, setCalendarView] = useState<CalendarView>("month")
-  const [currentDate, setCurrentDate] = useState(startOfDay(new Date()))
+  const [currentDate, setCurrentDate] = useState(() => {
+    // Get today's date in local timezone, avoiding any UTC conversion
+    const today = new Date()
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
+    const todayLocal = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate())
+    
+    console.log('📅 [INSPECTION_LIST] Component initialized with date:', {
+      original: today.toISOString(),
+      localDate: localDate.toISOString(),
+      todayLocal: todayLocal.toISOString(),
+      dayOfWeek: format(todayLocal, 'EEEE'),
+      month: format(todayLocal, 'MMMM'),
+      year: format(todayLocal, 'yyyy'),
+      fullDate: todayLocal.toString()
+    })
+    return todayLocal
+  })
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [sidebarPage, setSidebarPage] = useState(1)
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar")
@@ -208,12 +224,9 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
       setInspectionsWithVehicles(sortedInspections);
       setFilteredInspections(sortedInspections); // Initialize filtered data with all data
       
-      // Set calendar to show the month with the most recent inspection
-      if (sortedInspections.length > 0) {
-        const mostRecentDate = new Date(sortedInspections[0].date);
-        setCurrentDate(mostRecentDate);
-        console.log('📅 [INSPECTION_LIST] Setting calendar to inspection date:', mostRecentDate.toISOString());
-      }
+      // Keep calendar showing current month - don't override with inspection dates
+      // The calendar should always start with the current month for better UX
+      console.log('📅 [INSPECTION_LIST] Calendar initialized with current date:', currentDate.toISOString());
     } catch (error) {
       console.error('Error transforming inspection data:', error);
       setInspectionsWithVehicles(inspections as any);
@@ -295,10 +308,10 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
     if (viewMode === "calendar") {
       const rangeStart = calendarView === "month" 
         ? startOfMonth(currentDate) 
-        : startOfWeek(currentDate, { weekStartsOn: 1 })
+        : startOfWeek(currentDate)
       const rangeEnd = calendarView === "month" 
         ? endOfMonth(currentDate) 
-        : endOfWeek(currentDate, { weekStartsOn: 1 })
+        : endOfWeek(currentDate)
       
       console.log('📅 [INSPECTION_LIST] Calendar date range:', {
         rangeStart: rangeStart.toISOString(),
@@ -328,8 +341,8 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
           })
           break
         case 'week':
-          const startOfThisWeek = startOfWeek(now, { weekStartsOn: 1 })
-          const endOfThisWeek = endOfWeek(now, { weekStartsOn: 1 })
+          const startOfThisWeek = startOfWeek(now)
+          const endOfThisWeek = endOfWeek(now)
           filteredData = filteredData.filter(inspection => {
             const inspectionDate = new Date(inspection.date)
             return inspectionDate >= startOfThisWeek && inspectionDate <= endOfThisWeek
@@ -388,8 +401,8 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
       // Weekly completed filter
       if (weeklyCompletedFilter) {
         const inspectionDate = parseISO(inspection.date)
-        const startOfThisWeek = startOfWeek(new Date(), { weekStartsOn: 1 })
-        const endOfThisWeek = endOfWeek(new Date(), { weekStartsOn: 1 })
+        const startOfThisWeek = startOfWeek(new Date())
+        const endOfThisWeek = endOfWeek(new Date())
         const isInWeek = isValid(inspectionDate) &&
           inspectionDate >= startOfThisWeek &&
           inspectionDate <= endOfThisWeek
@@ -553,31 +566,54 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
 
   // Get calendar dates based on view
   const calendarDates = useMemo(() => {
-    // Ensure currentDate is properly set to start of day to avoid timezone issues
-    const normalizedCurrentDate = startOfDay(currentDate)
-    
     // Debug: Log current date info
     console.log('📅 [CALENDAR] Current date info:', {
       original: currentDate.toISOString(),
-      normalized: normalizedCurrentDate.toISOString(),
-      dayOfWeek: format(normalizedCurrentDate, 'EEEE'),
-      view: calendarView
+      dayOfWeek: format(currentDate, 'EEEE'),
+      month: format(currentDate, 'MMMM'),
+      year: format(currentDate, 'yyyy'),
+      view: calendarView,
+      fullDate: currentDate.toString(),
+      // Test: What should today actually be?
+      expectedToday: new Date().toDateString(),
+      currentDateString: currentDate.toDateString()
     });
+    
+    let startDate, endDate;
     
     switch (calendarView) {
       case "month":
-        return eachDayOfInterval({
-          start: startOfMonth(normalizedCurrentDate),
-          end: endOfMonth(normalizedCurrentDate)
+        // For month view, start from the beginning of the week containing the first day of the month
+        // and end at the end of the week containing the last day of the month
+        startDate = startOfWeek(startOfMonth(currentDate))
+        endDate = endOfWeek(endOfMonth(currentDate))
+        console.log('📅 [CALENDAR] Month view dates:', {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          startDay: format(startDate, 'EEEE, MMMM d, yyyy'),
+          endDay: format(endDate, 'EEEE, MMMM d, yyyy'),
+          monthStart: format(startOfMonth(currentDate), 'EEEE, MMMM d, yyyy'),
+          monthEnd: format(endOfMonth(currentDate), 'EEEE, MMMM d, yyyy')
         })
+        break
       case "week":
-        return eachDayOfInterval({
-          start: startOfWeek(normalizedCurrentDate),
-          end: endOfWeek(normalizedCurrentDate)
+        startDate = startOfWeek(currentDate)
+        endDate = endOfWeek(currentDate)
+        console.log('📅 [CALENDAR] Week view dates:', {
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          startDay: format(startDate, 'EEEE, MMMM d, yyyy'),
+          endDay: format(endDate, 'EEEE, MMMM d, yyyy')
         })
+        break
       default:
         return []
     }
+    
+    const dates = eachDayOfInterval({ start: startDate, end: endDate })
+    console.log('📅 [CALENDAR] Generated dates count:', dates.length, 'First date:', format(dates[0], 'EEEE, MMMM d, yyyy'))
+    
+    return dates
   }, [calendarView, currentDate])
 
   // Get inspections for a specific date (limited for performance)
@@ -619,10 +655,12 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const navigatePrevious = () => {
     switch (calendarView) {
       case "month":
-        setCurrentDate(startOfDay(subMonths(currentDate, 1)))
+        const prevMonth = subMonths(currentDate, 1)
+        setCurrentDate(new Date(prevMonth.getFullYear(), prevMonth.getMonth(), prevMonth.getDate()))
         break
       case "week":
-        setCurrentDate(startOfDay(subWeeks(currentDate, 1)))
+        const prevWeek = subWeeks(currentDate, 1)
+        setCurrentDate(new Date(prevWeek.getFullYear(), prevWeek.getMonth(), prevWeek.getDate()))
         break
     }
   }
@@ -630,30 +668,42 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const navigateNext = () => {
     switch (calendarView) {
       case "month":
-        setCurrentDate(startOfDay(addMonths(currentDate, 1)))
+        const nextMonth = addMonths(currentDate, 1)
+        setCurrentDate(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonth.getDate()))
         break
       case "week":
-        setCurrentDate(startOfDay(addWeeks(currentDate, 1)))
+        const nextWeek = addWeeks(currentDate, 1)
+        setCurrentDate(new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate()))
         break
     }
   }
 
   const goToToday = () => {
-    // Ensure we set the date to start of day to avoid timezone issues
-    setCurrentDate(startOfDay(new Date()))
+    // Get today's date in local timezone, avoiding any UTC conversion
+    const today = new Date()
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
+    const todayLocal = new Date(localDate.getFullYear(), localDate.getMonth(), localDate.getDate())
+    
+    console.log('📅 [INSPECTION_LIST] Going to today:', {
+      original: today.toISOString(),
+      localDate: localDate.toISOString(),
+      todayLocal: todayLocal.toISOString(),
+      dayOfWeek: format(todayLocal, 'EEEE'),
+      month: format(todayLocal, 'MMMM'),
+      year: format(todayLocal, 'yyyy'),
+      fullDate: todayLocal.toString()
+    })
+    setCurrentDate(todayLocal)
   }
 
   // Get calendar title
   const getCalendarTitle = () => {
-    // Ensure currentDate is properly set to start of day to avoid timezone issues
-    const normalizedCurrentDate = startOfDay(currentDate)
-    
     switch (calendarView) {
       case "month":
-        return format(normalizedCurrentDate, "MMMM yyyy")
+        return format(currentDate, "MMMM yyyy")
       case "week":
-        const weekStart = startOfWeek(normalizedCurrentDate)
-        const weekEnd = endOfWeek(normalizedCurrentDate)
+        const weekStart = startOfWeek(currentDate)
+        const weekEnd = endOfWeek(currentDate)
         return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`
       default:
         return ""
@@ -708,11 +758,14 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
     const isSelected = selectedDate && isSameDay(date, selectedDate)
     const inspectionCount = dayInspections.length
 
-    // Debug: Log calendar day data
-    if (date.getDate() === 1) { // Only log for first day to avoid spam
+    // Debug: Log calendar day data for first few days
+    if (date.getDate() <= 3) { // Log first 3 days to see the pattern
       console.log('📅 [CALENDAR_DAY] Rendering day:', {
         date: date.toISOString(),
         dayOfWeek: format(date, 'EEEE'),
+        dayNumber: date.getDate(),
+        month: format(date, 'MMMM'),
+        year: date.getFullYear(),
         inspectionCount,
         dayInspections: dayInspections.map(i => ({ id: i.id, vehicle: i.vehicle?.name, status: i.status }))
       });
@@ -1015,15 +1068,15 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
       {/* Page Header */}
       <div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t("inspections.title")}</h1>
-            <p className="text-muted-foreground">{t("inspections.description")}</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="text-left sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("inspections.title")}</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">{t("inspections.description")}</p>
           </div>
-          <Button asChild>
+          <Button asChild size="sm" className="w-full sm:w-auto sm:text-base">
             <Link href="/inspections/create">
               <Plus className="h-4 w-4 mr-2" />
               {t("inspections.create")}
@@ -1032,15 +1085,15 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         </div>
 
         {/* Collapsible Search and Filters */}
-        <div className="border rounded-lg mb-6">
+        <div className="border rounded-lg mb-4 sm:mb-6">
           <Button
             variant="ghost"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="w-full justify-between p-4 rounded-none border-b-0"
+            className="w-full justify-between p-3 sm:p-4 rounded-none border-b-0"
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="font-medium">Filters & Search</span>
+              <span className="text-sm sm:text-base font-medium">Filters & Search</span>
             </div>
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -1059,8 +1112,8 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
         </div>
 
         {/* View Mode Toggle and Results Summary - Better Spacing */}
-        <div className="flex items-center justify-between mb-6 mt-8">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 mt-6 sm:mt-8">
+          <div className="text-sm text-muted-foreground text-center sm:text-left">
             Showing {filteredInspections.length} of {inspectionsWithVehicles.length} total inspections
             {weeklyCompletedFilter && (
               <span className="ml-2 text-green-600 dark:text-green-400">
@@ -1069,10 +1122,10 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
             )}
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             {/* Active Filters Display */}
             {(filters.searchQuery || filters.statusFilter !== 'all' || weeklyCompletedFilter) && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 {weeklyCompletedFilter && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
                     Weekly Completed Only
@@ -1110,7 +1163,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon
           return (
@@ -1125,19 +1178,19 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
               }}
               onClick={() => handleQuickStatClick(stat.action)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className={cn("p-3 rounded-xl transition-transform group-hover:scale-110 flex-shrink-0", stat.bgColor)}>
-                    <Icon className={cn("h-6 w-6", stat.color)} />
+              <CardContent className="p-3 sm:p-5 lg:p-6">
+                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-2 sm:gap-4">
+                  <div className={cn("p-2 sm:p-3 rounded-xl transition-transform group-hover:scale-110 flex-shrink-0", stat.bgColor)}>
+                    <Icon className={cn("h-4 w-4 sm:h-6 sm:w-6", stat.color)} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-tight mb-2">
+                  <div className="flex-1 min-w-0 text-center sm:text-left">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors leading-tight mb-1 sm:mb-2">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-foreground group-hover:text-foreground transition-colors">
+                    <p className="text-lg sm:text-2xl font-bold text-foreground group-hover:text-foreground transition-colors">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors mt-1">
+                    <p className="text-xs text-muted-foreground group-hover:text-foreground transition-colors mt-1 hidden sm:block">
                       {stat.description}
                     </p>
                   </div>
@@ -1180,19 +1233,21 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
                     </div>
                   </div>
                 </div>
-                <div className="text-lg font-semibold">{getCalendarTitle()}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-semibold">{getCalendarTitle()}</div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-7 gap-0 border border-border rounded-lg overflow-hidden">
-                  {/* Week headers */}
+                  {/* Week headers - Start from Sunday to match calendar generation */}
                   {[
+                    t("calendar.weekdays.sun"),
                     t("calendar.weekdays.mon"),
                     t("calendar.weekdays.tue"), 
                     t("calendar.weekdays.wed"),
                     t("calendar.weekdays.thu"),
                     t("calendar.weekdays.fri"),
-                    t("calendar.weekdays.sat"),
-                    t("calendar.weekdays.sun")
+                    t("calendar.weekdays.sat")
                   ].map((day, index) => (
                     <div key={index} className="p-3 text-center font-medium bg-muted text-sm">
                       {day}

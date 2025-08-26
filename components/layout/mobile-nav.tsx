@@ -165,9 +165,9 @@ export function MobileNav() {
 
   return (
     <>
-      {/* Mobile bottom navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
-        <div className="flex justify-around h-16">
+      {/* Bottom navigation - visible on mobile/tablet, hidden on xl screens */}
+      <div className="xl:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
+        <div className="flex justify-around h-16 md:h-20">
           {mainGroups.map((group) => {
             const isActive = activeGroup === group.id;
             const Icon = group.icon;
@@ -194,14 +194,14 @@ export function MobileNav() {
                 {!group.hasSubmenu && group.href ? (
                   <SafeLink href={group.href} className="flex flex-col items-center">
                     <div className="relative">
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
-                    <span className="text-[10px] mt-1">{group.title}</span>
+                    <span className="text-[10px] md:text-xs mt-1">{group.title}</span>
                   </SafeLink>
                 ) : (
                   <span className="flex flex-col items-center">
                     <div className="relative">
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5 md:h-6 md:w-6" />
                       {group.hasSubmenu && (
                         <div className={cn(
                           "absolute -top-1 -right-1.5 w-2 h-2 rounded-full",
@@ -209,7 +209,7 @@ export function MobileNav() {
                         )} />
                       )}
                     </div>
-                    <span className="text-[10px] mt-1">{group.title}</span>
+                    <span className="text-[10px] md:text-xs mt-1">{group.title}</span>
                   </span>
                 )}
                 

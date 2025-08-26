@@ -354,9 +354,11 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   const calendarDates = useMemo(() => {
     switch (calendarView) {
       case "month":
+        // For month view, start from the beginning of the week containing the first day of the month
+        // and end at the end of the week containing the last day of the month
         return eachDayOfInterval({
-          start: startOfMonth(currentDate),
-          end: endOfMonth(currentDate)
+          start: startOfWeek(startOfMonth(currentDate)),
+          end: endOfWeek(endOfMonth(currentDate))
         })
       case "week":
         return eachDayOfInterval({
@@ -726,16 +728,16 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   )
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
       {/* Page Header */}
       <div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Sales Calendar</h1>
-            <p className="text-muted-foreground">Track quotations and bookings in one unified view</p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="text-left sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Sales Calendar</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Track quotations and bookings in one unified view</p>
           </div>
-          <div className="flex gap-2">
-            <Button asChild>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button asChild size="sm" className="w-full sm:w-auto sm:text-base">
               <Link href="/quotations/create">
                 <Plus className="mr-2 h-4 w-4" />
                 New Quotation
@@ -745,15 +747,15 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         </div>
 
         {/* Collapsible Search and Filters */}
-        <div className="border rounded-lg mb-6">
+        <div className="border rounded-lg mb-4 sm:mb-6">
           <Button
             variant="ghost"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="w-full justify-between p-4 rounded-none border-b-0"
+            className="w-full justify-between p-3 sm:p-4 rounded-none border-b-0"
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="font-medium">Filters & Search</span>
+              <span className="text-sm sm:text-base font-medium">Filters & Search</span>
             </div>
             <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -773,8 +775,8 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         </div>
 
         {/* View Mode Toggle and Results Summary - Better Spacing */}
-        <div className="flex items-center justify-between mb-6 mt-8">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 mt-6 sm:mt-8">
+          <div className="text-sm text-muted-foreground text-center sm:text-left">
             Showing {filteredEvents.length} of {salesEvents.length} total events
             {weeklyRevenueFilter && (
               <span className="ml-2 text-green-600 dark:text-green-400">
@@ -783,10 +785,10 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
             )}
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             {/* Active Filters Display */}
             {(filters.searchQuery || filters.statusFilter !== 'all' || filters.typeFilter !== 'all' || weeklyRevenueFilter) && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 {weeklyRevenueFilter && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
                     Weekly Revenue Only
@@ -824,7 +826,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
       </div>
 
       {/* Enhanced Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
         {quickStats.map((stat, index) => {
           const Icon = stat.icon
           return (
@@ -839,19 +841,19 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
               }}
               onClick={() => handleQuickStatClick(stat.action)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-lg transition-transform group-hover:scale-110", stat.bgColor)}>
-                    <Icon className={cn("h-6 w-6", stat.color)} />
+              <CardContent className="p-3 sm:p-5 lg:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className={cn("p-2 sm:p-3 rounded-lg transition-transform group-hover:scale-110 flex-shrink-0 self-center sm:self-start", stat.bgColor)}>
+                    <Icon className={cn("h-4 w-4 sm:h-6 sm:w-6", stat.color)} />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="text-xs sm:text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                       {stat.title}
                     </p>
-                    <p className={cn("text-2xl font-bold transition-colors", stat.color)}>
+                    <p className={cn("text-lg sm:text-2xl font-bold transition-colors", stat.color)}>
                       {stat.value}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                       {stat.description}
                     </p>
                   </div>
@@ -898,15 +900,15 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-7 gap-0 border border-border rounded-lg overflow-hidden">
-                  {/* Week headers */}
+                  {/* Week headers - Start from Sunday to match calendar generation */}
                   {[
+                    t("calendar.weekdays.sun"),
                     t("calendar.weekdays.mon"),
                     t("calendar.weekdays.tue"), 
                     t("calendar.weekdays.wed"),
                     t("calendar.weekdays.thu"),
                     t("calendar.weekdays.fri"),
-                    t("calendar.weekdays.sat"),
-                    t("calendar.weekdays.sun")
+                    t("calendar.weekdays.sat")
                   ].map((day, index) => (
                     <div key={index} className="p-3 text-center font-medium bg-muted text-sm">
                       {day}

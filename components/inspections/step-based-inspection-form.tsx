@@ -112,6 +112,9 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
     console.log(`[INSPECTION_FORM] Component mounted. Vehicle ID: ${vehicleId}, Inspection ID: ${inspectionId}`);
     return () => {
       console.log(`[INSPECTION_FORM] Component unmounting`);
+      // Reset flags on unmount
+      autoTemplateToastShownRef.current = false;
+      isAutoStartingRef.current = false;
     };
   }, []);
   
@@ -143,7 +146,8 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   const vehiclesPerPage = 10;
   
   // Prevent duplicate toast notifications when auto-selecting templates
-  const [autoTemplateToastShown, setAutoTemplateToastShown] = useState(false);
+  const autoTemplateToastShownRef = useRef(false);
+  const isAutoStartingRef = useRef(false);
   
   // Helpers for brand normalization (avoid duplicates like 'Toyota' vs 'toyota')
   const normalizeBrand = (b?: string | null) => (b || '').trim().toLowerCase();
@@ -358,6 +362,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
   // NEW: Load available templates based on vehicle assignments
   useEffect(() => {
     if (selectedVehicle) {
+      // Reset flags when vehicle changes
+      autoTemplateToastShownRef.current = false;
+      isAutoStartingRef.current = false;
+      
       const loadAvailableTemplates = async () => {
         try {
           const supabaseClient = createClient();
@@ -401,7 +409,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
 
           // If only one template type is available, auto-select it and skip type selection
           if (availableTypes.length === 1) {
-            const alreadyNotified = autoTemplateToastShown;
+            const alreadyNotified = autoTemplateToastShownRef.current;
             const autoType = availableTypes[0] as InspectionType;
 
             console.log(`[VEHICLE_TEMPLATE_ASSIGNMENT] Auto-selecting template type: ${autoType}`);
@@ -431,7 +439,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
                 title: "Template Auto-Selected",
                 description: `Using ${autoType} inspection template for this vehicle`
               });
-              setAutoTemplateToastShown(true);
+              autoTemplateToastShownRef.current = true;
             }
           } else if (availableTypes.length === 0) {
             // No specific templates assigned, show all types as fallback
@@ -460,20 +468,22 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       // No vehicle selected, reset available types
       setAvailableTemplateTypes([]);
     }
-  }, [selectedVehicle, methods, currentStepIndex, toast]);
+  }, [selectedVehicle, methods, currentStepIndex]);
   
   // Automatically start the inspection when exactly ONE template is available
   // for the selected vehicle. This matches the expected UX: select vehicle →
-  // Next → form loads immediately without asking for the type.
+  // Next → form loads immediately without asking the type.
   useEffect(() => {
     if (
       currentStepIndex === 0 && // On the type-selection step
       !inspectionId &&          // Creating a new inspection
       selectedVehicle &&
       availableTemplateTypes.length === 1 &&
-      !isSubmitting
+      !isSubmitting &&
+      !isAutoStartingRef.current
     ) {
       // Start automatically – no further input required
+      isAutoStartingRef.current = true;
       handleStartInspection();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -562,7 +572,7 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         const { data: driverData, error: driverError } = await supabaseClient
           .from('drivers')
           .select('id')
-          .eq('email', user.email)
+          .eq('email', user.email!)
           .single()
 
         if (driverError || !driverData) {
@@ -574,12 +584,14 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
           return;
         }
 
-        // Show confirmation toast with driver info
-        toast({
-          title: "Driver Confirmed",
-          description: `Inspection will be performed by: ${user.email}`,
-          variant: "default",
-        });
+        // Show confirmation toast with driver info (only if not auto-starting)
+        if (!isAutoStartingRef.current) {
+          toast({
+            title: "Driver Confirmed",
+            description: `Inspection will be performed by: ${user.email}`,
+            variant: "default",
+          });
+        }
 
         const { data: newInspection, error } = await supabaseClient
           .from("inspections")
@@ -602,7 +614,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
         console.log(
           `[INSPECTION_CREATE] New inspection created (ID: ${newInspection.id}). Redirecting to perform page.`
         )
-        toast({ title: "Inspection Created", description: "Starting..." })
+        // Only show toast if not auto-starting (to avoid duplicate notifications)
+        if (!isAutoStartingRef.current) {
+          toast({ title: "Inspection Created", description: "Starting..." })
+        }
         router.push(`/inspections/${newInspection.id}/perform`)
         return
       } catch (error: any) {
@@ -1110,6 +1125,10 @@ export function StepBasedInspectionForm({ inspectionId, vehicleId, bookingId, ve
       }
 
       toast({ title: t("inspections.messages.submitSuccessTitle"), description: t("inspections.messages.submitSuccessDescription") });
+      
+      // Reset auto-start flags after successful completion
+      isAutoStartingRef.current = false;
+      autoTemplateToastShownRef.current = false;
       
       if (isEditMode) {
         router.push('/inspections'); // Navigate to list page after edit

@@ -55,20 +55,20 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Sidebar - hidden on mobile, visible on lg screens */}
-      <div className="hidden lg:block">
+      {/* Sidebar - hidden on mobile/tablet, visible on xl screens (1280px+) */}
+      <div className="hidden xl:block">
         <Sidebar />
       </div>
       
-      <div className={`flex flex-col min-h-screen ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} transition-all duration-300`}>
+      <div className={`flex flex-col min-h-screen ${sidebarCollapsed ? 'xl:ml-16' : 'xl:ml-64'} transition-all duration-300`}>
         <Header />
         
         {/* Main content area */}
-        <div className="flex-1">
+        <div className="flex-1 pb-16 xl:pb-0">
           <PageContainer>{children}</PageContainer>
         </div>
         
-        {/* Mobile navigation - visible on mobile, hidden on lg screens */}
+        {/* Bottom navigation - visible on mobile/tablet, hidden on xl screens */}
         <MobileNav />
       </div>
     </div>

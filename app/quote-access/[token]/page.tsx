@@ -711,18 +711,46 @@ export default function QuoteAccessPage() {
  
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      draft: { variant: 'secondary', text: 'Draft' },
-      sent: { variant: 'default', text: 'Sent' },
-      approved: { variant: 'default', text: 'Approved' },
-      rejected: { variant: 'destructive', text: 'Rejected' },
-      converted: { variant: 'default', text: 'Converted to Booking' },
-      paid: { variant: 'default', text: 'Paid' }
+      draft: { 
+        variant: 'outline' as const, 
+        text: 'Draft',
+        className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
+      },
+      sent: { 
+        variant: 'outline' as const, 
+        text: 'Sent',
+        className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20'
+      },
+      approved: { 
+        variant: 'outline' as const, 
+        text: 'Approved',
+        className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
+      },
+      rejected: { 
+        variant: 'outline' as const, 
+        text: 'Rejected',
+        className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
+      },
+      converted: { 
+        variant: 'outline' as const, 
+        text: 'Converted to Booking',
+        className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
+      },
+      paid: { 
+        variant: 'outline' as const, 
+        text: 'Paid',
+        className: 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
+      }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || { variant: 'outline', text: status };
+    const config = statusConfig[status as keyof typeof statusConfig] || { 
+      variant: 'outline' as const, 
+      text: status,
+      className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
+    };
     
     return (
-      <Badge variant={config.variant as any}>
+      <Badge variant={config.variant} className={`font-medium ${config.className}`}>
         {config.text}
       </Badge>
     );
@@ -801,12 +829,12 @@ export default function QuoteAccessPage() {
 
           
           {/* Action Buttons Row */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t mt-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-4 border-t mt-4">
             {/* Download buttons */}
             <Button 
               onClick={handleDownloadQuotation} 
               variant="outline" 
-              className="gap-2"
+              className="w-full sm:w-auto gap-2"
               disabled={isDownloadingQuotation}
             >
               {isDownloadingQuotation ? (
@@ -826,7 +854,7 @@ export default function QuoteAccessPage() {
               <Button 
                 onClick={handleDownloadInvoice} 
                 variant="outline" 
-                className="gap-2"
+                className="w-full sm:w-auto gap-2"
                 disabled={isDownloadingInvoice}
               >
                 {isDownloadingInvoice ? (
@@ -847,7 +875,7 @@ export default function QuoteAccessPage() {
               <Button 
                 onClick={handleDownloadReceipt} 
                 variant="outline" 
-                className="gap-2"
+                className="w-full sm:w-auto gap-2"
                 disabled={isDownloadingReceipt}
               >
                 {isDownloadingReceipt ? (
@@ -1421,7 +1449,15 @@ export default function QuoteAccessPage() {
                   <span className="text-sm font-medium text-muted-foreground">Status</span>
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-blue-500" />
-                    <Badge variant="default" className="font-medium">
+                    <Badge variant="outline" className={`font-medium ${
+                      quotation.status === 'draft' ? 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20' :
+                      quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
+                      quotation.status === 'approved' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
+                      quotation.status === 'rejected' ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
+                      quotation.status === 'paid' ? 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
+                      quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
+                      'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
+                    }`}>
                       {quotation.status === 'draft' ? 'Draft' :
                        quotation.status === 'sent' ? 'Sent' :
                        quotation.status === 'approved' ? 'Approved' :
@@ -1500,15 +1536,15 @@ export default function QuoteAccessPage() {
                 <div className="space-y-6">
                   {/* Draft Created */}
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center border-2 border-green-500">
-                      <CheckCircle className="h-4 w-4 text-white" />
+                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center border-2 border-green-300 dark:border-green-600">
+                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     </div>
                     <div className="flex-1">
                       <div className="font-medium text-sm text-foreground">Draft Created</div>
                       <div className="text-xs text-muted-foreground">
                         Quotation has been created and saved as draft
                       </div>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
                         {formatDate(quotation.created_at)} at {new Date(quotation.created_at).toLocaleTimeString('en-US', { 
                           hour: '2-digit', 
                           minute: '2-digit',
@@ -1522,12 +1558,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.status === 'sent' || quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.status === 'sent' || quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       ) : (
-                        <Mail className="h-4 w-4 text-gray-300" />
+                        <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1536,7 +1572,7 @@ export default function QuoteAccessPage() {
                         Quotation has been sent to customer for review
                       </div>
                       {quotation.last_sent_at ? (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20">
                           {formatDate(quotation.last_sent_at)} at {new Date(quotation.last_sent_at).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
@@ -1553,12 +1589,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <CheckCircle className="h-4 w-4 text-gray-300" />
+                        <CheckCircle className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1567,7 +1603,7 @@ export default function QuoteAccessPage() {
                         Customer has approved the quotation
                       </div>
                       {quotation.approved_at ? (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
                           {formatDate(quotation.approved_at)} at {new Date(quotation.approved_at).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
@@ -1584,12 +1620,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.invoice_generated_at || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.invoice_generated_at || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <FileText className="h-4 w-4 text-gray-300" />
+                        <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1598,7 +1634,7 @@ export default function QuoteAccessPage() {
                         Invoice has been generated and payment link sent
                       </div>
                       {quotation.invoice_generated_at ? (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
                           {formatDate(quotation.invoice_generated_at)} at {new Date(quotation.invoice_generated_at).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
@@ -1615,12 +1651,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <CreditCard className="h-4 w-4 text-gray-300" />
+                        <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1646,12 +1682,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <CreditCard className="h-4 w-4 text-gray-300" />
+                        <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
@@ -1677,12 +1713,12 @@ export default function QuoteAccessPage() {
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       quotation.status === 'converted'
-                        ? 'bg-green-600 border-green-500' : 'bg-gray-600 border-gray-500'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
                       {quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-white" />
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
-                        <Car className="h-4 w-4 text-gray-300" />
+                        <Car className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">

@@ -4,6 +4,19 @@ import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotati
 import { generateFontCSS } from './base64-fonts';
 import { safeEncodeText } from '@/lib/utils/character-encoding';
 
+// Helper function to ensure special characters are properly displayed
+function getStatusSymbol(status: string): string {
+  switch (status) {
+    case 'approved':
+    case 'paid':
+      return '✓'; // Checkmark
+    case 'rejected':
+      return '✖'; // Cross
+    default:
+      return '';
+  }
+}
+
 /**
  * Font loading utility for production environments
  */
@@ -96,6 +109,13 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
           font-style: normal;
           font-display: swap;
           unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        
+        /* Special character support for status symbols */
+        .status-symbol {
+          font-family: 'Arial Unicode MS', 'Segoe UI Symbol', 'Apple Symbols', 'Noto Color Emoji', sans-serif !important;
+          font-weight: bold;
+          line-height: 1;
         }
         
         * {
@@ -567,9 +587,9 @@ export function generateQuotationHtml(
           </p>
           ${quotation.status === 'approved' || quotation.status === 'rejected' || quotation.status === 'paid' ? `
             <div style="background: ${quotation.status === 'approved' ? '#10b981' : quotation.status === 'paid' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
-              ${quotation.status === 'approved' ? (isJapanese ? '&#10004; 承認済み' : '&#10004; APPROVED') : 
-                quotation.status === 'paid' ? (isJapanese ? '&#10004; 支払い済み' : '&#10004; PAID') :
-                (isJapanese ? '&#10006; 却下済み' : '&#10006; REJECTED')}
+                              ${quotation.status === 'approved' ? (isJapanese ? `${getStatusSymbol(quotation.status)} 承認済み` : `${getStatusSymbol(quotation.status)} APPROVED`) :
+                quotation.status === 'paid' ? (isJapanese ? `${getStatusSymbol(quotation.status)} 支払い済み` : `${getStatusSymbol(quotation.status)} PAID`) :
+                (isJapanese ? `${getStatusSymbol(quotation.status)} 却下済み` : `${getStatusSymbol(quotation.status)} REJECTED`)}
             </div>
             <p style="margin: 5px 0 0 0; font-size: 13px;">
               ${quotation.status === 'approved' ? 
@@ -871,10 +891,14 @@ export function generateQuotationHtml(
                 <div style="border: 2px solid #d1d5db; border-radius: 8px; padding: 20px; background: #f9fafb; min-height: 120px; max-height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                   ${quotation.status === 'approved' && quotation.approval_signature ? `
                     <img src="${quotation.approval_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                  ` : quotation.status === 'approved' ? `
+                    <div class="status-symbol" style="color: #10b981; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
                   ` : quotation.status === 'paid' ? `
-                    <div style="color: #10b981; font-size: 48px; font-weight: bold;">&#10004;</div>
+                    <div class="status-symbol" style="color: #10b981; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
                   ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
                     <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                  ` : quotation.status === 'rejected' ? `
+                    <div class="status-symbol" style="color: #dc2626; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
                   ` : `
                     <div style="color: #9ca3af; font-size: 18px; text-align: center; line-height: 1.4;">
                       Customer<br>Signature
@@ -917,16 +941,26 @@ export function generateQuotationHtml(
                 </div>
                 
                 <!-- Additional notes or status info -->
-                ${quotation.status === 'approved' && quotation.approval_notes ? `
+                ${quotation.status === 'approved' ? `
                   <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
                     <p style="margin: 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
+                      <strong>Status:</strong> ${getStatusSymbol(quotation.status)} APPROVED
+                    </p>
+                    ${quotation.approval_notes ? `
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
                       <strong>Notes:</strong> ${quotation.approval_notes}
                     </p>
+                    ` : ''}
+                    ${quotation.approval_notes ? `
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
+                      <strong>Notes:</strong> ${quotation.approval_notes}
+                    </p>
+                    ` : ''}
                   </div>
                 ` : quotation.status === 'paid' ? `
                   <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
                     <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.3;">
-                      <strong>Status:</strong> Payment Completed
+                      <strong>Status:</strong> ${getStatusSymbol(quotation.status)} Payment Completed
                     </p>
                     ${quotation.payment_amount ? `
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.3;">
@@ -939,11 +973,16 @@ export function generateQuotationHtml(
                     </p>
                     ` : ''}
                   </div>
-                ` : quotation.status === 'rejected' && quotation.rejection_reason ? `
+                ` : quotation.status === 'rejected' ? `
                   <div style="margin-top: 15px; padding: 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;">
                     <p style="margin: 0; font-size: 12px; color: #dc2626; line-height: 1.3;">
+                      <strong>Status:</strong> ${getStatusSymbol(quotation.status)} REJECTED
+                    </p>
+                    ${quotation.rejection_reason ? `
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #dc2626; line-height: 1.3;">
                       <strong>Reason:</strong> ${quotation.rejection_reason}
                     </p>
+                    ` : ''}
                   </div>
                 ` : ''}
               </div>

@@ -46,62 +46,70 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
   const getStatusConfig = () => {
     if (isExpired && (quotation.status === 'draft' || quotation.status === 'sent')) {
       return {
-        variant: 'destructive' as const,
+        variant: 'outline' as const,
         label: 'Expired',
         icon: XCircle,
-        color: 'text-red-500'
+        color: 'text-red-600',
+        className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
       };
     }
 
     switch (quotation.status) {
       case 'draft':
         return {
-          variant: 'secondary' as const,
+          variant: 'outline' as const,
           label: 'Draft',
           icon: Clock,
-          color: 'text-gray-500'
+          color: 'text-gray-600',
+          className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
         };
       case 'sent':
         return {
-          variant: 'default' as const,
+          variant: 'outline' as const,
           label: 'Sent',
           icon: CheckCircle,
-          color: 'text-blue-500'
+          color: 'text-blue-600',
+          className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20'
         };
       case 'approved':
         return {
-          variant: 'success' as const,
+          variant: 'outline' as const,
           label: 'Approved',
           icon: CheckCircle,
-          color: 'text-green-500'
+          color: 'text-green-600',
+          className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
         };
       case 'rejected':
         return {
-          variant: 'destructive' as const,
+          variant: 'outline' as const,
           label: 'Rejected',
           icon: XCircle,
-          color: 'text-red-500'
+          color: 'text-red-600',
+          className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20'
         };
       case 'converted':
         return {
-          variant: 'default' as const,
+          variant: 'outline' as const,
           label: 'Converted',
           icon: CheckCircle,
-          color: 'text-purple-500'
+          color: 'text-purple-600',
+          className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20'
         };
       case 'paid':
         return {
-          variant: 'success' as const,
+          variant: 'outline' as const,
           label: 'Paid',
           icon: CheckCircle,
-          color: 'text-green-600'
+          color: 'text-green-700',
+          className: 'text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20'
         };
       default:
         return {
-          variant: 'secondary' as const,
+          variant: 'outline' as const,
           label: quotation.status,
           icon: Clock,
-          color: 'text-gray-500'
+          color: 'text-gray-600',
+          className: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
         };
     }
   };
@@ -129,7 +137,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
           <span className="text-sm font-medium text-muted-foreground">Status</span>
           <div className="flex items-center gap-2">
             <StatusIcon className={`h-4 w-4 ${statusConfig.color}`} />
-            <Badge variant={statusConfig.variant} className="font-medium">
+            <Badge variant={statusConfig.variant} className={`font-medium ${statusConfig.className}`}>
               {statusConfig.label}
             </Badge>
           </div>

@@ -434,8 +434,42 @@ export default function QuotationList({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <LoadingSpinner />
+      <div className="space-y-4">
+        {/* Loading skeleton for status filter */}
+        <div className="p-4 bg-muted/10 border-b">
+          <div className="flex gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-8 w-20 bg-muted animate-pulse rounded-md" />
+            ))}
+          </div>
+        </div>
+        
+        {/* Loading skeleton for filters */}
+        <div className="border-b">
+          <div className="p-4">
+            <div className="h-6 w-32 bg-muted animate-pulse rounded-md" />
+          </div>
+        </div>
+        
+        {/* Loading skeleton for table */}
+        <div className="p-4">
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg border p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                  <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="h-5 w-48 bg-muted animate-pulse rounded" />
+                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                  <div className="h-5 w-20 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -447,7 +481,7 @@ export default function QuotationList({
         title={t('quotations.empty.noResultsTitle')}
         description={t('quotations.empty.noResultsDescription')}
         action={
-          <Button variant="outline" onClick={() => {
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => {
             handleFiltersChange({
               ...filters,
               searchQuery: '',
@@ -473,7 +507,7 @@ export default function QuotationList({
         description={t('quotations.empty.description')}
         action={
           isOrganizationMember ? (
-            <Button onClick={() => router.push('/quotations/create')}>
+            <Button className="w-full sm:w-auto" onClick={() => router.push('/quotations/create')}>
               <PlusIcon className="mr-2 h-4 w-4" />
               {t('quotations.empty.cta')}
             </Button>
@@ -486,7 +520,7 @@ export default function QuotationList({
   return (
     <Card className="w-full">
       <CardContent className="p-0">
-        <div className="p-4 bg-muted/10 border-b">
+        <div className="p-3 sm:p-4 bg-muted/10 border-b">
           <QuotationStatusFilter 
             currentStatus={filters.statusFilter as QuotationStatus | 'all'}
             onChange={(newStatus) => handleFiltersChange({ ...filters, statusFilter: newStatus })}
@@ -498,11 +532,11 @@ export default function QuotationList({
           <Button
             variant="ghost"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="w-full justify-between p-4 rounded-none border-b-0"
+            className="w-full justify-between p-3 sm:p-4 rounded-none border-b-0"
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="font-medium">{t('quotations.filters.title') || 'Filters & Search'}</span>
+              <span className="text-sm sm:text-base font-medium">{t('quotations.filters.title') || 'Filters & Search'}</span>
             </div>
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -517,7 +551,7 @@ export default function QuotationList({
           )}
         </div>
 
-        <div className="p-4">
+        <div className="p-3 sm:p-4">
           <div className="md:hidden space-y-4">
             {filteredQuotations.map((quotation) => (
               <div 
@@ -525,7 +559,7 @@ export default function QuotationList({
                 className="rounded-lg border bg-card shadow-md hover:ring-2 hover:ring-primary/40 cursor-pointer transition-all"
                 onClick={() => handleRowClick(quotation.id)}
               >
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div className="font-mono text-xs">#{quotation.quote_number}</div>
                     <div className="flex items-center gap-2">
@@ -771,7 +805,7 @@ export default function QuotationList({
         
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="p-4 border-t">
+          <div className="p-3 sm:p-4 border-t">
             <Pagination>
               <PaginationContent className="flex justify-center">
                 {/* Previous Page */}
@@ -836,7 +870,7 @@ export default function QuotationList({
             </Pagination>
             
             {/* Page Info */}
-            <div className="text-center text-sm text-muted-foreground mt-2">
+            <div className="text-center text-xs sm:text-sm text-muted-foreground mt-2 px-2">
               Page {currentPage} of {totalPages} • Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalCount)} of {totalCount} quotations
             </div>
           </div>

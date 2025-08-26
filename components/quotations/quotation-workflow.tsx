@@ -706,25 +706,25 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const getStepStatusColor = (status: WorkflowStep['status']) => {
     switch (status) {
       case 'completed':
-        return 'text-green-600 bg-green-50 border-green-200';
+        return 'text-green-600 bg-green-100 border-green-300 dark:text-green-400 dark:bg-green-900/20 dark:border-green-600';
       case 'current':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-blue-600 bg-blue-100 border-blue-300 dark:text-blue-400 dark:bg-blue-900/20 dark:border-blue-600';
       case 'pending':
-        return 'text-gray-400 bg-gray-50 border-gray-200';
+        return 'text-gray-400 bg-gray-100 border-gray-300 dark:text-gray-500 dark:bg-gray-900/20 dark:border-gray-600';
       case 'skipped':
-        return 'text-gray-300 bg-gray-25 border-gray-100';
+        return 'text-gray-300 bg-gray-50 border-gray-200 dark:text-gray-600 dark:bg-gray-900/20 dark:border-gray-700';
       default:
-        return 'text-gray-400 bg-gray-50 border-gray-200';
+        return 'text-gray-400 bg-gray-100 border-gray-300 dark:text-gray-500 dark:bg-gray-900/20 dark:border-gray-600';
     }
   };
 
   const getConnectorColor = (currentStatus: WorkflowStep['status'], nextStatus?: WorkflowStep['status']) => {
     if (currentStatus === 'completed') {
-      return 'bg-green-300';
+      return 'bg-green-400 dark:bg-green-500';
     } else if (currentStatus === 'current') {
-      return 'bg-blue-300';
+      return 'bg-blue-400 dark:bg-blue-500';
     }
-    return 'bg-gray-200';
+    return 'bg-gray-300 dark:bg-gray-600';
   };
 
   return (
@@ -769,9 +769,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       <div className="flex-1 min-w-0">
                         <h4 className={cn(
                           "font-medium text-sm",
-                          step.status === 'completed' ? 'text-green-700' :
-                          step.status === 'current' ? 'text-blue-700' :
-                          'text-gray-500'
+                          step.status === 'completed' ? 'text-green-700 dark:text-green-300' :
+                          step.status === 'current' ? 'text-blue-700 dark:text-blue-300' :
+                          'text-gray-500 dark:text-gray-400'
                         )}>
                           {step.title}
                         </h4>
@@ -787,7 +787,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                             </Badge>
                           )}
                           {step.warning && (
-                            <Badge variant="destructive" className="text-xs">
+                            <Badge variant="outline" className="text-xs text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20">
                               <AlertTriangle className="h-3 w-3 mr-1" />
                               {step.warning}
                             </Badge>
@@ -845,11 +845,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant={
-                quotation.status === 'approved' ? 'default' :
-                quotation.status === 'rejected' ? 'destructive' :
-                quotation.status === 'sent' ? 'secondary' :
-                'outline'
+              <Badge variant="outline" className={
+                quotation.status === 'approved' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
+                quotation.status === 'rejected' ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
+                quotation.status === 'sent' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
+                quotation.status === 'converted' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
+                quotation.status === 'paid' ? 'text-green-700 border-green-300 bg-green-100 dark:text-green-700 dark:border-green-600 dark:bg-green-900/20' :
+                'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
               }>
                 {t(`quotations.status.${quotation.status}`) || quotation.status}
               </Badge>

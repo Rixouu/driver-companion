@@ -464,9 +464,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Top Row - Title and Status */}
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div className="flex items-start gap-4 flex-1 min-w-0">
-                <div className="p-3 bg-muted rounded-lg">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-bold mb-2 break-words">
                     {quotation.title || t('quotations.details.untitled')}
@@ -476,12 +473,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
                     </p>
                     <Badge variant="outline" className={
-                      quotation.status === 'approved' ? "text-green-500 border-green-200 bg-green-50" :
-                      quotation.status === 'sent' ? "text-blue-500 border-blue-200 bg-blue-50" :
-                      quotation.status === 'rejected' ? "text-red-500 border-red-200 bg-red-50" :
-                      quotation.status === 'converted' ? "text-purple-500 border-purple-200 bg-purple-50" :
-                      quotation.status === 'paid' ? "text-green-600 border-green-200 bg-green-50" :
-                      "text-gray-500 border-gray-200 bg-gray-50"
+                      quotation.status === 'approved' ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
+                      quotation.status === 'sent' ? "text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20" :
+                      quotation.status === 'rejected' ? "text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20" :
+                      quotation.status === 'converted' ? "text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20" :
+                      quotation.status === 'paid' ? "text-green-700 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :
+                      "text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20"
                     }>
                       {t(`quotations.status.${quotation.status}`)}
                     </Badge>
@@ -490,10 +487,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             </div>
             
               {/* Share and Edit buttons moved to top right */}
-            <div className="flex flex-wrap gap-2 flex-shrink-0">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
                 <QuotationShareButtons quotation={quotation} />
                 {isOrganizationMember && !['approved', 'rejected', 'converted', 'paid'].includes(quotation.status) && (
-                  <Button variant="outline" asChild className="gap-2">
+                  <Button variant="outline" asChild className="w-full sm:w-auto gap-2">
                     <Link href={`/quotations/${quotation.id}/edit`}>
                       <Edit className="h-4 w-4" />
                       {t('quotations.actions.edit')}
@@ -505,13 +502,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Download buttons for paid status */}
             {quotation.status === 'paid' && (
-              <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
                 <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 
                     onClick={() => window.open(quotation.receipt_url!, '_blank')}
-                    className="gap-2"
+                    className="w-full sm:w-auto gap-2"
                   >
                     <Receipt className="h-4 w-4" />
                     Download Receipt
@@ -522,13 +519,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Download buttons for converted status */}
             {quotation.status === 'converted' && (
-              <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
                 <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 
                     onClick={() => window.open(quotation.receipt_url!, '_blank')}
-                    className="gap-2"
+                    className="w-full sm:w-auto gap-2"
                   >
                     <Receipt className="h-4 w-4" />
                     Download Receipt
@@ -573,24 +570,33 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Action Buttons Row - Only show for non-final statuses */}
             {!['paid', 'converted'].includes(quotation.status) && (
-              <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
                 {/* Primary Action Buttons */}
                 {quotation.status === 'approved' ? (
                   <>
-                  <QuotationInvoiceButton 
-                    quotation={quotation} 
-                    onSuccess={() => router.refresh()} 
-                    onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
-                  />
+                    <QuotationInvoiceButton 
+                      quotation={quotation} 
+                      onSuccess={() => router.refresh()} 
+                      onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
+                    />
                   </>
                 ) : (
                   <>
-                  <QuotationPdfButton quotation={quotation} selectedPackage={selectedPackage} selectedPromotion={selectedPromotion} onSuccess={() => router.refresh()} />
-                {isOrganizationMember && quotation.status === 'draft' && (
-                  <Button onClick={handleSend} disabled={isLoading} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-                    <Mail className="h-4 w-4" />
-                    {t('quotations.actions.send')}
-                  </Button>
+                    <QuotationPdfButton 
+                      quotation={quotation} 
+                      selectedPackage={selectedPackage} 
+                      selectedPromotion={selectedPromotion} 
+                      onSuccess={() => router.refresh()} 
+                    />
+                    {isOrganizationMember && quotation.status === 'draft' && (
+                      <Button 
+                        onClick={handleSend} 
+                        disabled={isLoading} 
+                        className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Mail className="h-4 w-4" />
+                        {t('quotations.actions.send')}
+                      </Button>
                     )}
                   </>
                 )}
@@ -601,7 +607,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     variant="outline" 
                     onClick={handleRegenerateMagicLink} 
                     disabled={isLoading}
-                    className="gap-2"
+                    className="w-full sm:w-auto gap-2"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Send New Magic Link
@@ -612,12 +618,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             
             {/* Regenerate Magic Link Button - Show for final statuses too */}
             {['paid', 'converted'].includes(quotation.status) && isOrganizationMember && (
-              <div className="flex flex-wrap gap-3 pt-2 border-t">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
                 <Button 
                   variant="outline" 
                   onClick={handleRegenerateMagicLink} 
                   disabled={isLoading}
-                  className="gap-2"
+                  className="w-full sm:w-auto gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />
                   Send New Magic Link
@@ -628,17 +634,111 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         </CardContent>
       </Card>
       
+      {/* Enhanced Loading States */}
       {isLoading && (
         <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
-          <LoadingSpinner />
+          <div className="bg-card border rounded-lg p-6 shadow-lg">
+            <LoadingSpinner />
+            <p className="text-center mt-4 text-muted-foreground">Processing quotation...</p>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
-        {/* Main Content - 2 columns on XL screens, full width on smaller */}
-        <div className="xl:col-span-2 space-y-4 xl:space-y-6">
-          <Card>
-            <CardContent className="pt-6">
+      {/* Skeleton Loading for Pricing Details */}
+      {loadingPricingDetails && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
+            {/* Main Content Skeleton */}
+            <div className="xl:col-span-2 space-y-4 xl:space-y-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    {/* Customer Info Skeleton */}
+                    <div className="space-y-3">
+                      <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div className="h-20 bg-muted animate-pulse rounded-lg" />
+                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="h-20 bg-muted animate-pulse rounded-lg" />
+                          <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Services Skeleton */}
+                    <div className="space-y-3">
+                      <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                      <div className="space-y-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Pricing Summary Skeleton */}
+                    <div className="space-y-3">
+                      <div className="h-6 w-28 bg-muted animate-pulse rounded" />
+                      <div className="space-y-2">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex justify-between">
+                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                            <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Sidebar Skeleton */}
+            <div className="xl:col-span-1 space-y-4 xl:space-y-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="h-6 w-28 bg-muted animate-pulse rounded" />
+                    <div className="space-y-2">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="flex justify-between">
+                          <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                          <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="h-6 w-24 bg-muted animate-pulse rounded" />
+                    <div className="space-y-2">
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="h-10 bg-muted animate-pulse rounded" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loadingPricingDetails && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
+          {/* Main Content - 2 columns on XL screens, full width on smaller */}
+          <div className="xl:col-span-2 space-y-4 xl:space-y-6">
+            <Card>
+              <CardContent className="pt-6">
               {/* Customer Information - Clean Design */}
               <div className="mb-6">
                 <div className="flex items-center mb-4">
@@ -848,14 +948,22 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     <Calculator className="h-5 w-5 text-primary" />
                     <h2 className="text-xl font-semibold">{t('quotations.details.priceDetails')}</h2>
                   </div>
-                  <CurrencySelector
-                    selectedCurrency={selectedCurrency}
-                    onCurrencyChange={handleCurrencyChange}
-                    baseCurrency="JPY"
-                    compact={true}
-                    showRefreshButton={true}
-                    showRateInfo={true}
-                  />
+                  <div className="flex items-center gap-3">
+                    {currencyLoading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span>Loading rates...</span>
+                      </div>
+                    )}
+                    <CurrencySelector
+                      selectedCurrency={selectedCurrency}
+                      onCurrencyChange={handleCurrencyChange}
+                      baseCurrency="JPY"
+                      compact={true}
+                      showRefreshButton={true}
+                      showRateInfo={true}
+                    />
+                  </div>
                 </div>
                 
                 <PricingSummary 
@@ -1381,13 +1489,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               />
             </div>
           )}
-
-
-
-
-         
         </div>
       </div>
+      )}
 
       {/* Progress Modal */}
       <Dialog open={progressOpen}>

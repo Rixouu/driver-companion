@@ -200,8 +200,8 @@ export default async function QuotationsPage({ searchParams }: QuotationsPagePro
         description={t('quotations.listDescription')}
       >
         {isOrganizationMember && (
-          <Link href="/quotations/create">
-            <Button variant="default">{t('quotations.create')}</Button>
+          <Link href="/quotations/create" className="w-full sm:w-auto">
+            <Button variant="default" className="w-full sm:w-auto">{t('quotations.create')}</Button>
           </Link>
         )}
       </PageHeader>

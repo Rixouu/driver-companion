@@ -63,11 +63,11 @@ export function QuotationFilters({
           {t('quotations.filters.title') || 'Filters & Search'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <CardContent className="space-y-3 sm:space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Status Filter */}
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               {t('quotations.filters.status') || 'Status'}
             </label>
             <Select 
@@ -94,7 +94,7 @@ export function QuotationFilters({
           
           {/* Date Range Filters */}
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               {t('quotations.filters.dateFrom') || 'From Date'}
             </label>
             <div className="relative">
@@ -204,9 +204,9 @@ export function QuotationFilters({
         </div>
         
         {/* Sorting and Actions */}
-        <div className="flex items-center gap-4 pt-2 border-t">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pt-2 border-t">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">{t('quotations.filters.sortBy') || 'Sort by:'}</label>
+            <label className="text-xs sm:text-sm font-medium">{t('quotations.filters.sortBy') || 'Sort by:'}</label>
             <Select 
               value={filters.sortBy} 
               onValueChange={(value) => onFiltersChange({
@@ -246,16 +246,16 @@ export function QuotationFilters({
         </div>
         
         {/* Results Summary */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 border-t">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pt-2 border-t">
+          <div className="text-xs sm:text-sm text-muted-foreground">
             {hasActiveFilters ? (
               <span>{t('quotations.filters.filteredResults', { count: totalQuotations }) || `Filtered results: ${totalQuotations} quotations`}</span>
             ) : (
               <span>{t('quotations.filters.showingAll', { count: totalQuotations }) || `Showing all ${totalQuotations} quotations`}</span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700 text-xs sm:text-sm">
               {totalQuotations} {t('quotations.filters.quotations') || 'Quotations'}
             </Badge>
           </div>

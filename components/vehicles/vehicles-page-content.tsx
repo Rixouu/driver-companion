@@ -36,15 +36,15 @@ export function VehiclesPageContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("vehicles.title")}</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-left sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("vehicles.title")}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {t("vehicles.description")}
           </p>
         </div>
-        <Link href="/vehicles/new">
-          <Button className="sm:flex-shrink-0">
+        <Link href="/vehicles/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             {t("vehicles.addVehicle")}
           </Button>

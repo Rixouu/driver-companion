@@ -9,7 +9,7 @@ import { DriverCard } from "@/components/drivers/driver-card";
 import { DriverListItem } from "@/components/drivers/driver-list-item";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SearchFilterBar } from "@/components/ui/search-filter-bar";
+import { DriverFilter, DriverFilterOptions } from "./driver-filter";
 import {
   Pagination,
   PaginationContent,
@@ -41,11 +41,15 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const initialSearchQueryFromParams = searchParams?.get("search") || "";
-  const [searchQuery, setSearchQuery] = useState(initialSearchQueryFromParams);
-  const [statusFilter, setStatusFilter] = useState<string>(
-    searchParams?.get("status") || "all",
-  );
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [filters, setFilters] = useState<DriverFilterOptions>({
+    searchQuery: initialSearchQueryFromParams,
+    statusFilter: searchParams?.get("status") || "all",
+    availabilityFilter: searchParams?.get("availability") || "all",
+    licenseFilter: searchParams?.get("license") || "all",
+    sortBy: "name",
+    sortOrder: "asc"
+  });
+  const debouncedSearch = useDebounce(filters.searchQuery, 500);
 
   const currentPage = searchParams?.get("page")
     ? parseInt(searchParams.get("page") as string, 10)
@@ -86,13 +90,51 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
     setFilteredDrivers(initialDrivers);
   }, [initialDrivers]);
 
+  // Sync filters with URL params
+  useEffect(() => {
+    const searchFromParams = searchParams?.get("search") || "";
+    const availabilityFromParams = searchParams?.get("availability") || "all";
+    
+    setFilters(prev => ({
+      ...prev,
+      searchQuery: searchFromParams,
+      availabilityFilter: availabilityFromParams
+    }));
+  }, [searchParams]);
+
   useEffect(() => {
     let result = [...drivers];
-    if (statusFilter !== "all") {
+    
+    // Filter by availability status
+    if (filters.availabilityFilter !== "all") {
       result = result.filter(
-        (driver) => (driver.availability_status || driver.status || "available") === statusFilter,
+        (driver) => (driver.availability_status || driver.status || "available") === filters.availabilityFilter,
       );
     }
+    
+    // Filter by license status
+    if (filters.licenseFilter !== "all") {
+      const now = new Date();
+      result = result.filter((driver) => {
+        if (!driver.license_expiry) return filters.licenseFilter === 'valid';
+        
+        const expiryDate = new Date(driver.license_expiry);
+        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+        
+        switch (filters.licenseFilter) {
+          case 'valid':
+            return expiryDate > now;
+          case 'expired':
+            return expiryDate <= now;
+          case 'expiring_soon':
+            return expiryDate > now && expiryDate <= thirtyDaysFromNow;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Filter by search query
     if (debouncedSearch) {
       const query = debouncedSearch.toLowerCase();
       result = result.filter(
@@ -103,8 +145,9 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
           driver.license_number?.toLowerCase().includes(query),
       );
     }
+    
     setFilteredDrivers(result);
-  }, [drivers, statusFilter, debouncedSearch]);
+  }, [drivers, filters.availabilityFilter, filters.licenseFilter, debouncedSearch]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -138,14 +181,24 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
     updateUrlParams({ page: page.toString() });
   };
 
-  const handleStatusFilterChange = (status: string) => {
-    if (status === statusFilter) return;
-    setStatusFilter(status);
-    updateUrlParams({ status: status, page: "1" });
-  };
-
-  const handleSearchQueryChange = (value: string) => {
-    setSearchQuery(value);
+  const handleFiltersChange = (newFilters: DriverFilterOptions) => {
+    setFilters(newFilters);
+    // Update URL params based on new filters
+    const paramsToUpdate: Record<string, string | null> = {};
+    
+    if (newFilters.availabilityFilter !== 'all') {
+      paramsToUpdate.availability = newFilters.availabilityFilter;
+    } else {
+      paramsToUpdate.availability = null;
+    }
+    
+    if (newFilters.searchQuery) {
+      paramsToUpdate.search = newFilters.searchQuery;
+    } else {
+      paramsToUpdate.search = null;
+    }
+    
+    updateUrlParams({ ...paramsToUpdate, page: "1" });
   };
   
   useEffect(() => {
@@ -186,15 +239,15 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{t("drivers.title")}</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-left sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("drivers.title")}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             {t("drivers.description")}
           </p>
         </div>
-        <Link href="/drivers/new">
-          <Button className="flex items-center">
+        <Link href="/drivers/new" className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             {t("drivers.actions.addDriver")}
           </Button>
@@ -202,22 +255,21 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
       </div>
 
       <div className="space-y-4">
-         <SearchFilterBar
-          onSearchChange={handleSearchQueryChange}
-          searchPlaceholder={t("drivers.search")}
-          totalItems={filteredDrivers.length}
-          startIndex={filteredDrivers.length > 0 ? Math.min(startIndex + 1, filteredDrivers.length) : 0}
-          endIndex={Math.min(startIndex + ITEMS_PER_PAGE, filteredDrivers.length)}
-          onBrandFilterChange={handleStatusFilterChange}
-          brandOptions={availabilityStatuses}
-          showBrandFilter={true}
-          selectedBrand={statusFilter}
-          showModelFilter={false}
-          onModelFilterChange={() => {}}
-          selectedModel="all"
+        <DriverFilter
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          totalDrivers={filteredDrivers.length}
+          availabilityOptions={availabilityStatuses}
         />
 
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {filters.searchQuery || filters.availabilityFilter !== 'all' || filters.licenseFilter !== 'all' ? (
+              <span>Filtered results: {filteredDrivers.length} drivers</span>
+            ) : (
+              <span>Showing all {filteredDrivers.length} drivers</span>
+            )}
+          </div>
           <div className="touch-manipulation">
             <ViewToggle view={viewMode} onViewChange={handleViewChange} />
           </div>
@@ -230,8 +282,8 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
           title={t("drivers.emptyState.title")}
           description={t("drivers.emptyState.description")}
           action={
-            <Link href="/drivers/new">
-              <Button>{t("drivers.actions.addDriver")}</Button>
+            <Link href="/drivers/new" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto">{t("drivers.actions.addDriver")}</Button>
             </Link>
           }
         />

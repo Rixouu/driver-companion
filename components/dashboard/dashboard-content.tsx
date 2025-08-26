@@ -485,7 +485,7 @@ export function DashboardContent({
       )}
       
       {/* Main Dashboard Content - Two Column Layout */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Advanced Financial Dashboard - LEFT SIDE */}
         <Card className="h-full">
           <CardHeader className="pb-3">
@@ -521,25 +521,25 @@ export function DashboardContent({
             ) : (
               <div className="space-y-6">
                 {/* Top Row: Key Financial Metrics */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="text-xl font-bold text-green-600 dark:text-green-400 mb-2">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400 mb-2">
                       ¥{(financialData.totalRevenue / 1000000).toFixed(1)}M
                     </div>
                     <div className="text-xs text-green-600 dark:text-green-400 font-medium">
                       {t("dashboard.financial.revenueOverview")}
                     </div>
                   </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 mb-2">
                       {financialData.totalQuotations}
                     </div>
                     <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                       {t("dashboard.financial.quoteOverview")}
                     </div>
                   </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400 mb-2">
                       {upcomingBookings.length}
                     </div>
                     <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
@@ -549,7 +549,7 @@ export function DashboardContent({
                 </div>
                 
                 {/* Charts Row: Revenue + Quote Status Side by Side */}
-                <div className="grid grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                   {/* Revenue Trend Chart */}
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.revenueTrend")}</h4>
@@ -633,40 +633,40 @@ export function DashboardContent({
                 </div>
                 
                 {/* Bottom Row: Clean Metrics Display */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   {/* Average Quote */}
-                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">
                       {t("dashboard.financial.avgQuote")}
                     </div>
-                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400">
                       ¥{(financialData.avgQuoteValue / 1000).toFixed(0)}k
                     </div>
                   </div>
                   
                   {/* Approval Rate */}
-                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
                       {t("dashboard.financial.approvalRate")}
                     </div>
-                    <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                    <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
                       {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
                     </div>
                   </div>
                   
                   {/* Conversion Rate */}
-                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-green-800">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-green-800">
                     <div className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-2">
                       {t("dashboard.financial.conversionRate")}
                     </div>
-                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                    <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">
                       {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
                     </div>
                   </div>
                 </div>
                 
                 {/* Status Summary Row */}
-                <div className="flex items-center justify-center gap-8 p-5 bg-muted/10 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 p-4 sm:p-5 bg-muted/10 rounded-lg">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span className="text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
@@ -781,7 +781,7 @@ export function DashboardContent({
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Upcoming Bookings */}
         <Card className="h-full">
           <CardHeader className="pb-3">
@@ -982,8 +982,8 @@ function BookingCard({ booking }: { booking: Booking }) {
       href={`/bookings/${booking.id}`}
       className="block"
     >
-      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between">
+      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
               <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -993,28 +993,27 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
                   BOOKING
                 </span>
-                <h4 className="font-semibold text-sm text-foreground">
+                <h4 className="font-semibold text-sm text-foreground truncate">
                   {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
                 </h4>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{formatDate(booking.date)} • {booking.time || '00:00'}</span>
+                  <Clock className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{formatDate(booking.date)} • {booking.time || '00:00'}</span>
                 </div>
                 {booking.pickup_location && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate max-w-[200px]">
+                    <span className="truncate max-w-[150px] sm:max-w-[200px]">
                       {booking.pickup_location}
                     </span>
                   </div>
                 )}
-
               </div>
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0">
+          <div className="flex-shrink-0">
             {getBookingStatusBadge(booking.status, t)}
           </div>
         </div>
@@ -1027,8 +1026,8 @@ function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
     <Link href={`/quotations/${quotation.id}`} className="block">
-      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between">
+      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
               <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -1042,7 +1041,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
                   {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
                 </h4>
               </div>
-              <p className="text-xs text-muted-foreground mb-2">
+              <p className="text-xs text-muted-foreground mb-2 truncate">
                 {quotation.customer_name || t('bookings.unnamed')}
               </p>
               {quotation.total_amount && (
@@ -1054,7 +1053,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
               )}
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0">
+          <div className="flex-shrink-0">
             {getQuotationStatusBadge(quotation.status, t)}
           </div>
         </div>

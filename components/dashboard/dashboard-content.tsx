@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,8 +28,7 @@ import {
   RotateCw,
   Sparkles,
   ThumbsUp,
-  ChevronLeft,
-  ChevronRight,
+
   MapPin,
   User,
   Timer,
@@ -39,10 +38,11 @@ import { Progress } from "@/components/ui/progress"
 import type { DbVehicle, DbInspection, DbMaintenanceTask } from "@/types"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import { fadeIn, sliderVariants, withDelay } from "@/lib/utils/animations"
+import { fadeIn, withDelay } from "@/lib/utils/animations"
 import { getBookings } from "@/app/actions/bookings"
 import { Booking } from "@/types/bookings"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+
 
 interface DashboardContentProps {
   stats: {
@@ -180,7 +180,7 @@ export function DashboardContent({
   const { t } = useI18n()
   const [checklistCompleted, setChecklistCompleted] = useState(false)
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
-  const [currentVehicleIndex, setCurrentVehicleIndex] = useState(0)
+
   
   // State for upcoming bookings
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([])
@@ -193,6 +193,23 @@ export function DashboardContent({
   const [recentQuotations, setRecentQuotations] = useState<any[]>([])
   const [isLoadingRecentQuotations, setIsLoadingRecentQuotations] = useState(true)
   const [quotationsError, setQuotationsError] = useState<string | null>(null)
+  
+  // Financial data state
+  const [financialData, setFinancialData] = useState({
+    totalQuotations: 0,
+    totalRevenue: 0,
+    avgQuoteValue: 0,
+    approvedQuotes: 0,
+    pendingQuotes: 0,
+    draftQuotes: 0,
+    rejectedQuotes: 0
+  })
+  
+  const [dailyRevenueData, setDailyRevenueData] = useState<any[]>([])
+  const [statusDistributionData, setStatusDistributionData] = useState<any[]>([])
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState<any[]>([])
+  const [isLoadingFinancial, setIsLoadingFinancial] = useState(true)
+  const [financialError, setFinancialError] = useState<string | null>(null)
 
   // Fetch bookings with pending and assigned statuses
   useEffect(() => {
@@ -271,6 +288,47 @@ export function DashboardContent({
     fetchExpiringQuotations()
   }, [])
 
+  // Fetch financial data
+  useEffect(() => {
+    async function fetchFinancialData() {
+      try {
+        setIsLoadingFinancial(true)
+        setFinancialError(null)
+        
+        // Fetch financial metrics
+        const response = await fetch('/api/dashboard/financial-metrics')
+        if (response.ok) {
+          const data = await response.json()
+          setFinancialData(data.metrics)
+          setDailyRevenueData(data.dailyRevenue)
+          setStatusDistributionData(data.statusDistribution)
+          setMonthlyRevenueData(data.monthlyRevenue)
+        } else {
+          throw new Error('Failed to fetch financial data')
+        }
+      } catch (error) {
+        console.error('Error fetching financial data:', error)
+        setFinancialError('Failed to load financial data')
+        // No fallback data - let the UI handle empty states
+        setFinancialData({
+          totalQuotations: 0,
+          totalRevenue: 0,
+          avgQuoteValue: 0,
+          approvedQuotes: 0,
+          pendingQuotes: 0,
+          draftQuotes: 0,
+          rejectedQuotes: 0
+        })
+        setDailyRevenueData([])
+        setStatusDistributionData([])
+      } finally {
+        setIsLoadingFinancial(false)
+      }
+    }
+    
+    fetchFinancialData()
+  }, [])
+  
   // FETCH_RECENT_QUOTATIONS
   useEffect(() => {
     async function fetchRecentQuotations() {
@@ -306,19 +364,7 @@ export function DashboardContent({
     // In a real app, you would save this to the database
   }
 
-  // Vehicle navigation functions
-  const nextVehicle = () => {
-    if (vehicles.length > 0) {
-      setCurrentVehicleIndex((currentVehicleIndex + 1) % vehicles.length)
-    }
-  }
 
-  // Function to navigate to previous vehicle
-  const prevVehicle = () => {
-    if (vehicles.length > 0) {
-      setCurrentVehicleIndex((currentVehicleIndex - 1 + vehicles.length) % vehicles.length)
-    }
-  }
 
   // Check if all items are checked
   const allItemsChecked = Object.values(checkedItems).filter(Boolean).length >= 5
@@ -440,93 +486,303 @@ export function DashboardContent({
       
       {/* Main Dashboard Content - Two Column Layout */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Vehicle Stats - LEFT SIDE */}
+        {/* Advanced Financial Dashboard - LEFT SIDE */}
         <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
-              <Car className="h-5 w-5 text-primary" />
-              {t("dashboard.vehicleStats.title")}
+              <BarChart3 className="h-5 w-5 text-primary" />
+              {t("dashboard.financial.title")}
             </CardTitle>
-            <CardDescription>{t("dashboard.vehicleStats.description")}</CardDescription>
+            <CardDescription>{t("dashboard.financial.description")}</CardDescription>
           </CardHeader>
           <CardContent>
-            {vehicles.length === 0 ? (
-              <EmptyState icon={Car} message={t("vehicles.noVehicles")} />
-            ) : (
+            {isLoadingFinancial ? (
               <div className="space-y-4">
-                {/* Featured Vehicle with Navigation Arrows */}
-                <div className="relative">
-                  {vehicles.length > 1 && (
-                    <>
-                      <button 
-                        onClick={prevVehicle}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
-                        aria-label={t("dashboard.vehicleStats.previousVehicle")}
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button 
-                        onClick={nextVehicle}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-background/80 hover:bg-primary hover:text-primary-foreground p-2 rounded-full shadow-md transition-all duration-200 backdrop-blur"
-                        aria-label={t("dashboard.vehicleStats.nextVehicle")}
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                    </>
-                  )}
-                  
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={currentVehicleIndex}
-                      variants={sliderVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      className="w-full"
-                    >
-                      <Link
-                        href={`/vehicles/${vehicles[currentVehicleIndex]?.id}`}
-                        key={vehicles[currentVehicleIndex]?.id}>
-                        <div className="rounded-lg border overflow-hidden hover:bg-accent transition-colors">
-                          <div className="aspect-video relative bg-muted">
-                            {vehicles[currentVehicleIndex]?.image_url ? (
-                              <Image
-                                src={vehicles[currentVehicleIndex].image_url}
-                                alt={vehicles[currentVehicleIndex].name}
-                                fill
-                                priority
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Car className="h-12 w-12 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-lg">{vehicles[currentVehicleIndex]?.name}</h3>
-                              {vehicles.length > 1 && (
-                                <span className="text-xs text-muted-foreground">
-                                  {currentVehicleIndex + 1} / {vehicles.length}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {vehicles[currentVehicleIndex]?.brand} {vehicles[currentVehicleIndex]?.model} • {vehicles[currentVehicleIndex]?.year}
-                            </p>
-                          </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-16 bg-muted animate-pulse rounded-lg"></div>
+                  <div className="h-16 bg-muted animate-pulse rounded-lg"></div>
+                </div>
+                <div className="h-32 bg-muted animate-pulse rounded-lg"></div>
+                <div className="h-32 bg-muted animate-pulse rounded-lg"></div>
+              </div>
+            ) : financialError ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">{financialError}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Top Row: Key Financial Metrics */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="text-xl font-bold text-green-600 dark:text-green-400 mb-2">
+                      ¥{(financialData.totalRevenue / 1000000).toFixed(1)}M
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                      {t("dashboard.financial.revenueOverview")}
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                      {financialData.totalQuotations}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      {t("dashboard.financial.quoteOverview")}
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                      {upcomingBookings.length}
+                    </div>
+                    <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                      {t("dashboard.financial.activeBookings")}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Charts Row: Revenue + Quote Status Side by Side */}
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Revenue Trend Chart */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.revenueTrend")}</h4>
+                    <div className="h-32">
+                      {dailyRevenueData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={dailyRevenueData}>
+                            <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.1} />
+                            <XAxis 
+                              dataKey="date" 
+                              tick={{ fontSize: 9 }}
+                              tickFormatter={(value) => new Date(value).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 9 }}
+                              tickFormatter={(value) => `¥${(value / 1000).toFixed(0)}k`}
+                            />
+                            <Tooltip 
+                              content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-2 shadow-xl text-xs">
+                                      <p className="font-medium text-foreground">{new Date(label).toLocaleDateString()}</p>
+                                      <p className="text-green-600 font-semibold">¥{payload[0].value?.toLocaleString()}</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="revenue" 
+                              stroke="#10b981" 
+                              strokeWidth={2}
+                              dot={{ fill: '#10b981', strokeWidth: 1, r: 2.5 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                          {t("dashboard.financial.noData")}
                         </div>
-                      </Link>
-                    </motion.div>
-                  </AnimatePresence>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Quote Status Chart */}
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">{t("dashboard.financial.quoteStatus")}</h4>
+                    <div className="h-32">
+                      {statusDistributionData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={statusDistributionData}>
+                            <CartesianGrid strokeDasharray="2 2" stroke="#374151" opacity={0.1} />
+                            <XAxis dataKey="name" tick={{ fontSize: 8 }} />
+                            <YAxis tick={{ fontSize: 8 }} />
+                            <Tooltip 
+                              content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-2 shadow-xl text-xs">
+                                      <p className="font-medium text-foreground">{label}</p>
+                                      <p className="text-blue-600 font-semibold">{payload[0].value} quotes</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                          {t("dashboard.financial.noData")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Bottom Row: Clean Metrics Display */}
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Average Quote */}
+                  <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">
+                      {t("dashboard.financial.avgQuote")}
+                    </div>
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      ¥{(financialData.avgQuoteValue / 1000).toFixed(0)}k
+                    </div>
+                  </div>
+                  
+                  {/* Approval Rate */}
+                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">
+                      {t("dashboard.financial.approvalRate")}
+                    </div>
+                    <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
+                    </div>
+                  </div>
+                  
+                  {/* Conversion Rate */}
+                  <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-green-800">
+                    <div className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-2">
+                      {t("dashboard.financial.conversionRate")}
+                    </div>
+                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                      {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Status Summary Row */}
+                <div className="flex items-center justify-center gap-8 p-5 bg-muted/10 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
+                    <span className="text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
+                    <span className="text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
+                    <span className="text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
+                  </div>
+                </div>
+                
+                {/* Action Button */}
+                <div className="pt-2">
+                  <Link href="/sales/calendar" className="w-full">
+                    <Button variant="outline" className="w-full bg-background border-border hover:bg-muted/50">
+                      <span className="text-foreground">View Sales Calendar</span>
+                      <ArrowRight className="ml-2 h-4 w-4 text-foreground" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            )}
+              )}
           </CardContent>
         </Card>
 
-        {/* Upcoming Bookings - RIGHT SIDE */}
+        {/* Activity Feed - RIGHT SIDE */}
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              {t("dashboard.activityFeed.title")}
+            </CardTitle>
+            <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="recent" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="recent">
+                  <History className="mr-2 h-4 w-4" />
+                  {t("common.status.recent")}
+                </TabsTrigger>
+                <TabsTrigger value="upcoming">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {t("common.status.upcoming")}
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="recent" className="space-y-4">
+                {recentMaintenance.length === 0 && recentInspections.length === 0 && recentQuotations.length === 0 ? (
+                  <EmptyState icon={History} message={t("dashboard.activityFeed.noRecent")} />
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show mix of recent activities - prioritize quotations, then inspections, then maintenance */}
+                    {recentQuotations.slice(0, 2).map((quotation: any) => (
+                      <QuotationCard key={quotation.id} quotation={quotation} />
+                    ))}
+                    {recentInspections.slice(0, 2).map((inspection) => (
+                      <InspectionCard key={inspection.id} inspection={inspection} />
+                    ))}
+                    {recentMaintenance.slice(0, 1).map((task) => (
+                      <MaintenanceTaskCard key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+                {(recentMaintenance.length > 0 || recentInspections.length > 0 || recentQuotations.length > 0) && (
+                  <div className="mt-4">
+                    <Link href="/dashboard">
+                      <Button variant="outline" className="w-full">
+                        {t("dashboard.activityFeed.viewAll")}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="upcoming" className="space-y-4">
+                {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 && upcomingBookings.length === 0 ? (
+                  <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show mix of upcoming activities - prioritize bookings, then inspections, then maintenance */}
+                    {upcomingBookings.slice(0, 2).map((booking) => (
+                      <BookingCard key={booking.id} booking={booking} />
+                    ))}
+                    {upcomingInspections.slice(0, 2).map((inspection) => (
+                      <InspectionCard key={inspection.id} inspection={inspection} />
+                    ))}
+                    {upcomingMaintenance.slice(0, 1).map((task) => (
+                      <MaintenanceTaskCard key={task.id} task={task} />
+                    ))}
+                  </div>
+                )}
+                {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0 || upcomingBookings.length > 0) && (
+                  <div className="mt-4">
+                    <Link href="/dashboard">
+                      <Button variant="outline" className="w-full">
+                        {t("dashboard.activityFeed.viewAll")}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Upcoming Bookings */}
         <Card className="h-full">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
@@ -569,8 +825,6 @@ export function DashboardContent({
             )}
           </CardContent>
         </Card>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Quotations */}
         <Card className="h-full">
           <CardHeader className="pb-3">
@@ -593,7 +847,7 @@ export function DashboardContent({
               <EmptyState icon={FileText} message={t('quotations.placeholder')} />
             ) : (
               <div className="space-y-4">
-                {recentQuotations.map((quotation: any) => (
+                {recentQuotations.slice(0, 4).map((quotation: any) => (
                   <QuotationCard key={quotation.id} quotation={quotation} />
                 ))}
                 <div className="pt-2">
@@ -606,82 +860,6 @@ export function DashboardContent({
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-        {/* Activity Feed */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              {t("dashboard.activityFeed.title")}
-            </CardTitle>
-            <CardDescription>{t("dashboard.activityFeed.description")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="recent" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="recent">
-                  <History className="mr-2 h-4 w-4" />
-                  {t("common.status.recent")}
-                </TabsTrigger>
-                <TabsTrigger value="upcoming">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {t("common.status.upcoming")}
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="recent" className="space-y-4">
-                {recentMaintenance.length === 0 && recentInspections.length === 0 ? (
-                  <EmptyState icon={History} message={t("dashboard.activityFeed.noRecent")} />
-                ) : (
-                  <div className="space-y-4">
-                    {recentMaintenance.slice(0, 3).map((task) => (
-                      <MaintenanceTaskCard key={task.id} task={task} />
-                    ))}
-                    {recentInspections.slice(0, 3).map((inspection) => (
-                      <InspectionCard key={inspection.id} inspection={inspection} />
-                    ))}
-                  </div>
-                )}
-                {(recentMaintenance.length > 0 || recentInspections.length > 0) && (
-                  <div className="mt-4">
-                    <Link href={recentMaintenance.length > recentInspections.length ? "/maintenance" : "/inspections"}>
-                      <Button variant="outline" className="w-full">
-                        {t("dashboard.activityFeed.viewAll")}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="upcoming" className="space-y-4">
-                {upcomingMaintenance.length === 0 && upcomingInspections.length === 0 ? (
-                  <EmptyState icon={Calendar} message={t("dashboard.activityFeed.noUpcoming")} />
-                ) : (
-                  <div className="space-y-4">
-                    {upcomingMaintenance.slice(0, 3).map((task) => (
-                      <MaintenanceTaskCard key={task.id} task={task} />
-                    ))}
-                    {upcomingInspections.slice(0, 3).map((inspection) => (
-                      <InspectionCard key={inspection.id} inspection={inspection} />
-                    ))}
-                  </div>
-                )}
-                {(upcomingMaintenance.length > 0 || upcomingInspections.length > 0) && (
-                  <div className="mt-4">
-                    <Link
-                      href={upcomingMaintenance.length > upcomingInspections.length ? "/maintenance" : "/inspections"}
-                    >
-                      <Button variant="outline" className="w-full">
-                        {t("dashboard.activityFeed.viewAll")}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
           </CardContent>
         </Card>
       </div>
@@ -707,18 +885,34 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
   const { t } = useI18n()
   return (
     <Link href={`/maintenance/${task.id}`} className="block">
-      <div className="p-3 border rounded-md hover:border-primary transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-primary" />
-              <p className="font-medium">{task.title}</p>
+      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
+              <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {task.vehicle?.name} • {task.status === 'completed' ? t('common.status.completed') : t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
-            </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded">
+                  MAINTENANCE
+                </span>
+                <h4 className="font-semibold text-sm text-foreground">
+                  {task.title}
+                </h4>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  {task.vehicle?.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {task.status === 'completed' ? t('common.status.completed') : t('maintenance.details.scheduledFor', { date: formatDate(task.due_date) })}
+                </p>
+              </div>
+            </div>
           </div>
-          {getMaintenanceStatusBadge(task.status, t)}
+          <div className="ml-2 flex-shrink-0">
+            {getMaintenanceStatusBadge(task.status, t)}
+          </div>
         </div>
       </div>
     </Link>
@@ -746,18 +940,34 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
   
   return (
     <Link href={`/inspections/${inspection.id}`} className="block">
-      <div className="p-3 border rounded-md hover:border-primary transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-primary" />
-              <p className="font-medium">{getFullTypeName(inspection.type)}</p>
+      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
+              <ClipboardCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              {inspection.vehicle?.name} • {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
-            </p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
+                  INSPECTION
+                </span>
+                <h4 className="font-semibold text-sm text-foreground">
+                  {getFullTypeName(inspection.type)}
+                </h4>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  {inspection.vehicle?.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {inspection.status === 'completed' ? t('common.status.completed') : t('inspections.details.scheduledFor', { date: formatDate(inspection.date) })}
+                </p>
+              </div>
+            </div>
           </div>
-          {getInspectionStatusBadge(inspection.status, t)}
+          <div className="ml-2 flex-shrink-0">
+            {getInspectionStatusBadge(inspection.status, t)}
+          </div>
         </div>
       </div>
     </Link>
@@ -772,42 +982,41 @@ function BookingCard({ booking }: { booking: Booking }) {
       href={`/bookings/${booking.id}`}
       className="block"
     >
-      <div className="p-3 border rounded-md hover:border-primary transition-colors">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-              <User className="h-4 w-4 text-primary" />
+      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+              <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <div>
-              <span className="font-medium block">
-                {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
-              </span>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>{formatDate(booking.date)} • {booking.time || '00:00'}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+                  BOOKING
+                </span>
+                <h4 className="font-semibold text-sm text-foreground">
+                  {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
+                </h4>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>{formatDate(booking.date)} • {booking.time || '00:00'}</span>
+                </div>
+                {booking.pickup_location && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate max-w-[200px]">
+                      {booking.pickup_location}
+                    </span>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
-          {getBookingStatusBadge(booking.status, t)}
-        </div>
-        
-        <div className="flex flex-col space-y-1 pl-10">
-          {booking.pickup_location && (
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm truncate max-w-[200px]">
-                {booking.pickup_location}
-              </span>
-            </div>
-          )}
-          {booking.service_name && (
-            <div className="flex items-center gap-2 text-sm">
-              <Car className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm truncate max-w-[200px]">
-                {booking.service_name}
-              </span>
-            </div>
-          )}
+          <div className="ml-2 flex-shrink-0">
+            {getBookingStatusBadge(booking.status, t)}
+          </div>
         </div>
       </div>
     </Link>
@@ -818,28 +1027,37 @@ function QuotationCard({ quotation }: { quotation: any }) {
   const { t } = useI18n()
   return (
     <Link href={`/quotations/${quotation.id}`} className="block">
-      <div className="p-3 border rounded-md hover:border-primary transition-colors">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-              <FileText className="h-4 w-4 text-primary" />
+      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <span className="font-medium block truncate max-w-[160px]">
-                {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
-              </span>
-              <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
+                  QUOTATION
+                </span>
+                <h4 className="font-semibold text-sm text-foreground truncate">
+                  {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
+                </h4>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
                 {quotation.customer_name || t('bookings.unnamed')}
-              </span>
+              </p>
+              {quotation.total_amount && (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                    {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-          {getQuotationStatusBadge(quotation.status, t)}
+          <div className="ml-2 flex-shrink-0">
+            {getQuotationStatusBadge(quotation.status, t)}
+          </div>
         </div>
-        {quotation.total_amount && (
-          <p className="text-xs text-muted-foreground pl-10">
-            {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
-          </p>
-        )}
       </div>
     </Link>
   )

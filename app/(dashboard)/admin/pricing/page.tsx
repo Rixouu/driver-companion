@@ -1,5 +1,7 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import PricingCategoriesTab from "./_components/pricing-categories-tab";
 import PricingItemsTab from "./_components/pricing-items-tab";
 import PricingPromotionsTab from "./_components/pricing-promotions-tab";
@@ -10,27 +12,24 @@ import { PricingTabsList } from "./_components/pricing-tabs-list";
 
 export const dynamic = "force-dynamic"
 
-export const metadata: Metadata = {
-  title: "Pricing Management",
-  description: "Manage service pricing, promotions, and packages",
-};
-
 export default function PricingManagementPage() {
+  const [activeTab, setActiveTab] = useState("categories");
+
   return (
-    <div className="space-y-8">
-      <div className="border-b border-border/40 pb-6">
-        <div className="flex items-center gap-3 mb-4">
+    <div className="space-y-6">
+      <div className="border-b border-border/40 pb-3">
+        <div className="flex items-center gap-3 mb-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Pricing Management</h1>
-            <p className="text-muted-foreground text-base mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Pricing Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
               Manage your pricing categories, individual items, promotions, and packages.
             </p>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="categories" className="w-full">
-        <PricingTabsList />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <PricingTabsList value={activeTab} onValueChange={setActiveTab} />
         
         <div className="mt-8">
           <TabsContent value="categories">

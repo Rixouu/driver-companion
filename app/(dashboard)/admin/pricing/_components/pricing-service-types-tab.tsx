@@ -72,6 +72,7 @@ export default function PricingServiceTypesTab() {
   const [categories, setCategories] = useState<PricingCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,6 +90,17 @@ export default function PricingServiceTypesTab() {
       is_active: true,
     },
   });
+
+  // Check mobile view on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     fetchServiceTypes();
@@ -347,6 +359,84 @@ export default function PricingServiceTypesTab() {
     };
   };
 
+  // Mobile card component
+  const ServiceTypeMobileCard = ({ serviceType, index }: { serviceType: ServiceType; index: number }) => {
+    const categoryInfo = getCategoryDescriptionWithStatus(serviceType.id);
+    
+    return (
+      <Card className="hover:shadow-md transition-all duration-200">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Header with icon and name */}
+            <div className="flex items-start gap-3">
+              <div className="w-3 h-3 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-foreground text-base">{serviceType.name}</h3>
+                {serviceType.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{serviceType.description}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Category Assignment */}
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Category Assignment
+              </div>
+              {categoryInfo.isLoading ? (
+                <div className="text-sm text-muted-foreground">
+                  <div className="animate-pulse bg-muted h-4 w-24 rounded"></div>
+                  <div className="animate-pulse bg-muted h-3 w-32 rounded mt-1"></div>
+                </div>
+              ) : (
+                <div className="text-sm text-foreground">
+                  {categoryInfo.text}
+                </div>
+              )}
+            </div>
+
+            {/* Status */}
+            <div className="flex items-center justify-between">
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-xs px-3 py-1.5 font-medium',
+                  getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive')
+                )}
+              >
+                {serviceType.is_active ? t('common.status.active') : t('common.status.inactive')}
+              </Badge>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 h-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => openEditDialog(serviceType)}
+                title={t('common.edit')}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => openDeleteDialog(serviceType)}
+                title={t('common.delete')}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <Card>
       <PricingTabHeader
@@ -375,16 +465,19 @@ export default function PricingServiceTypesTab() {
                 fetchData(); // Use the optimized parallel fetch
               }}
               disabled={isLoading || isRefreshing}
+              className="h-9 px-3"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button 
               onClick={openAddDialog}
               variant="default"
+              className="h-9 px-3"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Service Type
+              <span className="hidden sm:inline">Add Service Type</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           </>
         }
@@ -420,116 +513,126 @@ export default function PricingServiceTypesTab() {
         </div>
       ) : (
         <div className="mt-6">
-          <PricingResponsiveTable>
-            <PricingTableHeader>
-              <PricingTableHead>Service Type</PricingTableHead>
-              <PricingTableHead>Category Assignment</PricingTableHead>
-              <PricingTableHead>Status</PricingTableHead>
-              <PricingTableHead className="text-right">Actions</PricingTableHead>
-            </PricingTableHeader>
-            <TableBody>
+          {isMobileView ? (
+            // Mobile Cards View
+            <div className="space-y-4">
               {serviceTypes.map((serviceType, index) => (
-                <PricingTableRow key={serviceType.id} index={index}>
-                  <PricingTableCell>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-foreground text-sm sm:text-base">{serviceType.name}</div>
-                        {serviceType.description && (
-                          <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{serviceType.description}</div>
-                        )}
-                      </div>
-                    </div>
-                  </PricingTableCell>
-                  <PricingTableCell>
-                    <div className="space-y-1">
-                      {(() => {
-                        if (categories.length === 0) {
-                          return (
-                            <div className="text-sm text-muted-foreground">
-                              <div className="animate-pulse bg-muted h-4 w-24 rounded"></div>
-                              <div className="animate-pulse bg-muted h-3 w-32 rounded mt-1"></div>
-                            </div>
-                          );
-                        }
-                        
-                        // Find ALL categories that this service type is linked to
-                        const linkedCategories = categories.filter(c => 
-                          Array.isArray(c.service_type_ids) && 
-                          c.service_type_ids.includes(serviceType.id)
-                        );
-                        
-                        if (linkedCategories.length === 0) {
-                          return (
-                            <div className="text-sm text-muted-foreground">
-                              No category assigned
-                            </div>
-                          );
-                        }
-                        
-                        // Show all linked categories
-                        return (
-                          <div className="space-y-1">
-                            {linkedCategories.map((category, idx) => (
-                              <div key={category.id} className="flex items-start gap-2">
-                                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-medium text-foreground text-sm sm:text-base">{category.name}</div>
-                                  {category.description && (
-                                    <div className="text-xs text-muted-foreground line-clamp-2">{category.description}</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </PricingTableCell>
-                  <PricingTableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'text-xs px-3 py-1.5 font-medium',
-                        getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive')
-                      )}
-                    >
-                      {serviceType.is_active ? t('common.status.active') : t('common.status.inactive')}
-                    </Badge>
-                  </PricingTableCell>
-                  <PricingTableCell className="text-right">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        onClick={() => openEditDialog(serviceType)}
-                        title={t('common.edit')}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => openDeleteDialog(serviceType)}
-                        title={t('common.delete')}
-                      >
-                        <Trash className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </PricingTableCell>
-                </PricingTableRow>
+                <ServiceTypeMobileCard key={serviceType.id} serviceType={serviceType} index={index} />
               ))}
-            </TableBody>
-          </PricingResponsiveTable>
+            </div>
+          ) : (
+            // Desktop Table View
+            <PricingResponsiveTable>
+              <PricingTableHeader>
+                <PricingTableHead>Service Type</PricingTableHead>
+                <PricingTableHead>Category Assignment</PricingTableHead>
+                <PricingTableHead>Status</PricingTableHead>
+                <PricingTableHead className="text-right">Actions</PricingTableHead>
+              </PricingTableHeader>
+              <TableBody>
+                {serviceTypes.map((serviceType, index) => (
+                  <PricingTableRow key={serviceType.id} index={index}>
+                    <PricingTableCell>
+                      <div className="flex items-start space-x-3">
+                        <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-foreground text-sm sm:text-base">{serviceType.name}</div>
+                          {serviceType.description && (
+                            <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{serviceType.description}</div>
+                          )}
+                        </div>
+                      </div>
+                    </PricingTableCell>
+                    <PricingTableCell>
+                      <div className="space-y-1">
+                        {(() => {
+                          if (categories.length === 0) {
+                            return (
+                              <div className="text-sm text-muted-foreground">
+                                <div className="animate-pulse bg-muted h-4 w-24 rounded"></div>
+                                <div className="animate-pulse bg-muted h-3 w-32 rounded mt-1"></div>
+                              </div>
+                            );
+                          }
+                          
+                          // Find ALL categories that this service type is linked to
+                          const linkedCategories = categories.filter(c => 
+                            Array.isArray(c.service_type_ids) && 
+                            c.service_type_ids.includes(serviceType.id)
+                          );
+                          
+                          if (linkedCategories.length === 0) {
+                            return (
+                              <div className="text-sm text-muted-foreground">
+                                No category assigned
+                              </div>
+                            );
+                          }
+                          
+                          // Show all linked categories
+                          return (
+                            <div className="space-y-1">
+                              {linkedCategories.map((category, idx) => (
+                                <div key={category.id} className="flex items-start gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-medium text-foreground text-sm sm:text-base">{category.name}</div>
+                                    {category.description && (
+                                      <div className="text-xs text-muted-foreground line-clamp-2">{category.description}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </PricingTableCell>
+                    <PricingTableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-xs px-3 py-1.5 font-medium',
+                          getStatusBadgeClasses(serviceType.is_active ? 'active' : 'inactive')
+                        )}
+                      >
+                        {serviceType.is_active ? t('common.status.active') : t('common.status.inactive')}
+                      </Badge>
+                    </PricingTableCell>
+                    <PricingTableCell className="text-right">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                          onClick={() => openEditDialog(serviceType)}
+                          title={t('common.edit')}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => openDeleteDialog(serviceType)}
+                          title={t('common.delete')}
+                        >
+                          <Trash className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </PricingTableCell>
+                  </PricingTableRow>
+                ))}
+              </TableBody>
+            </PricingResponsiveTable>
+          )}
         </div>
       )}
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>
               {editingServiceType ? 'Edit Service Type' : 'Add New Service Type'}
@@ -617,7 +720,7 @@ export default function PricingServiceTypesTab() {
       </Dialog>
       
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>

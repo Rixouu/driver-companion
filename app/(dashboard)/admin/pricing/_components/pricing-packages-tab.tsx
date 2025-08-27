@@ -94,6 +94,7 @@ export default function PricingPackagesTab() {
   
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [selectedCurrency, setSelectedCurrency] = useState<string>("JPY");
+  const [isMobileView, setIsMobileView] = useState(false);
   
   const { 
     getPricingPackages, 
@@ -106,6 +107,17 @@ export default function PricingPackagesTab() {
   } = useQuotationService();
   
   const { t } = useI18n();
+  
+  // Check mobile view on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   useEffect(() => {
     async function loadData() {
@@ -455,6 +467,95 @@ export default function PricingPackagesTab() {
   
   const getPackageStatus = (isActive: boolean) => {
     return isActive ? 'active' : 'inactive';
+  };
+
+  // Mobile card component
+  const PackageMobileCard = ({ pkg, index }: { pkg: PricingPackage; index: number }) => {
+    return (
+      <Card className="hover:shadow-md transition-all duration-200">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Header with name and description */}
+            <div className="space-y-2">
+              <h3 className="font-medium text-foreground text-base">{pkg.name}</h3>
+              <div className="text-sm text-muted-foreground">
+                {pkg.description}
+              </div>
+            </div>
+
+            {/* Package Type and Price */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Type
+                </div>
+                <Badge variant="outline">{pkg.package_type}</Badge>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Price
+                </div>
+                <div className="font-semibold text-primary">
+                  {formatCurrency(pkg.base_price, pkg.currency)}
+                </div>
+              </div>
+            </div>
+
+            {/* Validity Period */}
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Validity Period
+              </div>
+              <div className="text-sm text-foreground">
+                {pkg.valid_from && pkg.valid_to ? 
+                  `${format(new Date(pkg.valid_from), 'MMM d, yyyy')} - ${format(new Date(pkg.valid_to), 'MMM d, yyyy')}` : 
+                  'Always valid'}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={getStatusBadgeClasses(getPackageStatus(pkg.is_active))}>
+                  {pkg.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+                {pkg.is_featured && <Badge variant="secondary"><Tag className="h-3 w-4 mr-1" />Featured</Badge>}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 h-9 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => handleEditPackage(pkg)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => handleDeletePackage(pkg.id)}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={() => handleTogglePackageStatus(pkg.id, !pkg.is_active)}
+              >
+                {pkg.is_active ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
   
   const renderPackageDialog = () => {
@@ -820,9 +921,10 @@ export default function PricingPackagesTab() {
             </>
           }
           actions={
-            <Button onClick={handleCreatePackage} variant="default">
+            <Button onClick={handleCreatePackage} variant="default" className="h-9 px-3">
               <Plus className="h-4 w-4 mr-2" />
-              {t('pricing.packages.addPackage')}
+              <span className="hidden sm:inline">{t('pricing.packages.addPackage')}</span>
+              <span className="sm:hidden">Add Package</span>
             </Button>
           }
         />
@@ -858,74 +960,84 @@ export default function PricingPackagesTab() {
             </div>
           ) : (
             <div className="mt-6">
-              <PricingResponsiveTable>
-                <PricingTableHeader>
-                  <PricingTableHead>Package</PricingTableHead>
-                  <PricingTableHead>Type</PricingTableHead>
-                  <PricingTableHead>Price</PricingTableHead>
-                  <PricingTableHead>Validity</PricingTableHead>
-                  <PricingTableHead>Status</PricingTableHead>
-                  <PricingTableHead className="text-right">Actions</PricingTableHead>
-                </PricingTableHeader>
-                <TableBody>
+              {isMobileView ? (
+                // Mobile Cards View
+                <div className="space-y-4">
                   {packages.map((pkg, index) => (
-                    <PricingTableRow key={pkg.id} index={index}>
-                      <PricingTableCell>
-                        <div className="font-medium text-foreground">{pkg.name}</div>
-                        <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
-                      </PricingTableCell>
-                      <PricingTableCell>
-                        <Badge variant="outline">{pkg.package_type}</Badge>
-                      </PricingTableCell>
-                      <PricingTableCell>{formatCurrency(pkg.base_price, pkg.currency)}</PricingTableCell>
-                      <PricingTableCell>
-                        {pkg.valid_from && pkg.valid_to ? 
-                          `${format(new Date(pkg.valid_from), 'MMM d, yyyy')} - ${format(new Date(pkg.valid_to), 'MMM d, yyyy')}` : 
-                          'Always valid'}
-                      </PricingTableCell>
-                      <PricingTableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={getStatusBadgeClasses(getPackageStatus(pkg.is_active))}>
-                            {pkg.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                          {pkg.is_featured && <Badge variant="secondary"><Tag className="h-3 w-3 mr-1" />Featured</Badge>}
-                        </div>
-                      </PricingTableCell>
-                      <PricingTableCell className="text-right">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
-                            onClick={() => handleEditPackage(pkg)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeletePackage(pkg.id)}
-                          >
-                            <Trash className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
-                            onClick={() => handleTogglePackageStatus(pkg.id, !pkg.is_active)}
-                          >
-                            {pkg.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-                            {pkg.is_active ? 'Deactivate' : 'Activate'}
-                          </Button>
-                        </div>
-                      </PricingTableCell>
-                    </PricingTableRow>
+                    <PackageMobileCard key={pkg.id} pkg={pkg} index={index} />
                   ))}
-                </TableBody>
-              </PricingResponsiveTable>
+                </div>
+              ) : (
+                // Desktop Table View
+                <PricingResponsiveTable>
+                  <PricingTableHeader>
+                    <PricingTableHead>Package</PricingTableHead>
+                    <PricingTableHead>Type</PricingTableHead>
+                    <PricingTableHead>Price</PricingTableHead>
+                    <PricingTableHead>Validity</PricingTableHead>
+                    <PricingTableHead>Status</PricingTableHead>
+                    <PricingTableHead className="text-right">Actions</PricingTableHead>
+                  </PricingTableHeader>
+                  <TableBody>
+                    {packages.map((pkg, index) => (
+                      <PricingTableRow key={pkg.id} index={index}>
+                        <PricingTableCell>
+                          <div className="font-medium text-foreground">{pkg.name}</div>
+                          <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
+                        </PricingTableCell>
+                        <PricingTableCell>
+                          <Badge variant="outline">{pkg.package_type}</Badge>
+                        </PricingTableCell>
+                        <PricingTableCell>{formatCurrency(pkg.base_price, pkg.currency)}</PricingTableCell>
+                        <PricingTableCell>
+                          {pkg.valid_from && pkg.valid_to ? 
+                            `${format(new Date(pkg.valid_from), 'MMM d, yyyy')} - ${format(new Date(pkg.valid_to), 'MMM d, yyyy')}` : 
+                            'Always valid'}
+                        </PricingTableCell>
+                        <PricingTableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={getStatusBadgeClasses(getPackageStatus(pkg.is_active))}>
+                              {pkg.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                            {pkg.is_featured && <Badge variant="secondary"><Tag className="h-3 w-3 mr-1" />Featured</Badge>}
+                          </div>
+                        </PricingTableCell>
+                        <PricingTableCell className="text-right">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              onClick={() => handleEditPackage(pkg)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeletePackage(pkg.id)}
+                            >
+                              <Trash className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+                              onClick={() => handleTogglePackageStatus(pkg.id, !pkg.is_active)}
+                            >
+                              {pkg.is_active ? <X className="h-4 w-4 mr-1" /> : <Check className="h-4 w-4 mr-1" />}
+                              {pkg.is_active ? 'Deactivate' : 'Activate'}
+                            </Button>
+                          </div>
+                        </PricingTableCell>
+                      </PricingTableRow>
+                    ))}
+                  </TableBody>
+                </PricingResponsiveTable>
+              )}
             </div>
           )}
         </CardContent>

@@ -688,7 +688,7 @@ export function DashboardContent({
                 <div className="pt-2">
                   <Link href="/sales/calendar" className="w-full">
                     <Button variant="outline" className="w-full bg-background border-border hover:bg-muted/50">
-                      <span className="text-foreground">販売カレンダーを表示</span>
+                      <span className="text-foreground">{t("dashboard.financial.viewSalesCalendar")}</span>
                       <ArrowRight className="ml-2 h-4 w-4 text-foreground" />
                     </Button>
                   </Link>

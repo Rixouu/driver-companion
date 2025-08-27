@@ -1530,7 +1530,8 @@ export const ja: TranslationValue = {
       dailyRevenue: "日次収益",
       quoteDistribution: "見積分布",
       statusBreakdown: "ステータス内訳",
-      noData: "データがありません"
+      noData: "データがありません",
+      viewSalesCalendar: "販売カレンダーを表示"
     },
     upcomingBookings: {
       title: "今後の予約",

@@ -33,7 +33,7 @@ import { ServiceTypeInfo, PricingCategory } from "@/types/quotations";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { PricingTabHeader, StatusBadge } from './pricing-tab-header';
-import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell } from './pricing-responsive-table';
+import { PricingResponsiveTable, PricingTableHeader, PricingTableHead, PricingTableRow, PricingTableCell, SortableMobileCard } from './pricing-responsive-table';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { cn, getStatusBadgeClasses } from "@/lib/utils/styles";
@@ -89,6 +89,7 @@ export default function PricingCategoriesTab() {
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicleIds, setSelectedVehicleIds] = useState<Set<string>>(new Set());
   const [categoryForVehicles, setCategoryForVehicles] = useState<CategoryWithVehicles | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
   
   const { getPricingCategories, getServiceTypes, createPricingCategory, updatePricingCategory, deletePricingCategory, addVehiclesToCategory, removeVehiclesFromCategory, replaceServiceTypesOfCategory } = useQuotationService();
   const { t } = useI18n();
@@ -194,6 +195,17 @@ export default function PricingCategoriesTab() {
       setIsLoading(false);
     }
   };
+
+  // Check mobile view on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load categories and service types on mount
   useEffect(() => {
@@ -637,26 +649,48 @@ export default function PricingCategoriesTab() {
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}
               >
-                <PricingResponsiveTable>
-                  <PricingTableHeader>
-                    <PricingTableHead className="w-12"> </PricingTableHead>
-                    <PricingTableHead>{t('common.details')}</PricingTableHead>
-                    <PricingTableHead className="text-center">{t('pricing.categories.table.services')}</PricingTableHead>
-                    <PricingTableHead className="text-center">{t('common.status.default')}</PricingTableHead>
-                    <PricingTableHead className="text-center">{t('common.order')}</PricingTableHead>
-                    <PricingTableHead className="text-center">{t('common.actions.default')}</PricingTableHead>
-                  </PricingTableHeader>
-                  <TableBody>
+                {isMobileView ? (
+                  // Mobile Cards View
+                  <div className="space-y-4">
                     <SortableContext
                       items={categories.map(cat => cat.id)}
                       strategy={verticalListSortingStrategy}
                     >
                       {categories.map((category) => (
-                        <SortableTableRow key={category.id} category={category} />
+                        <SortableMobileCard
+                          key={category.id}
+                          category={category}
+                          onEdit={handleOpenDialog}
+                          onManageVehicles={handleOpenVehicleDialog}
+                          onDelete={openDeleteConfirm}
+                          onStatusToggle={openStatusConfirm}
+                        />
                       ))}
                     </SortableContext>
-                  </TableBody>
-                </PricingResponsiveTable>
+                  </div>
+                ) : (
+                  // Desktop Table View
+                  <PricingResponsiveTable>
+                    <PricingTableHeader>
+                      <PricingTableHead className="w-12"> </PricingTableHead>
+                      <PricingTableHead>{t('common.details')}</PricingTableHead>
+                      <PricingTableHead className="text-center">{t('pricing.categories.table.services')}</PricingTableHead>
+                      <PricingTableHead className="text-center">{t('common.status.default')}</PricingTableHead>
+                      <PricingTableHead className="text-center">{t('common.order')}</PricingTableHead>
+                      <PricingTableHead className="text-center">{t('common.actions.default')}</PricingTableHead>
+                    </PricingTableHeader>
+                    <TableBody>
+                      <SortableContext
+                        items={categories.map(cat => cat.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {categories.map((category) => (
+                          <SortableTableRow key={category.id} category={category} />
+                        ))}
+                      </SortableContext>
+                    </TableBody>
+                  </PricingResponsiveTable>
+                )}
               </DndContext>
             </div>
           )}

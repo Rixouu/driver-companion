@@ -1545,7 +1545,8 @@ export const en: TranslationValue = {
       dailyRevenue: "Daily Revenue",
       quoteDistribution: "Quote Distribution",
       statusBreakdown: "Status Breakdown",
-      noData: "No data available"
+      noData: "No data available",
+      viewSalesCalendar: "View Sales Calendar"
     },
     upcomingBookings: {
       title: "Upcoming Bookings",

@@ -26,7 +26,8 @@ import {
   ExternalLink,
   Loader2,
   Link2,
-  RefreshCw
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import { format, parseISO, addDays, differenceInDays, isAfter } from 'date-fns';
 import { QuotationStatus } from '@/types/quotations';
@@ -488,8 +489,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         title: t('quotations.workflow.send.title'),
         description: t('quotations.workflow.send.description'),
         icon: <Send className="h-4 w-4" />,
-        status: quotation.status === 'draft' ? 'current' : 'completed',
-        date: quotation.last_sent_at,
+        status: quotation.status === 'draft' ? 'current' : 
+                (quotation.last_sent_at || ['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status)) ? 'completed' : 'pending',
+        date: quotation.last_sent_at || (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? quotation.created_at : undefined),
         ...(quotation.status === 'draft' && isOrganizationMember ? {
           action: {
             label: 'Send Now',
@@ -544,41 +546,15 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     if (quotation.status === 'approved' || quotation.invoice_generated_at || quotation.payment_completed_at || quotation.booking_created_at) {
       steps.push(
         {
-          id: 'invoice',
-          title: t('quotations.workflow.invoice.title'),
-          description: t('quotations.workflow.invoice.description'),
-          icon: <Receipt className="h-4 w-4" />,
-          status: quotation.invoice_generated_at ? 'completed' : 
-                  quotation.status === 'approved' ? 'current' : 'pending',
-          date: quotation.invoice_generated_at,
-          ...(quotation.status === 'approved' && !quotation.invoice_generated_at && isOrganizationMember ? {
-            action: {
-              label: 'Send Invoice',
-              onClick: async () => {
-                try {
-                  // Call the onGenerateInvoice callback which will handle the invoice generation and sending
-                  if (onGenerateInvoice) {
-                    onGenerateInvoice();
-                  }
-                } catch (error) {
-                  console.error('Error sending invoice:', error);
-                }
-              },
-              variant: 'default' as const,
-              disabled: false
-            }
-          } : {})
-        },
-        {
           id: 'payment_link_sent',
-          title: 'Payment Link Sent',
-          description: 'Payment link has been sent to customer',
+          title: 'Payment Method Selected',
+          description: 'Payment link sent to customer or bank transfer method selected',
           icon: <Mail className="h-4 w-4" />,
           status: quotation.payment_completed_at ? 'completed' : 
                   quotation.payment_link_sent_at ? 'completed' : 
-                  quotation.invoice_generated_at ? 'current' : 'pending',
+                  quotation.status === 'approved' ? 'current' : 'pending',
           date: quotation.payment_link_sent_at,
-          ...(quotation.invoice_generated_at && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
+          ...(quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at && isOrganizationMember ? {
             action: {
               label: 'Send Payment Link',
               onClick: () => setIsPaymentLinkDialogOpen(true),
@@ -879,7 +855,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 'send': t('quotations.workflow.steps.sendToCustomer'),
                 'reminder': t('quotations.workflow.steps.sendReminder'),
                 'approve': t('quotations.workflow.steps.waitingForApproval'),
-                'invoice': t('quotations.workflow.steps.generateInvoice'),
                 'payment_link_sent': t('quotations.workflow.steps.waitPayment'),
                 'payment_completed': t('quotations.workflow.steps.createBooking'),
                 'booking': t('quotations.workflow.steps.createBooking')
@@ -906,7 +881,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
           <DialogHeader>
             <DialogTitle>Send Payment Link</DialogTitle>
             <DialogDescription>
-              This will send the invoice with payment link to the customer.
+              Send the invoice with payment link to the customer, or skip if using bank transfer.
             </DialogDescription>
           </DialogHeader>
           
@@ -1024,6 +999,17 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               <p className="text-xs text-muted-foreground">
                 Leave empty to auto-generate, or click Generate to create a new Omise payment link
               </p>
+              
+              {/* Bank Transfer Note */}
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-blue-800 dark:text-blue-200">
+                    <p className="font-medium mb-1">Bank Transfer Option</p>
+                    <p>If the customer prefers bank transfer, you can skip sending a payment link and mark this step as complete. The customer will receive bank transfer instructions separately.</p>
+                  </div>
+                </div>
+              </div>
             </div>
             
 
@@ -1033,6 +1019,66 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             <Button variant="outline" onClick={() => setIsPaymentLinkDialogOpen(false)}>
               Cancel
             </Button>
+            
+            {/* Skip button for bank transfer */}
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                try {
+                  setProgressOpen(true);
+                  setProgressTitle('Skipping Payment Link');
+                  setProgressLabel('Marking as payment link sent for bank transfer...');
+                  setProgressValue(50);
+                  
+                  // Update the quotation status to mark payment link as sent (for bank transfer)
+                  const updateResponse = await fetch(`/api/quotations/${quotation.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      payment_link_sent_at: new Date().toISOString(),
+                      payment_method: 'bank_transfer'
+                    })
+                  });
+                  
+                  if (updateResponse.ok) {
+                    console.log('Quotation status updated for bank transfer');
+                    setPaymentLinkSent(true);
+                    setPaymentLinkSentAt(new Date().toISOString());
+                    
+                    setProgressValue(100);
+                    setProgressLabel('Bank transfer payment method selected!');
+                    setTimeout(() => setProgressOpen(false), 1000);
+                    
+                    toast({
+                      title: "Bank Transfer Selected",
+                      description: "Payment link step skipped for bank transfer method",
+                      variant: "default",
+                    });
+                    
+                    setIsPaymentLinkDialogOpen(false);
+                    
+                    // Refresh the quotation data to update the workflow status
+                    if (onRefresh) {
+                      onRefresh();
+                    }
+                  } else {
+                    throw new Error('Failed to update quotation status');
+                  }
+                } catch (error) {
+                  console.error('Error skipping payment link:', error);
+                  setProgressOpen(false);
+                  toast({
+                    title: "Error",
+                    description: "Failed to skip payment link step",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="mr-2"
+            >
+              Skip (Bank Transfer)
+            </Button>
+            
             <Button onClick={handleSendPaymentLink} disabled={isSendingPaymentLink || !emailAddress}>
               {isSendingPaymentLink ? (
                 <>

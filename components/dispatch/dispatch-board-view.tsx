@@ -100,7 +100,35 @@ function DispatchCard({
   onQuickAssign?: (dispatchId: string) => void;
   onUnassign?: (dispatchId: string) => void;
 }) {
-  const formattedTime = format(parseISO(entry.start_time), "HH:mm");
+  // Safely format the time, handling invalid dates
+  const formattedTime = (() => {
+    try {
+      if (!entry.start_time) {
+        // For pending entries without start_time, try to get from booking
+        if (entry.booking?.date && entry.booking?.time) {
+          return entry.booking.time;
+        }
+        return "TBD";
+      }
+      
+      const parsedDate = parseISO(entry.start_time);
+      if (isNaN(parsedDate.getTime())) {
+        // Invalid date, try to get from booking
+        if (entry.booking?.date && entry.booking?.time) {
+          return entry.booking.time;
+        }
+        return "TBD";
+      }
+      
+      return format(parsedDate, "HH:mm");
+    } catch (error) {
+      // Fallback to booking time or TBD
+      if (entry.booking?.time) {
+        return entry.booking.time;
+      }
+      return "TBD";
+    }
+  })();
   const router = useRouter();
   const { unassignResources } = useSharedDispatchState();
   const isAssigned = entry.driver_id && entry.vehicle_id;

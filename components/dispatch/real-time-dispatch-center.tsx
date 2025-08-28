@@ -368,7 +368,8 @@ export default function RealTimeDispatchCenter() {
     try {
       const supabase = createClient();
       
-      const { data, error } = await supabase
+      // First get all dispatch entries
+      const { data: dispatchData, error: dispatchError } = await supabase
         .from('dispatch_entries')
         .select(`
           *,
@@ -382,7 +383,53 @@ export default function RealTimeDispatchCenter() {
         `)
         .order('start_time', { ascending: false });
 
-      if (error) throw error;
+      if (dispatchError) throw dispatchError;
+
+      // Also get all bookings that need dispatch management (confirmed, assigned, etc.)
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          driver:drivers(id, first_name, last_name, email, phone, profile_image_url),
+          vehicle:vehicles(id, name, plate_number, brand, model, year, image_url, status)
+        `)
+        .in('status', ['confirmed', 'assigned', 'pending'])
+        .order('created_at', { ascending: false });
+
+      if (bookingsError) throw bookingsError;
+
+      // Combine dispatch entries with bookings that don't have dispatch entries yet
+      const allEntries = [...(dispatchData || [])];
+      
+      // Add bookings without dispatch entries as pending entries
+      const bookingsWithoutDispatch = (bookingsData || []).filter(booking => 
+        !dispatchData?.some(entry => entry.booking_id === booking.id)
+      );
+
+      // Only include bookings with valid date/time data
+      const validBookings = bookingsWithoutDispatch.filter(booking => 
+        booking.date && booking.time && 
+        typeof booking.date === 'string' && 
+        typeof booking.time === 'string'
+      );
+
+      console.log(`[Dispatch] Found ${bookingsWithoutDispatch.length} bookings without dispatch, ${validBookings.length} have valid date/time`);
+
+      const pendingEntries = validBookings.map(booking => ({
+        id: `pending-${booking.id}`, // Generate unique ID for pending entries
+        booking_id: booking.id,
+        status: 'pending' as const,
+        driver_id: booking.driver_id,
+        vehicle_id: booking.vehicle_id,
+        start_time: null, // Don't set start_time for pending entries, let the UI handle it
+        created_at: booking.created_at,
+        updated_at: booking.updated_at,
+        driver: booking.driver,
+        vehicle: booking.vehicle,
+        booking: booking
+      }));
+
+      const data = [...allEntries, ...pendingEntries];
       
       // Transform the data to match our interface expectations
       const loadedAssignments = (data || []).map(entry => ({
@@ -398,7 +445,73 @@ export default function RealTimeDispatchCenter() {
         }
       })) as unknown as DispatchEntryWithRelations[];
 
-      setAssignments(loadedAssignments);
+      // Deduplicate entries by booking_id - keep only the most recent entry for each booking
+      // Priority: dispatch entries over pending entries, then use most recent
+      const uniqueAssignments = loadedAssignments.reduce((acc, current) => {
+        const existingIndex = acc.findIndex(item => item.booking_id === current.booking_id);
+        
+        if (existingIndex === -1) {
+          // First entry for this booking
+          acc.push(current);
+        } else {
+          const existing = acc[existingIndex];
+          
+          // Priority: dispatch entries over pending entries
+          const isCurrentDispatch = !current.id.startsWith('pending-');
+          const isExistingDispatch = !existing.id.startsWith('pending-');
+          
+          if (isCurrentDispatch && !isExistingDispatch) {
+            // Current is dispatch entry, existing is pending - replace
+            acc[existingIndex] = current;
+          } else if (!isCurrentDispatch && isExistingDispatch) {
+            // Current is pending, existing is dispatch - keep existing
+          } else {
+            // Both same type - use most recent
+            const currentDate = new Date(current.updated_at || current.created_at);
+            const existingDate = new Date(existing.updated_at || existing.created_at);
+            
+            if (currentDate > existingDate) {
+              acc[existingIndex] = current;
+            }
+          }
+        }
+        
+        return acc;
+      }, [] as DispatchEntryWithRelations[]);
+
+      console.log(`[Dispatch] Loaded ${loadedAssignments.length} entries, deduplicated to ${uniqueAssignments.length} unique bookings`);
+      
+      // Debug: Log some sample entries to see the structure
+      if (uniqueAssignments.length > 0) {
+        console.log('[Dispatch] Sample entry structure:', {
+          id: uniqueAssignments[0].id,
+          status: uniqueAssignments[0].status,
+          start_time: uniqueAssignments[0].start_time,
+          booking_date: uniqueAssignments[0].booking?.date,
+          booking_time: uniqueAssignments[0].booking?.time
+        });
+      }
+      
+      // Show all relevant entries for dispatch management
+      const filteredAssignments = uniqueAssignments.filter(entry => {
+        // Always show entries with active dispatch statuses
+        if (['pending', 'assigned', 'confirmed', 'en_route', 'arrived', 'in_progress'].includes(entry.status)) {
+          return true;
+        }
+        
+        // For completed/cancelled dispatch entries, only show if they're recent (within last 24 hours)
+        if (['completed', 'cancelled'].includes(entry.status)) {
+          const entryDate = new Date(entry.updated_at || entry.created_at);
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          return entryDate > oneDayAgo;
+        }
+        
+        return false;
+      });
+      
+      console.log(`[Dispatch] Filtered to ${filteredAssignments.length} relevant entries`);
+      
+      setAssignments(filteredAssignments);
       setLastRefresh(new Date());
 
     } catch (error) {
@@ -449,12 +562,59 @@ export default function RealTimeDispatchCenter() {
         throw new Error("Booking information not found for this dispatch entry.");
       }
       
-      await updateDispatchStatus(entryId, newStatus, entry.booking_id);
+      // Handle pending entries (they don't have dispatch entries yet)
+      if (entryId.startsWith('pending-')) {
+        // Create a new dispatch entry for this pending booking
+        const supabase = createClient();
+        
+        // Construct start_time from booking data if available
+        let startTime = entry.start_time;
+        if (!startTime && entry.booking?.date && entry.booking?.time) {
+          startTime = `${entry.booking.date}T${entry.booking.time}:00`;
+        }
+        
+        const { data: newDispatchEntry, error: createError } = await supabase
+          .from('dispatch_entries')
+          .insert({
+            booking_id: entry.booking_id,
+            status: newStatus,
+            start_time: startTime || new Date().toISOString(),
+            driver_id: entry.driver_id,
+            vehicle_id: entry.vehicle_id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
 
-      toast({
-        title: "Success",
-        description: `Status updated to ${newStatus.replace('_', ' ')}`,
-      });
+        if (createError) throw createError;
+
+        // Update the booking status
+        const { error: bookingError } = await supabase
+          .from('bookings')
+          .update({ 
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', entry.booking_id);
+
+        if (bookingError) {
+          console.warn('Error updating booking status:', bookingError);
+        }
+
+        toast({
+          title: "Success",
+          description: `Status updated to ${newStatus.replace('_', ' ')}`,
+        });
+      } else {
+        // Regular dispatch entry update
+        await updateDispatchStatus(entryId, newStatus, entry.booking_id);
+
+        toast({
+          title: "Success",
+          description: `Status updated to ${newStatus.replace('_', ' ')}`,
+        });
+      }
 
     } catch (error) {
       console.error('Error updating status:', error);
@@ -475,6 +635,8 @@ export default function RealTimeDispatchCenter() {
     }
   };
 
+
+
   const handleUnassign = async (dispatchId: string) => {
     const originalAssignments = [...assignments];
     
@@ -482,35 +644,59 @@ export default function RealTimeDispatchCenter() {
     setAssignments(prev => prev.filter(a => a.id !== dispatchId));
 
     try {
-      await unassignResources(dispatchId);
+      const entry = originalAssignments.find(a => a.id === dispatchId);
+      if (!entry || !entry.booking_id) {
+        throw new Error("Entry not found");
+      }
 
-      // Also update the booking status to 'pending'
-      const assignmentToUnassign = originalAssignments.find(a => a.id === dispatchId);
-      if (assignmentToUnassign && assignmentToUnassign.booking_id) {
+      // Handle pending entries
+      if (dispatchId.startsWith('pending-')) {
+        // For pending entries, just update the booking to remove assignments
         const supabase = createClient();
         const { error } = await supabase
           .from('bookings')
           .update({ 
-            status: 'pending',
             driver_id: null,
-            vehicle_id: null
+            vehicle_id: null,
+            status: 'pending',
+            updated_at: new Date().toISOString()
           })
-          .eq('id', assignmentToUnassign.booking_id);
+          .eq('id', entry.booking_id);
 
         if (error) throw error;
+      } else {
+        // For regular dispatch entries, use the unassign function
+        await unassignResources(dispatchId);
+
+        // Also update the booking status to 'pending'
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('bookings')
+          .update({ 
+            driver_id: null,
+            vehicle_id: null,
+            status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', entry.booking_id);
+
+        if (error) {
+          console.error('Error updating booking:', error);
+        }
       }
 
       toast({
-        title: t("dispatch.assignments.messages.unassignSuccess"),
+        title: "Success",
+        description: "Resources unassigned successfully",
       });
 
     } catch (error) {
-      console.error("Failed to unassign:", error);
+      console.error('Error unassigning resources:', error);
       // Revert optimistic update
       setAssignments(originalAssignments);
       toast({
         title: "Error",
-        description: t("dispatch.assignments.messages.unassignError"),
+        description: "Failed to unassign resources",
         variant: "destructive",
       });
     }
@@ -614,6 +800,7 @@ export default function RealTimeDispatchCenter() {
                 <RefreshCwIcon className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
                 Refresh
               </Button>
+
             </div>
           </div>
         </div>

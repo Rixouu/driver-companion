@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       const { data: emailData, error: resendError } = await resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [customer_email],
+        bcc: ['booking@japandriver.com'],
         subject: `${emailTemplates[validLanguage].subject} - ${formattedQuotationId}`,
         text: textContent,
         html: emailHtml,

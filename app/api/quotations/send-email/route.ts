@@ -255,6 +255,7 @@ export async function POST(request: NextRequest) {
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [email],
+        bcc: ['booking@japandriver.com'],
         subject: emailSubject,
         text: textContent,
         html: emailHtml,

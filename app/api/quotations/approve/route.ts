@@ -520,6 +520,7 @@ export async function POST(request: NextRequest) {
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [emailAddress],
+        bcc: ['booking@japandriver.com'],
         subject: emailSubject,
         html: emailHtml,
         attachments: pdfBuffer ? [

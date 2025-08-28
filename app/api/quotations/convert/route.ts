@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
         .from('bookings')
         .insert({
           wp_id: `QUO-${baseQuotationNumber}-${i + 1}`,
+          customer_id: quotation.customer_id, // Add the customer_id from quotation
           customer_name: quotation.customer_name,
           customer_email: quotation.customer_email,
           customer_phone: quotation.customer_phone,

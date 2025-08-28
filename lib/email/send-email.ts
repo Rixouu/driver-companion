@@ -7,6 +7,7 @@ interface EmailParams {
   html: string;
   text: string;
   attachments?: any[];
+  bcc?: string[];
 }
 
 interface PaymentConfirmationParams {
@@ -56,7 +57,7 @@ const createTransporter = () => {
 };
 
 export async function sendEmail(params: EmailParams) {
-  const { to, subject, html, text, attachments = [] } = params;
+  const { to, subject, html, text, attachments = [], bcc = [] } = params;
   
   try {
     // Prefer Resend if configured
@@ -72,6 +73,7 @@ export async function sendEmail(params: EmailParams) {
       const result = await resend.emails.send({
         from: fromAddress,
         to: Array.isArray(to) ? to : [to],
+        bcc: bcc.length > 0 ? bcc : undefined,
         subject,
         html,
         text,
@@ -86,6 +88,7 @@ export async function sendEmail(params: EmailParams) {
     const mailOptions = {
       from: `"${process.env.EMAIL_FROM_NAME || 'Driver Japan'}" <${process.env.EMAIL_FROM_ADDRESS || 'info@japandriver.com'}>`,
       to,
+      bcc: bcc.length > 0 ? bcc : undefined,
       subject,
       html,
       text,
@@ -148,7 +151,7 @@ export async function sendPaymentConfirmationEmail(params: PaymentConfirmationPa
     </div>
   `;
   
-  return sendEmail({ to, subject, html, text });
+  return sendEmail({ to, subject, html, text, bcc: ['booking@japandriver.com'] });
 }
 
 export async function sendInvoiceEmail(params: InvoiceEmailParams) {
@@ -474,5 +477,5 @@ ${hasPaymentLink ? `
     });
   }
   
-  return sendEmail({ to, subject, html, text, attachments });
+  return sendEmail({ to, subject, html, text, attachments, bcc: ['booking@japandriver.com'] });
 } 

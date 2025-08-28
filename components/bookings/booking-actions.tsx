@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase'
@@ -15,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils/styles'
 import { cancelBookingAction } from '@/app/actions/bookings'
 import { useToast } from '@/components/ui/use-toast'
+import SmartAssignmentModal from '@/components/shared/smart-assignment-modal'
 
 interface BookingActionsProps {
   bookingId: string;
@@ -31,11 +34,16 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
-  const [selectedDriver, setSelectedDriver] = useState<string>("")
-  const [selectedVehicle, setSelectedVehicle] = useState<string>("")
   const [drivers, setDrivers] = useState<any[]>([])
   const [vehicles, setVehicles] = useState<any[]>([])
   const [isLoadingDrivers, setIsLoadingDrivers] = useState(false)
+  
+  // Email dialog state
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+
+
 
   // Load available drivers and vehicles
   const loadAvailableResources = async () => {
@@ -73,45 +81,63 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
     }
   }
 
-  // Smart vehicle matching logic based on service name
-  const getVehicleMatches = () => {
-    if (!booking?.service_name) return vehicles.map(v => ({ vehicle: v, matchPercentage: 50 }));
-    
-    const serviceName = booking.service_name.toLowerCase();
-    
-    return vehicles.map(vehicle => {
-      let matchPercentage = 30; // base score
-      
-      // Perfect matches based on real data
-      if (serviceName.includes('alphard executive lounge') && vehicle.model?.toLowerCase().includes('alphard executive lounge')) {
-        matchPercentage = 100;
-      } else if (serviceName.includes('alphard z') && vehicle.model?.toLowerCase().includes('alphard z')) {
-        matchPercentage = 100;
-      } else if (serviceName.includes('v class') && vehicle.model?.toLowerCase().includes('v class')) {
-        matchPercentage = 95;
-      } else if (serviceName.includes('alphard') && vehicle.model?.toLowerCase().includes('alphard')) {
-        matchPercentage = 90;
-      } else if (serviceName.includes('mercedes') && vehicle.brand?.toLowerCase().includes('mercedes')) {
-        matchPercentage = 85;
-      } else if (serviceName.includes('toyota') && vehicle.brand?.toLowerCase().includes('toyota')) {
-        matchPercentage = 85;
-      }
-      
-      // Luxury service matching
-      if (serviceName.includes('luxury') || serviceName.includes('premium') || serviceName.includes('executive')) {
-        if (vehicle.model?.toLowerCase().includes('executive') || 
-            vehicle.model?.toLowerCase().includes('v class')) {
-          matchPercentage = Math.max(matchPercentage, 90);
-        }
-      }
-      
-      return { vehicle, matchPercentage };
-    }).sort((a, b) => b.matchPercentage - a.matchPercentage);
-  };
+  // Send booking details email
+  const handleSendBookingDetails = async () => {
+    if (!bccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      })
+      return
+    }
 
-  const handleAssign = async () => {
-    if (!selectedDriver || !selectedVehicle) return;
+    setIsSendingEmail(true)
+    try {
+      const bccEmailList = bccEmails.split(',').map(email => email.trim()).filter(email => email)
+      
+      const response = await fetch('/api/bookings/send-booking-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.supabase_id || booking.id || booking.booking_id || bookingId,
+          bccEmails: bccEmailList
+        }),
+      })
 
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send email')
+      }
+
+      const result = await response.json()
+      
+      toast({
+        title: "Success",
+        description: "Booking details email sent successfully!",
+      })
+
+      // Close modal and reset form
+      setIsEmailModalOpen(false)
+      setBccEmails("booking@japandriver.com")
+      
+    } catch (error) {
+      console.error('Error sending booking details email:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send email",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
+
+
+
+  const handleAssign = async (driverId: string, vehicleId: string) => {
     try {
       const supabase = createClient();
       
@@ -119,41 +145,58 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
       const { error: bookingError } = await supabase
         .from('bookings')
         .update({ 
-          driver_id: selectedDriver,
-          vehicle_id: selectedVehicle,
+          driver_id: driverId,
+          vehicle_id: vehicleId,
           status: 'assigned'
         })
-        .eq('id', bookingId);
+        .eq('id', booking.supabase_id);
 
       if (bookingError) throw bookingError;
 
-      // Create or update dispatch entry
-      const { data: dispatchData, error: dispatchError } = await supabase
+      // Check if dispatch entry already exists, if so update it, otherwise create new one
+      const { data: existingDispatch, error: checkError } = await supabase
         .from('dispatch_entries')
-        .upsert({
-          booking_id: bookingId,
-          driver_id: selectedDriver,
-          vehicle_id: selectedVehicle,
-          status: 'assigned',
-          start_time: `${booking.date}T${booking.time}:00`,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'booking_id'
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('booking_id', booking.supabase_id)
+        .maybeSingle();
 
-      if (dispatchError) throw dispatchError;
+      if (checkError) throw checkError;
+
+      if (existingDispatch) {
+        // Update existing dispatch entry
+        const { error: updateError } = await supabase
+          .from('dispatch_entries')
+          .update({
+            driver_id: driverId,
+            vehicle_id: vehicleId,
+            status: 'assigned',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingDispatch.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new dispatch entry
+        const { error: createError } = await supabase
+          .from('dispatch_entries')
+          .insert({
+            booking_id: booking.supabase_id,
+            driver_id: driverId,
+            vehicle_id: vehicleId,
+            status: 'assigned',
+            start_time: `${booking.date}T${booking.time}:00`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (createError) throw createError;
+      }
 
       toast({
         title: "Success",
         description: "Driver and vehicle assigned successfully",
       });
 
-      setIsAssignModalOpen(false);
-      setSelectedDriver("");
-      setSelectedVehicle("");
-      
       // Refresh the page to show updated status
       router.refresh();
 
@@ -162,6 +205,57 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
       toast({
         title: "Error",
         description: "Failed to assign driver and vehicle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnassign = async (type: 'driver' | 'vehicle') => {
+    try {
+      const supabase = createClient();
+      
+      const updates: any = {};
+      if (type === 'driver') {
+        updates.driver_id = null;
+      } else if (type === 'vehicle') {
+        updates.vehicle_id = null;
+      }
+      
+      // Update the booking
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update(updates)
+        .eq('id', booking.supabase_id);
+
+      if (bookingError) throw bookingError;
+
+      // Also update dispatch_entries if they exist
+      try {
+        await supabase
+          .from('dispatch_entries')
+          .update({ 
+            status: 'pending',
+            updated_at: new Date().toISOString()
+          })
+          .eq('booking_id', booking.supabase_id);
+      } catch (dispatchError) {
+        // Ignore dispatch errors - the main booking update succeeded
+        console.log('Dispatch entry update failed (may not exist):', dispatchError);
+      }
+
+      toast({
+        title: "Success",
+        description: `${type === 'driver' ? 'Driver' : 'Vehicle'} unassigned successfully`,
+      });
+      
+      // Refresh the page to show updated status
+      router.refresh();
+
+    } catch (error) {
+      console.error(`Error unassigning ${type}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to unassign ${type}`,
         variant: "destructive",
       });
     }
@@ -220,6 +314,94 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                   {t('bookings.details.bookingActions.rescheduleBooking')}
                 </Button>
               </Link>
+              
+              <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500/20 dark:border-green-500/30"
+                  >
+                    <Mail className="mr-2 h-5 w-5" />
+                    Send Booking Details
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Mail className="h-5 w-5" />
+                      Send Booking Details Email
+                    </DialogTitle>
+                    <DialogDescription>
+                      Send an email with booking details and Google Calendar integration to the customer.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="customer-email">Customer Email</Label>
+                      <Input
+                        id="customer-email"
+                        value={booking.customer_email || 'Customer email will be automatically filled'}
+                        disabled
+                        className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Email will be sent to the customer's registered email address
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="bcc-emails">BCC Emails</Label>
+                      <Input
+                        id="bcc-emails"
+                        value={bccEmails}
+                        onChange={(e) => setBccEmails(e.target.value)}
+                        placeholder="Enter email addresses separated by commas"
+                        className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Default: booking@japandriver.com. Add more emails separated by commas.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+                      <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                        📧 What's included in the email:
+                      </h4>
+                      <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                        <li>• Complete booking details and service information</li>
+                        <li>• Pickup and dropoff locations with times</li>
+                        <li>• Pricing breakdown and total amount</li>
+                        <li>• Google Calendar integration button</li>
+                        <li>• Contact information for changes</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSendBookingDetails}
+                      disabled={isSendingEmail}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isSendingEmail ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send Email
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -300,146 +482,28 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
         </CardContent>
       </Card>
 
-      {/* Smart Assignment Modal */}
-      <Dialog open={isAssignModalOpen} onOpenChange={setIsAssignModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-background border border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">
-              Smart Assignment for #{booking.wp_id || booking.id.substring(0, 8)}
-            </DialogTitle>
-            <DialogDescription>
-              Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Available Drivers */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
-                <UserIcon className="h-5 w-5" />
-                Available Drivers ({drivers.length})
-              </h3>
-              
-              {drivers.length === 0 ? (
-                <div className="text-center p-6 text-muted-foreground">
-                  <UserIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No drivers available</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {drivers.map((driver) => (
-                    <div 
-                      key={driver.id}
-                      className={cn(
-                        "cursor-pointer transition-all border border-border bg-card p-4 rounded-md",
-                        selectedDriver === driver.id ? "ring-2 ring-primary bg-accent" : "hover:bg-accent/50"
-                      )}
-                      onClick={() => setSelectedDriver(driver.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={driver.profile_image_url || ""} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {driver.first_name?.[0]}{driver.last_name?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-foreground">
-                            {driver.first_name} {driver.last_name}
-                          </p>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400">Available</p>
-                        </div>
-                        
-                        {selectedDriver === driver.id && (
-                          <CheckIcon className="h-5 w-5 text-primary" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Available Vehicles with Smart Matching */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg flex items-center gap-2 text-foreground">
-                <CarIcon className="h-5 w-5" />
-                Vehicle Recommendations ({vehicles.length})
-              </h3>
-              
-              {vehicles.length === 0 ? (
-                <div className="text-center p-6 text-muted-foreground">
-                  <CarIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No vehicles available</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {getVehicleMatches().map(({ vehicle, matchPercentage }) => (
-                    <div 
-                      key={vehicle.id}
-                      className={cn(
-                        "cursor-pointer transition-all border border-border bg-card p-4 rounded-md",
-                        selectedVehicle === vehicle.id ? "ring-2 ring-primary bg-accent" : "hover:bg-accent/50"
-                      )}
-                      onClick={() => setSelectedVehicle(vehicle.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                          {vehicle.image_url ? (
-                            <img src={vehicle.image_url} alt="" className="h-8 w-8 object-cover rounded" />
-                          ) : (
-                            <CarIcon className="h-5 w-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-sm text-foreground">
-                              {vehicle.plate_number}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "px-2 py-1 rounded-full text-xs font-medium",
-                                matchPercentage >= 90 ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300" :
-                                matchPercentage >= 70 ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300" :
-                                matchPercentage >= 50 ? "bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300" :
-                                "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300"
-                              )}>
-                                {matchPercentage}% match
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {vehicle.brand} {vehicle.model}
-                          </p>
-                        </div>
-                        
-                        {selectedVehicle === vehicle.id && (
-                          <CheckIcon className="h-5 w-5 text-primary" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssign}
-              disabled={!selectedDriver || !selectedVehicle}
-            >
-              <CheckIcon className="h-4 w-4 mr-2" />
-              Assign
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Smart Assignment Modal - Now using shared component */}
+      <SmartAssignmentModal
+        booking={{
+          id: booking.id,
+          wp_id: booking.wp_id,
+          service_name: booking.service_name,
+          date: booking.date,
+          time: booking.time,
+          customer_name: booking.customer_name,
+          driver_id: booking.driver_id,
+          vehicle_id: booking.vehicle_id,
+          driver: booking.driver,
+          vehicle: booking.vehicle
+        }}
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onAssign={handleAssign}
+        drivers={drivers}
+        vehicles={vehicles}
+        title={`Smart Assignment for #${booking.wp_id || booking.id.substring(0, 8)}`}
+        subtitle="Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type."
+      />
     </>
   )
 } 

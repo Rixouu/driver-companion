@@ -348,7 +348,7 @@ export default function QuoteAccessPage() {
       const steps = [
         { label: 'Updating status...', value: 30 },
         { label: 'Recording activity...', value: 60 },
-        { label: 'Sending email notification...', value: 80 }
+        { label: 'Sending notifications...', value: 80 }
       ];
       
       for (const step of steps) {
@@ -370,29 +370,11 @@ export default function QuoteAccessPage() {
       });
       
       if (response.ok) {
-        // Send approval email
-        try {
-          await fetch('/api/quotations/approve', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              id: quotation.id,
-              notes: notes,
-              skipStatusCheck: true
-            }),
-          });
-        } catch (emailError) {
-          console.warn('Email notification failed:', emailError);
-          // Don't fail the approval if email fails
-        }
-        
         setProgressValue(100);
         setProgressLabel('Completed');
         toast({
           title: 'Quotation approved successfully',
-          description: 'Email notification sent to customer',
+          description: 'Email notification sent to customer and admin',
           variant: 'default',
         });
         setTimeout(() => {
@@ -431,7 +413,7 @@ export default function QuoteAccessPage() {
       const steps = [
         { label: 'Updating status...', value: 30 },
         { label: 'Recording activity...', value: 60 },
-        { label: 'Sending email notification...', value: 80 }
+        { label: 'Sending notifications...', value: 80 }
       ];
       
       for (const step of steps) {
@@ -453,29 +435,11 @@ export default function QuoteAccessPage() {
       });
       
       if (response.ok) {
-        // Send rejection email
-        try {
-          await fetch('/api/quotations/reject', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              id: quotation.id,
-              reason: reason,
-              skipStatusCheck: true
-            }),
-          });
-        } catch (emailError) {
-          console.warn('Email notification failed:', emailError);
-          // Don't fail the rejection if email fails
-        }
-        
         setProgressValue(100);
         setProgressLabel('Completed');
         toast({
           title: 'Quotation rejected successfully',
-          description: 'Email notification sent to customer',
+          description: 'Email notification sent to customer and admin',
           variant: 'default',
         });
         setTimeout(() => {
@@ -850,11 +814,11 @@ export default function QuoteAccessPage() {
               )}
             </Button>
             
-            {quotation.status === 'approved' && (
+            {(quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted') && (
               <Button 
                 onClick={handleDownloadInvoice} 
-                variant="outline" 
-                className="w-full sm:w-auto gap-2"
+                variant="default" 
+                className="w-full sm:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white border-green-600"
                 disabled={isDownloadingInvoice}
               >
                 {isDownloadingInvoice ? (
@@ -1425,11 +1389,11 @@ export default function QuoteAccessPage() {
             {/* Footer */}
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground mb-4">
-                This magic link will expire on {formatDate(quotation.expiry_date)}
+                This magic link will expire on {formatDate(addDays(new Date(quotation.created_at), 7).toISOString())}
               </p>
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Secure access via magic link</span>
+                <span>Secure access via magic link (valid for 7 days)</span>
               </div>
             </div>
           </div>
@@ -1476,10 +1440,8 @@ export default function QuoteAccessPage() {
                     nextStepText = 'Send to customer';
                   } else if (quotation.status === 'sent') {
                     nextStepText = 'Wait for approval';
-                  } else if (quotation.status === 'approved' && !quotation.invoice_generated_at) {
-                    nextStepText = 'Generate invoice';
-                  } else if (quotation.invoice_generated_at && !quotation.payment_link_sent_at && !quotation.payment_completed_at) {
-                    nextStepText = 'Send payment link';
+                  } else if (quotation.status === 'approved' && !quotation.payment_link_sent_at && !quotation.payment_completed_at) {
+                    nextStepText = 'Select payment method';
                   } else if (quotation.payment_link_sent_at && !quotation.payment_completed_at) {
                     nextStepText = 'Wait for payment';
                   } else if (quotation.payment_completed_at && quotation.status !== 'converted') {
@@ -1557,11 +1519,11 @@ export default function QuoteAccessPage() {
                   {/* Quotation Sent */}
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.status === 'sent' || quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                      quotation.last_sent_at || ['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status)
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
-                      {quotation.status === 'sent' || quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      {quotation.last_sent_at || ['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? (
+                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                       ) : (
                         <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
@@ -1572,8 +1534,16 @@ export default function QuoteAccessPage() {
                         Quotation has been sent to customer for review
                       </div>
                       {quotation.last_sent_at ? (
-                        <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20">
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
                           {formatDate(quotation.last_sent_at)} at {new Date(quotation.last_sent_at).toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true 
+                          })}
+                        </Badge>
+                      ) : (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) && quotation.created_at) ? (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
+                          {formatDate(quotation.created_at)} at {new Date(quotation.created_at).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
                             hour12: true 
@@ -1616,57 +1586,31 @@ export default function QuoteAccessPage() {
                     </div>
                   </div>
 
-                  {/* Invoice Generated */}
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.invoice_generated_at || quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
-                    }`}>
-                      {quotation.invoice_generated_at || quotation.status === 'paid' || quotation.status === 'converted' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Invoice Generated</div>
-                      <div className="text-xs text-muted-foreground">
-                        Invoice has been generated and payment link sent
-                      </div>
-                      {quotation.invoice_generated_at ? (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
-                          {formatDate(quotation.invoice_generated_at)} at {new Date(quotation.invoice_generated_at).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </Badge>
-                      ) : (
-                        <div className="text-xs text-muted-foreground italic">Pending</div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Payment Link Sent */}
+
+                  {/* Payment Method Selected */}
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      quotation.status === 'paid' || quotation.status === 'converted'
-                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
+                      quotation.payment_link_sent_at || quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted'
+                        ? 'bg-green-100 dark:bg-green-900/20 border-green-300 dark:border-green-600' : 
+                          quotation.status === 'approved' ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : 'bg-gray-100 dark:bg-gray-900/20 border-gray-300 dark:border-gray-600'
                     }`}>
-                      {quotation.status === 'paid' || quotation.status === 'converted' ? (
+                      {quotation.payment_link_sent_at || quotation.payment_completed_at || quotation.status === 'paid' || quotation.status === 'converted' ? (
                         <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      ) : quotation.status === 'approved' ? (
+                        <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       ) : (
-                        <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <Mail className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">Payment Link Sent</div>
+                      <div className="font-medium text-sm text-foreground">Payment Method Selected</div>
                       <div className="text-xs text-muted-foreground">
-                        Secure payment link has been sent to customer
+                        Payment link sent to customer or bank transfer method selected
                       </div>
-                      {quotation.invoice_generated_at ? (
-                        <Badge variant="outline" className="text-xs">
-                          {formatDate(quotation.invoice_generated_at)} at {new Date(quotation.invoice_generated_at).toLocaleTimeString('en-US', { 
+                      {(quotation.payment_link_sent_at || quotation.payment_completed_at) ? (
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20">
+                          {formatDate((quotation.payment_link_sent_at || quotation.payment_completed_at) as string)} at {new Date((quotation.payment_link_sent_at || quotation.payment_completed_at) as string).toLocaleTimeString('en-US', { 
                             hour: '2-digit', 
                             minute: '2-digit',
                             hour12: true 

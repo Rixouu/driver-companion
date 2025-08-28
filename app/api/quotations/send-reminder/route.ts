@@ -254,6 +254,7 @@ export async function POST(request: NextRequest) {
     const emailOptions: any = {
       from: `Driver Japan <booking@${emailDomain}>`,
       to: [customerEmail],
+      bcc: ['booking@japandriver.com'],
       subject: emailSubject,
       text: plainTextContent,
       html: emailContent

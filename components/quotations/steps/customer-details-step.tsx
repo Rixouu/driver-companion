@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { User, Mail, Phone, Home, Building, Receipt } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
@@ -11,6 +12,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -19,10 +21,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown, Search, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface CustomerDetailsStepProps {
   form: UseFormReturn<any>;
 }
+
+// Recently used countries (you could also store this in localStorage)
+const recentlyUsedCountries = ['Thailand', 'Japan', 'United States', 'Hong Kong', 'Singapore'];
+
+// Helper function to get country flag emoji
+const getCountryFlag = (countryName: string) => {
+  const flagMap: Record<string, string> = {
+    'Thailand': '🇹🇭',
+    'Japan': '🇯🇵',
+    'United States': '🇺🇸',
+    'Hong Kong': '🇭🇰',
+    'Singapore': '🇸🇬',
+    'China': '🇨🇳',
+    'South Korea': '🇰🇷',
+    'United Kingdom': '🇬🇧',
+    'Canada': '🇨🇦',
+    'Australia': '🇦🇺',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Netherlands': '🇳🇱',
+    'Switzerland': '🇨🇭',
+    'Belgium': '🇧🇪',
+    'Italy': '🇮🇹',
+    'Spain': '🇪🇸',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Taiwan': '🇹🇼',
+    'India': '🇮🇳',
+    'Bangladesh': '🇧🇩',
+    'Myanmar': '🇲🇲',
+    'Cambodia': '🇰🇭',
+    'Laos': '🇱🇦',
+    'Philippines': '🇵🇭',
+    'Vietnam': '🇻🇳',
+    'Indonesia': '🇮🇩',
+    'Malaysia': '🇲🇾'
+  };
+  return flagMap[countryName] || '🌍';
+};
 
 // Common countries for the dropdown
 const countries = [
@@ -39,9 +85,23 @@ const countries = [
   { value: 'Indonesia', label: 'Indonesia' },
   { value: 'South Korea', label: 'South Korea' },
   { value: 'China', label: 'China' },
+  { value: 'Hong Kong', label: 'Hong Kong' },
+  { value: 'Taiwan', label: 'Taiwan' },
+  { value: 'India', label: 'India' },
+  { value: 'Bangladesh', label: 'Bangladesh' },
+  { value: 'Myanmar', label: 'Myanmar' },
+  { value: 'Cambodia', label: 'Cambodia' },
+  { value: 'Laos', label: 'Laos' },
   { value: 'Germany', label: 'Germany' },
   { value: 'France', label: 'France' },
   { value: 'Netherlands', label: 'Netherlands' },
+  { value: 'Switzerland', label: 'Switzerland' },
+  { value: 'Belgium', label: 'Belgium' },
+  { value: 'Italy', label: 'Italy' },
+  { value: 'Spain', label: 'Spain' },
+  { value: 'Sweden', label: 'Sweden' },
+  { value: 'Norway', label: 'Norway' },
+  { value: 'Denmark', label: 'Denmark' },
   { value: 'Other', label: 'Other' },
 ];
 
@@ -97,6 +157,30 @@ const getAddressConfig = (country: string) => {
         streetNumberLabel: 'House Number',
         addressOrder: ['street', 'number', 'postal', 'city', 'state']
       };
+    case 'Hong Kong':
+      return {
+        postalCodeLabel: 'Postal Code',
+        postalCodePlaceholder: '000000',
+        stateLabel: 'District',
+        statePlaceholder: 'Central and Western',
+        cityLabel: 'Area',
+        cityPlaceholder: 'Central',
+        streetLabel: 'Street',
+        streetNumberLabel: 'Building',
+        addressOrder: ['street', 'number', 'city', 'state', 'postal']
+      };
+    case 'China':
+      return {
+        postalCodeLabel: 'Postal Code (邮编)',
+        postalCodePlaceholder: '100000',
+        stateLabel: 'Province (省)',
+        statePlaceholder: 'Beijing',
+        cityLabel: 'City (市)',
+        cityPlaceholder: 'Beijing',
+        streetLabel: 'Street (街道)',
+        streetNumberLabel: 'Building (楼)',
+        addressOrder: ['state', 'city', 'street', 'number', 'postal']
+      };
     case 'Australia':
       return {
         postalCodeLabel: 'Postcode',
@@ -126,6 +210,10 @@ const getAddressConfig = (country: string) => {
 
 export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
   const { t } = useI18n();
+  
+  // Add state for country selection
+  const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   
   // Watch the selected country to adapt address fields
   const selectedCountry = form.watch('billing_country') || 'Thailand';
@@ -371,20 +459,134 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>{t('quotations.form.billing.country')}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || 'Thailand'}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('quotations.form.billing.country')} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {countries.map((country) => (
-                  <SelectItem key={country.value} value={country.value}>
-                    {country.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={countryPopoverOpen}
+                    className="w-full justify-between"
+                  >
+                    <span className={field.value ? 'font-medium' : 'text-muted-foreground'}>
+                      {field.value ? `${getCountryFlag(field.value)} ${field.value}` : 'Select country...'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <div className="flex items-center border-b px-3">
+                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    <CommandInput 
+                      placeholder="Search countries or type custom name..." 
+                      value={searchValue}
+                      onValueChange={setSearchValue}
+                      className="border-0 focus:ring-0 px-0"
+                    />
+                    {searchValue && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 px-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSearchValue('')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <CommandList>
+                    <CommandEmpty>
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          No country found. You can type a custom country name.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const customCountry = searchValue.trim();
+                            if (customCountry) {
+                              field.onChange(customCountry);
+                              setCountryPopoverOpen(false);
+                              setSearchValue('');
+                            }
+                          }}
+                          disabled={!searchValue.trim()}
+                        >
+                          Use "{searchValue.trim() || 'Custom Country'}"
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          This will be saved as a custom country entry.
+                        </p>
+                      </div>
+                    </CommandEmpty>
+                    
+                    {/* Recently used countries */}
+                    {!searchValue && (
+                      <CommandGroup heading="Recently Used">
+                        {recentlyUsedCountries
+                          .filter(country => countries.some(c => c.value === country))
+                          .map((countryValue) => {
+                            const country = countries.find(c => c.value === countryValue);
+                            if (!country) return null;
+                            return (
+                              <CommandItem
+                                key={country.value}
+                                value={country.value}
+                                onSelect={() => {
+                                  field.onChange(country.value);
+                                  setCountryPopoverOpen(false);
+                                  setSearchValue('');
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === country.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <span className="mr-2">{getCountryFlag(country.value)}</span>
+                                {country.label}
+                              </CommandItem>
+                            );
+                          })}
+                      </CommandGroup>
+                    )}
+                    
+                    {/* All countries */}
+                    <CommandGroup heading={searchValue ? "Search Results" : "All Countries"}>
+                      {countries
+                        .filter(country => 
+                          country.label.toLowerCase().includes(searchValue.toLowerCase()) ||
+                          country.value.toLowerCase().includes(searchValue.toLowerCase())
+                        )
+                        .map((country) => (
+                          <CommandItem
+                            key={country.value}
+                            value={country.value}
+                            onSelect={() => {
+                              field.onChange(country.value);
+                              setCountryPopoverOpen(false);
+                              setSearchValue('');
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === country.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="mr-2">{getCountryFlag(country.value)}</span>
+                            {country.label}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <FormMessage />
           </FormItem>
         )}

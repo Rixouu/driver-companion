@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils/styles";
 import { useSharedDispatchState } from "@/lib/hooks/use-shared-dispatch-state";
 import { DispatchStatus } from "@/types/dispatch";
 import SidePanelDetails from "./side-panel-details";
+import SmartAssignmentModal from '@/components/shared/smart-assignment-modal';
 
 interface BookingWithRelations {
   id: string;
@@ -373,7 +374,7 @@ function EnhancedAssignmentCard({
 }
 
 // Smart Assignment Modal
-function SmartAssignmentModal({
+function SmartAssignmentModalOld({
   booking,
   isOpen,
   onClose,
@@ -395,7 +396,7 @@ function SmartAssignmentModal({
   const availableDrivers = drivers.filter(d => d.is_available);
   const availableVehicles = vehicles.filter(v => v.is_available);
 
-  // Real vehicle matching logic based on service name
+  // Enhanced vehicle matching logic based on service name
   const getVehicleMatches = () => {
     if (!booking?.service_name) return availableVehicles.map(v => ({ vehicle: v, matchPercentage: 50 }));
     
@@ -409,8 +410,12 @@ function SmartAssignmentModal({
         matchPercentage = 100;
       } else if (serviceName.includes('alphard z') && vehicle.model.toLowerCase().includes('alphard z')) {
         matchPercentage = 100;
-      } else if (serviceName.includes('v class') && vehicle.model.toLowerCase().includes('v class')) {
+      } else if (serviceName.includes('mercedes benz v class') && vehicle.model.toLowerCase().includes('v-class')) {
+        matchPercentage = 100;
+      } else if (serviceName.includes('v class') && vehicle.model.toLowerCase().includes('v-class')) {
         matchPercentage = 95;
+      } else if (serviceName.includes('black suite') && vehicle.model.toLowerCase().includes('black suite')) {
+        matchPercentage = 100;
       } else if (serviceName.includes('alphard') && vehicle.model.toLowerCase().includes('alphard')) {
         matchPercentage = 90;
       } else if (serviceName.includes('mercedes') && vehicle.brand.toLowerCase().includes('mercedes')) {
@@ -422,7 +427,8 @@ function SmartAssignmentModal({
       // Luxury service matching
       if (serviceName.includes('luxury') || serviceName.includes('premium') || serviceName.includes('executive')) {
         if (vehicle.model.toLowerCase().includes('executive') || 
-            vehicle.model.toLowerCase().includes('v class')) {
+            vehicle.model.toLowerCase().includes('v-class') ||
+            vehicle.model.toLowerCase().includes('black suite')) {
           matchPercentage = Math.max(matchPercentage, 90);
         }
       }

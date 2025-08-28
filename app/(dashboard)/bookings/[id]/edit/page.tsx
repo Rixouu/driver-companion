@@ -35,7 +35,6 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import Script from 'next/script'
 // Fetch drivers via a server action to keep service client server-side
 import { getDriversAction } from '@/app/actions/drivers'
 import { getVehicles } from '@/lib/services/vehicles'
@@ -352,12 +351,11 @@ export default function EditBookingPage() {
 
   return (
     <>
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,directions&loading=async`}
-        strategy="afterInteractive"
-      />
-    
-      <div className="space-y-6 w-full mx-auto">
+      <GoogleMapsProvider 
+        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
+        libraries={['places', 'directions']}
+      >
+        <div className="space-y-6 w-full mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 p-3 sm:p-4 rounded-lg shadow-sm">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button 
@@ -1096,6 +1094,7 @@ export default function EditBookingPage() {
           </Alert>
         )}
       </div>
+      </GoogleMapsProvider>
     </>
   )
 } 

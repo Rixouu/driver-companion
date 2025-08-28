@@ -110,6 +110,12 @@ export function AssignmentFilter({
     filters.serviceFilter !== 'all' || 
     filters.assignmentFilter !== 'all'
 
+  // Helper function to get service name from ID
+  const getServiceName = (serviceId: string) => {
+    const service = serviceOptions.find(s => s.value === serviceId)
+    return service ? service.label : serviceId
+  }
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search Bar */}
@@ -282,7 +288,7 @@ export function AssignmentFilter({
                 )}
                 {filters.serviceFilter !== 'all' && (
                   <Badge variant="outline" className="text-xs">
-                    Service: {filters.serviceFilter}
+                    Service: {getServiceName(filters.serviceFilter)}
                     <Button
                       variant="ghost"
                       size="sm"

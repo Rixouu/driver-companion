@@ -78,6 +78,7 @@ interface BookingWithRelations {
   customer_name?: string;
   customer_email?: string;
   customer_phone?: string;
+  service_id?: string | null;
   service_name?: string;
   service_type_name?: string;
   date: string;
@@ -851,9 +852,7 @@ export default function DispatchAssignments() {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([]);
   const [drivers, setDrivers] = useState<DriverWithAvailability[]>([]);
   const [vehicles, setVehicles] = useState<VehicleWithStatus[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+
   const [isLoading, setIsLoading] = useState(true);
   const [smartModalOpen, setSmartModalOpen] = useState(false);
   const [selectedBookingForModal, setSelectedBookingForModal] = useState<BookingWithRelations | null>(null);
@@ -880,6 +879,25 @@ export default function DispatchAssignments() {
   const availableVehicles = vehicles.filter(v => v.is_available).length;
   const pendingBookings = bookings.filter(b => !b.driver_id || !b.vehicle_id).length;
   const assignedBookings = bookings.filter(b => b.driver_id && b.vehicle_id).length;
+
+  // Initialize filters from URL params if they exist
+  useEffect(() => {
+    const searchQuery = searchParams.get('search') || '';
+    const statusFilter = searchParams.get('status') || 'all';
+    const dateFilter = searchParams.get('date') || 'all';
+    const serviceFilter = searchParams.get('service') || 'all';
+    const assignmentFilter = searchParams.get('assignment') || 'all';
+    
+    setFilters({
+      searchQuery,
+      statusFilter,
+      dateFilter,
+      serviceFilter,
+      assignmentFilter,
+      sortBy: 'date',
+      sortOrder: 'desc'
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     loadData();
@@ -1122,33 +1140,87 @@ export default function DispatchAssignments() {
   };
 
   const getFilteredBookings = () => {
-    return bookings.filter(booking => {
-      const matchesSearch = !searchQuery || 
-        booking.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.wp_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const filtered = bookings.filter(booking => {
+      const matchesSearch = !filters.searchQuery || 
+        booking.customer_name?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        booking.wp_id?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        booking.id.toLowerCase().includes(filters.searchQuery.toLowerCase());
 
-      const matchesStatus = statusFilter === 'all' || 
-        (statusFilter === 'unassigned' && (!booking.driver_id || !booking.vehicle_id)) ||
-        (statusFilter === 'assigned' && booking.driver_id && booking.vehicle_id) ||
-        booking.status === statusFilter;
+      const matchesStatus = filters.statusFilter === 'all' || 
+        booking.status === filters.statusFilter;
 
       const today = new Date();
       const bookingDate = new Date(booking.date);
       let matchesDate = true;
 
-      if (dateFilter === 'today') {
+      if (filters.dateFilter === 'today') {
         matchesDate = bookingDate.toDateString() === today.toDateString();
-      } else if (dateFilter === 'thisWeek') {
-        const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-        const weekEnd = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+      } else if (filters.dateFilter === 'thisWeek') {
+        const weekStart = new Date(today.getTime());
+        weekStart.setDate(today.getDate() - today.getDay());
+        const weekEnd = new Date(weekStart.getTime());
+        weekEnd.setDate(weekStart.getDate() + 6);
         matchesDate = bookingDate >= weekStart && bookingDate <= weekEnd;
-      } else if (dateFilter === 'thisMonth') {
+      } else if (filters.dateFilter === 'thisMonth') {
         matchesDate = bookingDate.getMonth() === today.getMonth() && bookingDate.getFullYear() === today.getFullYear();
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      // Add service filter
+      const matchesService = filters.serviceFilter === 'all' || 
+        (booking.service_id && booking.service_id === filters.serviceFilter);
+
+      // Add assignment filter
+      const matchesAssignment = filters.assignmentFilter === 'all' || 
+        (filters.assignmentFilter === 'unassigned' && (!booking.driver_id || !booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'driver_only' && (booking.driver_id && !booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'vehicle_only' && (!booking.driver_id && booking.vehicle_id)) ||
+        (filters.assignmentFilter === 'fully_assigned' && (booking.driver_id && booking.vehicle_id));
+
+      return matchesSearch && matchesStatus && matchesDate && matchesService && matchesAssignment;
     });
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (filters.sortBy) {
+        case 'date':
+          aValue = new Date(a.date);
+          bValue = new Date(b.date);
+          break;
+        case 'time':
+          aValue = a.time;
+          bValue = b.time;
+          break;
+        case 'customer':
+          aValue = a.customer_name || '';
+          bValue = b.customer_name || '';
+          break;
+        case 'service':
+          aValue = a.service_name || '';
+          bValue = b.service_name || '';
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'created_at':
+          aValue = new Date(a.date); // Use date as fallback since created_at doesn't exist
+          bValue = new Date(b.date);
+          break;
+        default:
+          aValue = new Date(a.date);
+          bValue = new Date(b.date);
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+    
+    return sorted;
   };
 
   const filteredBookings = getFilteredBookings();

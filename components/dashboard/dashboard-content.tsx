@@ -655,7 +655,7 @@ export function DashboardContent({
                   </div>
                   
                   {/* Conversion Rate */}
-                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-green-800">
+                  <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
                     <div className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-2">
                       {t("dashboard.financial.conversionRate")}
                     </div>

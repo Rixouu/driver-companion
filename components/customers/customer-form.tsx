@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { CustomerSegment } from '@/types/customers'
-import { toast } from 'sonner'
+import { useToast } from '@/components/ui/use-toast'
 import { Loader2, User, CreditCard, FileText } from 'lucide-react'
 
 const customerSchema = z.object({
@@ -45,6 +45,7 @@ interface CustomerFormProps {
 export function CustomerForm({ initialData, segments, isEditing = false }: CustomerFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -118,24 +119,35 @@ export function CustomerForm({ initialData, segments, isEditing = false }: Custo
 
       const customer = await response.json()
       
-      toast.success(
-        isEditing 
-          ? 'Customer updated successfully' 
-          : 'Customer created successfully'
-      )
+      console.log('Customer saved successfully:', customer)
+      console.log('Is editing:', isEditing)
+      console.log('Initial data ID:', initialData?.id)
       
-      if (isEditing) {
-        router.refresh()
+      toast({
+        title: isEditing 
+          ? 'Customer updated successfully' 
+          : 'Customer created successfully',
+        variant: 'default',
+      })
+      
+      if (isEditing && initialData?.id) {
+        // Redirect back to customer details page after successful update
+        console.log('Redirecting to customer details:', `/customers/${initialData.id}`)
+        router.push(`/customers/${initialData.id}`)
       } else {
+        // For new customers, redirect to the new customer's details page
+        console.log('Redirecting to new customer details:', `/customers/${customer.id}`)
         router.push(`/customers/${customer.id}`)
       }
     } catch (error) {
       console.error('Error saving customer:', error)
-      toast.error(
-        error instanceof Error 
+      toast({
+        title: 'Failed to save customer',
+        description: error instanceof Error 
           ? error.message 
-          : 'Failed to save customer. Please try again.'
-      )
+          : 'Please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setIsLoading(false)
     }

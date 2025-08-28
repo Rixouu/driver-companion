@@ -84,6 +84,22 @@ export function Header() {
     if (pathname.match(/^\/quotations\/[^\/]+$/)) {
       return { href: '/quotations', label: t('navigation.quotations') }
     }
+    
+    // Customer detail pages
+    if (pathname.match(/^\/customers\/[^\/]+$/)) {
+      return { href: '/customers', label: t('navigation.customers') }
+    }
+    
+    // Customer edit pages
+    if (pathname.match(/^\/customers\/[^\/]+\/edit$/)) {
+      const customerId = pathname.split('/')[2]
+      return { href: `/customers/${customerId}`, label: t('customers.backToCustomer') }
+    }
+    
+    // New customer page
+    if (pathname === '/customers/new') {
+      return { href: '/customers', label: t('navigation.customers') }
+    }
 
     return null
   }

@@ -13,6 +13,7 @@ import {
   LogOut,
   Wrench, 
   User,
+  Users,
   Calendar,
   BarChart,
   ChevronLeft,
@@ -34,7 +35,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
 
 // Interface for menu items
 interface MenuItem {
@@ -52,6 +53,7 @@ interface MenuSettings {
   drivers: { desktop: boolean; mobile: boolean };
   bookings: { desktop: boolean; mobile: boolean };
   quotations: { desktop: boolean; mobile: boolean };
+  customers: { desktop: boolean; mobile: boolean };
   pricing: { desktop: boolean; mobile: boolean };
   dispatch: { desktop: boolean; mobile: boolean };
   assignments: { desktop: boolean; mobile: boolean };
@@ -69,6 +71,7 @@ const defaultMenuSettings: MenuSettings = {
   drivers: { desktop: true, mobile: true },
   bookings: { desktop: true, mobile: true },
   quotations: { desktop: true, mobile: true },
+  customers: { desktop: true, mobile: true },
   pricing: { desktop: true, mobile: true },
   dispatch: { desktop: true, mobile: true },
   assignments: { desktop: true, mobile: true },
@@ -186,6 +189,7 @@ export function Sidebar() {
       items: [
         // Only show sales calendar to organization members
         ...(isOrganizationMember ? ([{ icon: Calendar, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : []),
+        { icon: Users, label: t("navigation.customers"), href: "/customers", key: "customers" } as MenuItem,
         { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
         { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem
       ]
@@ -211,7 +215,7 @@ export function Sidebar() {
     }
   ]
 
-  // For non-organization members, only show quotations
+  // For non-organization members, show quotations and customers (but not admin-only items)
   const filteredMenuGroups = isOrganizationMember 
     ? menuGroups.map(group => {
         // If user is org member, filter out adminOnly items if they don't have admin rights
@@ -225,6 +229,7 @@ export function Sidebar() {
           id: 'sales',
           label: 'Sales',
           items: [
+            { icon: Users, label: t("navigation.customers"), href: "/customers", key: "customers" } as MenuItem,
             { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem
           ]
         }

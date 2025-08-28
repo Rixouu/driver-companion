@@ -181,6 +181,7 @@ export const en: TranslationValue = {
     drivers: "Drivers",
     bookings: "Bookings",
     quotations: "Quotations",
+    customers: "Customers",
     pricing: "Pricing",
     dispatch: "Dispatch",
     assignments: "Assignments",
@@ -366,7 +367,6 @@ export const en: TranslationValue = {
     },
     recentActivity: {
       title: "Recent Activity",
-      description: "Latest activities and assignments"
     },
     activity: {
       empty: {
@@ -426,6 +426,9 @@ export const en: TranslationValue = {
       updateSuccess: "Driver updated successfully",
       updateSuccessDescription: "The driver information has been updated successfully."
     }
+  },
+  customers: {
+    backToCustomer: "Back to Customer"
   },
   vehicles: {
     title: "Vehicles",

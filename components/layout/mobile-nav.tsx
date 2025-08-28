@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { useI18n } from "@/lib/i18n/context"
 import { cn } from "@/lib/utils/styles"
-import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag } from "lucide-react"
+import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Users, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -58,7 +58,7 @@ export function MobileNav() {
       setActiveGroup('dashboard')
     } else if (pathname.startsWith('/vehicles') || pathname.startsWith('/drivers')) {
       setActiveGroup('fleet')
-    } else if (pathname.startsWith('/quotations')) {
+    } else if (pathname.startsWith('/quotations') || pathname.startsWith('/customers')) {
       setActiveGroup('sales')
     } else if (
       pathname.startsWith('/bookings') || 
@@ -82,6 +82,7 @@ export function MobileNav() {
                        pathname.includes('/drivers/') ||
                        pathname.includes('/bookings/') ||
                        pathname.includes('/quotations/') ||
+                       pathname.includes('/customers/') ||
                        pathname.includes('/dispatch/') ||
                        pathname.includes('/reporting/')
   
@@ -132,6 +133,7 @@ export function MobileNav() {
     ],
     sales: [
       ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: Calendar, href: '/sales/calendar' }] as MenuItem[]) : []),
+      { id: 'customers', title: t("navigation.customers"), icon: Users, href: '/customers' },
       { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
       { id: 'pricing', title: t("navigation.pricing"), icon: Tag, href: '/admin/pricing' }
     ],

@@ -80,7 +80,17 @@ export default function SidePanelDetails({ entry, booking: bookingProp, onAssign
         </div>
         {startISO && (
           <p className="text-sm text-muted-foreground">
-            {format(parseISO(startISO), "MMM d, yyyy HH:mm")}
+            {(() => {
+              try {
+                const parsedDate = parseISO(startISO);
+                if (isNaN(parsedDate.getTime())) {
+                  return "Invalid date";
+                }
+                return format(parsedDate, "MMM d, yyyy HH:mm");
+              } catch (error) {
+                return "Invalid date";
+              }
+            })()}
           </p>
         )}
       </div>

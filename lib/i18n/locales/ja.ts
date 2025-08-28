@@ -2194,7 +2194,6 @@ export const ja: TranslationValue = {
       availableVehicles: "利用可能な車両",
       pendingBookings: "保留中",
       assignedBookings: "割り当て済み",
-      pending: "保留中",
       searchPlaceholder: "顧客、予約IDで予約を検索...",
       allDates: "すべての日付",
       today: "今日",

@@ -2120,7 +2120,8 @@ export const en: TranslationValue = {
         noRouteInfo: "No route information available",
         noPaymentLink: "No payment link available",
         notProvided: "Not provided",
-        noComments: "No comments"
+        noComments: "No comments",
+        enterBothLocations: "Enter both pickup and dropoff locations to see the route"
       },
       customerSince: "Customer since {date}",
       status: {

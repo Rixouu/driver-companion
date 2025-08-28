@@ -50,7 +50,7 @@ export function GoogleMapsProvider({ children, apiKey, libraries = ['places'] }:
     // Load Google Maps API script
     if (apiKey) {
       const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libraries.join(',')}&loading=async`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libraries.join(',')}&loading=async&v=beta&language=ja&region=JP`
       script.async = true
       script.defer = true
       

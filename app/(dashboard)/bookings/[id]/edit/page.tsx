@@ -25,8 +25,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete'
+import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { 
-  ArrowLeft, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
+  ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
   CreditCard, CheckCircle, AlertTriangle, Plane, Route, Timer, Info,
   ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit
 } from 'lucide-react'
@@ -105,7 +106,7 @@ export default function EditBookingPage() {
         terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
         
         // Initialize form data including driver/vehicle IDs
-        setFormData({
+        const initialFormData = {
           service_name: loadedBooking.service_name,
           service_type: loadedBooking.service_type || loadedBooking.meta?.chbs_service_type || '',
           date: loadedBooking.date,
@@ -114,8 +115,8 @@ export default function EditBookingPage() {
           customer_name: loadedBooking.customer_name || loadedBooking.customer?.name || '',
           customer_email: loadedBooking.customer_email || loadedBooking.customer?.email || '',
           customer_phone: loadedBooking.customer_phone || loadedBooking.customer?.phone || '',
-          pickup_location: loadedBooking.pickup_location,
-          dropoff_location: loadedBooking.dropoff_location,
+          pickup_location: loadedBooking.pickup_location || '',
+          dropoff_location: loadedBooking.dropoff_location || '',
           distance: loadedBooking.distance?.toString() || '',
           duration: loadedBooking.duration?.toString() || '',
           notes: loadedBooking.notes,
@@ -135,7 +136,9 @@ export default function EditBookingPage() {
           // Coupon information
           coupon_code: loadedBooking.coupon_code || '',
           coupon_discount_percentage: loadedBooking.coupon_discount_percentage?.toString() || ''
-        })
+        }
+        
+        setFormData(initialFormData)
 
         // Fetch Drivers via server action (server-side)
         const drivers = await getDriversAction(); 
@@ -358,15 +361,6 @@ export default function EditBookingPage() {
         <div className="space-y-6 w-full mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 p-3 sm:p-4 rounded-lg shadow-sm">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/bookings/${id}` as any)}
-              className="h-9 shrink-0 shadow-sm"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {t('common.back')}
-            </Button>
             <div>
               <h1 className="text-xl font-semibold">{t('bookings.edit.title', { id })}</h1>
               <p className="text-xs text-muted-foreground">
@@ -724,6 +718,8 @@ export default function EditBookingPage() {
                         placeholder="Enter dropoff address"
                         required
                       />
+                      
+
                     </div>
                     
                     {(formData.pickup_location && formData.dropoff_location) ? (
@@ -1006,43 +1002,7 @@ export default function EditBookingPage() {
                   </div>
                 </Card>
                 
-                {/* Coupon Information Card */}
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <FileText className="mr-2 h-5 w-5" />
-                      {t('bookings.details.sections.coupon')}
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.couponCode')}</h3>
-                        <Input
-                          id="coupon_code"
-                          name="coupon_code"
-                          value={formData.coupon_code || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                          placeholder="e.g., SUMMER25"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.couponDiscount')}</h3>
-                        <Input
-                          id="coupon_discount_percentage"
-                          name="coupon_discount_percentage"
-                          value={formData.coupon_discount_percentage || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                          placeholder="e.g., 25"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+
               </TabsContent>
             </div>
           </Tabs>
@@ -1056,23 +1016,38 @@ export default function EditBookingPage() {
               <X className="h-4 w-4" />
               {t('common.cancel')}
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={isSaving}
-              className="min-w-[120px] gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('common.saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  {t('common.save')}
-                </>
-              )}
-            </Button>
+            
+            <div className="flex gap-3">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const tabs = ['summary', 'route', 'client', 'additional']
+                  const currentIndex = tabs.indexOf(activeTab)
+                  const previousTab = tabs[currentIndex - 1] || tabs[tabs.length - 1]
+                  setActiveTab(previousTab)
+                }}
+                disabled={activeTab === 'summary'}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  const tabs = ['summary', 'route', 'client', 'additional']
+                  const currentIndex = tabs.indexOf(activeTab)
+                  const nextTab = tabs[currentIndex + 1] || tabs[0]
+                  setActiveTab(nextTab)
+                }}
+                disabled={activeTab === 'additional'}
+                className="gap-2"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardFooter>
         </Card>
         

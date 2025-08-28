@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Calendar, Clock, CreditCard, FileText, Link as LinkIcon, MapPin, Printer, Truck, User, Mail, Phone, Navigation, FileX, ShieldAlert, ShieldCheck, CloudSun } from 'lucide-react'
-import Script from 'next/script'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
 import { ContactButtons } from '@/components/bookings/contact-buttons'
 import BookingActions from '@/components/bookings/booking-actions'
+import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
 import { Booking } from '@/types/bookings'
@@ -46,13 +46,7 @@ function AvatarInitials({ name }: { name: string }) {
 // Google Maps Component
 function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string, dropoffLocation: string }) {
   return (
-    <>
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-        strategy="afterInteractive"
-      />
-      
-      <div className="relative w-full h-[300px] rounded overflow-hidden">
+    <div className="relative w-full h-[300px] rounded overflow-hidden">
         <iframe 
           width="100%" 
           height="100%" 
@@ -72,7 +66,6 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
           </a>
         </div>
       </div>
-    </>
   );
 }
 
@@ -202,7 +195,11 @@ export default function BookingDetailsContent({
   };
   
   return (
-    <div className="space-y-6" id="booking-details-content">
+    <GoogleMapsProvider 
+      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
+      libraries={['places']}
+    >
+      <div className="space-y-6" id="booking-details-content">
       {/* Header with Booking Number and Status */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
         <div>
@@ -599,5 +596,6 @@ export default function BookingDetailsContent({
         </div>
       </div>
     </div>
+      </GoogleMapsProvider>
   );
 } 

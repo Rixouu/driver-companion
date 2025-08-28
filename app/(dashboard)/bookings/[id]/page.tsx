@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck } from 'lucide-react'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import Script from 'next/script'
+import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
 import { ContactButtons } from '@/components/bookings/contact-buttons'
 import BookingActions from '@/components/bookings/booking-actions'
@@ -59,13 +59,7 @@ function AvatarInitials({ name }: { name: string }) {
 // Google Maps Component
 function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string, dropoffLocation: string }) {
   return (
-    <>
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
-        strategy="afterInteractive"
-      />
-      
-      <div className="relative w-full h-[300px] rounded overflow-hidden">
+    <div className="relative w-full h-[300px] rounded overflow-hidden">
         <iframe 
           width="100%" 
           height="100%" 
@@ -85,7 +79,6 @@ function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string
           </a>
         </div>
       </div>
-    </>
   );
 }
 
@@ -202,7 +195,11 @@ export default function BookingPage() {
   }
   
   return (
-    <div className="space-y-6">
+    <GoogleMapsProvider 
+      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
+      libraries={['places']}
+    >
+      <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id || id })}</h1>
@@ -545,6 +542,7 @@ export default function BookingPage() {
 
       {/* Notes Section */}
     </div>
+      </GoogleMapsProvider>
   );
 } 
 

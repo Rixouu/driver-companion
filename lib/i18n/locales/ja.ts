@@ -2098,7 +2098,8 @@ export const ja: TranslationValue = {
         noRouteInfo: "ルート情報がありません",
         noPaymentLink: "支払いリンクがありません",
         notProvided: "提供されていません",
-        noComments: "コメントはありません"
+        noComments: "コメントはありません",
+        enterBothLocations: "迎車場所と降車場所の両方を入力してルートを表示"
       },
       customerSince: "顧客登録日: {date}",
       status: {

@@ -2231,6 +2231,7 @@ export const en: TranslationValue = {
       vehicle: "Vehicle",
       smartAssign: "Smart Assign",
       viewDetails: "View Details",
+      reassignDriver: "Reassign Driver",
       unassignAll: "Unassign All",
       smartAssignmentFor: "Smart Assignment for #{id}",
       smartAssignmentDescription: "Intelligent matching based on service requirements and vehicle capabilities",
@@ -2256,6 +2257,15 @@ export const en: TranslationValue = {
       noBookingsFound: "No bookings found",
       noBookingsFilter: "Try adjusting your search criteria",
       noBookingsAvailable: "No bookings available for assignment",
+      // New translation keys for list view
+      booking: "Booking",
+      serviceLocation: "Service & Location",
+      dateTime: "Date & Time",
+      assignment: "Assignment",
+      status: "Status",
+      view: "View",
+      reassign: "Reassign",
+      noBookings: "No bookings found",
       messages: {
         unassignSuccess: "Booking unassigned successfully",
         unassignError: "Failed to unassign booking",

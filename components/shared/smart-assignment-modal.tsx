@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { CheckIcon, UserIcon, CarIcon, SearchIcon, SortAscIcon, SortDescIcon } from 'lucide-react';
+import { CheckIcon, UserIcon, CarIcon, SearchIcon, SortAscIcon, SortDescIcon, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils/styles';
 import {
   Select,
@@ -264,10 +264,24 @@ export default function SmartAssignmentModal({
         {/* Current Assignment Status */}
         {(booking.driver_id || booking.vehicle_id) && (
           <div className="mb-6 p-4 bg-muted/50 border rounded-lg">
-            <h4 className="font-medium mb-3 flex items-center gap-2">
-              <CheckIcon className="h-4 w-4" />
-              Current Assignment
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <CheckIcon className="h-4 w-4" />
+                Current Assignment
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Call onAssign with empty strings to unassign all
+                  onAssign("", "");
+                }}
+                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <UserX className="h-4 w-4 mr-1" />
+                Unassign All
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Current Driver */}
               <div className="flex items-center gap-3 p-3 bg-background rounded-md border">

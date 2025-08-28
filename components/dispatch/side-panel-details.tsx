@@ -34,6 +34,7 @@ interface SidePanelDetailsProps {
   booking?: BookingLike;
   onAssign?: () => void;
   onUnassign?: () => void;
+  onReassign?: () => void;
 }
 
 function getStatusBadgeStyle(status: string): string {
@@ -50,7 +51,7 @@ function getStatusBadgeStyle(status: string): string {
   return styles[status as DispatchStatus] || "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700";
 }
 
-export default function SidePanelDetails({ entry, booking: bookingProp, onAssign, onUnassign }: SidePanelDetailsProps) {
+export default function SidePanelDetails({ entry, booking: bookingProp, onAssign, onUnassign, onReassign }: SidePanelDetailsProps) {
   const { t } = useI18n();
   const router = useRouter();
 
@@ -86,7 +87,7 @@ export default function SidePanelDetails({ entry, booking: bookingProp, onAssign
 
       {/* Service Details */}
       <div className="space-y-3">
-        <h3 className="font-medium text-sm text-foreground">{booking.service_name || t("dispatch.assignments.vehicleService")}</h3>
+        <h3 className="font-medium text-sm text-foreground">{booking.service_type_name || booking.service_name || t("dispatch.assignments.vehicleService")}</h3>
         {booking.pickup_location && (
           <div className="flex items-start gap-2">
             <MapPinIcon className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
@@ -228,27 +229,12 @@ export default function SidePanelDetails({ entry, booking: bookingProp, onAssign
           </Button>
 
           <Button
-            variant="outline"
             className="w-full justify-start"
-            onClick={() => router.push(`/bookings/${booking.id}/edit`)}
+            onClick={onReassign}
           >
-            <EditIcon className="h-4 w-4 mr-2" />
-            {t("dispatch.assignments.editBooking")}
+            <UserIcon className="h-4 w-4 mr-2" />
+            {t("dispatch.assignments.reassignDriver", { defaultValue: "Reassign Driver" })}
           </Button>
-
-          {!isAssigned && onAssign && (
-            <Button size="sm" className="w-full mt-2" onClick={onAssign}>
-              <Zap className="h-4 w-4 mr-2" />
-              {t("dispatch.assignments.smartAssign")}
-            </Button>
-          )}
-
-          {isAssigned && onUnassign && (
-            <Button variant="destructive" size="sm" className="w-full mt-2" onClick={onUnassign}>
-              <UserXIcon className="h-4 w-4 mr-2" />
-              {t("dispatch.assignments.unassignAll")}
-            </Button>
-          )}
         </div>
       </div>
     </div>

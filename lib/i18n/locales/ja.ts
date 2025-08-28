@@ -2209,6 +2209,7 @@ export const ja: TranslationValue = {
       vehicle: "車両",
       smartAssign: "スマート割り当て",
       viewDetails: "詳細を表示",
+      reassignDriver: "ドライバーを再割り当て",
       unassignAll: "すべて割り当て解除",
       smartAssignmentFor: "#{id}のスマート割り当て",
       smartAssignmentDescription: "サービス要件と車両能力に基づいたインテリジェントなマッチング",
@@ -2234,6 +2235,15 @@ export const ja: TranslationValue = {
       noBookingsFound: "予約が見つかりません",
       noBookingsFilter: "検索条件を調整してみてください",
       noBookingsAvailable: "割り当て可能な予約がありません",
+      // New translation keys for list view
+      booking: "予約",
+      serviceLocation: "サービス・場所",
+      dateTime: "日時",
+      assignment: "割り当て",
+      status: "ステータス",
+      view: "表示",
+      reassign: "再割り当て",
+      noBookings: "予約が見つかりません",
       messages: {
         unassignSuccess: "予約の割り当てが正常に解除されました",
         unassignError: "予約の割り当て解除に失敗しました",

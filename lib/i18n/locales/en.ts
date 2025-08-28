@@ -2266,6 +2266,7 @@ export const en: TranslationValue = {
       view: "View",
       reassign: "Reassign",
       noBookings: "No bookings found",
+      pending: "Pending",
       messages: {
         unassignSuccess: "Booking unassigned successfully",
         unassignError: "Failed to unassign booking",

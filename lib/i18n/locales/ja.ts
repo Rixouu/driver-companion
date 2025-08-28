@@ -2244,6 +2244,7 @@ export const ja: TranslationValue = {
       view: "表示",
       reassign: "再割り当て",
       noBookings: "予約が見つかりません",
+      pending: "保留中",
       messages: {
         unassignSuccess: "予約の割り当てが正常に解除されました",
         unassignError: "予約の割り当て解除に失敗しました",

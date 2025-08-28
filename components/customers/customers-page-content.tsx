@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,10 +14,6 @@ import {
   CustomerListFilters 
 } from '@/types/customers'
 import { 
-  Search, 
-  Filter, 
-  SortAsc, 
-  SortDesc, 
   Users, 
   Mail, 
   Phone, 
@@ -33,8 +29,8 @@ import {
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { formatCurrency } from '@/lib/utils/formatting'
-import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { CustomerFilters, CustomerFilterOptions } from './customer-filters'
 
 interface CustomersPageContentProps {
   initialCustomers: CustomerWithAnalytics[]
@@ -60,14 +56,126 @@ export function CustomersPageContent({
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
 
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState(filters.search || '')
-  const [selectedSegment, setSelectedSegment] = useState(filters.segment_id || 'all')
-  const [sortBy, setSortBy] = useState(filters.sort_by || 'created_at')
-  const [sortOrder, setSortOrder] = useState(filters.sort_order || 'desc')
+  // Enhanced filter states
+  const [filterOptions, setFilterOptions] = useState<CustomerFilterOptions>({
+    segmentFilter: filters.segment_id || 'all',
+    searchQuery: filters.search || '',
+    sortBy: (filters.sort_by as any) || 'created_at',
+    sortOrder: (filters.sort_order as 'asc' | 'desc') || 'desc',
+    dateFrom: undefined,
+    dateTo: undefined,
+    spendingMin: undefined,
+    spendingMax: undefined,
+    activityFrom: undefined,
+    activityTo: undefined
+  })
 
-  // Update URL with filters
-  const updateFilters = (newFilters: Partial<CustomerListFilters>) => {
+  // Filtered customers based on current filter options
+  const filteredCustomers = useMemo(() => {
+    let filtered = [...customers]
+
+    // Filter by segment
+    if (filterOptions.segmentFilter !== 'all') {
+      filtered = filtered.filter(customer => customer.segment_id === filterOptions.segmentFilter)
+    }
+
+    // Filter by search query
+    if (filterOptions.searchQuery) {
+      const query = filterOptions.searchQuery.toLowerCase()
+      filtered = filtered.filter(customer => 
+        customer.name?.toLowerCase().includes(query) ||
+        customer.email?.toLowerCase().includes(query)
+      )
+    }
+
+    // Filter by created date range
+    if (filterOptions.dateFrom) {
+      const fromDate = new Date(filterOptions.dateFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(customer => 
+        new Date(customer.created_at) >= fromDate
+      )
+    }
+    if (filterOptions.dateTo) {
+      const toDate = new Date(filterOptions.dateTo)
+      toDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(customer => 
+        new Date(customer.created_at) <= toDate
+      )
+    }
+
+    // Filter by spending range
+    if (filterOptions.spendingMin !== undefined) {
+      filtered = filtered.filter(customer => 
+        customer.total_spent >= filterOptions.spendingMin!
+      )
+    }
+    if (filterOptions.spendingMax !== undefined) {
+      filtered = filtered.filter(customer => 
+        customer.total_spent <= filterOptions.spendingMax!
+      )
+    }
+
+    // Filter by last activity date range
+    if (filterOptions.activityFrom) {
+      const fromDate = new Date(filterOptions.activityFrom)
+      fromDate.setHours(0, 0, 0, 0)
+      filtered = filtered.filter(customer => {
+        const lastActivity = customer.last_activity_date || customer.created_at
+        return new Date(lastActivity) >= fromDate
+      })
+    }
+    if (filterOptions.activityTo) {
+      const toDate = new Date(filterOptions.activityTo)
+      toDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter(customer => {
+        const lastActivity = customer.last_activity_date || customer.created_at
+        return new Date(lastActivity) <= toDate
+      })
+    }
+
+    // Sort customers
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any
+      
+      switch (filterOptions.sortBy) {
+        case 'name':
+          aValue = a.name || ''
+          bValue = b.name || ''
+          break
+        case 'email':
+          aValue = a.email || ''
+          bValue = b.email || ''
+          break
+        case 'created_at':
+          aValue = new Date(a.created_at)
+          bValue = new Date(b.created_at)
+          break
+        case 'total_spent':
+          aValue = a.total_spent
+          bValue = b.total_spent
+          break
+        case 'last_activity':
+          aValue = new Date(a.last_activity_date || a.created_at)
+          bValue = new Date(b.last_activity_date || b.created_at)
+          break
+        default:
+          aValue = new Date(a.created_at)
+          bValue = new Date(b.created_at)
+      }
+
+      if (filterOptions.sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+      }
+    })
+
+    return filtered
+  }, [customers, filterOptions])
+
+  // Update URL with enhanced filters
+  const updateFilters = (newFilters: Partial<CustomerFilterOptions>) => {
     const params = new URLSearchParams(searchParams.toString())
     
     // Update parameters
@@ -87,24 +195,35 @@ export function CustomersPageContent({
     router.push(`/customers?${params.toString()}`)
   }
 
-  // Handle search
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    updateFilters({ search: value })
-  }
-
-  // Handle segment filter
-  const handleSegmentChange = (value: string) => {
-    setSelectedSegment(value)
-    updateFilters({ segment_id: value === 'all' ? undefined : value })
+  // Handle filter changes
+  const handleFiltersChange = (newFilters: CustomerFilterOptions) => {
+    setFilterOptions(newFilters)
+    
+    // Update URL with new filters
+    const urlParams = new URLSearchParams()
+    if (newFilters.segmentFilter !== 'all') urlParams.set('segment_id', newFilters.segmentFilter)
+    if (newFilters.searchQuery) urlParams.set('search', newFilters.searchQuery)
+    if (newFilters.dateFrom) urlParams.set('dateFrom', newFilters.dateFrom)
+    if (newFilters.dateTo) urlParams.set('dateTo', newFilters.dateTo)
+    if (newFilters.spendingMin !== undefined) urlParams.set('spendingMin', newFilters.spendingMin.toString())
+    if (newFilters.spendingMax !== undefined) urlParams.set('spendingMax', newFilters.spendingMax.toString())
+    if (newFilters.activityFrom) urlParams.set('activityFrom', newFilters.activityFrom)
+    if (newFilters.activityTo) urlParams.set('activityTo', newFilters.activityTo)
+    if (newFilters.sortBy !== 'created_at') urlParams.set('sort_by', newFilters.sortBy)
+    if (newFilters.sortOrder !== 'desc') urlParams.set('sort_order', newFilters.sortOrder)
+    
+    urlParams.set('page', '1')
+    router.push(`/customers?${urlParams.toString()}`)
   }
 
   // Handle sorting
   const handleSortChange = (field: string) => {
-    const newSortOrder = field === sortBy && sortOrder === 'asc' ? 'desc' : 'asc'
-    setSortBy(field)
-    setSortOrder(newSortOrder)
-    updateFilters({ sort_by: field, sort_order: newSortOrder })
+    const newSortOrder = field === filterOptions.sortBy && filterOptions.sortOrder === 'asc' ? 'desc' : 'asc'
+    handleFiltersChange({
+      ...filterOptions,
+      sortBy: field as any,
+      sortOrder: newSortOrder
+    })
   }
 
   // Handle multi-select
@@ -124,7 +243,7 @@ export function CustomersPageContent({
       setSelectedCustomers(new Set())
       setSelectAll(false)
     } else {
-      setSelectedCustomers(new Set(customers.map(c => c.id)))
+      setSelectedCustomers(new Set(filteredCustomers.map(c => c.id)))
       setSelectAll(true)
     }
   }
@@ -178,13 +297,13 @@ export function CustomersPageContent({
       setSelectAll(false)
       
       // Show success message
-      toast.success(`Successfully deleted ${selectedCustomers.size} customer(s)`)
+      console.log(`Successfully deleted ${selectedCustomers.size} customer(s)`)
       
       // Refresh the page to update counts
       router.refresh()
     } catch (error) {
       console.error('Error deleting customers:', error)
-      toast.error('Failed to delete some customers')
+      console.log('Failed to delete some customers')
     } finally {
       setLoading(false)
     }
@@ -192,7 +311,9 @@ export function CustomersPageContent({
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    updateFilters({ page })
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    router.push(`/customers?${params.toString()}`)
   }
 
   // Get segment color
@@ -246,7 +367,7 @@ export function CustomersPageContent({
         <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Active Segments</CardTitle>
-            <Filter className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{segments.length}</div>
@@ -254,68 +375,13 @@ export function CustomersPageContent({
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search customers by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Segment Filter */}
-            <Select value={selectedSegment} onValueChange={handleSegmentChange}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="All Segments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Segments</SelectItem>
-                {segments.map((segment) => (
-                  <SelectItem key={segment.id} value={segment.id}>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full bg-gray-400" 
-                        data-segment-color={segment.color}
-                      />
-                      {segment.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Sort Options */}
-            <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
-              const [field, order] = value.split('-')
-              setSortBy(field)
-              setSortOrder(order as 'asc' | 'desc')
-              updateFilters({ sort_by: field, sort_order: order as 'asc' | 'desc' })
-            }}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name-asc">Name A-Z</SelectItem>
-                <SelectItem value="name-desc">Name Z-A</SelectItem>
-                <SelectItem value="total_spent-desc">Highest Spender</SelectItem>
-                <SelectItem value="total_spent-asc">Lowest Spender</SelectItem>
-                <SelectItem value="last_activity_date-desc">Most Recent</SelectItem>
-                <SelectItem value="last_activity_date-asc">Least Recent</SelectItem>
-                <SelectItem value="created_at-desc">Newest</SelectItem>
-                <SelectItem value="created_at-asc">Oldest</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Enhanced Filters */}
+      <CustomerFilters
+        filters={filterOptions}
+        onFiltersChange={handleFiltersChange}
+        totalCustomers={filteredCustomers.length}
+        segments={segments}
+      />
 
       {/* Action Buttons */}
       <Card>
@@ -380,7 +446,7 @@ export function CustomersPageContent({
 
       {/* Customer List */}
       <div className="grid gap-4">
-        {customers.map((customer) => (
+        {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="hover:shadow-md hover:bg-muted/30 transition-all duration-200 group cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-start gap-4">

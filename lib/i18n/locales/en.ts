@@ -2216,6 +2216,7 @@ export const en: TranslationValue = {
       availableVehicles: "Available Vehicles",
       pendingBookings: "Pending",
       assignedBookings: "Assigned",
+      pending: "Pending",
       searchPlaceholder: "Search bookings by customer, booking ID...",
       allDates: "All Dates",
       today: "Today",

@@ -39,7 +39,7 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormControl>
               <Textarea
                 placeholder={t('quotations.form.placeholders.merchantNotes')}
-                className="min-h-[120px] resize-none font-mono text-sm leading-relaxed"
+                className="min-h-[120px] max-h-[400px] resize-y font-mono text-sm leading-relaxed"
                 {...field}
                 value={field.value || ''}
               />
@@ -67,7 +67,7 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormControl>
               <Textarea
                 placeholder={t('quotations.form.placeholders.customerNotes')}
-                className="min-h-[120px] resize-none font-mono text-sm leading-relaxed"
+                className="min-h-[120px] max-h-[400px] resize-y font-mono text-sm leading-relaxed"
                 {...field}
                 value={field.value || ''}
               />

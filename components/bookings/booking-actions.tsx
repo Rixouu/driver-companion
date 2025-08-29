@@ -184,7 +184,7 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
             driver_id: driverId,
             vehicle_id: vehicleId,
             status: 'assigned',
-            start_time: `${booking.date}T${booking.time}:00`,
+            start_time: `${booking.date}T${booking.time}`,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });

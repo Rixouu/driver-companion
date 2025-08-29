@@ -570,7 +570,7 @@ export default function RealTimeDispatchCenter() {
         // Construct start_time from booking data if available
         let startTime = entry.start_time;
         if (!startTime && entry.booking?.date && entry.booking?.time) {
-          startTime = `${entry.booking.date}T${entry.booking.time}:00`;
+                      startTime = `${entry.booking.date}T${entry.booking.time}`;
         }
         
         const { data: newDispatchEntry, error: createError } = await supabase

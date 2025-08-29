@@ -66,7 +66,7 @@ export default function SidePanelDetails({ entry, booking: bookingProp, onAssign
 
   const isAssigned = (entry ? entry.driver_id && entry.vehicle_id : booking.driver_id && booking.vehicle_id);
 
-  const startISO = entry ? entry.start_time : booking.date && booking.time ? `${booking.date}T${booking.time}:00` : undefined;
+          const startISO = entry ? entry.start_time : booking.date && booking.time ? `${booking.date}T${booking.time}` : undefined;
 
   return (
     <div className="space-y-6">

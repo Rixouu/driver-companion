@@ -222,7 +222,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
         // Check existing bookings for conflicts
         existingBookings?.forEach(booking => {
           // Convert booking time to Date object for comparison
-          const bookingTimeStr = `${booking.date}T${booking.time}:00`;
+          const bookingTimeStr = `${booking.date}T${booking.time}`;
           const bookingTime = new Date(bookingTimeStr);
           const bookingEnd = new Date(bookingTime);
           bookingEnd.setMinutes(bookingEnd.getMinutes() + parseInt(String(booking.duration || "60")));
@@ -473,7 +473,7 @@ export default function BookingAssignment({ booking, onAssignmentComplete }: Boo
 
       // Calculate booking time window
       const bookingDate = parseISO(currentBooking.date);
-      const startTime = `${bookingDate.toISOString().split('T')[0]}T${currentBooking.time}:00`;
+              const startTime = `${bookingDate.toISOString().split('T')[0]}T${currentBooking.time}`;
       const durationMinutes = parseInt(String(currentBooking.duration || "60"));
       const endTimeDate = new Date(new Date(startTime).getTime() + durationMinutes * 60000);
       

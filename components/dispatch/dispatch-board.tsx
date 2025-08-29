@@ -290,7 +290,7 @@ export default function DispatchBoard() {
       
       // Create a new entry
       const bookingDate = parseISO(booking.date);
-      const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}:00`;
+              const startTime = `${bookingDate.toISOString().split('T')[0]}T${booking.time}`;
       
       // Calculate estimated end time
       const durationMinutes = parseInt(String(booking.duration || "60"));

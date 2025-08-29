@@ -12,9 +12,50 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useRef } from 'react';
 
 interface NotesStepProps {
   form: UseFormReturn<any>;
+}
+
+// Auto-expanding textarea component
+function AutoExpandingTextarea({ 
+  value, 
+  onChange, 
+  placeholder, 
+  className = "",
+  ...props 
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  [key: string]: any;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return (
+    <Textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`min-h-[120px] max-h-[400px] overflow-hidden ${className}`}
+      onInput={(e) => {
+        const target = e.target as HTMLTextAreaElement;
+        target.style.height = 'auto';
+        target.style.height = `${target.scrollHeight}px`;
+      }}
+      {...props}
+    />
+  );
 }
 
 export function NotesStep({ form }: NotesStepProps) {
@@ -37,19 +78,16 @@ export function NotesStep({ form }: NotesStepProps) {
               {t('quotations.form.merchantNotes')}
             </FormLabel>
             <FormControl>
-              <Textarea
+              <AutoExpandingTextarea
                 placeholder={t('quotations.form.placeholders.merchantNotes')}
-                className="min-h-[120px] max-h-[400px] resize-y font-mono text-sm leading-relaxed"
-                {...field}
+                className="font-mono text-sm leading-relaxed"
                 value={field.value || ''}
+                onChange={field.onChange}
               />
             </FormControl>
             <FormDescription>
               {t('quotations.form.descriptions.merchantNotes')}
             </FormDescription>
-            <p className="text-xs text-muted-foreground mt-1">
-              💡 Tip: Press Enter to create new lines. Line breaks will be preserved internally.
-            </p>
             <FormMessage />
           </FormItem>
         )}
@@ -65,19 +103,16 @@ export function NotesStep({ form }: NotesStepProps) {
               {t('quotations.form.customerNotes')}
             </FormLabel>
             <FormControl>
-              <Textarea
+              <AutoExpandingTextarea
                 placeholder={t('quotations.form.placeholders.customerNotes')}
-                className="min-h-[120px] max-h-[400px] resize-y font-mono text-sm leading-relaxed"
-                {...field}
+                className="font-mono text-sm leading-relaxed"
                 value={field.value || ''}
+                onChange={field.onChange}
               />
             </FormControl>
             <FormDescription>
               {t('quotations.form.descriptions.customerNotes')}
             </FormDescription>
-            <p className="text-xs text-muted-foreground mt-1">
-              💡 Tip: Press Enter to create new lines. Line breaks will be preserved in the quotation.
-            </p>
             <FormMessage />
           </FormItem>
         )}

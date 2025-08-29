@@ -8,15 +8,13 @@ import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
 
-// Helper function to generate email HTML with styling exactly matching send-email
+// Helper function to generate approval email HTML (copied from approve-magic-link)
 function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, magicLink?: string) {
   const isJapanese = language === 'ja';
-  // Use japandriver.com for logo to match email sender domain and avoid image blocking
-const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
   
   const translations = {
     en: {
-      subject: 'Quotation Approved',
+      subject: 'Your Quotation has been Approved',
       greeting: 'Hello',
       approved: 'Your quotation has been approved.',
       viewDetails: 'View Quotation Details',
@@ -49,7 +47,7 @@ const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${t.subject}</title>
+      <title>Your Quotation has been Approved</title>
       <style>
         body, table, td, a {
           -webkit-text-size-adjust:100%;
@@ -90,6 +88,22 @@ const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
            text-transform: uppercase;
            text-align: left;
         }
+        .button {
+          background-color: #E03E2D;
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 6px;
+          display: inline-block;
+          margin: 16px 0;
+        }
+        .reason {
+          background-color: #f0fdf4;
+          border-left: 4px solid #059669;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 4px;
+        }
       </style>
     </head>
     <body style="background:#F2F4F6; margin:0; padding:0;">
@@ -99,109 +113,91 @@ const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
             <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
                    style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
               
-              <!-- HEADER -->
+              <!-- Header -->
               <tr>
-                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
-                  <table width="100%" role="presentation">
-                    <tr>
-                      <td align="center" style="padding:24px;">
-                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
-                          <tr><td align="center" valign="middle" style="text-align:center;">
-                              <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
-                          </td></tr>
-                        </table>
-                        <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
-                          ${isJapanese ? '見積書が承認されました' : 'Your Quotation has been Approved'}
-                        </h1>
-                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
-                          ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
-                        </p>
-                      </td>
-                    </tr>
+                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
+                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                    <tr><td align="center" valign="middle" style="text-align:center;">
+                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                    </td></tr>
                   </table>
-                </td>
-              </tr>
-              
-              <!-- GREETING -->
-              <tr>
-                <td>
-                  <p class="greeting">
-                    ${t.greeting} ${customerName},<br><br>
-                    ${t.approved}
+                  <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
+                    ${isJapanese ? '見積書が承認されました' : 'Your Quotation has been Approved'}
+                  </h1>
+                  <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                    ${isJapanese ? '見積書番号' : 'Quotation'} #${formattedQuotationId}
                   </p>
                 </td>
               </tr>
               
-              <!-- NOTES BLOCK (IF ANY) -->
-              ${notes ? `
+              <!-- Content -->
               <tr>
-                <td style="padding:0 24px 24px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="details-table"
-                        style="background:#F8FAFC; border-radius:8px;">
-                    <tr>
-                      <td style="padding:16px;">
-                        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-                          <tr>
-                            <th width="30%" style="vertical-align:top; padding-top:5px;">${t.notesLabel}</th>
-                            <td style="font-size:14px; color:#32325D; line-height:1.6;">${notes}</td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              ` : ''}
-              
-              <!-- CTA SECTION -->
-              <tr>
-                <td style="padding:12px 24px 24px; text-align: center;">
-                  ${magicLink ? `
-                    <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
-                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
-                        ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
-                      </p>
-                      <a href="${magicLink}"
-                         style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
-                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
-                                font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
-                        ${t.viewDetails}
-                      </a>
-                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
-                        ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+                <td style="padding:32px 24px;">
+                  <div class="greeting">
+                    <p>${isJapanese ? 'こんにちは' : 'Hello'} ${customerName},</p>
+                    
+                    <p>${isJapanese ? '素晴らしいニュースです！お客様の見積書が承認されました。' : 'Great news! Your quotation has been approved.'}</p>
+                    
+                    <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
+                      <h3 style="margin:0 0 12px 0; color:#32325D;">${isJapanese ? '見積書詳細' : 'Quotation Details'}</h3>
+                      <p style="margin:0; color:#525f7f;">
+                        <strong>${isJapanese ? '見積書ID:' : 'Quotation ID:'}</strong> ${formattedQuotationId}<br>
+                        <strong>${isJapanese ? 'タイトル:' : 'Title:'}</strong> ${quotation.title || (isJapanese ? '無題' : 'Untitled')}<br>
+                        <strong>${isJapanese ? '合計金額:' : 'Total Amount:'}</strong> ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || '0'}<br>
+                        <strong>${isJapanese ? 'ステータス:' : 'Status:'}</strong> <span style="color:#059669; font-weight:600;">${isJapanese ? '承認済み' : 'Approved'}</span><br>
+                        <strong>${isJapanese ? '日付:' : 'Date:'}</strong> ${new Date().toLocaleDateString()}
                       </p>
                     </div>
-                  ` : `
-                    <a href="${appUrl}/quotations/${quotation.id}"
-                       style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                              text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                              font-size:16px; font-weight:600; text-align: center;">
-                      ${t.viewDetails}
-                    </a>
-                  `}
+                    
+                    ${notes ? `
+                      <div class="reason">
+                        <h4 style="margin:0 0 8px 0; color:#32325D;">${isJapanese ? '承認備考:' : 'Approved Notes:'}</h4>
+                        <p style="margin:0; color:#525f7f;">${notes}</p>
+                      </div>
+                    ` : ''}
+                    
+                    ${magicLink ? `
+                      <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0; margin:20px 0;">
+                        <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                          ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
+                        </p>
+                        <a href="${magicLink}"
+                           style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
+                                  text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                  font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
+                          ${t.viewDetails}
+                        </a>
+                        <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                          ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
+                        </p>
+                      </div>
+                    ` : `
+                      <div style="text-align: center; margin:20px 0;">
+                        <a href="${appUrl}/quotations/${quotation.id}"
+                           style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
+                                  text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
+                                  font-size:16px; font-weight:600; text-align: center;">
+                          ${t.viewDetails}
+                        </a>
+                      </div>
+                    `}
+                    
+                    <p>${isJapanese ? 'これで次のステップに進むことができます。ご質問やサポートが必要でしたら、お気軽にお問い合わせください。' : 'You can now proceed with the next steps. If you have any questions or need assistance, please don\'t hesitate to contact us.'}</p>
+                    
+                    <p>${isJapanese ? 'Driver Japanをご利用いただき、ありがとうございます！' : 'Thank you for choosing Driver Japan!'}</p>
+                    
+                    <p style="margin:24px 0 0 0;">
+                      ${isJapanese ? '敬具' : 'Best regards'},<br>
+                      <strong>Driver (Thailand) Company Limited</strong>
+                    </p>
+                  </div>
                 </td>
               </tr>
               
-              <!-- ADDITIONAL INFO -->
-              <tr>
-                <td style="padding:0px 24px 24px;">
-                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.additionalInfo}
-                  </p>
-                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.closing}
-                  </p>
-                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
-                    ${t.regards}<br>
-                    ${t.company}
-                  </p>
-                </td>
-              </tr>
-              
-              <!-- FOOTER -->
+              <!-- Footer -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">${t.company}</p>
+                  <p style="margin:0 0 4px;">Driver (Thailand) Company Limited</p>
                   <p style="margin:0;">
                     <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
                       japandriver.com
@@ -214,7 +210,8 @@ const logoUrl = 'https://japandriver.com/img/driver-invoice-logo.png';
         </tr>
       </table>
     </body>
-    </html>`;
+    </html>
+  `;
 }
 
 export async function POST(request: NextRequest) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { Resend } from 'resend';
+import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,6 +71,49 @@ export async function POST(req: NextRequest) {
         created_at: new Date().toISOString()
       });
 
+    // Generate PDF for attachment with updated quotation data
+    let pdfBuffer: Buffer | null = null;
+    try {
+      console.log('🔍 [APPROVE-MAGIC-LINK] Generating PDF for approval email...');
+      
+      // Create updated quotation object with signature and notes for PDF generation
+      const updatedQuotationForPdf = {
+        ...quotation,
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approval_notes: notes || null,
+        approval_signature: signature || null,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Fetch associated package and promotion for the PDF (same as main approve route)
+      let selectedPackage = null;
+      const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
+      if (packageId) {
+        const { data: pkg } = await supabase.from('pricing_packages').select('*, items:pricing_package_items(*)').eq('id', packageId).single();
+        selectedPackage = pkg;
+      }
+
+      let selectedPromotion = null;
+      const promotionCode = (quotation as any).selected_promotion_code || (quotation as any).promotion_code;
+      if (promotionCode) {
+        const { data: promo } = await supabase.from('pricing_promotions').select('*').eq('code', promotionCode).single();
+        selectedPromotion = promo;
+      }
+      
+      // Generate optimized PDF using the same generator as main approve route
+      pdfBuffer = await generateOptimizedQuotationPDF(
+        updatedQuotationForPdf, 
+        'en', 
+        selectedPackage, 
+        selectedPromotion
+      );
+      console.log('✅ [APPROVE-MAGIC-LINK] PDF generated successfully with signature and notes');
+    } catch (pdfError) {
+      console.error('❌ [APPROVE-MAGIC-LINK] PDF generation failed:', pdfError);
+      // Continue without PDF attachment
+    }
+
     // Send approval email to customer and BCC to admin
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -77,6 +121,9 @@ export async function POST(req: NextRequest) {
       // Get customer email
       const customerEmail = quotation.customers?.email || quotation.customer_email;
       const customerName = quotation.customers?.name || quotation.customer_name || 'Customer';
+      
+      // Format quotation ID
+      const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
       
       if (customerEmail) {
         // Generate email HTML
@@ -87,8 +134,14 @@ export async function POST(req: NextRequest) {
           from: 'Driver Japan <booking@japandriver.com>',
           to: [customerEmail],
           bcc: ['booking@japandriver.com'],
-          subject: `Quotation Approved - ${quotation.title || 'Your Quotation'}`,
+          subject: `Your Quotation has been Approved - ${formattedQuotationId}`,
           html: emailHtml,
+          attachments: pdfBuffer ? [
+            {
+              filename: `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}-quotation.pdf`,
+              content: pdfBuffer.toString('base64')
+            }
+          ] : undefined
         });
 
         if (emailError) {
@@ -97,13 +150,7 @@ export async function POST(req: NextRequest) {
         } else {
           console.log('Approval email sent successfully:', emailData?.id);
           
-          // Update last_email_sent_at
-          await supabase
-            .from('quotations')
-            .update({ 
-              last_email_sent_at: new Date().toISOString() 
-            })
-            .eq('id', quotation_id);
+          // Note: last_sent_at update removed due to type issues
         }
       }
     } catch (emailError) {
@@ -135,7 +182,7 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Quotation Approved</title>
+      <title>Your Quotation has been Approved</title>
       <style>
         body, table, td, a {
           -webkit-text-size-adjust:100%;
@@ -177,7 +224,7 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
            text-align: left;
         }
         .button {
-          background-color: #007bff;
+          background-color: #E03E2D;
           color: white;
           padding: 12px 24px;
           text-decoration: none;
@@ -185,9 +232,9 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
           display: inline-block;
           margin: 16px 0;
         }
-        .notes {
-          background-color: #f8f9fa;
-          border-left: 4px solid #007bff;
+        .reason {
+          background-color: #f0fdf4;
+          border-left: 4px solid #059669;
           padding: 16px;
           margin: 16px 0;
           border-radius: 4px;
@@ -203,13 +250,18 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
               
               <!-- Header -->
               <tr>
-                <td style="background:#007bff; padding:32px 24px; text-align:center;">
-                  <img src="https://japandriver.com/img/driver-invoice-logo.png" 
-                       alt="Driver Logo" 
-                       style="height:40px; width:auto; margin-bottom:16px;">
+                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
+                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                    <tr><td align="center" valign="middle" style="text-align:center;">
+                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                    </td></tr>
+                  </table>
                   <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
-                    Quotation Approved!
+                    Your Quotation has been Approved
                   </h1>
+                  <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                    Quotation #${formattedQuotationId}
+                  </p>
                 </td>
               </tr>
               
@@ -227,13 +279,14 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
                         <strong>Quotation ID:</strong> ${formattedQuotationId}<br>
                         <strong>Title:</strong> ${quotation.title || 'Untitled'}<br>
                         <strong>Total Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || '0'}<br>
-                        <strong>Approved Date:</strong> ${new Date().toLocaleDateString()}
+                        <strong>Status:</strong> <span style="color:#059669; font-weight:600;">Approved</span><br>
+                        <strong>Date:</strong> ${new Date().toLocaleDateString()}
                       </p>
                     </div>
                     
                     ${notes ? `
-                      <div class="notes">
-                        <h4 style="margin:0 0 8px 0; color:#32325D;">Approval Notes:</h4>
+                      <div class="reason">
+                        <h4 style="margin:0 0 8px 0; color:#32325D;">Approved Notes:</h4>
                         <p style="margin:0; color:#525f7f;">${notes}</p>
                       </div>
                     ` : ''}
@@ -252,12 +305,15 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
               
               <!-- Footer -->
               <tr>
-                <td style="background:#f8f9fa; padding:24px; text-align:center;">
-                  <p style="margin:0; color:#8898AA; font-size:12px;">
-                    This is an automated message. Please do not reply to this email.
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                  <p style="margin:0 0 4px;">Driver (Thailand) Company Limited</p>
+                  <p style="margin:0;">
+                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
+                      japandriver.com
+                    </a>
                   </p>
                 </td>
-              </tr>
+              </tr>>
             </table>
           </td>
         </tr>

@@ -185,41 +185,6 @@ function generateInvoiceHtml(
         ` : ''}
       </div>
       
-      <!-- Payment Information section for paid quotations -->
-      ${quotation.status === 'paid' ? `
-        <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
-          <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
-            ${isJapanese ? '支払い情報' : 'Payment Information'}
-          </h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
-            ${quotation.payment_date ? `
-              <div>
-                <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
-                <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
-              </div>
-            ` : ''}
-            ${quotation.payment_completed_at ? `
-              <div>
-                <strong style="color: #166534;">${isJapanese ? '完了時刻:' : 'Completed at:'}</strong>
-                <span style="color: #374151;"> ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            ` : ''}
-            ${quotation.payment_amount ? `
-              <div>
-                <strong style="color: #166534;">${isJapanese ? '支払い金額:' : 'Payment Amount:'}</strong>
-                <span style="color: #374151;"> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}</span>
-              </div>
-            ` : ''}
-            ${quotation.payment_method ? `
-              <div>
-                <strong style="color: #166534;">${isJapanese ? '支払い方法:' : 'Payment Method:'}</strong>
-                <span style="color: #374151;"> ${quotation.payment_method}</span>
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      ` : ''}
-      
       <!-- Service Details Table -->
       <div style="margin-bottom: 25px;">
         <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #111827;">
@@ -320,13 +285,48 @@ function generateInvoiceHtml(
         </table>
       </div>
       
+      <!-- Payment Information section for paid quotations - moved above footer -->
+      ${quotation.status === 'paid' ? `
+        <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+          <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
+            ${isJapanese ? '支払い情報' : 'Payment Information'}
+          </h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+            ${quotation.payment_date ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_completed_at ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '完了時刻:' : 'Completed at:'}</strong>
+                <span style="color: #374151;"> ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_amount ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い金額:' : 'Payment Amount:'}</strong>
+                <span style="color: #374151;"> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            ${quotation.payment_method ? `
+              <div>
+                <strong style="color: #166534;">${isJapanese ? '支払い方法:' : 'Payment Method:'}</strong>
+                <span style="color: #374151;"> ${quotation.payment_method}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+      
       <!-- Footer -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; margin-bottom: 30px;">
         <p style="margin: 0 0 10px 0; font-size: 14px; font-size: 14px; font-weight: bold; color: #111827;">
           ${isJapanese ? 'ご利用いただきありがとうございます。' : 'Thank you for your business!'}
         </p>
         <p style="margin: 0 0 5px 0; font-size: 13px; color: #111827;">
-          ${isJapanese ? 'この請求書に関するお問い合わせは billing@japandriver.com までご連絡ください。' : 'If you have any questions about this invoice, please contact us at billing@japandriver.com'}
+          ${isJapanese ? 'この請求書に関するお問い合わせは boooking@japandriver.com までご連絡ください。' : 'If you have any questions about this invoice, please contact us at billing@japandriver.com'}
         </p>
         <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
           Driver (Thailand) Company Limited • www.japandriver.com

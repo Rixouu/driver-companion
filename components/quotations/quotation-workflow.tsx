@@ -128,6 +128,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   );
   const [paymentMethod, setPaymentMethod] = useState<string>("Credit Card");
   
+  // Payment Completion Email State
+  const [sendPaymentCompleteEmail, setSendPaymentCompleteEmail] = useState(true);
+  const [paymentEmailLanguage, setPaymentEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
+  const [paymentEmailBcc, setPaymentEmailBcc] = useState<string>("booking@japandriver.com");
+  const [isSendingPaymentEmail, setIsSendingPaymentEmail] = useState(false);
+  
   // Update payment amount when quotation changes
   React.useEffect(() => {
     const newAmount = (quotation.total_amount || quotation.amount)?.toString() || "0.00";
@@ -500,10 +506,59 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       setProgressLabel('Payment marked as complete!');
       setTimeout(() => setProgressOpen(false), 500);
 
-      toast({
-        title: "Payment Marked as Complete",
-        description: "Quotation has been marked as paid successfully",
-      });
+      // Send payment completion email if requested
+      if (sendPaymentCompleteEmail) {
+        try {
+          setIsSendingPaymentEmail(true);
+          setProgressOpen(true);
+          setProgressTitle('Sending Payment Completion Email');
+          setProgressLabel('Preparing email...');
+          setProgressValue(25);
+          
+          const emailResponse = await fetch('/api/quotations/send-payment-complete-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              quotation_id: quotation.id,
+              language: paymentEmailLanguage,
+              bcc_emails: paymentEmailBcc
+            })
+          });
+          
+          if (emailResponse.ok) {
+            setProgressValue(100);
+            setProgressLabel('Payment completion email sent successfully!');
+            setTimeout(() => setProgressOpen(false), 1000);
+            
+            toast({
+              title: "Payment Completion Email Sent",
+              description: "Customer has been notified of payment completion",
+            });
+          } else {
+            const errorData = await emailResponse.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Payment completion email failed:', errorData);
+            toast({
+              title: "Payment Completion Email Failed",
+              description: `Payment was marked as complete, but email failed: ${errorData.error || 'Unknown error'}`,
+              variant: "destructive",
+            });
+          }
+        } catch (emailError) {
+          console.error('Error sending payment completion email:', emailError);
+          toast({
+            title: "Payment Completion Email Failed",
+            description: "Payment was marked as complete, but email failed",
+            variant: "destructive",
+          });
+        } finally {
+          setIsSendingPaymentEmail(false);
+        }
+      } else {
+        toast({
+          title: "Payment Marked as Complete",
+          description: "Quotation has been marked as paid successfully",
+        });
+      }
 
       setIsMarkAsPaidDialogOpen(false);
       
@@ -1330,6 +1385,66 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 )}
               </div>
             </div>
+            
+            {/* Payment Completion Email Configuration */}
+            <Separator className="my-4" />
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="send-payment-email"
+                  checked={sendPaymentCompleteEmail}
+                  onCheckedChange={(checked) => setSendPaymentCompleteEmail(checked as boolean)}
+                />
+                <Label htmlFor="send-payment-email" className="text-sm font-medium">
+                  Send Payment Completion Email
+                </Label>
+              </div>
+              
+              {sendPaymentCompleteEmail && (
+                <div className="space-y-4 pl-6 border-l-2 border-gray-200">
+                  <div>
+                    <Label htmlFor="payment-email-language">Language</Label>
+                    <Select value={paymentEmailLanguage} onValueChange={(value: 'en' | 'ja') => setPaymentEmailLanguage(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="ja">日本語</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="payment-email-bcc">BCC Emails</Label>
+                    <Input
+                      id="payment-email-bcc"
+                      value={paymentEmailBcc}
+                      onChange={(e) => setPaymentEmailBcc(e.target.value)}
+                      placeholder="Enter email addresses separated by commas"
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Default: booking@japandriver.com. Add more emails separated by commas.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+                    <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                      📧 What's included in the email:
+                    </h4>
+                    <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                      <li>• Payment completion confirmation</li>
+                      <li>• Invoice details and service information</li>
+                      <li>• Payment method and amount details</li>
+                      <li>• Invoice PDF attachment (marked as paid)</li>
+                      <li>• Thank you message and next steps</li>
+                      <li>• Company branding and contact information</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           <DialogFooter>
@@ -1345,7 +1460,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
-                  Mark as Paid
+                  {sendPaymentCompleteEmail ? 'Mark as Paid & Send Email' : 'Mark as Paid'}
                 </>
               )}
             </Button>

@@ -81,6 +81,13 @@ interface QuotationDetailsProps {
   isOrganizationMember?: boolean;
 }
 
+// Helper function to process notes and convert literal \n to actual newlines
+function processNotesText(text: string): string {
+  if (!text) return '';
+  // Convert literal \n strings to actual newlines
+  return text.replace(/\\n/g, '\n');
+}
+
 // Interface for time-based rules
 interface TimeBasedRule {
   id: string;
@@ -1353,10 +1360,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       Customer Notes
                     </h4>
                     <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500"
-                      style={{ whiteSpace: 'pre-wrap' }}
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words"
                     >
-                      {quotation.customer_notes}
+                      {processNotesText(quotation.customer_notes)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       Notes visible to the customer on the quotation
@@ -1371,10 +1377,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       Internal Notes
                     </h4>
                     <div 
-                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500"
-                      style={{ whiteSpace: 'pre-wrap' }}
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
                     >
-                      {quotation.merchant_notes}
+                      {processNotesText(quotation.merchant_notes)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       Internal notes, not visible to the customer

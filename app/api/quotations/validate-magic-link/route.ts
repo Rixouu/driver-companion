@@ -132,6 +132,9 @@ export async function POST(req: NextRequest) {
                     amount: quotation.amount,
                     total_amount: quotation.total_amount,
                     currency: quotation.currency,
+                    // Notes fields
+                    customer_notes: quotation.customer_notes,
+                    merchant_notes: quotation.merchant_notes,
                     // Price details fields
                     tax_percentage: quotation.tax_percentage,
                     promotion_discount: quotation.promotion_discount,

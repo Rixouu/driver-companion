@@ -942,17 +942,12 @@ export function generateQuotationHtml(
                 
                 <!-- Additional notes or status info -->
                 ${quotation.status === 'approved' ? `
-                  <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;">
-                    <p style="margin: 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
+                  <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Status:</strong> ${getStatusSymbol(quotation.status)} APPROVED
                     </p>
                     ${quotation.approval_notes ? `
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
-                      <strong>Notes:</strong> ${quotation.approval_notes}
-                    </p>
-                    ` : ''}
-                    ${quotation.approval_notes ? `
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #0369a1; line-height: 1.3;">
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Notes:</strong> ${quotation.approval_notes}
                     </p>
                     ` : ''}

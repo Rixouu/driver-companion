@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { format, parseISO, addDays } from 'date-fns';
 import { toast } from '@/components/ui/use-toast';
-import { useTheme } from 'next-themes';
+// useTheme removed for customer side
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,8 +61,7 @@ import {
   Eye as EyeIcon,
   Share2,
   Printer,
-  Sun,
-  Moon,
+  // Sun, Moon removed for customer side
   MessageCircle,
   Info
 } from 'lucide-react';
@@ -92,6 +91,7 @@ interface QuotationData {
   currency: string;
   notes?: string;
   terms?: string;
+  customer_notes?: string;
   quotation_items: QuotationItem[];
   // Additional fields for full functionality
   service_type?: string;
@@ -193,9 +193,7 @@ export default function QuoteAccessPage() {
   const [progressTitle, setProgressTitle] = useState('Processing');
   const [progressLabel, setProgressLabel] = useState('Starting...');
   
-  // Theme state
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // Theme state removed for customer side
   
   // Loading states for actions
   const [isDownloadingQuotation, setIsDownloadingQuotation] = useState(false);
@@ -217,10 +215,7 @@ export default function QuoteAccessPage() {
   
 
 
-  // Handle theme mounting
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Theme mounting removed for customer side
 
   useEffect(() => {
     const validateTokenAndLoadQuotation = async () => {
@@ -357,6 +352,9 @@ export default function QuoteAccessPage() {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
+      // Always use default BCC for customer side
+      const defaultBcc = 'booking@japandriver.com';
+      
       const response = await fetch('/api/quotations/approve-magic-link', {
         method: 'POST',
         headers: {
@@ -366,7 +364,7 @@ export default function QuoteAccessPage() {
           quotation_id: quotation.id,
           notes: notes,
           signature: signature,
-          bcc_emails: bccEmails
+          bcc_emails: defaultBcc
         }),
       });
       
@@ -423,6 +421,9 @@ export default function QuoteAccessPage() {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
+      // Always use default BCC for customer side
+      const defaultBcc = 'booking@japandriver.com';
+      
       const response = await fetch('/api/quotations/reject-magic-link', {
         method: 'POST',
         headers: {
@@ -432,7 +433,7 @@ export default function QuoteAccessPage() {
           quotation_id: quotation.id,
           reason: reason,
           signature: signature,
-          bcc_emails: bccEmails
+          bcc_emails: defaultBcc
         }),
       });
       
@@ -738,18 +739,7 @@ export default function QuoteAccessPage() {
                
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  disabled={!mounted}
-                >
-                  {mounted && theme === 'dark' ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                </Button>
+                {/* Theme toggle removed for customer side to prevent hydration issues */}
                 <DropdownMenu open={isShareOpen} onOpenChange={setIsShareOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2">
@@ -795,28 +785,10 @@ export default function QuoteAccessPage() {
 
           
           {/* Action Buttons Row */}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-4 border-t mt-4">
-            {/* Download buttons */}
-            <Button 
-              onClick={handleDownloadQuotation} 
-              variant="outline" 
-              className="w-full sm:w-auto gap-2"
-              disabled={isDownloadingQuotation}
-            >
-              {isDownloadingQuotation ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Downloading...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  Download Quotation
-                </>
-              )}
-            </Button>
-            
-            {(quotation.status === 'approved' || quotation.status === 'paid' || quotation.status === 'converted') && (
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-4 border-t mt-4 justify-center items-center">
+                        {/* Download buttons */}
+            {quotation.status === 'approved' ? (
+              // When approved, show only Download Invoice button
               <Button 
                 onClick={handleDownloadInvoice} 
                 variant="default" 
@@ -831,7 +803,47 @@ export default function QuoteAccessPage() {
                 ) : (
                   <>
                     <FileText className="h-4 w-4" />
-                    Download Invoice
+                    Download Invoice (Approved)
+                  </>
+                )}
+              </Button>
+            ) : ['paid', 'converted'].includes(quotation.status) ? (
+              // When paid or converted, show only Download Invoice button
+              <Button 
+                onClick={handleDownloadInvoice} 
+                variant="default" 
+                className="w-full sm:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white border-green-600"
+                disabled={isDownloadingInvoice}
+              >
+                {isDownloadingInvoice ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    Download Invoice (Paid)
+                  </>
+                )}
+              </Button>
+            ) : (
+              // For other statuses (draft, sent, rejected), show Download Quotation button
+              <Button 
+                onClick={handleDownloadQuotation} 
+                variant="outline" 
+                className="w-full sm:w-auto gap-2"
+                disabled={isDownloadingQuotation}
+              >
+                {isDownloadingQuotation ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Download Quotation
                   </>
                 )}
               </Button>
@@ -1244,11 +1256,11 @@ export default function QuoteAccessPage() {
                                   <Calendar className="h-3 w-3" />
                                   {item.service_days} day(s) × {formatCurrency(item.unit_price, selectedCurrency)} = {formatCurrency(item.total_price, selectedCurrency)}
                                 </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <Package className="h-3 w-3" />
-                                  Qty: {item.quantity} × {formatCurrency(item.unit_price, selectedCurrency)}
-                                </span>
+                                                              ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Package className="h-3 w-3" />
+                                    Qty: {item.quantity} × {formatCurrency(item.unit_price, selectedCurrency)}
+                                  </span>
                               )}
                             </div>
                             
@@ -1327,7 +1339,7 @@ export default function QuoteAccessPage() {
                     
                     {/* Tax */}
                     {quotation.tax_percentage && quotation.tax_percentage > 0 && (
-                      <div className="flex justify-between items-center py-1 text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                      <div className="flex items-center justify-between py-1 text-muted-foreground bg-muted/50 px-2 py-1 rounded">
                         <span className="flex items-center gap-1 text-sm">
                           <Percent className="h-3 w-3" />
                           Tax ({quotation.tax_percentage}%)
@@ -1353,6 +1365,31 @@ export default function QuoteAccessPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Customer Actions - Moved below Price Details */}
+            {['draft', 'sent'].includes(quotation.status) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Customer Actions
+                  </CardTitle>
+                  <CardDescription>
+                    Approve or reject this quotation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuotationDetailsApprovalPanel
+                    isProcessing={isApproving || isRejecting}
+                    customerName={quotation.customer_name}
+                    quotation={quotation as any}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    showBccFields={false}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Notes and Terms */}
             {(quotation.notes || quotation.terms) && (
@@ -1689,29 +1726,31 @@ export default function QuoteAccessPage() {
               </CardContent>
             </Card>
 
-            {/* Quotation Approval Panel - Moved to sidebar */}
-            {['draft', 'sent'].includes(quotation.status) && (
+            {/* Customer Notes Section */}
+            {quotation.customer_notes && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                    Customer Actions
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Customer Notes
                   </CardTitle>
-                  <CardDescription>
-                    Approve or reject this quotation
-                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <QuotationDetailsApprovalPanel
-                    isProcessing={isApproving || isRejecting}
-                    customerName={quotation.customer_name}
-                    quotation={quotation as any}
-                    onApprove={handleApprove}
-                    onReject={handleReject}
-                  />
+                  <div 
+                    className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500 whitespace-pre-wrap break-words"
+                  >
+                    {quotation.customer_notes}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Notes visible to the customer on the quotation
+                  </p>
                 </CardContent>
               </Card>
             )}
+            
+
+
+
           </div>
         </div>
       </div>

@@ -206,8 +206,11 @@ export async function POST(request: NextRequest) {
     // Format quotation ID to use JPDR prefix
     const formattedQuotationId = `QUO-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
     
-    // Determine if this is an updated quotation (only if it was previously sent)
-    const isUpdated = quotation.status === 'sent' && (quotation as any).last_sent_at;
+    // Determine if this is an updated quotation
+    // Check if it was previously sent OR if it's being sent after an update
+    const isUpdated = (quotation.status === 'sent' && (quotation as any).last_sent_at) || 
+                     (quotation.updated_at && quotation.created_at && 
+                      new Date(quotation.updated_at).getTime() > new Date(quotation.created_at).getTime() + 60000); // 1 minute buffer
     
           // Generate magic link for secure quote access
       let magicLink = null;

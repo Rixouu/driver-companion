@@ -19,6 +19,7 @@ interface QuotationDetailsApprovalPanelProps {
   isProcessing: boolean;
   customerName?: string;
   quotation?: { quote_number?: string };
+  showBccFields?: boolean; // Control whether BCC fields are visible
 }
 
 export function QuotationDetailsApprovalPanel({
@@ -26,7 +27,8 @@ export function QuotationDetailsApprovalPanel({
   onReject,
   isProcessing,
   customerName,
-  quotation
+  quotation,
+  showBccFields = true // Default to true for admin side
 }: QuotationDetailsApprovalPanelProps) {
   const { t } = useI18n();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -166,19 +168,21 @@ export function QuotationDetailsApprovalPanel({
               />
             </div>
             
-            <div>
-              <Label htmlFor="approve-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
-              <Input
-                id="approve-bcc-emails"
-                value={approveBccEmails}
-                onChange={(e) => setApproveBccEmails(e.target.value)}
-                placeholder="Enter email addresses separated by commas"
-                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Default: booking@japandriver.com. Add more emails separated by commas.
-              </p>
-            </div>
+            {showBccFields && (
+              <div>
+                <Label htmlFor="approve-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+                <Input
+                  id="approve-bcc-emails"
+                  value={approveBccEmails}
+                  onChange={(e) => setApproveBccEmails(e.target.value)}
+                  placeholder="Enter email addresses separated by commas"
+                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default: booking@japandriver.com. Add more emails separated by commas.
+                </p>
+              </div>
+            )}
             
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -282,19 +286,21 @@ export function QuotationDetailsApprovalPanel({
               )}
             </div>
             
-            <div>
-              <Label htmlFor="reject-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
-              <Input
-                id="reject-bcc-emails"
-                value={rejectBccEmails}
-                onChange={(e) => setRejectBccEmails(e.target.value)}
-                placeholder="Enter email addresses separated by commas"
-                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Default: booking@japandriver.com. Add more emails separated by commas.
-              </p>
-            </div>
+            {showBccFields && (
+              <div>
+                <Label htmlFor="reject-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+                <Input
+                  id="reject-bcc-emails"
+                  value={rejectBccEmails}
+                  onChange={(e) => setRejectBccEmails(e.target.value)}
+                  placeholder="Enter email addresses separated by commas"
+                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default: booking@japandriver.com. Add more emails separated by commas.
+                </p>
+              </div>
+            )}
             
             <div>
               <div className="flex items-center justify-between mb-2">

@@ -24,6 +24,7 @@ import {
   FileText,
   Building,
   User,
+  StickyNote,
   CreditCard,
   Edit,
   Globe,
@@ -1119,35 +1120,43 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 </div>
               )}
               
-              {/* Customer Notes and Merchant Notes sections */}
+              {/* Customer Notes and Internal Notes sections */}
               {(quotation.customer_notes || quotation.merchant_notes) && (
                 <>
                   <Separator className="my-6" />
                   <div>
-                    <div className="flex items-center mb-4">
-                      <Clock className="h-5 w-5 mr-2 text-primary" />
-                      <h2 className="text-xl font-semibold">{t('quotations.details.notesAndTerms')}</h2>
+                    <div className="flex items-center mb-6">
+                      <FileText className="h-5 w-5 mr-2 text-primary" />
+                      <h2 className="text-xl font-semibold">Notes & Comments</h2>
                     </div>
-                    <div className="space-y-6">
+                    <div className="grid gap-6 lg:grid-cols-2">
                       {quotation.customer_notes && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                            {t('quotations.details.notes') || 'Notes'}
+                        <div className="bg-card border rounded-lg p-4">
+                          <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            Customer Notes
                           </h3>
-                          <div className="text-sm whitespace-pre-wrap border rounded-md p-3 bg-muted/30">
+                          <div className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/30 rounded-md p-4 border-l-4 border-l-blue-500">
                             {quotation.customer_notes}
                           </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Notes visible to the customer on the quotation
+                          </p>
                         </div>
                       )}
                       
                       {quotation.merchant_notes && (
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                            {t('quotations.details.termsAndConditions') || 'Terms and Conditions'}
+                        <div className="bg-card border rounded-lg p-4">
+                          <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                            <StickyNote className="h-4 w-4 text-muted-foreground" />
+                            Internal Notes
                           </h3>
-                          <div className="text-sm whitespace-pre-wrap">
+                          <div className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/30 rounded-md p-4 border-l-4 border-l-orange-500">
                             {quotation.merchant_notes}
                           </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Internal notes, not visible to the customer
+                          </p>
                         </div>
                       )}
                     </div>

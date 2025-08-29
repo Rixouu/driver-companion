@@ -1352,7 +1352,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       <User className="h-3 w-3 text-muted-foreground" />
                       Customer Notes
                     </h4>
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500">
+                    <div 
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-blue-500"
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
                       {quotation.customer_notes}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
@@ -1367,7 +1370,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       <StickyNote className="h-3 w-3 text-muted-foreground" />
                       Internal Notes
                     </h4>
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500">
+                    <div 
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500"
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
                       {quotation.merchant_notes}
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">

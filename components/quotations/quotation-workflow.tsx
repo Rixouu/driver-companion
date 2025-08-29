@@ -97,6 +97,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 }, ref) => {
   const { t, language } = useI18n();
 
+  // Send Quotation Dialog State
+  const [isSendQuotationDialogOpen, setIsSendQuotationDialogOpen] = useState(false);
+  const [isSendingQuotation, setIsSendingQuotation] = useState(false);
+  const [sendQuotationLanguage, setSendQuotationLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
+  const [sendQuotationBccEmails, setSendQuotationBccEmails] = useState<string>("booking@japandriver.com");
+  
   // Payment Link Dialog State
   const [isPaymentLinkDialogOpen, setIsPaymentLinkDialogOpen] = useState(false);
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
@@ -144,6 +150,61 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       setPaymentLink((quotation as any).payment_link);
     }
   }, [(quotation as any).payment_link_sent_at, (quotation as any).payment_link]);
+
+  // Handle sending quotation with configured settings
+  const handleSendQuotationWithSettings = async () => {
+    if (!quotation?.customer_email) {
+      toast({
+        title: "Error",
+        description: "No customer email found for this quotation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingQuotation(true);
+    try {
+      // Prepare FormData for the send-email endpoint
+      const formData = new FormData();
+      formData.append('email', quotation.customer_email);
+      formData.append('quotation_id', quotation.id);
+      formData.append('language', sendQuotationLanguage);
+      formData.append('include_details', 'true');
+      formData.append('bcc_emails', sendQuotationBccEmails);
+
+      const response = await fetch('/api/quotations/send-email', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send quotation email');
+      }
+
+      toast({
+        title: "Success",
+        description: "Quotation sent successfully!",
+      });
+
+      setIsSendQuotationDialogOpen(false);
+      
+      // Call the parent's onSendQuotation callback to refresh the workflow
+      if (onSendQuotation) {
+        onSendQuotation();
+      }
+      
+    } catch (error) {
+      console.error('Error sending quotation:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send quotation",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingQuotation(false);
+    }
+  };
 
   // Expose methods to parent via ref
   React.useImperativeHandle(ref, () => ({
@@ -497,8 +558,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         ...(quotation.status === 'draft' && isOrganizationMember ? {
           action: {
             label: 'Send Now',
-            onClick: onSendQuotation || (() => {}),
-            disabled: !onSendQuotation
+            onClick: () => setIsSendQuotationDialogOpen(true),
+            disabled: false
           }
         } : {})
       }
@@ -1285,6 +1346,101 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 <>
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Mark as Paid
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Quotation Dialog */}
+      <Dialog open={isSendQuotationDialogOpen} onOpenChange={setIsSendQuotationDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Send Quotation
+            </DialogTitle>
+            <DialogDescription>
+              Send this quotation to the customer via email.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="send-customer-email">Customer Email</Label>
+              <Input
+                id="send-customer-email"
+                type="email"
+                value={quotation?.customer_email || 'No email found'}
+                disabled
+                className="bg-gray-100 border-gray-300 text-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="send-bcc-emails">BCC Emails</Label>
+              <Input
+                id="send-bcc-emails"
+                value={sendQuotationBccEmails}
+                onChange={(e) => setSendQuotationBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div>
+              <Label>Language</Label>
+              <Select value={sendQuotationLanguage} onValueChange={(value: 'en' | 'ja') => setSendQuotationLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Complete quotation details and service information</li>
+                <li>• Customer information and contact details</li>
+                <li>• Service breakdown and pricing</li>
+                <li>• Quotation PDF attachment</li>
+                <li>• Magic link for customer access</li>
+                <li>• Company branding and contact information</li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendQuotationDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSendQuotationWithSettings}
+              disabled={isSendingQuotation || !quotation?.customer_email}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isSendingQuotation ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Quotation
                 </>
               )}
             </Button>

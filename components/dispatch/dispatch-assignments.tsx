@@ -1093,7 +1093,7 @@ export default function DispatchAssignments() {
               .insert({
                   booking_id: bookingId,
                   status: 'pending', // start as pending
-                  start_time: `${bookingToUpdate.date}T${bookingToUpdate.time}:00`,
+                  start_time: `${bookingToUpdate.date}T${bookingToUpdate.time}`,
               })
               .select()
               .single();

@@ -39,7 +39,8 @@ import {
   DollarSign,
   Calculator,
   Eye,
-  Receipt
+  Receipt,
+  Loader2
 } from 'lucide-react';
 import { Quotation, QuotationItem, QuotationStatus, PricingPackage, PricingPromotion, PackageType } from '@/types/quotations';
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
@@ -64,7 +65,8 @@ import { ServiceCard } from '@/components/quotations/service-card';
 import { QuotationShareButtons } from '@/components/quotations/quotation-share-buttons';
 import { QuotationWorkflow } from '@/components/quotations/quotation-workflow';
 
-import { Dialog, DialogTitle, DialogContent, DialogDescription, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogTitle, DialogContent, DialogDescription, DialogHeader, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface QuotationDetailsProps {
   quotation: Quotation & {

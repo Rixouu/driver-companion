@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
 import { Car, Calendar, Settings, Package, Plus, List, Timer, PencilIcon, Copy, Trash, X } from 'lucide-react';
@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { ServiceCard } from '@/components/quotations/service-card';
+import { useQuotationFormData } from '@/lib/hooks/useQuotationFormData';
 
 // Import types
 import { 
@@ -49,14 +50,17 @@ interface ServiceSelectionStepProps {
   allServiceTypes: ServiceTypeInfo[];
   pricingCategories: PricingCategory[];
   pricingItems: PricingItem[];
+  formData?: any; // Add formData parameter
   calculateQuotationAmount: (
     serviceType: string,
-    vehicleType: string,
+    selectedVehicle: { id: string; brand: string; model: string; name: string } | null,
     duration: number,
     discount: number,
     tax: number,
     days: number,
-    hoursPerDay?: number
+    hoursPerDay?: number,
+    dateTime?: Date | string,
+    vehicleCategory?: string
   ) => Promise<{ baseAmount: number; totalAmount: number; currency: string }>;
 }
 
@@ -70,6 +74,7 @@ export function ServiceSelectionStep({
   allServiceTypes,
   pricingCategories,
   pricingItems,
+  formData, // Add formData parameter
   calculateQuotationAmount
 }: ServiceSelectionStepProps) {
   const { t } = useI18n();
@@ -78,6 +83,16 @@ export function ServiceSelectionStep({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
 
+  // Debug formData - only log once when formData changes
+  useEffect(() => {
+    if (formData) {
+      console.log('🔍 ServiceSelectionStep received formData:', formData);
+      console.log('🔍 formData?.serviceTypes:', formData?.serviceTypes);
+      console.log('🔍 formData?.pricingCategories:', formData?.pricingCategories);
+      console.log('🔍 formData?.vehiclesByCategory:', formData?.vehiclesByCategory);
+    }
+  }, [formData]);
+
   // Watch form values
   const serviceType = form.watch('service_type');
   const vehicleCategory = form.watch('vehicle_category');
@@ -85,40 +100,74 @@ export function ServiceSelectionStep({
   const serviceDays = form.watch('service_days');
   const hoursPerDay = form.watch('hours_per_day');
 
-  // Helper functions
+  // Helper functions - now use dynamic data when available
   const getAvailableServiceTypes = (): ServiceTypeInfo[] => {
+    // Use dynamic data if available, otherwise fall back to existing data
+    if (formData?.serviceTypes && formData.serviceTypes.length > 0) {
+      return formData.serviceTypes.map((st: any) => ({
+        id: st.id,
+        name: st.name
+      }));
+    }
+    
+    // Fallback to existing data
     return allServiceTypes.length > 0 ? allServiceTypes : [
-      { id: 'charter', name: 'Charter Services (Hourly)' },
-      { id: 'airportTransferHaneda', name: 'Airport Transfer - Haneda' },
-      { id: 'airportTransferNarita', name: 'Airport Transfer - Narita' }
+      { id: '212ea0ed-0012-4d87-8722-b1145495a561', name: 'Charter Services' },
+      { id: 'a2538c63-bad1-4523-a234-a708b03744b4', name: 'Airport Transfer Haneda' },
+      { id: '296804ed-3879-4cfc-b7dd-e57d18df57a2', name: 'Airport Transfer Narita' }
     ];
   };
 
   const getVehicleCategories = () => {
+    // Use dynamic data if available - this should show your real pricing categories
+    if (formData?.pricingCategories && formData.pricingCategories.length > 0) {
+      return formData.pricingCategories.map((category: any) => ({
+        id: category.id,
+        name: category.name
+      }));
+    }
+    
+    // Fallback to existing data - use actual database UUIDs
     return [
-      { id: 'platinum', name: 'Platinum' },
-      { id: 'luxury', name: 'Luxury' },
-      { id: 'premium', name: 'Premium' }
+      { id: '611107df-a656-4812-b0c1-d54b8e67e7f1', name: 'Elite' },
+      { id: 'eeb5632d-d028-4272-92c0-8c0d22abb06a', name: 'Platinum' },
+      { id: 'ad9eb0c4-4e33-4c2a-a466-18a05086b854', name: 'Luxury' },
+      { id: '57fb7a7e-1e7c-4f46-b00a-55246030d691', name: 'Premium' }
     ];
   };
 
   const getVehicleTypesForCategory = () => {
     if (!vehicleCategory) return [];
     
+    // Use dynamic data if available
+    if (formData?.vehiclesByCategory && vehicleCategory) {
+      const categoryData = formData.vehiclesByCategory[vehicleCategory];
+      if (categoryData && categoryData.vehicles && Array.isArray(categoryData.vehicles)) {
+        // Return the full vehicle objects so we can access brand and model
+        return categoryData.vehicles;
+      }
+    }
+    
+    // Fallback to existing data - use actual database UUIDs
     switch (vehicleCategory) {
-      case 'platinum':
+      case '611107df-a656-4812-b0c1-d54b8e67e7f1': // Elite
         return [
-          'Mercedes Benz V Class - Black Suite',
-          'Toyota Alphard Executive Lounge'
+          { id: 'elite-1', brand: 'Mercedes', model: 'S580 Long', name: '品川 300 い 4182' },
+          { id: 'elite-2', brand: 'Mercedes', model: 'Maybach', name: '品川 300い 4181' }
         ];
-      case 'luxury':
+      case 'eeb5632d-d028-4272-92c0-8c0d22abb06a': // Platinum
         return [
-          'Mercedes Benz V class - Extra Long',
-          'Toyota Alphard Z class'
+          { id: 'platinum-1', brand: 'Mercedes Benz', model: 'V Class - Black Suite', name: '品川 300 い 4058' },
+          { id: 'platinum-2', brand: 'Toyota', model: 'Alphard Executive Lounge', name: '品川 300い 4077' }
         ];
-      case 'premium':
+      case 'ad9eb0c4-4e33-4c2a-a466-18a05086b854': // Luxury
         return [
-          'Toyota Hi-Ace Grand Cabin'
+          { id: 'luxury-1', brand: 'Mercedes Benz', model: 'V class - Extra Long', name: '品川 300 い 4059' },
+          { id: 'luxury-2', brand: 'Toyota', model: 'Alphard Z class', name: '品川 300 い 4073' }
+        ];
+      case '57fb7a7e-1e7c-4f46-b00a-55246030d691': // Premium
+        return [
+          { id: 'premium-1', brand: 'Toyota', model: 'Hi-Ace', name: '品川 300い 4252' }
         ];
       default:
         return [];
@@ -126,8 +175,18 @@ export function ServiceSelectionStep({
   };
 
   const getDurationsForServiceAndVehicle = () => {
-    if (!serviceType) return [];
+    if (!serviceType || !vehicleType) return [];
     
+    // Use dynamic data if available
+    if (formData) {
+      // For now, use a simple duration array since getAvailableDurations is not available
+      const availableDurations = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      if (availableDurations.length > 0) {
+        return availableDurations;
+      }
+    }
+    
+    // Fallback logic
     if (serviceType.includes('airportTransfer')) {
       return [1];
     }
@@ -261,20 +320,35 @@ export function ServiceSelectionStep({
       setIsCalculating(true);
       
       const effectiveServiceType = serviceType || "placeholder-service";
-      const effectiveVehicleType = vehicleType || "Standard Vehicle";
       const effectiveVehicleCategory = vehicleCategory || "standard";
       
+      // Extract vehicle name from vehicle object for pricing calculation
+      const selectedVehicle = typeof vehicleType === 'object' ? vehicleType : null;
+      const effectiveVehicleType = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : "Standard Vehicle";
+      
       const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
-      const effectiveDuration = isCharter ? hoursPerDay || 1 : 1;
+      // For Charter services, use total duration (days × hours per day), otherwise use 1 hour
+      const effectiveDuration = isCharter ? (serviceDays || 1) * (hoursPerDay || 1) : 1;
+      
+      console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
+        serviceTypeId: effectiveServiceType,
+        vehicleType: effectiveVehicleType,
+        durationHours: effectiveDuration,
+        serviceDays,
+        hoursPerDay,
+        vehicleCategory: effectiveVehicleCategory
+      });
       
       const pricingResult = await calculateQuotationAmount(
         effectiveServiceType,
-        effectiveVehicleType,
+        selectedVehicle, // Pass the actual vehicle object instead of the string
         effectiveDuration,
         0,
         0,
         serviceDays || 1,
-        hoursPerDay
+        hoursPerDay,
+        undefined, // dateTime
+        effectiveVehicleCategory // Pass the vehicle category
       );
       
       const pickupDate = form.watch('pickup_date');
@@ -285,21 +359,26 @@ export function ServiceSelectionStep({
         ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
         : { adjustment: 0, ruleName: null };
       
-      const baseServicePrice = pricingResult.baseAmount * (serviceDays || 1);
+      // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
+      const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
       const adjustedPrice = baseServicePrice * (1 + timeBasedAdjustment / 100);
+
+      // Get vehicle display information
+      const vehicleDisplayName = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : effectiveVehicleType;
+      const vehiclePlateNumber = selectedVehicle?.name || '';
 
       const newItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
         service_type_name: selectedServiceTypeObject?.name || 'Service',
-        vehicle_type: effectiveVehicleType,
+        vehicle_type: vehicleDisplayName,
         vehicle_category: effectiveVehicleCategory,
         duration_hours: effectiveDuration,
         unit_price: pricingResult.baseAmount,
         quantity: 1,
         total_price: adjustedPrice,
         service_days: serviceDays || 1,
-        hours_per_day: effectiveDuration,
-        description: `${selectedServiceTypeObject?.name || 'Service'} - ${effectiveVehicleType}`,
+        hours_per_day: isCharter ? (hoursPerDay || 1) : effectiveDuration,
+        description: `${selectedServiceTypeObject?.name || 'Service'} - ${vehicleDisplayName}${vehiclePlateNumber ? ` (${vehiclePlateNumber})` : ''}`,
         sort_order: serviceItems.length,
         is_service_item: true,
         pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
@@ -341,20 +420,35 @@ export function ServiceSelectionStep({
       setIsCalculating(true);
       
       const effectiveServiceType = serviceType || "placeholder-service";
-      const effectiveVehicleType = vehicleType || "Standard Vehicle";
       const effectiveVehicleCategory = vehicleCategory || "standard";
       
+      // Extract vehicle name from vehicle object for pricing calculation
+      const selectedVehicle = typeof vehicleType === 'object' ? vehicleType : null;
+      const effectiveVehicleType = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : "Standard Vehicle";
+      
       const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
-      const effectiveDuration = isCharter ? hoursPerDay || 1 : 1;
+      // For Charter services, use total duration (days × hours per day), otherwise use 1 hour
+      const effectiveDuration = isCharter ? (serviceDays || 1) * (hoursPerDay || 1) : 1;
+      
+      console.log('🔍 [PRICING] Calling calculateQuotationAmount with:', {
+        serviceTypeId: effectiveServiceType,
+        vehicleType: effectiveVehicleType,
+        durationHours: effectiveDuration,
+        serviceDays,
+        hoursPerDay,
+        vehicleCategory: effectiveVehicleCategory
+      });
       
       const pricingResult = await calculateQuotationAmount(
         effectiveServiceType,
-        effectiveVehicleType,
+        selectedVehicle, // Pass the actual vehicle object instead of the string
         effectiveDuration,
         0,
         0,
         serviceDays || 1,
-        hoursPerDay
+        hoursPerDay,
+        undefined, // dateTime
+        effectiveVehicleCategory // Pass the vehicle category
       );
       
       const pickupDate = form.watch('pickup_date');
@@ -365,21 +459,26 @@ export function ServiceSelectionStep({
         ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
         : { adjustment: 0, ruleName: null };
       
-      const baseServicePrice = pricingResult.baseAmount * (serviceDays || 1);
+      // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
+      const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
       const adjustedPrice = baseServicePrice * (1 + timeBasedAdjustment / 100);
+
+      // Get vehicle display information
+      const vehicleDisplayName = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : effectiveVehicleType;
+      const vehiclePlateNumber = selectedVehicle?.name || '';
 
       const updatedItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
         service_type_name: selectedServiceTypeObject?.name || 'Service',
-        vehicle_type: effectiveVehicleType,
+        vehicle_type: vehicleDisplayName,
         vehicle_category: effectiveVehicleCategory,
         duration_hours: effectiveDuration,
         unit_price: pricingResult.baseAmount,
         quantity: 1,
         total_price: adjustedPrice,
         service_days: serviceDays || 1,
-        hours_per_day: effectiveDuration,
-        description: `${selectedServiceTypeObject?.name || 'Service'} - ${effectiveVehicleType}`,
+        hours_per_day: isCharter ? (hoursPerDay || 1) : effectiveDuration,
+        description: `${selectedServiceTypeObject?.name || 'Service'} - ${vehicleDisplayName}${vehiclePlateNumber ? ` (${vehiclePlateNumber})` : ''}`,
         sort_order: serviceItems[index].sort_order, // Keep original sort order
         is_service_item: true,
         pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
@@ -483,6 +582,30 @@ export function ServiceSelectionStep({
       title: "Service Duplicated",
       description: `Duplicated ${itemToDuplicate.description}`,
     });
+  };
+
+  // Handle custom price change for service items
+  const handleCustomPriceChange = (index: number, newPrice: number) => {
+    const updatedItems = [...serviceItems];
+    const item = updatedItems[index];
+    
+    // Update the unit price
+    item.unit_price = newPrice;
+    
+    // Calculate the base service price considering service days for Charter services
+    const isCharter = item.service_type_name?.toLowerCase().includes('charter') || false;
+    const baseServicePrice = isCharter ? newPrice : newPrice * (item.service_days || 1);
+    
+    // Apply time-based adjustment if it exists
+    let totalPrice = baseServicePrice;
+    if (item.time_based_adjustment) {
+      totalPrice = baseServicePrice * (1 + item.time_based_adjustment / 100);
+    }
+    
+    // Update the total price
+    item.total_price = totalPrice;
+    
+    setServiceItems(updatedItems);
   };
 
   // Render button groups without double labels - FIX FOR DOUBLE LABELS ISSUE
@@ -609,24 +732,32 @@ export function ServiceSelectionStep({
     }
     
     return (
-      <div className="space-y-3">
-        {serviceItems.map((item, index) => (
-          <ServiceCard
-            key={index}
-            item={item}
-            index={index}
-            formatCurrency={formatCurrency}
-            packages={packages}
-            selectedPackage={selectedPackage}
-            onEdit={handleEditServiceItem}
-            onDuplicate={handleDuplicateServiceItem}
-            onRemove={handleRemoveServiceItem}
-            isEditing={editingIndex === index}
-            showActions={true}
-          />
-        ))}
+      <div className="space-y-2 sm:space-y-3">
+        {serviceItems.map((item, index) => {
+          // For now, we'll use the current price as the original price
+          // In the future, this can be enhanced to fetch from the database
+          const originalPrice = item.unit_price;
+          
+          return (
+            <ServiceCard
+              key={index}
+              item={item}
+              index={index}
+              formatCurrency={formatCurrency}
+              packages={packages}
+              selectedPackage={selectedPackage}
+              onEdit={handleEditServiceItem}
+              onDuplicate={handleDuplicateServiceItem}
+              onRemove={handleRemoveServiceItem}
+              onPriceChange={handleCustomPriceChange}
+              isEditing={editingIndex === index}
+              showActions={true}
+              originalPrice={originalPrice}
+            />
+          );
+        })}
         
-        <div className="pt-2 pb-4 flex justify-between items-center font-medium text-sm">
+        <div className="pt-2 pb-3 sm:pb-4 flex justify-between items-center font-medium text-sm">
           <span>Total Amount (before discount/tax):</span>
           <span>{formatCurrency(serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0))}</span>
         </div>
@@ -643,7 +774,7 @@ export function ServiceSelectionStep({
        
       {/* Display existing services if any */}
       {serviceItems.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium flex items-center gap-2">
               <List className="h-4 w-4 text-muted-foreground" />
@@ -674,7 +805,7 @@ export function ServiceSelectionStep({
         </div>
         
         {/* Service or Package Selection */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Individual Services Option */}
           <Card 
             className={cn(
@@ -683,8 +814,8 @@ export function ServiceSelectionStep({
             )}
             onClick={() => setSelectedPackage(null)}
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                     <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
@@ -700,10 +831,10 @@ export function ServiceSelectionStep({
               </div>
               
               {!selectedPackage && (
-                <div className="space-y-4 p-3 sm:p-4 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="space-y-4 p-2 sm:p-3 md:p-4 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   {/* Service Configuration */}
-                  <div className="space-y-4">
-                    <div>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="space-y-2">
                       <FormField
                         control={form.control}
                         name="service_type"
@@ -712,18 +843,18 @@ export function ServiceSelectionStep({
                             <FormLabel className="text-sm font-medium">{t('quotations.form.services.serviceType')}</FormLabel>
                             <FormControl>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
-                                {getAvailableServiceTypes().map((option) => (
+                                {getAvailableServiceTypes().map((option: any) => (
                                   <Button
                                     key={option.id}
                                     type="button"
                                     variant={field.value === option.id ? 'default' : 'outline'}
                                     onClick={() => field.onChange(option.id)}
                                     className={cn(
-                                      "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all text-sm",
+                                      "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all text-sm min-h-[60px] sm:min-h-[70px]",
                                       field.value === option.id ? 'ring-2 ring-primary' : ''
                                     )}
                                   >
-                                    <span className="font-medium break-words">{option.name}</span>
+                                    <span className="font-medium break-words leading-tight px-1">{option.name}</span>
                                   </Button>
                                 ))}
                               </div>
@@ -735,7 +866,7 @@ export function ServiceSelectionStep({
                     </div>
                     
                     {serviceType && (
-                      <div>
+                      <div className="space-y-2">
                         <FormField
                           control={form.control}
                           name="vehicle_category"
@@ -743,19 +874,19 @@ export function ServiceSelectionStep({
                             <FormItem>
                               <FormLabel className="text-sm font-medium">{t('quotations.form.services.vehicleCategory')}</FormLabel>
                               <FormControl>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
-                                  {getVehicleCategories().map((option) => (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                                  {getVehicleCategories().map((option: any) => (
                                     <Button
                                       key={option.id}
                                       type="button"
                                       variant={field.value === option.id ? 'default' : 'outline'}
                                       onClick={() => field.onChange(option.id)}
                                       className={cn(
-                                        "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all text-sm",
+                                        "h-auto py-3 px-2 sm:px-3 flex flex-col items-center justify-center text-center transition-all text-sm min-h-[50px] sm:min-h-[60px]",
                                         field.value === option.id ? 'ring-2 ring-primary' : ''
                                       )}
                                     >
-                                      <span className="font-medium break-words">{option.name}</span>
+                                      <span className="font-medium break-words text-xs sm:text-sm leading-tight">{option.name}</span>
                                     </Button>
                                   ))}
                                 </div>
@@ -768,7 +899,7 @@ export function ServiceSelectionStep({
                     )}
                     
                     {vehicleCategory && (
-                      <div>
+                      <div className="space-y-2">
                         <FormField
                           control={form.control}
                           name="vehicle_type"
@@ -776,19 +907,24 @@ export function ServiceSelectionStep({
                             <FormItem>
                               <FormLabel className="text-sm font-medium">{t('quotations.form.services.vehicleType')}</FormLabel>
                               <FormControl>
-                                <div className="grid grid-cols-1 gap-2 pt-1">
-                                  {getVehicleTypesForCategory().map((option) => (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                  {getVehicleTypesForCategory().map((option: any, index: number) => (
                                     <Button
-                                      key={option}
+                                      key={option.id || `vehicle-${index}`}
                                       type="button"
-                                      variant={field.value === option ? 'default' : 'outline'}
+                                      variant={(field.value && typeof field.value === 'object' ? field.value.id === option.id : field.value === option.id) ? 'default' : 'outline'}
                                       onClick={() => field.onChange(option)}
                                       className={cn(
-                                        "h-auto py-3 px-3 flex items-center justify-center text-center transition-all text-sm",
-                                        field.value === option ? 'ring-2 ring-primary' : ''
+                                        "h-auto py-3 px-3 flex flex-col items-center justify-center text-center transition-all text-sm min-h-[70px] sm:min-h-[80px]",
+                                        (field.value && typeof field.value === 'object' ? field.value.id === option.id : field.value === option.id) ? 'ring-2 ring-primary' : ''
                                       )}
                                     >
-                                      <span className="font-medium break-words">{option}</span>
+                                      <span className="font-medium break-words text-center px-1">
+                                        <div className="font-semibold text-sm sm:text-base leading-tight">{`${option.brand} ${option.model}`}</div>
+                                        {option.name && (
+                                          <div className="text-xs text-muted-foreground mt-1 leading-tight">{option.name}</div>
+                                        )}
+                                      </span>
                                     </Button>
                                   ))}
                                 </div>
@@ -804,14 +940,14 @@ export function ServiceSelectionStep({
                                         {/* SERVICE DATE & TIME - UNDER SERVICES */}
                   {serviceType && vehicleCategory && vehicleType && (
                     <div 
-                      className="pt-4 border-t border-green-200 dark:border-green-800"
+                      className="pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
                         <Calendar className="h-4 w-4 text-green-600" />
                         <Label className="text-sm font-medium">{t('quotations.form.services.serviceDateTime')}</Label>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 items-end">
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 items-end">
                         <FormField
                           control={form.control}
                           name="pickup_date"
@@ -875,7 +1011,7 @@ export function ServiceSelectionStep({
 
                                   {/* Duration for Charter Services */}
                                    {selectedServiceTypeObject?.name.toLowerCase().includes('charter') && (
-                                    <div className="grid gap-3 grid-cols-1 md:grid-cols-2 mt-3 items-end">
+                                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 mt-2 sm:mt-3 items-end">
                                       <FormField
                                         control={form.control}
                                         name="service_days"
@@ -909,7 +1045,7 @@ export function ServiceSelectionStep({
 
                   {/* Time-based pricing control */}
                   {serviceType && vehicleCategory && vehicleType && (
-                    <div className="pt-3 border-t border-green-200 dark:border-green-800">
+                    <div className="pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Timer className="h-4 w-4 text-green-600" />
@@ -930,7 +1066,7 @@ export function ServiceSelectionStep({
                   )}
 
                   {/* Button to add or update service - INSIDE THE SERVICE BLOCK */}
-                  <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-green-200 dark:border-green-800">
+                  <div className="flex flex-col sm:flex-row justify-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-green-200 dark:border-green-800">
                     {isEditingService ? (
                       <>
                         <Button 
@@ -993,7 +1129,7 @@ export function ServiceSelectionStep({
 
           {/* OR Separator */}
           {packages.length > 0 && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 my-2 sm:my-4">
               <Separator className="flex-1" />
               <span className="text-sm text-muted-foreground font-medium">OR</span>
               <Separator className="flex-1" />
@@ -1010,8 +1146,8 @@ export function ServiceSelectionStep({
               )}
               onClick={() => handlePackageSelect(pkg)}
             >
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <CardContent className="p-3 sm:p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                       <Package className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
@@ -1070,14 +1206,14 @@ export function ServiceSelectionStep({
 
                     {/* PACKAGE DATE & TIME - ONLY FOR SELECTED PACKAGE */}
                     <div 
-                      className="pt-4 border-t border-purple-200 dark:border-purple-800"
+                      className="pt-3 sm:pt-4 border-t border-purple-200 dark:border-purple-800"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-2 sm:mb-3">
                         <Calendar className="h-4 w-4 text-purple-600" />
                         <Label className="text-sm font-medium">Package Date & Time</Label>
                       </div>
-                      <div className="grid gap-3 grid-cols-1 md:grid-cols-2 items-end">
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 items-end">
                         <FormField
                           control={form.control}
                           name="pickup_date"
@@ -1148,7 +1284,7 @@ export function ServiceSelectionStep({
                           handleAddPackage(pkg);
                         }}
                         disabled={!form.watch('pickup_date') || !form.watch('pickup_time')}
-                        className="w-full mt-3 bg-purple-600 hover:bg-purple-700 text-white"
+                        className="w-full mt-2 sm:mt-3 bg-purple-600 hover:bg-purple-700 text-white"
                       >
                         <Plus className="h-4 w-4 mr-2" /> 
                         Add This Package

@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+
 // Remove server-side import that includes Puppeteer
 // import { generateQuotationHtml } from '@/lib/html-pdf-generator'
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client'
@@ -445,20 +445,15 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
             <div className="grid grid-cols-2 items-start gap-4">
               <div>
                 <Label>Language</Label>
-                <RadioGroup 
-                  value={emailLanguage} 
-                  onValueChange={(value) => setEmailLanguage(value as 'en' | 'ja')}
-                  className="mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="en" id="lang-en" />
-                    <Label htmlFor="lang-en">English</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="ja" id="lang-ja" />
-                    <Label htmlFor="lang-ja">日本語</Label>
-                  </div>
-                </RadioGroup>
+                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="flex items-center space-x-2">

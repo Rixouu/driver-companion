@@ -85,7 +85,7 @@ interface QuotationWorkflowProps {
 
 }
 
-export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () => void }, QuotationWorkflowProps>(({ 
+export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () => void; openSendQuotationDialog: () => void }, QuotationWorkflowProps>(({ 
   quotation, 
   onSendQuotation,
   onSendReminder,
@@ -208,7 +208,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 
   // Expose methods to parent via ref
   React.useImperativeHandle(ref, () => ({
-    openPaymentLinkDialog: () => setIsPaymentLinkDialogOpen(true)
+    openPaymentLinkDialog: () => setIsPaymentLinkDialogOpen(true),
+    openSendQuotationDialog: () => setIsSendQuotationDialogOpen(true)
   }));
   
   // Progress modal state

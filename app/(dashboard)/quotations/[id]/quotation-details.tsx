@@ -99,7 +99,7 @@ interface EnhancedQuotationItem extends QuotationItem {
 }
 
 export function QuotationDetails({ quotation, isOrganizationMember = true }: QuotationDetailsProps) {
-  const workflowRef = useRef<{ openPaymentLinkDialog: () => void }>(null);
+  const workflowRef = useRef<{ openPaymentLinkDialog: () => void; openSendQuotationDialog: () => void }>(null);
   const { t } = useI18n();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -590,7 +590,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     />
                     {isOrganizationMember && quotation.status === 'draft' && (
                       <Button 
-                        onClick={handleSend} 
+                        onClick={() => workflowRef.current?.openSendQuotationDialog()} 
                         disabled={isLoading} 
                         className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >

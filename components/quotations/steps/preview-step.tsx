@@ -302,18 +302,18 @@ export function PreviewStep({
                 {watchedValues.merchant_notes && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">Internal Notes</h4>
-                    <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded whitespace-pre-line">
                       {watchedValues.merchant_notes}
-                    </p>
+                    </div>
                   </div>
                 )}
                 
                 {watchedValues.customer_notes && (
                   <div>
                     <h4 className="font-medium text-sm mb-1">Customer Notes</h4>
-                    <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded whitespace-pre-line">
                       {watchedValues.customer_notes}
-                    </p>
+                    </div>
                   </div>
                 )}
               </CardContent>

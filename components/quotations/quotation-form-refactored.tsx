@@ -417,7 +417,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result) {
             // Send quotation with BCC settings
             const formData = new FormData();
-            formData.append('email', result.customer_email || '');
+            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
             formData.append('quotation_id', result.id);
             formData.append('language', sendLanguage);
             formData.append('include_details', 'true');
@@ -447,7 +447,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result?.id) {
             // Send quotation with BCC settings
             const formData = new FormData();
-            formData.append('email', result.customer_email || '');
+            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
             formData.append('quotation_id', result.id);
             formData.append('language', sendLanguage);
             formData.append('include_details', 'true');
@@ -477,7 +477,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result) {
             // Send quotation with BCC settings
             const formData = new FormData();
-            formData.append('email', result.customer_email || '');
+            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
             formData.append('quotation_id', result.id);
             formData.append('language', sendLanguage);
             formData.append('include_details', 'true');
@@ -505,7 +505,7 @@ export default function QuotationFormRefactored({
           if (sendToCustomer && result?.id) {
             // Send quotation with BCC settings
             const formData = new FormData();
-            formData.append('email', result.customer_email || '');
+            formData.append('email', form.getValues('customer_email') || result.customer_email || '');
             formData.append('quotation_id', result.id);
             formData.append('language', sendLanguage);
             formData.append('include_details', 'true');
@@ -805,6 +805,21 @@ export default function QuotationFormRefactored({
           </DialogHeader>
           
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="customer-email">Customer Email</Label>
+              <Input
+                id="customer-email"
+                type="email"
+                value={form.getValues('customer_email') || ''}
+                onChange={(e) => form.setValue('customer_email', e.target.value)}
+                placeholder="customer@example.com"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
+              </p>
+            </div>
+            
             <div>
               <Label htmlFor="bcc-emails">BCC Emails</Label>
               <Input

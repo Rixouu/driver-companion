@@ -39,7 +39,7 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormControl>
               <Textarea
                 placeholder={t('quotations.form.placeholders.merchantNotes')}
-                className="min-h-[120px] resize-none"
+                className="min-h-[120px] resize-none font-mono text-sm leading-relaxed"
                 {...field}
                 value={field.value || ''}
               />
@@ -47,6 +47,9 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormDescription>
               {t('quotations.form.descriptions.merchantNotes')}
             </FormDescription>
+            <p className="text-xs text-muted-foreground mt-1">
+              💡 Tip: Press Enter to create new lines. Line breaks will be preserved internally.
+            </p>
             <FormMessage />
           </FormItem>
         )}
@@ -64,7 +67,7 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormControl>
               <Textarea
                 placeholder={t('quotations.form.placeholders.customerNotes')}
-                className="min-h-[120px] resize-none"
+                className="min-h-[120px] resize-none font-mono text-sm leading-relaxed"
                 {...field}
                 value={field.value || ''}
               />
@@ -72,6 +75,9 @@ export function NotesStep({ form }: NotesStepProps) {
             <FormDescription>
               {t('quotations.form.descriptions.customerNotes')}
             </FormDescription>
+            <p className="text-xs text-muted-foreground mt-1">
+              💡 Tip: Press Enter to create new lines. Line breaks will be preserved in the quotation.
+            </p>
             <FormMessage />
           </FormItem>
         )}

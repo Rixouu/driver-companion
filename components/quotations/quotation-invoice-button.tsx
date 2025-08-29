@@ -379,8 +379,8 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       
-      {/* Only show Email Invoice and Send Payment Link for non-paid statuses */}
-      {quotation.status !== 'paid' && (
+      {/* Only show Email Invoice and Send Payment Link for non-final statuses */}
+      {!['paid', 'converted'].includes(quotation.status) && (
         <>
           <Button 
             onClick={handleEmailDialogOpen} 

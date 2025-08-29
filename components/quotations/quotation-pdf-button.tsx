@@ -442,30 +442,17 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
               </p>
             </div>
             
-            <div className="grid grid-cols-2 items-start gap-4">
-              <div>
-                <Label>Language</Label>
-                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ja">日本語</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="include-details" 
-                  checked={includeDetails}
-                  onCheckedChange={(checked) => setIncludeDetails(checked === true)}
-                />
-                <Label htmlFor="include-details" className="text-sm">
-                  Include quotation details
-                </Label>
-              </div>
+            <div>
+              <Label>Language</Label>
+              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">

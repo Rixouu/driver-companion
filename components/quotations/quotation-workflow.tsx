@@ -153,10 +153,11 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 
   // Handle sending quotation with configured settings
   const handleSendQuotationWithSettings = async () => {
-    if (!quotation?.customer_email) {
+    const emailToSend = emailAddress || quotation?.customer_email;
+    if (!emailToSend) {
       toast({
         title: "Error",
-        description: "No customer email found for this quotation",
+        description: "Please enter a customer email address",
         variant: "destructive",
       });
       return;
@@ -166,7 +167,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     try {
       // Prepare FormData for the send-email endpoint
       const formData = new FormData();
-      formData.append('email', quotation.customer_email);
+      formData.append('email', emailToSend!);
       formData.append('quotation_id', quotation.id);
       formData.append('language', sendQuotationLanguage);
       formData.append('include_details', 'true');
@@ -1373,9 +1374,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               <Input
                 id="send-customer-email"
                 type="email"
-                value={quotation?.customer_email || 'No email found'}
-                disabled
-                className="bg-gray-100 border-gray-300 text-gray-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400"
+                value={quotation?.customer_email || ''}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                placeholder="customer@example.com"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Email will be sent to the customer's registered email address
@@ -1430,8 +1432,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             </Button>
             <Button 
               onClick={handleSendQuotationWithSettings}
-              disabled={isSendingQuotation || !quotation?.customer_email}
-              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isSendingQuotation || !emailAddress}
+              className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
             >
               {isSendingQuotation ? (
                 <>

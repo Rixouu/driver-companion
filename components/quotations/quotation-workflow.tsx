@@ -984,34 +984,17 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               </p>
             </div>
             
-            <div className="grid grid-cols-2 items-start gap-4">
-              <div>
-                <Label>Language</Label>
-                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ja">日本語</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
-                <Input
-                  id="custom-payment-name"
-                  type="text"
-                  value={customPaymentName}
-                  onChange={(e) => setCustomPaymentName(e.target.value)}
-                  placeholder="e.g., Vehicle Inspection Service - Premium Package"
-                  className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Custom name for the payment link. Leave empty to use default.
-                </p>
-              </div>
+            <div>
+              <Label>Language</Label>
+              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
@@ -1027,6 +1010,21 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 <li>• Payment instructions and terms</li>
                 <li>• Company branding and contact information</li>
               </ul>
+            </div>
+            
+            <div>
+              <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
+              <Input
+                id="custom-payment-name"
+                type="text"
+                value={customPaymentName}
+                onChange={(e) => setCustomPaymentName(e.target.value)}
+                placeholder="e.g., Vehicle Inspection Service - Premium Package"
+                className="w-full bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Custom name for the payment link. Leave empty to use default.
+              </p>
             </div>
 
 

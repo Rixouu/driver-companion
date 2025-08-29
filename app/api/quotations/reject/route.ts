@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
   console.log('Reject route - User authenticated:', authUser.id);
 
   try {
-    const { id, reason, signature, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
+    const { id, reason, signature, customerId, skipStatusCheck = false, skipEmail = false, bcc_emails = 'booking@japandriver.com' } = await request.json();
     
     console.log(`Reject route - Request data: id=${id}, reason=${reason || 'provided'}, customerId=${customerId || 'null'}, skipStatusCheck=${skipStatusCheck}, skipEmail=${skipEmail}`);
     
@@ -493,12 +493,15 @@ export async function POST(request: NextRequest) {
       // Generate styled email HTML using our helper function with magic link
       const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, reason, magicLink);
       
+      // Parse BCC emails
+      const bccEmailList = bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
+      
       // Send email with timeout
       console.log('🔄 [REJECT ROUTE] Sending rejection email via Resend...');
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [emailAddress],
-        bcc: ['booking@japandriver.com'],
+        bcc: bccEmailList,
         subject: emailSubject,
         html: emailHtml,
         attachments: pdfBuffer ? [

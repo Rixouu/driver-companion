@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
   
   try {
     console.log('Approve route - Parsing request body');
-    const { id, notes, signature, customerId, skipStatusCheck = false, skipEmail = false } = await request.json();
+    const { id, notes, signature, customerId, skipStatusCheck = false, skipEmail = false, bcc_emails = 'booking@japandriver.com' } = await request.json();
     
     console.log(`Approve route - Request data: id=${id}, notes=${notes ? 'provided' : 'null'}, customerId=${customerId || 'null'}, skipStatusCheck=${skipStatusCheck}, skipEmail=${skipEmail}`);
     
@@ -515,12 +515,15 @@ export async function POST(request: NextRequest) {
       // Generate styled email HTML using our helper function with magic link
       const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, notes, magicLink);
       
+      // Parse BCC emails
+      const bccEmailList = bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
+      
       // Send email with timeout
       console.log('🔄 [APPROVE ROUTE] Sending approval email via Resend...');
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [emailAddress],
-        bcc: ['booking@japandriver.com'],
+        bcc: bccEmailList,
         subject: emailSubject,
         html: emailHtml,
         attachments: pdfBuffer ? [

@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         // Generate email HTML
         const emailHtml = generateRejectionEmailHtml(customerName, quotation, reason);
         
-        // Send email with BCC to admin
+        // Send email with BCC to admin (always include booking@japandriver.com)
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: 'Driver Japan <booking@japandriver.com>',
           to: [customerEmail],

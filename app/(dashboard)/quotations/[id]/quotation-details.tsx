@@ -993,7 +993,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     isProcessing={isLoading}
                     customerName={quotation.customer_name}
                     quotation={quotation as any}
-                    onApprove={async (notes, signature) => {
+                    onApprove={async (notes, signature, bccEmails) => {
                       setIsLoading(true);
                       setProgressOpen(true);
                       setProgressTitle('Approving Quotation');
@@ -1022,7 +1022,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           body: JSON.stringify({
                             id: quotation.id,
                             notes: notes,
-                            signature: signature
+                            signature: signature,
+                            bcc_emails: bccEmails
                           }),
                         });
                         
@@ -1053,7 +1054,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         setIsLoading(false);
                       }
                     }}
-                    onReject={async (reason, signature) => {
+                    onReject={async (reason, signature, bccEmails) => {
                       setIsLoading(true);
                       setProgressOpen(true);
                       setProgressTitle('Rejecting Quotation');
@@ -1082,7 +1083,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           body: JSON.stringify({
                             id: quotation.id,
                             reason: reason,
-                            signature: signature
+                            signature: signature,
+                            bcc_emails: bccEmails
                           }),
                         });
                         

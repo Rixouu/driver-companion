@@ -1138,6 +1138,7 @@ export const useQuotationService = () => {
           id: input.quotation_id, 
           notes: input.notes,
           signature: input.signature,
+          bcc_emails: input.bcc_emails,
           skipStatusCheck: true 
         }),
       });
@@ -1208,6 +1209,7 @@ export const useQuotationService = () => {
           id: input.quotation_id, 
           reason: input.rejected_reason,
           signature: input.signature,
+          bcc_emails: input.bcc_emails,
           skipStatusCheck: true 
         }),
       });

@@ -8,13 +8,14 @@ import { useI18n } from '@/lib/i18n/context';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { SignaturePad, SignaturePadHandle } from '@/components/ui/signature-pad';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface QuotationDetailsApprovalPanelProps {
-  onApprove: (notes: string, signature?: string) => Promise<void>;
-  onReject: (reason: string, signature?: string) => Promise<void>;
+  onApprove: (notes: string, signature?: string, bccEmails?: string) => Promise<void>;
+  onReject: (reason: string, signature?: string, bccEmails?: string) => Promise<void>;
   isProcessing: boolean;
   customerName?: string;
   quotation?: { quote_number?: string };
@@ -32,6 +33,8 @@ export function QuotationDetailsApprovalPanel({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [notes, setNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [approveBccEmails, setApproveBccEmails] = useState('booking@japandriver.com');
+  const [rejectBccEmails, setRejectBccEmails] = useState('booking@japandriver.com');
   const [hoveredButton, setHoveredButton] = useState<'approve' | 'reject' | null>(null);
   const [approveSignature, setApproveSignature] = useState<string | null>(null);
   const [rejectSignature, setRejectSignature] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function QuotationDetailsApprovalPanel({
   const rejectPadRef = useRef<SignaturePadHandle>(null);
   
   const handleApprove = async () => {
-    await onApprove(notes, approveSignature || undefined);
+    await onApprove(notes, approveSignature || undefined, approveBccEmails);
     setShowApproveDialog(false);
     setApproveSignature(null);
     setNotes('');
@@ -47,7 +50,7 @@ export function QuotationDetailsApprovalPanel({
   
   const handleReject = async () => {
     if (!rejectionReason.trim()) return;
-    await onReject(rejectionReason, rejectSignature || undefined);
+    await onReject(rejectionReason, rejectSignature || undefined, rejectBccEmails);
     setShowRejectDialog(false);
     setRejectSignature(null);
     setRejectionReason('');
@@ -164,6 +167,20 @@ export function QuotationDetailsApprovalPanel({
             </div>
             
             <div>
+              <Label htmlFor="approve-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+              <Input
+                id="approve-bcc-emails"
+                value={approveBccEmails}
+                onChange={(e) => setApproveBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
@@ -263,6 +280,20 @@ export function QuotationDetailsApprovalPanel({
                   ✓ Reason provided ({rejectionReason.length} characters)
                 </p>
               )}
+            </div>
+            
+            <div>
+              <Label htmlFor="reject-bcc-emails" className="text-sm font-medium mb-2 block">BCC Emails</Label>
+              <Input
+                id="reject-bcc-emails"
+                value={rejectBccEmails}
+                onChange={(e) => setRejectBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
             </div>
             
             <div>

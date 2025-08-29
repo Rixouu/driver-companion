@@ -334,7 +334,7 @@ export default function QuoteAccessPage() {
   };
   
   // Helper functions for approval/rejection
-  const handleApprove = async (notes: string, signature?: string) => {
+  const handleApprove = async (notes: string, signature?: string, bccEmails?: string) => {
     if (!quotation) return;
     
     setIsApproving(true);
@@ -365,7 +365,8 @@ export default function QuoteAccessPage() {
         body: JSON.stringify({
           quotation_id: quotation.id,
           notes: notes,
-          signature: signature
+          signature: signature,
+          bcc_emails: bccEmails
         }),
       });
       
@@ -399,7 +400,7 @@ export default function QuoteAccessPage() {
     }
   };
   
-  const handleReject = async (reason: string, signature?: string) => {
+  const handleReject = async (reason: string, signature?: string, bccEmails?: string) => {
     if (!quotation) return;
     
     setIsRejecting(true);
@@ -430,7 +431,8 @@ export default function QuoteAccessPage() {
         body: JSON.stringify({
           quotation_id: quotation.id,
           reason: reason,
-          signature: signature
+          signature: signature,
+          bcc_emails: bccEmails
         }),
       });
       

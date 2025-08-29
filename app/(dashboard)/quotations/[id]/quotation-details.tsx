@@ -115,6 +115,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [appliedTimeBasedRules, setAppliedTimeBasedRules] = useState<any[]>([]);
   const [loadingPricingDetails, setLoadingPricingDetails] = useState(true);
   
+  // Send Magic Link Dialog State
+  const [isMagicLinkDialogOpen, setIsMagicLinkDialogOpen] = useState(false);
+  const [magicLinkLanguage, setMagicLinkLanguage] = useState<'en' | 'ja'>('en');
+  const [magicLinkBccEmails, setMagicLinkBccEmails] = useState<string>("booking@japandriver.com");
+  const [magicLinkCustomerEmail, setMagicLinkCustomerEmail] = useState(quotation?.customer_email || '');
+  
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
@@ -605,7 +611,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 {isOrganizationMember && (
                   <Button 
                     variant="outline" 
-                    onClick={handleRegenerateMagicLink} 
+                    onClick={() => setIsMagicLinkDialogOpen(true)} 
                     disabled={isLoading}
                     className="w-full sm:w-auto gap-2"
                   >
@@ -621,7 +627,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
                 <Button 
                   variant="outline" 
-                  onClick={handleRegenerateMagicLink} 
+                  onClick={() => setIsMagicLinkDialogOpen(true)} 
                   disabled={isLoading}
                   className="w-full sm:w-auto gap-2"
                 >
@@ -1492,6 +1498,104 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         </div>
       </div>
       )}
+
+      {/* Send Magic Link Dialog */}
+      <Dialog open={isMagicLinkDialogOpen} onOpenChange={setIsMagicLinkDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              Send New Magic Link
+            </DialogTitle>
+            <DialogDescription>
+              Send a new magic link to the customer for accessing this quotation.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="magic-link-customer-email">Customer Email</Label>
+              <Input
+                id="magic-link-customer-email"
+                type="email"
+                value={magicLinkCustomerEmail}
+                onChange={(e) => setMagicLinkCustomerEmail(e.target.value)}
+                placeholder="customer@example.com"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="magic-link-bcc-emails">BCC Emails</Label>
+              <Input
+                id="magic-link-bcc-emails"
+                value={magicLinkBccEmails}
+                onChange={(e) => setMagicLinkBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div>
+              <Label>Language</Label>
+              <Select value={magicLinkLanguage} onValueChange={(value: 'en' | 'ja') => setMagicLinkLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• New secure magic link for quotation access</li>
+                <li>• Customer information and contact details</li>
+                <li>• Quotation reference and details</li>
+                <li>• Company branding and contact information</li>
+                <li>• Secure access instructions</li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMagicLinkDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                setIsMagicLinkDialogOpen(false);
+                await handleRegenerateMagicLink();
+              }}
+              disabled={isLoading}
+              className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Send Magic Link
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Progress Modal */}
       <Dialog open={progressOpen}>

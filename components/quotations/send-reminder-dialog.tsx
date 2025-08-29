@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { Quotation } from '@/types/quotations'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 
 interface SendReminderDialogProps {
   quotation: Quotation
@@ -22,6 +23,8 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
   const { t } = useI18n()
   const [language, setLanguage] = useState<'en' | 'ja'>('en')
   const [includeQuotation, setIncludeQuotation] = useState(true)
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
+  const [customerEmail, setCustomerEmail] = useState(quotation?.customer_email || '')
   const [isLoading, setIsLoading] = useState(false)
   
   // Progress modal state
@@ -51,7 +54,8 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
         body: JSON.stringify({ 
           id: quotation.id,
           language,
-          includeQuotation
+          includeQuotation,
+          bcc_emails: bccEmails
         }),
       })
       
@@ -95,33 +99,58 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {t('quotations.actions.remind')}
+          <DialogTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5" />
+            Send Reminder
           </DialogTitle>
           <DialogDescription>
-            {t('quotations.emailDescription')}
+            Send a reminder email to the customer about this quotation.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label>{t('settings.preferences.language.title')}</Label>
-            <RadioGroup
-              value={language}
-              onValueChange={(value) => setLanguage(value as 'en' | 'ja')}
-              className="flex flex-col space-y-1"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="en" id="lang-en" />
-                <Label htmlFor="lang-en">{t('settings.preferences.language.en')}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ja" id="lang-ja" />
-                <Label htmlFor="lang-ja">{t('settings.preferences.language.ja')}</Label>
-              </div>
-            </RadioGroup>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="reminder-customer-email">Customer Email</Label>
+            <Input
+              id="reminder-customer-email"
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="customer@example.com"
+              className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Email will be sent to the customer's registered email address
+            </p>
+          </div>
+          
+          <div>
+            <Label htmlFor="reminder-bcc-emails">BCC Emails</Label>
+            <Input
+              id="reminder-bcc-emails"
+              value={bccEmails}
+              onChange={(e) => setBccEmails(e.target.value)}
+              placeholder="Enter email addresses separated by commas"
+              className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Default: booking@japandriver.com. Add more emails separated by commas.
+            </p>
+          </div>
+          
+          <div>
+            <Label>Language</Label>
+            <Select value={language} onValueChange={(value: 'en' | 'ja') => setLanguage(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="ja">日本語</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex items-center space-x-2">
@@ -133,6 +162,20 @@ export function SendReminderDialog({ quotation, open, onOpenChange }: SendRemind
             <Label htmlFor="include-quotation">
               {t('quotations.includeDetails')}
             </Label>
+          </div>
+          
+          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+            <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+              📧 What's included in the email:
+            </h4>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+              <li>• Reminder about quotation expiration</li>
+              <li>• Customer information and contact details</li>
+              <li>• Quotation reference and details</li>
+              <li>• Quotation PDF attachment (if enabled)</li>
+              <li>• Company branding and contact information</li>
+              <li>• Call-to-action for customer response</li>
+            </ul>
           </div>
         </div>
         

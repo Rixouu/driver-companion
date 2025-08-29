@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { generateFontCSS } from './base64-fonts';
 import { safeEncodeText } from '@/lib/utils/character-encoding';
+import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses';
 
 // Helper function to ensure special characters are properly displayed
 function getStatusSymbol(status: string): string {
@@ -339,12 +340,6 @@ export function generateQuotationHtml(
       expiryDate: 'Expiry Date:',
       validFor: 'Valid for:',
       days: 'days',
-      companyName: 'Driver (Thailand) Company Limited',
-      companyAddress1: '580/17 Soi Ramkhamhaeng 39',
-      companyAddress2: 'Wang Thong Lang',
-      companyAddress3: 'Bangkok 10310',
-      companyAddress4: 'Thailand',
-      companyTaxId: 'Tax ID: 0105566135845',
       customerInfo: 'CUSTOMER INFO:',
       billingAddress: 'BILLING ADDRESS:',
       serviceInfo: 'SERVICE INFO:',
@@ -363,9 +358,6 @@ export function generateQuotationHtml(
       discount: 'Discount',
       tax: 'Tax',
       total: 'Total Amount',
-      thanksMessage: 'Thank you for considering our services!',
-      contactMessage: 'If you have any questions about this quotation, please contact us at info@japandriver.com',
-      companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
       termsAndConditions: 'Terms and Conditions',
       termsContent: '1. This quotation is valid for the specified period from the date of issue.\n2. Prices are subject to change if requirements change.\n3. Cancellation policy: 100% refund if cancelled 7+ days before service, 50% refund if 3-7 days, no refund if less than 3 days.',
       companyNameLabel: 'Company:',
@@ -384,12 +376,6 @@ export function generateQuotationHtml(
       expiryDate: '有効期限:',
       validFor: '有効期間:',
       days: '日間',
-      companyName: 'Driver (Thailand) Company Limited',
-      companyAddress1: '580/17 Soi Ramkhamhaeng 39',
-      companyAddress2: 'Wang Thong Lang',
-      companyAddress3: 'Bangkok 10310',
-      companyAddress4: 'Thailand',
-      companyTaxId: 'Tax ID: 0105566135845',
       customerInfo: 'お客様情報:',
       billingAddress: '請求先住所:',
       serviceInfo: 'サービス情報:',
@@ -408,9 +394,6 @@ export function generateQuotationHtml(
       discount: '割引',
       tax: '税金',
       total: '合計金額',
-      thanksMessage: 'ご検討いただきありがとうございます。',
-      contactMessage: 'この見積書に関するお問い合わせは info@japandriver.com までご連絡ください。',
-      companyFooter: 'Driver (Thailand) Company Limited • www.japandriver.com',
       termsAndConditions: '利用規約',
       termsContent: '1. この見積書は発行日から指定された期間内有効です。\n2. 要件が変更された場合、価格も変更される場合があります。\n3. 支払条件: 前払い50%、サービス前に残りの50%。\n4. キャンセルポリシー: サービス開始7日以上前のキャンセルは全額返金、3～7日前は50%返金、3日未満は返金なし。',
       companyNameLabel: '会社名:',
@@ -620,24 +603,7 @@ export function generateQuotationHtml(
         </div>
         
         <div style="flex: 1; max-width: 40%; text-align: right; padding-top: 5px;">
-          <h2 style="margin: 0 0 5px 0; color: #333; font-size: 16px;">
-            ${quotationT.companyName}
-          </h2>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">
-            ${quotationT.companyAddress1}
-          </p>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">
-            ${quotationT.companyAddress2}
-          </p>
-          <p style="margin: 0 0 2px 0; font-size: 13px;">
-            ${quotationT.companyAddress3}
-          </p>
-          <p style="margin: 0 0 10px 0; font-size: 13px;">
-            ${quotationT.companyAddress4}
-          </p>
-          <p style="margin: 0 0 10px 0; font-size: 13px;">
-            ${quotationT.companyTaxId}
-          </p>
+          ${getTeamAddressHtml(quotation.team_location || 'thailand', isJapanese)}
         </div>
       </div>
       
@@ -997,16 +963,8 @@ export function generateQuotationHtml(
       </div>
       
       <!-- Footer -->
-      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; padding-bottom: 20px; text-align: center; margin-top: auto;">
-        <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #333; text-align: center;">
-          ${quotationT.thanksMessage}
-        </p>
-        <p style="margin: 0 0 5px 0; font-size: 13px; text-align: center;">
-          ${quotationT.contactMessage}
-        </p>
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666; text-align: center;">
-          ${quotationT.companyFooter}
-        </p>
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; margin-bottom: 30px;">
+        ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
       </div>
     </div>
   `;

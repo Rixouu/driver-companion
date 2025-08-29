@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateOptimizedPdfFromHtml, generateQuotationHtml } from '@/lib/optimized-html-pdf-generator'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
+import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
+import { safeEncodeText } from '@/lib/utils/character-encoding'
 
 export async function POST(request: NextRequest) {
   try {

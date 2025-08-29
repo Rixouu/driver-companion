@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 // Import optimized PDF generator
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations'
+import { getTeamFooterHtml } from '@/lib/team-addresses'
 
 console.log('✅ [SEND-EMAIL API] Module loaded, imports successful.'); // Log after imports
 
@@ -789,12 +790,7 @@ function generateEmailHtml(
               <!-- FOOTER -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">${template.company}</p>
-                  <p style="margin:0;">
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                      japandriver.com
-                    </a>
-                  </p>
+                  ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
                 </td>
               </tr>
             </table>

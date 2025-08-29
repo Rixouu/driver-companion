@@ -111,8 +111,14 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Add merchant_id
+    // Add merchant_id and team tracking fields
     requestData.merchant_id = session.user.id;
+    requestData.created_by = session.user.id;
+    
+    // Set default team_location if not provided
+    if (!requestData.team_location) {
+      requestData.team_location = 'thailand';
+    }
     
     // Calculate the expiry date (48 hours from now if not provided)
     if (!requestData.expiry_date) {

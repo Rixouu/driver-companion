@@ -109,6 +109,10 @@ export interface Quotation {
   // Add the new optional fields
   invoice?: InvoiceData;
   booking?: BookingData;
+  
+  // Team tracking fields
+  team_location?: 'japan' | 'thailand';
+  created_by?: string;
 }
 
 export interface QuotationItem {
@@ -235,6 +239,9 @@ export interface CreateQuotationInput {
   selected_promotion_code?: string | null;
   promotion_discount?: number;
   time_based_adjustment?: number;
+  
+  // Team tracking fields
+  team_location?: 'japan' | 'thailand';
 }
 
 export interface UpdateQuotationInput {
@@ -283,6 +290,9 @@ export interface UpdateQuotationInput {
   selected_promotion_code?: string | null;
   promotion_discount?: number;
   time_based_adjustment?: number;
+  
+  // Team tracking fields
+  team_location?: 'japan' | 'thailand';
 }
 
 export interface QuotationResponse {

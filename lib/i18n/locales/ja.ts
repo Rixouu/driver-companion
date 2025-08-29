@@ -4164,6 +4164,16 @@ export const ja: TranslationValue = {
     confirmed: "確定済み",
     completed: "完了",
     cancelled: "キャンセル済み"
+  },
+  TeamSwitcher: {
+    thailand: "タイチーム",
+    thailandShort: "TH",
+    thailandDescription: "バンコクオフィス",
+    japan: "日本チーム",
+    japanShort: "JP", 
+    japanDescription: "東京オフィス",
+    selectTeam: "チームを選択",
+    current: "現在"
   }
 }
 

@@ -5,6 +5,7 @@ import { mapSupabaseBookingToBooking } from '@/lib/api/bookings-service'
 import { handleApiError } from '@/lib/errors/error-handler'
 import { ValidationError, NotFoundError, DatabaseError, ExternalServiceError, AppError } from '@/lib/errors/app-error'
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
+import { getTeamFooterHtml } from '@/lib/team-addresses'
 
 // Email translations for different languages
 const translations = {

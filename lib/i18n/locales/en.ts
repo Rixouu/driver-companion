@@ -4248,6 +4248,16 @@ export const en: TranslationValue = {
     confirmed: "Confirmed",
     completed: "Completed",
     cancelled: "Cancelled"
+  },
+  TeamSwitcher: {
+    thailand: "Thailand Team",
+    thailandShort: "TH",
+    thailandDescription: "Bangkok Office",
+    japan: "Japan Team", 
+    japanShort: "JP",
+    japanDescription: "Tokyo Office",
+    selectTeam: "Select Team",
+    current: "Current"
   }
 }
 

@@ -49,6 +49,7 @@ import LoadingSpinner from '@/components/shared/loading-spinner';
 import { QuotationPdfButton } from '@/components/quotations/quotation-pdf-button';
 import { QuotationInvoiceButton } from '@/components/quotations/quotation-invoice-button';
 
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -519,7 +520,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Download buttons for paid status */}
             {quotation.status === 'paid' && (
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
-                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 
@@ -536,7 +536,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             {/* Download buttons for converted status */}
             {quotation.status === 'converted' && (
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
-                <QuotationInvoiceButton quotation={quotation} onSuccess={() => router.refresh()} />
                 {quotation.receipt_url && (
                   <Button 
                     variant="outline" 

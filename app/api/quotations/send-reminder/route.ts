@@ -5,6 +5,7 @@ import { Resend } from 'resend'
 // Import our new HTML PDF generator
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator'
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations'
+import { getTeamFooterHtml } from '@/lib/team-addresses'
 
 // Email templates for different languages
 const reminderTemplates = {
@@ -247,7 +248,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Prepare email content
-    const emailContent = generateReminderEmail(template, customerName, formattedQuotationId, quotationUrl, appUrl, logoUrl);
+    const emailContent = generateReminderEmail(template, customerName, formattedQuotationId, quotationUrl, appUrl, logoUrl, quotation);
     const plainTextContent = generateReminderPlainText(template, customerName, formattedQuotationId, quotationUrl);
     
     // Parse BCC emails
@@ -347,7 +348,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to generate HTML email content
-function generateReminderEmail(template: any, customerName: string, quotationId: string, quotationUrl: string, appUrl: string, logoUrl: string): string {
+function generateReminderEmail(template: any, customerName: string, quotationId: string, quotationUrl: string, appUrl: string, logoUrl: string, quotation: any): string {
   // Determine if Japanese language is being used
   const isJapanese = template === reminderTemplates.ja;
   
@@ -497,12 +498,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               <!-- FOOTER -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">${template.company}</p>
-                  <p style="margin:0;">
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                      japandriver.com
-                    </a>
-                  </p>
+                  ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
                 </td>
               </tr>
             </table>

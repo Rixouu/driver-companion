@@ -23,6 +23,7 @@ import { useQuotationService } from '@/lib/hooks/useQuotationService';
 import { toast } from '@/components/ui/use-toast';
 import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import LoadingSpinner from '@/components/shared/loading-spinner';
+import { TeamSwitcher } from '@/components/team-switcher';
 
 // Import step components
 import { CustomerDetailsStep } from './steps/customer-details-step';
@@ -97,6 +98,7 @@ const formSchema = z.object({
     z.literal('undefined').transform(() => null)
   ]).optional().nullable(),
   display_currency: z.string().optional().default('JPY'),
+  team_location: z.enum(['japan', 'thailand']).default('thailand'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -243,6 +245,7 @@ export default function QuotationFormRefactored({
       customer_notes: initialData?.customer_notes || '',
       passenger_count: initialData?.passenger_count || null,
       display_currency: initialData?.display_currency || 'JPY',
+      team_location: initialData?.team_location || 'thailand',
     },
   });
 
@@ -374,6 +377,8 @@ export default function QuotationFormRefactored({
         selected_promotion_code: selectedPromotion?.code || undefined,
         // Store the final discount amount (not percentage) for DB trigger math and reporting
         promotion_discount: promotionDiscountAmount || undefined,
+        // Team tracking fields
+        team_location: currentTeam,
       };
 
       let result: Quotation | null = null;
@@ -578,6 +583,11 @@ export default function QuotationFormRefactored({
   const [progressTitle, setProgressTitle] = useState('Saving');
   const [progressLabel, setProgressLabel] = useState('Starting...');
   
+  // Team selection state
+  const [currentTeam, setCurrentTeam] = useState<'japan' | 'thailand'>(
+    initialData?.team_location || 'thailand'
+  );
+
   // BCC Dialog state
   const [isBccDialogOpen, setIsBccDialogOpen] = useState(false);
   const [bccEmails, setBccEmails] = useState('booking@japandriver.com');
@@ -586,15 +596,24 @@ export default function QuotationFormRefactored({
   return (
     <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
       <CardHeader className="bg-muted/30 rounded-t-lg border-b px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-        <CardTitle className="flex items-center gap-2 text-sm sm:text-base md:text-lg">
-          {initialData ? <FileText className="h-4 w-4 sm:h-5 sm:w-5" /> : <FileText className="h-4 w-4 sm:h-5 sm:w-5" />}
-          {initialData ? t('quotations.form.update') : t('quotations.form.create')}
-        </CardTitle>
-        {!isMobile && (
-          <CardDescription className="text-xs sm:text-sm">
-            Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].nameKey)}
-          </CardDescription>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base md:text-lg">
+              {initialData ? <FileText className="h-4 w-4 sm:h-5 sm:w-5" /> : <FileText className="h-4 w-4 sm:h-5 sm:w-5" />}
+              {initialData ? t('quotations.form.update') : t('quotations.form.create')}
+            </CardTitle>
+            {!isMobile && (
+              <CardDescription className="text-xs sm:text-sm">
+                Step {currentStep + 1} of {steps.length}: {t(steps[currentStep].nameKey)}
+              </CardDescription>
+            )}
+          </div>
+          <TeamSwitcher
+            currentTeam={currentTeam}
+            onTeamChange={setCurrentTeam}
+            className="ml-4"
+          />
+        </div>
       </CardHeader>
 
       {/* Wrap both desktop and mobile tab lists inside a Tabs component */}

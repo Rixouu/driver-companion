@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { generateOptimizedPdfFromHtml } from '@/lib/optimized-html-pdf-generator'
 import { PricingPackage, PricingPromotion } from '@/types/quotations'
+import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses'
 
 import { safeEncodeText } from '@/lib/utils/character-encoding';
 
@@ -124,12 +125,7 @@ function generateInvoiceHtml(
         </div>
         
         <div style="text-align: right;">
-          <h2 style="margin: 0 0 5px 0; font-size: 16px; color: #111827;">Driver (Thailand) Company Limited</h2>
-          <p style="margin: 0 0 2px 0; color: #111827; font-size: 13px;">580/17 Soi Ramkhamhaeng 39</p>
-          <p style="margin: 0 0 2px 0; color: #111827; font-size: 13px;">Wang Thong Lang</p>
-          <p style="margin: 0 0 2px 0; color: #111827; font-size: 13px;">Bangkok 10310</p>
-          <p style="margin: 0 0 10px 0; color: #111827; font-size: 13px;">Thailand</p>
-          <p style="margin: 0; color: #111827; font-size: 13px;">Tax ID: 0105566135845</p>
+          ${getTeamAddressHtml(quotation.team_location || 'thailand', isJapanese)}
         </div>
       </div>
       
@@ -316,15 +312,7 @@ function generateInvoiceHtml(
       
       <!-- Footer -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; margin-bottom: 30px;">
-        <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #111827;">
-          ${isJapanese ? 'ご利用いただきありがとうございます。' : 'Thank you for your business!'}
-        </p>
-        <p style="margin: 0 0 5px 0; font-size: 13px; color: #111827;">
-          ${isJapanese ? 'この請求書に関するお問い合わせは booking@japandriver.com までご連絡ください。' : 'If you have any questions about this invoice, please contact us at billing@japandriver.com'}
-        </p>
-        <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;">
-          Driver (Thailand) Company Limited • www.japandriver.com
-        </p>
+        ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
       </div>
     </div>
   `;

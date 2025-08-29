@@ -4,12 +4,13 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { getTeamFooterHtml } from '@/lib/team-addresses';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
 
 // Helper function to generate approval email HTML (copied from approve-magic-link)
-function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, magicLink?: string) {
+function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, teamLocation: 'japan' | 'thailand' = 'thailand') {
   const isJapanese = language === 'ja';
   
   const translations = {
@@ -156,40 +157,12 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                       </div>
                     ` : ''}
                     
-                    ${magicLink ? `
-                      <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0; margin:20px 0;">
-                        <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
-                          ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
-                        </p>
-                        <a href="${magicLink}"
-                           style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
-                                  text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
-                                  font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
-                          ${t.viewDetails}
-                        </a>
-                        <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
-                          ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
-                        </p>
-                      </div>
-                    ` : `
-                      <div style="text-align: center; margin:20px 0;">
-                        <a href="${appUrl}/quotations/${quotation.id}"
-                           style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                                  text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
-                                  font-size:16px; font-weight:600; text-align: center;">
-                          ${t.viewDetails}
-                        </a>
-                      </div>
-                    `}
+
                     
                     <p>${isJapanese ? 'これで次のステップに進むことができます。ご質問やサポートが必要でしたら、お気軽にお問い合わせください。' : 'You can now proceed with the next steps. If you have any questions or need assistance, please don\'t hesitate to contact us.'}</p>
                     
                     <p>${isJapanese ? 'Driver Japanをご利用いただき、ありがとうございます！' : 'Thank you for choosing Driver Japan!'}</p>
                     
-                    <p style="margin:24px 0 0 0;">
-                      ${isJapanese ? '敬具' : 'Best regards'},<br>
-                      <strong>Driver (Thailand) Company Limited</strong>
-                    </p>
                   </div>
                 </td>
               </tr>
@@ -197,12 +170,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <!-- Footer -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">Driver (Thailand) Company Limited</p>
-                  <p style="margin:0;">
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                      japandriver.com
-                    </a>
-                  </p>
+                  ${getTeamFooterHtml(teamLocation, isJapanese)}
                 </td>
               </tr>
             </table>
@@ -484,33 +452,8 @@ export async function POST(request: NextRequest) {
                          fullQuotation.customer_name || 
                          'Customer';
       
-      // Generate magic link for secure quote access
-      let magicLink = null;
-      try {
-        const magicLinkResponse = await fetch(`${appUrl}/api/quotations/create-magic-link`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            quotation_id: id,
-            customer_email: emailAddress,
-          }),
-        });
-        
-        if (magicLinkResponse.ok) {
-          const magicLinkData = await magicLinkResponse.json();
-          magicLink = magicLinkData.magic_link;
-          console.log('✅ [APPROVE ROUTE] Magic link generated successfully');
-        } else {
-          console.warn('⚠️ [APPROVE ROUTE] Failed to generate magic link, continuing without it');
-        }
-      } catch (error) {
-        console.warn('⚠️ [APPROVE ROUTE] Error generating magic link:', error);
-      }
-      
-      // Generate styled email HTML using our helper function with magic link
-      const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, notes, magicLink);
+      // Generate styled email HTML with team-specific footer
+      const emailHtml = generateEmailHtml('en', customerName, formattedQuotationId, fullQuotation, appUrl, notes, fullQuotation.team_location || 'thailand');
       
       // Parse BCC emails
       const bccEmailList = bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email);

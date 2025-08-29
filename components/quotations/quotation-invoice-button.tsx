@@ -4,14 +4,10 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/components/ui/use-toast";
-import { Mail, Loader2, FileText, Link2, CreditCard } from "lucide-react";
+import { Loader2, FileText, CreditCard } from "lucide-react";
 import { Quotation, QuotationItem } from "@/types/quotations";
 // Dynamic import for html2pdf to avoid SSR issues
 
@@ -25,13 +21,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
   const { t, language } = useI18n();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isEmailing, setIsEmailing] = useState(false);
-  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
-  const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
-  const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
-  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
-  const [includeDetails, setIncludeDetails] = useState(true);
 
   
   // Check if user is admin (japandriver email)
@@ -275,95 +265,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
     }
   };
 
-  const handleEmailDialogOpen = () => {
-    if (!quotation?.customer_email && !emailAddress) {
-      toast({
-        title: "No Email Address",
-        description: "Please provide a customer email address to send the invoice.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setIsEmailDialogOpen(true);
-  };
-  
-  const handleSendEmail = async () => {
-    if (!emailAddress || !emailAddress.includes('@')) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsEmailing(true);
-    setProgressOpen(true);
-    setProgressTitle('Emailing Invoice');
-    setProgressLabel('Generating PDF...');
-    setProgressValue(15);
-    
-    try {
-      // Generate the PDF using server-side generation for proper discount calculations
-      const pdfResponse = await fetch('/api/quotations/generate-invoice-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quotation_id: quotation.id,
-          language: emailLanguage
-        })
-      });
-
-      if (!pdfResponse.ok) {
-        throw new Error(`Failed to generate invoice PDF: ${pdfResponse.statusText}`);
-      }
-
-      const pdfBlob = await pdfResponse.blob();
-      setProgressLabel('Attaching PDF...');
-      setProgressValue(55);
-      
-      if (!pdfBlob) {
-        throw new Error('Failed to generate invoice PDF');
-      }
-      
-      // Send the PDF via API endpoint
-      const formData = new FormData();
-      formData.append('email', emailAddress);
-      formData.append('quotation_id', quotation.id);
-      formData.append('customer_name', quotation.customer_name || quotation.customers?.name || 'Customer');
-      formData.append('include_details', includeDetails.toString());
-      formData.append('language', emailLanguage);
-      formData.append('payment_link', '');
-      formData.append('bcc_emails', bccEmails);
-      const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
-      formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
-      
-      const emailResponse = await fetch('/api/quotations/send-invoice-email', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!emailResponse.ok) {
-        const errorData = await emailResponse.json();
-        throw new Error(errorData.error || 'Failed to send invoice email');
-      }
-      setProgressLabel('Sending email...');
-      setProgressValue(85);
-      setProgressValue(100);
-      setProgressLabel('Completed');
-      setTimeout(() => setProgressOpen(false), 400);
-      
-      setIsEmailDialogOpen(false);
-      onSuccess?.();
-    } catch (error) {
-      console.error('Error sending invoice email:', error);
-      setProgressOpen(false);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to send invoice. Please try again.", variant: "destructive" });
-    } finally {
-      setIsEmailing(false);
-    }
-  };
 
 
 
@@ -381,142 +283,19 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       
-      {/* Only show Email Invoice and Send Payment Link for non-final statuses */}
-      {!['paid', 'converted'].includes(quotation.status) && (
-        <>
-          <Button 
-            onClick={handleEmailDialogOpen} 
-            disabled={isEmailing}
-            className="gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            {isEmailing ? (t('invoices.actions.sending') || 'Sending...') : (t('invoices.actions.emailInvoice') || 'Email Invoice')}
-          </Button>
-
-          {/* Admin-only Send Payment Link button */}
-          {isAdmin && (
-            <Button 
-              onClick={() => onSendPaymentLink?.()} 
-              disabled={isSendingPaymentLink}
-              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <CreditCard className="h-4 w-4" />
-              {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
-            </Button>
-          )}
-        </>
+      {/* Only show Send Payment Link for non-final statuses */}
+      {!['paid', 'converted'].includes(quotation.status) && isAdmin && (
+        <Button 
+          onClick={() => onSendPaymentLink?.()} 
+          disabled={isSendingPaymentLink}
+          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <CreditCard className="h-4 w-4" />
+          {isSendingPaymentLink ? 'Sending...' : 'Send Payment Link'}
+        </Button>
       )}
       
-      <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Invoice
-            </DialogTitle>
-            <DialogDescription>
-              This will send the invoice PDF to the customer.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Customer Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="customer@example.com"
-                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Email will be sent to the customer's registered email address
-              </p>
-            </div>
-            
-            <div>
-              <Label htmlFor="bcc-emails">BCC Emails</Label>
-              <Input
-                id="bcc-emails"
-                value={bccEmails}
-                onChange={(e) => setBccEmails(e.target.value)}
-                placeholder="Enter email addresses separated by commas"
-                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Default: booking@japandriver.com. Add more emails separated by commas.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 items-start gap-4">
-              <div>
-                <Label>Language</Label>
-                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ja">日本語</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="include-details" 
-                  checked={includeDetails}
-                  onCheckedChange={(checked) => setIncludeDetails(!!checked)}
-                />
-                <Label htmlFor="include-details" className="text-sm">
-                  Include detailed service information
-                </Label>
-              </div>
-            </div>
 
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200">
-              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
-                📧 What's included in the email:
-              </h4>
-              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                <li>• Complete invoice details and service information</li>
-                <li>• Customer information and billing details</li>
-                <li>• Service breakdown and pricing</li>
-                <li>• Invoice PDF attachment</li>
-                <li>• Payment instructions and terms</li>
-                <li>• Company branding and contact information</li>
-              </ul>
-            </div>
-            
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded-md border border-yellow-200">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Note:</strong> Payment link will be sent separately by an admin shortly after this invoice is delivered.
-              </p>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>
-              {t('common.cancel') || 'Cancel'}
-            </Button>
-            <Button onClick={handleSendEmail} disabled={isEmailing || !emailAddress}>
-              {isEmailing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('common.sending') || 'Sending...'}
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  {t('common.send') || 'Send'}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
 
 

@@ -4,6 +4,7 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { getTeamFooterHtml } from '@/lib/team-addresses';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -173,10 +174,6 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                     
                     <p>${isJapanese ? 'お支払いありがとうございます！' : 'Thank you for your payment!'}</p>
                     
-                    <p style="margin:24px 0 0 0;">
-                      ${isJapanese ? '敬具' : 'Best regards'},<br>
-                      <strong>Driver (Thailand) Company Limited</strong>
-                    </p>
                   </div>
                 </td>
               </tr>
@@ -184,12 +181,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               <!-- Footer -->
               <tr>
                 <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
-                  <p style="margin:0 0 4px;">Driver (Thailand) Company Limited</p>
-                  <p style="margin:0;">
-                    <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">
-                      japandriver.com
-                    </a>
-                  </p>
+                  ${getTeamFooterHtml(quotation.team_location || 'thailand', language === 'ja')}
                 </td>
               </tr>
             </table>

@@ -771,7 +771,7 @@ export default function EditBookingPage() {
                     ) : (
                       <div className="h-[200px] flex flex-col items-center justify-center border rounded-lg border-dashed mt-4 bg-muted/30">
                         <MapPin className="h-8 w-8 mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground text-center px-4">{t('bookings.placeholders.enterBothLocations')}</p>
+                        <p className="text-sm text-muted-foreground text-center px-4">{t('bookings.details.placeholders.enterBothLocations')}</p>
                       </div>
                     )}
                     

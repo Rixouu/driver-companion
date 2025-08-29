@@ -6,15 +6,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
-import { FileText, User, Car, DollarSign, Eye, ArrowLeft, ArrowRight, Send, Save } from 'lucide-react';
+import { FileText, User, Car, DollarSign, Eye, ArrowLeft, ArrowRight, Send, Save, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { PACKAGE_SERVICE_TYPE_ID } from '@/lib/constants/service-types';
 import { cn } from '@/lib/utils';
 import { Form } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuotationService } from '@/lib/hooks/useQuotationService';
 import { toast } from '@/components/ui/use-toast';
@@ -412,7 +415,23 @@ export default function QuotationFormRefactored({
           }
           
           if (sendToCustomer && result) {
-            await sendQuotation(initialData.id);
+            // Send quotation with BCC settings
+            const formData = new FormData();
+            formData.append('email', result.customer_email || '');
+            formData.append('quotation_id', result.id);
+            formData.append('language', sendLanguage);
+            formData.append('include_details', 'true');
+            formData.append('bcc_emails', bccEmails);
+            
+            const emailResponse = await fetch('/api/quotations/send-email', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!emailResponse.ok) {
+              throw new Error('Failed to send quotation email');
+            }
+            
             advance('Emailing customer');
             // Show success toast after sending
             toast({ 
@@ -426,7 +445,23 @@ export default function QuotationFormRefactored({
           advance(serviceItems.length > 0 ? 'Saving quotation and items' : 'Saving quotation');
           
           if (sendToCustomer && result?.id) {
-            await sendQuotation(result.id);
+            // Send quotation with BCC settings
+            const formData = new FormData();
+            formData.append('email', result.customer_email || '');
+            formData.append('quotation_id', result.id);
+            formData.append('language', sendLanguage);
+            formData.append('include_details', 'true');
+            formData.append('bcc_emails', bccEmails);
+            
+            const emailResponse = await fetch('/api/quotations/send-email', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!emailResponse.ok) {
+              throw new Error('Failed to send quotation email');
+            }
+            
             advance('Emailing customer');
             // Show success toast after sending
             toast({ 
@@ -440,7 +475,23 @@ export default function QuotationFormRefactored({
           result = await updateQuotation(initialData.id, input);
           advance('Quotation record saved');
           if (sendToCustomer && result) {
-            await sendQuotation(initialData.id);
+            // Send quotation with BCC settings
+            const formData = new FormData();
+            formData.append('email', result.customer_email || '');
+            formData.append('quotation_id', result.id);
+            formData.append('language', sendLanguage);
+            formData.append('include_details', 'true');
+            formData.append('bcc_emails', bccEmails);
+            
+            const emailResponse = await fetch('/api/quotations/send-email', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!emailResponse.ok) {
+              throw new Error('Failed to send quotation email');
+            }
+            
             advance('Emailing customer');
             // Show success toast after sending
             toast({ 
@@ -452,7 +503,23 @@ export default function QuotationFormRefactored({
           result = await createQuotation(input);
           advance('Saving quotation');
           if (sendToCustomer && result?.id) {
-            await sendQuotation(result.id);
+            // Send quotation with BCC settings
+            const formData = new FormData();
+            formData.append('email', result.customer_email || '');
+            formData.append('quotation_id', result.id);
+            formData.append('language', sendLanguage);
+            formData.append('include_details', 'true');
+            formData.append('bcc_emails', bccEmails);
+            
+            const emailResponse = await fetch('/api/quotations/send-email', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!emailResponse.ok) {
+              throw new Error('Failed to send quotation email');
+            }
+            
             advance('Emailing customer');
             // Show success toast after sending
             toast({ 
@@ -510,6 +577,11 @@ export default function QuotationFormRefactored({
   const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Saving');
   const [progressLabel, setProgressLabel] = useState('Starting...');
+  
+  // BCC Dialog state
+  const [isBccDialogOpen, setIsBccDialogOpen] = useState(false);
+  const [bccEmails, setBccEmails] = useState('booking@japandriver.com');
+  const [sendLanguage, setSendLanguage] = useState<'en' | 'ja'>('en');
 
   return (
     <Card className="w-full border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
@@ -588,7 +660,10 @@ export default function QuotationFormRefactored({
 
       <Form {...form}>
         <form 
-          onSubmit={(e) => handleExplicitSubmit(e, true)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            setIsBccDialogOpen(true);
+          }}
           className="p-3 sm:p-4 md:p-6 pb-20 md:pb-6 space-y-6 sm:space-y-8"
         >
           {/* Step Content */}
@@ -713,6 +788,91 @@ export default function QuotationFormRefactored({
               <span className="font-medium text-foreground">{progressValue}%</span>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* BCC Dialog */}
+      <Dialog open={isBccDialogOpen} onOpenChange={setIsBccDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Send Quotation to Customer
+            </DialogTitle>
+            <DialogDescription>
+              Configure email settings before sending this quotation to the customer.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="bcc-emails">BCC Emails</Label>
+              <Input
+                id="bcc-emails"
+                value={bccEmails}
+                onChange={(e) => setBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div>
+              <Label>Language</Label>
+              <Select value={sendLanguage} onValueChange={(value: 'en' | 'ja') => setSendLanguage(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Complete quotation details and service information</li>
+                <li>• Customer information and contact details</li>
+                <li>• Service breakdown and pricing</li>
+                <li>• Quotation PDF attachment</li>
+                <li>• Magic link for customer access</li>
+                <li>• Company branding and contact information</li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBccDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                setIsBccDialogOpen(false);
+                // Submit the form with the BCC settings
+                await form.handleSubmit((data) => onSubmit(data, true))();
+              }}
+              disabled={apiLoading || submittingAndSending}
+              className="bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
+            >
+              {apiLoading || submittingAndSending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Quotation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>

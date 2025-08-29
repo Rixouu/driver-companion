@@ -1101,7 +1101,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 <Link2 className="h-4 w-4 text-muted-foreground" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Leave empty to auto-generate, or click Generate to create a new Omise payment link
+                Click Generate to create a new Omise payment link
               </p>
               
               {/* Bank Transfer Note */}

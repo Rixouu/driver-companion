@@ -239,6 +239,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       formData.append('customer_name', quotation.customer_name || quotation.customer_email?.split('@')[0] || 'Customer');
       formData.append('include_details', 'true');
       formData.append('language', emailLanguage);
+      formData.append('bcc_emails', bccEmails);
       // Only send payment_link if it's a real URL, otherwise let the API generate one
       if (paymentLink && !paymentLink.includes('placeholder.com')) {
         formData.append('payment_link', paymentLink);

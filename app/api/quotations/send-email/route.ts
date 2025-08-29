@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
     const quotationId = formData ? (formData.get('quotation_id') as string) : (await request.json()).quotation_id;
     const languageParam = formData ? ((formData.get('language') as string) || 'en') : ((await request.json()).language || 'en');
     const language = (['en', 'ja'].includes(languageParam) ? languageParam : 'en') as 'en' | 'ja';
+    const bccEmails = formData ? (formData.get('bcc_emails') as string) : (await request.json()).bcc_emails || 'booking@japandriver.com';
     
     console.log('🔄 [SEND-EMAIL API] Received request for quotation:', quotationId);
     
@@ -250,12 +251,15 @@ export async function POST(request: NextRequest) {
     console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
     
     try {
+      // Parse BCC emails
+      const bccEmailList = bccEmails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
+      
       // Send email with timeout
       console.log('🔄 [SEND-EMAIL API] Sending email via Resend...');
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
         to: [email],
-        bcc: ['booking@japandriver.com'],
+        bcc: bccEmailList,
         subject: emailSubject,
         text: textContent,
         html: emailHtml,
@@ -266,6 +270,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Add timeout for email sending (30 seconds)
+      
       const { data: emailData, error: resendError } = await Promise.race([
         emailSendPromise,
         new Promise<never>((_, reject) => 

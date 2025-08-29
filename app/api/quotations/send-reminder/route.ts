@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // Parse JSON request body
-    const { id, language = 'en', includeQuotation = true } = await request.json();
+    const { id, language = 'en', includeQuotation = true, bcc_emails = 'booking@japandriver.com' } = await request.json();
     
     console.log(`[SEND-REMINDER API] Request data: id=${id}, language=${language}, includeQuotation=${includeQuotation}`);
     
@@ -250,11 +250,14 @@ export async function POST(request: NextRequest) {
     const emailContent = generateReminderEmail(template, customerName, formattedQuotationId, quotationUrl, appUrl, logoUrl);
     const plainTextContent = generateReminderPlainText(template, customerName, formattedQuotationId, quotationUrl);
     
+    // Parse BCC emails
+    const bccEmailList = bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
+    
     // Prepare email with or without attachment
     const emailOptions: any = {
       from: `Driver Japan <booking@${emailDomain}>`,
       to: [customerEmail],
-      bcc: ['booking@japandriver.com'],
+      bcc: bccEmailList,
       subject: emailSubject,
       text: plainTextContent,
       html: emailContent

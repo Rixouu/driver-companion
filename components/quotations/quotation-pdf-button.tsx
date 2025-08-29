@@ -347,6 +347,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       formData.append('email', targetEmail);
       formData.append('quotation_id', quotation.id);
       formData.append('language', emailLanguage);
+      formData.append('bcc_emails', bccEmails);
       // formData.append('pdf', pdfBlob, `quotation-${quotation.quote_number}.pdf`); // Don't send PDF from client
       
       setProgressLabel('Sending email...')

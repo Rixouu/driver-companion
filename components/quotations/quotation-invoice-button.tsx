@@ -335,6 +335,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       formData.append('include_details', includeDetails.toString());
       formData.append('language', emailLanguage);
       formData.append('payment_link', '');
+      formData.append('bcc_emails', bccEmails);
       const formattedId = `INV-JPDR-${String(quotation.quote_number || 0).padStart(6, '0')}`;
       formData.append('invoice_pdf', pdfBlob, `${formattedId}.pdf`);
       

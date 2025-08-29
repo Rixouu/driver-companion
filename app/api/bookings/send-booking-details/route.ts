@@ -43,6 +43,18 @@ export async function POST(request: NextRequest) {
           name,
           email,
           phone
+        ),
+        drivers!bookings_driver_id_fkey (
+          id,
+          first_name,
+          last_name,
+          phone
+        ),
+        vehicles!bookings_vehicle_id_fkey (
+          id,
+          plate_number,
+          brand,
+          model
         )
       `)
       .eq(searchField, bookingId)
@@ -62,6 +74,18 @@ export async function POST(request: NextRequest) {
             name,
             email,
             phone
+          ),
+          drivers!bookings_driver_id_fkey (
+            id,
+            first_name,
+            last_name,
+            phone
+          ),
+          vehicles!bookings_vehicle_id_fkey (
+            id,
+            plate_number,
+            brand,
+            model
           )
         `)
         .eq(alternateField, bookingId)
@@ -320,6 +344,10 @@ function generateBookingDetailsEmailHtml({
         @media only screen and (max-width:600px) {
           .container { width:100%!important; }
           .stack { display:block!important; width:100%!important; text-align:center!important; }
+          .info-block .flex { flex-direction: column!important; gap: 15px!important; }
+          .info-block .flex > div { width: 100%!important; }
+          .info-block .flex .flex { flex-direction: column!important; gap: 15px!important; }
+          .info-block .flex .flex > div { width: 100%!important; }
         }
         .details-table td, .details-table th {
           padding: 10px 0;
@@ -347,6 +375,23 @@ function generateBookingDetailsEmailHtml({
           padding: 16px;
           margin: 16px 0;
           border-radius: 4px;
+        }
+        .info-block {
+          background:#f8f9fa; 
+          padding:20px; 
+          border-radius:8px; 
+          margin:20px 0;
+        }
+        .info-block h3 {
+          margin:0 0 12px 0; 
+          color:#32325D;
+        }
+        .info-block p {
+          margin:0; 
+          color:#525f7f;
+        }
+        .info-block strong {
+          color: #32325D;
         }
       </style>
     </head>
@@ -388,15 +433,45 @@ function generateBookingDetailsEmailHtml({
                     
                     <p>Here are the details of your upcoming vehicle service booking.</p>
                     
-                    <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
-                      <h3 style="margin:0 0 12px 0; color:#32325D;">Service Details</h3>
-                      <p style="margin:0; color:#525f7f;">
+                    <div class="info-block">
+                      <h3>Service Details</h3>
+                      <p>
                         <strong>Service Type:</strong> ${booking.service_name}<br>
                         <strong>Date:</strong> ${formatDate(booking.date)}<br>
                         <strong>Time:</strong> ${formatTime(booking.time)}<br>
                         <strong>Pickup Location:</strong> ${booking.pickup_location || 'Location TBD'}<br>
                         <strong>Dropoff Location:</strong> ${booking.dropoff_location || 'Location TBD'}
                       </p>
+                    </div>
+                    
+                    <div class="info-block">
+                      <h3>Driver & Vehicle Information</h3>
+                      <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 30px; align-items: flex-start;">
+                          <div style="width: 50%; min-width: 0;">
+                            <h4 style="margin: 0 0 16px 0; color: #E03E2D; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">👤 Driver</h4>
+                            <div style="margin-bottom: 16px;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Name:</div>
+                              <div style="color: #525f7f;">${booking.drivers ? `${booking.drivers.first_name} ${booking.drivers.last_name}` : 'To be assigned'}</div>
+                            </div>
+                            <div style="margin-bottom: 0;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Phone:</div>
+                              <div style="color: #525f7f;">${booking.drivers ? booking.drivers.phone : 'To be provided'}</div>
+                            </div>
+                          </div>
+                          <div style="width: 50%; min-width: 0;">
+                            <h4 style="margin: 0 0 16px 0; color: #E03E2D; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">🚗 Vehicle</h4>
+                            <div style="margin-bottom: 16px;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">License:</div>
+                              <div style="color: #525f7f;">${booking.vehicles ? booking.vehicles.plate_number : 'To be assigned'}</div>
+                            </div>
+                            <div style="margin-bottom: 0;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Model:</div>
+                              <div style="color: #525f7f;">${booking.vehicles ? `${booking.vehicles.brand} ${booking.vehicles.model}` : 'To be assigned'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     ${booking.notes ? `
@@ -484,6 +559,12 @@ SERVICE DETAILS:
 - Time: ${formatTime(booking.time)}
 - Pickup Location: ${booking.pickup_location || 'Location TBD'}
 - Dropoff Location: ${booking.dropoff_location || 'Location TBD'}
+
+DRIVER & VEHICLE INFORMATION:
+- Driver Name: ${booking.drivers ? `${booking.drivers.first_name} ${booking.drivers.last_name}` : 'To be assigned'}
+- Driver Phone: ${booking.drivers ? booking.drivers.phone : 'To be provided'}
+- License Plate: ${booking.vehicles ? booking.vehicles.plate_number : 'To be assigned'}
+- Vehicle Model: ${booking.vehicles ? `${booking.vehicles.brand} ${booking.vehicles.model}` : 'To be assigned'}
 ${booking.notes ? `- Special Notes: ${booking.notes}` : ''}
 
 Add to Google Calendar: ${calendarLink}

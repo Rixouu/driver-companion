@@ -30,6 +30,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
   const [includeDetails, setIncludeDetails] = useState(true);
 
   
@@ -406,55 +407,92 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       )}
       
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t('invoices.emailModal.title') || 'Email Invoice'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Invoice
+            </DialogTitle>
             <DialogDescription>
-              {t('invoices.emailModal.description') || 'This will send the invoice PDF to the customer.'}
+              This will send the invoice PDF to the customer.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">{t('common.email') || 'Email Address'}</Label>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Customer Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder={t('common.emailPlaceholder') || 'customer@example.com'}
+                placeholder="customer@example.com"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 required
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="language">{t('common.language') || 'Language'}</Label>
-              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Payment link will be sent separately by an admin shortly after this invoice is delivered.
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
               </p>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="include-details" 
-                checked={includeDetails}
-                onCheckedChange={(checked) => setIncludeDetails(!!checked)}
+            <div>
+              <Label htmlFor="bcc-emails">BCC Emails</Label>
+              <Input
+                id="bcc-emails"
+                value={bccEmails}
+                onChange={(e) => setBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
               />
-              <Label htmlFor="include-details" className="text-sm">
-                {t('invoices.emailModal.includeDetails') || 'Include detailed service information'}
-              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 items-start gap-4">
+              <div>
+                <Label>Language</Label>
+                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="include-details" 
+                  checked={includeDetails}
+                  onCheckedChange={(checked) => setIncludeDetails(!!checked)}
+                />
+                <Label htmlFor="include-details" className="text-sm">
+                  Include detailed service information
+                </Label>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Complete invoice details and service information</li>
+                <li>• Customer information and billing details</li>
+                <li>• Service breakdown and pricing</li>
+                <li>• Invoice PDF attachment</li>
+                <li>• Payment instructions and terms</li>
+                <li>• Company branding and contact information</li>
+              </ul>
+            </div>
+            
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded-md border border-yellow-200">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Note:</strong> Payment link will be sent separately by an admin shortly after this invoice is delivered.
+              </p>
             </div>
           </div>
           

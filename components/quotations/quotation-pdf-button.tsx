@@ -238,6 +238,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false)
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja')
   const [targetEmail, setTargetEmail] = useState(quotation?.customer_email || '')
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
   const [includeDetails, setIncludeDetails] = useState(true)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [progressOpen, setProgressOpen] = useState(false)
@@ -399,64 +400,90 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       </Button>
       
       <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{t('quotations.emailModal.title') || 'Email Quotation'}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Send Quotation by Email
+            </DialogTitle>
             <DialogDescription>
-              {t('quotations.emailModal.description') || 'This will send the quotation PDF to the customer.'}
+              Send this quotation to the customer via email.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                {t('quotations.emailModal.emailLabel') || 'Email'}
-              </Label>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Customer Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={targetEmail}
                 onChange={(e) => setTargetEmail(e.target.value)}
                 placeholder="customer@example.com"
-                className="col-span-3"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
+              </p>
             </div>
             
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right mt-2">
-                {t('settings.preferences.language.title') || 'Language'}
-              </Label>
-              <RadioGroup 
-                value={emailLanguage} 
-                onValueChange={(value) => setEmailLanguage(value as 'en' | 'ja')}
-                className="col-span-3"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="en" id="lang-en" />
-                  <Label htmlFor="lang-en">{t('settings.preferences.language.en') || 'English'}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ja" id="lang-ja" />
-                  <Label htmlFor="lang-ja">{t('settings.preferences.language.ja') || '日本語'}</Label>
-                </div>
-              </RadioGroup>
+            <div>
+              <Label htmlFor="bcc-emails">BCC Emails</Label>
+              <Input
+                id="bcc-emails"
+                value={bccEmails}
+                onChange={(e) => setBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <div></div>
-              <div className="col-span-3 flex items-center space-x-2">
+            <div className="grid grid-cols-2 items-start gap-4">
+              <div>
+                <Label>Language</Label>
+                <RadioGroup 
+                  value={emailLanguage} 
+                  onValueChange={(value) => setEmailLanguage(value as 'en' | 'ja')}
+                  className="mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="en" id="lang-en" />
+                    <Label htmlFor="lang-en">English</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="ja" id="lang-ja" />
+                    <Label htmlFor="lang-ja">日本語</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="include-details" 
                   checked={includeDetails}
                   onCheckedChange={(checked) => setIncludeDetails(checked === true)}
                 />
-                <label
-                  htmlFor="include-details"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {t('quotations.includeDetails') || 'Include quotation details'}
-                </label>
+                <Label htmlFor="include-details" className="text-sm">
+                  Include quotation details
+                </Label>
               </div>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Complete quotation details and service information</li>
+                <li>• Customer information and contact details</li>
+                <li>• Service breakdown and pricing</li>
+                <li>• Quotation PDF attachment</li>
+                <li>• Magic link for customer access</li>
+                <li>• Company branding and contact information</li>
+              </ul>
             </div>
           </div>
           

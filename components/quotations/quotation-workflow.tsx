@@ -102,6 +102,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const [isSendingPaymentLink, setIsSendingPaymentLink] = useState(false);
   const [emailLanguage, setEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
   const [emailAddress, setEmailAddress] = useState(quotation?.customer_email || '');
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [customPaymentName, setCustomPaymentName] = useState<string>("");
   const [paymentLinkSent, setPaymentLinkSent] = useState<boolean>(false);
@@ -877,53 +878,94 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 
       {/* Payment Link Dialog */}
       <Dialog open={isPaymentLinkDialogOpen} onOpenChange={setIsPaymentLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Send Payment Link</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Send Payment Link
+            </DialogTitle>
             <DialogDescription>
               Send the invoice with payment link to the customer, or skip if using bank transfer.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="payment-email">Email Address</Label>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="payment-email">Customer Email</Label>
               <Input
                 id="payment-email"
                 type="email"
                 value={emailAddress}
                 onChange={(e) => setEmailAddress(e.target.value)}
                 placeholder="customer@example.com"
+                className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 required
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="payment-language">Language</Label>
-              <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
-              <Input
-                id="custom-payment-name"
-                type="text"
-                value={customPaymentName}
-                onChange={(e) => setCustomPaymentName(e.target.value)}
-                placeholder="e.g., Vehicle Inspection Service - Premium Package"
-              />
-              <p className="text-xs text-muted-foreground">
-                Custom name for the payment link. Leave empty to use default.
+              <p className="text-xs text-muted-foreground mt-1">
+                Email will be sent to the customer's registered email address
               </p>
             </div>
+            
+            <div>
+              <Label htmlFor="bcc-emails">BCC Emails</Label>
+              <Input
+                id="bcc-emails"
+                value={bccEmails}
+                onChange={(e) => setBccEmails(e.target.value)}
+                placeholder="Enter email addresses separated by commas"
+                className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Default: booking@japandriver.com. Add more emails separated by commas.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 items-start gap-4">
+              <div>
+                <Label>Language</Label>
+                <Select value={emailLanguage} onValueChange={(value: 'en' | 'ja') => setEmailLanguage(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="custom-payment-name">Payment Link Name (Optional)</Label>
+                <Input
+                  id="custom-payment-name"
+                  type="text"
+                  value={customPaymentName}
+                  onChange={(e) => setCustomPaymentName(e.target.value)}
+                  placeholder="e.g., Vehicle Inspection Service - Premium Package"
+                  className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Custom name for the payment link. Leave empty to use default.
+                </p>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
+              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2">
+                📧 What's included in the email:
+              </h4>
+              <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <li>• Complete invoice details and service information</li>
+                <li>• Customer information and billing details</li>
+                <li>• Service breakdown and pricing</li>
+                <li>• Invoice PDF attachment</li>
+                <li>• Secure payment link for online payment</li>
+                <li>• Payment instructions and terms</li>
+                <li>• Company branding and contact information</li>
+              </ul>
+            </div>
+
+
 
             {paymentLinkSent && (
               <div className="grid gap-2">

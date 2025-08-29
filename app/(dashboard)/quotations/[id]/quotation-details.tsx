@@ -595,7 +595,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Mail className="h-4 w-4" />
-                        {t('quotations.actions.send')}
+                        Send Quotation
                       </Button>
                     )}
                   </>

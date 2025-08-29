@@ -559,7 +559,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         date: quotation.last_sent_at || (['sent', 'approved', 'rejected', 'paid', 'converted'].includes(quotation.status) ? quotation.created_at : undefined),
         ...(quotation.status === 'draft' && isOrganizationMember ? {
           action: {
-            label: 'Send Now',
+            label: 'Send Quotation',
             onClick: () => setIsSendQuotationDialogOpen(true),
             disabled: false
           }

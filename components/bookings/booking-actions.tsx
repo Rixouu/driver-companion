@@ -371,6 +371,7 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                       <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
                         <li>• Complete booking details and service information</li>
                         <li>• Pickup and dropoff locations with times</li>
+                        <li>• Driver and vehicle information</li>
                         <li>• Pricing breakdown and total amount</li>
                         <li>• Google Calendar integration button</li>
                         <li>• Contact information for changes</li>

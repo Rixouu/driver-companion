@@ -98,10 +98,10 @@ export async function POST(request: NextRequest) {
     
     console.log('🔄 [SEND-EMAIL API] Received request for quotation:', quotationId);
     
-    if (!email || !quotationId) {
-      console.error('❌ [SEND-EMAIL API] Missing required fields');
+    if (!quotationId) {
+      console.error('❌ [SEND-EMAIL API] Missing quotation ID');
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing quotation ID' },
         { status: 400 }
       );
     }
@@ -144,6 +144,15 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Ensure quotation has a customer email
+    if (!quotation.customer_email) {
+      console.error('❌ [SEND-EMAIL API] Quotation has no customer email');
+      return NextResponse.json(
+        { error: 'Quotation has no customer email' },
+        { status: 400 }
+      );
+    }
+    
     // Fetch associated package and promotion
     let selectedPackage: PricingPackage | null = null;
     const packageId = (quotation as any).selected_package_id || (quotation as any).package_id || (quotation as any).pricing_package_id;
@@ -159,7 +168,12 @@ export async function POST(request: NextRequest) {
         selectedPromotion = promo as PricingPromotion | null;
     }
 
-    console.log('✅ [SEND-EMAIL API] Found quotation:', { id: quotation.id, email: quotation.customer_email });
+    console.log('✅ [SEND-EMAIL API] Found quotation:', { 
+      id: quotation.id, 
+      customer_email: quotation.customer_email,
+      customer_name: quotation.customer_name,
+      email_param: email 
+    });
     
     // Generate a fresh PDF from the latest data using the new function
     console.log(`🔄 [SEND-EMAIL API] Calling generateQuotationPDF for quote: ${quotation.id}, lang: ${language}`); // Log before calling
@@ -246,23 +260,41 @@ export async function POST(request: NextRequest) {
       const emailSubject = `${subjectPrefix} - ${formattedQuotationId}`;
       
       // Format the customer name nicely
-      const customerName = quotation.customer_name || email.split('@')[0];
+      const emailForName = quotation.customer_email || email || '';
+      console.log('🔍 [SEND-EMAIL API] Customer name generation:', {
+        customer_name: quotation.customer_name,
+        customer_email: quotation.customer_email,
+        email_param: email,
+        emailForName: emailForName
+      });
+      const customerName = quotation.customer_name || (emailForName ? emailForName.split('@')[0] : 'Customer');
       
       // Create the email content using existing helper functions
-      const emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
-      const textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
+      console.log('🔍 [SEND-EMAIL API] Generating email content with customerName:', customerName);
+      
+      let emailHtml, textContent;
+      try {
+        emailHtml = generateEmailHtml(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
+        textContent = generateEmailText(language, customerName, formattedQuotationId, quotation, appUrl, isUpdated, selectedPackage, selectedPromotion, magicLink);
+        console.log('✅ [SEND-EMAIL API] Email content generated successfully');
+      } catch (error) {
+        console.error('❌ [SEND-EMAIL API] Error generating email content:', error);
+        throw new Error(`Failed to generate email content: ${error instanceof Error ? error.message : String(error)}`);
+      }
     
     console.log('🔄 [SEND-EMAIL API] Sending email with PDF attachment');
+    console.log('🔍 [SEND-EMAIL API] About to enter email sending try-catch block');
     
     try {
       // Parse BCC emails
-      const bccEmailList = bccEmails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
+      const safeBccEmails = bccEmails || 'booking@japandriver.com';
+      const bccEmailList = safeBccEmails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
       
       // Send email with timeout
       console.log('🔄 [SEND-EMAIL API] Sending email via Resend...');
       const emailSendPromise = resend.emails.send({
         from: `Driver Japan <booking@${emailDomain}>`,
-        to: [email],
+        to: [quotation.customer_email || email],
         bcc: bccEmailList,
         subject: emailSubject,
         text: textContent,
@@ -288,6 +320,7 @@ export async function POST(request: NextRequest) {
       }
       
       console.log('✅ [SEND-EMAIL API] Email sent successfully! ID:', emailData?.id);
+      console.log('🔍 [SEND-EMAIL API] About to update quotation status');
       
       // Update quotation status to 'sent' and last_sent details
       // Expiry date should be 2 days from creation date, not from sending
@@ -299,13 +332,14 @@ export async function POST(request: NextRequest) {
         .update({ 
           status: 'sent',
           last_sent_at: new Date().toISOString(),
-          last_sent_to: email,
+          last_sent_to: quotation.customer_email || email,
           // Expiry date: 2 days from creation (not from sending)
           expiry_date: expiryDate.toISOString()
         })
         .eq('id', quotationId);
     
       // Log activity
+      console.log('🔍 [SEND-EMAIL API] About to log activity');
       await supabase
         .from('quotation_activities')
         .insert({
@@ -313,13 +347,14 @@ export async function POST(request: NextRequest) {
           user_id: authUser.id,
           action: 'email_sent',
           details: { 
-            email: email,
+            email: quotation.customer_email || email,
             sent_at: new Date().toISOString(),
             sent_by: 'system'
           }
         });
       
       clearTimeout(timeoutId);
+      console.log('🔍 [SEND-EMAIL API] About to return success response');
       return NextResponse.json({ 
         success: true,
         message: 'Email sent successfully',

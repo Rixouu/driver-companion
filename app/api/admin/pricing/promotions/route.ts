@@ -81,8 +81,11 @@ export async function POST(req: NextRequest) {
         start_date: body.start_date || null,
         end_date: body.end_date || null,
         is_active: body.is_active !== undefined ? body.is_active : true,
-        applicable_services: body.applicable_services || [],
+        applicable_service: body.applicable_service_type_ids || [],
         applicable_vehicle_types: body.applicable_vehicle_types || [],
+        max_uses: body.max_uses || null,
+        min_order_value: body.min_order_value || null,
+        is_featured: body.is_featured !== undefined ? body.is_featured : false,
         times_used: body.times_used || 0
       })
       .select()

@@ -207,32 +207,45 @@ export function ServiceCard({
               <div className="text-muted-foreground">Unit Price:</div>
               <div className="flex items-center gap-2">
                 {isEditingPrice ? (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <Input
                       type="number"
                       value={customPrice}
                       onChange={(e) => setCustomPrice(e.target.value)}
-                      className="h-6 text-xs w-16"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handlePriceSave();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          handlePriceCancel();
+                        }
+                      }}
+                      className="h-8 text-sm w-24 focus:w-32 transition-all duration-200"
                       min="0"
                       step="0.01"
+                      placeholder="0.00"
+                      autoFocus
                     />
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
                       onClick={handlePriceSave}
-                      className="h-6 w-6 p-0"
+                      className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-700"
+                      title="Save price (Enter)"
                     >
-                      <Check className="h-3 w-3 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
                       onClick={handlePriceCancel}
-                      className="h-6 w-6 p-0"
+                      className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-700"
+                      title="Cancel (Esc)"
                     >
-                      <XIcon className="h-3 w-3 text-red-600" />
+                      <XIcon className="h-4 w-4 text-red-600" />
                     </Button>
                   </div>
                 ) : (
@@ -254,7 +267,7 @@ export function ServiceCard({
                         size="sm"
                         variant="ghost"
                         onClick={handlePriceEdit}
-                        className="h-4 w-4 p-0 hover:bg-blue-50"
+                        className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-700"
                         title="Edit Price"
                       >
                         <Edit3 className="h-3 w-3 text-blue-600" />
@@ -276,6 +289,11 @@ export function ServiceCard({
                     <span className="text-xs ml-1">
                       ({item.time_based_adjustment > 0 ? '+' : ''}{item.time_based_adjustment}%)
                     </span>
+                    {item.time_based_rule_name && (
+                      <div className="text-xs text-orange-600 mt-1 font-normal">
+                        {item.time_based_rule_name}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

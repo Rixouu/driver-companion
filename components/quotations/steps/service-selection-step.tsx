@@ -30,6 +30,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
 import { ServiceCard } from '@/components/quotations/service-card';
 import { useQuotationFormData } from '@/lib/hooks/useQuotationFormData';
+import { useTimeBasedPricing } from '@/lib/hooks/useTimeBasedPricing';
 
 // Import types
 import { 
@@ -82,6 +83,13 @@ export function ServiceSelectionStep({
   const [isEditingService, setIsEditingService] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [serviceTimeBasedPricing, setServiceTimeBasedPricing] = useState<boolean>(true);
+
+  // Use the real time-based pricing hook
+  const { 
+    rules: timeBasedRules, 
+    loading: timeBasedRulesLoading, 
+    calculateTimeBasedAdjustment 
+  } = useTimeBasedPricing();
 
   // Debug formData - only log once when formData changes
   useEffect(() => {
@@ -201,38 +209,7 @@ export function ServiceSelectionStep({
     return `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
-  // Calculate time-based adjustment function
-  const calculateTimeBasedAdjustment = (pickupTime: string, pickupDate?: Date) => {
-    if (!pickupTime) return { adjustment: 0, ruleName: null };
-    
-    const hour = parseInt(pickupTime.split(':')[0]);
-    const minute = parseInt(pickupTime.split(':')[1] || '0');
-    const timeInMinutes = hour * 60 + minute;
-    
-    // Convert pickup date to day of week
-    const dayOfWeek = pickupDate ? 
-      ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][pickupDate.getDay()] :
-      'monday'; // default to monday if no date
-    
-    // Check Overtime rule: 22:00-06:00, all days, +25%
-    const overtimeStart = 22 * 60; // 22:00 in minutes
-    const overtimeEnd = 6 * 60; // 06:00 in minutes
-    
-    if (timeInMinutes >= overtimeStart || timeInMinutes <= overtimeEnd) {
-      return { adjustment: 25, ruleName: 'Overtime' };
-    }
-    
-    // Check Morning Happy Hours: 06:00-08:00, weekdays, -25%
-    const morningStart = 6 * 60; // 06:00 in minutes
-    const morningEnd = 8 * 60; // 08:00 in minutes
-    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-    
-    if (timeInMinutes >= morningStart && timeInMinutes < morningEnd && weekdays.includes(dayOfWeek)) {
-      return { adjustment: -25, ruleName: 'Morning Happy Hours' };
-    }
-    
-    return { adjustment: 0, ruleName: null };
-  };
+
 
   // Handle package selection
   const handlePackageSelect = (pkg: PricingPackage) => {
@@ -356,8 +333,11 @@ export function ServiceSelectionStep({
       
       // Calculate time-based adjustment using actual rules
       const { adjustment: timeBasedAdjustment, ruleName } = serviceTimeBasedPricing 
-        ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
+        ? calculateTimeBasedAdjustment(pickupTime, pickupDate, effectiveVehicleCategory, effectiveServiceType)
         : { adjustment: 0, ruleName: null };
+      
+      console.log('🔍 [TIME-BASED] Rules loaded:', timeBasedRules?.length || 0);
+      console.log('🔍 [TIME-BASED] Adjustment:', timeBasedAdjustment, 'Rule:', ruleName);
       
       // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
       const baseServicePrice = isCharter ? pricingResult.baseAmount : pricingResult.baseAmount * (serviceDays || 1);
@@ -419,12 +399,15 @@ export function ServiceSelectionStep({
     try {
       setIsCalculating(true);
       
-      const effectiveServiceType = serviceType || "placeholder-service";
-      const effectiveVehicleCategory = vehicleCategory || "standard";
+      const existingItem = serviceItems[index];
+      const effectiveServiceType = serviceType || existingItem.service_type_id || "placeholder-service";
+      const effectiveVehicleCategory = vehicleCategory || existingItem.vehicle_category || "standard";
       
-      // Extract vehicle name from vehicle object for pricing calculation
+      // Use existing vehicle info if form doesn't have new selection
       const selectedVehicle = typeof vehicleType === 'object' ? vehicleType : null;
-      const effectiveVehicleType = selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : "Standard Vehicle";
+      const effectiveVehicleType = selectedVehicle 
+        ? `${selectedVehicle.brand} ${selectedVehicle.model}` 
+        : existingItem.vehicle_type || "Standard Vehicle";
       
       const isCharter = selectedServiceTypeObject?.name?.toLowerCase().includes('charter') || false;
       // For Charter services, use total duration (days × hours per day), otherwise use 1 hour
@@ -456,7 +439,7 @@ export function ServiceSelectionStep({
       
       // Calculate time-based adjustment using actual rules
       const { adjustment: timeBasedAdjustment, ruleName } = serviceTimeBasedPricing 
-        ? calculateTimeBasedAdjustment(pickupTime, pickupDate)
+        ? calculateTimeBasedAdjustment(pickupTime, pickupDate, effectiveVehicleCategory, effectiveServiceType)
         : { adjustment: 0, ruleName: null };
       
       // For Charter services, the baseAmount already includes the total duration, so don't multiply by serviceDays again
@@ -469,20 +452,20 @@ export function ServiceSelectionStep({
 
       const updatedItem: ServiceItemInput = {
         service_type_id: effectiveServiceType,
-        service_type_name: selectedServiceTypeObject?.name || 'Service',
+        service_type_name: selectedServiceTypeObject?.name || existingItem.service_type_name || 'Service',
         vehicle_type: vehicleDisplayName,
         vehicle_category: effectiveVehicleCategory,
         duration_hours: effectiveDuration,
         unit_price: pricingResult.baseAmount,
         quantity: 1,
         total_price: adjustedPrice,
-        service_days: serviceDays || 1,
+        service_days: serviceDays || existingItem.service_days || 1,
         hours_per_day: isCharter ? (hoursPerDay || 1) : effectiveDuration,
-        description: `${selectedServiceTypeObject?.name || 'Service'} - ${vehicleDisplayName}${vehiclePlateNumber ? ` (${vehiclePlateNumber})` : ''}`,
-        sort_order: serviceItems[index].sort_order, // Keep original sort order
+        description: `${selectedServiceTypeObject?.name || existingItem.service_type_name || 'Service'} - ${vehicleDisplayName}${vehiclePlateNumber ? ` (${vehiclePlateNumber})` : ''}`,
+        sort_order: existingItem.sort_order, // Keep original sort order
         is_service_item: true,
-        pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : null,
-        pickup_time: pickupTime || null,
+        pickup_date: pickupDate ? format(pickupDate, 'yyyy-MM-dd') : existingItem.pickup_date || null,
+        pickup_time: pickupTime || existingItem.pickup_time || null,
         time_based_adjustment: timeBasedAdjustment !== 0 ? timeBasedAdjustment : undefined,
         time_based_rule_name: ruleName || undefined,
       };
@@ -1050,6 +1033,11 @@ export function ServiceSelectionStep({
                         <div className="flex items-center gap-2">
                           <Timer className="h-4 w-4 text-green-600" />
                           <Label className="text-sm font-medium">Apply time-based pricing</Label>
+                          {serviceTimeBasedPricing && (
+                            <Badge variant="outline" className="text-xs">
+                              {timeBasedRulesLoading ? 'Loading...' : `${timeBasedRules?.length || 0} rules active`}
+                            </Badge>
+                          )}
                         </div>
                         <Switch
                           checked={serviceTimeBasedPricing}

@@ -810,7 +810,6 @@ export default function TimeBasedPricingTab() {
                       value === "all" ? null : value
                     )
                   }
-                  disabled={!dialog.data.category_id}
                 >
                   <SelectTrigger id="serviceType">
                     <SelectValue
@@ -827,7 +826,10 @@ export default function TimeBasedPricingTab() {
                           !dialog.data.category_id ||
                           categories
                             .find((c) => c.id === dialog.data.category_id)
-                            ?.service_type_ids?.includes(st.id)
+                            ?.service_type_ids?.includes(st.id) ||
+                          !categories
+                            .find((c) => c.id === dialog.data.category_id)
+                            ?.service_type_ids
                       )
                       .map((serviceType) => (
                         <SelectItem key={serviceType.id} value={serviceType.id}>

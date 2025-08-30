@@ -1461,6 +1461,12 @@ export const en: TranslationValue = {
         copyError: "Error copying template",
         customizeAfterCopy: "You can now customize this template for the selected target"
       },
+      copyPricing: {
+        copySuccess: "Pricing copied successfully",
+        copySuccessDescription: "Successfully processed {count} pricing items from {fromVehicle} to {toVehicle}",
+        copyError: "Failed to copy pricing",
+        copyErrorDescription: "An error occurred while copying pricing items"
+      },
       masterTemplate: {
         title: "Master Template",
         description: "This is a master template that can be copied and customized",
@@ -3332,7 +3338,7 @@ export const en: TranslationValue = {
     description: "Manage service pricing, promotions, and packages",
     tabs: {
       categories: "Categories",
-      items: "Items",
+      items: "Vehicle Pricing",
       serviceTypes: "Service Types",
       timeBasedPricing: "Time-based Pricing",
       promotions: "Promotions",
@@ -3365,7 +3371,23 @@ export const en: TranslationValue = {
         vehiclesUpdateError: "Failed to update vehicles",
         orderUpdated: "Category Order Updated",
         orderUpdatedDescription: "The category order has been updated successfully",
-        orderUpdateError: "Failed to update category order"
+        orderUpdateError: "Failed to update category order",
+        noCategoriesTitle: "No Categories Available",
+        noCategoriesDescription: "Please create pricing categories first to manage pricing items.",
+        vehiclesAdded: "Vehicles added successfully",
+        vehiclesAddedDescription: "Successfully added {count} vehicles to the category",
+        vehiclesRemoved: "Vehicles removed successfully",
+        vehiclesRemovedDescription: "Successfully removed {count} vehicles from the category",
+        addVehiclesError: "Failed to add vehicles to category",
+        removeVehiclesError: "Failed to remove vehicles from category",
+        vehiclesLoadError: "Failed to load vehicles",
+        vehiclesLoadSuccess: "Vehicles loaded successfully",
+        copyPricingSuccess: "Pricing copied successfully",
+        copyPricingSuccessDescription: "Successfully copied pricing from {fromVehicle} to {toVehicle}",
+        copyPricingError: "Failed to copy pricing",
+        copyPricingErrorDescription: "An error occurred while copying pricing items",
+        copyPricingSuccessTitle: "Pricing Copied Successfully",
+        copyPricingSuccessDescription: "Successfully processed {count} pricing items from {fromVehicle} to {toVehicle}"
       },
       buttons: {
         fixServiceTypes: "Fix Service Types",
@@ -3473,7 +3495,16 @@ export const en: TranslationValue = {
         updateSuccessTitle: "Pricing Item Updated",
         updateError: "Failed to update pricing item",
         createSuccess: "Pricing item created successfully",
-        createError: "Failed to create pricing item"
+        createError: "Failed to create pricing item",
+        statusToggleSuccess: "Item status updated successfully",
+        copySuccess: "Pricing copied successfully",
+        copySuccessDescription: "Successfully processed {count} pricing items from {fromVehicle} to {toVehicle}",
+        copyError: "Failed to copy pricing",
+        copyErrorDescription: "An error occurred while copying pricing items",
+        copyPricingSuccess: "Pricing copied successfully",
+        copyPricingSuccessDescription: "Successfully copied pricing from {fromVehicle} to {toVehicle}",
+        copyPricingError: "Failed to copy pricing",
+        copyPricingErrorDescription: "An error occurred while copying pricing items"
       },
       errors: {
         categoryRequired: "Category is required for pricing item",
@@ -3497,6 +3528,10 @@ export const en: TranslationValue = {
       buttons: {
         addNew: "Add New Pricing Item",
         addItemToCategory: "Add Item to {categoryName}"
+      },
+      fields: {
+        serviceTypePlaceholder: "Select service type",
+        currencyPlaceholder: "Select currency"
       },
       emptyState: {
         selectCategory: "Please select a pricing category to view or add items.",

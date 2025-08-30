@@ -207,11 +207,39 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "bookings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "bookings_vehicle_id_fkey"
@@ -222,38 +250,109 @@ export type Database = {
           },
         ]
       }
+      customer_segments: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
+          billing_city: string | null
+          billing_company_name: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_state: string | null
+          billing_street_name: string | null
+          billing_street_number: string | null
+          billing_tax_number: string | null
           created_at: string
           email: string
           id: string
           name: string | null
           notes: string | null
           phone: string | null
+          segment_id: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
           created_at?: string
           email: string
           id?: string
           name?: string | null
           notes?: string | null
           phone?: string | null
+          segment_id?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          billing_city?: string | null
+          billing_company_name?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_state?: string | null
+          billing_street_name?: string | null
+          billing_street_number?: string | null
+          billing_tax_number?: string | null
           created_at?: string
           email?: string
           id?: string
           name?: string | null
           notes?: string | null
           phone?: string | null
+          segment_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dispatch_assignments: {
         Row: {
@@ -344,6 +443,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "dispatch_assignments_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -403,6 +516,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "dispatch_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "dispatch_entries_vehicle_id_fkey"
@@ -492,6 +619,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "driver_availability_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
         ]
       }
@@ -1109,6 +1250,41 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "inspections_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -1623,7 +1799,7 @@ export type Database = {
           service_type: string
           service_type_id: string | null
           updated_at: string
-          vehicle_type: string
+          vehicle_id: string | null
         }
         Insert: {
           category_id?: string | null
@@ -1636,7 +1812,7 @@ export type Database = {
           service_type: string
           service_type_id?: string | null
           updated_at?: string
-          vehicle_type: string
+          vehicle_id?: string | null
         }
         Update: {
           category_id?: string | null
@@ -1649,7 +1825,7 @@ export type Database = {
           service_type?: string
           service_type_id?: string | null
           updated_at?: string
-          vehicle_type?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -1664,6 +1840,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_items_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1842,7 +2025,10 @@ export type Database = {
           end_date: string | null
           id: string
           is_active: boolean
+          is_featured: boolean | null
+          max_uses: number | null
           maximum_discount: number | null
+          min_order_value: number | null
           minimum_amount: number | null
           name: string
           start_date: string | null
@@ -1862,7 +2048,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean | null
+          max_uses?: number | null
           maximum_discount?: number | null
+          min_order_value?: number | null
           minimum_amount?: number | null
           name: string
           start_date?: string | null
@@ -1882,7 +2071,10 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean | null
+          max_uses?: number | null
           maximum_discount?: number | null
+          min_order_value?: number | null
           minimum_amount?: number | null
           name?: string
           start_date?: string | null
@@ -2005,6 +2197,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotation_activities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotation_activities_customer_id_fkey"
             columns: ["customer_id"]
@@ -2226,6 +2425,13 @@ export type Database = {
             foreignKeyName: "quotation_messages_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -2331,6 +2537,7 @@ export type Database = {
           booking_created_at: string | null
           converted_to_booking_id: string | null
           created_at: string
+          created_by: string | null
           currency: string
           customer_email: string
           customer_id: string | null
@@ -2384,6 +2591,7 @@ export type Database = {
           service_type_id: string | null
           status: string
           tax_percentage: number | null
+          team_location: string
           time_based_adjustment: number | null
           title: string
           total_amount: number
@@ -2408,6 +2616,7 @@ export type Database = {
           booking_created_at?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
+          created_by?: string | null
           currency?: string
           customer_email: string
           customer_id?: string | null
@@ -2461,6 +2670,7 @@ export type Database = {
           service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
+          team_location?: string
           time_based_adjustment?: number | null
           title: string
           total_amount: number
@@ -2485,6 +2695,7 @@ export type Database = {
           booking_created_at?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
+          created_by?: string | null
           currency?: string
           customer_email?: string
           customer_id?: string | null
@@ -2538,6 +2749,7 @@ export type Database = {
           service_type_id?: string | null
           status?: string
           tax_percentage?: number | null
+          team_location?: string
           time_based_adjustment?: number | null
           title?: string
           total_amount?: number
@@ -2558,6 +2770,13 @@ export type Database = {
             columns: ["converted_to_booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_analytics"
             referencedColumns: ["id"]
           },
           {
@@ -2648,6 +2867,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "tracking_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "tracking_devices_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -2697,6 +2930,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
           },
           {
             foreignKeyName: "vehicle_assignments_vehicle_id_fkey"
@@ -2802,6 +3049,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
             foreignKeyName: "vehicle_locations_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -2830,6 +3091,7 @@ export type Database = {
           updated_at: string
           user_email: string | null
           user_id: string
+          vehicle_category_id: string
           vehicle_group_id: string | null
           vin: string
           year: string
@@ -2853,6 +3115,7 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id: string
+          vehicle_category_id: string
           vehicle_group_id?: string | null
           vin: string
           year: string
@@ -2876,11 +3139,19 @@ export type Database = {
           updated_at?: string
           user_email?: string | null
           user_id?: string
+          vehicle_category_id?: string
           vehicle_group_id?: string | null
           vin?: string
           year?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicles_vehicle_category_id_fkey"
+            columns: ["vehicle_category_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vehicles_vehicle_group_id_fkey"
             columns: ["vehicle_group_id"]
@@ -2892,24 +3163,82 @@ export type Database = {
       }
     }
     Views: {
+      customer_analytics: {
+        Row: {
+          address: string | null
+          billing_city: string | null
+          billing_company_name: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_state: string | null
+          billing_street_name: string | null
+          billing_street_number: string | null
+          billing_tax_number: string | null
+          booking_count: number | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          last_activity_date: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          quotation_count: number | null
+          segment_color: string | null
+          segment_description: string | null
+          segment_icon: string | null
+          segment_id: string | null
+          segment_name: string | null
+          total_quotation_amount: number | null
+          total_spent: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "customer_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_details: {
         Row: {
+          booking_id: string | null
+          brand: string | null
           created_at: string | null
           date: string | null
           driver_email: string | null
+          driver_id: string | null
           driver_name: string | null
+          driver_phone: string | null
+          due_date: string | null
           id: string | null
           inspector_email: string | null
+          inspector_id: string | null
           inspector_name: string | null
+          inspector_phone: string | null
+          items: Json | null
           model: string | null
+          notes: string | null
           plate_number: string | null
+          schedule_type: string | null
+          started_at: string | null
           status: string | null
           type: string | null
+          updated_at: string | null
           vehicle_id: string | null
           vehicle_name: string | null
           year: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inspections_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inspections_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -2994,12 +3323,33 @@ export type Database = {
           record_id: string
         }[]
       }
+      clean_customer_data: {
+        Args: { email_input: string; name_input: string; phone_input: string }
+        Returns: {
+          clean_email: string
+          clean_name: string
+          clean_phone: string
+        }[]
+      }
       clean_quotation_text: {
         Args: { input_text: string }
         Returns: string
       }
       clean_quotation_text_comprehensive: {
-        Args: { input_text: string }
+        Args:
+          | { field_name?: string; input_text: string }
+          | { input_text: string }
+        Returns: string
+      }
+      create_customer_from_api: {
+        Args: {
+          p_address?: string
+          p_email: string
+          p_name?: string
+          p_notes?: string
+          p_phone?: string
+          p_segment_id?: string
+        }
         Returns: string
       }
       get_correct_price_for_duration: {
@@ -3059,6 +3409,16 @@ export type Database = {
       recalculate_quotation_totals: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      upsert_customer: {
+        Args: {
+          p_address?: string
+          p_email: string
+          p_name?: string
+          p_notes?: string
+          p_phone?: string
+        }
+        Returns: string
       }
     }
     Enums: {

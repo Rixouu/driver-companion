@@ -61,7 +61,7 @@ export async function getServerPricingItems(categoryId?: string): Promise<Pricin
       *,
       service_types (id, name)
     `)
-    .order('vehicle_type'); // Changed order to an existing column, can be adjusted
+    .order('duration_hours'); // Order by duration_hours instead of vehicle_type
 
   if (categoryId) {
     query = query.eq('category_id', categoryId);

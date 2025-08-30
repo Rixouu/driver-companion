@@ -153,7 +153,7 @@ export interface PricingItem {
   category_id: string | null;
   service_type_id: string | null;
   service_type_name?: string;
-  vehicle_type: string;
+  vehicle_id: string | null; // Changed from vehicle_type to vehicle_id
   duration_hours: number;
   price: number;
   currency: string;
@@ -340,8 +340,12 @@ export interface PricingPromotion {
   is_active: boolean;
   usage_limit?: number | null;
   times_used: number;
+  max_uses?: number | null;
+  min_order_value?: number | null;
+  is_featured: boolean;
   applicable_service_type_ids: string[] | null;
   applicable_vehicle_types: string[];
+  applicable_vehicle_categories?: string[];
   created_at: string;
   updated_at: string;
 }

@@ -11,9 +11,9 @@ async function verifyAdmin(supabase: any, userId: string): Promise<boolean> {
 }
 
 // PATCH handler for updating a pricing item
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = createServiceClient();
-  const itemId = params.id;
+  const { id: itemId } = await params;
 
   try {
     // Skip admin verification for now since we're using service client
@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Map known fields from body to updatePayload
     if (body.category_id !== undefined) updatePayload.category_id = body.category_id;
     if (body.service_type_id !== undefined) updatePayload.service_type_id = body.service_type_id;
-    if (body.vehicle_type !== undefined) updatePayload.vehicle_type = body.vehicle_type;
+    if (body.vehicle_id !== undefined) updatePayload.vehicle_id = body.vehicle_id;
     if (body.duration_hours !== undefined) updatePayload.duration_hours = body.duration_hours;
     if (body.price !== undefined) updatePayload.price = body.price;
     if (body.currency !== undefined) updatePayload.currency = body.currency;
@@ -78,9 +78,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE handler for deleting a pricing item
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = createServiceClient();
-  const itemId = params.id;
+  const { id: itemId } = await params;
 
   try {
     // Skip admin verification for now since we're using service client

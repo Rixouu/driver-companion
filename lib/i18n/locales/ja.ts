@@ -3297,7 +3297,7 @@ export const ja: TranslationValue = {
     description: "サービス価格、プロモーション、パッケージを管理します",
     tabs: {
       categories: "カテゴリ",
-      items: "品目",
+      items: "車両料金",
       serviceTypes: "サービスタイプ",
       timeBasedPricing: "時間帯料金",
       promotions: "プロモーション",
@@ -3330,7 +3330,22 @@ export const ja: TranslationValue = {
         vehiclesUpdateError: "車両の更新に失敗しました",
         orderUpdated: "カテゴリ順序が更新されました",
         orderUpdatedDescription: "カテゴリ順序が正常に更新されました",
-        orderUpdateError: "カテゴリ順序の更新に失敗しました"
+        orderUpdateError: "カテゴリ順序の更新に失敗しました",
+        noCategoriesTitle: "利用可能なカテゴリがありません",
+        noCategoriesDescription: "価格品目を管理するには、まず価格カテゴリを作成してください。",
+        vehiclesAdded: "車両が正常に追加されました",
+        vehiclesAddedDescription: "カテゴリに{count}台の車両が正常に追加されました",
+        vehiclesRemoved: "車両が正常に削除されました",
+        vehiclesRemovedDescription: "カテゴリから{count}台の車両が正常に削除されました",
+        addVehiclesError: "カテゴリへの車両の追加に失敗しました",
+        removeVehiclesError: "カテゴリからの車両の削除に失敗しました",
+        vehiclesLoadError: "車両の読み込みに失敗しました",
+        vehiclesLoadSuccess: "車両が正常に読み込まれました",
+        copyPricingSuccess: "価格設定が正常にコピーされました",
+        copyPricingSuccessDescription: "{fromVehicle}から{toVehicle}への価格設定が正常にコピーされました",
+        copyPricingError: "価格設定のコピーに失敗しました",
+        copyPricingErrorDescription: "価格設定品目のコピー中にエラーが発生しました",
+        copyPricingSuccessTitle: "価格設定が正常にコピーされました"
       },
       buttons: {
         fixServiceTypes: "サービスタイプを修正",
@@ -3438,7 +3453,16 @@ export const ja: TranslationValue = {
         updateSuccessTitle: "価格品目が更新されました",
         updateError: "価格品目の更新に失敗しました",
         createSuccess: "価格品目が正常に作成されました",
-        createError: "価格品目の作成に失敗しました"
+        createError: "価格品目の作成に失敗しました",
+        statusToggleSuccess: "品目ステータスが正常に更新されました",
+        copySuccess: "価格設定が正常にコピーされました",
+        copySuccessDescription: "{fromVehicle}から{toVehicle}への{count}件の価格設定品目が正常に処理されました",
+        copyError: "価格設定のコピーに失敗しました",
+        copyErrorDescription: "価格設定品目のコピー中にエラーが発生しました",
+        copyPricingSuccess: "価格設定が正常にコピーされました",
+        copyPricingSuccessDescription: "{fromVehicle}から{toVehicle}への価格設定が正常にコピーされました",
+        copyPricingError: "価格設定のコピーに失敗しました",
+        copyPricingErrorDescription: "価格設定品目のコピー中にエラーが発生しました"
       },
       errors: {
         categoryRequired: "価格品目にはカテゴリが必要です",
@@ -3462,6 +3486,10 @@ export const ja: TranslationValue = {
       buttons: {
         addNew: "新しい価格品目を追加",
         addItemToCategory: "{categoryName}に品目を追加"
+      },
+      fields: {
+        serviceTypePlaceholder: "サービスタイプを選択",
+        currencyPlaceholder: "通貨を選択"
       },
       emptyState: {
         selectCategory: "価格品目を表示または追加するには、価格カテゴリを選択してください。",

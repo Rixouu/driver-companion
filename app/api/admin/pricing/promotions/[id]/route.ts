@@ -6,17 +6,20 @@ export const dynamic = "force-dynamic"
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
     
     // Skip admin verification for now since we're using service client
 
+    // Await params for Next.js 15 compatibility
+    const { id: promotionId } = await params;
+
     const { data, error } = await supabase
       .from('pricing_promotions')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', promotionId)
       .single();
 
     if (error) {
@@ -35,7 +38,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
@@ -45,11 +48,14 @@ export async function PATCH(
     // Parse request body
     const updates = await req.json();
 
+    // Await params for Next.js 15 compatibility
+    const { id: promotionId } = await params;
+
     // Check if promotion exists
     const { data: existingPromotion, error: fetchError } = await supabase
       .from('pricing_promotions')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', promotionId)
       .single();
 
     if (fetchError) {
@@ -63,7 +69,7 @@ export async function PATCH(
     const { data, error } = await supabase
       .from('pricing_promotions')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', promotionId)
       .select()
       .single();
 
@@ -84,18 +90,21 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServiceClient();
     
     // Skip admin verification for now since we're using service client
 
+    // Await params for Next.js 15 compatibility
+    const { id: promotionId } = await params;
+
     // Delete the promotion
     const { error } = await supabase
       .from('pricing_promotions')
       .delete()
-      .eq('id', params.id);
+      .eq('id', promotionId);
 
     if (error) {
       console.error('Error deleting pricing promotion:', error);

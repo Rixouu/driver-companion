@@ -45,6 +45,7 @@ import {
   PricingPackage,
   PricingPromotion
 } from '@/types/quotations';
+import { useQuotationFormData } from '@/lib/hooks/useQuotationFormData';
 
 // Define form schema with zod
 const formSchema = z.object({
@@ -62,7 +63,18 @@ const formSchema = z.object({
   billing_country: z.string().optional(),
   service_type: z.string().optional(),
   vehicle_category: z.string().optional(),
-  vehicle_type: z.string().optional(),
+  vehicle_type: z.union([
+    z.string(),
+    z.object({
+      id: z.string(),
+      brand: z.string(),
+      model: z.string(),
+      name: z.string().optional(),
+      year: z.string().optional(),
+      status: z.string().optional(),
+      category_id: z.string().optional()
+    })
+  ]).optional(),
   pickup_date: z.date().optional(),
   pickup_time: z.string().optional(),
   duration_hours: z.union([
@@ -148,6 +160,17 @@ export default function QuotationFormRefactored({
   const [pricingCategories, setPricingCategories] = useState<PricingCategory[]>(initialPricingCategories || []);
   const [pricingItems, setPricingItems] = useState<PricingItem[]>(initialPricingItems || []);
   const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>(initialServiceTypes || []);
+  
+  // Use the new dynamic data hook
+  const { 
+    data: quotationFormData, 
+    loading: formDataLoading, 
+    error: formDataError,
+    getVehiclesForCategory,
+    getPricingForServiceAndVehicle,
+    getBasePrice,
+    getAvailableDurations
+  } = useQuotationFormData();
   
   // Hooks
   const {
@@ -351,7 +374,13 @@ export default function QuotationFormRefactored({
         billing_country: formData.billing_country || undefined,
         service_type_id: primaryServiceItem?.service_type_id || formData.service_type || '',
         vehicle_category: primaryServiceItem?.vehicle_category || formData.vehicle_category || undefined,
-        vehicle_type: primaryServiceItem?.vehicle_type || formData.vehicle_type || '',
+        vehicle_type: (() => {
+          const vehicleType = primaryServiceItem?.vehicle_type || formData.vehicle_type || '';
+          if (typeof vehicleType === 'object' && vehicleType !== null) {
+            return `${vehicleType.brand} ${vehicleType.model}`;
+          }
+          return vehicleType as string;
+        })(),
         pickup_date: primaryServiceItem?.pickup_date || (formData.pickup_date ? format(formData.pickup_date, 'yyyy-MM-dd') : undefined),
         pickup_time: primaryServiceItem?.pickup_time || formData.pickup_time || undefined,
         duration_hours: primaryServiceItem?.duration_hours || formData.duration_hours,
@@ -701,6 +730,7 @@ export default function QuotationFormRefactored({
               allServiceTypes={allServiceTypes}
               pricingCategories={pricingCategories}
               pricingItems={pricingItems}
+              formData={quotationFormData}
               calculateQuotationAmount={calculateQuotationAmount}
             />
           )}

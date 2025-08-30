@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
         vin,
         status,
         created_at,
-        updated_at
+        updated_at,
+        pricing_category_vehicles(category_id)
       `, { count: 'exact' })
     
     if (search) {
@@ -74,8 +75,14 @@ export async function GET(request: NextRequest) {
       throw new DatabaseError('Error fetching vehicles.', { cause: queryError })
     }
     
+    // Process vehicles to extract category information
+    const processedVehicles = vehicles?.map(vehicle => ({
+      ...vehicle,
+      vehicle_category_id: vehicle.pricing_category_vehicles?.[0]?.category_id || null
+    })) || []
+    
     return NextResponse.json({
-      vehicles,
+      vehicles: processedVehicles,
       pagination: {
         page,
         pageSize,

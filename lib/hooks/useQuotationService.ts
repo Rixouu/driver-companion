@@ -164,13 +164,14 @@ export const useQuotationService = () => {
    */
   const calculateQuotationAmount = async (
     serviceTypeId: string,
-    vehicleType: string,
+    selectedVehicle: { id: string; brand: string; model: string; name: string } | null,
     durationHours: number = 1,
     discountPercentage: number = 0,
     taxPercentage: number = 0,
     serviceDays: number = 1,
     hoursPerDay?: number,
-    dateTime?: Date | string
+    dateTime?: Date | string,
+    vehicleCategory?: string // Add vehicle category parameter
   ): Promise<{
     baseAmount: number;
     discountAmount: number;
@@ -187,33 +188,74 @@ export const useQuotationService = () => {
       const serviceTypeResult = await getServiceTypeById(serviceTypeId);
       const serviceType = serviceTypeResult?.name || '';
       
-      // Try to fetch price from database first
-      const { data: pricingItems, error: pricingError } = await supabase
+      // NEW CLEAN APPROACH: Use vehicle_id directly instead of vehicle_type mapping
+      console.log(`🔍 [PRICING] Service Type ID: "${serviceTypeId}"`);
+      console.log(`🔍 [PRICING] Vehicle Category: "${vehicleCategory}"`);
+      console.log(`🔍 [PRICING] Duration Hours: ${durationHours}`);
+      console.log(`🔍 [PRICING] Selected Vehicle:`, selectedVehicle);
+      
+      // Try to fetch price from database first using vehicle_id
+      let query = supabase
         .from('pricing_items')
         .select('*')
         .eq('service_type_id', serviceTypeId)
-        .eq('vehicle_type', vehicleType)
+        .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
         .eq('duration_hours', durationHours)
         .eq('is_active', true);
+      
+      // If vehicle category is provided, filter by it
+      if (vehicleCategory) {
+        query = query.eq('category_id', vehicleCategory);
+        console.log(`🔍 [PRICING] Filtering by category ID: "${vehicleCategory}"`);
+      } else {
+        console.log(`⚠️ [PRICING] No vehicle category provided, will search all categories`);
+      }
+      
+      const { data: pricingItems, error: pricingError } = await query;
+      
+      if (pricingError) {
+        console.error(`❌ [PRICING] Database error:`, pricingError);
+      }
+      
+      console.log(`🔍 [PRICING] Query results: ${pricingItems?.length || 0} items found`);
+      if (pricingItems && pricingItems.length > 0) {
+        console.log(`🔍 [PRICING] Found items:`, pricingItems.map(item => ({
+          id: item.id,
+          vehicle_id: item.vehicle_id,
+          price: item.price,
+          duration_hours: item.duration_hours,
+          category_id: item.category_id
+        })));
+      }
       
       if (pricingItems && pricingItems.length > 0) {
         // Found an exact pricing match in the database
         baseAmount = Number(pricingItems[0].price);
         priceSource = 'database_exact_match';
+        console.log(`✅ [PRICING] Found exact match: vehicle_id ${pricingItems[0].vehicle_id} - ¥${pricingItems[0].price} for ${durationHours}h`);
       } else {
+        console.log(`⚠️ [PRICING] No exact match found for vehicle_id ${selectedVehicle?.id} - ${durationHours}h, trying hourly rate...`);
         // No exact match, try to get hourly rate from database
-        const { data: hourlyRates, error: hourlyError } = await supabase
+        let hourlyQuery = supabase
           .from('pricing_items')
           .select('*')
           .eq('service_type_id', serviceTypeId)
-          .eq('vehicle_type', vehicleType)
+          .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
           .eq('duration_hours', 1) // Get the hourly rate
           .eq('is_active', true);
+        
+        // If vehicle category is provided, filter by it
+        if (vehicleCategory) {
+          hourlyQuery = hourlyQuery.eq('category_id', vehicleCategory);
+        }
+        
+        const { data: hourlyRates, error: hourlyError } = await hourlyQuery;
           
         if (hourlyRates && hourlyRates.length > 0) {
           // Use hourly rate from database
           const hourlyRate = Number(hourlyRates[0].price);
           priceSource = 'database_hourly_rate';
+          console.log(`✅ [PRICING] Found hourly rate: ${hourlyRates[0].vehicle_id || 'N/A'} - ¥${hourlyRates[0].price}/h`);
           
           // Different calculation logic based on service type
           if (serviceType.toLowerCase().includes('charter')) {
@@ -226,72 +268,81 @@ export const useQuotationService = () => {
             baseAmount = hourlyRate * durationHours;
           }
         } else {
-          // Fallback to querying any pricing for this vehicle type
-          const { data: vehiclePricing, error: vehicleError } = await supabase
+          // Fallback to querying any pricing for this vehicle
+          let fallbackQuery = supabase
             .from('pricing_items')
             .select('*')
-            .eq('vehicle_type', vehicleType)
+            .eq('vehicle_id', selectedVehicle?.id || '') // Use vehicle_id instead of vehicle_type
             .eq('is_active', true)
             .limit(1);
           
+          // If vehicle category is provided, filter by it
+          if (vehicleCategory) {
+            fallbackQuery = fallbackQuery.eq('category_id', vehicleCategory);
+          }
+          
+          const { data: vehiclePricing, error: vehicleError } = await fallbackQuery;
+          
           if (vehiclePricing && vehiclePricing.length > 0) {
-            // Use a price from the same vehicle type as a base
+            // Use a price from the same vehicle as a base
             baseAmount = Number(vehiclePricing[0].price);
             priceSource = 'database_vehicle_match';
           } else {
-            // Last resort - use hardcoded fallbacks but log extensively
-            priceSource = 'hardcoded_fallback';
+            // No vehicle-specific pricing found, try category-based pricing as fallback
+            console.log(`⚠️ [PRICING] No vehicle-specific pricing found, trying category-based fallback...`);
             
-            // Different base pricing for different services
-            if (serviceType.toLowerCase().includes('airporttransfer')) {
-              if (serviceType.toLowerCase().includes('haneda')) {
-                // Haneda pricing by vehicle type
-                if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
-                  baseAmount = 46000;
-                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
-                  baseAmount = 42000;
-                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
-                  baseAmount = 55000;
-                } else {
-                  baseAmount = 46000; // Default
-                }
-              } else if (serviceType.toLowerCase().includes('narita')) {
-                // Narita pricing by vehicle type
-                if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
-                  baseAmount = 69000;
-                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
-                  baseAmount = 65000;
-                } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
-                  baseAmount = 75000;
-                } else {
-                  baseAmount = 69000; // Default
-                }
-              }
-              
-              // Multiply by duration for airport transfers (usually 1 hour)
-              baseAmount = baseAmount * durationHours;
-            } else if (serviceType.toLowerCase().includes('charter')) {
-              // Charter services pricing - hardcoded fallbacks
-              let hourlyRate = 0;
-              
-              if (vehicleType.toLowerCase().includes('mercedes') && vehicleType.toLowerCase().includes('black suite')) {
-                hourlyRate = 23000;
-              } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('alphard')) {
-                hourlyRate = 23000;
-              } else if (vehicleType.toLowerCase().includes('toyota') && vehicleType.toLowerCase().includes('hi-ace')) {
-                hourlyRate = 27000;
-              } else {
-                hourlyRate = 23000; // Default to match Mercedes pricing
-              }
-              
-              // For charter, calculate based on days and hours per day
-              // If hoursPerDay is provided, use it; otherwise use durationHours
-              const effectiveHoursPerDay = hoursPerDay || durationHours;
-              const dailyRate = hourlyRate * effectiveHoursPerDay;
-              baseAmount = dailyRate * serviceDays;
+            let categoryFallbackQuery = supabase
+              .from('pricing_items')
+              .select('*')
+              .eq('service_type_id', serviceTypeId)
+              .eq('category_id', vehicleCategory)
+              .eq('duration_hours', durationHours)
+              .eq('is_active', true)
+              .limit(1);
+            
+            const { data: categoryPricing, error: categoryError } = await categoryFallbackQuery;
+            
+            if (categoryPricing && categoryPricing.length > 0) {
+              // Use category-based pricing as fallback
+              baseAmount = Number(categoryPricing[0].price);
+              priceSource = 'database_category_fallback';
+              console.log(`✅ [PRICING] Using category-based pricing: ¥${baseAmount} for ${serviceType} in ${vehicleCategory} category`);
             } else {
-              // Default fallback for unknown service types
-              baseAmount = 46000; // General default
+              // Try hourly rate from category
+              let categoryHourlyQuery = supabase
+                .from('pricing_items')
+                .select('*')
+                .eq('service_type_id', serviceTypeId)
+                .eq('category_id', vehicleCategory)
+                .eq('duration_hours', 1)
+                .eq('is_active', true)
+                .limit(1);
+              
+              const { data: categoryHourly, error: categoryHourlyError } = await categoryHourlyQuery;
+              
+              if (categoryHourly && categoryHourly.length > 0) {
+                const hourlyRate = Number(categoryHourly[0].price);
+                priceSource = 'database_category_hourly_fallback';
+                console.log(`✅ [PRICING] Using category hourly rate: ¥${hourlyRate}/h for ${serviceType} in ${vehicleCategory} category`);
+                
+                // Different calculation logic based on service type
+                if (serviceType.toLowerCase().includes('charter')) {
+                  const effectiveHoursPerDay = hoursPerDay || durationHours;
+                  const dailyRate = hourlyRate * effectiveHoursPerDay;
+                  baseAmount = dailyRate * serviceDays;
+                } else {
+                  baseAmount = hourlyRate * durationHours;
+                }
+              } else {
+                // No pricing found in database - this should not happen with proper data
+                priceSource = 'no_pricing_found';
+                console.error(`❌ [PRICING] No pricing found in database for: vehicle_id ${selectedVehicle?.id} - ${durationHours}h in category ${vehicleCategory}`);
+                console.error(`❌ [PRICING] Service Type: ${serviceType} (ID: ${serviceTypeId})`);
+                console.error(`❌ [PRICING] Vehicle: ${selectedVehicle?.brand} ${selectedVehicle?.model}`);
+                
+                // Return error instead of hardcoded values
+                throw new Error(`No pricing found for vehicle ${selectedVehicle?.brand} ${selectedVehicle?.model} with ${durationHours}h duration in category ${vehicleCategory}`);
+              }
             }
           }
         }
@@ -322,6 +373,8 @@ export const useQuotationService = () => {
       const amountAfterDiscount = baseAmount - discountAmount;
       const taxAmount = amountAfterDiscount * (taxPercentage / 100);
       const totalAmount = amountAfterDiscount + taxAmount;
+      
+      console.log(`💰 [PRICING] Final result: ¥${baseAmount} (source: ${priceSource})`);
       
       return {
         baseAmount,
@@ -467,7 +520,7 @@ export const useQuotationService = () => {
                     db_price: Number(exactMatch.price),
                     match: item.unit_price === Number(exactMatch.price) ? 'MATCH ✓' : 'MISMATCH ✗',
                     db_id: exactMatch.id,
-                    vehicle_type: exactMatch.vehicle_type,
+                    vehicle_id: exactMatch.vehicle_id,
                     duration_hours: exactMatch.duration_hours
                   });
                 } else {
@@ -543,37 +596,42 @@ export const useQuotationService = () => {
           // Calculate with time-based pricing
           calculatedPricing = await calculateQuotationAmount(
             input.service_type_id,
-            input.vehicle_type,
+            { id: input.vehicle_type, brand: '', model: '', name: input.vehicle_type }, // Create vehicle object from string
             input.duration_hours || 1,
             input.discount_percentage || 0,
             input.tax_percentage || 0,
             input.service_days || 1,
             input.hours_per_day === null ? undefined : input.hours_per_day,
-            dateTime
+            dateTime,
+            input.vehicle_category
           );
         } catch (error) {
           console.error('Error parsing date for time-based pricing:', error);
           // Fallback to regular pricing if date parsing fails
           calculatedPricing = await calculateQuotationAmount(
             input.service_type_id,
-            input.vehicle_type,
+            { id: input.vehicle_type, brand: '', model: '', name: input.vehicle_type }, // Create vehicle object from string
             input.duration_hours || 1,
             input.discount_percentage || 0,
             input.tax_percentage || 0,
             input.service_days || 1,
-            input.hours_per_day === null ? undefined : input.hours_per_day
+            input.hours_per_day === null ? undefined : input.hours_per_day,
+            undefined, // dateTime
+            input.vehicle_category
           );
         }
       } else {
         // Calculate without time-based pricing
         calculatedPricing = await calculateQuotationAmount(
           input.service_type_id,
-          input.vehicle_type,
+          { id: input.vehicle_type, brand: '', model: '', name: input.vehicle_type }, // Create vehicle object from string
           input.duration_hours || 1,
           input.discount_percentage || 0,
           input.tax_percentage || 0,
           input.service_days || 1,
-          input.hours_per_day === null ? undefined : input.hours_per_day
+          input.hours_per_day === null ? undefined : input.hours_per_day,
+          undefined, // dateTime
+          input.vehicle_category
         );
       }
       
@@ -1363,7 +1421,7 @@ export const useQuotationService = () => {
           id,
           category_id,
           service_type_id,
-          vehicle_type,
+          vehicle_id,
           duration_hours,
           price,
           currency,
@@ -1383,7 +1441,7 @@ export const useQuotationService = () => {
       }
       
       if (vehicleType) {
-        query = query.eq('vehicle_type', vehicleType);
+        query = query.eq('vehicle_id', vehicleType);
       }
 
       const { data, error } = await query;
@@ -1504,11 +1562,10 @@ export const useQuotationService = () => {
     try {
       setLoading(true);
       
-      // Ensure applicable_services (old field) is not sent if it exists on the input
-      const { applicable_services, ...restOfPromotion } = promotion as any;
+      // Map the fields to match the database schema
       const promotionDataForApi = {
-        ...restOfPromotion,
-        applicable_service_type_ids: promotion.applicable_service_type_ids || null, // Ensure new field is used
+        ...promotion,
+        applicable_service_type_ids: promotion.applicable_service_type_ids || null,
         times_used: 0
       };
 

@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     const {
       category_id,
       service_type_id,
-      vehicle_type,
+      vehicle_id,
       duration_hours,
       price,
       currency,
       is_active
     } = body;
 
-    if (!service_type_id || !vehicle_type || duration_hours === undefined || price === undefined || !currency) {
+    if (!service_type_id || duration_hours === undefined || price === undefined || !currency) {
       return NextResponse.json({ error: 'Missing required fields for pricing item.' }, { status: 400 });
     }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         category_id: category_id || null,
         service_type_id,
         service_type: serviceTypeName,
-        vehicle_type,
+        vehicle_id: vehicle_id || null,
         duration_hours,
         price,
         currency,

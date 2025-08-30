@@ -130,10 +130,12 @@ export default function PricingPromotionsTab() {
   const [isEditing, setIsEditing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
+  const [vehicleCategories, setVehicleCategories] = useState<string[]>([]);
   const [allServiceTypes, setAllServiceTypes] = useState<ServiceTypeInfo[]>([]);
   const [isMobileView, setIsMobileView] = useState(false);
   
   const { getPricingPromotions, getPricingItems, createPricingPromotion, updatePricingPromotion, deletePricingPromotion, getServiceTypes } = useQuotationService();
+  const { categories, serviceTypes } = usePricingData();
   const { t } = useI18n();
   
   // Check mobile view on mount and resize
@@ -166,20 +168,44 @@ export default function PricingPromotionsTab() {
   }, []);
   
   useEffect(() => {
-    async function loadVehicleTypes() {
+    async function loadVehicleData() {
       try {
-        const allItems = await getPricingItems();
-        const uniqueVehicleTypes = Array.from(
-          new Set(allItems.map(item => item.vehicle_type))
+        // Fetch actual vehicles from the database
+        const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+        
+        const { data: vehiclesData, error: vehiclesError } = await supabase
+          .from('vehicles')
+          .select('brand, model, name')
+          .order('brand')
+          .order('model');
+
+        if (vehiclesError) {
+          console.error('Error fetching vehicles:', vehiclesError);
+          setVehicleTypes([]);
+        } else {
+          // Create unique vehicle type identifiers
+          const uniqueVehicleTypes = Array.from(
+            new Set(vehiclesData?.map(v => `${v.brand} ${v.model}`.trim()).filter(Boolean) || [])
+          );
+          setVehicleTypes(uniqueVehicleTypes);
+          console.log('Loaded vehicle types from database:', uniqueVehicleTypes);
+        }
+        
+        // Get vehicle categories from categories
+        const uniqueVehicleCategories = Array.from(
+          new Set(categories.map(cat => cat.name).filter(Boolean))
         );
-        setVehicleTypes(uniqueVehicleTypes);
+        setVehicleCategories(uniqueVehicleCategories);
+        console.log('Loaded vehicle categories from categories:', uniqueVehicleCategories);
       } catch (error) {
-        console.error("Error loading vehicle types:", error);
+        console.error("Error loading vehicle data:", error);
         setVehicleTypes([]);
+        setVehicleCategories([]);
       }
     }
-    loadVehicleTypes();
-  }, []);
+    
+    loadVehicleData();
+  }, [categories]);
   
   const handleCreatePromotion = () => {
     setCurrentPromotion({
@@ -190,6 +216,10 @@ export default function PricingPromotionsTab() {
       discount_value: 0,
       applicable_service_type_ids: [],
       applicable_vehicle_types: [],
+      applicable_vehicle_categories: [],
+      max_uses: null,
+      min_order_value: null,
+      is_featured: false,
       start_date: null,
       end_date: null,
       is_active: true
@@ -283,6 +313,10 @@ export default function PricingPromotionsTab() {
       ? promotion.applicable_service_type_ids.map(id => allServiceTypes.find(s => s.id === id)?.name || id).join(', ')
       : 'All Services';
     
+    const applicableCategories = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
+      ? promotion.applicable_vehicle_types.join(', ')
+      : 'All Categories';
+    
     const applicableVehicles = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
       ? promotion.applicable_vehicle_types.join(', ')
       : 'All Vehicles';
@@ -355,6 +389,15 @@ export default function PricingPromotionsTab() {
               </div>
               <div className="space-y-2">
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  Applicable Categories
+                </div>
+                <div className="text-sm text-foreground bg-purple-50 dark:bg-purple-950/20 px-3 py-2 rounded border border-purple-200 dark:border-purple-800">
+                  {applicableCategories}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   Applicable Vehicles
                 </div>
@@ -373,6 +416,39 @@ export default function PricingPromotionsTab() {
               <div className="text-sm text-foreground bg-muted/30 px-3 py-2 rounded border">
                 {formatDateRange(promotion.start_date, promotion.end_date)}
               </div>
+            </div>
+
+            {/* Additional Settings - Enhanced */}
+            <div className="space-y-3">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Additional Settings
+              </div>
+              
+              {/* Max Uses & Min Order Value */}
+              <div className="grid grid-cols-2 gap-3">
+                {promotion.max_uses && (
+                  <div className="bg-orange-50 dark:bg-orange-950/20 px-3 py-2 rounded border border-orange-200 dark:border-orange-800">
+                    <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">Max Uses</div>
+                    <div className="text-sm text-foreground">{promotion.max_uses}</div>
+                  </div>
+                )}
+                {promotion.min_order_value && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 px-3 py-2 rounded border border-blue-200 dark:border-blue-800">
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Min Order Value</div>
+                    <div className="text-sm text-foreground">¥{promotion.min_order_value.toLocaleString()}</div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Featured Badge */}
+              {promotion.is_featured && (
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 px-3 py-2 rounded border border-yellow-200 dark:border-yellow-800">
+                  <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium flex items-center gap-2">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    Featured Promotion
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Actions - Enhanced */}
@@ -540,8 +616,8 @@ export default function PricingPromotionsTab() {
               </CardContent>
             </Card>
 
-            {/* Applicable Services & Vehicles Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Applicable Services, Categories & Vehicles Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -556,7 +632,7 @@ export default function PricingPromotionsTab() {
                   <ScrollArea className="h-48 rounded-md border p-3">
                     <div className="space-y-2">
                       {allServiceTypes.map(serviceType => (
-                        <div key={serviceType.id} className="flex items-center space-x-2">
+                        <div key={`service-${serviceType.id}`} className="flex items-center space-x-2">
                           <input 
                             type="checkbox" 
                             id={`service-${serviceType.id}`} 
@@ -586,6 +662,53 @@ export default function PricingPromotionsTab() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    Applicable Categories
+                  </CardTitle>
+                  <CardDescription>
+                    Select specific vehicle categories or leave empty for all categories
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-48 rounded-md border p-3">
+                    <div className="space-y-2">
+                      {vehicleCategories.length > 0 ? (
+                        vehicleCategories.map(category => (
+                          <div key={`category-${category}`} className="flex items-center space-x-2">
+                            <input 
+                              type="checkbox" 
+                              id={`category-${category}`} 
+                              checked={(currentPromotion.applicable_vehicle_types || []).includes(category)} 
+                              onChange={(e) => {
+                                const categories = [...(currentPromotion.applicable_vehicle_types || [])];
+                                if (e.target.checked) {
+                                  if (!categories.includes(category)) categories.push(category);
+                                } else {
+                                  const index = categories.indexOf(category);
+                                  if (index > -1) categories.splice(index, 1);
+                                }
+                                handleInputChange("applicable_vehicle_types", categories);
+                              }} 
+                              title={`Select ${category} vehicle category`}
+                            />
+                            <Label htmlFor={`category-${category}`} className="text-sm cursor-pointer">
+                              {category}
+                            </Label>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground py-4 text-center">
+                          No vehicle categories found
+                        </div>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     Applicable Vehicles
                   </CardTitle>
@@ -596,29 +719,35 @@ export default function PricingPromotionsTab() {
                 <CardContent>
                   <ScrollArea className="h-48 rounded-md border p-3">
                     <div className="space-y-2">
-                      {vehicleTypes.map(vehicle => (
-                        <div key={vehicle} className="flex items-center space-x-2">
-                          <input 
-                            type="checkbox" 
-                            id={`vehicle-${vehicle}`} 
-                            checked={(currentPromotion.applicable_vehicle_types || []).includes(vehicle)} 
-                            onChange={(e) => {
-                              const vehicles = [...(currentPromotion.applicable_vehicle_types || [])];
-                              if (e.target.checked) {
-                                if (!vehicles.includes(vehicle)) vehicles.push(vehicle);
-                              } else {
-                                const index = vehicles.indexOf(vehicle);
-                                if (index > -1) vehicles.splice(index, 1);
-                              }
-                              handleInputChange("applicable_vehicle_types", vehicles);
-                            }} 
-                            title={`Select ${vehicle} vehicle type`}
-                          />
-                          <Label htmlFor={`vehicle-${vehicle}`} className="text-sm cursor-pointer">
-                            {vehicle}
-                          </Label>
+                      {vehicleTypes.length > 0 ? (
+                        vehicleTypes.map(vehicle => (
+                          <div key={`vehicle-${vehicle}`} className="flex items-center space-x-2">
+                            <input 
+                              type="checkbox" 
+                              id={`vehicle-${vehicle}`} 
+                              checked={(currentPromotion.applicable_vehicle_types || []).includes(vehicle)} 
+                              onChange={(e) => {
+                                const vehicles = [...(currentPromotion.applicable_vehicle_types || [])];
+                                if (e.target.checked) {
+                                  if (!vehicles.includes(vehicle)) vehicles.push(vehicle);
+                                } else {
+                                  const index = vehicles.indexOf(vehicle);
+                                  if (index > -1) vehicles.splice(index, 1);
+                                }
+                                handleInputChange("applicable_vehicle_types", vehicles);
+                              }} 
+                              title={`Select ${vehicle} vehicle type`}
+                            />
+                            <Label htmlFor={`vehicle-${vehicle}`} className="text-sm cursor-pointer">
+                              {vehicle}
+                            </Label>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-muted-foreground py-4 text-center">
+                          No vehicle types found
                         </div>
-                      ))}
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -642,12 +771,11 @@ export default function PricingPromotionsTab() {
                       type="number" 
                       min="0" 
                       placeholder="Leave empty for unlimited" 
-                      value="" 
-                      onChange={(e) => {}} 
-                      disabled
+                      value={currentPromotion.max_uses || ""} 
+                      onChange={(e) => handleInputChange("max_uses", e.target.value ? parseInt(e.target.value, 10) : null)} 
                     />
                     <p className="text-xs text-muted-foreground">
-                      Feature coming soon
+                      Set maximum number of times this promotion can be used. Leave empty for unlimited.
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -658,12 +786,11 @@ export default function PricingPromotionsTab() {
                       min="0" 
                       step="0.01"
                       placeholder="Leave empty for no minimum" 
-                      value="" 
-                      onChange={(e) => {}} 
-                      disabled
+                      value={currentPromotion.min_order_value || ""} 
+                      onChange={(e) => handleInputChange("min_order_value", e.target.value ? parseFloat(e.target.value) : null)} 
                     />
                     <p className="text-xs text-muted-foreground">
-                      Feature coming soon
+                      Set minimum order value required to use this promotion. Leave empty for no minimum.
                     </p>
                   </div>
                 </div>
@@ -671,13 +798,12 @@ export default function PricingPromotionsTab() {
                   <input 
                     type="checkbox" 
                     id="is-featured" 
-                    checked={false} 
-                    onChange={(e) => {}} 
+                    checked={currentPromotion.is_featured || false} 
+                    onChange={(e) => handleInputChange("is_featured", e.target.checked)} 
                     title="Mark as featured promotion"
-                    disabled
                   />
                   <Label htmlFor="is-featured">Featured Promotion</Label>
-                  <span className="text-xs text-muted-foreground">(Coming soon)</span>
+                  <span className="text-xs text-muted-foreground">(Will be highlighted in customer interface)</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input 
@@ -821,6 +947,7 @@ export default function PricingPromotionsTab() {
                     <PricingTableHead>Promotion</PricingTableHead>
                     <PricingTableHead>Discount</PricingTableHead>
                     <PricingTableHead>Applicable To</PricingTableHead>
+                    <PricingTableHead>Additional Settings</PricingTableHead>
                     <PricingTableHead>Validity Period</PricingTableHead>
                     <PricingTableHead className="text-center">Status</PricingTableHead>
                     <PricingTableHead className="text-right">Actions</PricingTableHead>
@@ -832,6 +959,10 @@ export default function PricingPromotionsTab() {
                       const applicableServices = promotion.applicable_service_type_ids && promotion.applicable_service_type_ids.length > 0
                         ? promotion.applicable_service_type_ids.map(id => allServiceTypes.find(s => s.id === id)?.name || id).join(', ')
                         : 'All Services';
+                      
+                      const applicableCategories = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
+                        ? promotion.applicable_vehicle_types.join(', ')
+                        : 'All Categories';
                       
                       const applicableVehicles = promotion.applicable_vehicle_types && promotion.applicable_vehicle_types.length > 0
                         ? promotion.applicable_vehicle_types.join(', ')
@@ -879,10 +1010,39 @@ export default function PricingPromotionsTab() {
                               </div>
                               <div className="text-sm text-foreground">{applicableServices}</div>
                               <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                <span className="text-xs text-muted-foreground">Categories:</span>
+                              </div>
+                              <div className="text-sm text-foreground">{applicableCategories}</div>
+                              <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                 <span className="text-xs text-muted-foreground">Vehicles:</span>
                               </div>
                               <div className="text-sm text-foreground">{applicableVehicles}</div>
+                            </div>
+                          </PricingTableCell>
+                          <PricingTableCell>
+                            <div className="space-y-2">
+                              {promotion.max_uses && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                  <span className="text-xs text-muted-foreground">Max Uses:</span>
+                                  <span className="text-sm font-medium">{promotion.max_uses}</span>
+                                </div>
+                              )}
+                              {promotion.min_order_value && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <span className="text-xs text-muted-foreground">Min Order:</span>
+                                  <span className="text-sm font-medium">¥{promotion.min_order_value.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {promotion.is_featured && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                  <span className="text-xs text-yellow-600 font-medium">Featured</span>
+                                </div>
+                              )}
                             </div>
                           </PricingTableCell>
                           <PricingTableCell>

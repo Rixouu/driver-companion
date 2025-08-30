@@ -535,20 +535,18 @@ export function CustomersPageContent({
                   </Link>
                 </div>
 
-                {/* Action Buttons - Mobile Optimized */}
-                <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start" onClick={(e) => e.stopPropagation()}>
-                  <Button asChild size="sm" variant="outline" className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                {/* Action Buttons - 2-Column Layout on Mobile */}
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <Button asChild size="sm" variant="outline" className="h-9 px-3 text-xs sm:text-sm w-full">
                     <Link href={`/customers/${customer.id}`}>
                       <Eye className="h-3 w-3 mr-1" />
-                      <span className="hidden sm:inline">View</span>
-                      <span className="sm:hidden">👁</span>
+                      View
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="outline" className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
+                  <Button asChild size="sm" variant="outline" className="h-9 px-3 text-xs sm:text-sm w-full">
                     <Link href={`/customers/${customer.id}/edit`}>
                       <Edit className="h-3 w-3 mr-1" />
-                      <span className="hidden sm:inline">Edit</span>
-                      <span className="sm:hidden">✏️</span>
+                      Edit
                     </Link>
                   </Button>
                 </div>

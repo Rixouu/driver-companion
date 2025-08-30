@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CustomerDetails } from '@/types/customers'
 import {
@@ -220,92 +220,101 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
         </Card>
       </div>
 
-      {/* Detailed Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="quotations">Quotations</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="spending">Spending Analysis</TabsTrigger>
-        </TabsList>
+      {/* Tab Selection Dropdown - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="w-full sm:w-auto">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="overview">Overview</SelectItem>
+              <SelectItem value="quotations">Quotations</SelectItem>
+              <SelectItem value="bookings">Bookings</SelectItem>
+              <SelectItem value="spending">Spending Analysis</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Quotations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Recent Quotations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
-                  <div className="space-y-3">
-                    {customer.recent_quotations.slice(0, 5).map((quotation) => (
-                      <div key={quotation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">Quote #{quotation.quote_number}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Quotations */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Recent Quotations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_quotations.slice(0, 5).map((quotation) => (
+                        <div key={quotation.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">Quote #{quotation.quote_number}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
+                            <Badge 
+                              variant="outline"
+                              className={cn(
+                                quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-green-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                                quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                                quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                                quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                              )}
+                            >
+                              {quotation.status}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
-                          <Badge 
-                            variant="outline"
-                            className={cn(
-                              quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                              quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                              quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                              quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                              quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                              quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                            )}
-                          >
-                            {quotation.status}
+                      ))}
+                      {customer.recent_quotations.length > 5 && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link href={`/quotations?customer_id=${customer.id}`}>
+                            View All Quotations
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No quotations yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Bookings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Recent Bookings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_bookings.slice(0, 5).map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">{booking.service_name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {format(new Date(booking.date), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                          <Badge variant={booking.status === 'completed' ? 'default' : booking.status === 'confirmed' ? 'secondary' : 'outline'}>
+                            {booking.status}
                           </Badge>
                         </div>
-                      </div>
-                    ))}
-                    {customer.recent_quotations.length > 5 && (
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/quotations?customer_id=${customer.id}`}>
-                          View All Quotations
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No quotations yet</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Bookings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Recent Bookings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
-                  <div className="space-y-3">
-                    {customer.recent_bookings.slice(0, 5).map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{booking.service_name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(new Date(booking.date), 'MMM dd, yyyy')}
-                          </div>
-                        </div>
-                        <Badge variant={booking.status === 'completed' ? 'default' : booking.status === 'confirmed' ? 'secondary' : 'outline'}>
-                          {booking.status}
-                        </Badge>
-                      </div>
                     ))}
                     {customer.recent_bookings.length > 5 && (
                       <Button variant="outline" className="w-full" asChild>
@@ -321,10 +330,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        )}
 
         {/* Quotations Tab */}
-        <TabsContent value="quotations">
+        {activeTab === 'quotations' && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -419,10 +428,10 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
         {/* Bookings Tab */}
-        <TabsContent value="bookings">
+        {activeTab === 'bookings' && (
           <Card>
             <CardHeader>
               <CardTitle>All Bookings</CardTitle>
@@ -453,10 +462,11 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
         {/* Spending Analysis Tab */}
-        <TabsContent value="spending" className="space-y-6">
+        {activeTab === 'spending' && (
+          <div className="space-y-6">
           {/* Revenue Overview Section */}
           <Card>
             <CardHeader>
@@ -596,10 +606,8 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
               </CardContent>
             </Card>
           </div>
-
-
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   )
 }

@@ -90,7 +90,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           title={t('navigation.customers') || "Customers"}
           description="Manage customer relationships, segments, and analytics"
         >
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/customers/new">
               <Plus className="h-4 w-4 mr-2" />
               Add Customer
@@ -119,7 +119,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           title={t('navigation.customers') || "Customers"}
           description="Manage customer relationships, segments, and analytics"
         >
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/customers/new">
               <Plus className="h-4 w-4 mr-2" />
               Add Customer

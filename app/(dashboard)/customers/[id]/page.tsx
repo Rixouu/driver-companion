@@ -58,7 +58,7 @@ export default async function CustomerDetailsPage({ params }: CustomerDetailsPag
           title={customer.name || customer.email}
           description={`Customer since ${new Date(customer.created_at).toLocaleDateString()}`}
         >
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href={`/customers/${id}/edit`}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Customer

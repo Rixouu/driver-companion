@@ -535,7 +535,7 @@ export function CustomersPageContent({
                   </Link>
                 </div>
 
-                {/* Action Buttons - 2-Column Layout on Mobile */}
+                {/* Action Buttons - Mobile Optimized 2-Column Layout */}
                 <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   <Button asChild size="sm" variant="outline" className="h-9 px-3 text-xs sm:text-sm w-full">
                     <Link href={`/customers/${customer.id}`}>

@@ -84,18 +84,18 @@ export function CustomerFilters({
   return (
     <Card className={className}>
       <CardHeader 
-        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        className="cursor-pointer hover:bg-muted/50 transition-colors px-4 sm:px-6"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <CardTitle className="text-lg flex items-center justify-between">
+        <CardTitle className="text-base sm:text-lg flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Search
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="text-sm sm:text-base">Filters & Search</span>
           </div>
           {isCollapsed ? (
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+            <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           )}
         </CardTitle>
 
@@ -112,9 +112,10 @@ export function CustomerFilters({
       
       {!isCollapsed && (
         <CardContent className="pt-6 space-y-3 sm:space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {/* Segment Filter */}
-          <div>
+        {/* Mobile Optimized Grid Layout - 2 Columns on Mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {/* Segment Filter - Full Width on Mobile */}
+          <div className="col-span-2 lg:col-span-1">
             <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Customer Segment
             </label>
@@ -145,7 +146,7 @@ export function CustomerFilters({
             </Select>
           </div>
           
-          {/* Created Date Range Filters */}
+          {/* Created Date Range Filters - 2 Columns on Mobile */}
           <div>
             <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Created From
@@ -159,13 +160,13 @@ export function CustomerFilters({
                   ...filters,
                   dateFrom: e.target.value || undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Created To
             </label>
             <div className="relative">
@@ -177,16 +178,17 @@ export function CustomerFilters({
                   ...filters,
                   dateTo: e.target.value || undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Spending and Search - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {/* Spending Range Filters */}
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Min Spending
             </label>
             <div className="relative">
@@ -199,13 +201,13 @@ export function CustomerFilters({
                   ...filters,
                   spendingMin: e.target.value ? parseFloat(e.target.value) : undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Max Spending
             </label>
             <div className="relative">
@@ -218,48 +220,48 @@ export function CustomerFilters({
                   ...filters,
                   spendingMax: e.target.value ? parseFloat(e.target.value) : undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
-            </div>
-          </div>
-          
-          {/* Search */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Search
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search customers by name or email..."
-                value={filters.searchQuery}
-                onChange={(e) => onFiltersChange({
-                  ...filters,
-                  searchQuery: e.target.value
-                })}
-                className="pl-10 pr-10"
-              />
-              {filters.searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                  onClick={() => onFiltersChange({
-                    ...filters,
-                    searchQuery: ''
-                  })}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Last Activity Date Range */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Search - Full Width on Mobile */}
+        <div>
+          <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
+            Search
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search customers by name or email..."
+              value={filters.searchQuery}
+              onChange={(e) => onFiltersChange({
+                ...filters,
+                searchQuery: e.target.value
+              })}
+              className="pl-10 pr-10 text-xs sm:text-sm"
+            />
+            {filters.searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                onClick={() => onFiltersChange({
+                  ...filters,
+                  searchQuery: ''
+                })}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Last Activity Date Range - 2 Columns on Mobile */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Last Activity From
             </label>
             <div className="relative">
@@ -271,13 +273,13 @@ export function CustomerFilters({
                   ...filters,
                   activityFrom: e.target.value || undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>
           
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
               Last Activity To
             </label>
             <div className="relative">
@@ -289,7 +291,7 @@ export function CustomerFilters({
                   ...filters,
                   activityTo: e.target.value || undefined
                 })}
-                className="pl-10"
+                className="pl-10 text-xs sm:text-sm"
               />
             </div>
           </div>

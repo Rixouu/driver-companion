@@ -328,26 +328,26 @@ export function CustomersPageContent({
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Stats Overview - Mobile Optimized */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Customers - Blue */}
         <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Total Customers</CardTitle>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCount.toLocaleString()}</div>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCount.toLocaleString()}</div>
           </CardContent>
         </Card>
 
         {/* Total Revenue - Green */}
         <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Total Revenue</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
             <div className="text-xl font-bold break-words text-green-600 dark:text-green-400">{formatCurrency(totalSpent, 'JPY')}</div>
           </CardContent>
         </Card>
@@ -444,105 +444,111 @@ export function CustomersPageContent({
         </CardContent>
       </Card>
 
-      {/* Customer List */}
-      <div className="grid gap-4">
+      {/* Customer List - Mobile Optimized */}
+      <div className="grid gap-3 sm:gap-4">
         {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="hover:shadow-md hover:bg-muted/30 transition-all duration-200 group cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                {/* Checkbox - Prevent click propagation */}
-                <div onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    id={`customer-${customer.id}`}
-                    checked={selectedCustomers.has(customer.id)}
-                    onChange={() => handleSelectCustomer(customer.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary mt-1"
-                    aria-label={`Select ${customer.name || 'customer'} for bulk operations`}
-                  />
-                </div>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                {/* Checkbox and Header Row - Mobile Optimized */}
+                <div className="flex items-center gap-3 sm:gap-4 w-full sm:flex-1 min-w-0">
+                  {/* Checkbox - Prevent click propagation */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      id={`customer-${customer.id}`}
+                      checked={selectedCustomers.has(customer.id)}
+                      onChange={() => handleSelectCustomer(customer.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-label={`Select ${customer.name || 'customer'} for bulk operations`}
+                    />
+                  </div>
 
-                {/* Main Content - Make clickable */}
-                <Link 
-                  href={`/customers/${customer.id}`} 
-                  className="flex-1 min-w-0 cursor-pointer"
-                >
-                  <div className="p-4 -m-4 rounded-lg transition-colors">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors">
-                          {customer.name || 'Unnamed Customer'}
-                        </h3>
-                        {customer.segment_name && (
-                          <Badge 
-                            variant="outline"
-                            className={cn(
-                              customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                              customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                              customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                              customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
-                            )}
-                          >
-                            {customer.segment_name}
-                          </Badge>
+                  {/* Main Content - Make clickable */}
+                  <Link 
+                    href={`/customers/${customer.id}`} 
+                    className="flex-1 min-w-0 cursor-pointer"
+                  >
+                    <div className="p-2 sm:p-4 -m-2 sm:-m-4 rounded-lg transition-colors">
+                      {/* Header Row - Mobile Stacked */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
+                          <h3 className="font-semibold text-base sm:text-lg truncate group-hover:text-primary transition-colors">
+                            {customer.name || 'Unnamed Customer'}
+                          </h3>
+                          {customer.segment_name && (
+                            <Badge 
+                              variant="outline"
+                              className={cn(
+                                "text-xs sm:text-sm",
+                                customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                                customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                                customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              )}
+                            >
+                              {customer.segment_name}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contact Info - Mobile Stacked */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{customer.email}</span>
+                        </div>
+                        {customer.phone && (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            <span className="truncate">{customer.phone}</span>
+                          </div>
                         )}
                       </div>
-                    </div>
 
-                    {/* Contact Info */}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        <span className="truncate">{customer.email}</span>
-                      </div>
-                      {customer.phone && (
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          <span>{customer.phone}</span>
+                      {/* Stats Row - Mobile Stacked */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-medium">{formatCurrency(customer.total_spent, 'JPY')}</span>
+                            <span className="text-muted-foreground">spent</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="font-medium">{customer.quotation_count}</span>
+                            <span className="text-muted-foreground">quotes</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="font-medium">{customer.booking_count}</span>
+                            <span className="text-muted-foreground">bookings</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-
-                    {/* Stats Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="font-medium">{formatCurrency(customer.total_spent, 'JPY')}</span>
-                          <span className="text-muted-foreground">spent</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="font-medium">{customer.quotation_count}</span>
-                          <span className="text-muted-foreground">quotes</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                          <span className="font-medium">{customer.booking_count}</span>
-                          <span className="text-muted-foreground">bookings</span>
+                        
+                        <div className="text-xs text-muted-foreground flex-shrink-0">
+                          {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
                         </div>
                       </div>
-                      
-                      <div className="text-xs text-muted-foreground flex-shrink-0">
-                        {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
-                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                </div>
 
-                {/* Action Buttons - Prevent click propagation */}
-                <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button asChild size="sm" variant="outline">
+                {/* Action Buttons - Mobile Optimized */}
+                <div className="flex items-center gap-2 flex-shrink-0 justify-end sm:justify-start" onClick={(e) => e.stopPropagation()}>
+                  <Button asChild size="sm" variant="outline" className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
                     <Link href={`/customers/${customer.id}`}>
                       <Eye className="h-3 w-3 mr-1" />
-                      View
+                      <span className="hidden sm:inline">View</span>
+                      <span className="sm:hidden">👁</span>
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="outline">
+                  <Button asChild size="sm" variant="outline" className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm">
                     <Link href={`/customers/${customer.id}/edit`}>
                       <Edit className="h-3 w-3 mr-1" />
-                      Edit
+                      <span className="hidden sm:inline">Edit</span>
+                      <span className="sm:hidden">✏️</span>
                     </Link>
                   </Button>
                 </div>

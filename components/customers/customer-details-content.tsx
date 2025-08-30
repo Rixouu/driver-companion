@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { CustomerDetails } from '@/types/customers'
 import {
   User,
@@ -32,7 +33,7 @@ interface CustomerDetailsContentProps {
 
 export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps) {
   const [activeTab, setActiveTab] = useState('overview')
-  const [quotationSortBy, setQuotationSortBy] = useState('created_at-desc')
+  const [quotationSort, setQuotationSort] = useState('created_at-desc')
   const [quotationPage, setQuotationPage] = useState(0)
 
   // Sort and paginate quotations
@@ -40,7 +41,7 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
     if (!customer.recent_quotations) return []
     
     const sorted = [...customer.recent_quotations].sort((a, b) => {
-      const [field, order] = quotationSortBy.split('-')
+      const [field, order] = quotationSort.split('-')
       const isDesc = order === 'desc'
       
       switch (field) {
@@ -58,7 +59,7 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
     })
     
     return sorted
-  }, [customer.recent_quotations, quotationSortBy])
+  }, [customer.recent_quotations, quotationSort])
 
   const paginatedQuotations = useMemo(() => {
     const start = quotationPage * 10
@@ -235,404 +236,425 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
         </Card>
       </div>
 
-      {/* Detailed Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="quotations">Quotations</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="spending">Spending Analysis</TabsTrigger>
-        </TabsList>
+      {/* Enhanced Tabs - Mobile and tablet optimized */}
+      <div className="border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg p-1 sm:p-2 mb-4 sm:mb-6 shadow-sm">
+        {/* Mobile Dropdown Navigation */}
+        <div className="block sm:hidden mb-4">
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="overview">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Overview
+                </div>
+              </SelectItem>
+              <SelectItem value="quotations">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Quotations
+                </div>
+              </SelectItem>
+              <SelectItem value="bookings">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Bookings
+                </div>
+              </SelectItem>
+              <SelectItem value="spending">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Spending
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Quotations */}
+        {/* Desktop Tab Navigation */}
+        <div className="hidden sm:block">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="flex flex-row w-full h-auto items-center justify-start rounded-lg border border-border/60 bg-muted/30 backdrop-blur p-1 gap-1">
+              <TabsTrigger 
+                value="overview" 
+                className="relative flex-none h-12 px-4 rounded-lg border border-border/40 bg-background/80 text-foreground font-medium shadow-sm transition-all duration-200 hover:bg-muted/50 hover:border-border/60 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+              >
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm font-medium">Overview</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="quotations" 
+                className="relative flex-none h-12 px-4 rounded-lg border border-border/40 bg-background/80 text-foreground font-medium shadow-sm transition-all duration-200 hover:bg-muted/50 hover:border-border/60 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="text-sm font-medium">Quotations</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="bookings" 
+                className="relative flex-none h-12 px-4 rounded-lg border border-border/40 bg-background/80 text-foreground font-medium shadow-sm transition-all duration-200 hover:bg-muted/50 hover:border-border/60 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  <span className="text-sm font-medium">Bookings</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="spending" 
+                className="relative flex-none h-12 px-4 rounded-lg border border-border/40 bg-background/80 text-foreground font-medium shadow-sm transition-all duration-200 hover:bg-muted/50 hover:border-border/60 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md"
+              >
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  <span className="text-sm font-medium">Spending</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Tab Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Quotations */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Recent Quotations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_quotations.slice(0, 5).map((quotation) => (
+                        <div key={quotation.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">Quote #{quotation.quote_number}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
+                            <Badge 
+                              variant="outline"
+                              className={cn(
+                                quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                                quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                                quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                                quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
+                                quotation.status === 'converted' && 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                              )}
+                            >
+                              {quotation.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {customer.recent_quotations.length > 5 && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link href={`/quotations?customer_id=${customer.id}`}>
+                            View All Quotations
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No quotations yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Bookings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Recent Bookings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_bookings.slice(0, 5).map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-medium">{booking.service_name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {format(new Date(booking.date), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                          <Badge 
+                            variant="outline"
+                            className={cn(
+                              booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                              booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                              booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                              booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                              booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                            )}
+                          >
+                            {booking.status}
+                          </Badge>
+                        </div>
+                      ))}
+                      {customer.recent_bookings.length > 5 && (
+                        <Button variant="outline" className="w-full" asChild>
+                          <Link href={`/bookings?customer_id=${customer.id}`}>
+                            View All Bookings
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No bookings yet</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Quotations Tab */}
+          <TabsContent value="quotations">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Recent Quotations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
-                  <div className="space-y-3">
-                    {customer.recent_quotations.slice(0, 5).map((quotation) => (
-                      <div key={quotation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">Quote #{quotation.quote_number}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
-                          <Badge 
-                            variant="outline"
-                            className={cn(
-                              quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                              quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                              quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                              quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                              quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                              quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                            )}
-                          >
-                            {quotation.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                    {customer.recent_quotations.length > 5 && (
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/quotations?customer_id=${customer.id}`}>
-                          View All Quotations
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No quotations yet</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Bookings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Recent Bookings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
-                  <div className="space-y-3">
-                    {customer.recent_bookings.slice(0, 5).map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <div className="font-medium">{booking.service_name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(new Date(booking.date), 'MMM dd, yyyy')}
-                          </div>
-                        </div>
-                        <Badge 
-                          variant="outline"
-                          className={cn(
-                            booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                            booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                            booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                            booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                            booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                          )}
-                        >
-                          {booking.status}
-                        </Badge>
-                      </div>
-                    ))}
-                    {customer.recent_bookings.length > 5 && (
-                      <Button variant="outline" className="w-full" asChild>
-                        <Link href={`/bookings?customer_id=${customer.id}`}>
-                          View All Bookings
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No bookings yet</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Quotations Tab */}
-        <TabsContent value="quotations">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>All Quotations</CardTitle>
-                <div className="flex items-center gap-2">
-                  {/* Sort Options */}
-                  <Select value={quotationSortBy} onValueChange={setQuotationSortBy}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="created_at-desc">Newest First</SelectItem>
-                      <SelectItem value="created_at-asc">Oldest First</SelectItem>
-                      <SelectItem value="amount-desc">Highest Amount</SelectItem>
-                      <SelectItem value="amount-asc">Lowest Amount</SelectItem>
-                      <SelectItem value="quote_number-desc">Quote # Desc</SelectItem>
-                      <SelectItem value="quote_number-asc">Quote # Asc</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
-                <>
-                  <div className="space-y-2">
-                    {paginatedQuotations.map((quotation) => (
-                      <div key={quotation.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div>
-                          <div className="font-medium">Quote #{quotation.quote_number}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy HH:mm')}
-                          </div>
-                        </div>
-                        <div className="text-right space-y-1">
-                          <div className="font-medium">{formatCurrency(quotation.amount, quotation.currency)}</div>
-                          <Badge 
-                            variant="outline"
-                            className={cn(
-                              quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                              quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                              quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                              quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                              quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                              quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
-                              quotation.status === 'converted' && 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
-                            )}
-                          >
-                            {quotation.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Pagination */}
-                  {customer.recent_quotations.length > 10 && (
-                    <div className="mt-6 flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Showing {Math.min(quotationPage * 10, customer.recent_quotations.length)} of {customer.recent_quotations.length} quotations
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setQuotationPage(Math.max(0, quotationPage - 1))}
-                          disabled={quotationPage === 0}
-                        >
-                          Previous
-                        </Button>
-                        <span className="text-sm text-muted-foreground">
-                          Page {quotationPage + 1} of {Math.ceil(customer.recent_quotations.length / 10)}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setQuotationPage(quotationPage + 1)}
-                          disabled={quotationPage >= Math.ceil(customer.recent_quotations.length / 10) - 1}
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No quotations</h3>
-                  <p className="text-muted-foreground">This customer hasn't received any quotations yet.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Bookings Tab */}
-        <TabsContent value="bookings">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Bookings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
-                <div className="space-y-2">
-                  {customer.recent_bookings.map((booking) => (
-                    <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-                      <div>
-                        <div className="font-medium">{booking.service_name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(booking.date), 'MMM dd, yyyy')} • Created {format(new Date(booking.created_at), 'MMM dd, yyyy HH:mm')}
-                        </div>
-                      </div>
-                      <Badge 
-                        variant="outline"
-                        className={cn(
-                          booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
-                          booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                          booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                          booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
-                          booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                        )}
-                      >
-                        {booking.status}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No bookings</h3>
-                  <p className="text-muted-foreground">This customer hasn't made any bookings yet.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Spending Analysis Tab */}
-        <TabsContent value="spending" className="space-y-6">
-          {/* Revenue Overview Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Revenue Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Total Revenue Card */}
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <div className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Total Revenue</div>
-                  <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    {formatCurrency(customer.spending.quotations.total_amount, 'JPY')}
-                  </div>
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    From {customer.spending.quotations.count} quotations
-                  </div>
-                </div>
-                
-                {/* Average Order Value Card */}
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Avg Order Value</div>
-                  <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                    {formatCurrency(customer.spending.quotations.total_amount / Math.max(customer.spending.quotations.count, 1), 'JPY')}
-                  </div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    Per quotation
-                  </div>
-                </div>
-                
-                {/* Total Bookings Card */}
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <div className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">Total Bookings</div>
-                  <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                    {customer.spending.bookings.count}
-                  </div>
-                  <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                    {customer.spending.bookings.completed_count} completed
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Detailed Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Quotation Status Breakdown */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Quotation Status Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(customer.spending.quotations.by_status)
-                    .filter(([_, amount]) => amount > 0)
-                    .sort(([_, a], [__, b]) => b - a)
-                    .map(([status, amount]) => (
-                      <div key={status} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-3 h-3 rounded-full",
-                            status === 'paid' && "bg-green-500",
-                            status === 'approved' && "bg-blue-500",
-                            status === 'rejected' && "bg-red-500",
-                            status === 'draft' && "bg-gray-500",
-                            status === 'sent' && "bg-yellow-500",
-                            status === 'expired' && "bg-orange-500",
-                            status === 'converted' && "bg-purple-500"
-                          )} />
-                          <span className="capitalize font-medium">{status}</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-lg">
-                            {formatCurrency(amount, 'JPY')}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {((amount / customer.spending.quotations.total_amount) * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Booking Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Booking Details
+                  Customer Quotations
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Booking Counts */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                        {customer.spending.bookings.completed_count}
-                      </div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Completed</div>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                      <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                        {customer.spending.bookings.pending_count}
-                      </div>
-                      <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pending</div>
+                  {/* Filters */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="sort-quotations" className="text-sm font-medium">Sort By</Label>
+                      <Select value={quotationSort} onValueChange={setQuotationSort}>
+                        <SelectTrigger id="sort-quotations">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="created_at-desc">Newest First</SelectItem>
+                          <SelectItem value="created_at-asc">Oldest First</SelectItem>
+                          <SelectItem value="amount-desc">Highest Amount</SelectItem>
+                          <SelectItem value="amount-asc">Lowest Amount</SelectItem>
+                          <SelectItem value="quote_number-desc">Quote # Desc</SelectItem>
+                          <SelectItem value="quote_number-asc">Quote # Asc</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  {/* Last Transaction */}
-                  {customer.spending.last_transaction_date && (
-                    <div className="p-4 bg-muted/30 rounded-lg border">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-medium">Last Transaction</div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(customer.spending.last_transaction_date), { addSuffix: true })}
+                  {/* Quotations List */}
+                  {customer.recent_quotations && customer.recent_quotations.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_quotations
+                        .sort((a, b) => {
+                          switch (quotationSort) {
+                            case 'created_at-desc':
+                              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                            case 'created_at-asc':
+                              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                            case 'amount-desc':
+                              return b.amount - a.amount;
+                            case 'amount-asc':
+                              return a.amount - b.amount;
+                            case 'quote_number-desc':
+                              return String(b.quote_number).localeCompare(String(a.quote_number));
+                            case 'quote_number-asc':
+                              return String(a.quote_number).localeCompare(String(b.quote_number));
+                            default:
+                              return 0;
+                          }
+                        })
+                        .map((quotation) => (
+                          <div key={quotation.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex-1">
+                              <div className="font-medium">Quote #{quotation.quote_number}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {quotation.service_type} • {format(new Date(quotation.created_at), 'MMM dd, yyyy')}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-lg">{formatCurrency(quotation.amount, quotation.currency)}</div>
+                                                           <Badge 
+                               variant="outline"
+                               className={cn(
+                                 quotation.status === 'paid' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                 quotation.status === 'approved' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                 quotation.status === 'rejected' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                                 quotation.status === 'draft' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                                 quotation.status === 'sent' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                                 quotation.status === 'expired' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
+                                 quotation.status === 'converted' && 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                               )}
+                             >
+                                {quotation.status}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium">Total Bookings</div>
-                          <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                            {customer.spending.bookings.count}
-                          </div>
-                        </div>
-                      </div>
+                        ))}
                     </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No quotations found for this customer</p>
                   )}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
+          {/* Bookings Tab */}
+          <TabsContent value="bookings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  Customer Bookings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {customer.recent_bookings && customer.recent_bookings.length > 0 ? (
+                    <div className="space-y-3">
+                      {customer.recent_bookings.map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex-1">
+                            <div className="font-medium">{booking.service_name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {format(new Date(booking.date), 'MMM dd, yyyy')}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge 
+                              variant="outline"
+                              className={cn(
+                                booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                                booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                                booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                                booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                                booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                              )}
+                            >
+                              {booking.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No bookings found for this customer</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        </TabsContent>
-      </Tabs>
+          {/* Spending Tab */}
+          <TabsContent value="spending" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Quotation Status Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Quotation Status Breakdown
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Object.entries(customer.spending.quotations.by_status)
+                      .filter(([_, amount]) => amount > 0)
+                      .sort(([_, a], [__, b]) => b - a)
+                      .map(([status, amount]) => (
+                        <div key={status} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-3 h-3 rounded-full",
+                              status === 'paid' && "bg-green-500",
+                              status === 'approved' && "bg-blue-500",
+                              status === 'rejected' && "bg-red-500",
+                              status === 'draft' && "bg-gray-500",
+                              status === 'sent' && "bg-yellow-500",
+                              status === 'expired' && "bg-orange-500",
+                              status === 'converted' && "bg-purple-500"
+                            )} />
+                            <span className="capitalize font-medium">{status}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-lg">
+                              {formatCurrency(amount, 'JPY')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {((amount / customer.spending.quotations.total_amount) * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Booking Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Booking Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Booking Counts */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                          {customer.spending.bookings.completed_count}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">Completed</div>
+                      </div>
+                      <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                        <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                          {customer.spending.bookings.pending_count}
+                        </div>
+                        <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Pending</div>
+                      </div>
+                    </div>
+
+                    {/* Last Transaction */}
+                    {customer.spending.last_transaction_date && (
+                      <div className="p-4 bg-muted/30 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium">Last Transaction</div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(customer.spending.last_transaction_date), { addSuffix: true })}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium">Total Bookings</div>
+                            <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                              {customer.spending.bookings.count}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

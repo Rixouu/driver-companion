@@ -2,23 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/empty-state'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { BookingFilters, BookingFilterOptions } from './bookings-filters'
 import { Icons } from '@/components/icons'
 import { formatDate } from '@/lib/utils/formatting'
 import { Booking } from '@/types/bookings'
 import { getBookings, syncBookingsAction, cancelBookingAction } from '@/app/actions/bookings'
 import { ApiConfigHelper } from './api-config-helper'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Pagination,
   PaginationContent,
@@ -29,8 +23,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { 
-  Grid, 
-  List, 
   RefreshCw, 
   Loader2, 
   RotateCw, 
@@ -41,10 +33,17 @@ import {
   MapPin,
   Timer,
   Car,
-  X
+  X,
+  TrendingUp,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Download,
+  Search,
+  Filter,
+  ChevronDown
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-// Import confirmation dialog
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,8 +54,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-// Import commented out to prevent showing the setup helper
-// import { SetupHelper } from './setup-helper'
 import { StatusFilter, BookingStatus } from './status-filter'
 import { useI18n } from '@/lib/i18n/context'
 import { ContactButtons } from './contact-buttons'
@@ -81,7 +78,7 @@ function getStatusBadgeClasses(status: string): string {
     case 'confirmed':
       return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
     case 'pending':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700';
+      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-green-700';
     case 'cancelled':
     case 'canceled':
     case 'trash':
@@ -106,6 +103,26 @@ export function BookingsList({
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [totalPages, setTotalPages] = useState(1)
+  
+  // New state for search and filters
+  const [searchQuery, setSearchQuery] = useState(search)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filters, setFilters] = useState<BookingFilterOptions>({
+    statusFilter: externalStatus || 'all',
+    searchQuery: search,
+    sortBy: 'date',
+    sortOrder: 'desc',
+    dateFrom: dateRange?.from?.toISOString().split('T')[0],
+    dateTo: dateRange?.to?.toISOString().split('T')[0],
+    customerFilter: '',
+    driverFilter: 'all'
+  })
+  
+  const handleFiltersChange = (newFilters: BookingFilterOptions) => {
+    setFilters(newFilters)
+    setSearchQuery(newFilters.searchQuery)
+    // You can add more logic here to handle other filter changes
+  }
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
@@ -117,16 +134,17 @@ export function BookingsList({
   )
   const [showConfigHelper, setShowConfigHelper] = useState(false)
   const [view, setView] = useState(initialView)
-  // State for sync status
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null)
-  // State for the cancel booking dialog
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
   const { t } = useI18n()
   const [isMobile, setIsMobile] = useState(false)
+  
+  // New state for Select All functionality
+  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set())
 
   // Update view when initialView changes
   useEffect(() => {
@@ -136,10 +154,8 @@ export function BookingsList({
 
   // Function to view booking details
   const handleViewBooking = (bookingId: string | number) => {
-    // Ensure ID is consistently formatted as string
     const formattedId = String(bookingId).trim()
     console.log(`Navigating to booking details: ${formattedId}`)
-    // Navigate to the booking details page
     router.push(`/bookings/${formattedId}`)
   }
 
@@ -147,7 +163,6 @@ export function BookingsList({
   const handleStatusChange = (newStatus: BookingStatus) => {
     setStatus(newStatus)
     
-    // Update URL with new status
     const params = new URLSearchParams(searchParams)
     if (newStatus !== 'all') {
       params.set('status', newStatus)
@@ -162,10 +177,9 @@ export function BookingsList({
     setIsLoading(true)
     setError(null)
     try {
-      // Force fresh data on load by setting useFallback to false
       const { bookings: loadedBookings, error: bookingError, debug } = await getBookings({
         status,
-        limit: 100, // Get more to handle client-side filtering
+        limit: 100,
         page: 1
       }, false)
       
@@ -181,7 +195,7 @@ export function BookingsList({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load bookings')
       console.error('Error in loadBookings:', err)
-      setBookings([]) // Clear any previous bookings
+      setBookings([])
     } finally {
       setIsLoading(false)
     }
@@ -196,7 +210,6 @@ export function BookingsList({
       setSyncResult(result)
       
       if (result.success) {
-        // Reload bookings after successful sync
         await loadBookings()
       }
     } catch (err) {
@@ -227,9 +240,7 @@ export function BookingsList({
       setCancelResult(result)
       
       if (result.success) {
-        // Reload bookings after successful cancellation
         await loadBookings()
-        // Close the dialog after a short delay
         setTimeout(() => {
           setShowCancelDialog(false)
           setCancellingBookingId(null)
@@ -260,29 +271,22 @@ export function BookingsList({
 
   // Filter bookings by search term and date range
   const filteredBookings = bookings.filter(booking => {
-    // Status filter - applied first to avoid unnecessary checks
     if (status !== 'all') {
-      // The booking status might be from WordPress (publish, etc.) or our system (confirmed, cancelled, etc.)
       const bookingStatus = booking.status?.toLowerCase();
       const statusFilter = status.toLowerCase();
       
-      // Handle WordPress status mapping
       if (statusFilter === 'confirmed') {
-        // Only match confirmed status explicitly, not "publish"/"published"
         return bookingStatus === 'confirmed';
       } else if (statusFilter === 'cancelled') {
-        // Match both our "cancelled" status and WordPress "trash"/"draft" statuses
         return bookingStatus === 'cancelled' || 
                bookingStatus === 'canceled' || 
                bookingStatus === 'trash' || 
                bookingStatus === 'draft';
       } else {
-        // For other statuses, just do direct matching
         return bookingStatus === statusFilter;
       }
     }
     
-    // Search filter
     if (search) {
       const searchLower = search.toLowerCase()
       const matchesServiceName = booking.service_name?.toLowerCase().includes(searchLower)
@@ -297,17 +301,16 @@ export function BookingsList({
       }
     }
     
-    // Date range filter
     if (dateRange && dateRange.from) {
       const bookingDate = new Date(booking.date)
-      const fromDate = startOfDay(dateRange.from) // Start of day for from date
+      const fromDate = startOfDay(dateRange.from)
       
       if (fromDate && bookingDate < fromDate) {
         return false
       }
       
       if (dateRange.to) {
-        const toDate = endOfDay(dateRange.to) // End of day for to date
+        const toDate = endOfDay(dateRange.to)
         if (bookingDate > toDate) {
           return false
         }
@@ -333,7 +336,6 @@ export function BookingsList({
       const isMobileNow = window.innerWidth < 640;
       setIsMobile(isMobileNow);
       
-      // Force list view on mobile
       if (isMobileNow && view === 'grid') {
         setView('list');
       }
@@ -343,6 +345,41 @@ export function BookingsList({
     window.addEventListener('resize', checkIfMobile);
     return () => window.removeEventListener('resize', checkIfMobile);
   }, [view]);
+
+  // Select All functionality
+  const handleSelectAll = () => {
+    if (selectedBookings.size === filteredBookings.length) {
+      setSelectedBookings(new Set());
+    } else {
+      setSelectedBookings(new Set(filteredBookings.map(b => b.id.toString())));
+    }
+  };
+
+  const handleSelectBooking = (bookingId: string) => {
+    const newSelected = new Set(selectedBookings);
+    if (newSelected.has(bookingId)) {
+      newSelected.delete(bookingId);
+    } else {
+      newSelected.add(bookingId);
+    }
+    setSelectedBookings(newSelected);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedBookings(new Set());
+  };
+
+  const handleDeleteSelected = async () => {
+    // Implementation for bulk delete
+    console.log('Deleting selected bookings:', Array.from(selectedBookings));
+    // TODO: Implement bulk delete functionality
+  };
+
+  const handleExportSelected = () => {
+    // Implementation for bulk export
+    console.log('Exporting selected bookings:', Array.from(selectedBookings));
+    // TODO: Implement bulk export functionality
+  };
 
   if (isLoading) {
     return (
@@ -444,7 +481,6 @@ export function BookingsList({
         description={t('bookings.empty.description')}
         action={
           <Button variant="outline" onClick={() => {
-            // Reset to default status
             handleStatusChange('all');
           }}>
             <X className="h-4 w-4 mr-2" />
@@ -456,7 +492,60 @@ export function BookingsList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Stats Overview - Mobile Optimized */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Bookings - Blue */}
+        <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Total Bookings</CardTitle>
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{bookings.length.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        {/* Confirmed Bookings - Green */}
+        <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Confirmed</CardTitle>
+            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
+              {bookings.filter(b => b.status === 'confirmed').length}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Bookings - Orange */}
+        <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold break-words text-orange-600 dark:text-orange-400">
+              {bookings.filter(b => b.status === 'pending').length}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Completed Bookings - Purple */}
+        <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Completed</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {bookings.filter(b => b.status === 'completed').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Show sync result message if any */}
       {syncResult && (
         <Alert variant={syncResult.success ? "default" : "destructive"} className="mb-4">
@@ -465,492 +554,331 @@ export function BookingsList({
         </Alert>
       )}
 
-      {/* Render view based on the current view state and mobile detection */}
-      {(() => {
-        // Force list view on mobile
-        const effectiveView = isMobile ? "list" : view;
-        console.log(`Rendering with effectiveView: ${effectiveView}, isMobile: ${isMobile}`);
-        
-        if (effectiveView === 'grid') {
-          return (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Grid view content */}
-              {paginatedBookings.map((booking) => (
-                <Card 
-                  key={booking.id} 
-                  className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
-                  onClick={() => handleViewBooking(booking.id)}
-                >
-                  {/* Card content for grid view */}
-                  <CardHeader className="pb-0 relative">
-                    <Badge 
-                      className={`absolute right-6 top-6 px-3 py-1.5 font-medium ${getStatusBadgeClasses(booking.status)}`}
-                    >
-                      {t(`bookings.status.${booking.status}`)}
-                    </Badge>
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg font-semibold line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</CardTitle>
-                      <CardDescription className="flex items-center">
-                        <span className="font-medium text-primary mr-1">#</span>{booking.id}
-                        {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
-                          booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                          <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{booking.service_name}</p>
-                        )}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  {/* Rest of grid card content */}
-                  <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center text-foreground/80 gap-2">
-                        <Icons.calendar className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
-                      </div>
-                      
-                      {/* Customer information */}
-                      {booking.customer_name && (
-                        <div className="flex items-start gap-2">
-                          <User className="h-4 w-4 text-primary mt-0.5" />
-                          <div className="flex flex-col">
-                            <span className="font-medium">{booking.customer_name}</span>
-                            {booking.customer_email && (
-                              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{booking.customer_email}</span>
-                            )}
-                            {booking.customer_phone && (
-                              <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Location information */}
-                      {(booking.pickup_location || booking.dropoff_location) && (
-                        <div className="flex items-start gap-2">
-                          <MapPin className="h-4 w-4 text-primary mt-0.5" />
-                          <div className="flex flex-col">
-                            {booking.pickup_location && (
-                              <div className="flex flex-col">
-                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
-                                <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
-                              </div>
-                            )}
-                            {booking.dropoff_location && (
-                              <div className="flex flex-col mt-1.5">
-                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
-                                <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {booking.vehicle && (
-                        <div className="flex items-center gap-2">
-                          <Car className="h-4 w-4 text-primary" />
-                          <span className="font-medium">
-                            {booking.vehicle.make} {booking.vehicle.model} {booking.vehicle.year ? `(${booking.vehicle.year})` : ''}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Distance and duration if available */}
-                      {(booking.distance || booking.duration) && (
-                        <div className="flex items-center gap-2">
-                          <Timer className="h-4 w-4 text-primary" />
-                          <div className="flex gap-x-3">
-                            {booking.distance && (
-                              <span className="text-sm">{booking.distance} {t('bookings.labels.km')}</span>
-                            )}
-                            {booking.duration && (
-                              <span className="text-sm">{booking.duration} {t('bookings.labels.min')}</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="pt-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-1 border-t">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/bookings/${booking.id}/edit`);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      <span>{t('common.edit')}</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/bookings/${booking.id}/reschedule`);
-                      }}
-                    >
-                      <Icons.calendar className="h-4 w-4 mr-1" />
-                      <span>{t('bookings.details.actions.reschedule')}</span>
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCancelBooking(booking.id.toString());
-                      }}
-                    >
-                      <Trash className="h-4 w-4 mr-1" />
-                      <span>{t('common.cancel')}</span>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          );
-        } else {
-          // List view (default)
-          return (
-            <>
-              {/* Desktop table view - hide on mobile */}
-              <div className={`rounded-md border overflow-hidden shadow-sm ${isMobile ? 'hidden' : 'block'}`}>
-                {/* Table content for desktop */}
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="w-[120px]">Booking ID</TableHead>
-                        <TableHead className="w-[140px]">{t('bookings.tableHeaders.dateTime')}</TableHead>
-                        <TableHead>{t('bookings.tableHeaders.service')}</TableHead>
-                        <TableHead>{t('bookings.tableHeaders.customer')}</TableHead>
-                        <TableHead>{t('bookings.tableHeaders.locations')}</TableHead>
-                        <TableHead className="w-[120px]">{t('bookings.tableHeaders.status')}</TableHead>
-                        <TableHead className="w-[160px]">{t('bookings.tableHeaders.actions')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedBookings.map((booking) => (
-                        // Table row content...
-                        <TableRow 
-                          key={booking.id} 
-                          className="cursor-pointer hover:bg-muted/50 transition-colors" 
-                          onClick={() => handleViewBooking(booking.id)}
-                        >
-                          <TableCell className="font-medium text-primary">#{booking.id}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{formatDate(booking.date)}</span>
-                              <span className="text-xs text-muted-foreground">{booking.time}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium line-clamp-1">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</span>
-                              {booking.service_name && (booking.service_type || booking.meta?.chbs_service_type) && 
-                                booking.service_name !== (booking.service_type || booking.meta?.chbs_service_type) && (
-                                <span className="text-xs text-muted-foreground line-clamp-1">{booking.service_name}</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</span>
-                              {booking.customer_email && (
-                                <span className="text-xs text-muted-foreground truncate max-w-[180px]">{booking.customer_email}</span>
-                              )}
-                              {booking.customer_phone && (
-                                <span className="text-xs text-muted-foreground">{booking.customer_phone}</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col space-y-1.5">
-                              {booking.pickup_location && (
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span>
-                                  <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
-                                </div>
-                              )}
-                              {booking.dropoff_location && (
-                                <div className="flex flex-col">
-                                  <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span>
-                                  <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
-                                </div>
-                              )}
-                              {!booking.pickup_location && !booking.dropoff_location && (
-                                <span className="text-xs text-muted-foreground italic">{t('bookings.defaultLabels.noLocationData')}</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              className={`px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
-                            >
-                              {t(`bookings.status.${booking.status}`)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/bookings/${booking.id}/edit`);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                                <span className="sr-only">{t('bookings.details.actions.edit')}</span>
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/bookings/${booking.id}/reschedule`);
-                                }}
-                              >
-                                <Icons.calendar className="h-4 w-4" />
-                                <span className="sr-only">{t('bookings.details.actions.reschedule')}</span>
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelBooking(booking.id.toString());
-                                }}
-                              >
-                                <Trash className="h-4 w-4" />
-                                <span className="sr-only">{t('bookings.details.actions.cancel')}</span>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+      {/* Search Bar - Above Advanced Filters */}
+      <div className="relative w-full">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t('bookings.search.placeholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 border-muted w-full"
+        />
+      </div>
 
-              {/* Mobile card view */}
-              <div className={isMobile ? "block" : "hidden"}>
-                <div className="space-y-3">
-                  {paginatedBookings.map((booking) => (
-                    <Card 
-                      key={booking.id} 
-                      className="hover:bg-accent/50 hover:shadow-md dark:hover:bg-gray-900/50 transition-all cursor-pointer overflow-hidden border-opacity-80"
-                      onClick={() => handleViewBooking(booking.id)}
-                    >
-                      <CardHeader className="pb-0 pt-3 px-4 relative">
-                        <Badge 
-                          className={`absolute right-4 top-4 px-2.5 py-1 font-medium ${getStatusBadgeClasses(booking.status)}`}
-                        >
-                          {t(`bookings.status.${booking.status}`)}
-                        </Badge>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg font-semibold">#{booking.id}</CardTitle>
-                          </div>
-                          <CardDescription className="line-clamp-1 text-base">
-                            {booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}
-                          </CardDescription>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-3 px-4 pb-3">
-                        <div className="space-y-3 text-sm">
-                          <div className="flex items-center text-foreground/80 gap-2">
-                            <Icons.calendar className="h-4 w-4 text-primary flex-shrink-0" />
-                            <span className="font-medium">{formatDate(booking.date)} {t('bookings.labels.at')} {booking.time}</span>
-                          </div>
-                          
-                          {booking.customer_name && (
-                            <div className="flex items-start gap-2">
-                              <User className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex flex-col">
-                                <span className="font-medium">{booking.customer_name}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {booking.pickup_location && (
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex flex-col">
-                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.from')}</span> 
-                                <span className="text-sm line-clamp-1">{booking.pickup_location}</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {booking.dropoff_location && (
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="flex flex-col">
-                                <span className="text-xs font-medium text-muted-foreground">{t('bookings.labels.to')}</span> 
-                                <span className="text-sm line-clamp-1">{booking.dropoff_location}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="pt-2 px-4 pb-2 bg-muted/30 dark:bg-muted/10 flex justify-end gap-2 border-t">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-9 px-3"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/bookings/${booking.id}/edit`);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="ml-1.5">{t('common.edit')}</span>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-9 px-3 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelBooking(booking.id.toString());
-                          }}
-                        >
-                          <Trash className="h-4 w-4" />
-                          <span className="ml-1.5">{t('common.cancel')}</span>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+      {/* Advanced Filters */}
+      <div className="border rounded-lg">
+        <Button
+          variant="ghost"
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className="w-full justify-between p-4 rounded-none border-b-0"
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="font-medium">Advanced Filters</span>
+          </div>
+          <ChevronDown className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+        </Button>
+        
+        {filtersOpen && (
+          <BookingFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            totalBookings={bookings.length}
+            className="border-t p-4 space-y-4"
+          />
+        )}
+      </div>
+
+      {/* Booking Count and Sync Button */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          Showing {filteredBookings.length} bookings
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={syncBookingsFromWordPress}
+          disabled={isSyncing}
+          className="h-9"
+        >
+          {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          <span className="hidden sm:inline">{t('bookings.actions.sync')}</span>
+        </Button>
+      </div>
+
+      {/* Select All Bar */}
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedBookings.size === filteredBookings.length && filteredBookings.length > 0}
+            onChange={handleSelectAll}
+            className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            aria-label="Select all bookings"
+          />
+          <span className="text-sm font-medium text-muted-foreground">Select All</span>
+          {selectedBookings.size > 0 && (
+            <span className="text-sm text-muted-foreground">
+              ({selectedBookings.size} of {filteredBookings.length} selected)
+            </span>
+          )}
+        </div>
+        {/* Multi-select Actions */}
+        {selectedBookings.size > 0 && (
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" onClick={handleDeleteSelected} className="flex items-center gap-2">
+              <Trash className="h-4 w-4" /> Delete ({selectedBookings.size})
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClearSelection}>Clear Selection</Button>
+            <Button variant="outline" size="sm" onClick={handleExportSelected} className="flex items-center gap-2">
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View with Headers */}
+      <div className="hidden sm:block space-y-3">
+        {/* Column Headers */}
+        <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 bg-muted/20 rounded-lg">
+          <div className="col-span-1">
+            <span className="text-sm font-medium text-muted-foreground">Select</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">ID</span>
+          </div>
+          <div className="col-span-3">
+            <span className="text-sm font-medium text-muted-foreground">Customer</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Date & Time</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Status</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Actions</span>
+          </div>
+        </div>
+
+        {/* Desktop Booking Rows */}
+        {paginatedBookings.map((booking) => (
+          <Card key={booking.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+            <div className="grid grid-cols-12 items-center gap-4 p-4">
+              {/* Selection Checkbox */}
+              <div className="col-span-1 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectedBookings.has(booking.id.toString())}
+                  onChange={() => handleSelectBooking(booking.id.toString())}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  aria-label={`Select booking ${booking.id}`}
+                />
+              </div>
+              
+              {/* ID Column */}
+              <div className="col-span-2 flex items-center gap-3">
+                <div className="font-mono text-sm text-muted-foreground">#{booking.id}</div>
+              </div>
+              
+              {/* Customer Column - Name and Email */}
+              <div className="col-span-3 flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <h3 className="font-semibold text-sm text-foreground truncate">
+                    {booking.customer_name || t('bookings.defaultLabels.notSpecified')}
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {booking.customer_email || '—'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}
+                  </p>
                 </div>
               </div>
-            </>
-          );
-        }
-      })()}
+              
+              {/* Date & Time Column */}
+              <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
+                <div className="text-sm text-foreground">
+                  {formatDate(booking.date)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {booking.time}
+                </div>
+              </div>
+              
+              {/* Status Column */}
+              <div className="col-span-2 flex flex-col items-start justify-start">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status)}>
+                    {t(`bookings.status.${booking.status}`)}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Actions Column */}
+              <div className="col-span-2 flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking.id); }}
+                  className="flex items-center gap-2"
+                >
+                  <Icons.eye className="h-4 w-4" />
+                  View
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/edit`); }}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-4">
+        {paginatedBookings.map((booking) => (
+          <Card key={booking.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+            <div className="p-4">
+              {/* Header with Selection and Status */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedBookings.has(booking.id.toString())}
+                    onChange={() => handleSelectBooking(booking.id.toString())}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    aria-label={`Select booking ${booking.id}`}
+                  />
+                  <div className="font-mono text-sm text-muted-foreground">#{booking.id}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status)}>
+                    {t(`bookings.status.${booking.status}`)}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="space-y-2 mb-4">
+                <div className="font-semibold text-lg">{booking.service_type || booking.meta?.chbs_service_type || booking.service_name || t('bookings.defaultLabels.vehicleService')}</div>
+                <div className="font-medium">{booking.customer_name || t('bookings.defaultLabels.notSpecified')}</div>
+                <div className="text-sm text-muted-foreground">{booking.customer_email || '—'}</div>
+              </div>
+              
+              {/* Footer with Date, Time, and Actions */}
+              <div className="flex items-center justify-between pt-3 border-t">
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4">
+                    <span>{formatDate(booking.date)}</span>
+                    <span>{booking.time}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking.id); }}
+                  className="flex items-center gap-2 w-full justify-center"
+                >
+                  <Icons.eye className="h-4 w-4" />
+                  View
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/edit`); }}
+                  className="flex items-center gap-2 w-full justify-center"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id.toString()); }}
+                  className="flex items-center gap-2 w-full justify-center text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                >
+                  <Trash className="h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
       
-      {/* Pagination - Make it more mobile friendly */}
+      {/* Pagination */}
       {filteredBookings.length > ITEMS_PER_PAGE && (
-        <Pagination>
-          <PaginationContent className={isMobile ? "gap-1" : ""}>
-            {/* Pagination content... */}
-            {currentPage > 1 && (
+        <div className="border-t pt-4">
+          <Pagination>
+            <PaginationContent className="flex justify-center">
+              {/* Previous Page */}
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   href="#"
                   onClick={(e) => {
                     e.preventDefault()
                     onPageChange(currentPage - 1)
                   }}
+                  className={currentPage <= 1 ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
-            )}
-            {/* Simplify pagination on mobile */}
-            {isMobile ? (
-              <>
-                {/* Show only current page and immediate neighbors */}
-                {currentPage > 2 && (
-                  <PaginationItem>
+
+              {/* Page Numbers */}
+              {Array.from({ length: Math.min(5, calculatedTotalPages) }, (_, i) => {
+                let pageNum;
+                if (calculatedTotalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= calculatedTotalPages - 2) {
+                  pageNum = calculatedTotalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                if (pageNum < 1 || pageNum > calculatedTotalPages) return null;
+
+                return (
+                  <PaginationItem key={pageNum}>
                     <PaginationLink
                       href="#"
                       onClick={(e) => {
                         e.preventDefault()
-                        onPageChange(1)
+                        onPageChange(pageNum)
                       }}
+                      isActive={pageNum === currentPage}
                     >
-                      1
+                      {pageNum}
                     </PaginationLink>
                   </PaginationItem>
-                )}
-                
-                {currentPage > 3 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-                
-                {currentPage > 1 && (
-                  <PaginationItem>
-                    <PaginationLink
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onPageChange(currentPage - 1)
-                      }}
-                    >
-                      {currentPage - 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-                
+                );
+              })}
+
+              {/* Ellipsis for long page ranges */}
+              {calculatedTotalPages > 5 && currentPage < calculatedTotalPages - 2 && (
                 <PaginationItem>
-                  <PaginationLink
-                    href="#"
-                    isActive
-                  >
-                    {currentPage}
-                  </PaginationLink>
+                  <PaginationEllipsis />
                 </PaginationItem>
-                
-                {currentPage < calculatedTotalPages && (
-                  <PaginationItem>
-                    <PaginationLink
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onPageChange(currentPage + 1)
-                      }}
-                    >
-                      {currentPage + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-                
-                {currentPage < calculatedTotalPages - 2 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-                
-                {currentPage < calculatedTotalPages - 1 && (
-                  <PaginationItem>
-                    <PaginationLink
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        onPageChange(calculatedTotalPages)
-                      }}
-                    >
-                      {calculatedTotalPages}
-                    </PaginationLink>
-                  </PaginationItem>
-                )}
-              </>
-            ) : (
-              // Desktop pagination - show all pages
-              [...Array(calculatedTotalPages)].map((_, i) => (
-                <PaginationItem key={i + 1}>
-                  <PaginationLink
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      onPageChange(i + 1)
-                    }}
-                    isActive={currentPage === i + 1}
-                  >
-                    {i + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))
-            )}
-            
-            {currentPage < calculatedTotalPages && (
+              )}
+
+              {/* Next Page */}
               <PaginationItem>
                 <PaginationNext
                   href="#"
@@ -958,11 +886,17 @@ export function BookingsList({
                     e.preventDefault()
                     onPageChange(currentPage + 1)
                   }}
+                  className={currentPage >= calculatedTotalPages ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
-            )}
-          </PaginationContent>
-        </Pagination>
+            </PaginationContent>
+          </Pagination>
+          
+          {/* Page Info */}
+          <div className="text-center text-xs sm:text-sm text-muted-foreground mt-2 px-2">
+            Page {currentPage} of {calculatedTotalPages} • Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredBookings.length)} of {filteredBookings.length} bookings
+          </div>
+        </div>
       )}
       
       {debugInfo && (

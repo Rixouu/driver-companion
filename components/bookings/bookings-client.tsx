@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, Fragment } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { BookingsList } from './bookings-list'
 import { BookingsErrorBoundary } from './error-boundary'
+import { BookingFilters, BookingFilterOptions } from './bookings-filters'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
+import { 
   Search,
   Filter,
   LayoutGrid,
@@ -28,7 +29,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Download
+  Download,
+  ChevronDown
 } from "lucide-react"
 import { useDebounce } from "@/lib/hooks/use-debounce"
 import { useI18n } from '@/lib/i18n/context'
@@ -147,7 +149,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
     }
     return undefined
   })
-  const [showFilters, setShowFilters] = useState(false)
+
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null)
   const syncResultTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -176,6 +178,20 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   // Add more advanced filter states
   const [customerFilter, setCustomerFilter] = useState(searchParams?.get('customer') || '')
   const [driverFilter, setDriverFilter] = useState(searchParams?.get('driver') || 'all')
+  
+  // New unified filters state for BookingFilters component
+  const [filters, setFilters] = useState<BookingFilterOptions>({
+    statusFilter: searchParams?.get('status') || 'all',
+    searchQuery: searchParams?.get('search') || '',
+    sortBy: 'date',
+    sortOrder: 'desc',
+    dateFrom: searchParams?.get('from') || undefined,
+    dateTo: searchParams?.get('to') || undefined,
+    customerFilter: searchParams?.get('customer') || '',
+    driverFilter: searchParams?.get('driver') || 'all'
+  })
+  
+  const [filtersOpen, setFiltersOpen] = useState(false)
   
   // Auto-dismiss sync result message after 5 seconds
   useEffect(() => {
@@ -230,6 +246,34 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
       customer: customerFilter,
       driver: driverFilter
     });
+  }
+  
+  // New unified filters change handler
+  const handleFiltersChange = (newFilters: BookingFilterOptions) => {
+    setFilters(newFilters)
+    
+    // Update individual state variables for backward compatibility
+    setSearch(newFilters.searchQuery)
+    setFilter(newFilters.statusFilter)
+    setCustomerFilter(newFilters.customerFilter || '')
+    setDriverFilter(newFilters.driverFilter || 'all')
+    
+    // Update date range if changed
+    if (newFilters.dateFrom || newFilters.dateTo) {
+      setDateRange({
+        from: newFilters.dateFrom ? new Date(newFilters.dateFrom) : undefined,
+        to: newFilters.dateTo ? new Date(newFilters.dateTo) : undefined
+      })
+    }
+    
+    // Update URL with new filters
+    updateUrlWithFilters(newFilters.statusFilter, {
+      from: newFilters.dateFrom ? new Date(newFilters.dateFrom) : undefined,
+      to: newFilters.dateTo ? new Date(newFilters.dateTo) : undefined
+    }, view, {
+      customer: newFilters.customerFilter || '',
+      driver: newFilters.driverFilter || 'all'
+    })
   }
   
   // Update the URL with filters function to include new filters
@@ -822,262 +866,9 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   return (
     <BookingsErrorBoundary>
       <div className="space-y-4">
-        <Card className="p-4 border-none shadow-sm">
-          <div className="space-y-4">
-            {/* Search and Main Controls Row */}
-            <div className="flex flex-col md:flex-row gap-3 items-stretch w-full">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t('bookings.search.placeholder')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 border-muted w-full"
-                />
-              </div>
-              
-              <div className="flex items-center gap-2 justify-between md:justify-end flex-wrap">
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFilters(!showFilters)}
-                    className={`h-9 ${showFilters ? 'bg-muted' : ''}`}
-                  >
-                    <Filter className="h-4 w-4 mr-2" />
-                    <span>{t('bookings.filters.advancedFilters')}</span>
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={syncBookingsFromWordPress}
-                    disabled={isSyncing}
-                    className="h-9"
-                  >
-                    {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                    <span className="hidden sm:inline">{t('bookings.actions.sync')}</span>
-                  </Button>
-                </div>
-                
-                {/* View Toggle Button */}
-                <div className="flex items-center bg-muted border rounded-md p-1 h-9">
-                  <Button 
-                    variant={view === 'list' ? 'default' : 'ghost'} 
-                    size="sm"
-                    onClick={() => handleViewChange('list')}
-                    className={`rounded-sm flex-1 h-7 px-2 ${view === 'list' ? 'font-medium' : 'text-muted-foreground'}`}
-                  >
-                    <List className="h-4 w-4" />
-                    <span className="sr-only">{t('bookings.viewOptions.list')}</span>
-                  </Button>
-                  <Button 
-                    variant={view === 'grid' ? 'default' : 'ghost'} 
-                    size="sm"
-                    onClick={() => handleViewChange('grid')}
-                    className={`rounded-sm flex-1 h-7 px-2 ${view === 'grid' ? 'font-medium' : 'text-muted-foreground'} ${isMobile ? 'cursor-not-allowed opacity-50' : ''}`}
-                    disabled={isMobile}
-                    title={isMobile ? t('bookings.viewOptions.gridDisabledOnMobile') : ""}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    <span className="sr-only">{t('bookings.viewOptions.grid')}</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Advanced Filters Row - Conditional display */}
-            {showFilters && (
-              <div className="space-y-4 overflow-hidden mb-4 bg-background rounded-md border">
-                {/* Filter header */}
-                <div className="flex items-center justify-between p-4 border-b">
-                  <h3 className="text-base font-semibold">{t('bookings.filters.advancedFilters')}</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearFilters}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    {t('bookings.filters.clearFilters')}
-                  </Button>
-                </div>
-                
-                {/* Filter content */}
-                <div className="p-4">
-                  {/* All filters in one row */}
-                  <div className="flex flex-row gap-4 w-full items-center">
-                    {/* Date Range Filter */}
-                    <div className="flex-[2]">
-                      <DateRangePicker
-                        date={dateRange}
-                        onDateChange={handleDateRangeChange}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    {/* Status Filter */}
-                    <div className="w-[200px]">
-                      <Select
-                        value={filter}
-                        onValueChange={handleFilterChange}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={t('bookings.filters.statusPlaceholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t('bookings.filters.all')}</SelectItem>
-                          <SelectItem value="confirmed" className="text-green-700 font-medium">{t('bookings.filters.confirmed')}</SelectItem>
-                          <SelectItem value="assigned" className="text-blue-700 font-medium">{t('bookings.filters.assigned', { ns: 'bookings' })}</SelectItem>
-                          <SelectItem value="pending" className="text-yellow-700 font-medium">{t('bookings.filters.pending')}</SelectItem>
-                          <SelectItem value="cancelled" className="text-red-700 font-medium">{t('bookings.filters.cancelled')}</SelectItem>
-                          <SelectItem value="completed" className="text-green-700 font-medium">{t('bookings.filters.completed')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {/* Customer Filter */}
-                    <div className="flex-[1.5]">
-                      <Input
-                        placeholder="Customer name..."
-                        value={customerFilter}
-                        onChange={(e) => handleCustomerFilterChange(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    {/* Driver Filter */}
-                    <div className="flex-1">
-                      <Select
-                        value={driverFilter}
-                        onValueChange={handleDriverFilterChange}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Driver Assignment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Drivers</SelectItem>
-                          <SelectItem value="assigned">Assigned</SelectItem>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Status Filter Pills - Only show when not in advanced filters mode */}
-            {!showFilters && (
-              <div className="pt-3 border-t w-full">
-                {isMobile ? (
-                  // Mobile status filter layout - Full width buttons like in the screenshot
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('all')}
-                      className={`${getStatusButtonClass('all')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.all')}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('confirmed')}
-                      className={`${getStatusButtonClass('confirmed')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.confirmed')}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('assigned')}
-                      className={`${getStatusButtonClass('assigned')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.assigned', { ns: 'bookings' })}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('pending')}
-                      className={`${getStatusButtonClass('pending')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.pending')}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('cancelled')}
-                      className={`${getStatusButtonClass('cancelled')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.cancelled')}
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleFilterChange('completed')}
-                      className={`${getStatusButtonClass('completed')} w-full h-12 font-semibold border-2`}
-                    >
-                      {t('bookings.filters.completed')}
-                    </Button>
-                  </div>
-                ) : (
-                  // Desktop status filter layout
-                  <div className="flex flex-wrap gap-2">
-                    <Button 
-                      variant={filter === 'all' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('all')}
-                      className={`${getStatusButtonClass('all')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.all')}
-                    </Button>
-                    <Button 
-                      variant={filter === 'confirmed' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('confirmed')}
-                      className={`${getStatusButtonClass('confirmed')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.confirmed')}
-                    </Button>
-                    <Button 
-                      variant={filter === 'assigned' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('assigned')}
-                      className={`${getStatusButtonClass('assigned')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.assigned', { ns: 'bookings' })}
-                    </Button>
-                    <Button 
-                      variant={filter === 'pending' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('pending')}
-                      className={`${getStatusButtonClass('pending')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.pending')}
-                    </Button>
-                    <Button 
-                      variant={filter === 'cancelled' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('cancelled')}
-                      className={`${getStatusButtonClass('cancelled')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.cancelled')}
-                    </Button>
-                    <Button 
-                      variant={filter === 'completed' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFilterChange('completed')}
-                      className={`${getStatusButtonClass('completed')} flex-shrink-0`}
-                    >
-                      {t('bookings.filters.completed')}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
+
+
+
         
         {/* Display sync result if available */}
         {syncResult && (

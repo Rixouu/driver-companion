@@ -82,11 +82,11 @@ export function DriverFilter({
         <Button
           variant="ghost"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full justify-between p-3 sm:p-4 rounded-none border-b-0"
+          className="w-full justify-between p-4 rounded-none border-b-0"
         >
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4" />
-            <span className="text-sm sm:text-base font-medium">Advanced Filters</span>
+            <span className="font-medium">Advanced Filters</span>
             {hasActiveFilters && (
               <Badge variant="secondary" className="ml-2">
                 {Object.values(filters).filter(v => v !== 'all' && v !== '').length} active
@@ -97,12 +97,12 @@ export function DriverFilter({
         </Button>
         
         {isExpanded && (
-          <div className="p-3 sm:p-4 border-t space-y-3 sm:space-y-4">
-            {/* Filter Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="p-4 border-t space-y-4">
+                          {/* Filter Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Status Filter */}
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium">Status</label>
+                <label className="text-sm font-medium">Status</label>
                 <Select value={filters.statusFilter} onValueChange={(value) => handleFilterChange('statusFilter', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Statuses" />
@@ -117,7 +117,7 @@ export function DriverFilter({
 
               {/* Availability Filter */}
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium">Availability</label>
+                <label className="text-sm font-medium">Availability</label>
                 <Select value={filters.availabilityFilter} onValueChange={(value) => handleFilterChange('availabilityFilter', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Availability" />
@@ -135,7 +135,7 @@ export function DriverFilter({
 
               {/* License Filter */}
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium">License Status</label>
+                <label className="text-sm font-medium">License Status</label>
                 <Select value={filters.licenseFilter} onValueChange={(value) => handleFilterChange('licenseFilter', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All License Statuses" />
@@ -151,7 +151,7 @@ export function DriverFilter({
 
               {/* Sort By */}
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium">Sort By</label>
+                <label className="text-sm font-medium">Sort By</label>
                 <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -168,7 +168,7 @@ export function DriverFilter({
 
               {/* Sort Order */}
               <div className="space-y-2">
-                <label className="text-xs sm:text-sm font-medium">Sort Order</label>
+                <label className="text-sm font-medium">Sort Order</label>
                 <Select value={filters.sortOrder} onValueChange={(value) => handleFilterChange('sortOrder', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -184,7 +184,7 @@ export function DriverFilter({
             {/* Active Filters Display */}
             {hasActiveFilters && (
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                <span className="text-xs sm:text-sm text-muted-foreground">Active filters:</span>
+                <span className="text-sm text-muted-foreground">Active filters:</span>
                 {filters.statusFilter !== 'all' && (
                   <Badge variant="outline" className="text-xs">
                     Status: {filters.statusFilter}

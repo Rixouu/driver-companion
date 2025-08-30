@@ -375,77 +375,213 @@ export function CustomersPageContent({
         </Card>
       </div>
 
-      {/* Enhanced Filters */}
-      <CustomerFilters
-        filters={filterOptions}
-        onFiltersChange={handleFiltersChange}
-        totalCustomers={filteredCustomers.length}
-        segments={segments}
-      />
+      <div className="flex flex-col gap-4">
+        {/* Enhanced Filters */}
+        <CustomerFilters
+          filters={filterOptions}
+          onFiltersChange={handleFiltersChange}
+          totalCustomers={filteredCustomers.length}
+          segments={segments}
+        />
 
-      {/* Action Buttons */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
+        {/* Customer Count and View Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredCustomers.length} customers
+          </div>
+          <div className="touch-manipulation">
+            {/* TODO: Add ViewToggle component for customers */}
+            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1">
+              <button 
+                className="p-2 rounded bg-background shadow-sm"
+                title="List view"
+                aria-label="List view"
+              >
+                <Users className="h-4 w-4" />
+              </button>
+              <button 
+                className="p-2 rounded"
+                title="Grid view"
+                aria-label="Grid view"
+              >
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Select All Bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="select-all-customers"
+              checked={selectAll}
+              onChange={handleSelectAll}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              aria-label="Select all customers"
+            />
+            <span className="text-sm font-medium text-muted-foreground">Select All</span>
+            {selectedCustomers.size > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({selectedCustomers.size} of {filteredCustomers.length} selected)
+              </span>
+            )}
+          </div>
+
+          {/* Multi-select Actions */}
+          {selectedCustomers.size > 0 && (
             <div className="flex items-center gap-2">
-              {/* Select All Checkbox */}
-              <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={deleteSelectedCustomers}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete ({selectedCustomers.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedCustomers(new Set())
+                  setSelectAll(false)
+                }}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Table View with Headers */}
+      <div className="hidden sm:block space-y-3">
+        {/* Column Headers */}
+        <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
+          <div className="col-span-1">
+            <span className="text-sm font-medium text-muted-foreground">Select</span>
+          </div>
+          <div className="col-span-3">
+            <span className="text-sm font-medium text-muted-foreground">Customer</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Contact</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Segment</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Stats</span>
+          </div>
+          <div className="col-span-2">
+            <span className="text-sm font-medium text-muted-foreground">Actions</span>
+          </div>
+        </div>
+
+        {/* Desktop Customer Rows */}
+        {filteredCustomers.map((customer) => (
+          <Card key={customer.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border-border/60 bg-card/95 backdrop-blur">
+            <div className="grid grid-cols-12 items-center gap-4 p-4">
+              {/* Selection Checkbox */}
+              <div className="col-span-1 flex items-center">
                 <input
                   type="checkbox"
-                  id="select-all-customers"
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  aria-label="Select all customers for bulk operations"
+                  checked={selectedCustomers.has(customer.id)}
+                  onChange={() => handleSelectCustomer(customer.id)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  aria-label={`Select ${customer.name || 'customer'}`}
                 />
-                <label htmlFor="select-all-customers" className="text-sm text-muted-foreground">
-                  Select All
-                </label>
               </div>
-
-              {/* Multi-select Actions */}
-              {selectedCustomers.size > 0 && (
-                <>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={deleteSelectedCustomers}
-                    disabled={loading}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete ({selectedCustomers.size})
-                  </Button>
-                  <Button
+              
+              {/* Customer Column - Name and Company */}
+              <div className="col-span-3 flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <h3 className="font-semibold text-sm text-foreground truncate">
+                    {customer.name || 'Unnamed Customer'}
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {customer.segment_name || 'No segment'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Contact Column - Email and Phone */}
+              <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
+                <div className="flex items-center gap-2 text-sm w-full">
+                  <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate text-left">{customer.email}</span>
+                </div>
+                {customer.phone && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground w-full">
+                    <Phone className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate text-left">{customer.phone}</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Segment Column */}
+              <div className="col-span-2 flex justify-start">
+                {customer.segment_name && (
+                  <Badge 
                     variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedCustomers(new Set())
-                      setSelectAll(false)
-                    }}
+                    className={cn(
+                      "text-xs",
+                      customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                      customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                      customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                      customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                    )}
                   >
-                    Clear Selection
-                  </Button>
-                </>
-              )}
+                    {customer.segment_name}
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Stats Column - Spending and Activity */}
+              <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
+                <div className="text-sm font-medium text-foreground text-left">
+                  {formatCurrency(customer.total_spent, 'JPY')}
+                </div>
+                <div className="text-xs text-muted-foreground text-left">
+                  {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
+                </div>
+              </div>
+              
+              {/* Actions Column */}
+              <div className="col-span-2 flex justify-start gap-2">
+                <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                  <Link href={`/customers/${customer.id}`}>
+                    View
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                  <Link href={`/customers/${customer.id}/edit`}>
+                    Edit
+                  </Link>
+                </Button>
+              </div>
             </div>
-
-            {/* Export Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportToCSV}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </Card>
+        ))}
+      </div>
 
       {/* Customer List - Mobile Optimized */}
-      <div className="grid gap-3 sm:gap-4">
+      <div className="sm:hidden space-y-4">
         {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="hover:shadow-md hover:bg-muted/30 transition-all duration-200 group cursor-pointer">
             <CardContent className="p-3 sm:p-4">

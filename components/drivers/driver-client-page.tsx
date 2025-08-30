@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ViewToggle } from "@/components/ui/view-toggle";
 import { DriverCard } from "@/components/drivers/driver-card";
 import { DriverListItem } from "@/components/drivers/driver-list-item";
+import { DriverList } from "@/components/drivers/driver-list-new";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DriverFilter, DriverFilterOptions } from "./driver-filter";
@@ -254,27 +255,13 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
         </Link>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         <DriverFilter
           filters={filters}
           onFiltersChange={handleFiltersChange}
           totalDrivers={filteredDrivers.length}
           availabilityOptions={availabilityStatuses}
         />
-
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {filters.searchQuery || filters.availabilityFilter !== 'all' || filters.licenseFilter !== 'all' ? (
-              <span>Filtered results: {filteredDrivers.length} drivers</span>
-            ) : (
-              <span>Showing all {filteredDrivers.length} drivers</span>
-            )}
-          </div>
-          <div className="touch-manipulation">
-            <ViewToggle view={viewMode} onViewChange={handleViewChange} />
-          </div>
-        </div>
-      </div>
 
       {filteredDrivers.length === 0 ? (
         <EmptyState
@@ -288,76 +275,16 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
           }
         />
       ) : (
-        <>
-          <div
-            className={
-              viewMode === "grid"
-                ? "driver-grid-view grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-                : "space-y-4"
-            }
-          >
-            {paginatedDrivers.map((driver) =>
-              viewMode === "grid" ? (
-                <DriverCard key={driver.id} driver={driver} />
-              ) : (
-                <DriverListItem key={driver.id} driver={driver} />
-              ),
-            )}
-          </div>
-
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage > 1) handlePageChange(currentPage - 1);
-                    }}
-                    aria-disabled={currentPage === 1}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(page => page === 1 || page === totalPages || (page >= currentPage -1 && page <= currentPage + 1))
-                  .map((page, index, arr) => (
-                    <React.Fragment key={page}>
-                      {index > 0 && arr[index-1] + 1 < page && (
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-                      <PaginationItem>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handlePageChange(page);
-                          }}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    </React.Fragment>
-                  ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (currentPage < totalPages) handlePageChange(currentPage + 1);
-                    }}
-                    aria-disabled={currentPage === totalPages}
-                     className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </>
+        <DriverList
+          drivers={filteredDrivers}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isLoading={isLoading}
+          initialFilters={filters}
+          availabilityOptions={availabilityStatuses}
+        />
       )}
+      </div>
     </div>
   );
 } 

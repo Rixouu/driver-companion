@@ -2,25 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addDays, isAfter } from 'date-fns';
 import { Quotation, QuotationStatus } from '@/types/quotations';
 import { 
@@ -29,20 +16,23 @@ import {
   EyeIcon, 
   FileEditIcon, 
   MailIcon, 
-  MoreHorizontalIcon, 
   PlusIcon, 
   SearchIcon, 
   TrashIcon,
   CopyIcon,
   BellIcon,
   AlertCircleIcon,
-  Filter
+  Filter,
+  TrendingUp,
+  DollarSign,
+  FileText,
+  Clock,
+  Download
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { EmptyState } from '@/components/empty-state';
-import LoadingSpinner from '@/components/shared/loading-spinner';
+
 import { QuotationFilters, QuotationFilterOptions } from './quotation-filters';
-import { QuotationStatusFilter } from './quotation-status-filter';
 import { cn } from '@/lib/utils';
 import { getQuotationStatusBadgeClasses } from '@/lib/utils/styles';
 import { useToast } from '@/components/ui/use-toast';
@@ -113,6 +103,7 @@ export default function QuotationList({
   });
   
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedQuotations, setSelectedQuotations] = useState<Set<string>>(new Set());
 
   // Check if quotation is expired - Updated to use 2 days from creation
   const isExpired = (quotation: Quotation) => {
@@ -432,6 +423,45 @@ export default function QuotationList({
     }
   };
 
+  // Selection handlers
+  const handleSelectAll = () => {
+    if (selectedQuotations.size === filteredQuotations.length) {
+      setSelectedQuotations(new Set());
+    } else {
+      setSelectedQuotations(new Set(filteredQuotations.map(quotation => quotation.id)));
+    }
+  };
+
+  const handleSelectQuotation = (quotationId: string) => {
+    const newSelected = new Set(selectedQuotations);
+    if (newSelected.has(quotationId)) {
+      newSelected.delete(quotationId);
+    } else {
+      newSelected.add(quotationId);
+    }
+    setSelectedQuotations(newSelected);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedQuotations(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (onDelete) {
+      selectedQuotations.forEach(id => onDelete(id));
+      setSelectedQuotations(new Set());
+    }
+  };
+
+  const handleExportSelected = () => {
+    // TODO: Implement CSV export for selected quotations
+    console.log('Exporting quotations:', Array.from(selectedQuotations));
+    toast({
+      title: "Export Started",
+      description: `Exporting ${selectedQuotations.size} quotations to CSV...`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -518,25 +548,82 @@ export default function QuotationList({
   }
 
   return (
-    <Card className="w-full">
-      <CardContent className="p-0">
-        <div className="p-3 sm:p-4 bg-muted/10 border-b">
-          <QuotationStatusFilter 
-            currentStatus={filters.statusFilter as QuotationStatus | 'all'}
-            onChange={(newStatus) => handleFiltersChange({ ...filters, statusFilter: newStatus })}
+    <div className="space-y-6">
+      {/* Stats Overview - Mobile Optimized */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Quotations - Blue */}
+        <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Total Quotations</CardTitle>
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{quotations.length.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        {/* Total Revenue - Green */}
+        <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Total Revenue</CardTitle>
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
+              {formatCurrency(quotations.reduce((sum, q) => sum + calculateFinalAmount(q), 0), 'JPY')}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Quotations - Orange */}
+        <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Pending Quotations</CardTitle>
+            <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold break-words text-orange-600 dark:text-orange-400">
+              {quotations.filter(q => ['draft', 'sent'].includes(q.status)).length}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Converted Quotations - Purple */}
+        <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Converted</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {quotations.filter(q => q.status === 'converted').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {/* Search Bar */}
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search quotations by number, customer, email..."
+            value={filters.searchQuery}
+            onChange={(e) => handleFiltersChange({ ...filters, searchQuery: e.target.value })}
+            className="pl-10"
           />
         </div>
-        
-        {/* Collapsible Quotation Filters */}
-        <div className="border-b">
+
+        {/* Advanced Filters */}
+        <div className="border rounded-lg">
           <Button
             variant="ghost"
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="w-full justify-between p-3 sm:p-4 rounded-none border-b-0"
+            className="w-full justify-between p-4 rounded-none border-b-0"
           >
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              <span className="text-sm sm:text-base font-medium">{t('quotations.filters.title') || 'Filters & Search'}</span>
+              <span className="font-medium">Advanced Filters</span>
             </div>
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </Button>
@@ -546,266 +633,317 @@ export default function QuotationList({
               filters={filters}
               onFiltersChange={handleFiltersChange}
               totalQuotations={totalCount}
-              className="border-t-0"
+              className="border-t p-4 space-y-4"
             />
           )}
         </div>
 
-        <div className="p-3 sm:p-4">
-          <div className="md:hidden space-y-4">
-            {filteredQuotations.map((quotation) => (
-              <div 
-                key={quotation.id}
-                className="rounded-lg border bg-card shadow-md hover:ring-2 hover:ring-primary/40 cursor-pointer transition-all"
-                onClick={() => handleRowClick(quotation.id)}
+        {/* Quotation Count and View Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredQuotations.length} quotations
+          </div>
+        </div>
+
+        {/* Select All Bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={selectedQuotations.size === filteredQuotations.length && filteredQuotations.length > 0}
+              onChange={handleSelectAll}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              aria-label="Select all quotations"
+            />
+            <span className="text-sm font-medium text-muted-foreground">Select All</span>
+            {selectedQuotations.size > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({selectedQuotations.size} of {filteredQuotations.length} selected)
+              </span>
+            )}
+          </div>
+
+          {/* Multi-select Actions */}
+          {selectedQuotations.size > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-2"
               >
-                <div className="p-3 sm:p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="font-mono text-xs">#{quotation.quote_number}</div>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const finalStatus = getFinalStatus(quotation);
-                        return (
-                          <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
-                            {t(`quotations.status.${finalStatus}`)}
-                          </Badge>
-                        );
-                      })()}
-                      {needsReminder(quotation) && (
-                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">
-                          <AlertCircleIcon className="h-3 w-3 mr-1" />
-                          {t('quotations.actions.remind')}
-                        </Badge>
-                      )}
-                    </div>
+                <TrashIcon className="h-4 w-4" />
+                Delete ({selectedQuotations.size})
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearSelection}
+              >
+                Clear Selection
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSelected}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View with Headers */}
+        <div className="hidden sm:block space-y-3">
+          {/* Column Headers */}
+          <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 bg-muted/20 rounded-lg">
+            <div className="col-span-1">
+              <span className="text-sm font-medium text-muted-foreground">Select</span>
+            </div>
+            <div className="col-span-1">
+              <span className="text-sm font-medium text-muted-foreground">ID</span>
+            </div>
+            <div className="col-span-4">
+              <span className="text-sm font-medium text-muted-foreground">Customer</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-sm font-medium text-muted-foreground">Date</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-sm font-medium text-muted-foreground">Amount</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-sm font-medium text-muted-foreground">Actions</span>
+            </div>
+          </div>
+
+          {/* Desktop Quotation Rows */}
+          {filteredQuotations.map((quotation) => (
+            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+              <div className="grid grid-cols-12 items-center gap-4 p-4">
+                {/* Selection Checkbox */}
+                <div className="col-span-1 flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedQuotations.has(quotation.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleSelectQuotation(quotation.id);
+                    }}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                    aria-label={`Select quotation ${quotation.quote_number}`}
+                  />
+                </div>
+                
+                {/* ID Column */}
+                <div className="col-span-1 flex items-center gap-3">
+                  <div className="font-mono text-sm text-muted-foreground">#{quotation.quote_number}</div>
+                </div>
+                
+                {/* Customer Column - Name and Email */}
+                <div className="col-span-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  
-                  <div className="font-semibold mb-1">{quotation.title || t('common.untitled')}</div>
-                  <div className="font-medium mb-1">{quotation.customers?.name || quotation.customer_name || '—'}</div>
-                  <div className="text-xs text-muted-foreground mb-3 truncate">{quotation.customers?.email || quotation.customer_email}</div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-muted-foreground">
-                      {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
-                    </div>
-                    <div className="font-semibold text-right">
-                      {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end gap-2 mt-3 pt-3 border-t">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
-                      title={t('quotations.actions.view')}
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    
-                    {isOrganizationMember && (
-                      <>
-                        {quotation.status === 'sent' && !isExpired(quotation) && onRemind && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                            onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
-                            title={t('quotations.actions.remind')}
-                          >
-                            <BellIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
-                          title={t('quotations.actions.copy')}
-                        >
-                          <CopyIcon className="h-4 w-4" />
-                        </Button>
-                        
-                        {(['draft', 'rejected'].includes(quotation.status) || isExpired(quotation)) && onDelete && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-600"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, quotation.id); }}
-                            title={t('quotations.actions.delete')}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {quotation.status === 'draft' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => { e.stopPropagation(); handleEditClick(e, quotation.id); }}
-                              title={t('quotations.actions.edit')}
-                            >
-                              <FileEditIcon className="h-4 w-4" />
-                            </Button>
-                           {onSend && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => { e.stopPropagation(); handleSendClick(e, quotation.id); }}
-                                title={t('quotations.actions.send')}
-                              >
-                                <MailIcon className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
+                  <div className="space-y-1 min-w-0">
+                    <h3 className="font-semibold text-sm text-foreground truncate">
+                      {quotation.title || t('common.untitled')}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {quotation.customers?.name || quotation.customer_name || '—'}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {quotation.customers?.email || quotation.customer_email}
+                    </p>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="hidden md:block rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/30">
-                <TableRow>
-                  <TableHead className="w-[90px] text-left">{t('quotations.listColumns.id')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.customer')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.date')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.amount')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.status')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.expiresOn')}</TableHead>
-                  <TableHead className="text-left">{t('quotations.listColumns.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredQuotations.map((quotation) => (
-                  <TableRow 
-                    key={quotation.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(quotation.id)}
+                
+                {/* Date Column */}
+                <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
+                  <div className="text-sm text-foreground">
+                    {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}
+                  </div>
+                  {needsReminder(quotation) && (
+                    <div className="mt-1 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
+                      <button
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (onRemind) handleRemindClick(e, quotation.id); 
+                        }}
+                        className="ml-1 p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
+                        title="Send reminder"
+                      >
+                        <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Amount Column */}
+                <div className="col-span-2 flex flex-col items-start justify-start">
+                  <div className="font-semibold text-sm text-foreground mb-2">
+                    {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const finalStatus = getFinalStatus(quotation);
+                      return (
+                        <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
+                          {t(`quotations.status.${finalStatus}`)}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                </div>
+                
+                {/* Actions Column */}
+                <div className="col-span-2 flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                    className="flex items-center gap-2"
                   >
-                    <TableCell className="font-mono text-xs sm:text-sm text-left">#{quotation.quote_number}</TableCell>
-                    <TableCell className="text-left">
-                      {isOrganizationMember ? (
-                        quotation.customers?.name || quotation.customer_name || t('common.notAvailableShort')
-                      ) : (
-                        t('common.confidential')
-                      )}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {format(parseISO(quotation.created_at), 'dd MMM yyyy')}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      {(() => {
-                        const finalStatus = getFinalStatus(quotation);
-                        return (
-                          <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
-                            {t(`quotations.status.${finalStatus}`)}
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex flex-col items-start gap-1">
-                        <span>{getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'dd MMM yyyy') : t('common.notAvailableShort')}</span>
-                        {needsReminder(quotation) && (
-                          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700 inline-flex items-center mt-1">
-                            <AlertCircleIcon className="h-3 w-3 mr-1" />
-                            {t('quotations.actions.remind')}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex items-start gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={(e) => handleViewClick(e, quotation.id)}
-                          title={t('quotations.actions.view')}
+                    <EyeIcon className="h-4 w-4" />
+                    View
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                    className="flex items-center gap-2"
+                  >
+                    <CopyIcon className="h-4 w-4" />
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden space-y-4">
+          {filteredQuotations.map((quotation) => (
+            <Card key={quotation.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+              <div className="p-4">
+                {/* Header with Selection and Status */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedQuotations.has(quotation.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleSelectQuotation(quotation.id);
+                      }}
+                      className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      aria-label={`Select quotation ${quotation.quote_number}`}
+                    />
+                    <div className="font-mono text-sm text-muted-foreground">#{quotation.quote_number}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const finalStatus = getFinalStatus(quotation);
+                      return (
+                        <Badge variant="outline" className={cn(getQuotationStatusBadgeClasses(finalStatus))}>
+                          {t(`quotations.status.${finalStatus}`)}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <div className="space-y-2 mb-4">
+                  <div className="font-semibold text-lg">{quotation.title || t('common.untitled')}</div>
+                  <div className="font-medium">{quotation.customers?.name || quotation.customer_name || '—'}</div>
+                  <div className="text-sm text-muted-foreground">{quotation.customers?.email || quotation.customer_email}</div>
+                </div>
+                
+                {/* Footer with Date, Amount, and Actions */}
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                      <span>{quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}</span>
+                      <span>Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}</span>
+                    </div>
+                    {needsReminder(quotation) && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (onRemind) handleRemindClick(e, quotation.id); 
+                          }}
+                          className="ml-1 p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
+                          title="Send reminder"
                         >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-
-                        {isOrganizationMember && quotation.status === 'draft' && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => handleEditClick(e, quotation.id)}
-                            title={t('quotations.actions.edit')}
-                          >
-                            <FileEditIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        {isOrganizationMember && quotation.status === 'draft' && onSend && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => handleSendClick(e, quotation.id)}
-                            title={t('quotations.actions.send')}
-                          >
-                            <MailIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {isOrganizationMember && onRemind && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => handleRemindClick(e, quotation.id)}
-                            title={t('quotations.actions.remind')}
-                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                          >
-                            <BellIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        {isOrganizationMember && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => handleDuplicateClick(e, quotation.id)}
-                            title={t('quotations.actions.duplicate')}
-                          >
-                            <CopyIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-
-                        {isOrganizationMember && (['draft','rejected'].includes(quotation.status) || isExpired(quotation)) && onDelete && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={(e) => handleDeleteClick(e, quotation.id)}
-                            title={t('quotations.actions.delete')}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        )}
+                          <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                        </button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                    )}
+                  </div>
+                  <div className="font-semibold text-lg">
+                    {formatCurrency(calculateFinalAmount(quotation), quotation.currency || 'JPY')}
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleViewClick(e, quotation.id); }}
+                    className="flex items-center gap-2 w-full justify-center"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                    View
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleDuplicateClick(e, quotation.id); }}
+                    className="flex items-center gap-2 w-full justify-center"
+                  >
+                    <CopyIcon className="h-4 w-4" />
+                    Copy
+                  </Button>
+                  
+                  {quotation.status === 'sent' && !isExpired(quotation) && onRemind ? (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
+                      className="flex items-center gap-2 w-full justify-center"
+                    >
+                      <BellIcon className="h-4 w-4" />
+                      Remind
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2 w-full justify-center">
+                      <span className="text-xs text-muted-foreground">—</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
         
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="p-3 sm:p-4 border-t">
+          <div className="border-t pt-4">
             <Pagination>
               <PaginationContent className="flex justify-center">
                 {/* Previous Page */}
@@ -875,7 +1013,7 @@ export default function QuotationList({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 } 

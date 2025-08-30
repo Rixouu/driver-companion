@@ -208,25 +208,23 @@ export default async function QuotationsPage({ searchParams }: QuotationsPagePro
       
       <Separator className="my-6" />
       
-      <Card>
-        <Suspense fallback={<LoadingSpinner />}>
-          <QuotationsTableClient 
-            initialQuotations={quotations} 
-            totalCount={count || 0}
-            totalPages={totalPages}
-            currentPage={page}
-            isOrganizationMember={isOrganizationMember}
-            filterParams={{
-              query: pageQuery,
-              status: pageStatus,
-              dateFrom,
-              dateTo,
-              amountMin,
-              amountMax
-            }}
-          />
-        </Suspense>
-      </Card>
+      <Suspense fallback={<LoadingSpinner />}>
+        <QuotationsTableClient 
+          initialQuotations={quotations} 
+          totalCount={count || 0}
+          totalPages={totalPages}
+          currentPage={page}
+          isOrganizationMember={isOrganizationMember}
+          filterParams={{
+            query: pageQuery,
+            status: pageStatus,
+            dateFrom,
+            dateTo,
+            amountMin,
+            amountMax
+          }}
+        />
+      </Suspense>
     </div>
   );
 } 

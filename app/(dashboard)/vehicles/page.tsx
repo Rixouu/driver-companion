@@ -99,20 +99,28 @@ export default async function VehiclesPage({
   
   // Apply category filter if provided
   if (categoryFilter && categoryFilter !== 'all') {
-    // Get vehicle IDs for the selected category
-    const { data: categoryVehicles } = await supabase
-      .from('pricing_category_vehicles')
-      .select('vehicle_id')
-      .eq('category_id', categoryFilter);
-    
-    if (categoryVehicles && categoryVehicles.length > 0) {
-      const vehicleIds = categoryVehicles.map(cv => cv.vehicle_id);
-      vehiclesQuery = vehiclesQuery.in('id', vehicleIds);
-      countQuery = countQuery.in('id', vehicleIds);
-    } else {
-      // No vehicles in this category, return empty result
-      vehiclesQuery = vehiclesQuery.eq('id', 'no-match');
-      countQuery = countQuery.eq('id', 'no-match');
+    try {
+      // Get vehicle IDs for the selected category with better error handling
+      const { data: categoryVehicles, error: categoryError } = await supabase
+        .from('pricing_category_vehicles')
+        .select('vehicle_id')
+        .eq('category_id', categoryFilter);
+      
+      if (categoryError) {
+        console.error("Error fetching category vehicles:", categoryError);
+        // Continue without category filter if there's an error
+      } else if (categoryVehicles && categoryVehicles.length > 0) {
+        const vehicleIds = categoryVehicles.map(cv => cv.vehicle_id);
+        vehiclesQuery = vehiclesQuery.in('id', vehicleIds);
+        countQuery = countQuery.in('id', vehicleIds);
+      } else {
+        // No vehicles in this category, return empty result
+        vehiclesQuery = vehiclesQuery.eq('id', 'no-match');
+        countQuery = countQuery.eq('id', 'no-match');
+      }
+    } catch (error) {
+      console.error("Error in category filtering:", error);
+      // Continue without category filter if there's an error
     }
   }
 
@@ -141,6 +149,10 @@ export default async function VehiclesPage({
     .select('id, name')
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
+  
+  if (categoriesError) {
+    console.error("Error fetching pricing categories:", categoriesError);
+  }
 
   // Build brand options with case-insensitive deduplication
   const brandMap = new Map();

@@ -93,39 +93,54 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Email:</span>
-                  <span>{customer.email}</span>
+            {/* Mobile Optimized Information Grid */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Contact Information */}
+              <div className="space-y-3 p-3 bg-muted/20 rounded-lg border border-border/40">
+                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Contact Information
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground min-w-[80px]">Email:</span>
+                    <span className="break-all">{customer.email}</span>
+                  </div>
+                  {customer.phone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground min-w-[80px]">Phone:</span>
+                      <span>{customer.phone}</span>
+                    </div>
+                  )}
+                  {customer.address && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <span className="text-muted-foreground min-w-[80px]">Address:</span>
+                      <span className="break-words">{customer.address}</span>
+                    </div>
+                  )}
                 </div>
-                {customer.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Phone:</span>
-                    <span>{customer.phone}</span>
-                  </div>
-                )}
-                {customer.address && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Address:</span>
-                    <span>{customer.address}</span>
-                  </div>
-                )}
               </div>
               
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Customer Since:</span>
-                  <span>{format(new Date(customer.created_at), 'MMM dd, yyyy')}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Last Activity:</span>
-                  <span>{formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}</span>
+              {/* Customer Details */}
+              <div className="space-y-3 p-3 bg-muted/20 rounded-lg border border-border/40">
+                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Customer Details
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground min-w-[100px]">Customer Since:</span>
+                    <span>{format(new Date(customer.created_at), 'MMM dd, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground min-w-[100px]">Last Activity:</span>
+                    <span>{formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -302,7 +317,16 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                             {format(new Date(booking.date), 'MMM dd, yyyy')}
                           </div>
                         </div>
-                        <Badge variant={booking.status === 'completed' ? 'default' : booking.status === 'confirmed' ? 'secondary' : 'outline'}>
+                        <Badge 
+                          variant="outline"
+                          className={cn(
+                            booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                            booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                            booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                            booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                            booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                          )}
+                        >
                           {booking.status}
                         </Badge>
                       </div>
@@ -438,7 +462,16 @@ export function CustomerDetailsContent({ customer }: CustomerDetailsContentProps
                           {format(new Date(booking.date), 'MMM dd, yyyy')} • Created {format(new Date(booking.created_at), 'MMM dd, yyyy HH:mm')}
                         </div>
                       </div>
-                      <Badge variant={booking.status === 'completed' ? 'default' : booking.status === 'confirmed' ? 'secondary' : 'outline'}>
+                      <Badge 
+                        variant="outline"
+                        className={cn(
+                          booking.status === 'completed' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+                          booking.status === 'confirmed' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                          booking.status === 'pending' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                          booking.status === 'cancelled' && 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400',
+                          booking.status === 'in_progress' && 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                        )}
+                      >
                         {booking.status}
                       </Badge>
                     </div>

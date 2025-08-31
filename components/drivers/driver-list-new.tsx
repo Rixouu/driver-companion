@@ -41,7 +41,9 @@ import {
   CheckSquare,
   Square,
   TrendingUp,
-  Users
+  Users,
+  EyeIcon,
+  FileEditIcon
 } from "lucide-react"
 import { DriverFilter, DriverFilterOptions } from "./driver-filter"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -433,13 +435,25 @@ export function DriverList({
                       
                       {/* Actions Column */}
                       <div className="col-span-2 flex justify-start gap-2">
-                        <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild 
+                          className="flex items-center gap-2"
+                        >
                           <Link href={`/drivers/${driver.id}`}>
+                            <EyeIcon className="h-4 w-4" />
                             View
                           </Link>
                         </Button>
-                        <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild 
+                          className="flex items-center gap-2"
+                        >
                           <Link href={`/drivers/${driver.id}/edit`}>
+                            <FileEditIcon className="h-4 w-4" />
                             Edit
                           </Link>
                         </Button>
@@ -525,13 +539,25 @@ export function DriverList({
                     
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" asChild className="flex-1 bg-background/80 hover:bg-background border-border/60">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        asChild 
+                        className="flex-1 flex items-center gap-2 justify-center"
+                      >
                         <Link href={`/drivers/${driver.id}`}>
+                          <EyeIcon className="h-4 w-4" />
                           View Details
                         </Link>
                       </Button>
-                      <Button size="sm" variant="outline" asChild className="flex-1 bg-background/80 hover:bg-background border-border/60">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        asChild 
+                        className="flex-1 flex items-center gap-2 justify-center"
+                      >
                         <Link href={`/drivers/${driver.id}/edit`}>
+                          <FileEditIcon className="h-4 w-4" />
                           Edit
                         </Link>
                       </Button>
@@ -633,24 +659,26 @@ export function DriverList({
                   <CardFooter className="pt-0">
                     <div className="flex gap-2 w-full">
                       <Button 
+                        variant="ghost" 
                         size="sm" 
-                        variant="outline" 
                         asChild 
-                        className="flex-1"
+                        className="flex-1 flex items-center gap-2 justify-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Link href={`/drivers/${driver.id}`}>
+                          <EyeIcon className="h-4 w-4" />
                           View
                         </Link>
                       </Button>
                       <Button 
+                        variant="ghost" 
                         size="sm" 
-                        variant="outline" 
                         asChild 
-                        className="flex-1"
+                        className="flex-1 flex items-center gap-2 justify-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Link href={`/drivers/${driver.id}/edit`}>
+                          <FileEditIcon className="h-4 w-4" />
                           Edit
                         </Link>
                       </Button>

@@ -99,10 +99,11 @@ export default function NewBookingPage() {
           setAvailableDrivers(driversResult.drivers)
         }
         
-        // Fetch Vehicles
-        const vehiclesResult = await getVehicles()
-        if (vehiclesResult.vehicles) {
-          setAvailableVehicles(vehiclesResult.vehicles)
+        // Fetch Vehicles - pass empty object as searchParams
+        const vehiclesResult = await getVehicles({})
+        if (vehiclesResult && vehiclesResult.length > 0) {
+          // Use the vehicles directly as they should be compatible
+          setAvailableVehicles(vehiclesResult as any)
         }
       } catch (error) {
         console.error('Error loading drivers/vehicles:', error)
@@ -335,14 +336,14 @@ export default function NewBookingPage() {
                   <div className="space-y-2">
                     <Label htmlFor="driver_id">Driver</Label>
                     <Select
-                      value={formData.driver_id || ''}
-                      onValueChange={(value) => handleInputChange('driver_id', value)}
+                      value={formData.driver_id || 'none'}
+                      onValueChange={(value) => handleInputChange('driver_id', value === 'none' ? null : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a driver" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No driver assigned</SelectItem>
+                        <SelectItem value="none">No driver assigned</SelectItem>
                         {availableDrivers.map((driver) => (
                           <SelectItem key={driver.id} value={driver.id}>
                             {driver.first_name} {driver.last_name}

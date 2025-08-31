@@ -87,7 +87,7 @@ export default function BookingPage() {
   const { t } = useI18n()
   const params = useParams()
   const router = useRouter()
-  const id = params.id as string
+  const id = params?.id as string
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

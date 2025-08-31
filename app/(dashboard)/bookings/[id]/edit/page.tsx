@@ -50,7 +50,7 @@ import Image from 'next/image';
 export default function EditBookingPage() {
   const router = useRouter()
   const params = useParams()
-  const id = params.id as string
+  const id = params?.id as string
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -675,6 +675,110 @@ export default function EditBookingPage() {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Billing Information Section */}
+                    <Separator className="my-6" />
+                    
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <CreditCard className="mr-2 h-5 w-5" />
+                        {t('bookings.billing.title')}
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.companyName')}</h3>
+                          <Input
+                            id="billing_company_name"
+                            name="billing_company_name"
+                            value={formData.billing_company_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.taxNumber')}</h3>
+                          <Input
+                            id="billing_tax_number"
+                            name="billing_tax_number"
+                            value={formData.billing_tax_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetName')}</h3>
+                          <Input
+                            id="billing_street_name"
+                            name="billing_street_name"
+                            value={formData.billing_street_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetNumber')}</h3>
+                          <Input
+                            id="billing_street_number"
+                            name="billing_street_number"
+                            value={formData.billing_street_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.city')}</h3>
+                          <Input
+                            id="billing_city"
+                            name="billing_city"
+                            value={formData.billing_city || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.state')}</h3>
+                          <Input
+                            id="billing_state"
+                            name="billing_state"
+                            value={formData.billing_state || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.postalCode')}</h3>
+                          <Input
+                            id="billing_postal_code"
+                            name="billing_postal_code"
+                            value={formData.billing_postal_code || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.country')}</h3>
+                        <Input
+                          id="billing_country"
+                          name="billing_country"
+                          value={formData.billing_country || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </Card>
               </TabsContent>
@@ -894,113 +998,7 @@ export default function EditBookingPage() {
                   </div>
                 </Card>
                 
-                {/* Billing Information Card */}
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <CreditCard className="mr-2 h-5 w-5" />
-                      {t('bookings.billing.title')}
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.companyName')}</h3>
-                          <Input
-                            id="billing_company_name"
-                            name="billing_company_name"
-                            value={formData.billing_company_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.taxNumber')}</h3>
-                          <Input
-                            id="billing_tax_number"
-                            name="billing_tax_number"
-                            value={formData.billing_tax_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetName')}</h3>
-                          <Input
-                            id="billing_street_name"
-                            name="billing_street_name"
-                            value={formData.billing_street_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.streetNumber')}</h3>
-                          <Input
-                            id="billing_street_number"
-                            name="billing_street_number"
-                            value={formData.billing_street_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.city')}</h3>
-                          <Input
-                            id="billing_city"
-                            name="billing_city"
-                            value={formData.billing_city || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.state')}</h3>
-                          <Input
-                            id="billing_state"
-                            name="billing_state"
-                            value={formData.billing_state || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.postalCode')}</h3>
-                          <Input
-                            id="billing_postal_code"
-                            name="billing_postal_code"
-                            value={formData.billing_postal_code || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.billing.country')}</h3>
-                        <Input
-                          id="billing_country"
-                          name="billing_country"
-                          value={formData.billing_country || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+
                 
 
               </TabsContent>

@@ -12,7 +12,7 @@ import BookingDetailsContent from './booking-details-content'
 
 export default function BookingDetailsClientPage() {
   const params = useParams()
-  const id = params.id as string
+  const id = params?.id as string
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

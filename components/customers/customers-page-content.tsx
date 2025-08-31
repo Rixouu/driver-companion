@@ -492,7 +492,7 @@ export function CustomersPageContent({
 
         {/* Desktop Customer Rows */}
         {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border-border/60 bg-card/95 backdrop-blur">
+          <Card key={customer.id} className="overflow-hidden border-border/60 bg-card/95 backdrop-blur">
             <div className="grid grid-cols-12 items-center gap-4 p-4">
               {/* Selection Checkbox */}
               <div className="col-span-1 flex items-center">
@@ -564,13 +564,25 @@ export function CustomersPageContent({
               
               {/* Actions Column */}
               <div className="col-span-2 flex justify-start gap-2">
-                <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  asChild
+                  className="flex items-center gap-2"
+                >
                   <Link href={`/customers/${customer.id}`}>
+                    <Eye className="h-4 w-4" />
                     View
                   </Link>
                 </Button>
-                <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  asChild
+                  className="flex items-center gap-2"
+                >
                   <Link href={`/customers/${customer.id}/edit`}>
+                    <Edit className="h-4 w-4" />
                     Edit
                   </Link>
                 </Button>
@@ -583,7 +595,7 @@ export function CustomersPageContent({
       {/* Customer List - Mobile Optimized */}
       <div className="sm:hidden space-y-4">
         {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="hover:shadow-md hover:bg-muted/30 transition-all duration-200 group cursor-pointer">
+          <Card key={customer.id} className="group">
             <CardContent className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                 {/* Checkbox and Header Row - Mobile Optimized */}
@@ -673,15 +685,25 @@ export function CustomersPageContent({
 
                 {/* Action Buttons - Mobile Optimized 2-Column Layout */}
                 <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <Button asChild size="sm" variant="outline" className="h-9 px-3 text-xs sm:text-sm w-full">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    asChild
+                    className="flex items-center gap-2 h-9 px-3 text-xs sm:text-sm w-full justify-center"
+                  >
                     <Link href={`/customers/${customer.id}`}>
-                      <Eye className="h-3 w-3 mr-1" />
+                      <Eye className="h-4 w-4" />
                       View
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="outline" className="h-9 px-3 text-xs sm:text-sm w-full">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    asChild
+                    className="flex items-center gap-2 h-9 px-3 text-xs sm:text-sm w-full justify-center"
+                  >
                     <Link href={`/customers/${customer.id}/edit`}>
-                      <Edit className="h-3 w-3 mr-1" />
+                      <Edit className="h-4 w-4" />
                       Edit
                     </Link>
                   </Button>

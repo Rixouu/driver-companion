@@ -200,16 +200,16 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
             {/* Mobile-optimized Filter Controls */}
             <div className="flex flex-col gap-3 sm:gap-4">
-              {/* Filter by type - mobile-friendly layout */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              {/* Filter by type - 2x2 grid layout */}
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm font-medium">Filter by:</span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleFilterChange("all")}
-                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "all"
                         ? "bg-white text-gray-900 border-gray-300 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white"
                         : "text-gray-600 border-gray-300 bg-gray-50 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:bg-transparent dark:hover:bg-gray-800"
@@ -219,7 +219,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("booking")}
-                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "booking"
                         ? "bg-blue-600 text-white border-blue-600 shadow-sm dark:bg-blue-600 dark:text-white dark:border-blue-600"
                         : "text-blue-700 border-blue-300 bg-blue-50 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:bg-transparent dark:hover:bg-blue-900/20"
@@ -229,7 +229,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("inspection")}
-                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "inspection"
                         ? "bg-green-600 text-white border-green-600 shadow-sm dark:bg-green-600 dark:text-white dark:border-green-600"
                         : "text-green-700 border-green-300 bg-green-50 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:bg-transparent dark:hover:bg-green-900/20"
@@ -239,7 +239,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("maintenance")}
-                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "maintenance"
                         ? "bg-orange-600 text-white border-orange-600 shadow-sm dark:bg-orange-600 dark:text-white dark:border-orange-600"
                         : "text-orange-700 border-orange-300 bg-orange-50 hover:bg-orange-100 dark:text-orange-300 dark:border-orange-600 dark:bg-transparent dark:hover:bg-orange-900/20"
@@ -250,8 +250,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 </div>
               </div>
               
-              {/* Mobile-optimized Date and Sort controls */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              {/* Mobile-optimized Date and Sort controls - 2x2 layout */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm font-medium">Date:</span>

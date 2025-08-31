@@ -252,13 +252,10 @@ export function DriverDetailsContent({
       <div className="border-b bg-card">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {/* Mobile Header */}
-          <div className="block sm:hidden">
-            <div className="flex items-center justify-between mb-4">
-              <Link href="/drivers" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                <span className="text-sm font-medium">Back to Drivers</span>
-              </Link>
-            </div>
+                      <div className="block sm:hidden">
+              <div className="mb-4">
+                {/* Mobile header - removed duplicate back button since we have one at top */}
+              </div>
             
             <div className="flex items-center space-x-4 mb-4">
               <Avatar className="h-16 w-16 border-2 border-primary/20">

@@ -546,6 +546,27 @@ export function DriverList({
       ) : (
         <>
           {/* Grid View */}
+          {/* Grid View Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all drivers"
+                  />
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Select All
+                  </span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Showing {paginatedDrivers.length} of {drivers.length} drivers
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {paginatedDrivers.map((driver) => (
               <Card 
@@ -556,12 +577,20 @@ export function DriverList({
                 <div className="h-full flex flex-col">
                   <CardContent className="p-6 pt-5 flex-grow">
                     <div className="flex items-center justify-between mb-4">
-                      <Avatar className="h-16 w-16 border-2 border-primary/10">
-                        <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                        <AvatarFallback className="text-lg font-bold bg-primary text-primary-foreground">
-                          {driver.first_name?.[0]}{driver.last_name?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedDrivers.has(driver.id)}
+                          onCheckedChange={() => handleSelectDriver(driver.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select ${driver.full_name || driver.first_name}`}
+                        />
+                        <Avatar className="h-16 w-16 border-2 border-primary/10">
+                          <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
+                          <AvatarFallback className="text-lg font-bold bg-primary text-primary-foreground">
+                            {driver.first_name?.[0]}{driver.last_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       <DriverStatusBadge status={driver.availability_status || driver.status} />
                     </div>
                     

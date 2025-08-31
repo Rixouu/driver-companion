@@ -96,11 +96,11 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6">
       {/* Main Layout Grid - 2/3 + 1/3 */}
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         {/* Main Content Area - 2/3 (3 columns) */}
-        <div className="xl:col-span-3 space-y-6">
+        <div className="xl:col-span-3 space-y-4 sm:space-y-6">
           {/* Vehicle Hero Section */}
           <Card>
             <div className="flex flex-col lg:flex-row">
@@ -120,23 +120,23 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               </div>
               
               {/* Vehicle Info */}
-              <div className="flex-1 p-6">
+              <div className="flex-1 p-4 sm:p-6">
                 <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
-                  <div className="space-y-3">
-                    <h1 className="text-3xl font-bold">{vehicle.name}</h1>
-                    <div className="flex items-center gap-4 text-lg text-muted-foreground">
+                  <div className="space-y-2 sm:space-y-3">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">{vehicle.name}</h1>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm sm:text-base lg:text-lg text-muted-foreground">
                       <span className="flex items-center gap-2 font-mono">
-                        <Hash className="h-4 w-4" />
+                        <Hash className="h-3 w-3 sm:h-4 sm:w-4" />
                         {vehicle.plate_number}
                       </span>
                       {vehicle.brand && (
                         <span className="flex items-center gap-2">
-                          <Truck className="h-4 w-4" />
+                          <Truck className="h-3 w-3 sm:h-4 sm:w-4" />
                           {vehicle.brand} {vehicle.model}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge 
                         variant="outline"
                         className={cn(
@@ -156,7 +156,24 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  {/* Mobile: Stacked button layout */}
+                  <div className="block lg:hidden w-full">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button asChild variant="outline" size="sm" className="h-10">
+                        <Link href={`/vehicles/${vehicle.id}/edit`}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-10">
+                        <Car className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Desktop: Horizontal button layout */}
+                  <div className="hidden lg:flex items-center gap-3">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/vehicles/${vehicle.id}/edit`}>
                         <Edit className="h-4 w-4 mr-2" />
@@ -174,16 +191,16 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
         </div>
 
         {/* Sidebar - 1/3 (1 column) */}
-        <div className="xl:col-span-1 space-y-6">
+        <div className="xl:col-span-1 space-y-4 sm:space-y-6">
           {/* Quick Stats */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="h-5 w-5" />
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
                 Quick Stats
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4 pt-0">
               <VehicleQuickStats vehicleId={vehicle.id} />
             </CardContent>
           </Card>

@@ -1,12 +1,12 @@
 "use client"
 
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { VehicleInfo } from "./vehicle-info"
 import { DbVehicle } from "@/types"
 import { useI18n } from "@/lib/i18n/context"
-import { Info, History, Calendar, ClipboardCheck } from "lucide-react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState, Suspense, lazy } from "react"
+import { VehicleTabsList } from "./vehicle-tabs-list"
 
 // Lazy load heavy components for better performance
 const VehicleHistory = lazy(() => import("./vehicle-history").then(mod => ({ default: mod.VehicleHistory })))
@@ -87,40 +87,11 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      {/* Desktop Tabs */}
-      <div className="hidden md:block">
-        <TabsList className="w-full grid grid-cols-4 gap-0 rounded-none border-b bg-transparent p-0">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="relative rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-            >
-              <tab.icon className="h-4 w-4 mr-2" />
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
-
-      {/* Mobile Bottom Navigation - Fixed height and better spacing */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t md:hidden h-16 shadow-lg">
-        <TabsList className="w-full grid grid-cols-4 gap-0 h-full bg-background">
-          {tabs.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="flex flex-col items-center justify-center py-1 px-2 gap-1 h-full data-[state=active]:bg-primary/5 data-[state=active]:text-primary transition-colors"
-            >
-              <tab.icon className="h-5 w-5" />
-              <span className="text-xs font-medium text-center truncate w-full">{tab.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </div>
+      {/* Responsive Tabs Navigation */}
+      <VehicleTabsList value={activeTab} onValueChange={handleTabChange} />
       
-      {/* Tab Content with Mobile Padding */}
-      <div className="mt-4 pb-20 md:pb-0">
+      {/* Tab Content */}
+      <div className="mt-6 space-y-6">
         <TabsContent value="info" className="space-y-6 m-0">
           <VehicleInfo vehicle={vehicle} />
         </TabsContent>

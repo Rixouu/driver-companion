@@ -18,7 +18,8 @@ import {
   Calendar,
   Activity,
   CircleDot,
-  Clock
+  Clock,
+  Tag
 } from "lucide-react"
 import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
 import Link from "next/link"
@@ -220,6 +221,19 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Vehicle Pricing */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 bg-muted/20">
+              <CardTitle className="text-base flex items-center gap-2 text-primary">
+                <Tag className="h-4 w-4" />
+                Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <VehiclePricingInfo vehicleId={vehicle.id} />
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -364,6 +378,19 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Vehicle Pricing Card */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-primary">
+                <Tag className="h-4 w-4 sm:h-5 sm:w-5" />
+                Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3 sm:space-y-4">
+              <VehiclePricingInfo vehicleId={vehicle.id} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Vehicle Tabs (3 columns) */}
@@ -372,6 +399,75 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
           <VehicleTabs vehicle={vehicle} />
         </div>
       </div>
+    </div>
+  );
+}
+
+interface VehiclePricingInfoProps {
+  vehicleId: string;
+}
+
+function VehiclePricingInfo({ vehicleId }: VehiclePricingInfoProps) {
+  const { t } = useI18n();
+  const [pricingData, setPricingData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPricingData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/vehicles/${vehicleId}/pricing`);
+        if (response.ok) {
+          const data = await response.json();
+          setPricingData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching vehicle pricing:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (vehicleId) {
+      fetchPricingData();
+    }
+  }, [vehicleId]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+          <span className="text-xs text-muted-foreground">Loading pricing...</span>
+          <div className="h-3 w-8 bg-muted rounded animate-pulse"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pricingData || !pricingData.categories || pricingData.categories.length === 0) {
+    return (
+      <div className="text-center py-4">
+        <Tag className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No pricing data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {pricingData.categories.map((category: any, index: number) => (
+        <div key={index} className="p-2 bg-muted/30 rounded-lg border border-border/50">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-foreground">{category.name}</span>
+            <Badge variant="outline" className="text-xs">
+              {category.basePrice ? `¥${category.basePrice.toLocaleString()}` : 'N/A'}
+            </Badge>
+          </div>
+          {category.description && (
+            <p className="text-xs text-muted-foreground truncate">{category.description}</p>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

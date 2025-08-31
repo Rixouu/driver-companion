@@ -250,8 +250,8 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 </div>
               </div>
               
-              {/* Mobile-optimized Date and Sort controls - 2x2 layout */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {/* Mobile-optimized Date and Sort controls - stacked layout */}
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm font-medium">Date:</span>
@@ -271,7 +271,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     setSortOrder(value);
                     applyFiltersAndPagination(allActivities, filterType, 1);
                   }}>
-                    <SelectTrigger className="w-28 sm:w-32 h-8 sm:h-9 text-xs sm:text-sm">
+                    <SelectTrigger className="w-full sm:w-32 h-8 sm:h-9 text-xs sm:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

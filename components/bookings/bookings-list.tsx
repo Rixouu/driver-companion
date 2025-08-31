@@ -58,6 +58,7 @@ import { StatusFilter, BookingStatus } from './status-filter'
 import { useI18n } from '@/lib/i18n/context'
 import { ContactButtons } from './contact-buttons'
 import { startOfDay, endOfDay } from 'date-fns'
+import { useToast } from '@/components/ui/use-toast'
 
 interface BookingsListProps {
   limit?: number
@@ -67,6 +68,7 @@ interface BookingsListProps {
   onPageChange?: (page: number) => void
   dateRange?: { from?: Date; to?: Date }
   status?: string
+  onSyncClick?: () => void
 }
 
 const ITEMS_PER_PAGE = 10
@@ -98,8 +100,11 @@ export function BookingsList({
   currentPage = 1,
   onPageChange = () => {},
   dateRange,
-  status: externalStatus
+  status: externalStatus,
+  onSyncClick
 }: BookingsListProps) {
+  // Add error boundary protection
+  try {
   const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [totalPages, setTotalPages] = useState(1)
@@ -142,10 +147,13 @@ export function BookingsList({
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string } | null>(null)
   const { t } = useI18n()
   const [isMobile, setIsMobile] = useState(false)
+  const { toast } = useToast()
   
   // New state for Select All functionality
   const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set())
-
+    const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  
   // Update view when initialView changes
   useEffect(() => {
     setView(initialView);
@@ -154,6 +162,10 @@ export function BookingsList({
 
   // Function to view booking details
   const handleViewBooking = (bookingId: string | number) => {
+    if (!bookingId) {
+      console.warn('Cannot navigate to booking: bookingId is undefined or null')
+      return
+    }
     const formattedId = String(bookingId).trim()
     console.log(`Navigating to booking details: ${formattedId}`)
     router.push(`/bookings/${formattedId}`)
@@ -289,31 +301,40 @@ export function BookingsList({
     
     if (search) {
       const searchLower = search.toLowerCase()
-      const matchesServiceName = booking.service_name?.toLowerCase().includes(searchLower)
-      const matchesId = booking.id.toString().toLowerCase().includes(searchLower)
-      const matchesCustomer = booking.customer_name?.toLowerCase().includes(searchLower)
-      const matchesVehicle = booking.vehicle?.make?.toLowerCase().includes(searchLower) || 
-                            booking.vehicle?.model?.toLowerCase().includes(searchLower) ||
-                            booking.vehicle?.year?.toString().toLowerCase().includes(searchLower)
+      const matchesServiceName = (booking.service_name?.toLowerCase() || '').includes(searchLower)
+      const matchesId = (booking.id?.toString() || '').toLowerCase().includes(searchLower)
+      const matchesCustomer = (booking.customer_name?.toLowerCase() || '').includes(searchLower)
+      const matchesVehicle = (booking.vehicle?.make?.toLowerCase() || '').includes(searchLower) || 
+                            (booking.vehicle?.model?.toLowerCase() || '').includes(searchLower) ||
+                            (booking.vehicle?.year?.toString().toLowerCase() || '').includes(searchLower)
       
       if (!matchesServiceName && !matchesId && !matchesCustomer && !matchesVehicle) {
         return false
       }
     }
     
-    if (dateRange && dateRange.from) {
-      const bookingDate = new Date(booking.date)
-      const fromDate = startOfDay(dateRange.from)
-      
-      if (fromDate && bookingDate < fromDate) {
-        return false
-      }
-      
-      if (dateRange.to) {
-        const toDate = endOfDay(dateRange.to)
-        if (bookingDate > toDate) {
+    if (dateRange && dateRange.from && booking.date) {
+      try {
+        const bookingDate = new Date(booking.date)
+        if (isNaN(bookingDate.getTime())) {
+          return false // Skip invalid dates
+        }
+        
+        const fromDate = startOfDay(dateRange.from)
+        
+        if (fromDate && bookingDate < fromDate) {
           return false
         }
+        
+        if (dateRange.to) {
+          const toDate = endOfDay(dateRange.to)
+          if (bookingDate > toDate) {
+            return false
+          }
+        }
+      } catch (error) {
+        console.warn('Error processing date filter for booking:', booking.id, error)
+        return false
       }
     }
     
@@ -346,16 +367,43 @@ export function BookingsList({
     return () => window.removeEventListener('resize', checkIfMobile);
   }, [view]);
 
+  // Clear selection when bookings change to prevent ID mismatch
+  useEffect(() => {
+    if (bookings.length > 0) {
+      // Clear any selections that don't match current booking IDs
+      const validIds = new Set(bookings.map(b => b.id?.toString()).filter(Boolean));
+      const filteredSelections = new Set(
+        Array.from(selectedBookings).filter(id => validIds.has(id))
+      );
+      
+      if (filteredSelections.size !== selectedBookings.size) {
+        console.log('Clearing invalid selections. Valid IDs:', Array.from(validIds));
+        console.log('Previous selections:', Array.from(selectedBookings));
+        setSelectedBookings(filteredSelections);
+      }
+    }
+  }, [bookings]); // Remove selectedBookings dependency to prevent infinite loop
+
+  // Force clear selection on component mount to ensure clean state
+  useEffect(() => {
+    console.log('Component mounted, clearing any existing selections');
+    setSelectedBookings(new Set());
+  }, []);
+
   // Select All functionality
   const handleSelectAll = () => {
     if (selectedBookings.size === filteredBookings.length) {
       setSelectedBookings(new Set());
     } else {
-      setSelectedBookings(new Set(filteredBookings.map(b => b.id.toString())));
+      setSelectedBookings(new Set(filteredBookings.map(b => b.id?.toString()).filter(Boolean)));
     }
   };
 
   const handleSelectBooking = (bookingId: string) => {
+    if (!bookingId) {
+      console.warn('Cannot select booking: bookingId is undefined or null')
+      return
+    }
     const newSelected = new Set(selectedBookings);
     if (newSelected.has(bookingId)) {
       newSelected.delete(bookingId);
@@ -366,13 +414,68 @@ export function BookingsList({
   };
 
   const handleClearSelection = () => {
+    console.log('Clearing selection. Previous selections:', Array.from(selectedBookings));
     setSelectedBookings(new Set());
   };
 
   const handleDeleteSelected = async () => {
-    // Implementation for bulk delete
-    console.log('Deleting selected bookings:', Array.from(selectedBookings));
-    // TODO: Implement bulk delete functionality
+    if (selectedBookings.size === 0) return;
+    
+    // Show confirmation modal instead of window.confirm
+    setShowDeleteConfirm(true);
+  };
+  
+  const confirmDeleteSelected = async () => {
+    try {
+      setIsDeleting(true);
+      const selectedIds = Array.from(selectedBookings);
+      console.log('Deleting selected bookings:', selectedIds);
+      
+      // Debug: Check what type of IDs we have
+      console.log('Current bookings in state:', bookings.map(b => ({ id: b.id, wp_id: b.wp_id })));
+      console.log('Selected IDs type check:', selectedIds.map(id => ({ id, isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) })));
+      
+      // Delete each booking one by one
+      for (const selectedId of selectedIds) {
+        try {
+          // The selectedId is now the database ID (UUID), so we can use it directly
+          console.log(`Deleting booking with database id: ${selectedId}`);
+          
+          const response = await fetch(`/api/bookings/${selectedId}`, {
+            method: 'DELETE',
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to delete booking ${selectedId}: ${response.statusText}`);
+          }
+          
+          console.log(`Successfully deleted booking ${selectedId}`);
+        } catch (error) {
+          console.error(`Error deleting booking ${selectedId}:`, error);
+          // Continue with other deletions even if one fails
+        }
+      }
+      
+      // Clear selection and refresh the list
+      setSelectedBookings(new Set());
+      await loadBookings();
+      
+      toast({
+        title: "Success",
+        description: `Successfully deleted ${selectedIds.length} booking(s)`,
+      });
+      
+    } catch (error) {
+      console.error('Error in bulk delete:', error);
+      toast({
+        title: "Error",
+        description: "Some bookings could not be deleted. Please check the console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleExportSelected = () => {
@@ -597,7 +700,7 @@ export function BookingsList({
         <Button
           variant="outline"
           size="sm"
-          onClick={syncBookingsFromWordPress}
+          onClick={onSyncClick || syncBookingsFromWordPress}
           disabled={isSyncing}
           className="h-9"
         >
@@ -630,6 +733,16 @@ export function BookingsList({
               <Trash className="h-4 w-4" /> Delete ({selectedBookings.size})
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearSelection}>Clear Selection</Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                console.log('Current selections:', Array.from(selectedBookings));
+                console.log('Current bookings:', bookings.map(b => ({ id: b.id, wp_id: b.wp_id })));
+              }}
+            >
+              Debug Selection
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportSelected} className="flex items-center gap-2">
               <Download className="h-4 w-4" /> Export CSV
             </Button>
@@ -663,22 +776,22 @@ export function BookingsList({
 
         {/* Desktop Booking Rows */}
         {paginatedBookings.map((booking) => (
-          <Card key={booking.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+          <Card key={booking.id || `booking-${Math.random()}`} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
             <div className="grid grid-cols-12 items-center gap-4 p-4">
               {/* Selection Checkbox */}
               <div className="col-span-1 flex items-center">
                 <input
                   type="checkbox"
-                  checked={selectedBookings.has(booking.id.toString())}
-                  onChange={() => handleSelectBooking(booking.id.toString())}
+                  checked={selectedBookings.has(booking.id?.toString() || '')}
+                  onChange={() => handleSelectBooking(booking.id?.toString() || '')}
                   className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                  aria-label={`Select booking ${booking.id}`}
+                  aria-label={`Select booking ${booking.id || 'unknown'}`}
                 />
               </div>
               
               {/* ID Column */}
               <div className="col-span-2 flex items-center gap-3">
-                <div className="font-mono text-sm text-muted-foreground">#{booking.id}</div>
+                <div className="font-mono text-sm text-muted-foreground">#{booking.id || 'N/A'}</div>
               </div>
               
               {/* Customer Column - Name and Email */}
@@ -702,18 +815,18 @@ export function BookingsList({
               {/* Date & Time Column */}
               <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
                 <div className="text-sm text-foreground">
-                  {formatDate(booking.date)}
+                  {booking.date ? formatDate(booking.date) : '—'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {booking.time}
+                  {booking.time || '—'}
                 </div>
               </div>
               
               {/* Status Column */}
               <div className="col-span-2 flex flex-col items-start justify-start">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status)}>
-                    {t(`bookings.status.${booking.status}`)}
+                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status || 'pending')}>
+                    {booking.status ? (t(`bookings.status.${booking.status}`) || booking.status) : t('bookings.status.pending')}
                   </Badge>
                 </div>
               </div>
@@ -723,7 +836,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking.id); }}
+                  onClick={(e) => { e.stopPropagation(); if (booking.id) handleViewBooking(booking.id); }}
                   className="flex items-center gap-2"
                 >
                   <Icons.eye className="h-4 w-4" />
@@ -733,7 +846,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/edit`); }}
+                  onClick={(e) => { e.stopPropagation(); if (booking.id) router.push(`/bookings/${booking.id}/edit`); }}
                   className="flex items-center gap-2"
                 >
                   <Edit className="h-4 w-4" />
@@ -748,23 +861,23 @@ export function BookingsList({
       {/* Mobile Card View */}
       <div className="sm:hidden space-y-4">
         {paginatedBookings.map((booking) => (
-          <Card key={booking.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
+          <Card key={booking.id || `booking-${Math.random()}`} className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden bg-card/95 backdrop-blur">
             <div className="p-4">
               {/* Header with Selection and Status */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
-                    checked={selectedBookings.has(booking.id.toString())}
-                    onChange={() => handleSelectBooking(booking.id.toString())}
+                    checked={selectedBookings.has(booking.id?.toString() || '')}
+                    onChange={() => handleSelectBooking(booking.id?.toString() || '')}
                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-                    aria-label={`Select booking ${booking.id}`}
+                    aria-label={`Select booking ${booking.id || 'unknown'}`}
                   />
-                  <div className="font-mono text-sm text-muted-foreground">#{booking.id}</div>
+                  <div className="font-mono text-sm text-muted-foreground">#{booking.id || 'N/A'}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status)}>
-                    {t(`bookings.status.${booking.status}`)}
+                  <Badge variant="outline" className={getStatusBadgeClasses(booking.status || 'pending')}>
+                    {booking.status ? (t(`bookings.status.${booking.status}`) || booking.status) : t('bookings.status.pending')}
                   </Badge>
                 </div>
               </div>
@@ -780,8 +893,8 @@ export function BookingsList({
               <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex flex-col gap-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-4">
-                    <span>{formatDate(booking.date)}</span>
-                    <span>{booking.time}</span>
+                    <span>{booking.date ? formatDate(booking.date) : '—'}</span>
+                    <span>{booking.time || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -791,7 +904,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking.id); }}
+                  onClick={(e) => { e.stopPropagation(); if (booking.id) handleViewBooking(booking.id); }}
                   className="flex items-center gap-2 w-full justify-center"
                 >
                   <Icons.eye className="h-4 w-4" />
@@ -801,7 +914,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/edit`); }}
+                  onClick={(e) => { e.stopPropagation(); if (booking.id) router.push(`/bookings/${booking.id}/edit`); }}
                   className="flex items-center gap-2 w-full justify-center"
                 >
                   <Edit className="h-4 w-4" />
@@ -936,6 +1049,51 @@ export function BookingsList({
           <AlertDescription>{cancelResult.message}</AlertDescription>
         </Alert>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedBookings.size} selected booking(s)? 
+              This action cannot be undone and will permanently remove the selected bookings from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteSelected}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete {selectedBookings.size} Booking(s)
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
+  } catch (error) {
+    console.error('Error in BookingsList component:', error)
+    return (
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
+        <h2 className="text-2xl font-bold">Error Loading Bookings</h2>
+        <p className="text-muted-foreground">There was an error loading your bookings. Please refresh the page.</p>
+        <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+      </div>
+    )
+  }
 } 

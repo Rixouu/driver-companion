@@ -1884,7 +1884,9 @@ export const en: TranslationValue = {
       title: "Cancel Booking",
       description: "Are you sure you want to cancel this booking? This action cannot be undone.",
       cancel: "Keep Booking",
-      confirm: "Yes, Cancel Booking"
+      confirm: "Yes, Cancel Booking",
+      successTitle: "Booking Cancelled",
+      errorTitle: "Cancellation Failed"
     },
     invoice: {
       emailDescription: "Send the invoice as a PDF attachment to the customer's email address.",
@@ -1923,7 +1925,9 @@ export const en: TranslationValue = {
     defaultLabels: {
       noLocationData: "No location data available",
       noRouteData: "No route information available",
-      noWeatherData: "No weather forecast available"
+      noWeatherData: "No weather forecast available",
+      vehicleService: "Vehicle Service",
+      notSpecified: "Not Specified"
     },
     status: {
       publish: "Published",
@@ -1957,6 +1961,14 @@ export const en: TranslationValue = {
       title: "No Bookings Found",
       description: "There are no bookings in the system yet."
     },
+    errors: {
+      loadingTitle: "Error Loading Bookings",
+      loadingDescription: "There was an error loading your bookings. Please try again."
+    },
+    configHelper: {
+      button: "Debug Info"
+    },
+
     unnamed: "Unnamed Customer",
     viewAll: "View All Bookings",
     assignment: {
@@ -2178,7 +2190,7 @@ export const en: TranslationValue = {
       syncing: "Synchronizing...",
       syncButton: "Sync Bookings",
       retrying: "Retrying...",
-      retryButton: "Retry Connection",
+      retryButton: "Retry",
       successWithCount: "Successfully synced {count} bookings ({created} created, {updated} updated)",
       confirmUpdates: "Confirm Booking Updates",
       confirmUpdatesDescription: "The following bookings have changes. Select which bookings you want to update.",
@@ -3387,7 +3399,7 @@ export const en: TranslationValue = {
         copyPricingError: "Failed to copy pricing",
         copyPricingErrorDescription: "An error occurred while copying pricing items",
         copyPricingSuccessTitle: "Pricing Copied Successfully",
-        copyPricingSuccessDescription: "Successfully processed {count} pricing items from {fromVehicle} to {toVehicle}"
+        copyPricingSuccessDescriptionTitle: "Successfully processed {count} pricing items from {fromVehicle} to {toVehicle}"
       },
       buttons: {
         fixServiceTypes: "Fix Service Types",

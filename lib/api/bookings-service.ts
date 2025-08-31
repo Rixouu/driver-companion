@@ -373,7 +373,7 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
                          null;
 
   // Create the base booking data
-  const bookingData: Partial<SupabaseBooking> = {
+  const bookingData: Omit<SupabaseBooking, 'id'> = {
     wp_id: String(wpBooking.id || wpBooking.booking_id || ''),
     status: wpBooking.status || 'pending',
     
@@ -382,14 +382,18 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
     time: wpBooking.time,
     
     // Service information
-    service_id: String(wpBooking.service_id || ''),
+    service_id: wpBooking.service_id || null,
     service_name: wpBooking.service_name || wpBooking.service?.name || '',
     
     // Customer information
-    customer_id: String(wpBooking.customer_id || ''),
+    customer_id: wpBooking.customer_id || null,
     customer_name: wpBooking.customer_name || wpBooking.customer?.name || '',
     customer_email: wpBooking.customer_email || wpBooking.customer?.email || wpBooking.email || '',
     customer_phone: wpBooking.customer_phone || wpBooking.customer?.phone || wpBooking.phone || '',
+    
+    // Vehicle and driver information (UUID fields)
+    vehicle_id: wpBooking.vehicle_id || null,
+    driver_id: wpBooking.driver_id || null,
     
     // Price information
     price_amount: wpBooking.price?.amount,
@@ -407,12 +411,9 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
     distance: wpBooking.distance || '',
     duration: wpBooking.duration || '',
     
-    // WordPress specific fields
-    title: wpBooking.title,
-    
     // Additional metadata
     notes: wpBooking.notes || undefined,
-    meta: wpBooking.wp_meta ? (typeof wpBooking.wp_meta === 'object' ? wpBooking.wp_meta : undefined) : undefined,
+    wp_meta: wpBooking.wp_meta ? (typeof wpBooking.wp_meta === 'object' ? wpBooking.wp_meta : undefined) : undefined,
     created_at: wpBooking.created_at || undefined,
     updated_at: wpBooking.updated_at || undefined,
   }
@@ -528,8 +529,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
   }
 
   return {
-    id: booking.wp_id, // Keep wp_id mapped to id for potential legacy use/display
-    supabase_id: booking.id, // Map the actual Supabase UUID
+    id: booking.id, // Map the actual Supabase UUID to id
+    supabase_id: booking.id, // Also map to supabase_id for consistency
+    wp_id: booking.wp_id, // Keep wp_id separate for reference
     booking_id: booking.wp_id,
     date: booking.date,
     time: booking.time,
@@ -592,8 +594,145 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
 /**
  * Extract relevant fields from WordPress booking data to our format
  */
-function extractBookingFieldsFromWordPress(wpBooking: any): Partial<Booking> {
+export function extractBookingFieldsFromWordPress(wpBooking: any): Partial<Booking> {
   const meta = wpBooking.meta_data || wpBooking.meta;
+  
+  // Debug: Log the actual WordPress booking structure
+  console.log('WordPress booking structure:', {
+    id: wpBooking.id,
+    title: wpBooking.title,
+    status: wpBooking.status,
+    service_name: wpBooking.service_name,
+    client_name: wpBooking.client_name,
+    client_contact_detail_name: wpBooking.client_contact_detail_name,
+    meta_keys: meta ? Object.keys(meta) : 'no meta',
+    sample_meta_values: meta ? {
+      chbs_service_type: meta.chbs_service_type,
+      chbs_client_name: meta.chbs_client_name,
+      service_type: meta.service_type,
+      client_name: meta.client_name
+    } : 'no meta'
+  });
+  
+  // Log ALL available fields in the booking object to see what's actually there
+  console.log('All available fields in wpBooking:', Object.keys(wpBooking));
+  console.log('Sample field values:', {
+    'wpBooking.service_name': wpBooking.service_name,
+    'wpBooking.title': wpBooking.title,
+    'wpBooking.client_name': wpBooking.client_name,
+    'wpBooking.client_contact_detail_name': wpBooking.client_contact_detail_name,
+    'wpBooking.customer_name': wpBooking.customer_name,
+    'wpBooking.billing_first_name': wpBooking.billing_first_name,
+    'wpBooking.billing_last_name': wpBooking.billing_last_name,
+    'wpBooking.first_name': wpBooking.first_name,
+    'wpBooking.last_name': wpBooking.last_name
+  });
+  
+  // Log meta data structure if available
+  if (meta) {
+    console.log('Meta data keys:', Object.keys(meta));
+    console.log('Meta data sample values:', {
+      'meta.chbs_service_type': meta.chbs_service_type,
+      'meta.chbs_client_name': meta.chbs_client_name,
+      'meta.service_type': meta.service_type,
+      'meta.service_name': meta.service_name,
+      'meta.client_name': meta.client_name,
+      'meta.customer_name': meta.customer_name,
+      'meta.billing_first_name': meta.billing_first_name,
+      'meta.billing_last_name': meta.billing_last_name,
+      'meta.first_name': meta.first_name,
+      'meta.last_name': meta.last_name
+    });
+  }
+  
+  // Try to find meaningful service and customer names from various sources
+  let serviceName = wpBooking.service_name || wpBooking.title || meta?.chbs_service_type || meta?.service_type || meta?.service_name || meta?.service_title || "";
+  
+  // For customer name, prioritize CHBS fields since that's where the data actually is
+  let customerName = '';
+  if (meta?.chbs_client_contact_detail_first_name && meta?.chbs_client_contact_detail_last_name) {
+    customerName = `${meta.chbs_client_contact_detail_first_name.trim()} ${meta.chbs_client_contact_detail_last_name.trim()}`;
+  } else {
+    customerName = wpBooking.client_contact_detail_name || wpBooking.client_name || meta?.chbs_client_name || meta?.client_name || meta?.customer_name || meta?.billing_first_name || meta?.first_name || meta?.name || "";
+  }
+  
+  // If still empty, try to extract from title or other fields
+  if (!serviceName && wpBooking.title) {
+    // Try to extract service type from title
+    serviceName = wpBooking.title;
+  }
+  
+  if (!customerName) {
+    // Try to find customer name in other common locations
+    const possibleCustomerFields = [
+      meta?.billing_first_name,
+      meta?.billing_last_name,
+      meta?.first_name,
+      meta?.last_name,
+      meta?.customer_first_name,
+      meta?.customer_last_name,
+      wpBooking.billing_first_name,
+      wpBooking.billing_last_name,
+      wpBooking.first_name,
+      wpBooking.last_name
+    ];
+    
+    const foundName = possibleCustomerFields.find(field => field && field.trim() !== '');
+    if (foundName) {
+      customerName = foundName;
+    }
+  }
+  
+  // Log what we found
+  console.log('Extracted values:', { serviceName, customerName });
+  
+  // If we still don't have names, try to search through ALL available fields for any text that might be a name
+  if (!customerName || customerName.trim() === '') {
+    console.log('Customer name still empty, searching all fields for potential names...');
+    const allFields = { ...wpBooking, ...meta };
+    const potentialNames = [];
+    
+    for (const [key, value] of Object.entries(allFields)) {
+      if (typeof value === 'string' && value.trim() !== '' && 
+          (key.toLowerCase().includes('name') || key.toLowerCase().includes('client') || key.toLowerCase().includes('customer'))) {
+        potentialNames.push({ key, value });
+      }
+    }
+    
+    if (potentialNames.length > 0) {
+      console.log('Found potential name fields:', potentialNames);
+      
+      // Try to combine first and last names if we have both
+      const firstName = allFields.chbs_client_contact_detail_first_name || '';
+      const lastName = allFields.chbs_client_contact_detail_last_name || '';
+      
+      if (firstName && lastName) {
+        customerName = `${firstName.trim()} ${lastName.trim()}`;
+        console.log('Combined first and last names:', customerName);
+      } else {
+        // Fallback to first available name field
+        customerName = potentialNames[0].value;
+      }
+    }
+  }
+  
+  if (!serviceName || serviceName.trim() === '') {
+    console.log('Service name still empty, searching all fields for potential service info...');
+    const allFields = { ...wpBooking, ...meta };
+    const potentialServices = [];
+    
+    for (const [key, value] of Object.entries(allFields)) {
+      if (typeof value === 'string' && value.trim() !== '' && 
+          (key.toLowerCase().includes('service') || key.toLowerCase().includes('type') || key.toLowerCase().includes('category'))) {
+        potentialServices.push({ key, value });
+      }
+    }
+    
+    if (potentialServices.length > 0) {
+      console.log('Found potential service fields:', potentialServices);
+      serviceName = potentialServices[0].value;
+    }
+  }
   
   // Extract fields from meta
   const serviceType = meta?.chbs_service_type || "";
@@ -611,11 +750,11 @@ function extractBookingFieldsFromWordPress(wpBooking: any): Partial<Booking> {
     date: formatWordPressDate(meta?.chbs_pickup_date || meta?.chbs_pickup_datetime),
     time: time,
     status: wpBooking.status,
-    service_name: wpBooking.service_name || wpBooking.title || "",
+    service_name: serviceName,
     service_type: serviceType,
-    customer_name: wpBooking.client_contact_detail_name || wpBooking.client_name || "",
-    customer_email: wpBooking.client_contact_detail_email || wpBooking.client_email || "",
-    customer_phone: wpBooking.client_contact_detail_phone || wpBooking.client_phone || "",
+    customer_name: customerName,
+    customer_email: wpBooking.client_contact_detail_email || wpBooking.client_email || meta?.chbs_client_email || meta?.client_email || meta?.customer_email || meta?.billing_email || meta?.email || "",
+    customer_phone: wpBooking.client_contact_detail_phone || wpBooking.client_phone || meta?.chbs_client_phone || meta?.client_phone || meta?.customer_phone || meta?.billing_phone || meta?.phone || "",
     pickup_location: pickupLocation,
     dropoff_location: dropoffLocation,
     distance: distance,
@@ -876,8 +1015,43 @@ async function syncSingleBooking(
       throw queryError;
     }
     
+    // First, extract the enhanced fields using our improved extraction logic
+    const extractedFields = extractBookingFieldsFromWordPress(wpBooking as any);
+    console.log(`Extracted fields for booking ${wpId}:`, {
+      customer_name: extractedFields.customer_name,
+      service_name: extractedFields.service_name,
+      customer_email: extractedFields.customer_email,
+      customer_phone: extractedFields.customer_phone,
+      date: extractedFields.date,
+      time: extractedFields.time,
+      status: extractedFields.status
+    });
+    
     // Map the WordPress booking to Supabase structure
     const bookingData = mapWordPressBookingToSupabase(wpBooking as any);
+    
+    // Override the mapped data with our enhanced extracted fields
+    if (extractedFields.customer_name) {
+      bookingData.customer_name = extractedFields.customer_name;
+    }
+    if (extractedFields.service_name) {
+      bookingData.service_name = extractedFields.service_name;
+    }
+    if (extractedFields.customer_email) {
+      bookingData.customer_email = extractedFields.customer_email;
+    }
+    if (extractedFields.customer_phone) {
+      bookingData.customer_phone = extractedFields.customer_phone;
+    }
+    if (extractedFields.date) {
+      bookingData.date = extractedFields.date;
+    }
+    if (extractedFields.time) {
+      bookingData.time = extractedFields.time;
+    }
+    if (extractedFields.status) {
+      bookingData.status = extractedFields.status;
+    }
     
     // Add timestamps
     const now = new Date().toISOString();

@@ -3345,7 +3345,8 @@ export const ja: TranslationValue = {
         copyPricingSuccessDescription: "{fromVehicle}から{toVehicle}への価格設定が正常にコピーされました",
         copyPricingError: "価格設定のコピーに失敗しました",
         copyPricingErrorDescription: "価格設定品目のコピー中にエラーが発生しました",
-        copyPricingSuccessTitle: "価格設定が正常にコピーされました"
+        copyPricingSuccessTitle: "価格設定が正常にコピーされました",
+        copyPricingSuccessDescriptionTitle: "{fromVehicle}から{toVehicle}への{count}件の価格設定が正常にコピーされました"
       },
       buttons: {
         fixServiceTypes: "サービスタイプを修正",

@@ -84,6 +84,10 @@ interface BookingUpdateConfirmation {
     status?: string;
     customer_name?: string;
     service_name?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    pickup_location?: string;
+    dropoff_location?: string;
     billing_company_name?: string;
     billing_tax_number?: string;
     billing_street_name?: string;
@@ -101,6 +105,10 @@ interface BookingUpdateConfirmation {
     status?: string;
     customer_name?: string;
     service_name?: string;
+    customer_email?: string;
+    customer_phone?: string;
+    pickup_location?: string;
+    dropoff_location?: string;
     billing_company_name?: string;
     billing_tax_number?: string;
     billing_street_name?: string;
@@ -155,6 +163,76 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   const syncResultTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   
+  // Sync function - this should populate the modal with pending changes
+  const handleSyncBookings = async () => {
+    try {
+      setIsSyncing(true);
+      
+      // Check for updates first
+      const checkResult = await fetch('/api/bookings/check-updates');
+      const updates = await checkResult.json();
+      
+      if (!updates || !updates.updatableBookings || updates.updatableBookings.length === 0) {
+        // No updatable bookings, just sync new ones if they exist
+        if (updates.newBookings > 0) {
+          // Complete sync with just new bookings
+          const result = await completeSyncProcess();
+          setSyncResult(result);
+        } else {
+          // No changes at all
+          setSyncResult({
+            success: true,
+            message: 'All bookings are already up to date.'
+          });
+        }
+      } else {
+        // We have updates to confirm
+        console.log('Found updates:', updates);
+        
+        // Set the bookings to update without auto-selecting them
+        setBookingsToUpdate(updates.updatableBookings.map((booking: BookingUpdateConfirmation) => ({
+          ...booking,
+          selectedChanges: {} // Initialize with no preselected changes
+        })));
+        
+        // Initialize empty selection objects
+        const emptySelectionMap: Record<string, boolean> = {};
+        updates.updatableBookings.forEach((booking: BookingUpdateConfirmation) => {
+          emptySelectionMap[booking.id] = false; // Initialize all bookings as unselected
+        });
+        setSelectedBookingsToUpdate(emptySelectionMap);
+        
+        // Initialize empty change selections
+        const emptyChangeMap: Record<string, Record<string, boolean>> = {};
+        updates.updatableBookings.forEach((booking: BookingUpdateConfirmation) => {
+          emptyChangeMap[booking.id] = {};
+          // Initialize all changes as unselected
+          booking.changes?.forEach((change: string) => {
+            emptyChangeMap[booking.id][change] = false;
+          });
+        });
+        setBookingSelectedChanges(emptyChangeMap);
+        
+        // Store action info for new bookings
+        setPendingSyncAction({
+          newBookings: updates.newBookings || 0,
+          updatedBookings: updates.updatableBookings.length
+        });
+        
+        // Show the update confirmation dialog
+        setShowUpdateConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Error syncing bookings:', error);
+      setSyncResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error syncing bookings'
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  
   // Update state for booking update confirmation
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false)
   const [bookingsToUpdate, setBookingsToUpdate] = useState<BookingUpdateConfirmation[]>([])
@@ -178,6 +256,8 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   // Add more advanced filter states
   const [customerFilter, setCustomerFilter] = useState(searchParams?.get('customer') || '')
   const [driverFilter, setDriverFilter] = useState(searchParams?.get('driver') || 'all')
+  
+
   
   // New unified filters state for BookingFilters component
   const [filters, setFilters] = useState<BookingFilterOptions>({
@@ -429,8 +509,11 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
     }
   };
   
+
+
   // Function to handle the confirmation and complete the sync with selected changes
   const handleConfirmBookingUpdates = async () => {
+    console.log('🔄 Starting sync process...');
     setIsSyncing(true);
     setShowUpdateConfirmation(false);
     
@@ -439,7 +522,10 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
       const selectedBookings = Object.entries(selectedBookingsToUpdate)
         .filter(([_, selected]) => selected);
       
+      console.log('📋 Selected bookings:', selectedBookings);
+      
       if (selectedBookings.length === 0) {
+        console.log('❌ No bookings selected');
         setSyncResult({
           success: true,
           message: 'No bookings were selected for update.'
@@ -456,12 +542,17 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
           selectedChanges: bookingSelectedChanges[id] || {}
         }));
       
+      console.log('🔧 Bookings to apply:', bookingsToApply);
+      
       // Check if any selected bookings have any changes selected
       const hasSelectedChanges = bookingsToApply.some(booking => 
         Object.values(booking.selectedChanges).some(isSelected => isSelected)
       );
       
+      console.log('✅ Has selected changes:', hasSelectedChanges);
+      
       if (!hasSelectedChanges) {
+        console.log('❌ No changes selected');
         setSyncResult({
           success: true,
           message: 'No changes were selected for any bookings.'
@@ -471,8 +562,12 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
         return;
       }
       
+      console.log('🚀 Calling sync with selected changes...');
+      
       // Call sync with the selected booking IDs and changes
       const result = await completeSyncWithSelectedChanges(bookingsToApply);
+      
+      console.log('📊 Sync result:', result);
       
       // Create a formatted message using our translation with count data
       let message = result.message;
@@ -490,15 +585,20 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
       });
       
       if (result.success) {
+        console.log('✅ Sync successful, refreshing page...');
         // Reload page after successful sync
         router.refresh();
+      } else {
+        console.log('❌ Sync failed:', result.message);
       }
     } catch (err) {
+      console.error('💥 Error during sync:', err);
       setSyncResult({
         success: false,
         message: err instanceof Error ? err.message : 'Failed to sync bookings'
       });
     } finally {
+      console.log('🏁 Sync process finished');
       setIsSyncing(false);
       setPendingSyncAction(null);
     }
@@ -507,6 +607,8 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
   // Function to complete sync with selected changes
   const completeSyncWithSelectedChanges = async (bookingsToApply: Array<{ id: string, selectedChanges: Record<string, boolean> }>) => {
     try {
+      console.log('🔍 Processing bookings to apply:', bookingsToApply);
+      
       // Extract the booking IDs and their selected changes
       const bookingsWithSelectedFields = bookingsToApply.map(item => {
         // Get the booking data
@@ -517,14 +619,19 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
           .filter(([_, selected]) => selected)
           .map(([field]) => field);
         
+        console.log(`📝 Booking ${item.id} has selected fields:`, selectedFields);
+        
         return {
           id: item.id,
           selectedFields
         };
       });
       
+      console.log('📋 Bookings with selected fields:', bookingsWithSelectedFields);
+      
       // CRITICAL FIX: Only proceed with sync if we have bookings to update
       if (bookingsWithSelectedFields.length === 0) {
+        console.log('❌ No bookings to update');
         return {
           success: true,
           message: 'No changes were selected for update.'
@@ -536,6 +643,8 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
         booking.selectedFields.length > 0
       );
       
+      console.log('✅ Has selected fields:', hasSelectedFields);
+      
       // Only call the server action if we have selected fields
       if (hasSelectedFields) {
         const selectedFieldsByBooking = bookingsWithSelectedFields.reduce((acc, item) => {
@@ -543,18 +652,24 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
           return acc;
         }, {} as Record<string, string[]>);
         
+        console.log('🚀 Calling syncBookingsAction with:', {
+          bookingIdsToUpdate: bookingsWithSelectedFields.map(b => b.id),
+          selectedFieldsByBooking
+        });
+        
         return await syncBookingsAction({ 
           bookingIdsToUpdate: bookingsWithSelectedFields.map(b => b.id),
           selectedFieldsByBooking
         });
       } else {
+        console.log('❌ No fields selected');
         return {
           success: true,
           message: 'No fields were selected for update.'
         };
       }
     } catch (error) {
-      console.error('Error during sync with selected changes:', error);
+      console.error('💥 Error during sync with selected changes:', error);
       throw error;
     }
   }
@@ -893,34 +1008,61 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
             <DialogHeader className="pb-4 border-b sticky top-0 z-20 bg-background p-6">
               <div className="flex justify-between items-center">
                 <DialogTitle className="text-xl font-semibold">{t('bookings.sync.confirmUpdates')}</DialogTitle>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Data
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Download Options</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {bookingsToUpdate.map(booking => (
-                      <DropdownMenuItem 
-                        key={booking.id}
-                        onClick={() => downloadBookingJson(booking.id)}
-                      >
-                        Booking {booking.booking_id || booking.id}
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={syncBookingsFromWordPress}
+                    disabled={isSyncing}
+                    className="flex items-center gap-2"
+                  >
+                    {isSyncing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Check for Updates
+                      </>
+                    )}
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Data
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Download Options</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {bookingsToUpdate.map(booking => (
+                        <DropdownMenuItem 
+                          key={booking.id}
+                          onClick={() => downloadBookingJson(booking.id)}
+                        >
+                          Booking {booking.booking_id || booking.id}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => downloadBookingJson('all')}>
+                        All Bookings Data
                       </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => downloadBookingJson('all')}>
-                      All Bookings Data
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
               <DialogDescription>
                 {t('bookings.sync.confirmUpdatesDescription')}
               </DialogDescription>
+              
+              {/* Show sync result if available */}
+              {syncResult && (
+                <Alert variant={syncResult.success ? "default" : "destructive"} className="mt-4">
+                  <AlertTitle>{syncResult.success ? 'Sync Successful' : 'Sync Failed'}</AlertTitle>
+                  <AlertDescription>{syncResult.message}</AlertDescription>
+                </Alert>
+              )}
             </DialogHeader>
             
             <ScrollArea className="max-h-[calc(90vh-180px)]">
@@ -988,6 +1130,10 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                       <SelectItem value="status">status</SelectItem>
                       <SelectItem value="customer_name">customer name</SelectItem>
                       <SelectItem value="service_name">service name</SelectItem>
+                      <SelectItem value="customer_email">customer email</SelectItem>
+                      <SelectItem value="customer_phone">customer phone</SelectItem>
+                      <SelectItem value="pickup_location">pickup location</SelectItem>
+                      <SelectItem value="dropoff_location">dropoff location</SelectItem>
                       <SelectItem value="billing">billing information</SelectItem>
                       <SelectItem value="coupon">coupon information</SelectItem>
                     </SelectContent>
@@ -1118,221 +1264,361 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                             <div className="p-3 border-b md:border-b-0 md:border-r">
                               <h5 className="text-sm font-medium mb-2">{t('bookings.sync.current')}</h5>
                               
-                              {/* Date & Time */}
-                              {(booking.changes?.includes('date') || booking.changes?.includes('time')) && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-date-time`}
-                                    checked={isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time')} 
-                                    onCheckedChange={() => {
-                                      if (booking.changes?.includes('date')) toggleChangeSelection(booking.id, 'date');
-                                      if (booking.changes?.includes('time')) toggleChangeSelection(booking.id, 'time');
-                                    }}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.sync.dateTime')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.date} {booking.current.time}
-                                      </dd>
+                              {/* BASIC BOOKING INFORMATION SECTION */}
+                              {(booking.changes?.includes('date') || 
+                                booking.changes?.includes('time') || 
+                                booking.changes?.includes('status')) && (
+                                <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-100 dark:border-gray-800">
+                                  <h6 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                    Basic Information
+                                  </h6>
+                                  
+                                  {/* Date & Time */}
+                                  {(booking.changes?.includes('date') || booking.changes?.includes('time')) && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-date-time`}
+                                        checked={isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time')} 
+                                        onCheckedChange={() => {
+                                          if (booking.changes?.includes('date')) toggleChangeSelection(booking.id, 'date');
+                                          if (booking.changes?.includes('time')) toggleChangeSelection(booking.id, 'time');
+                                        }}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.sync.dateTime')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.date} {booking.current.time}
+                                          </dd>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+                                  
+                                  {/* Status */}
+                                  {booking.changes?.includes('status') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-status`}
+                                        checked={isChangeSelected(booking.id, 'status')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'status')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.status')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'status') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.status}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* Status */}
-                              {booking.changes?.includes('status') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-status`}
-                                    checked={isChangeSelected(booking.id, 'status')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'status')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.status')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'status') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.status}
-                                      </dd>
+                              {/* CUSTOMER INFORMATION SECTION */}
+                              {(booking.changes?.includes('customer_name') || 
+                                booking.changes?.includes('customer_email') || 
+                                booking.changes?.includes('customer_phone')) && (
+                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                                  <h6 className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2 uppercase tracking-wide">
+                                    Customer Information
+                                  </h6>
+                                  
+                                  {/* Customer Name */}
+                                  {booking.changes?.includes('customer_name') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-customer-name`}
+                                        checked={isChangeSelected(booking.id, 'customer_name')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'customer_name')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.customerName')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_name') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.customer_name || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+                                  
+                                  {/* Customer Email */}
+                                  {booking.changes?.includes('customer_email') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-customer-email`}
+                                        checked={isChangeSelected(booking.id, 'customer_email')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'customer_email')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.email')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_email') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.customer_email || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Customer Phone */}
+                                  {booking.changes?.includes('customer_phone') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-customer-phone`}
+                                        checked={isChangeSelected(booking.id, 'customer_phone')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'customer_phone')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.phone')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_phone') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.customer_phone || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* Customer Name */}
-                              {booking.changes?.includes('customer_name') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-customer-name`}
-                                    checked={isChangeSelected(booking.id, 'customer_name')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'customer_name')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.customerName')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_name') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.customer_name || 'N/A'}
-                                      </dd>
+                              {/* SERVICE INFORMATION SECTION */}
+                              {(booking.changes?.includes('service_name') || 
+                                booking.changes?.includes('pickup_location') || 
+                                booking.changes?.includes('dropoff_location')) && (
+                                <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                                  <h6 className="text-xs font-semibold text-green-700 dark:text-green-300 mb-2 uppercase tracking-wide">
+                                    Service Information
+                                  </h6>
+                                  
+                                  {/* Service Name */}
+                                  {booking.changes?.includes('service_name') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-service-name`}
+                                        checked={isChangeSelected(booking.id, 'service_name')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'service_name')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.serviceName')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'service_name') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.service_name || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+                                  
+                                  {/* Pickup Location */}
+                                  {booking.changes?.includes('pickup_location') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-pickup-location`}
+                                        checked={isChangeSelected(booking.id, 'pickup_location')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'pickup_location')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">Pickup Location</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'pickup_location') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.pickup_location || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Dropoff Location */}
+                                  {booking.changes?.includes('dropoff_location') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-dropoff-location`}
+                                        checked={isChangeSelected(booking.id, 'dropoff_location')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'dropoff_location')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <div className="flex justify-between items-center">
+                                            <dt className="text-xs text-muted-foreground">Dropoff Location</dt>
+                                            <dd className={`text-sm ${isChangeSelected(booking.id, 'dropoff_location') ? 'line-through text-muted-foreground' : ''}`}>
+                                              {booking.current.dropoff_location || 'N/A'}
+                                            </dd>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* Service Name */}
-                              {booking.changes?.includes('service_name') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-service-name`}
-                                    checked={isChangeSelected(booking.id, 'service_name')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'service_name')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.serviceName')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'service_name') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.service_name || 'N/A'}
-                                      </dd>
+                              {/* COUPON INFORMATION SECTION */}
+                              {(booking.changes?.includes('coupon_code') || 
+                                booking.changes?.includes('coupon_discount_percentage')) && (
+                                <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                                  <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide">
+                                    Coupon Information
+                                  </h6>
+                                  
+                                  {/* Coupon Code - Current */}
+                                  {booking.changes?.includes('coupon_code') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-coupon-code`}
+                                        checked={isChangeSelected(booking.id, 'coupon_code')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'coupon_code')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">Coupon Code</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_code') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.coupon_code || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+                                  
+                                  {/* Coupon Discount - Current */}
+                                  {booking.changes?.includes('coupon_discount_percentage') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-coupon-discount`}
+                                        checked={isChangeSelected(booking.id, 'coupon_discount_percentage')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'coupon_discount_percentage')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">Discount Percentage</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_discount_percentage') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.coupon_discount_percentage ? `${booking.current.coupon_discount_percentage}%` : 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
-                              {/* ADD COUPON FIELDS */}
-                              {/* Coupon Code - Current */}
-                              {booking.changes?.includes('coupon_code') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-coupon-code`}
-                                    checked={isChangeSelected(booking.id, 'coupon_code')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'coupon_code')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">Coupon Code</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_code') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.coupon_code || 'N/A'}
-                                      </dd>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Coupon Discount - Current */}
-                              {booking.changes?.includes('coupon_discount_percentage') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-coupon-discount`}
-                                    checked={isChangeSelected(booking.id, 'coupon_discount_percentage')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'coupon_discount_percentage')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">Discount Percentage</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_discount_percentage') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.coupon_discount_percentage ? `${booking.current.coupon_discount_percentage}%` : 'N/A'}
-                                      </dd>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Billing Company Name - Current */}
-                              {booking.changes?.includes('billing_company_name') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-billing-company-name`}
-                                    checked={isChangeSelected(booking.id, 'billing_company_name')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'billing_company_name')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.billing.companyName')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'billing_company_name') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.billing_company_name || 'N/A'}
-                                      </dd>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Billing Tax Number - Current */}
-                              {booking.changes?.includes('billing_tax_number') && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-billing-tax-number`}
-                                    checked={isChangeSelected(booking.id, 'billing_tax_number')}
-                                    onCheckedChange={() => toggleChangeSelection(booking.id, 'billing_tax_number')}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.billing.taxNumber')}</dt>
-                                      <dd className={`text-sm ${isChangeSelected(booking.id, 'billing_tax_number') ? 'line-through text-muted-foreground' : ''}`}>
-                                        {booking.current.billing_tax_number || 'N/A'}
-                                      </dd>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Billing Address - Current */}
-                              {(booking.changes?.includes('billing_street_name') || 
+                              {/* BILLING INFORMATION SECTION */}
+                              {(booking.changes?.includes('billing_company_name') || 
+                                booking.changes?.includes('billing_tax_number') ||
+                                booking.changes?.includes('billing_street_name') || 
                                 booking.changes?.includes('billing_street_number') || 
                                 booking.changes?.includes('billing_city') || 
                                 booking.changes?.includes('billing_state') || 
                                 booking.changes?.includes('billing_postal_code') || 
                                 booking.changes?.includes('billing_country')) && (
-                                <div className="flex items-center mb-2">
-                                  <Checkbox 
-                                    id={`change-${booking.id}-billing-address`}
-                                    checked={
-                                      (booking.changes?.includes('billing_street_name') && isChangeSelected(booking.id, 'billing_street_name')) ||
-                                      (booking.changes?.includes('billing_street_number') && isChangeSelected(booking.id, 'billing_street_number')) ||
-                                      (booking.changes?.includes('billing_city') && isChangeSelected(booking.id, 'billing_city')) ||
-                                      (booking.changes?.includes('billing_state') && isChangeSelected(booking.id, 'billing_state')) ||
-                                      (booking.changes?.includes('billing_postal_code') && isChangeSelected(booking.id, 'billing_postal_code')) ||
-                                      (booking.changes?.includes('billing_country') && isChangeSelected(booking.id, 'billing_country'))
-                                    }
-                                    onCheckedChange={() => {
-                                      if (booking.changes?.includes('billing_street_name')) toggleChangeSelection(booking.id, 'billing_street_name');
-                                      if (booking.changes?.includes('billing_street_number')) toggleChangeSelection(booking.id, 'billing_street_number');
-                                      if (booking.changes?.includes('billing_city')) toggleChangeSelection(booking.id, 'billing_city');
-                                      if (booking.changes?.includes('billing_state')) toggleChangeSelection(booking.id, 'billing_state');
-                                      if (booking.changes?.includes('billing_postal_code')) toggleChangeSelection(booking.id, 'billing_postal_code');
-                                      if (booking.changes?.includes('billing_country')) toggleChangeSelection(booking.id, 'billing_country');
-                                    }}
-                                    className="mr-2"
-                                  />
-                                  <div className="w-full">
-                                    <div className="flex justify-between items-center">
-                                      <dt className="text-xs text-muted-foreground">{t('bookings.billing.address')}</dt>
-                                      <dd className={`text-sm ${
-                                        (booking.changes?.includes('billing_street_name') && isChangeSelected(booking.id, 'billing_street_name')) ||
-                                        (booking.changes?.includes('billing_street_number') && isChangeSelected(booking.id, 'billing_street_number')) ||
-                                        (booking.changes?.includes('billing_city') && isChangeSelected(booking.id, 'billing_city')) ||
-                                        (booking.changes?.includes('billing_state') && isChangeSelected(booking.id, 'billing_state')) ||
-                                        (booking.changes?.includes('billing_postal_code') && isChangeSelected(booking.id, 'billing_postal_code')) ||
-                                        (booking.changes?.includes('billing_country') && isChangeSelected(booking.id, 'billing_country'))
-                                          ? 'line-through text-muted-foreground' : ''
-                                      }`}>
-                                        {[
-                                          booking.current.billing_street_name,
-                                          booking.current.billing_street_number,
-                                          booking.current.billing_city,
-                                          booking.current.billing_state,
-                                          booking.current.billing_postal_code,
-                                          booking.current.billing_country
-                                        ].filter(Boolean).join(', ') || 'N/A'}
-                                      </dd>
+                                <div className="mb-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-100 dark:border-orange-800">
+                                  <h6 className="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-2 uppercase tracking-wide">
+                                    Billing Information
+                                  </h6>
+                                  
+                                  {/* Billing Company Name - Current */}
+                                  {booking.changes?.includes('billing_company_name') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-billing-company-name`}
+                                        checked={isChangeSelected(booking.id, 'billing_company_name')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'billing_company_name')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.billing.companyName')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'billing_company_name') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.billing_company_name || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
+                                  
+                                  {/* Billing Tax Number - Current */}
+                                  {booking.changes?.includes('billing_tax_number') && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-billing-tax-number`}
+                                        checked={isChangeSelected(booking.id, 'billing_tax_number')}
+                                        onCheckedChange={() => toggleChangeSelection(booking.id, 'billing_tax_number')}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.billing.taxNumber')}</dt>
+                                          <dd className={`text-sm ${isChangeSelected(booking.id, 'billing_tax_number') ? 'line-through text-muted-foreground' : ''}`}>
+                                            {booking.current.billing_tax_number || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Billing Address - Current */}
+                                  {(booking.changes?.includes('billing_street_name') || 
+                                    booking.changes?.includes('billing_street_number') || 
+                                    booking.changes?.includes('billing_city') || 
+                                    booking.changes?.includes('billing_state') || 
+                                    booking.changes?.includes('billing_postal_code') || 
+                                    booking.changes?.includes('billing_country')) && (
+                                    <div className="flex items-center mb-2">
+                                      <Checkbox 
+                                        id={`change-${booking.id}-billing-address`}
+                                        checked={
+                                          (booking.changes?.includes('billing_street_name') && isChangeSelected(booking.id, 'billing_street_name')) ||
+                                          (booking.changes?.includes('billing_street_number') && isChangeSelected(booking.id, 'billing_street_number')) ||
+                                          (booking.changes?.includes('billing_city') && isChangeSelected(booking.id, 'billing_city')) ||
+                                          (booking.changes?.includes('billing_state') && isChangeSelected(booking.id, 'billing_state')) ||
+                                          (booking.changes?.includes('billing_postal_code') && isChangeSelected(booking.id, 'billing_postal_code')) ||
+                                          (booking.changes?.includes('billing_country') && isChangeSelected(booking.id, 'billing_country'))
+                                        }
+                                        onCheckedChange={() => {
+                                          if (booking.changes?.includes('billing_street_name')) toggleChangeSelection(booking.id, 'billing_street_name');
+                                          if (booking.changes?.includes('billing_street_number')) toggleChangeSelection(booking.id, 'billing_street_number');
+                                          if (booking.changes?.includes('billing_city')) toggleChangeSelection(booking.id, 'billing_city');
+                                          if (booking.changes?.includes('billing_state')) toggleChangeSelection(booking.id, 'billing_state');
+                                          if (booking.changes?.includes('billing_postal_code')) toggleChangeSelection(booking.id, 'billing_postal_code');
+                                          if (booking.changes?.includes('billing_country')) toggleChangeSelection(booking.id, 'billing_country');
+                                        }}
+                                        className="mr-2"
+                                      />
+                                      <div className="w-full">
+                                        <div className="flex justify-between items-center">
+                                          <dt className="text-xs text-muted-foreground">{t('bookings.billing.address')}</dt>
+                                          <dd className={`text-sm ${
+                                            (booking.changes?.includes('billing_street_name') && isChangeSelected(booking.id, 'billing_street_name')) ||
+                                            (booking.changes?.includes('billing_street_number') && isChangeSelected(booking.id, 'billing_street_number')) ||
+                                            (booking.changes?.includes('billing_city') && isChangeSelected(booking.id, 'billing_city')) ||
+                                            (booking.changes?.includes('billing_state') && isChangeSelected(booking.id, 'billing_state')) ||
+                                            (booking.changes?.includes('billing_postal_code') && isChangeSelected(booking.id, 'billing_postal_code')) ||
+                                            (booking.changes?.includes('billing_country') && isChangeSelected(booking.id, 'billing_country'))
+                                              ? 'line-through text-muted-foreground' : ''
+                                          }`}>
+                                            {[
+                                              booking.current.billing_street_name,
+                                              booking.current.billing_street_number,
+                                              booking.current.billing_city,
+                                              booking.current.billing_state,
+                                              booking.current.billing_postal_code,
+                                              booking.current.billing_country
+                                            ].filter(Boolean).join(', ') || 'N/A'}
+                                          </dd>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1341,27 +1627,38 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                             <div className="p-3 bg-accent/30">
                               <h5 className="text-sm font-medium mb-2">{t('bookings.sync.afterUpdate')}</h5>
                               
-                              {/* Date & Time */}
-                              {(booking.changes?.includes('date') || booking.changes?.includes('time')) && (
-                                <div className="mb-2">
-                                  <div className="flex justify-between items-center">
-                                    <dt className="text-xs text-muted-foreground">{t('bookings.sync.dateTime')}</dt>
-                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time') ? 'font-medium text-primary' : ''}`}>
-                                      {booking.updated.date} {booking.updated.time}
-                                    </dd>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {/* Status */}
-                              {booking.changes?.includes('status') && (
-                                <div className="mb-2">
-                                  <div className="flex justify-between items-center">
-                                    <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.status')}</dt>
-                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'status') ? 'font-medium text-primary' : ''}`}>
-                                      {booking.updated.status}
-                                    </dd>
-                                  </div>
+                              {/* BASIC BOOKING INFORMATION SECTION - UPDATED */}
+                              {(booking.changes?.includes('date') || 
+                                booking.changes?.includes('time') || 
+                                booking.changes?.includes('status')) && (
+                                <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-100 dark:border-gray-800">
+                                  <h6 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                    Basic Information
+                                  </h6>
+                                  
+                                  {/* Date & Time - Updated */}
+                                  {(booking.changes?.includes('date') || booking.changes?.includes('time')) && (
+                                    <div className="mb-2">
+                                      <div className="flex justify-between items-center">
+                                        <dt className="text-xs text-muted-foreground">{t('bookings.sync.dateTime')}</dt>
+                                        <dd className={`text-sm ${isChangeSelected(booking.id, 'date') || isChangeSelected(booking.id, 'time') ? 'font-medium text-primary' : ''}`}>
+                                          {booking.updated.date} {booking.updated.time}
+                                        </dd>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Status - Updated */}
+                                  {booking.changes?.includes('status') && (
+                                    <div className="mb-2">
+                                      <div className="flex justify-between items-center">
+                                        <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.status')}</dt>
+                                        <dd className={`text-sm ${isChangeSelected(booking.id, 'status') ? 'font-medium text-primary' : ''}`}>
+                                          {booking.updated.status}
+                                        </dd>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
@@ -1389,27 +1686,85 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
                                 </div>
                               )}
                               
-                              {/* Coupon Code - Updated */}
-                              {booking.changes?.includes('coupon_code') && (
+                              {/* Pickup Location - Updated */}
+                              {booking.changes?.includes('pickup_location') && (
                                 <div className="mb-2">
                                   <div className="flex justify-between items-center">
-                                    <dt className="text-xs text-muted-foreground">Coupon Code</dt>
-                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_code') ? 'font-medium text-primary' : ''}`}>
-                                      {booking.updated.coupon_code || 'N/A'}
+                                    <dt className="text-xs text-muted-foreground">Pickup Location</dt>
+                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'pickup_location') ? 'font-medium text-primary' : ''}`}>
+                                      {booking.updated.pickup_location || 'N/A'}
                                     </dd>
                                   </div>
                                 </div>
                               )}
                               
-                              {/* Coupon Discount - Updated */}
-                              {booking.changes?.includes('coupon_discount_percentage') && (
+                              {/* Dropoff Location - Updated */}
+                              {booking.changes?.includes('dropoff_location') && (
                                 <div className="mb-2">
                                   <div className="flex justify-between items-center">
-                                    <dt className="text-xs text-muted-foreground">Discount Percentage</dt>
-                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_discount_percentage') ? 'font-medium text-primary' : ''}`}>
-                                      {booking.updated.coupon_discount_percentage ? `${booking.updated.coupon_discount_percentage}%` : 'N/A'}
+                                    <dt className="text-xs text-muted-foreground">Dropoff Location</dt>
+                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'dropoff_location') ? 'font-medium text-primary' : ''}`}>
+                                      {booking.updated.dropoff_location || 'N/A'}
                                     </dd>
                                   </div>
+                                </div>
+                              )}
+                              
+                              {/* Customer Email - Updated */}
+                              {booking.changes?.includes('customer_email') && (
+                                <div className="mb-2">
+                                  <div className="flex justify-between items-center">
+                                    <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.email')}</dt>
+                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_email') ? 'font-medium text-primary' : ''}`}>
+                                      {booking.updated.customer_email || 'N/A'}
+                                    </dd>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Customer Phone - Updated */}
+                              {booking.changes?.includes('customer_phone') && (
+                                <div className="mb-2">
+                                  <div className="flex justify-between items-center">
+                                    <dt className="text-xs text-muted-foreground">{t('bookings.details.fields.phone')}</dt>
+                                    <dd className={`text-sm ${isChangeSelected(booking.id, 'customer_phone') ? 'font-medium text-primary' : ''}`}>
+                                      {booking.updated.customer_phone || 'N/A'}
+                                    </dd>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* COUPON INFORMATION SECTION - UPDATED */}
+                              {(booking.changes?.includes('coupon_code') || 
+                                booking.changes?.includes('coupon_discount_percentage')) && (
+                                <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                                  <h6 className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-2 uppercase tracking-wide">
+                                    Coupon Information
+                                  </h6>
+                                  
+                                  {/* Coupon Code - Updated */}
+                                  {booking.changes?.includes('coupon_code') && (
+                                    <div className="mb-2">
+                                      <div className="flex justify-between items-center">
+                                        <dt className="text-xs text-muted-foreground">Coupon Code</dt>
+                                        <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_code') ? 'font-medium text-primary' : ''}`}>
+                                          {booking.updated.coupon_code || 'N/A'}
+                                        </dd>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Coupon Discount - Updated */}
+                                  {booking.changes?.includes('coupon_discount_percentage') && (
+                                    <div className="mb-2">
+                                      <div className="flex justify-between items-center">
+                                        <dt className="text-xs text-muted-foreground">Discount Percentage</dt>
+                                        <dd className={`text-sm ${isChangeSelected(booking.id, 'coupon_discount_percentage') ? 'font-medium text-primary' : ''}`}>
+                                          {booking.updated.coupon_discount_percentage ? `${booking.updated.coupon_discount_percentage}%` : 'N/A'}
+                                        </dd>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               
@@ -1592,6 +1947,7 @@ export function BookingsClient({ hideTabNavigation = false }: BookingsClientProp
           onPageChange={handlePageChange}
           dateRange={dateRange}
           status={filter}
+          onSyncClick={syncBookingsFromWordPress}
         />
       </div>
     </BookingsErrorBoundary>

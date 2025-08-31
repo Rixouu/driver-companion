@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchBookings } from "@/lib/api/wordpress";
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { Booking as BookingType } from "@/types/bookings";
+import { extractBookingFieldsFromWordPress } from "@/lib/api/bookings-service";
 
 // Extended booking interface for WordPress data that might include wp_meta
 interface ExtendedBooking extends BookingType {
@@ -113,12 +114,13 @@ export async function GET(request: Request) {
         // Only check existing bookings
         if (!dbBooking) return false;
         
-        // Extract WordPress booking details 
-        const wpDate = wpBooking.date || '';
-        const wpTime = wpBooking.time || '';
-        const wpStatus = wpBooking.status || '';
-        const wpCustomerName = wpBooking.customer_name || '';
-        const wpServiceName = wpBooking.service_name || '';
+        // Extract WordPress booking details using enhanced field extraction
+        const extractedFields = extractBookingFieldsFromWordPress(wpBooking);
+        const wpDate = extractedFields.date || '';
+        const wpTime = extractedFields.time || '';
+        const wpStatus = extractedFields.status || '';
+        const wpCustomerName = extractedFields.customer_name || '';
+        const wpServiceName = extractedFields.service_name || '';
         
         // Get billing data from different possible locations
         const wpBillingData = extractBillingData(wpBooking);
@@ -166,13 +168,35 @@ export async function GET(request: Request) {
         const dbCouponCode = (dbBooking as any).coupon_code || '';
         const dbCouponDiscountPercentage = (dbBooking as any).coupon_discount_percentage || '';
         
+        // Extract fields using enhanced field extraction for comparison
+        const extractedFields = extractBookingFieldsFromWordPress(wpBooking);
+        
         // Determine which fields have changes
         const changes: string[] = [];
-        if (wpBooking.date !== dbBooking.date) changes.push('date');
-        if (wpBooking.time !== dbBooking.time) changes.push('time');
-        if (wpBooking.status !== dbBooking.status) changes.push('status');
-        if (wpBooking.customer_name !== dbBooking.customer_name) changes.push('customer_name');
-        if (wpBooking.service_name !== dbBooking.service_name) changes.push('service_name');
+        if (extractedFields.date !== dbBooking.date) changes.push('date');
+        if (extractedFields.time !== dbBooking.time) changes.push('time');
+        if (extractedFields.status !== dbBooking.status) changes.push('status');
+        if (extractedFields.customer_name !== dbBooking.customer_name) changes.push('customer_name');
+        if (extractedFields.service_name !== dbBooking.service_name) changes.push('service_name');
+        if (extractedFields.customer_email !== dbBooking.customer_email) changes.push('customer_email');
+        if (extractedFields.customer_phone !== dbBooking.customer_phone) changes.push('customer_phone');
+        if (extractedFields.pickup_location !== dbBooking.pickup_location) changes.push('pickup_location');
+        if (extractedFields.dropoff_location !== dbBooking.dropoff_location) changes.push('dropoff_location');
+        
+        // Debug logging for field comparison
+        console.log(`Booking ${wpId} field comparison:`, {
+          date: { wp: extractedFields.date, db: dbBooking.date, changed: extractedFields.date !== dbBooking.date },
+          time: { wp: extractedFields.time, db: dbBooking.time, changed: extractedFields.time !== dbBooking.time },
+          status: { wp: extractedFields.status, db: dbBooking.status, changed: extractedFields.status !== dbBooking.status },
+          customer_name: { wp: extractedFields.customer_name, db: dbBooking.customer_name, changed: extractedFields.customer_name !== dbBooking.customer_name },
+          service_name: { wp: extractedFields.service_name, db: dbBooking.service_name, changed: extractedFields.service_name !== dbBooking.service_name },
+          customer_email: { wp: extractedFields.customer_email, db: dbBooking.customer_email, changed: extractedFields.customer_email !== dbBooking.customer_email },
+          customer_phone: { wp: extractedFields.customer_phone, db: dbBooking.customer_phone, changed: extractedFields.customer_phone !== dbBooking.customer_phone },
+          pickup_location: { wp: extractedFields.pickup_location, db: dbBooking.pickup_location, changed: extractedFields.pickup_location !== dbBooking.pickup_location },
+          dropoff_location: { wp: extractedFields.dropoff_location, db: dbBooking.dropoff_location, changed: extractedFields.dropoff_location !== dbBooking.dropoff_location }
+        });
+        
+        console.log(`Changes detected for booking ${wpId}:`, changes);
         
         // FORCE ADD the billing fields to changes list if they exist in WordPress
         const billingChanges: string[] = [];
@@ -230,6 +254,10 @@ export async function GET(request: Request) {
             status: dbBooking.status || '',
             customer_name: dbBooking.customer_name || '',
             service_name: dbBooking.service_name || '',
+            customer_email: dbBooking.customer_email || '',
+            customer_phone: dbBooking.customer_phone || '',
+            pickup_location: dbBooking.pickup_location || '',
+            dropoff_location: dbBooking.dropoff_location || '',
             billing_company_name: dbBooking.billing_company_name || '',
             billing_tax_number: dbBooking.billing_tax_number || '',
             billing_street_name: dbBooking.billing_street_name || '',
@@ -242,11 +270,15 @@ export async function GET(request: Request) {
             coupon_discount_percentage: dbCouponDiscountPercentage || ''
           },
           updated: {
-            date: wpBooking.date || '',
-            time: wpBooking.time || '',
-            status: wpBooking.status || '',
-            customer_name: wpBooking.customer_name || '',
-            service_name: wpBooking.service_name || '',
+            date: extractedFields.date || '',
+            time: extractedFields.time || '',
+            status: extractedFields.status || '',
+            customer_name: extractedFields.customer_name || '',
+            service_name: extractedFields.service_name || '',
+            customer_email: extractedFields.customer_email || '',
+            customer_phone: extractedFields.customer_phone || '',
+            pickup_location: extractedFields.pickup_location || '',
+            dropoff_location: extractedFields.dropoff_location || '',
             billing_company_name: wpBillingData.company || '',
             billing_tax_number: wpBillingData.taxNumber || '',
             billing_street_name: wpBillingData.streetName || '',

@@ -8,6 +8,7 @@ import {
   Calendar,
   RefreshCw,
   ChevronRight,
+  Eye,
 } from "lucide-react"
 
 export const Icons = {
@@ -40,4 +41,5 @@ export const Icons = {
   calendar: Calendar,
   arrowPath: RefreshCw,
   chevronRight: ChevronRight,
+  eye: Eye,
 } 

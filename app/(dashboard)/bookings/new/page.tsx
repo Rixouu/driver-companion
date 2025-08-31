@@ -24,8 +24,6 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete'
-import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { 
   ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
   CreditCard, CheckCircle, AlertTriangle, Plane, Route, Timer, Info,
@@ -95,8 +93,8 @@ export default function NewBookingPage() {
       try {
         // Fetch Drivers
         const driversResult = await getDriversAction()
-        if (driversResult.drivers) {
-          setAvailableDrivers(driversResult.drivers)
+        if (driversResult && driversResult.length > 0) {
+          setAvailableDrivers(driversResult)
         }
         
         // Fetch Vehicles - pass empty object as searchParams
@@ -166,8 +164,7 @@ export default function NewBookingPage() {
   }
 
   return (
-    <GoogleMapsProvider>
-      <div className="container mx-auto py-4 px-4 sm:py-6 sm:px-6 space-y-6">
+    <div className="container mx-auto py-4 px-4 sm:py-6 sm:px-6 space-y-6">
         {/* Page Header */}
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -356,14 +353,14 @@ export default function NewBookingPage() {
                   <div className="space-y-2">
                     <Label htmlFor="vehicle_id">Vehicle</Label>
                     <Select
-                      value={formData.vehicle_id || ''}
-                      onValueChange={(value) => handleInputChange('vehicle_id', value)}
+                      value={formData.vehicle_id || 'none'}
+                      onValueChange={(value) => handleInputChange('vehicle_id', value === 'none' ? null : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a vehicle" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No vehicle assigned</SelectItem>
+                        <SelectItem value="none">No vehicle assigned</SelectItem>
                         {availableVehicles.map((vehicle) => (
                           <SelectItem key={vehicle.id} value={vehicle.id}>
                             {vehicle.name} ({vehicle.plate_number})
@@ -414,6 +411,5 @@ export default function NewBookingPage() {
           </Card>
         </form>
       </div>
-    </GoogleMapsProvider>
   )
 }

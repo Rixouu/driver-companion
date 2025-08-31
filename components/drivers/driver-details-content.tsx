@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin, Settings, MoreVertical, CheckCircle, Clock, Truck, ExternalLink, ArrowLeft } from "lucide-react"
+import { Edit, User, Phone, Mail, MessageSquare, IdCard, Calendar, MapPin, Settings, MoreVertical, CheckCircle, Clock, Truck, ExternalLink, ArrowLeft, Activity } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -235,33 +235,6 @@ export function DriverDetailsContent({
                 <ArrowLeft className="h-5 w-5 mr-2" />
                 <span className="text-sm font-medium">Back to Drivers</span>
               </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/drivers/${id}/edit`}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      {t("drivers.actions.editDriver")}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleEmail} disabled={!driver?.email}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    {t("common.email")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLINE} disabled={!driver?.line_id}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    LINE
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleWhatsApp} disabled={!driver?.phone}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    WhatsApp
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
             
             <div className="flex items-center space-x-4 mb-4">
@@ -278,14 +251,14 @@ export function DriverDetailsContent({
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleCall}
                 disabled={!driver?.phone}
                 title={driver?.phone ? `Call ${driver.phone}` : 'No phone number available'}
-                className="flex-1"
+                className="h-10"
               >
                 <Phone className="h-4 w-4 mr-2" />
                 {t("common.call")}
@@ -295,10 +268,42 @@ export function DriverDetailsContent({
                 size="sm" 
                 onClick={handleEmail}
                 disabled={!driver?.email}
-                className="flex-1"
+                className="h-10"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 {t("common.email")}
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => router.push(`/drivers/${id}/edit`)}
+                className="h-10"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLINE}
+                disabled={!driver?.line_id}
+                className="h-10"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                LINE
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleWhatsApp}
+                disabled={!driver?.phone}
+                className="h-10"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                WhatsApp
               </Button>
             </div>
           </div>
@@ -365,18 +370,18 @@ export function DriverDetailsContent({
 
       {/* Main Content */}
       <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
           {/* Left Column - Driver Info */}
-          <div className="xl:col-span-4 space-y-4 sm:space-y-6">
+          <div className="xl:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6">
              {/* Driver Information */}
-            <Card>
-              <CardHeader className="pb-3 sm:pb-6">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
                 <CardTitle className="flex items-center text-base sm:text-lg">
-                  <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
                   {t("drivers.keyInformation.title")}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4 pt-4 sm:pt-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
@@ -450,39 +455,39 @@ export function DriverDetailsContent({
             </Card>
 
             {/* Quick Stats */}
-            <Card>
-              <CardHeader className="pb-3 sm:pb-6">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
                 <CardTitle className="flex items-center text-base sm:text-lg">
-                  <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  <Settings className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
                   Quick Stats
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-4 sm:pt-6">
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className="text-center p-3 sm:p-4 bg-muted/30 rounded-lg">
-                    <div className="text-xl sm:text-2xl font-bold text-primary">{bookings?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">Total Bookings</div>
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{bookings?.length || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Total Bookings</div>
                   </div>
-                  <div className="text-center p-3 sm:p-4 bg-muted/30 rounded-lg">
-                    <div className="text-xl sm:text-2xl font-bold text-primary">{inspections?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">Inspections</div>
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{inspections?.length || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Inspections</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Current Availability */}
-            <Card>
-              <CardHeader className="pb-3 sm:pb-6">
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
                 <CardTitle className="text-base sm:text-lg">{t("drivers.currentStatus.title")}</CardTitle>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-sm text-muted-foreground">
                   {driver.isBooking && driver.bookingNotes ? driver.bookingNotes : 
                    currentAvailabilityStatus === 'available' ? 
                    "This driver is currently available for booking assignments." :
                    `This driver is currently ${currentAvailabilityStatus}.`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-4 sm:pt-6">
                 <Button variant="outline" className="w-full h-10 sm:h-9" onClick={handleViewFullSchedule}>
                   <Calendar className="h-4 w-4 mr-2" />
                   {t("drivers.availability.viewFullSchedule")}
@@ -496,50 +501,99 @@ export function DriverDetailsContent({
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <DriverTabsList value={activeTab} onValueChange={setActiveTab} />
 
-              <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-6">
+              <TabsContent value="overview" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6">
                 {/* Upcoming Bookings */}
-                <Card>
-                  <CardHeader className="pb-3 sm:pb-6">
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
                     <CardTitle className="flex items-center text-base sm:text-lg">
-                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
                       {t("drivers.upcomingBookings.title")}
                     </CardTitle>
-                    <CardDescription className="text-sm">
+                    <CardDescription className="text-sm text-muted-foreground">
                       {t("drivers.upcomingBookings.description")}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <DriverUpcomingBookings driverId={id!} />
+                  <CardContent className="pt-4 sm:pt-6">
+                    <div className="min-h-[120px] sm:min-h-[150px]">
+                      <DriverUpcomingBookings driverId={id!} />
+                    </div>
                   </CardContent>
                 </Card>
 
                 {/* Recent Inspections */}
-                <Card>
-                  <CardHeader className="pb-3 sm:pb-6">
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
                     <CardTitle className="flex items-center text-base sm:text-lg">
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
                       Recent Inspections
                     </CardTitle>
-                    <CardDescription className="text-sm">
+                    <CardDescription className="text-sm text-muted-foreground">
                       Latest vehicle inspections performed by this driver
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <DriverInspectionsList inspections={inspections as any} />
+                  <CardContent className="pt-4 sm:pt-6">
+                    <div className="min-h-[120px] sm:min-h-[150px]">
+                      <DriverInspectionsList inspections={inspections as any} />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="availability" className="space-y-4 sm:space-y-6 mt-6">
-                {id && driver && <DriverAvailabilityManager driver={driver} />}
+              <TabsContent value="availability" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6">
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+                    <CardTitle className="flex items-center text-base sm:text-lg">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                      Driver Availability
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Manage driver availability and schedule
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4 sm:pt-6">
+                    <div className="min-h-[200px] sm:min-h-[300px]">
+                      {id && driver && <DriverAvailabilityManager driver={driver} />}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
               
-              <TabsContent value="bookings" className="space-y-4 sm:space-y-6 mt-6">
-                {id && <DriverBookingsList driverId={id} />}
+              <TabsContent value="bookings" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6">
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+                    <CardTitle className="flex items-center text-base sm:text-lg">
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                      Driver Bookings
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      View all bookings assigned to this driver
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4 sm:pt-6">
+                    <div className="min-h-[200px] sm:min-h-[300px]">
+                      {id && <DriverBookingsList driverId={id} />}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
-              <TabsContent value="activity" className="space-y-4 sm:space-y-6 mt-6">
-                {id && <DriverActivityFeed driverId={id} />}
+              <TabsContent value="activity" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6">
+                <Card className="overflow-hidden">
+                  <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+                    <CardTitle className="flex items-center text-base sm:text-lg">
+                      <Activity className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                      Activity Log
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Track driver activities and recent actions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4 sm:pt-6">
+                    <div className="min-h-[200px] sm:min-h-[300px]">
+                      {id && <DriverActivityFeed driverId={id} />}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>

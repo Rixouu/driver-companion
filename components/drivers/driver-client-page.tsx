@@ -40,7 +40,7 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
   const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
   const [filteredDrivers, setFilteredDrivers] = useState<Driver[]>(initialDrivers);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const initialSearchQueryFromParams = searchParams?.get("search") || "";
   const [filters, setFilters] = useState<DriverFilterOptions>({
     searchQuery: initialSearchQueryFromParams,

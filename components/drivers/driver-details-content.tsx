@@ -356,33 +356,41 @@ export function DriverDetailsContent({
                 <Phone className="h-4 w-4 mr-2" />
                 {t("common.call")}
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/drivers/${id}/edit`}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      {t("drivers.actions.editDriver")}
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleEmail} disabled={!driver?.email}>
-                    <Mail className="h-4 w-4 mr-2" />
-                    {t("common.email")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLINE} disabled={!driver?.line_id}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    LINE
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleWhatsApp} disabled={!driver?.phone}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    WhatsApp
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleEmail}
+                disabled={!driver?.email}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {t("common.email")}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => router.push(`/drivers/${id}/edit`)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLINE}
+                disabled={!driver?.line_id}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                LINE
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleWhatsApp}
+                disabled={!driver?.phone}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
             </div>
           </div>
         </div>

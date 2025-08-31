@@ -17,6 +17,7 @@ import { DriverUpcomingBookings } from "@/components/drivers/driver-upcoming-boo
 import { DriverAvailabilityManager } from "@/components/drivers/driver-availability-manager"
 import { DriverBookingsList } from "@/components/drivers/driver-bookings-list"
 import { DriverTabsList } from "@/components/drivers/driver-tabs-list"
+import { getDriverBookings } from "@/app/actions/bookings"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { format as formatDate, parseISO } from "date-fns"
@@ -50,6 +51,28 @@ export function DriverDetailsContent({
   const [activeTab, setActiveTab] = useState("overview")
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
   const [isChatModalOpen, setIsChatModalOpen] = useState(false)
+
+  // Load driver bookings for stats
+  useEffect(() => {
+    async function loadDriverBookings() {
+      if (!driverId) return
+      
+      try {
+        const { bookings: driverBookings, error } = await getDriverBookings(driverId, {
+          upcoming: undefined, // Fetch all bookings
+          limit: 1000,
+        })
+        
+        if (!error && driverBookings) {
+          setBookings(driverBookings)
+        }
+      } catch (error) {
+        console.error('Failed to load driver bookings:', error)
+      }
+    }
+
+    loadDriverBookings()
+  }, [driverId])
 
   const id = driverId
 

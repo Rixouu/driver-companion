@@ -151,6 +151,76 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             </Button>
           </div>
         </div>
+
+        {/* Mobile Quick Stats and Info */}
+        <div className="space-y-4 xl:hidden">
+          {/* Quick Stats */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 bg-muted/20">
+              <CardTitle className="text-base flex items-center gap-2 text-primary">
+                <Activity className="h-4 w-4" />
+                Quick Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <VehicleQuickStats vehicleId={vehicle.id} />
+            </CardContent>
+          </Card>
+
+          {/* Vehicle Information */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 bg-muted/20">
+              <CardTitle className="text-base flex items-center gap-2 text-primary">
+                <Car className="h-4 w-4" />
+                Vehicle Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm text-muted-foreground">Plate Number:</span>
+                  <span className="text-sm font-medium">{vehicle.plate_number}</span>
+                </div>
+                {vehicle.brand && (
+                  <div className="flex items-center gap-3">
+                    <Truck className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground">Brand:</span>
+                    <span className="text-sm font-medium">{vehicle.brand}</span>
+                  </div>
+                )}
+                {vehicle.model && (
+                  <div className="flex items-center gap-3">
+                    <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground">Model:</span>
+                    <span className="text-sm font-medium">{vehicle.model}</span>
+                  </div>
+                )}
+                {vehicle.year && (
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm text-muted-foreground">Year:</span>
+                    <span className="text-sm font-medium">{vehicle.year}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant="outline"
+                    className={cn(
+                      "text-xs",
+                      vehicle.status === 'active' && "border-green-200 text-green-700",
+                      vehicle.status === 'maintenance' && "border-orange-200 text-orange-700",
+                      vehicle.status === 'inactive' && "border-gray-200 text-gray-700"
+                    )}
+                  >
+                    {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
+                  </Badge>
+                  <VehicleCategoryBadge vehicleId={vehicle.id} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Desktop Header */}
@@ -224,15 +294,9 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
         </Card>
       </div>
 
-      {/* Main Layout Grid - 2/3 + 1/3 */}
+      {/* Main Layout Grid - Left Column + Right Column */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Main Content Area - 2/3 (3 columns) */}
-        <div className="xl:col-span-3 space-y-6">
-          {/* Vehicle Tabs - Main Content */}
-          <VehicleTabs vehicle={vehicle} />
-        </div>
-
-        {/* Sidebar - 1/3 (1 column) */}
+        {/* Left Column - Quick Stats and Info (1 column) */}
         <div className="xl:col-span-1 space-y-6">
           {/* Quick Stats */}
           <Card className="overflow-hidden">
@@ -246,6 +310,66 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
               <VehicleQuickStats vehicleId={vehicle.id} />
             </CardContent>
           </Card>
+
+          {/* Vehicle Information Card */}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-primary">
+                <Car className="h-4 w-4 sm:h-5 sm:w-5" />
+                Vehicle Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3 sm:space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Hash className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">Plate Number:</span>
+                  <span className="text-xs sm:text-sm font-medium">{vehicle.plate_number}</span>
+                </div>
+                {vehicle.brand && (
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-muted-foreground">Brand:</span>
+                    <span className="text-xs sm:text-sm font-medium">{vehicle.brand}</span>
+                  </div>
+                )}
+                {vehicle.model && (
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Car className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-muted-foreground">Model:</span>
+                    <span className="text-xs sm:text-sm font-medium">{vehicle.model}</span>
+                  </div>
+                )}
+                {vehicle.year && (
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-muted-foreground">Year:</span>
+                    <span className="text-xs sm:text-sm font-medium">{vehicle.year}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Badge 
+                    variant="outline"
+                    className={cn(
+                      "text-xs",
+                      vehicle.status === 'active' && "border-green-200 text-green-700",
+                      vehicle.status === 'maintenance' && "border-orange-200 text-orange-700",
+                      vehicle.status === 'inactive' && "border-gray-200 text-gray-700"
+                    )}
+                  >
+                    {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
+                  </Badge>
+                  <VehicleCategoryBadge vehicleId={vehicle.id} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Vehicle Tabs (3 columns) */}
+        <div className="xl:col-span-3 space-y-6">
+          {/* Vehicle Tabs - Main Content */}
+          <VehicleTabs vehicle={vehicle} />
         </div>
       </div>
     </div>

@@ -25,9 +25,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
-  CreditCard, CheckCircle, AlertTriangle, Plane, Route, Timer, Info,
-  ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit
+  ArrowLeft, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
+  CheckCircle, AlertTriangle, X, Info
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -43,7 +42,6 @@ import type { DbVehicle } from '@/types'
 import { useI18n } from '@/lib/i18n/context'
 import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { format, parseISO } from "date-fns";
-import Image from 'next/image';
 
 export default function NewBookingPage() {
   const router = useRouter()
@@ -80,7 +78,6 @@ export default function NewBookingPage() {
   })
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('summary')
-  const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
   const { t } = useI18n()
@@ -114,7 +111,15 @@ export default function NewBookingPage() {
     loadLists()
   }, [])
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSelectChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -153,263 +158,407 @@ export default function NewBookingPage() {
     }
   }
 
+  // Status badge color helper
+  const getStatusColor = (status: string) => {
+    switch(status?.toLowerCase()) {
+      case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="container mx-auto py-4 px-4 sm:py-6 sm:px-6 space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-4 px-4 sm:py-6 sm:px-6 space-y-6">
-        {/* Page Header */}
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Create New Booking
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Create a new vehicle booking
-          </p>
+    <div className="space-y-6 w-full mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 p-3 sm:p-4 rounded-lg shadow-sm">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div>
+            <h1 className="text-xl font-semibold">Create New Booking</h1>
+            <p className="text-xs text-muted-foreground">
+              Fill in the details below to create a new vehicle booking
+            </p>
+          </div>
         </div>
-
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Success Alert */}
-        {saveResult?.success && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{saveResult.message}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Booking Form */}
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Booking Information
-              </CardTitle>
-              <CardDescription>
-                Fill in the details for the new booking
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Customer Information */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <Label className="text-base font-medium">Customer Information</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="customer_name">Customer Name</Label>
-                    <Input
-                      id="customer_name"
-                      value={formData.customer_name || ''}
-                      onChange={(e) => handleInputChange('customer_name', e.target.value)}
-                      placeholder="Enter customer name"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="customer_email">Email *</Label>
-                    <Input
-                      id="customer_email"
-                      type="email"
-                      required
-                      value={formData.customer_email || ''}
-                      onChange={(e) => handleInputChange('customer_email', e.target.value)}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="customer_phone">Phone</Label>
-                    <Input
-                      id="customer_phone"
-                      type="tel"
-                      value={formData.customer_phone || ''}
-                      onChange={(e) => handleInputChange('customer_phone', e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="service_name">Service Name *</Label>
-                    <Input
-                      id="service_name"
-                      required
-                      value={formData.service_name || ''}
-                      onChange={(e) => handleInputChange('service_name', e.target.value)}
-                      placeholder="Enter service name"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Service Details */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <Label className="text-base font-medium">Service Details</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date *</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      required
-                      value={formData.date || ''}
-                      onChange={(e) => handleInputChange('date', e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="time">Time *</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      required
-                      value={formData.time || ''}
-                      onChange={(e) => handleInputChange('time', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Location Information */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <Label className="text-base font-medium">Location Information</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pickup_location">Pickup Location</Label>
-                    <Input
-                      id="pickup_location"
-                      value={formData.pickup_location || ''}
-                      onChange={(e) => handleInputChange('pickup_location', e.target.value)}
-                      placeholder="Enter pickup location"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="dropoff_location">Dropoff Location</Label>
-                    <Input
-                      id="dropoff_location"
-                      value={formData.dropoff_location || ''}
-                      onChange={(e) => handleInputChange('dropoff_location', e.target.value)}
-                      placeholder="Enter dropoff location"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Driver and Vehicle Assignment */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Car className="h-4 w-4" />
-                  <Label className="text-base font-medium">Driver & Vehicle Assignment</Label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="driver_id">Driver</Label>
-                    <Select
-                      value={formData.driver_id || 'none'}
-                      onValueChange={(value) => handleInputChange('driver_id', value === 'none' ? null : value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a driver" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No driver assigned</SelectItem>
-                        {availableDrivers.map((driver) => (
-                          <SelectItem key={driver.id} value={driver.id}>
-                            {driver.first_name} {driver.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="vehicle_id">Vehicle</Label>
-                    <Select
-                      value={formData.vehicle_id || 'none'}
-                      onValueChange={(value) => handleInputChange('vehicle_id', value === 'none' ? null : value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a vehicle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No vehicle assigned</SelectItem>
-                        {availableVehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.name} ({vehicle.plate_number})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes || ''}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Enter any additional notes"
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={isSaving}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Create Booking
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </form>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end mt-3 sm:mt-0">
+          <Badge 
+            className={`text-sm px-3 py-1 ${getStatusColor(formData.status || 'pending')}`}
+          >
+            {(formData.status || 'pending').charAt(0).toUpperCase() + (formData.status || 'pending').slice(1)}
+          </Badge>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSaving}
+            className="shadow-sm h-9"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Create Booking
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success Alert */}
+      {saveResult?.success && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>{saveResult.message}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Main Form Card */}
+      <Card className="border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
+        <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 sm:px-6 py-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <FileText className="h-5 w-5" />
+            Create new booking information
+          </CardTitle>
+        </CardHeader>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* Desktop Tabs */}
+          <div className="hidden md:block w-full bg-black border-b">
+            <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
+              <TabsTrigger 
+                value="summary" 
+                className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Booking Summary</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="route" 
+                className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+              >
+                <MapPin className="h-4 w-4" />
+                <span>Route Information</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="client" 
+                className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+              >
+                <User className="h-4 w-4" />
+                <span>Client Details</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="additional" 
+                className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Additional Info</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          {/* Bottom Fixed Mobile Nav */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t z-50">
+            <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
+              <TabsTrigger 
+                value="summary" 
+                className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+              >
+                <Calendar className="h-5 w-5" />
+                <span className="text-xs">Summary</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="route" 
+                className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+              >
+                <MapPin className="h-5 w-5" />
+                <span className="text-xs">Route</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="client" 
+                className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+              >
+                <User className="h-5 w-5" />
+                <span className="text-xs">Client</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="additional" 
+                className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+              >
+                <FileText className="h-5 w-5" />
+                <span className="text-xs">Extra</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <div className="p-3 sm:p-6 pb-2 space-y-6">
+            {/* Summary Tab */}
+            <TabsContent value="summary" className="mt-0 space-y-4">
+              <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                <div className="border-b py-3 sm:py-4 px-4 sm:px-6">
+                  <h2 className="text-base sm:text-lg font-semibold flex items-center">
+                    <Calendar className="mr-2 h-5 w-5" />
+                    Booking Summary
+                  </h2>
+                </div>
+                
+                <div className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
+                          <div 
+                            key={status}
+                            className={`
+                              border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
+                              ${formData.status === status ? `border-2 ring-2 ${
+                                status === 'pending' ? 'border-yellow-500 ring-yellow-200' :
+                                status === 'confirmed' ? 'border-green-500 ring-green-200' :
+                                status === 'completed' ? 'border-blue-500 ring-blue-200' :
+                                'border-red-500 ring-red-200'
+                              }` : 'hover:border-primary'}
+                            `}
+                            onClick={() => handleSelectChange('status', status)}
+                          >
+                            {status === 'pending' && <AlertTriangle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-yellow-500' : 'text-muted-foreground'}`} />}
+                            {status === 'confirmed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-green-500' : 'text-muted-foreground'}`} />}
+                            {status === 'completed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-blue-500' : 'text-muted-foreground'}`} />}
+                            {status === 'cancelled' && <X className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-red-500' : 'text-muted-foreground'}`} />}
+                            <span className="capitalize font-medium text-sm">{status}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Pickup Date</h3>
+                      <div className="mt-1">
+                        <Input
+                          id="date"
+                          name="date"
+                          type="date"
+                          value={formData.date || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground">Pickup Time</h3>
+                      <div className="mt-1">
+                        <Input
+                          id="time"
+                          name="time"
+                          type="time"
+                          value={formData.time || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Service Name</h3>
+                      <Input
+                        id="service_name"
+                        name="service_name"
+                        value={formData.service_name || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                        placeholder="e.g. Airport to Hotel"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+            
+            {/* Route Tab */}
+            <TabsContent value="route" className="mt-0 space-y-4">
+              <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                <div className="border-b py-3 sm:py-4 px-4 sm:px-6">
+                  <h2 className="text-base sm:text-lg font-semibold flex items-center">
+                    <MapPin className="mr-2 h-5 w-5" />
+                    Route Information
+                  </h2>
+                </div>
+                
+                <div className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Pickup Location</h3>
+                      <Input
+                        id="pickup_location"
+                        name="pickup_location"
+                        value={formData.pickup_location || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                        placeholder="Enter pickup location"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Dropoff Location</h3>
+                      <Input
+                        id="dropoff_location"
+                        name="dropoff_location"
+                        value={formData.dropoff_location || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                        placeholder="Enter dropoff location"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+            
+            {/* Client Tab */}
+            <TabsContent value="client" className="mt-0 space-y-6">
+              <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                <div className="border-b py-4 px-6">
+                  <h2 className="text-lg font-semibold flex items-center">
+                    <User className="mr-2 h-5 w-5" />
+                    Client Details
+                  </h2>
+                </div>
+                
+                <div className="p-6">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Customer Name</h3>
+                      <Input
+                        id="customer_name"
+                        name="customer_name"
+                        value={formData.customer_name || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Email *</h3>
+                      <Input
+                        id="customer_email"
+                        name="customer_email"
+                        type="email"
+                        required
+                        value={formData.customer_email || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                      <Input
+                        id="customer_phone"
+                        name="customer_phone"
+                        type="tel"
+                        value={formData.customer_phone || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+            
+            {/* Additional Info Tab */}
+            <TabsContent value="additional" className="mt-0 space-y-6">
+              <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                <div className="border-b py-4 px-6">
+                  <h2 className="text-lg font-semibold flex items-center">
+                    <FileText className="mr-2 h-5 w-5" />
+                    Additional Information
+                  </h2>
+                </div>
+                
+                <div className="p-6">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Driver Assignment</h3>
+                      <Select
+                        value={formData.driver_id || 'none'}
+                        onValueChange={(value) => handleSelectChange('driver_id', value === 'none' ? null : value)}
+                      >
+                        <SelectTrigger className="transition-all focus:ring-2 focus:border-primary">
+                          <SelectValue placeholder="Select a driver" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No driver assigned</SelectItem>
+                          {availableDrivers.map((driver) => (
+                            <SelectItem key={driver.id} value={driver.id}>
+                              {driver.first_name} {driver.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Vehicle Assignment</h3>
+                      <Select
+                        value={formData.vehicle_id || 'none'}
+                        onValueChange={(value) => handleSelectChange('vehicle_id', value === 'none' ? null : value)}
+                      >
+                        <SelectTrigger className="transition-all focus:ring-2 focus:border-primary">
+                          <SelectValue placeholder="Select a vehicle" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No vehicle assigned</SelectItem>
+                          {availableVehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.name} ({vehicle.plate_number})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
+                      <Textarea
+                        id="notes"
+                        name="notes"
+                        value={formData.notes || ''}
+                        onChange={handleInputChange}
+                        className="transition-all focus:ring-2 focus:border-primary"
+                        placeholder="Enter any additional notes"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </Card>
+    </div>
   )
 }

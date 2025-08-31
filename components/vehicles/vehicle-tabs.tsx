@@ -84,8 +84,8 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
       <VehicleTabsList value={activeTab} onValueChange={handleTabChange} />
       
       {/* Tab Content */}
-      <div className="mt-6 space-y-6">
-        <TabsContent value="info" className="space-y-6 m-0">
+      <div className="mt-6 space-y-4 sm:space-y-6">
+        <TabsContent value="info" className="space-y-4 sm:space-y-6 m-0">
           <VehicleInfo vehicle={vehicle} />
         </TabsContent>
         

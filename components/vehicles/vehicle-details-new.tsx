@@ -18,7 +18,8 @@ import {
   Calendar,
   Activity,
   CircleDot,
-  Clock
+  Clock,
+  ClipboardCheck
 } from "lucide-react"
 import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
 import Link from "next/link"
@@ -172,14 +173,35 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
                     </div>
                   </div>
 
-                  {/* Desktop: Horizontal button layout */}
-                  <div className="hidden lg:flex items-center gap-3">
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/vehicles/${vehicle.id}/edit`}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Link>
-                    </Button>
+                  {/* Desktop: Elegant button layout - Same as Driver Details */}
+                  <div className="hidden lg:block">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Button asChild variant="outline" size="sm" className="h-9 px-4">
+                          <Link href={`/vehicles/${vehicle.id}/edit`}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-9 px-4">
+                          <Car className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                      </div>
+                      
+                      <div className="h-6 w-px bg-border"></div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="h-9 px-4">
+                          <Truck className="h-4 w-4 mr-2" />
+                          History
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-9 px-4">
+                          <ClipboardCheck className="h-4 w-4 mr-2" />
+                          Inspections
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -202,6 +224,44 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 pt-0">
               <VehicleQuickStats vehicleId={vehicle.id} />
+            </CardContent>
+          </Card>
+
+          {/* Current Status */}
+          <Card>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <CircleDot className="h-4 w-4 sm:h-5 sm:w-5" />
+                Current Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 pt-0">
+              <div className="text-sm text-muted-foreground">
+                This vehicle is currently {vehicle.status === 'active' ? 'active and available' : vehicle.status === 'maintenance' ? 'undergoing maintenance' : 'inactive'} for service.
+              </div>
+              <Button variant="outline" size="sm" className="w-full">
+                <Truck className="h-4 w-4 mr-2" />
+                View Full History
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 pt-0">
+              <div className="text-sm text-muted-foreground">
+                Last updated: {new Date().toLocaleDateString()}
+              </div>
+              <Button variant="outline" size="sm" className="w-full">
+                <Calendar className="h-4 w-4 mr-2" />
+                View All Activity
+              </Button>
             </CardContent>
           </Card>
         </div>

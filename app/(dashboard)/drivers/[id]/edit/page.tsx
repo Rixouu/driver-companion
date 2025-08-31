@@ -6,16 +6,14 @@ import Link from "next/link"
 
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { DriverForm } from "@/components/drivers/driver-form"
-
-
 import { toast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Driver, DriverFormData } from "@/types"
 
 export default function EditDriverPage() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = params?.id as string
   const router = useRouter()
   const { t } = useI18n()
   const [driver, setDriver] = useState<Driver | null>(null)
@@ -91,33 +89,21 @@ export default function EditDriverPage() {
     return (
       <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-9 w-48 mb-2" />
-              <Skeleton className="h-5 w-80" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-8 w-32 rounded-lg" />
-            </div>
-          </div>
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-5 w-80" />
         </div>
         
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ))}
-              <div className="pt-4">
-                <Skeleton className="h-10 w-32" />
-              </div>
+        <div className="space-y-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
             </div>
-          </CardContent>
-        </Card>
+          ))}
+          <div className="pt-4">
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -130,29 +116,27 @@ export default function EditDriverPage() {
           <p className="text-muted-foreground mt-2">The requested driver could not be found or loaded.</p>
         </div>
         
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
-            <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
-            <div className="flex gap-3 justify-center">
-              <Button variant="outline" asChild>
-                <Link href="/drivers">
-                  {t("common.backTo")} {t("drivers.title")}
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/drivers">
-                  View All Drivers
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">{t("drivers.notFound.title")}</h2>
+          <p className="text-muted-foreground mb-6">{t("drivers.notFound.description")}</p>
+          <div className="flex gap-3 justify-center">
+            <Button variant="outline" asChild>
+              <Link href="/drivers">
+                {t("common.backTo")} {t("drivers.title")}
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/drivers">
+                View All Drivers
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -177,6 +161,7 @@ export default function EditDriverPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("drivers.actions.editDriver")}</h1>
+            <p className="text-muted-foreground mt-2">Update driver information</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Editing:</span>
@@ -189,20 +174,11 @@ export default function EditDriverPage() {
       </div>
       
       {/* Form Section */}
-      <Card className="border-0 shadow-lg bg-card/50 backdrop-blur-sm">
-        <CardContent className="p-8">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">Driver Information</h2>
-            <p className="text-muted-foreground">Update the driver's personal and professional details below.</p>
-          </div>
-          
-          <DriverForm 
-            initialData={driver}
-            onSubmit={onSubmit}
-            isSubmitting={isSubmitting}
-          />
-        </CardContent>
-      </Card>
+      <DriverForm 
+        initialData={driver}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 } 

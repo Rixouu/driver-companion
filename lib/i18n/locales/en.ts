@@ -233,6 +233,9 @@ export const en: TranslationValue = {
     editDriver: {
       description: "Update the driver's personal and professional details. All changes will be saved immediately.",
     },
+    newDriver: {
+      description: "Add a new driver to your team. Fill in the personal and professional information below.",
+    },
     fields: {
       firstName: "First Name",
       lastName: "Last Name",
@@ -528,7 +531,11 @@ export const en: TranslationValue = {
       imageUpload: "Vehicle Image",
       uploadImageButton: "Upload Image",
       uploadImageDragText: "Drag and drop an image here, or click to select",
-      uploadImageSizeLimit: "Maximum file size: 5MB"
+      uploadImageSizeLimit: "Maximum file size: 5MB",
+      specifications: "Vehicle Specifications",
+      specificationsDescription: "Operational status and capacity information.",
+      basicInfoDescription: "Basic vehicle details and identification information.",
+      imageUploadDescription: "Upload and manage vehicle images."
     },
     tabs: {
       overview: "Overview",
@@ -537,7 +544,7 @@ export const en: TranslationValue = {
       bookings: "Bookings",
       inspections: "Inspections",
       activity: "Activity Log",
-      pricing: "Vehicle Pricing",
+      pricing: "Pricing",
       historyEmpty: "No history available",
       bookingsEmpty: "No bookings found",
       inspectionsEmpty: "No inspections found",
@@ -555,7 +562,12 @@ export const en: TranslationValue = {
       noBookingsForVehicle: "No bookings found for this vehicle",
       noInspectionsForVehicle: "No inspections found for this vehicle",
       dailyInspections: "Daily Inspections",
-      routineInspections: "Routine Inspections"
+      routineInspections: "Routine Inspections",
+      vehicleName: "Vehicle Name",
+      inspectorName: "Inspector Name",
+      recentActivity: "Recent Activity",
+      noRecentActivity: "No recent activity",
+      noRecentActivityDescription: "This vehicle has no recent activity."
     },
     messages: {
       createSuccess: "Vehicle created successfully",
@@ -870,10 +882,10 @@ export const en: TranslationValue = {
       cancelled: "Cancelled"
     },
     type: {
+      daily: "Daily",
       routine: "Routine",
       safety: "Safety",
       maintenance: "Maintenance",
-      daily: "Daily",
       test: "Test Inspection",
       unspecified: "Unspecified",
       daily_checklist_toyota: "Daily Checklist (Toyota)",
@@ -3359,7 +3371,7 @@ export const en: TranslationValue = {
     description: "Manage service pricing, promotions, and packages",
     tabs: {
       categories: "Categories",
-      items: "Vehicle Pricing",
+      items: "Pricing",
       serviceTypes: "Service Types",
       timeBasedPricing: "Time-based Pricing",
       promotions: "Promotions",

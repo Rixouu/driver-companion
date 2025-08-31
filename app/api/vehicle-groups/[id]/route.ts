@@ -3,47 +3,36 @@ import { createServiceClient } from "@/lib/supabase/service-client"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const supabase = createServiceClient()
-    
-    const { data: group, error } = await supabase
+
+    const { data: vehicleGroup, error } = await supabase
       .from('vehicle_groups')
-      .select(`
-        *,
-        vehicles (
-          id,
-          name,
-          plate_number,
-          brand,
-          model,
-          year,
-          status,
-          image_url
-        )
-      `)
-      .eq('id', params.id)
+      .select('*')
+      .eq('id', id)
       .single()
-    
+
     if (error) {
-      console.error('Error fetching vehicle group:', error)
+      console.error('[API] Error fetching vehicle group:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch vehicle group', details: error.message },
+        { error: 'Failed to fetch vehicle group' },
         { status: 500 }
       )
     }
-    
-    if (!group) {
+
+    if (!vehicleGroup) {
       return NextResponse.json(
         { error: 'Vehicle group not found' },
         { status: 404 }
       )
     }
-    
-    return NextResponse.json(group)
+
+    return NextResponse.json(vehicleGroup)
   } catch (error) {
-    console.error('Unexpected error fetching vehicle group:', error)
+    console.error('[API] Error in vehicle group endpoint:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

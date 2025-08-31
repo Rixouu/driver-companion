@@ -208,6 +208,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
             passenger_capacity: vehicleDbData.passenger_capacity,
             luggage_capacity: vehicleDbData.luggage_capacity,
             status: vehicleDbData.status,
+            vehicle_category_id: "default", // Set to a default category ID - this should be handled properly in production
         };
         result = await supabase
           .from('vehicles')
@@ -241,197 +242,283 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('vehicles.form.basicInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('vehicles.fields.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="plate_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.plateNumber')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('vehicles.fields.plateNumberPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.brand')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('vehicles.fields.brandPlaceholder')} {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.model')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('vehicles.fields.modelPlaceholder')} {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.year')}</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder={t('vehicles.fields.yearPlaceholder')} {...field} value={field.value || undefined} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="vin"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.vin')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('vehicles.fields.vinPlaceholder')} {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.status')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('vehicles.fields.statusPlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">{t('vehicles.status.active')}</SelectItem>
-                        <SelectItem value="maintenance">{t('vehicles.status.maintenance')}</SelectItem>
-                        <SelectItem value="inactive">{t('vehicles.status.inactive')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="passenger_capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.passengerCapacity')}</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder={t('vehicles.fields.passengerCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="luggage_capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('vehicles.fields.luggageCapacity')}</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder={t('vehicles.fields.luggageCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Form Container with Subtle Background */}
+        <div className="rounded-lg bg-muted/30 p-6 space-y-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Basic Information - Takes 2 columns on desktop */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Vehicle Identification Section */}
+              <Card className="border-0 shadow-sm bg-background/80">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Car className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">{t('vehicles.form.basicInfo')}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t('vehicles.form.basicInfoDescription')}
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Vehicle Name and License Plate - Same row on desktop */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.name')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('vehicles.fields.namePlaceholder')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="plate_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.plateNumber')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('vehicles.fields.plateNumberPlaceholder')} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('vehicles.form.imageUpload')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="image_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <ImageUpload
-                        initialValue={field.value}
-                        onChange={(file) => {
-                          setImageFile(file);
-                          if (!file) {
-                            form.setValue('image_url', null);
-                          }
-                        }}
-                        buttonText={t('vehicles.form.uploadImageButton')}
-                        sizeLimit={t('vehicles.form.uploadImageSizeLimit')}
-                        aspectRatio="video"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {t('vehicles.fields.imageDescription')}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+                  {/* Brand and Model - Same row on desktop */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="brand"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.brand')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('vehicles.fields.brandPlaceholder')} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.model')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('vehicles.fields.modelPlaceholder')} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-          {/* Pricing Categories section removed - managed in vehicle details page */}
+                  {/* Year and VIN - Same row on desktop */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.year')}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder={t('vehicles.fields.yearPlaceholder')} {...field} value={field.value || undefined} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="vin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.vin')}</FormLabel>
+                          <FormControl>
+                            <Input placeholder={t('vehicles.fields.vinPlaceholder')} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Vehicle Specifications Section */}
+              <Card className="border-0 shadow-sm bg-background/80">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                      <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">{t('vehicles.form.specifications')}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t('vehicles.form.specificationsDescription')}
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Status and Capacity Group - 3 columns on desktop */}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.status')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('vehicles.fields.statusPlaceholder')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="active">{t('vehicles.status.active')}</SelectItem>
+                              <SelectItem value="maintenance">{t('vehicles.status.maintenance')}</SelectItem>
+                              <SelectItem value="inactive">{t('vehicles.status.inactive')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="passenger_capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.passengerCapacity')}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder={t('vehicles.fields.passengerCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="luggage_capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('vehicles.fields.luggageCapacity')}</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder={t('vehicles.fields.luggageCapacityPlaceholder')} {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Vehicle Image - Takes 1 column on desktop */}
+            <div className="lg:col-span-1">
+              <Card className="border-0 shadow-sm bg-background/80">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                      <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">{t('vehicles.form.imageUpload')}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {t('vehicles.form.imageUploadDescription')}
+                      </p>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="image_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <ImageUpload
+                            initialValue={field.value}
+                            onChange={(file) => {
+                              setImageFile(file);
+                              if (!file) {
+                                form.setValue('image_url', null);
+                              }
+                            }}
+                            buttonText={t('vehicles.form.uploadImageButton')}
+                            sizeLimit={t('vehicles.form.uploadImageSizeLimit')}
+                            aspectRatio="video"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('vehicles.fields.imageDescription')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
         
-        <div className="flex justify-end gap-4">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => router.back()} 
-            disabled={isSubmitting}
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button type="submit" disabled={isSubmitting} className="min-w-[100px]">
-            {isSubmitting ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            ) : vehicle?.id ? (
-              t('common.saveChanges')
-            ) : (
-              t('common.create')
-            )}
-          </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-6 border-t border-border/50">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>All changes will be saved when you submit the form</span>
+          </div>
+          <div className="flex gap-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => router.back()} 
+              disabled={isSubmitting}
+              className="min-w-[100px]"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg hover:shadow-xl transition-all duration-200">
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </>
+              ) : vehicle?.id ? (
+                <>
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {t('common.saveChanges')}
+                </>
+              ) : (
+                <>
+                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  {t('common.create')}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

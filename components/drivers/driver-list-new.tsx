@@ -362,39 +362,35 @@ export function DriverList({
                 className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border-border/60 bg-card/95 backdrop-blur"
                 onClick={() => router.push(`/drivers/${driver.id}`)}
               >
-                                <div className="flex items-center gap-4 p-4">
+                                <div className="grid grid-cols-12 items-center gap-4 p-4">
                   {/* Selection Checkbox */}
-                  <Checkbox
-                    checked={selectedDrivers.has(driver.id)}
-                    onCheckedChange={() => {
-                      handleSelectDriver(driver.id);
-                    }}
-                    aria-label={`Select ${driver.full_name || driver.first_name}`}
-                    className="flex-shrink-0"
-                  />
+                  <div className="col-span-1 flex items-center">
+                    <Checkbox
+                      checked={selectedDrivers.has(driver.id)}
+                      onCheckedChange={() => {
+                        handleSelectDriver(driver.id);
+                      }}
+                      aria-label={`Select ${driver.full_name || driver.first_name}`}
+                    />
+                  </div>
                   
-                                                        {/* Content Grid */}
-                    <div className="grid grid-cols-12 items-center gap-4 flex-1">
-                      {/* Select Column - Empty space for alignment */}
-                      <div className="col-span-1"></div>
-                      
-                                            {/* Driver Column - Avatar, Name and ID */}
-                      <div className="col-span-3 flex items-start gap-3">
-                        <Avatar className="h-12 w-12 border border-border/40 flex-shrink-0">
-                          <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
-                          <AvatarFallback className="text-sm font-bold bg-primary text-primary-foreground">
-                            {driver.first_name?.[0]}{driver.last_name?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1 min-w-0">
-                          <h3 className="font-semibold text-sm text-foreground truncate">
-                            {driver.full_name || `${driver.first_name} ${driver.last_name}`}
-                          </h3>
-                          <p className="text-xs text-muted-foreground font-mono bg-muted/30 px-2 py-1 rounded-md inline-block">
-                            ID: {driver.id.slice(0, 8)}
-                          </p>
-                        </div>
-                      </div>
+                  {/* Driver Column - Avatar, Name and ID */}
+                  <div className="col-span-3 flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border border-border/40 flex-shrink-0">
+                      <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />
+                      <AvatarFallback className="text-sm font-bold bg-primary text-primary-foreground">
+                        {driver.first_name?.[0]}{driver.last_name?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1 min-w-0">
+                      <h3 className="font-semibold text-sm text-foreground truncate">
+                        {driver.full_name || `${driver.first_name} ${driver.last_name}`}
+                      </h3>
+                      <p className="text-xs text-muted-foreground font-mono bg-muted/30 px-2 py-1 rounded-md inline-block">
+                        ID: {driver.id.slice(0, 8)}
+                      </p>
+                    </div>
+                  </div>
                   
                   {/* Contact Column - Email and Phone */}
                   <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
@@ -429,35 +425,34 @@ export function DriverList({
                   </div>
                   
                                                               {/* Status Column */}
-                      <div className="col-span-2 flex justify-start">
-                        <DriverStatusBadge status={driver.availability_status || driver.status} />
-                      </div>
-                      
-                      {/* Actions Column */}
-                      <div className="col-span-2 flex justify-start gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          asChild 
-                          className="flex items-center gap-2"
-                        >
-                          <Link href={`/drivers/${driver.id}`}>
-                            <EyeIcon className="h-4 w-4" />
-                            View
-                          </Link>
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          asChild 
-                          className="flex items-center gap-2"
-                        >
-                          <Link href={`/drivers/${driver.id}/edit`}>
-                            <FileEditIcon className="h-4 w-4" />
-                            Edit
-                          </Link>
-                        </Button>
-                      </div>
+                  <div className="col-span-2 flex justify-start">
+                    <DriverStatusBadge status={driver.availability_status || driver.status} />
+                  </div>
+                  
+                  {/* Actions Column */}
+                  <div className="col-span-2 flex justify-start gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      asChild 
+                      className="flex items-center gap-2"
+                    >
+                      <Link href={`/drivers/${driver.id}`}>
+                        <EyeIcon className="h-4 w-4" />
+                        View
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      asChild 
+                      className="flex items-center gap-2"
+                    >
+                      <Link href={`/drivers/${driver.id}/edit`}>
+                        <FileEditIcon className="h-4 w-4" />
+                        Edit
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               </Card>

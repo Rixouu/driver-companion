@@ -218,6 +218,9 @@ export const ja: TranslationValue = {
     editDriver: {
       description: "ドライバーの個人情報と職業上の詳細を更新します。すべての変更は即座に保存されます。",
     },
+    newDriver: {
+      description: "新しいドライバーをチームに追加します。下記の個人情報と職業上の情報を入力してください。",
+    },
     fields: {
       firstName: "名",
       lastName: "姓",
@@ -512,7 +515,11 @@ export const ja: TranslationValue = {
       imageUpload: "車両画像",
       uploadImageButton: "画像をアップロード",
       uploadImageDragText: "ここに画像をドラッグ＆ドロップするか、クリックして選択",
-      uploadImageSizeLimit: "最大ファイルサイズ：5MB"
+      uploadImageSizeLimit: "最大ファイルサイズ：5MB",
+      specifications: "車両仕様",
+      specificationsDescription: "運用状況と容量情報。",
+      basicInfoDescription: "基本的な車両詳細と識別情報。",
+      imageUploadDescription: "車両画像のアップロードと管理。"
     },
     tabs: {
       info: "情報",
@@ -536,7 +543,12 @@ export const ja: TranslationValue = {
       noBookingsForVehicle: "この車両の予約は見つかりません",
       noInspectionsForVehicle: "この車両の点検は見つかりません",
       dailyInspections: "日常点検",
-      routineInspections: "定期点検"
+      routineInspections: "定期点検",
+      vehicleName: "車両名",
+      inspectorName: "点検者名",
+      recentActivity: "最近の活動",
+      noRecentActivity: "最近の活動はありません",
+      noRecentActivityDescription: "この車両には最近の活動がありません。"
     },
     messages: {
       createSuccess: "車両が正常に作成されました",

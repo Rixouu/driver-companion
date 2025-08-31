@@ -1,6 +1,6 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { VehicleDetails } from "@/components/vehicles/vehicle-details-new"
+import { VehicleDetailsNew } from "@/components/vehicles/vehicle-details-new"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
@@ -47,7 +47,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
   return (
     <div className="space-y-6">
-      <VehicleDetails vehicle={vehicle as DbVehicle} />
+      <VehicleDetailsNew vehicle={vehicle as DbVehicle} />
     </div>
   )
 } 

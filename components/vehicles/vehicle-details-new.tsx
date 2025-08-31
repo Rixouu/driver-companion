@@ -1,185 +1,225 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { DbVehicle } from "@/types"
-import { useI18n } from "@/lib/i18n/context"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useSupabase } from "@/components/providers/supabase-provider"
-import { VehicleTabs } from "./vehicle-tabs"
-import { useQueryClient } from "@tanstack/react-query"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Edit, Car, Calendar, Activity, Package, ArrowLeft, TrendingUp, Users, MapPin } from "lucide-react"
+import { useI18n } from "@/lib/i18n/context"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Car, 
-  Edit, 
-  Hash, 
-  Truck, 
-  Calendar,
-  Activity,
-  CircleDot,
-  Clock,
-  ArrowLeft,
-  Phone,
-  Mail,
-  MessageSquare,
-  Users,
-  TrendingUp,
-  Package
-} from "lucide-react"
-import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { VehicleTabs } from "./vehicle-tabs"
+import type { DbVehicle } from "@/types"
 
-async function fetchMileageLogsPage1(vehicleId: string) {
-  const pageSize = 5;
-  const response = await fetch(`/api/vehicles/${vehicleId}/mileage?page=1&pageSize=${pageSize}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: "Failed to prefetch mileage logs" }));
-    throw new Error(errorData.message || "vehicles.messages.prefetchMileageError");
-  }
-  return response.json();
-}
-
-async function fetchFuelLogsPage1(vehicleId: string) {
-  const pageSize = 5;
-  const response = await fetch(`/api/vehicles/${vehicleId}/fuel?page=1&pageSize=${pageSize}`);
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: "Failed to prefetch fuel logs" }));
-    throw new Error(errorData.message || "vehicles.messages.prefetchFuelError");
-  }
-  return response.json();
-}
-
-interface VehicleDetailsProps {
+interface VehicleDetailsNewProps {
   vehicle: DbVehicle
 }
 
-export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
-  const { t } = useI18n()
+interface VehicleGroup {
+  id: string
+  name: string
+  color: string
+}
+
+interface VehiclePricingCategory {
+  id: string
+  name: string
+  description: string
+}
+
+export function VehicleDetailsNew({ vehicle }: VehicleDetailsNewProps) {
   const router = useRouter()
+  const { t } = useI18n()
+  const [bookings, setBookings] = useState<any[]>([])
+  const [inspections, setInspections] = useState<any[]>([])
+  const [vehicleGroup, setVehicleGroup] = useState<VehicleGroup | null>(null)
+  const [pricingCategories, setPricingCategories] = useState<VehiclePricingCategory[]>([])
 
-  const supabase = useSupabase()
-  const queryClient = useQueryClient()
-
+  // Load vehicle data for stats, vehicle group, and pricing categories
   useEffect(() => {
-    if (vehicle?.id) {
-      queryClient.prefetchQuery({
-        queryKey: ["mileageLogs", vehicle.id, 1, 5],
-        queryFn: () => fetchMileageLogsPage1(vehicle.id),
-        staleTime: 1000 * 60 * 5,
-      });
-      queryClient.prefetchQuery({
-        queryKey: ["fuelLogs", vehicle.id, 1, 5],
-        queryFn: () => fetchFuelLogsPage1(vehicle.id),
-        staleTime: 1000 * 60 * 5,
-      });
+    async function loadVehicleData() {
+      try {
+        const [bookingsRes, inspectionsRes, groupRes, pricingRes] = await Promise.all([
+          fetch(`/api/vehicles/${vehicle.id}/bookings`),
+          fetch(`/api/vehicles/${vehicle.id}/inspections`),
+          vehicle.vehicle_group_id ? fetch(`/api/vehicle-groups/${vehicle.vehicle_group_id}`) : Promise.resolve(null),
+          fetch(`/api/vehicles/${vehicle.id}/pricing-categories`)
+        ])
+        
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json()
+          setBookings(bookingsData.bookings || [])
+        }
+        
+        if (inspectionsRes.ok) {
+          const inspectionsData = await inspectionsRes.json()
+          setInspections(inspectionsData.inspections || [])
+        }
+
+        if (groupRes && groupRes.ok) {
+          const groupData = await groupRes.json()
+          setVehicleGroup(groupData)
+        }
+
+        if (pricingRes.ok) {
+          const pricingData = await pricingRes.json()
+          setPricingCategories(pricingData.categories || [])
+        }
+      } catch (error) {
+        console.error('Failed to load vehicle data:', error)
+      }
     }
-  }, [vehicle?.id, queryClient]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
-
-  // Vehicle Category Badge Component
-  const VehicleCategoryBadge = ({ vehicleId }: { vehicleId: string }) => {
-    const { categories, isLoading } = useVehiclePricingCategories(vehicleId);
-
-    if (isLoading || !categories || categories.length === 0) {
-      return null;
-    }
-
-    // Show the first category as the main category
-    const mainCategory = categories[0];
-    
-    return (
-      <Badge 
-        variant="secondary" 
-        className="text-sm bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700"
-      >
-        {mainCategory.name}
-      </Badge>
-    );
-  };
+    loadVehicleData()
+  }, [vehicle.id, vehicle.vehicle_group_id])
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-background">
       {/* Header Section */}
-      <div className="flex flex-col gap-4">
-        {/* Back Navigation */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/vehicles')}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t("vehicles.backToVehicles", { defaultValue: "← Vehicles" })}
-          </Button>
-        </div>
-
-        {/* Vehicle Header */}
-        <div className="flex flex-col lg:flex-row items-start gap-6">
-          {/* Vehicle Image */}
-          <div className="relative w-24 h-24 lg:w-32 lg:h-32 flex-shrink-0">
-            {vehicle.image_url ? (
+      <div className="border-b bg-card">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          {/* Mobile Layout - Stacked */}
+          <div className="block xl:hidden space-y-4">
+            {/* Vehicle Image - Full Width on Mobile with Increased Height */}
+            <div className="w-full h-56 sm:h-64 rounded-lg border-2 border-primary/20 overflow-hidden">
               <img
-                src={vehicle.image_url}
-                alt={vehicle.name}
-                className="w-full h-full object-cover rounded-lg border-2 border-primary/20"
+                src={vehicle.image_url || "/placeholder.jpg"}
+                alt={vehicle.name || "Vehicle"}
+                className="w-full h-full object-cover"
+                style={{ aspectRatio: '16/9' }}
               />
-            ) : (
-              <div className="w-full h-full bg-muted rounded-lg border-2 border-primary/20 flex items-center justify-center">
-                <Car className="h-12 w-12 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-          
-          {/* Vehicle Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="space-y-3">
-                <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{vehicle.name}</h1>
-                <div className="flex items-center gap-4 text-lg text-muted-foreground">
-                  <span className="flex items-center gap-2 font-mono">
-                    <Hash className="h-4 w-4" />
-                    {vehicle.plate_number}
-                  </span>
-                  {vehicle.brand && (
-                    <span className="flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      {vehicle.brand} {vehicle.model}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge 
-                    variant="outline"
-                    className={cn(
-                      "text-sm",
-                      vehicle.status === 'active' && "border-green-200 text-green-700",
-                      vehicle.status === 'maintenance' && "border-orange-200 text-orange-700",
-                      vehicle.status === 'inactive' && "border-gray-200 text-gray-700"
-                    )}
-                  >
-                    {vehicle.status ? t(`vehicles.status.${vehicle.status}`) : t('vehicles.status.active')}
-                  </Badge>
-                  {vehicle.year && (
-                    <span className="text-sm text-muted-foreground">({vehicle.year})</span>
-                  )}
-                  {/* Vehicle Category Badge */}
-                  <VehicleCategoryBadge vehicleId={vehicle.id} />
-                </div>
+            </div>
+            
+            {/* Vehicle Info - Stacked on Mobile */}
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">{vehicle.name}</h1>
+                <p className="text-base sm:text-lg text-muted-foreground font-mono">{vehicle.plate_number}</p>
               </div>
               
-              <div className="flex items-center gap-3">
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/vehicles/${vehicle.id}/edit`}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Link>
+              {/* Status and Category Badges - Better Organized Layout */}
+              <div className="space-y-4">
+                {/* Vehicle Group and Status Row - Better Alignment */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                  {vehicleGroup && (
+                    <Badge 
+                      variant="outline" 
+                      className="px-3 py-2 text-sm border-red-200 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-300 dark:bg-red-950/30 text-center"
+                    >
+                      {vehicleGroup.name}
+                    </Badge>
+                  )}
+                  <Badge 
+                    variant="outline"
+                    className="px-3 py-2 text-sm border-green-200 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950/30 text-center"
+                  >
+                    {vehicle.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className="px-3 py-2 text-sm border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950/30 text-center"
+                  >
+                    {vehicle.year}
+                  </Badge>
+                </div>
+
+                {/* Vehicle Pricing Category - Better Alignment */}
+                {pricingCategories.length > 0 && (
+                  <div className="flex items-center justify-center sm:justify-start gap-3">
+                    <span className="text-sm text-muted-foreground">Pricing Group:</span>
+                    <Badge 
+                      variant="outline" 
+                      className="px-3 py-2 text-sm border-orange-200 text-orange-700 bg-orange-50 dark:border-orange-700 dark:text-orange-300 dark:bg-orange-950/30"
+                    >
+                      {pricingCategories[0].name}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              
+              {/* Edit Button - Full Width on Mobile */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            </div>
+          </div>
+          
+          {/* Desktop Layout - Side by Side */}
+          <div className="hidden xl:flex items-start space-x-6">
+            {/* Vehicle Image - 16:9 ratio with proper height */}
+            <div className="w-80 h-52 rounded-lg border-2 border-primary/20 overflow-hidden flex-shrink-0">
+              <img
+                src={vehicle.image_url || "/placeholder.jpg"}
+                alt={vehicle.name || "Vehicle"}
+                className="w-full h-full object-cover"
+                style={{ aspectRatio: '16/9' }}
+              />
+            </div>
+            
+            {/* Vehicle Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div className="space-y-4">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">{vehicle.name}</h1>
+                    <p className="text-lg text-muted-foreground font-mono">{vehicle.plate_number}</p>
+                  </div>
+                  
+                  {/* Status and Category Badges in Color - Improved UI */}
+                  <div className="space-y-4">
+                    {/* Vehicle Group and Status Row - Better Spacing */}
+                    <div className="flex items-center space-x-3">
+                      {vehicleGroup && (
+                        <Badge 
+                          variant="outline" 
+                          className="px-3 py-2 text-sm border-red-200 text-red-700 bg-red-50 dark:border-red-700 dark:text-red-300 dark:bg-red-950/30"
+                        >
+                          {vehicleGroup.name}
+                        </Badge>
+                      )}
+                      <Badge 
+                        variant="outline"
+                        className="px-3 py-2 text-sm border-green-200 text-green-700 bg-green-50 dark:border-green-700 dark:text-green-300 dark:bg-green-950/30"
+                      >
+                        {vehicle.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="px-3 py-2 text-sm border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950/30"
+                      >
+                        {vehicle.year}
+                      </Badge>
+                    </div>
+
+                    {/* Vehicle Pricing Category - Better Spacing */}
+                    {pricingCategories.length > 0 && (
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-muted-foreground">Pricing Group:</span>
+                        <Badge 
+                          variant="outline" 
+                          className="px-3 py-2 text-sm border-orange-200 text-orange-700 bg-orange-50 dark:border-orange-700 dark:text-orange-300 dark:bg-orange-950/30"
+                        >
+                          {pricingCategories[0].name}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Edit Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/vehicles/${vehicle.id}/edit`)}
+                  className="flex-shrink-0"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
                 </Button>
               </div>
             </div>
@@ -187,216 +227,127 @@ export function VehicleDetails({ vehicle }: VehicleDetailsProps) {
         </div>
       </div>
 
-      {/* Main Content Layout - Left Column + Center Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Column - Vehicle Info & Quick Stats */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Quick Stats */}
-          <Card className="bg-muted/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-primary">
-                <TrendingUp className="h-4 w-4" />
-                Quick Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <VehicleQuickStats vehicleId={vehicle.id} />
-            </CardContent>
-          </Card>
+      {/* Main Content */}
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 lg:gap-8">
+          {/* Left Column - Vehicle Info */}
+          <div className="xl:col-span-4 space-y-3 sm:space-y-4 lg:space-y-6">
+            {/* Vehicle Information - ABOVE Quick Stats with REORGANIZED layout */}
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+                <CardTitle className="flex items-center text-base sm:text-lg">
+                  <Car className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                  Vehicle Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 sm:pt-6">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Left Column: Brand, Plate, Year */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Brand</p>
+                        <p className="text-sm font-medium">{vehicle.brand || "N/A"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Plate</p>
+                        <p className="text-sm font-medium">{vehicle.plate_number || "N/A"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Year</p>
+                        <p className="text-sm font-medium">{vehicle.year || "N/A"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Right Column: Model, VIN */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Model</p>
+                        <p className="text-sm font-medium">{vehicle.model || "N/A"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">VIN</p>
+                        <p className="text-sm font-medium">{vehicle.vin || "N/A"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Luggage Left & Capacity Right below with separator line */}
+                <div className="mt-4 pt-4 border-t">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Luggage</p>
+                        <p className="text-sm font-medium">{vehicle.luggage_capacity || "N/A"} bags</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Capacity</p>
+                        <p className="text-sm font-medium">{vehicle.passenger_capacity || "N/A"} pax</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* Vehicle Information */}
-          <Card className="bg-muted/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-primary">
-                <Car className="h-4 w-4" />
-                Vehicle Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <div className="space-y-3">
-                {vehicle.brand && (
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">Brand:</span>
-                    <span className="text-sm font-medium">{vehicle.brand}</span>
+            {/* Quick Stats - Now with 4 numbers */}
+            <Card className="overflow-hidden">
+              <CardHeader className="pb-3 sm:pb-6 bg-muted/20">
+                <CardTitle className="flex items-center text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                  Quick Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4 sm:pt-6">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{bookings?.length || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Total Bookings</div>
                   </div>
-                )}
-                {vehicle.model && (
-                  <div className="flex items-center gap-2">
-                    <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">Model:</span>
-                    <span className="text-sm font-medium">{vehicle.model}</span>
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{inspections?.length || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Inspections</div>
                   </div>
-                )}
-                {vehicle.year && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">Year:</span>
-                    <span className="text-sm font-medium">{vehicle.year}</span>
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{pricingCategories?.length || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Pricing Categories</div>
                   </div>
-                )}
-                {vehicle.plate_number && (
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">Plate:</span>
-                    <span className="text-sm font-medium font-mono">{vehicle.plate_number}</span>
+                  <div className="text-center p-4 sm:p-5 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                    <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{vehicleGroup ? 1 : 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground font-medium">Vehicle Group</div>
                   </div>
-                )}
-                {vehicle.vin && (
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">VIN:</span>
-                    <span className="text-sm font-medium font-mono">{vehicle.vin}</span>
-                  </div>
-                )}
-                {vehicle.passenger_capacity && (
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm text-muted-foreground">Capacity:</span>
-                    <span className="text-sm font-medium">{vehicle.passenger_capacity} passengers</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Current Status */}
-          <Card className="bg-muted/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2 text-primary">
-                <Activity className="h-4 w-4" />
-                Current Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-sm text-muted-foreground mb-3">
-                {vehicle.status === 'active' 
-                  ? "This vehicle is currently active and available for bookings."
-                  : vehicle.status === 'maintenance'
-                  ? "This vehicle is currently under maintenance."
-                  : "This vehicle is currently inactive."
-                }
-              </p>
-              <Button variant="outline" size="sm" className="w-full">
-                View Full Schedule
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Center Column - Tabs Content */}
-        <div className="lg:col-span-3 space-y-6">
-          <VehicleTabs vehicle={vehicle} />
+          {/* Right Column - Main Content */}
+          <div className="xl:col-span-8">
+            <VehicleTabs vehicle={vehicle} />
+          </div>
         </div>
       </div>
     </div>
-  );
-}
-
-interface VehicleQuickStatsProps {
-  vehicleId: string;
-}
-
-function VehicleQuickStats({ vehicleId }: VehicleQuickStatsProps) {
-  const { t } = useI18n();
-  const [stats, setStats] = useState({
-    totalBookings: 0,
-    totalInspections: 0,
-    lastService: null as string | null
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch bookings count
-        const bookingsResponse = await fetch(`/api/vehicles/${vehicleId}/bookings?countOnly=true`);
-        const bookingsData = await bookingsResponse.json();
-        
-        // Fetch inspections count
-        const inspectionsResponse = await fetch(`/api/vehicles/${vehicleId}/inspections?countOnly=true`);
-        const inspectionsData = await inspectionsResponse.json();
-        
-        // Fetch last maintenance/service
-        const maintenanceResponse = await fetch(`/api/vehicles/${vehicleId}/maintenance/overview?latestOnly=true`);
-        const maintenanceData = await maintenanceResponse.json();
-        
-        setStats({
-          totalBookings: bookingsData.count || 0,
-          totalInspections: inspectionsData.count || 0,
-          lastService: maintenanceData.latestService?.date || null
-        });
-      } catch (error) {
-        console.error('Error fetching vehicle stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (vehicleId) {
-      fetchStats();
-    }
-  }, [vehicleId]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3 w-3" />
-            <span className="text-xs">Total Bookings</span>
-          </div>
-          <div className="h-3 w-6 bg-muted rounded animate-pulse"></div>
-        </div>
-        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <CircleDot className="h-3 w-3" />
-            <span className="text-xs">Inspections</span>
-          </div>
-          <div className="h-3 w-6 bg-muted rounded animate-pulse"></div>
-        </div>
-        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Clock className="h-3 w-3" />
-            <span className="text-xs">Last Service</span>
-          </div>
-          <div className="h-3 w-12 bg-muted rounded animate-pulse"></div>
-        </div>
-      </div>
-    );
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Calendar className="h-3 w-3" />
-          <span className="text-xs">Total Bookings</span>
-        </div>
-        <span className="font-semibold text-sm">{stats.totalBookings}</span>
-      </div>
-      <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-        <div className="flex items-center gap-2">
-          <CircleDot className="h-3 w-3" />
-          <span className="text-xs">Inspections</span>
-        </div>
-        <span className="font-semibold text-sm">{stats.totalInspections}</span>
-      </div>
-      <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-        <div className="flex items-center gap-2">
-          <Clock className="h-3 w-3" />
-          <span className="text-xs">Last Service</span>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {stats.lastService ? formatDate(stats.lastService) : 'Never'}
-        </span>
-      </div>
-    </div>
-  );
+  )
 }

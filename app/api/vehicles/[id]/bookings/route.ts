@@ -1,109 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { Database } from '@/types/supabase'
-
-async function createSupabaseServer() {
-  const cookieStore = await cookies()
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-}
+import { createServiceClient } from '@/lib/supabase/service-client'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createSupabaseServer()
-    const resolvedParams = await params
-    const vehicleId = resolvedParams.id
-
-    if (!vehicleId) {
+    const { id } = await context.params
+    
+    if (!id) {
       return NextResponse.json(
         { error: 'Vehicle ID is required' },
         { status: 400 }
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const countOnly = searchParams.get('countOnly') === 'true'
+    const supabase = createServiceClient()
 
-    if (countOnly) {
-      // Return only the count for quickstats
-      const { count, error } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('vehicle_id', vehicleId)
-
-      if (error) {
-        console.error('Error counting vehicle bookings:', error)
-        return NextResponse.json(
-          { error: 'Failed to count bookings' },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ count: count || 0 })
-    }
-
-    // Fetch bookings for the vehicle
-    const { data: bookings, error } = await supabase
+    // Fetch vehicle bookings
+    const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select(`
         id,
         wp_id,
         customer_name,
         customer_email,
+        customer_phone,
+        service_name,
         date,
         time,
+        status,
         pickup_location,
         dropoff_location,
-        status,
-        service_name,
-        created_at
+        price_amount,
+        price_currency,
+        vehicle_id,
+        created_at,
+        updated_at
       `)
-      .eq('vehicle_id', vehicleId)
-      .order('created_at', { ascending: false })
+      .eq('vehicle_id', id)
+      .order('date', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching vehicle bookings:', error)
+    if (bookingsError) {
+      console.error('Error fetching vehicle bookings:', bookingsError)
       return NextResponse.json(
-        { error: 'Failed to fetch bookings' },
+        { error: 'Failed to fetch vehicle bookings' },
         { status: 500 }
       )
     }
 
-    // Transform the data to match the expected format
-    const transformedBookings = (bookings || []).map((booking: any) => ({
-      id: booking.id,
-      booking_id: booking.wp_id,
-      customer_name: booking.customer_name,
-      customer_email: booking.customer_email,
-      pickup_date: booking.date,
-      pickup_time: booking.time,
-      pickup_location: booking.pickup_location,
-      dropoff_location: booking.dropoff_location,
-      status: booking.status,
-      service_name: booking.service_name,
-      created_at: booking.created_at
-    }))
+    return NextResponse.json({
+      vehicle_id: id,
+      bookings: bookings || [],
+      total_count: bookings?.length || 0
+    })
 
-    return NextResponse.json(transformedBookings)
   } catch (error) {
     console.error('Error in vehicle bookings API:', error)
     return NextResponse.json(

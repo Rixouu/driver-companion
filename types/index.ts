@@ -19,6 +19,7 @@ export interface DbVehicle {
   user_id: string
   luggage_capacity?: number | null
   passenger_capacity?: number | null
+  vehicle_group_id?: string | null
   maintenance_tasks?: DbMaintenanceTask[] | null
   inspections?: DbInspection[] | null
   driver_id?: string | null

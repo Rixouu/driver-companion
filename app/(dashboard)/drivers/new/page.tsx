@@ -4,15 +4,9 @@ export const dynamic = "force-dynamic"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { useI18n } from "@/lib/i18n/context"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DriverForm } from "@/components/drivers/driver-form"
 import { createDriver } from "@/lib/services/drivers"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import type { DriverFormData } from "@/types"
 
@@ -46,26 +40,17 @@ export default function NewDriverPage() {
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center mb-8">
-        <Link href="/drivers" className="flex items-center gap-2" ><span className="flex items-center gap-2"><span className="flex items-center gap-2">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-            {t("common.backTo")} {t("drivers.title")}
-          </Button>
-        </span></span></Link>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">{t("drivers.actions.addDriver")}</h1>
+        <p className="text-muted-foreground mt-2">
+          {t("drivers.newDriver.description")}
+        </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("drivers.actions.addDriver")}</CardTitle>
-          <CardDescription>{t("drivers.newDriver.description")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DriverForm 
-            onSubmit={onSubmit}
-            isSubmitting={isSubmitting}
-          />
-        </CardContent>
-      </Card>
+      
+      <DriverForm 
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 } 

@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Info, History, Calendar, ClipboardCheck } from "lucide-react"
-import { useI18n } from "@/lib/i18n/context"
 
 interface VehicleTabsListProps {
   value: string
@@ -12,7 +11,6 @@ interface VehicleTabsListProps {
 }
 
 export function VehicleTabsList({ value, onValueChange }: VehicleTabsListProps) {
-  const { t } = useI18n()
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -27,21 +25,21 @@ export function VehicleTabsList({ value, onValueChange }: VehicleTabsListProps) 
   }, [])
 
   const tabs = [
-    { value: "info", label: t("vehicles.tabs.info"), icon: Info },
-    { value: "history", label: t("vehicles.tabs.history"), icon: History },
-    { value: "bookings", label: t("vehicles.tabs.bookings"), icon: Calendar },
-    { value: "inspections", label: t("vehicles.tabs.inspections"), icon: ClipboardCheck },
+    { value: "info", label: "Information", icon: Info },
+    { value: "history", label: "History", icon: History },
+    { value: "bookings", label: "Bookings", icon: Calendar },
+    { value: "inspections", label: "Inspections", icon: ClipboardCheck },
   ]
-
-  const currentTab = tabs.find(tab => tab.value === value)
 
   if (isMobile) {
     return (
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="w-full h-10">
           <div className="flex items-center gap-2">
-            {currentTab && <currentTab.icon className="h-4 w-4" />}
-            <span>{currentTab?.label || t("vehicles.tabs.info")}</span>
+            {tabs.find(tab => tab.value === value)?.icon && 
+              React.createElement(tabs.find(tab => tab.value === value)!.icon, { className: "h-4 w-4" })
+            }
+            <span>{tabs.find(tab => tab.value === value)?.label}</span>
           </div>
         </SelectTrigger>
         <SelectContent>
@@ -49,7 +47,7 @@ export function VehicleTabsList({ value, onValueChange }: VehicleTabsListProps) 
             <SelectItem key={tab.value} value={tab.value}>
               <div className="flex items-center gap-2">
                 <tab.icon className="h-4 w-4" />
-                {tab.label}
+                <span>{tab.label}</span>
               </div>
             </SelectItem>
           ))}

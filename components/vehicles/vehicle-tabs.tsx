@@ -4,6 +4,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { VehicleInfo } from "./vehicle-info"
 import { DbVehicle } from "@/types"
 import { useI18n } from "@/lib/i18n/context"
+import { Info, History, Calendar, ClipboardCheck } from "lucide-react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useEffect, useState, Suspense, lazy } from "react"
 import { VehicleTabsList } from "./vehicle-tabs-list"
@@ -23,10 +24,17 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("info")
 
+  const tabs = [
+    { value: "info", label: t("vehicles.tabs.info"), icon: Info },
+    { value: "history", label: t("vehicles.tabs.history"), icon: History },
+    { value: "bookings", label: t("vehicles.tabs.bookings"), icon: Calendar },
+    { value: "inspections", label: t("vehicles.tabs.inspections"), icon: ClipboardCheck },
+  ]
+
   // Update active tab based on URL search params
   useEffect(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam && ['info', 'history', 'bookings', 'inspections'].includes(tabParam)) {
+    if (tabParam && tabs.some(tab => tab.value === tabParam)) {
       setActiveTab(tabParam)
     }
   }, [searchParams])
@@ -84,8 +92,8 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
       <VehicleTabsList value={activeTab} onValueChange={handleTabChange} />
       
       {/* Tab Content */}
-      <div className="mt-6 space-y-4 sm:space-y-6">
-        <TabsContent value="info" className="space-y-4 sm:space-y-6 m-0">
+      <div className="mt-4">
+        <TabsContent value="info" className="space-y-6 m-0">
           <VehicleInfo vehicle={vehicle} />
         </TabsContent>
         

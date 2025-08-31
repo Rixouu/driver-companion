@@ -192,29 +192,31 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
 
   return (
     <div className="space-y-4">
-      {/* Sorting Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">{t('common.sortBy')}:</span>
-          <div className="flex gap-1">
-            {(['date', 'status', 'customer'] as const).map((field) => (
-              <Button
-                key={field}
-                size="sm"
-                variant={sortBy === field ? "default" : "outline"}
-                onClick={() => handleSort(field)}
-                className="flex items-center gap-1"
-              >
-                {t(`bookings.fields.${field}`)}
-                {sortBy === field && (
-                  sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                )}
-              </Button>
-            ))}
+      {/* Mobile-optimized Sorting Controls */}
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">{t('common.sortBy')}:</span>
+            <div className="flex flex-wrap gap-1">
+              {(['date', 'status', 'customer'] as const).map((field) => (
+                <Button
+                  key={field}
+                  size="sm"
+                  variant={sortBy === field ? "default" : "outline"}
+                  onClick={() => handleSort(field)}
+                  className="flex items-center gap-1 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3"
+                >
+                  {t(`bookings.fields.${field}`)}
+                  {sortBy === field && (
+                    sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                  )}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
         
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-md">
           {t('common.showingResults', { 
             start: startIndex + 1, 
             end: Math.min(endIndex, sortedBookings.length), 
@@ -233,30 +235,34 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
         ))}
       </div>
 
-      {/* Pagination */}
+      {/* Mobile-optimized Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            {t('common.previous')}
-          </Button>
-          
-          <span className="text-sm text-muted-foreground">
-            {t('common.pagination.pageOf', { page: currentPage, total: totalPages })}
-          </span>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-          >
-            {t('common.next')}
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-2 pt-4">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
+            >
+              {t('common.previous')}
+            </Button>
+            
+            <span className="text-xs sm:text-sm text-muted-foreground bg-muted/30 px-3 py-1 rounded-md">
+              {t('common.pagination.pageOf', { page: currentPage, total: totalPages })}
+            </span>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="h-8 sm:h-9 text-xs sm:text-sm"
+            >
+              {t('common.next')}
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -268,66 +274,84 @@ function BookingCard({ booking }: { booking: Booking }) {
   const pickupDateTime = `${booking.date}T${booking.time}`
   
   return (
-    <div className="border rounded-lg p-4 relative hover:bg-muted/30 transition-colors">
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
+    <div className="border rounded-lg p-3 sm:p-4 relative hover:bg-muted/30 transition-colors">
+      {/* Mobile-optimized header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+        <div className="flex-1 min-w-0">
           <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{t("bookings.details.bookingNumber", {id: booking.id})}</p>
-          <div className="flex items-center gap-2 mt-1 mb-3">
-            <p className="font-semibold text-base sm:text-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 mb-2 sm:mb-3">
+            <p className="font-semibold text-sm sm:text-base lg:text-lg">
               {format(new Date(pickupDateTime), "PP")} • {format(new Date(pickupDateTime), "p")} 
-              {booking.duration && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">({booking.duration} {t("common.minutes")})</span>
-              )}
             </p>
+            {booking.duration && (
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground">({booking.duration} {t("common.minutes")})</span>
+            )}
           </div>
         </div>
-        <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize")}>
+        <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize text-xs sm:text-sm")}>
           {booking.status}
         </Badge>
       </div>
       
-      <div className="grid md:grid-cols-2 gap-4 mt-2">
+      {/* Mobile-optimized content grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-2">
         {/* Left side: Client and Route */}
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {booking.customer_name && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Client Details</p>
-              <p className="text-sm">{booking.customer_name}</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <User className="h-3 w-3 flex-shrink-0" /> 
+                <span className="truncate">Client Details</span>
+              </p>
+              <p className="text-xs sm:text-sm truncate">{booking.customer_name}</p>
             </div>
           )}
           {booking.pickup_location && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> From</p>
-              <p className="text-sm">{booking.pickup_location}</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 flex-shrink-0" /> 
+                <span className="truncate">From</span>
+              </p>
+              <p className="text-xs sm:text-sm truncate">{booking.pickup_location}</p>
             </div>
           )}
           {booking.dropoff_location && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> To</p>
-              <p className="text-sm">{booking.dropoff_location}</p>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3 flex-shrink-0" /> 
+                <span className="truncate">To</span>
+              </p>
+              <p className="text-xs sm:text-sm truncate">{booking.dropoff_location}</p>
             </div>
           )}
         </div>
         
         {/* Right side: Vehicle Info and Actions */}
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Car className="h-3 w-3" /> Vehicle Information</p>
-            <p className="text-sm">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Car className="h-3 w-3 flex-shrink-0" /> 
+              <span className="truncate">Vehicle Information</span>
+            </p>
+            <p className="text-xs sm:text-sm truncate">
               {[booking.vehicle_make, booking.vehicle_model].filter(Boolean).join(' ') || 'Not specified'}
             </p>
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1"><Info className="h-3 w-3" /> Service Type</p>
-            <p className="text-sm">{booking.service_name || 'Not specified'}</p>
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Info className="h-3 w-3 flex-shrink-0" /> 
+              <span className="truncate">Service Type</span>
+            </p>
+            <p className="text-xs sm:text-sm truncate">{booking.service_name || 'Not specified'}</p>
           </div>
         </div>
       </div>
       
-      <div className="flex justify-end items-center gap-2 mt-4 pt-4 border-t">
-        <Button size="sm" variant="outline" asChild>
+      {/* Mobile-optimized action button */}
+      <div className="flex justify-end items-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
+        <Button size="sm" variant="outline" asChild className="h-8 sm:h-9 text-xs sm:text-sm">
           <Link href={`/bookings/${booking.id}`} className="flex items-center gap-1">
-            <Eye className="h-3 w-3"/> {t('common.view')}
+            <Eye className="h-3 w-3 sm:h-4 sm:w-4"/> {t('common.view')}
           </Link>
         </Button>
       </div>

@@ -195,21 +195,21 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
         <CardDescription>{t("drivers.recentActivity.description")}</CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Filters and Pagination */}
+        {/* Mobile-optimized Filters and Pagination */}
         {!limit && allActivities.length > 0 && (
-          <div className="mb-6 space-y-4">
-            {/* Filter Controls - Compact Layout */}
-            <div className="flex flex-col gap-4">
-              {/* Filter by type - using clickable badges instead of dropdown */}
-              <div className="flex items-center gap-3">
+          <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+            {/* Mobile-optimized Filter Controls */}
+            <div className="flex flex-col gap-3 sm:gap-4">
+              {/* Filter by type - mobile-friendly layout */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Filter by:</span>
+                  <span className="text-xs sm:text-sm font-medium">Filter by:</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleFilterChange("all")}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "all"
                         ? "bg-white text-gray-900 border-gray-300 shadow-sm dark:bg-white dark:text-gray-900 dark:border-white"
                         : "text-gray-600 border-gray-300 bg-gray-50 hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:bg-transparent dark:hover:bg-gray-800"
@@ -219,7 +219,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("booking")}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "booking"
                         ? "bg-blue-600 text-white border-blue-600 shadow-sm dark:bg-blue-600 dark:text-white dark:border-blue-600"
                         : "text-blue-700 border-blue-300 bg-blue-50 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:bg-transparent dark:hover:bg-blue-900/20"
@@ -229,7 +229,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("inspection")}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "inspection"
                         ? "bg-green-600 text-white border-green-600 shadow-sm dark:bg-green-600 dark:text-white dark:border-green-600"
                         : "text-green-700 border-green-300 bg-green-50 hover:bg-green-100 dark:text-green-300 dark:border-green-600 dark:bg-transparent dark:hover:bg-green-900/20"
@@ -239,7 +239,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                   </button>
                   <button
                     onClick={() => handleFilterChange("maintenance")}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                    className={`px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors border ${
                       filterType === "maintenance"
                         ? "bg-orange-600 text-white border-orange-600 shadow-sm dark:bg-orange-600 dark:text-white dark:border-orange-600"
                         : "text-orange-700 border-orange-300 bg-orange-50 hover:bg-orange-100 dark:text-orange-300 dark:border-orange-600 dark:bg-transparent dark:hover:bg-orange-900/20"
@@ -250,11 +250,11 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 </div>
               </div>
               
-              {/* Date and Sort controls - keeping original two-line layout */}
-              <div className="flex items-center gap-4">
+              {/* Mobile-optimized Date and Sort controls */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Date:</span>
+                  <span className="text-xs sm:text-sm font-medium">Date:</span>
                   <CalendarDateRangePicker
                     date={dateRange}
                     onSelect={(newDateRange) => {
@@ -266,12 +266,12 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Sort:</span>
+                  <span className="text-xs sm:text-sm font-medium">Sort:</span>
                   <Select value={sortOrder} onValueChange={(value: 'newest' | 'oldest') => {
                     setSortOrder(value);
                     applyFiltersAndPagination(allActivities, filterType, 1);
                   }}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-28 sm:w-32 h-8 sm:h-9 text-xs sm:text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -317,18 +317,18 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
              </p>
            </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {activities.map((activity) => (
               <Link
                 key={activity.id}
                 href={{pathname: activity.link}} passHref
                 className="block p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/30 transition-all duration-200 hover:shadow-sm" 
               >
-                <div className="flex items-start gap-3 justify-between">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="flex items-start gap-2 sm:gap-3 justify-between">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                     <div className="flex-shrink-0">
-                      {/* Color-coded activity type icon with background */}
-                      <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full flex items-center justify-center ${
+                      {/* Mobile-optimized color-coded activity type icon */}
+                      <div className={`h-7 w-7 sm:h-8 sm:w-8 lg:h-10 lg:w-10 rounded-full flex items-center justify-center ${
                         activity.type === "booking" 
                           ? "bg-blue-500/10 text-blue-600" 
                           : activity.type === "inspection" 
@@ -338,24 +338,24 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                           : "bg-purple-500/10 text-purple-600"
                       }`}>
                         {activity.type === "booking" && (
-                          <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                         )}
                         {activity.type === "inspection" && (
-                          <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                         )}
                         {activity.type === "maintenance" && (
-                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <Wrench className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                         )}
                         {activity.type === "vehicle_assignment" && (
-                          <Car className="h-4 w-4 sm:h-5 sm:w-5" />
+                          <Car className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
                         )}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-foreground text-sm sm:text-base truncate">{activity.title}</h4>
-                        {/* Activity type label - same style as filter badges */}
-                        <span className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors hover:bg-gray-800 ${
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                        <h4 className="font-medium text-foreground text-xs sm:text-sm lg:text-base truncate">{activity.title}</h4>
+                        {/* Mobile-optimized activity type label */}
+                        <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium border transition-colors hover:bg-gray-800 ${
                           activity.type === "booking" 
                             ? "text-blue-700 border-blue-300 bg-blue-50 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:bg-transparent dark:hover:bg-blue-900/20" 
                             : activity.type === "inspection" 
@@ -376,7 +376,7 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                     </div>
                   </div>
                   
-                  <div className="flex flex-col items-end flex-shrink-0 ml-2 sm:ml-4">
+                  <div className="flex flex-col items-end flex-shrink-0 ml-1 sm:ml-2 lg:ml-4">
                     <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
                       {formatDate(activity.date)}
                     </span>
@@ -387,25 +387,26 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Mobile-optimized Pagination */}
         {!limit && allActivities.length > 0 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="text-xs sm:text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-md text-center sm:text-left">
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, allActivities.filter(a => filterType === "all" || a.type === filterType).length)} of {allActivities.filter(a => filterType === "all" || a.type === filterType).length} activities
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
+                className="h-8 sm:h-9 text-xs sm:text-sm"
               >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
               
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground bg-muted/30 px-3 py-1 rounded-md">
                 Page {currentPage} of {Math.ceil(allActivities.filter(a => filterType === "all" || a.type === filterType).length / itemsPerPage)}
               </span>
               
@@ -414,9 +415,10 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= Math.ceil(allActivities.filter(a => filterType === "all" || a.type === filterType).length / itemsPerPage)}
+                className="h-8 sm:h-9 text-xs sm:text-sm"
               >
-                Next
-                <ChevronRight className="h-4 w-4" />
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>

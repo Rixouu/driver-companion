@@ -41,19 +41,19 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
   // Limit to 3 inspections
   const limitedInspections = inspections.slice(0, 3)
 
-  // Mobile card view (for smaller screens)
+  // Mobile-optimized card view (for smaller screens)
   const mobileView = (
-    <div className="sm:hidden space-y-3">
+    <div className="sm:hidden space-y-2 sm:space-y-3">
       {limitedInspections.map((inspection) => (
         <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
-          <div className="border rounded-lg p-3 hover:bg-accent/50 transition-colors">
+          <div className="border rounded-lg p-2.5 sm:p-3 hover:bg-accent/50 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <div className="font-medium text-sm">{formatDate(inspection.date)}</div>
+              <div className="font-medium text-xs sm:text-sm">{formatDate(inspection.date)}</div>
               <InspectionStatusBadge status={inspection.status} />
             </div>
-            <div className="flex items-center space-x-2 text-xs text-muted-foreground mb-3">
-              <Car className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="truncate">
+            <div className="flex items-center space-x-2 text-xs text-muted-foreground mb-2 sm:mb-3">
+              <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+              <span className="truncate text-xs sm:text-sm">
                 {inspection.vehicle.name} ({inspection.vehicle.plate_number})
               </span>
             </div>
@@ -61,7 +61,7 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
               <div className="text-xs">
                 {t(`inspections.type.${inspection.type}`)}
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </div>
           </div>
         </Link>
@@ -69,27 +69,27 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
     </div>
   );
 
-  // Desktop list view - styled similar to activity feed
+  // Desktop-optimized list view - styled similar to activity feed
   const desktopView = (
     <div className="hidden sm:block">
-      <div className="space-y-3">
+      <div className="space-y-3 sm:space-y-4">
         {limitedInspections.map((inspection) => (
           <Link key={inspection.id} href={`/inspections/${inspection.id}`} className="block">
-            <div className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
-              <div className="flex items-start sm:gap-3 justify-between">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="border rounded-lg p-3 sm:p-4 hover:bg-accent/50 transition-colors">
+              <div className="flex items-start gap-2 sm:gap-3 justify-between">
+                <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <FileText className="h-5 w-5 text-primary" />
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-foreground text-base">{formatDate(inspection.date)}</h4>
+                      <h4 className="font-medium text-foreground text-sm sm:text-base">{formatDate(inspection.date)}</h4>
                       <InspectionStatusBadge status={inspection.status} />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                      <Car className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                      <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="truncate">
                         {inspection.vehicle.name} ({inspection.vehicle.plate_number})
                       </span>
@@ -99,11 +99,11 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
                 
                 <div className="flex flex-col items-end flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {t(`inspections.type.${inspection.type}`)}
                     </span>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
-                      <ChevronRight className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-full">
+                      <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -120,12 +120,12 @@ export function DriverInspectionsList({ inspections }: DriverInspectionsListProp
       {mobileView}
       {desktopView}
       
-      {/* Show "View All" link if there are more than 3 inspections */}
+      {/* Mobile-optimized "View All" link */}
       {inspections.length > 3 && (
-        <div className="mt-4 text-center">
+        <div className="mt-3 sm:mt-4 text-center">
           <Link 
             href={`/inspections?inspector=${inspections[0]?.id?.split('-')[0] || 'all'}`}
-            className="text-sm text-primary hover:underline"
+            className="text-xs sm:text-sm text-primary hover:underline bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-md transition-colors"
           >
             View All {inspections.length} Inspections →
           </Link>

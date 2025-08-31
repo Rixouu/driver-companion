@@ -23,17 +23,10 @@ export function VehicleTabs({ vehicle }: VehicleTabsProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("info")
 
-  const tabs = [
-    { value: "info", label: t("vehicles.tabs.info"), icon: Info },
-    { value: "history", label: t("vehicles.tabs.history"), icon: History },
-    { value: "bookings", label: t("vehicles.tabs.bookings"), icon: Calendar },
-    { value: "inspections", label: t("vehicles.tabs.inspections"), icon: ClipboardCheck },
-  ]
-
   // Update active tab based on URL search params
   useEffect(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam && tabs.some(tab => tab.value === tabParam)) {
+    if (tabParam && ['info', 'history', 'bookings', 'inspections'].includes(tabParam)) {
       setActiveTab(tabParam)
     }
   }, [searchParams])

@@ -161,8 +161,7 @@ const AvailabilityTableRow = ({ record, index, totalRecords, onEdit, onDelete }:
             size="icon"
             className="h-7 w-7"
             onClick={() => onEdit(record)}
-            disabled={isBookingRelated}
-            title={isBookingRelated ? t('drivers.availability.listView.editDisabledTooltip', { defaultValue: "Cannot edit booking assignments" }) : undefined}
+            title={t('drivers.availability.listView.editAvailability')}
           >
             <Edit2 className="h-3.5 w-3.5" />
           </Button>
@@ -171,8 +170,7 @@ const AvailabilityTableRow = ({ record, index, totalRecords, onEdit, onDelete }:
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive/90"
             onClick={() => onDelete(record.id)}
-            disabled={isBookingRelated}
-            title={isBookingRelated ? t('drivers.availability.listView.deleteDisabledTooltip', { defaultValue: "Cannot delete booking assignments" }) : t('drivers.availability.deleteAvailability')}
+            title={t('drivers.availability.deleteAvailability')}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>

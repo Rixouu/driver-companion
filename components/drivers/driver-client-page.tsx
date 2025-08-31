@@ -40,7 +40,7 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
   const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
   const [filteredDrivers, setFilteredDrivers] = useState<Driver[]>(initialDrivers);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const initialSearchQueryFromParams = searchParams?.get("search") || "";
   const [filters, setFilters] = useState<DriverFilterOptions>({
     searchQuery: initialSearchQueryFromParams,
@@ -256,6 +256,20 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* Driver count and view toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            {t("drivers.showingResults", { 
+              count: filteredDrivers.length, 
+              total: drivers.length 
+            })}
+          </div>
+          <ViewToggle
+            view={viewMode}
+            onViewChange={handleViewChange}
+          />
+        </div>
+
         <DriverFilter
           filters={filters}
           onFiltersChange={handleFiltersChange}

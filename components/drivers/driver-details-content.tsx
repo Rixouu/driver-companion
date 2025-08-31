@@ -271,60 +271,126 @@ export function DriverDetailsContent({
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleCall}
-                disabled={!driver?.phone}
-                title={driver?.phone ? `Call ${driver.phone}` : 'No phone number available'}
-                className="h-10"
-              >
-                <Phone className="h-4 w-4 mr-2" />
-                {t("common.call")}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleEmail}
-                disabled={!driver?.email}
-                className="h-10"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                {t("common.email")}
-              </Button>
+            {/* Mobile: Stacked grid layout */}
+            <div className="block sm:hidden">
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCall}
+                  disabled={!driver?.phone}
+                  title={driver?.phone ? `Call ${driver.phone}` : 'No phone number available'}
+                  className="h-10"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  {t("common.call")}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleEmail}
+                  disabled={!driver?.email}
+                  className="h-10"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  {t("common.email")}
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => router.push(`/drivers/${id}/edit`)}
+                  className="h-10"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLINE}
+                  disabled={!driver?.line_id}
+                  className="h-10"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  LINE
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleWhatsApp}
+                  disabled={!driver?.phone}
+                  className="h-10"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  WhatsApp
+                </Button>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => router.push(`/drivers/${id}/edit`)}
-                className="h-10"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLINE}
-                disabled={!driver?.line_id}
-                className="h-10"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                LINE
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleWhatsApp}
-                disabled={!driver?.phone}
-                className="h-10"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
+
+            {/* Desktop: Elegant button layout */}
+            <div className="hidden sm:block">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCall}
+                    disabled={!driver?.phone}
+                    title={driver?.phone ? `Call ${driver.phone}` : 'No phone number available'}
+                    className="h-9 px-4"
+                  >
+                    <Phone className="h-4 w-4 mr-2" />
+                    {t("common.call")}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleEmail}
+                    disabled={!driver?.email}
+                    className="h-9 px-4"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    {t("common.email")}
+                  </Button>
+                </div>
+                
+                <div className="h-6 w-px bg-border"></div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => router.push(`/drivers/${id}/edit`)}
+                    className="h-9 px-4"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLINE}
+                    disabled={!driver?.line_id}
+                    className="h-9 px-4"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    LINE
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleWhatsApp}
+                    disabled={!driver?.phone}
+                    className="h-9 px-4"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    WhatsApp
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -356,41 +422,33 @@ export function DriverDetailsContent({
                 <Phone className="h-4 w-4 mr-2" />
                 {t("common.call")}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleEmail}
-                disabled={!driver?.email}
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                {t("common.email")}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => router.push(`/drivers/${id}/edit`)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLINE}
-                disabled={!driver?.line_id}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                LINE
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleWhatsApp}
-                disabled={!driver?.phone}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/drivers/${id}/edit`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      {t("drivers.actions.editDriver")}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleEmail} disabled={!driver?.email}>
+                    <Mail className="h-4 w-4 mr-2" />
+                    {t("common.email")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLINE} disabled={!driver?.line_id}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    LINE
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleWhatsApp} disabled={!driver?.phone}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    WhatsApp
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

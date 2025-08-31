@@ -199,6 +199,11 @@ export const en: TranslationValue = {
   drivers: {
     title: "Drivers",
     description: "Manage your drivers information",
+    showingResults: "Showing {count} of {total} drivers",
+    viewMode: {
+      grid: "Grid",
+      list: "List",
+    },
     backToDriver: "Back to Driver",
     search: "Search drivers...",
     filters: {

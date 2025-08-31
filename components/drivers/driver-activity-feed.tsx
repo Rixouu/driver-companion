@@ -250,35 +250,39 @@ export function DriverActivityFeed({ driverId, limit }: DriverActivityFeedProps)
                 </div>
               </div>
               
-              {/* Mobile-optimized Date and Sort controls - stacked layout */}
+              {/* Mobile-optimized Date and Sort controls - stacked layout with matching heights */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm font-medium">Date:</span>
-                  <CalendarDateRangePicker
-                    date={dateRange}
-                    onSelect={(newDateRange) => {
-                      setDateRange(newDateRange);
-                      applyFiltersAndPagination(allActivities, filterType, 1);
-                    }}
-                  />
+                  <div className="flex-1">
+                    <CalendarDateRangePicker
+                      date={dateRange}
+                      onSelect={(newDateRange) => {
+                        setDateRange(newDateRange);
+                        applyFiltersAndPagination(allActivities, filterType, 1);
+                      }}
+                    />
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs sm:text-sm font-medium">Sort:</span>
-                  <Select value={sortOrder} onValueChange={(value: 'newest' | 'oldest') => {
-                    setSortOrder(value);
-                    applyFiltersAndPagination(allActivities, filterType, 1);
-                  }}>
-                    <SelectTrigger className="w-full sm:w-32 h-8 sm:h-9 text-xs sm:text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1">
+                    <Select value={sortOrder} onValueChange={(value: 'newest' | 'oldest') => {
+                      setSortOrder(value);
+                      applyFiltersAndPagination(allActivities, filterType, 1);
+                    }}>
+                      <SelectTrigger className="w-full h-8 sm:h-9 text-xs sm:text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             </div>

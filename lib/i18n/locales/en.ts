@@ -438,6 +438,7 @@ export const en: TranslationValue = {
   vehicles: {
     title: "Vehicles",
     description: "Manage your vehicle fleet",
+    backToVehicles: "← Vehicles",
     addVehicle: "Add Vehicle",
     newVehicle: "New Vehicle",
     editVehicle: "Edit Vehicle",
@@ -530,10 +531,13 @@ export const en: TranslationValue = {
       uploadImageSizeLimit: "Maximum file size: 5MB"
     },
     tabs: {
+      overview: "Overview",
       info: "Information",
       history: "History",
       bookings: "Bookings",
       inspections: "Inspections",
+      activity: "Activity Log",
+      pricing: "Vehicle Pricing",
       historyEmpty: "No history available",
       bookingsEmpty: "No bookings found",
       inspectionsEmpty: "No inspections found",

@@ -1,88 +1,60 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { Database } from '@/types/supabase'
-
-async function createSupabaseServer() {
-  const cookieStore = await cookies()
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-}
+import { NextRequest, NextResponse } from "next/server"
+import { createServiceClient } from "@/lib/supabase/service-client"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createSupabaseServer()
-    const resolvedParams = await params
-    const vehicleId = resolvedParams.id
+    const { id } = await context.params
+    const supabase = createServiceClient()
 
-    if (!vehicleId) {
+    // Get pricing category for this vehicle through direct relationship
+    const { data: vehicle, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select(`
+        vehicle_category_id,
+        pricing_categories (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('id', id)
+      .single()
+
+    if (vehicleError) {
+      console.error('[API] Error fetching vehicle:', vehicleError)
       return NextResponse.json(
-        { error: 'Vehicle ID is required' },
-        { status: 400 }
+        { error: 'Failed to fetch vehicle' },
+        { status: 500 }
       )
     }
 
-    // Fetch all available pricing categories
-    const { data: categories, error: categoriesError } = await supabase
+    if (!vehicle || !vehicle.vehicle_category_id) {
+      return NextResponse.json({ categories: [] })
+    }
+
+    // Get the pricing category details
+    const { data: pricingCategory, error: categoryError } = await supabase
       .from('pricing_categories')
-      .select('id, name, description, is_active, sort_order')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
+      .select('id, name, description')
+      .eq('id', vehicle.vehicle_category_id)
+      .single()
 
-    if (categoriesError) {
-      console.error('Error fetching pricing categories:', categoriesError)
+    if (categoryError) {
+      console.error('[API] Error fetching pricing category:', categoryError)
       return NextResponse.json(
-        { error: 'Failed to fetch pricing categories' },
+        { error: 'Failed to fetch pricing category' },
         { status: 500 }
       )
     }
 
-    // Fetch current vehicle pricing categories
-    const { data: vehicleCategories, error: vehicleCategoriesError } = await supabase
-      .from('pricing_category_vehicles')
-      .select('category_id')
-      .eq('vehicle_id', vehicleId)
+    const categories = pricingCategory ? [pricingCategory] : []
 
-    if (vehicleCategoriesError) {
-      console.error('Error fetching vehicle pricing categories:', vehicleCategoriesError)
-      return NextResponse.json(
-        { error: 'Failed to fetch vehicle pricing categories' },
-        { status: 500 }
-      )
-    }
-
-    const currentCategoryIds = vehicleCategories?.map(vc => vc.category_id) || []
-
-    // Return categories with selection status
-    const categoriesWithSelection = categories?.map(category => ({
-      ...category,
-      isSelected: currentCategoryIds.includes(category.id)
-    })) || []
-
-    return NextResponse.json({
-      categories: categoriesWithSelection,
-      currentCategoryIds
-    })
+    return NextResponse.json({ categories })
   } catch (error) {
-    console.error('Error in vehicle pricing categories API:', error)
+    console.error('[API] Error in vehicle pricing categories endpoint:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -95,7 +67,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createSupabaseServer()
+    const supabase = createServiceClient()
     const resolvedParams = await params
     const vehicleId = resolvedParams.id
 
@@ -107,55 +79,35 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { categoryIds } = body
+    const { categoryId } = body
 
-    if (!Array.isArray(categoryIds)) {
+    if (!categoryId) {
       return NextResponse.json(
-        { error: 'Category IDs must be an array' },
+        { error: 'Category ID is required' },
         { status: 400 }
       )
     }
 
-    // Remove all existing vehicle-category relationships
-    const { error: deleteError } = await supabase
-      .from('pricing_category_vehicles')
-      .delete()
-      .eq('vehicle_id', vehicleId)
+    // Update the vehicle's category
+    const { error: updateError } = await supabase
+      .from('vehicles')
+      .update({ vehicle_category_id: categoryId })
+      .eq('id', vehicleId)
 
-    if (deleteError) {
-      console.error('Error deleting existing vehicle pricing categories:', deleteError)
+    if (updateError) {
+      console.error('Error updating vehicle pricing category:', updateError)
       return NextResponse.json(
-        { error: 'Failed to update pricing categories' },
+        { error: 'Failed to update pricing category' },
         { status: 500 }
       )
     }
 
-    // Add new vehicle-category relationships
-    if (categoryIds.length > 0) {
-      const vehicleCategories = categoryIds.map(categoryId => ({
-        vehicle_id: vehicleId,
-        category_id: categoryId
-      }))
-
-      const { error: insertError } = await supabase
-        .from('pricing_category_vehicles')
-        .insert(vehicleCategories)
-
-      if (insertError) {
-        console.error('Error inserting vehicle pricing categories:', insertError)
-        return NextResponse.json(
-          { error: 'Failed to update pricing categories' },
-          { status: 500 }
-        )
-      }
-    }
-
     return NextResponse.json({ 
       success: true, 
-      message: 'Vehicle pricing categories updated successfully' 
+      message: 'Vehicle pricing category updated successfully' 
     })
   } catch (error) {
-    console.error('Error updating vehicle pricing categories:', error)
+    console.error('Error updating vehicle pricing category:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

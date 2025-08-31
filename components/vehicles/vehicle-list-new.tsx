@@ -29,8 +29,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
-import { Car, Tag, Trash2, Download, TrendingUp, Users } from "lucide-react"
-import { useVehiclePricingCategories } from "@/lib/hooks/useVehiclePricingCategories"
+import { Car, Tag, Trash2, Download, TrendingUp, Users, EyeIcon, FileEditIcon } from "lucide-react"
+
 import { VehicleFilter, VehicleFilterOptions } from "./vehicle-filter"
 
 interface VehicleListProps {
@@ -473,9 +473,9 @@ export function VehicleList({
                             {vehicle.brand} {vehicle.model}
                           </Badge>
                         </div>
-                        {/* Pricing Categories */}
-                        <div>
-                          <VehiclePricingCategoriesBadges vehicleId={vehicle.id} />
+                        {/* Pricing Group */}
+                        <div className="flex justify-start">
+                          <VehiclePricingGroupDisplay vehicleId={vehicle.id} />
                         </div>
                       </div>
                     </div>
@@ -501,13 +501,13 @@ export function VehicleList({
                   <div className="col-span-2">
                     <span className="text-sm font-medium text-muted-foreground">Brand & Model</span>
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     <span className="text-sm font-medium text-muted-foreground">Status</span>
                   </div>
-                  <div className="col-span-1">
-                    <span className="text-sm font-medium text-muted-foreground">Categories</span>
-                  </div>
                   <div className="col-span-2">
+                    <span className="text-sm font-medium text-muted-foreground">Pricing Group</span>
+                  </div>
+                  <div className="col-span-1">
                     <span className="text-sm font-medium text-muted-foreground">Actions</span>
                   </div>
                 </div>
@@ -578,12 +578,12 @@ export function VehicleList({
                       </div>
                       
                       {/* Status Column */}
-                      <div className="col-span-2 flex justify-start">
+                      <div className="col-span-1 flex justify-start">
                         <Badge 
                           className={cn(
                             "font-medium border px-2.5 py-1.5 h-6",
                             vehicle.status === 'active' && "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700",
-                            vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700",
+                            vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-orange-300 dark:bg-green-900/20 dark:text-orange-300 dark:border-orange-700",
                             vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-700"
                           )}
                         >
@@ -591,20 +591,32 @@ export function VehicleList({
                         </Badge>
                       </div>
                       
-                      {/* Categories Column */}
-                      <div className="col-span-1 flex justify-start">
-                        <VehiclePricingCategoriesBadges vehicleId={vehicle.id} />
+                      {/* Pricing Group Column */}
+                      <div className="col-span-2 flex justify-start">
+                        <VehiclePricingGroupDisplay vehicleId={vehicle.id} />
                       </div>
                       
                       {/* Action Column */}
-                      <div className="col-span-2 flex justify-start gap-2">
-                        <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                      <div className="col-span-1 flex justify-start gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild 
+                          className="flex items-center gap-2"
+                        >
                           <Link href={`/vehicles/${vehicle.id}`}>
+                            <EyeIcon className="h-4 w-4" />
                             View
                           </Link>
                         </Button>
-                        <Button size="sm" variant="outline" asChild className="bg-background/80 hover:bg-background border-border/60">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild 
+                          className="flex items-center gap-2"
+                        >
                           <Link href={`/vehicles/${vehicle.id}/edit`}>
+                            <FileEditIcon className="h-4 w-4" />
                             Edit
                           </Link>
                         </Button>
@@ -693,21 +705,22 @@ export function VehicleList({
                           )}
                         </div>
                         
-                        {/* Pricing Categories */}
-                        <div>
-                          <VehiclePricingCategoriesBadges vehicleId={vehicle.id} />
+                        {/* Pricing Group */}
+                        <div className="flex justify-start">
+                          <VehiclePricingGroupDisplay vehicleId={vehicle.id} />
                         </div>
                       </div>
                       
                       {/* Action Button - Full Width */}
                       <div className="mt-4 pt-3 border-t border-border/40">
                         <Button 
+                          variant="ghost" 
                           size="sm" 
-                          variant="outline" 
                           asChild 
-                          className="w-full h-10 bg-background/80 hover:bg-background border-border/60"
+                          className="flex items-center gap-2 w-full justify-center"
                         >
                           <Link href={`/vehicles/${vehicle.id}`}>
+                            <EyeIcon className="h-4 w-4" />
                             View Details
                           </Link>
                         </Button>
@@ -827,12 +840,35 @@ export function VehicleList({
   );
 }
 
-interface VehiclePricingCategoriesBadgesProps {
+
+
+interface VehiclePricingGroupDisplayProps {
   vehicleId: string;
 }
 
-function VehiclePricingCategoriesBadges({ vehicleId }: VehiclePricingCategoriesBadgesProps) {
-  const { categories, isLoading } = useVehiclePricingCategories(vehicleId);
+function VehiclePricingGroupDisplay({ vehicleId }: VehiclePricingGroupDisplayProps) {
+  const [pricingCategory, setPricingCategory] = useState<{ name: string; description: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPricingCategory() {
+      try {
+        const response = await fetch(`/api/vehicles/${vehicleId}/pricing-categories`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.categories && data.categories.length > 0) {
+            setPricingCategory(data.categories[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch pricing category:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPricingCategory();
+  }, [vehicleId]);
 
   if (isLoading) {
     return (
@@ -843,39 +879,23 @@ function VehiclePricingCategoriesBadges({ vehicleId }: VehiclePricingCategoriesB
     );
   }
 
-  if (!categories || categories.length === 0) {
+  if (!pricingCategory) {
     return (
       <div className="text-xs text-muted-foreground">
-        No categories
+        No pricing group
       </div>
     );
   }
 
-  // Show only the first 2 categories to avoid cluttering
-  const displayCategories = categories.slice(0, 2);
-  const hasMore = categories.length > 2;
-
+  // Show the pricing category as the main pricing group
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      {displayCategories.map((category, index) => (
-        <Badge
-          key={category.id}
-          variant="outline"
-          className={cn(
-            "text-xs px-2.5 py-1.5 h-6 font-medium",
-            index === 0 && "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700",
-            index === 1 && "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700",
-            index >= 2 && "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700"
-          )}
-        >
-          {category.name}
-        </Badge>
-      ))}
-      {hasMore && (
-        <Badge variant="secondary" className="text-xs px-2.5 py-1.5 h-6 bg-muted/40 text-muted-foreground">
-          +{categories.length - 2}
-        </Badge>
-      )}
+    <div className="flex flex-wrap gap-2 items-center justify-start w-full">
+      <Badge 
+        variant="outline" 
+        className="text-xs px-2.5 py-1.5 h-6 font-medium bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700"
+      >
+        {pricingCategory.name}
+      </Badge>
     </div>
   );
 }

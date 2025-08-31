@@ -303,12 +303,13 @@ export function BookingsList({
       const searchLower = search.toLowerCase()
       const matchesServiceName = (booking.service_name?.toLowerCase() || '').includes(searchLower)
       const matchesId = (booking.id?.toString() || '').toLowerCase().includes(searchLower)
+      const matchesBookingNumber = (booking.wp_id?.toString() || '').toLowerCase().includes(searchLower)
       const matchesCustomer = (booking.customer_name?.toLowerCase() || '').includes(searchLower)
       const matchesVehicle = (booking.vehicle?.make?.toLowerCase() || '').includes(searchLower) || 
                             (booking.vehicle?.model?.toLowerCase() || '').includes(searchLower) ||
                             (booking.vehicle?.year?.toString().toLowerCase() || '').includes(searchLower)
       
-      if (!matchesServiceName && !matchesId && !matchesCustomer && !matchesVehicle) {
+      if (!matchesServiceName && !matchesId && !matchesBookingNumber && !matchesCustomer && !matchesVehicle) {
         return false
       }
     }
@@ -791,7 +792,7 @@ export function BookingsList({
               
               {/* ID Column */}
               <div className="col-span-2 flex items-center gap-3">
-                <div className="font-mono text-sm text-muted-foreground">#{booking.id || 'N/A'}</div>
+                <div className="font-mono text-sm text-muted-foreground">#{booking.wp_id || 'N/A'}</div>
               </div>
               
               {/* Customer Column - Name and Email */}
@@ -873,7 +874,7 @@ export function BookingsList({
                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                     aria-label={`Select booking ${booking.id || 'unknown'}`}
                   />
-                  <div className="font-mono text-sm text-muted-foreground">#{booking.id || 'N/A'}</div>
+                  <div className="font-mono text-sm text-muted-foreground">#{booking.wp_id || 'N/A'}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className={getStatusBadgeClasses(booking.status || 'pending')}>

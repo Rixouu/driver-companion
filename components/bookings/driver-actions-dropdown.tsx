@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 interface DriverActionsDropdownProps {
   booking: {
     id: string;
+    wp_id?: string;
     service_name: string;
     date: string;
     time: string;
@@ -50,7 +51,7 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
   
   const handleCopyToClipboard = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent dropdown from closing
-    const bookingDetails = `Booking details #${booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`;
+    const bookingDetails = `Booking details #${booking.wp_id || booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`;
     navigator.clipboard.writeText(bookingDetails);
     alert('Booking details copied to clipboard');
   };
@@ -99,7 +100,7 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
         
         <DropdownMenuItem asChild className="cursor-pointer text-sm">
           <a 
-            href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Booking #${booking.id} - ${booking.service_name}`)}&dates=${encodeURIComponent(formatGoogleCalendarDate(booking.date, booking.time))}&details=${encodeURIComponent(`Pickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}\nCustomer: ${booking.customer_name || ''}`)}`} 
+            href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Booking #${booking.wp_id || booking.id} - ${booking.service_name}`)}&dates=${encodeURIComponent(formatGoogleCalendarDate(booking.date, booking.time))}&details=${encodeURIComponent(`Pickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}\nCustomer: ${booking.customer_name || ''}`)}`} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="flex items-center gap-3 w-full"
@@ -137,7 +138,7 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
         
         <DropdownMenuItem asChild className="cursor-pointer text-sm">
           <a 
-            href={`https://wa.me/?text=${encodeURIComponent(`Booking details #${booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`)}`} 
+            href={`https://wa.me/?text=${encodeURIComponent(`Booking details #${booking.wp_id || booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`)}`} 
             target="_blank" 
             rel="noopener noreferrer" 
             className="flex items-center gap-3 w-full"
@@ -163,7 +164,7 @@ export function DriverActionsDropdown({ booking }: DriverActionsDropdownProps) {
         
         <DropdownMenuItem asChild className="cursor-pointer text-sm">
           <a 
-            href={`mailto:?subject=Booking%20Details%20%23${booking.id}&body=${encodeURIComponent(`Booking details #${booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`)}`} 
+            href={`mailto:?subject=Booking%20Details%20%23${booking.wp_id || booking.id}&body=${encodeURIComponent(`Booking details #${booking.wp_id || booking.id}:\nService: ${booking.service_name}\nDate: ${booking.date} at ${booking.time}\nPickup: ${booking.pickup_location || ''}\nDropoff: ${booking.dropoff_location || ''}`)}`} 
             className="flex items-center gap-3 w-full"
           >
             <Mail className="h-4 w-4" />

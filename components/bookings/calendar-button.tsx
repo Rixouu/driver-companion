@@ -7,6 +7,7 @@ import { CalendarPlus } from "lucide-react"
 interface CalendarButtonProps {
   booking: {
     id: string;
+    wp_id?: string;
     service_name: string;
     date: string;
     time: string;
@@ -67,7 +68,7 @@ Customer: ${booking.customer_name || ''}${flightNumber ? `\nFlight Number: ${fli
   return (
     <Button className="w-full" variant="outline" asChild>
       <a 
-        href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Booking #${booking.id} - ${booking.service_name}`)}&dates=${encodeURIComponent(formatGoogleCalendarDate(booking.date, booking.time))}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(booking.pickup_location || '')}`}
+        href={`https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Booking #${booking.wp_id || booking.id} - ${booking.service_name}`)}&dates=${encodeURIComponent(formatGoogleCalendarDate(booking.date, booking.time))}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(booking.pickup_location || '')}`}
         target="_blank"
         rel="noopener noreferrer"
       >

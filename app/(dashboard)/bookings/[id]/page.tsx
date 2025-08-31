@@ -229,7 +229,7 @@ export default function BookingPage() {
               <div className="grid grid-cols-2 gap-y-6">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.bookingId')}</h3>
-                  <p className="mt-1">#{booking.id || booking.booking_id || '25346'}</p>
+                  <p className="mt-1">#{booking.wp_id || booking.booking_id || 'N/A'}</p>
                 </div>
                 
                                   <div>

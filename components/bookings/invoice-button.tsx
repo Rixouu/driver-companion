@@ -196,7 +196,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       invoiceDate.style.fontSize = '13px'
       
       const bookingRef = document.createElement('p')
-      bookingRef.textContent = `${invoiceT.bookingRef} #${booking?.id || booking?.booking_id || 'N/A'}`
+      bookingRef.textContent = `${invoiceT.bookingRef} #${booking?.wp_id || booking?.booking_id || 'N/A'}`
       bookingRef.style.margin = '0 0 5px 0'
       bookingRef.style.fontSize = '13px'
       

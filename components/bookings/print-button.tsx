@@ -72,7 +72,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       header.style.borderRadius = '6px'
       
       const bookingTitle = document.createElement('h1')
-      bookingTitle.textContent = t('bookings.details.bookingNumber', { id: booking?.id || booking?.booking_id || 'N/A' }) || `Booking #${booking?.id || booking?.booking_id || 'N/A'}`
+      bookingTitle.textContent = t('bookings.details.bookingNumber', { id: booking?.wp_id || booking?.booking_id || 'N/A' }) || `Booking #${booking?.wp_id || booking?.booking_id || 'N/A'}`
       bookingTitle.style.fontSize = '22px'
       bookingTitle.style.fontWeight = 'bold'
       bookingTitle.style.marginBottom = '5px'
@@ -170,7 +170,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       
       // Booking summary section
       const summarySection = createSection(t('bookings.details.sections.summary') || 'Booking Summary', [
-        { label: t('bookings.details.fields.bookingId') || 'Booking ID', value: `#${booking?.id || booking?.booking_id || 'N/A'}` },
+        { label: t('bookings.details.fields.bookingId') || 'Booking ID', value: `#${booking?.wp_id || booking?.booking_id || 'N/A'}` },
         { label: t('bookings.details.fields.pickupDate') || 'Pickup Date', value: booking?.date || 'N/A' },
         { label: t('bookings.details.fields.pickupTime') || 'Pickup Time', value: booking?.time || 'N/A' }
         // Removed Order Total, Payment Method, and Payment Status as requested

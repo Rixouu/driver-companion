@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BookingsClient } from '@/components/bookings/bookings-client'
@@ -22,10 +23,10 @@ export default function BookingsPage() {
           </p>
         </div>
         <Button asChild className="sm:flex-shrink-0">
-          <div className="flex items-center">
+          <Link href="/bookings/new" className="flex items-center">
             <Plus className="mr-2 h-4 w-4" />
             New Booking
-          </div>
+          </Link>
         </Button>
       </div>
       

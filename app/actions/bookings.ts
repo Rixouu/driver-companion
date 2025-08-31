@@ -1404,4 +1404,216 @@ export async function unassignBookingFromDriver(bookingId: string, driverId: str
         console.error("Exception in unassignBookingFromDriver:", errorMessage);
         return { success: false, message: errorMessage };
     }
+}
+
+/**
+ * Creates a new booking with customer creation/update logic
+ */
+export async function createBookingAction(bookingData: Partial<Booking>): Promise<{
+  success: boolean;
+  message: string;
+  bookingId?: string;
+  error?: string;
+}> {
+  try {
+    const supabase = createServiceClient();
+    
+    // Validate required fields
+    if (!bookingData.customer_email || !bookingData.service_name || !bookingData.date || !bookingData.time) {
+      return {
+        success: false,
+        message: 'Missing required fields: customer_email, service_name, date, and time are required'
+      };
+    }
+
+    let customerId: string | null = null;
+
+    // Check if customer exists by email
+    if (bookingData.customer_email) {
+      const { data: existingCustomer, error: customerError } = await supabase
+        .from('customers')
+        .select('id, name, phone, billing_company_name, billing_tax_number, billing_street_name, billing_street_number, billing_city, billing_state, billing_postal_code, billing_country')
+        .eq('email', bookingData.customer_email)
+        .single();
+
+      if (customerError && customerError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error checking existing customer:', customerError);
+        return {
+          success: false,
+          message: 'Error checking existing customer'
+        };
+      }
+
+      if (existingCustomer) {
+        // Customer exists, update with new information
+        customerId = existingCustomer.id;
+        
+        const updateData: any = {};
+        
+        // Update customer fields if new data is provided
+        if (bookingData.customer_name && bookingData.customer_name !== existingCustomer.name) {
+          updateData.name = bookingData.customer_name;
+        }
+        if (bookingData.customer_phone && bookingData.customer_phone !== existingCustomer.phone) {
+          updateData.phone = bookingData.customer_phone;
+        }
+        
+        // Update billing information if provided
+        if (bookingData.billing_company_name !== undefined) {
+          updateData.billing_company_name = bookingData.billing_company_name;
+        }
+        if (bookingData.billing_tax_number !== undefined) {
+          updateData.billing_tax_number = bookingData.billing_tax_number;
+        }
+        if (bookingData.billing_street_name !== undefined) {
+          updateData.billing_street_name = bookingData.billing_street_name;
+        }
+        if (bookingData.billing_street_number !== undefined) {
+          updateData.billing_street_number = bookingData.billing_street_number;
+        }
+        if (bookingData.billing_city !== undefined) {
+          updateData.billing_city = bookingData.billing_city;
+        }
+        if (bookingData.billing_state !== undefined) {
+          updateData.billing_state = bookingData.billing_state;
+        }
+        if (bookingData.billing_postal_code !== undefined) {
+          updateData.billing_postal_code = bookingData.billing_postal_code;
+        }
+        if (bookingData.billing_country !== undefined) {
+          updateData.billing_country = bookingData.billing_country;
+        }
+
+        // Only update if there are changes
+        if (Object.keys(updateData).length > 0) {
+          updateData.updated_at = new Date().toISOString();
+          
+          const { error: updateError } = await supabase
+            .from('customers')
+            .update(updateData)
+            .eq('id', customerId);
+
+          if (updateError) {
+            console.error('Error updating customer:', updateError);
+            return {
+              success: false,
+              message: 'Error updating customer information'
+            };
+          }
+        }
+      } else {
+        // Customer doesn't exist, create new customer
+        const newCustomerData = {
+          name: bookingData.customer_name || null,
+          email: bookingData.customer_email,
+          phone: bookingData.customer_phone || null,
+          notes: `Customer created from booking on ${new Date().toLocaleDateString()}`,
+          billing_company_name: bookingData.billing_company_name || null,
+          billing_tax_number: bookingData.billing_tax_number || null,
+          billing_street_name: bookingData.billing_street_name || null,
+          billing_street_number: bookingData.billing_street_number || null,
+          billing_city: bookingData.billing_city || null,
+          billing_state: bookingData.billing_state || null,
+          billing_postal_code: bookingData.billing_postal_code || null,
+          billing_country: bookingData.billing_country || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const { data: newCustomer, error: createCustomerError } = await supabase
+          .from('customers')
+          .insert(newCustomerData)
+          .select('id')
+          .single();
+
+        if (createCustomerError) {
+          console.error('Error creating customer:', createCustomerError);
+          return {
+            success: false,
+            message: 'Error creating customer'
+          };
+        }
+
+        customerId = newCustomer.id;
+      }
+    }
+
+    // Create the booking
+    const bookingInsertData = {
+      wp_id: `manual_${Date.now()}`, // Generate a unique WordPress ID for manual bookings
+      customer_id: customerId,
+      vehicle_id: bookingData.vehicle_id || null,
+      service_name: bookingData.service_name,
+      service_id: bookingData.service_id || null,
+      date: bookingData.date,
+      time: bookingData.time,
+      status: bookingData.status || 'pending',
+      customer_name: bookingData.customer_name || null,
+      customer_email: bookingData.customer_email,
+      customer_phone: bookingData.customer_phone || null,
+      pickup_location: bookingData.pickup_location || null,
+      dropoff_location: bookingData.dropoff_location || null,
+      distance: bookingData.distance ? String(bookingData.distance) : null,
+      duration: bookingData.duration ? String(bookingData.duration) : null,
+      price_amount: bookingData.price?.amount || null,
+      price_currency: bookingData.price?.currency || null,
+      price_formatted: bookingData.price?.formatted || null,
+      payment_status: bookingData.payment_status || 'pending',
+      payment_method: bookingData.payment_method || null,
+      payment_link: bookingData.payment_link || null,
+      notes: bookingData.notes || null,
+      driver_id: bookingData.driver_id || null,
+      service_type: bookingData.service_type || null,
+      vehicle_make: bookingData.vehicle_make || null,
+      vehicle_model: bookingData.vehicle_model || null,
+
+      billing_company_name: bookingData.billing_company_name || null,
+      billing_tax_number: bookingData.billing_tax_number || null,
+      billing_street_name: bookingData.billing_street_name || null,
+      billing_street_number: bookingData.billing_street_number || null,
+      billing_city: bookingData.billing_city || null,
+      billing_state: bookingData.billing_state || null,
+      billing_postal_code: bookingData.billing_postal_code || null,
+      billing_country: bookingData.billing_country || null,
+      coupon_code: bookingData.coupon_code || null,
+      coupon_discount_percentage: bookingData.coupon_discount_percentage ? parseFloat(bookingData.coupon_discount_percentage) : null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      synced_at: new Date().toISOString()
+    };
+
+    const { data: newBooking, error: createBookingError } = await supabase
+      .from('bookings')
+      .insert(bookingInsertData)
+      .select('id')
+      .single();
+
+    if (createBookingError) {
+      console.error('Error creating booking:', createBookingError);
+      return {
+        success: false,
+        message: 'Error creating booking'
+      };
+    }
+
+    // Revalidate relevant paths
+    revalidatePath('/bookings');
+    revalidatePath('/dispatch');
+    if (customerId) {
+      revalidatePath(`/customers/${customerId}`);
+    }
+
+    return {
+      success: true,
+      message: 'Booking created successfully',
+      bookingId: newBooking.id
+    };
+
+  } catch (error) {
+    console.error('Error in createBookingAction:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
 } 

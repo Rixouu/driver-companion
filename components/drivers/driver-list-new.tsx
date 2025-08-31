@@ -545,28 +545,38 @@ export function DriverList({
         </>
       ) : (
         <>
-          {/* Grid View */}
           {/* Grid View Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Select all drivers"
-                  />
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Select All
-                  </span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Showing {paginatedDrivers.length} of {drivers.length} drivers
-                </div>
-              </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="text-sm text-muted-foreground">
+              {t("drivers.showingResults", { 
+                count: paginatedDrivers.length, 
+                total: drivers.length 
+              })}
             </div>
+            <ViewToggle
+              view={viewMode}
+              onViewChange={setViewMode}
+            />
           </div>
-          
+
+          {/* Grid View Selection Header */}
+          <div className="flex items-center gap-3 mb-4 p-3 bg-muted/30 rounded-lg border">
+            <Checkbox
+              checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
+              onCheckedChange={handleSelectAll}
+              aria-label="Select all drivers"
+            />
+            <span className="text-sm font-medium text-muted-foreground">
+              Select All
+            </span>
+            {selectedDrivers.size > 0 && (
+              <Badge variant="secondary" className="ml-auto">
+                {selectedDrivers.size} selected
+              </Badge>
+            )}
+          </div>
+
+          {/* Grid View */}
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {paginatedDrivers.map((driver) => (
               <Card 
@@ -581,8 +591,8 @@ export function DriverList({
                         <Checkbox
                           checked={selectedDrivers.has(driver.id)}
                           onCheckedChange={() => handleSelectDriver(driver.id)}
-                          onClick={(e) => e.stopPropagation()}
                           aria-label={`Select ${driver.full_name || driver.first_name}`}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <Avatar className="h-16 w-16 border-2 border-primary/10">
                           <AvatarImage src={driver.profile_image_url || ""} alt={driver.full_name || ""} />

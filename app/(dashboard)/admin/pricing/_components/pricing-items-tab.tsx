@@ -837,7 +837,7 @@ export default function PricingItemsTab() {
          actions={
            <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
              <Plus className="h-4 w-4 mr-2" />
-             {t("pricing.items.buttons.addItemToCategory", { categoryName: selectedCategory ? currentCategoryName : 'Category' })}
+             Add Pricing to {selectedCategory ? currentCategoryName : 'Category'}
         </Button>
          }
        />
@@ -1001,7 +1001,7 @@ export default function PricingItemsTab() {
                          className="w-full sm:w-auto"
                        >
                          <Plus className="h-4 w-4 mr-2" />
-                         Add {serviceGroup.serviceTypeName}
+                         Add Pricing for {serviceGroup.serviceTypeName}
                        </Button>
                      </div>
                    </div>

@@ -515,31 +515,33 @@ export function VehiclePricing({ vehicle }: VehiclePricingProps) {
               return (
                 <div key={serviceType} className="space-y-6">
                   {/* Service Type Header */}
-                  <div className="space-y-4 pb-4 border-b border-border/50">
-                    {/* Service Type Title and Badge */}
-                    <div className="flex items-center space-x-2">
-                      <Package className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {serviceType}
-                      </h3>
-                      <Badge 
-                        variant="outline" 
-                        className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700"
+                  <div className="pb-4 border-b border-border/50">
+                    {/* Service Type Title, Badge, and Add Button - Responsive Layout */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Package className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {serviceType}
+                        </h3>
+                        <Badge 
+                          variant="outline" 
+                          className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700"
+                        >
+                          {itemsArray.length} pricing option{itemsArray.length === 1 ? '' : 's'}
+                        </Badge>
+                      </div>
+                      
+                      {/* Add Button - Full Width on Mobile, Aligned Right on Desktop */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAddPricing(serviceType)}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2"
                       >
-                        {itemsArray.length} pricing option{itemsArray.length === 1 ? '' : 's'}
-                      </Badge>
+                        <Plus className="h-4 w-4" />
+                        Add Pricing for {serviceType}
+                      </Button>
                     </div>
-                    
-                    {/* Add Button - Full Width on Mobile */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAddPricing(serviceType)}
-                      className="w-full md:w-auto flex items-center justify-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add {serviceType}
-                    </Button>
                   </div>
 
                   {/* Service Items Grid */}
@@ -593,10 +595,10 @@ export function VehiclePricing({ vehicle }: VehiclePricingProps) {
                         {/* Status Badge */}
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                           <Badge 
-                            variant={item.is_active ? "default" : "secondary"}
+                            variant="outline"
                             className={item.is_active 
-                              ? "bg-green-600 text-white border-green-700" 
-                              : "bg-gray-600 text-white border-gray-700"
+                              ? "border-green-200 text-green-700 bg-transparent dark:border-green-800 dark:text-green-300" 
+                              : "border-gray-200 text-gray-700 bg-transparent dark:border-gray-800 dark:text-gray-300"
                             }
                           >
                             {item.is_active ? 'Active' : 'Inactive'}

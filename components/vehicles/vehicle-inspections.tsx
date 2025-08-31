@@ -177,18 +177,18 @@ export function VehicleInspections({ vehicle }: VehicleInspectionsProps) {
     switch (statusLower) {
       case 'completed':
       case 'complete':
-        return 'bg-green-600 text-white border-green-700'
+        return 'border-green-200 text-green-700 bg-transparent dark:border-green-800 dark:text-green-300'
       case 'in_progress':
       case 'in progress':
       case 'progress':
-        return 'bg-blue-600 text-white border-blue-700'
+        return 'border-blue-200 text-blue-700 bg-transparent dark:border-blue-800 dark:text-blue-300'
       case 'pending':
-        return 'bg-yellow-600 text-white border-yellow-700'
+        return 'border-yellow-200 text-yellow-700 bg-transparent dark:border-yellow-800 dark:text-yellow-300'
       case 'failed':
       case 'fail':
-        return 'bg-red-600 text-white border-red-700'
+        return 'border-red-200 text-red-700 bg-transparent dark:border-red-800 dark:text-red-300'
       default:
-        return 'bg-gray-600 text-white border-gray-700'
+        return 'border-gray-200 text-gray-700 bg-transparent dark:border-gray-800 dark:text-gray-300'
     }
   }, [])
 
@@ -523,7 +523,7 @@ export function VehicleInspections({ vehicle }: VehicleInspectionsProps) {
                     </span>
                   </div>
                   {/* Status Badge */}
-                  <Badge className={getStatusColor(inspection.status)}>
+                  <Badge variant="outline" className={getStatusColor(inspection.status)}>
                     {inspection.status}
                   </Badge>
                 </div>

@@ -13,7 +13,7 @@ export const TEAM_ADDRESSES: Record<'japan' | 'thailand', TeamAddress> = {
       'Wang Thong Lang, Bangkok 10310, Thailand'
     ],
     taxId: 'Tax ID: 0105566135845',
-    contactEmail: 'billing@japandriver.com'
+    contactEmail: 'booking@japandriver.com'
   },
   japan: {
     companyName: 'Driver (Japan) Company Limited',
@@ -22,7 +22,7 @@ export const TEAM_ADDRESSES: Record<'japan' | 'thailand', TeamAddress> = {
       'Shinagawa-Ku Tokyo Japan 141-0031'
     ],
     taxId: 'Tax ID: T2020001153198',
-    contactEmail: 'billing@japandriver.com'
+    contactEmail: 'booking@japandriver.com'
   }
 }
 

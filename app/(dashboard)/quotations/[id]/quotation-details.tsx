@@ -345,7 +345,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         body: JSON.stringify({
           quotation_id: quotation.id,
           customer_email: quotation.customer_email,
-          language: 'en', // Default to English, could be made configurable
+          language: magicLinkLanguage, // Use the selected language from the dialog
         }),
       });
       
@@ -583,57 +583,48 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             return null;
           })()}
             
-            {/* Action Buttons Row - Only show for non-final statuses */}
-            {!['paid', 'converted'].includes(quotation.status) && (
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
-                {/* Primary Action Buttons */}
-                {quotation.status === 'approved' ? (
-                  <>
-                    <QuotationInvoiceButton 
-                      quotation={quotation} 
-                      onSuccess={() => router.refresh()} 
-                      onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <QuotationPdfButton 
-                      quotation={quotation} 
-                      selectedPackage={selectedPackage} 
-                      selectedPromotion={selectedPromotion} 
-                      onSuccess={() => router.refresh()} 
-                    />
-                    {isOrganizationMember && quotation.status === 'draft' && (
-                      <Button 
-                        onClick={() => workflowRef.current?.openSendQuotationDialog()} 
-                        disabled={isLoading} 
-                        className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Send Quotation
-                      </Button>
-                    )}
-                  </>
-                )}
-                
-                {/* Regenerate Magic Link Button - Show for all statuses except final ones */}
-                {isOrganizationMember && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsMagicLinkDialogOpen(true)} 
-                    disabled={isLoading}
-                    className="w-full sm:w-auto gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Send New Magic Link
-                  </Button>
-                )}
-              </div>
-            )}
-            
-            {/* Regenerate Magic Link Button - Show for final statuses too */}
-            {['paid', 'converted'].includes(quotation.status) && isOrganizationMember && (
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
+            {/* Action Buttons Row - Show for all statuses */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
+              {/* Primary Action Buttons */}
+              {quotation.status === 'approved' ? (
+                <>
+                  <QuotationInvoiceButton 
+                    quotation={quotation} 
+                    onSuccess={() => router.refresh()} 
+                    onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
+                  />
+                </>
+              ) : quotation.status === 'paid' || quotation.status === 'converted' ? (
+                <>
+                  <QuotationInvoiceButton 
+                    quotation={quotation} 
+                    onSuccess={() => router.refresh()} 
+                    onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
+                  />
+                </>
+              ) : (
+                <>
+                  <QuotationPdfButton 
+                    quotation={quotation} 
+                    selectedPackage={selectedPackage} 
+                    selectedPromotion={selectedPromotion} 
+                    onSuccess={() => router.refresh()} 
+                  />
+                  {isOrganizationMember && quotation.status === 'draft' && (
+                    <Button 
+                      onClick={() => workflowRef.current?.openSendQuotationDialog()} 
+                      disabled={isLoading} 
+                      className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Send Quotation
+                    </Button>
+                  )}
+                </>
+              )}
+              
+              {/* Regenerate Magic Link Button - Show for all statuses */}
+              {isOrganizationMember && (
                 <Button 
                   variant="outline" 
                   onClick={() => setIsMagicLinkDialogOpen(true)} 
@@ -643,8 +634,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <RefreshCw className="h-4 w-4" />
                   Send New Magic Link
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

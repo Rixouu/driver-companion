@@ -83,6 +83,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`Creating ${quotationItems.length} bookings for services`);
 
+    // Get pricing categories to map category IDs to names
+    const { data: pricingCategories, error: categoriesError } = await supabase
+      .from('pricing_categories')
+      .select('id, name')
+      .eq('is_active', true);
+
+    if (categoriesError) {
+      console.warn('Warning: Could not fetch pricing categories:', categoriesError);
+    }
+
+    // Create a map of category ID to name
+    const categoryMap = new Map();
+    if (pricingCategories) {
+      pricingCategories.forEach(category => {
+        categoryMap.set(category.id, category.name);
+      });
+    }
+
     const createdBookings = [];
     const baseQuotationNumber = quotation.quote_number || Math.floor(Math.random() * 1000000);
 
@@ -95,7 +113,8 @@ export async function POST(request: NextRequest) {
       
       // Get vehicle information from the item
       const vehicleType = item.vehicle_type || 'Standard Vehicle';
-      const vehicleCategory = item.vehicle_category || 'Standard';
+      const vehicleCategoryId = item.vehicle_category || 'Standard';
+      const vehicleCategory = categoryMap.get(vehicleCategoryId) || vehicleCategoryId;
       
       // Calculate item total (including time-based adjustments)
       const itemBasePrice = item.unit_price * (item.quantity || 1) * (item.service_days || 1);

@@ -331,6 +331,11 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
                                    wpMeta.coupon_discount_percentage || 
                                    null;
                                    
+  // Convert coupon discount percentage to number if it's a string
+  const couponDiscountPercentageNumber = couponDiscountPercentage ? 
+    (typeof couponDiscountPercentage === 'string' ? parseFloat(couponDiscountPercentage) : couponDiscountPercentage) : 
+    null;
+                                   
   // Extract billing information from WordPress metadata
   const billingCompanyName = wpBooking.billing_company_name || 
                             wpMeta.chbs_client_billing_detail_company_name || 
@@ -411,11 +416,26 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
     distance: wpBooking.distance || '',
     duration: wpBooking.duration || '',
     
+    // Billing information
+    billing_company_name: billingCompanyName,
+    billing_tax_number: billingTaxNumber,
+    billing_street_name: billingStreetName,
+    billing_street_number: billingStreetNumber,
+    billing_city: billingCity,
+    billing_state: billingState,
+    billing_postal_code: billingPostalCode,
+    billing_country: billingCountry,
+    
+    // Coupon information
+    coupon_code: couponCode,
+    coupon_discount_percentage: couponDiscountPercentageNumber,
+    
     // Additional metadata
     notes: wpBooking.notes || undefined,
     wp_meta: wpBooking.wp_meta ? (typeof wpBooking.wp_meta === 'object' ? wpBooking.wp_meta : undefined) : undefined,
     created_at: wpBooking.created_at || undefined,
     updated_at: wpBooking.updated_at || undefined,
+    created_by: wpBooking.created_by || null, // Add created_by field
   }
   
   return bookingData;
@@ -556,11 +576,19 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     
     // Coupon fields
     coupon_code: booking.coupon_code || undefined,
-    coupon_discount_percentage: booking.coupon_discount_percentage || undefined,
+    coupon_discount_percentage: booking.coupon_discount_percentage ? String(booking.coupon_discount_percentage) : undefined,
     
     // Enhanced vehicle information
     ...(Object.keys(vehicleInfo).length > 0 && {
-      vehicle: vehicleInfo
+      vehicle: {
+        id: vehicleInfo.id || '',
+        created_at: new Date().toISOString(),
+        make: vehicleInfo.make || '',
+        model: vehicleInfo.model || '',
+        year: vehicleInfo.year || '',
+        license_plate: vehicleInfo.registration || '',
+        name: `${vehicleInfo.make || ''} ${vehicleInfo.model || ''}`.trim()
+      }
     }),
     
     // Set price when price_amount is available
@@ -585,9 +613,10 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     
     // Additional metadata
     notes: booking.notes || undefined,
-    meta: booking.meta || booking.wp_meta || undefined, // Preserve both meta and wp_meta
-    created_at: booking.created_at,
-    updated_at: booking.updated_at,
+    meta: booking.meta ? (typeof booking.meta === 'object' ? booking.meta as Record<string, any> : undefined) : 
+          booking.wp_meta ? (typeof booking.wp_meta === 'object' ? booking.wp_meta as Record<string, any> : undefined) : undefined,
+    created_at: booking.created_at || undefined,
+    updated_at: booking.updated_at || undefined,
   }
 }
 
@@ -758,7 +787,7 @@ export function extractBookingFieldsFromWordPress(wpBooking: any): Partial<Booki
     pickup_location: pickupLocation,
     dropoff_location: dropoffLocation,
     distance: distance,
-    duration: duration,
+    duration: duration || undefined,
     
     // WordPress specific fields
     title: wpBooking.title,
@@ -1106,9 +1135,8 @@ async function syncSingleBooking(
         // Copy only the selected fields from bookingData
         for (const field of selectedFields) {
           const bookingField = fieldMapping[field];
-          if (bookingField && bookingData[bookingField] !== undefined) {
-            // @ts-ignore - We're using dynamic property access
-            updateData[bookingField] = bookingData[bookingField];
+          if (bookingField && (bookingData as any)[bookingField] !== undefined) {
+            (updateData as any)[bookingField] = (bookingData as any)[bookingField];
           }
         }
         
@@ -1322,22 +1350,95 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
       return { booking: null, error: 'Booking not found' }
     }
     
+    // Get vehicle category name if available
+    let vehicleCategoryName = null;
+    if (bookingData.meta && typeof bookingData.meta === 'object' && bookingData.meta !== null) {
+      const meta = bookingData.meta as Record<string, any>;
+      if (meta.vehicle_category) {
+        const { data: categoryData } = await supabase
+          .from('pricing_categories')
+          .select('name')
+          .eq('id', meta.vehicle_category)
+          .single();
+        
+        if (categoryData) {
+          vehicleCategoryName = categoryData.name;
+        }
+      }
+    }
+    
+    // Get creator information if available
+    let creatorInfo = null;
+    
+    // For converted bookings, get creator from quotations table
+    if (bookingData.meta && typeof bookingData.meta === 'object' && bookingData.meta !== null) {
+      const meta = bookingData.meta as Record<string, any>;
+      if (meta.quotation_id) {
+        const { data: quotationData } = await supabase
+          .from('quotations')
+          .select('created_by, created_at')
+          .eq('id', meta.quotation_id)
+          .single();
+        
+        if (quotationData?.created_by) {
+          // Get the creator's name from profiles table
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', quotationData.created_by)
+            .single();
+          
+          creatorInfo = {
+            id: quotationData.created_by,
+            name: profileData?.full_name || 'Unknown User',
+            email: profileData?.email || '',
+            role: 'Admin',
+            created_at: quotationData.created_at
+          };
+        }
+      }
+    }
+    
+    // For direct bookings, use the created_by field directly
+    if (!creatorInfo && bookingData.created_by) {
+      creatorInfo = {
+        id: bookingData.created_by,
+        role: 'Admin', // Default role for direct booking creators
+        created_at: bookingData.created_at
+      };
+    }
+    
     console.log(`[DB] Raw booking data from database:`, {
       id: bookingData.id,
       wp_id: bookingData.wp_id,
       meta: bookingData.meta,
       service_name: bookingData.service_name,
+      vehicle_category_name: vehicleCategoryName,
+      creator_info: creatorInfo,
       all_keys: Object.keys(bookingData)
     })
     
     // Map to Booking type
     const mappedBooking = mapSupabaseBookingToBooking(bookingData)
     
+    // Add the additional information to the meta
+    if (mappedBooking.meta) {
+      mappedBooking.meta.vehicle_category_name = vehicleCategoryName;
+      mappedBooking.meta.creator_info = creatorInfo;
+    } else {
+      mappedBooking.meta = {
+        vehicle_category_name: vehicleCategoryName,
+        creator_info: creatorInfo
+      };
+    }
+    
     console.log(`[DB] Mapped booking data:`, {
       id: mappedBooking.id,
       meta: mappedBooking.meta,
       vehicle_type: mappedBooking.meta?.vehicle_type,
+      vehicle_category_name: mappedBooking.meta?.vehicle_category_name,
       service_type_name: mappedBooking.meta?.service_type_name,
+      creator_info: mappedBooking.meta?.creator_info,
       all_keys: Object.keys(mappedBooking)
     })
     
@@ -1470,6 +1571,7 @@ export interface SupabaseBooking {
   vehicle_year?: string | null;
   wp_vehicle_id?: string | null;
   wp_meta?: Json | null;
+  created_by?: string | null; // UUID of the admin user who created this booking
   billing_company_name?: string | null;
   billing_tax_number?: string | null;
   billing_street_name?: string | null;
@@ -1479,7 +1581,7 @@ export interface SupabaseBooking {
   billing_postal_code?: string | null;
   billing_country?: string | null;
   coupon_code?: string | null;
-  coupon_discount_percentage?: string | null;
+  coupon_discount_percentage?: number | null;
   created_at?: string | null;
   updated_at?: string | null;
   synced_at?: string | null;

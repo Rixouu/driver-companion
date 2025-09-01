@@ -1566,6 +1566,7 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       service_type: bookingData.service_type || null,
       vehicle_make: bookingData.vehicle_make || null,
       vehicle_model: bookingData.vehicle_model || null,
+      created_by: bookingData.created_by || null, // Will be set from user session
 
       billing_company_name: bookingData.billing_company_name || null,
       billing_tax_number: bookingData.billing_tax_number || null,

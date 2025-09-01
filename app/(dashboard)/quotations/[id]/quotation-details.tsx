@@ -77,7 +77,12 @@ interface QuotationDetailsProps {
       name: string;
       email: string;
       phone?: string;
-    }
+    };
+    creator?: {
+      id: string;
+      full_name: string | null;
+      email: string | null;
+    } | null;
   };
   isOrganizationMember?: boolean;
 }
@@ -488,6 +493,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <p className="text-muted-foreground">
                       {t('quotations.details.quotationNumber', { defaultValue: 'Quotation Number #{id}' }).replace('{id}', formattedQuoteNumber)}
+                      {quotation.creator && (
+                        <span className="ml-2">
+                          • Created by: {quotation.creator.full_name || 'Unknown User'}
+                        </span>
+                      )}
                     </p>
                     <Badge variant="outline" className={
                       quotation.status === 'approved' ? "text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20" :

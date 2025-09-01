@@ -295,7 +295,7 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
             <h3 className="text-sm font-medium mb-3">{t('bookings.details.bookingActions.quickActions')}</h3>
             
             <div className="grid grid-cols-1 gap-3">
-              <Link href={`/bookings/${bookingId}/edit`}>
+              <Link href={`/bookings/${booking.wp_id || bookingId}/edit`}>
                 <Button 
                   variant="outline" 
                   className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
@@ -305,7 +305,7 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                 </Button>
               </Link>
               
-              <Link href={`/bookings/${bookingId}/reschedule`}>
+              <Link href={`/bookings/${booking.wp_id || bookingId}/reschedule`}>
                 <Button 
                   variant="outline" 
                   className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-500 dark:hover:bg-blue-500/20 dark:border-blue-500/30"
@@ -502,7 +502,7 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
         onAssign={handleAssign}
         drivers={drivers}
         vehicles={vehicles}
-        title={`Smart Assignment for #${booking.wp_id || booking.id.substring(0, 8)}`}
+        title={`Smart Assignment for #${booking.wp_id || bookingId}`}
         subtitle="Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type."
       />
     </>

@@ -63,6 +63,7 @@ export default function EditBookingPage() {
     customer_name?: string;
     customer_email?: string;
     customer_phone?: string;
+    vehicle_category?: string;
   }>>({})
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('summary')
@@ -122,6 +123,7 @@ export default function EditBookingPage() {
           notes: loadedBooking.notes,
           driver_id: loadedBooking.driver_id,
           vehicle_id: loadedBooking.vehicle?.id || undefined,
+          vehicle_category: loadedBooking.meta?.vehicle_category || '',
           flight_number: flightNumber,
           terminal: terminal,
           // Billing information
@@ -181,9 +183,9 @@ export default function EditBookingPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
   
-  // Handle select changes (now includes driver/vehicle)
+  // Handle select changes (now includes driver/vehicle and vehicle_category)
   const handleSelectChange = (
-    name: keyof Partial<typeof formData>,
+    name: keyof Partial<typeof formData> | 'vehicle_category',
     value: string | null
   ) => {
     if (value === '') return
@@ -246,13 +248,15 @@ export default function EditBookingPage() {
         flight_number, 
         terminal, 
         service_type,
+        vehicle_category,
       } = formData
       
       const metaData = { 
         ...(booking.meta || {}), 
         chbs_flight_number: flight_number,
         chbs_terminal: terminal,
-        chbs_service_type: service_type
+        chbs_service_type: service_type,
+        vehicle_category: vehicle_category
       }
 
       // Ensure coupon_discount_percentage is string | undefined to match Booking type if it's string there
@@ -554,6 +558,24 @@ export default function EditBookingPage() {
                           className="transition-all focus:ring-2 focus:border-primary"
                           placeholder="e.g. Airport to Hotel"
                         />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
+                        <Select
+                          value={formData.vehicle_category || ''}
+                          onValueChange={(value) => handleSelectChange('vehicle_category', value)}
+                        >
+                          <SelectTrigger className="transition-all focus:ring-2 focus:border-primary">
+                            <SelectValue placeholder="Select vehicle category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="611107df-a656-4812-b0c1-d54b8e67e7f1">Elite</SelectItem>
+                            <SelectItem value="eeb5632d-d028-4272-92c0-8c0d22abb06a">Platinum</SelectItem>
+                            <SelectItem value="ad9eb0c4-4e33-4c2a-a466-18a05086b854">Luxury</SelectItem>
+                            <SelectItem value="57fb7a7e-1e7c-4f46-b00a-55246030d691">Premium</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>

@@ -202,9 +202,14 @@ export default function BookingPage() {
       <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id || id })}</h1>
+          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.wp_id || booking.booking_id || id })}</h1>
           <p className="text-muted-foreground">
             {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
+            {booking.meta?.creator_info && (
+              <span className="ml-2">
+                • Created by: {booking.meta.creator_info.name || booking.meta.creator_info.role || 'Unknown User'}
+              </span>
+            )}
           </p>
         </div>
         
@@ -280,7 +285,7 @@ export default function BookingPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
                     <p className="mt-1">
-                      {booking.meta?.vehicle_category || 'Not specified'}
+                      {booking.meta?.vehicle_category_name || booking.meta?.vehicle_category || 'Not specified'}
                     </p>
                   </div>
 
@@ -531,7 +536,7 @@ export default function BookingPage() {
           
           {/* Booking Actions */}
           <BookingActions 
-            bookingId={(booking.id || booking.booking_id || id)}
+            bookingId={(booking.wp_id || booking.booking_id || id)}
             status={booking.status || 'Pending'}
             date={booking.date || '2023-04-30'}
             time={booking.time || '06:30'}

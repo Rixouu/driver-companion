@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
           billing_state: quotation.billing_state,
           billing_postal_code: quotation.billing_postal_code,
           billing_country: quotation.billing_country,
+          created_by: quotation.created_by, // Copy the created_by from the quotation
           meta: {
             quotation_id: quotation_id,
             service_index: i,

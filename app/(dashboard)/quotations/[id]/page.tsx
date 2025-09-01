@@ -108,6 +108,24 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
     notFound();
   }
 
+  // Get creator information from profiles table
+  let creatorInfo = null;
+  if (data.created_by) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('id', data.created_by)
+      .single();
+    
+    if (profileData) {
+      creatorInfo = {
+        id: profileData.id,
+        full_name: profileData.full_name,
+        email: profileData.email
+      };
+    }
+  }
+
   // Log the received data to debug - All console.logs removed from here down
   // console.log(`[QUOTATION DEBUG] Retrieved quotation with ID ${id}`);
   // console.log('[QUOTATION DEBUG] Quotation data preview:', {
@@ -123,7 +141,16 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
   // }
 
   // Attempt to use proper typing instead of 'as any'
-  const quotation = data as Quotation & { quotation_items: QuotationItem[], customers: any }; // More specific typing
+  const quotation = data as Quotation & { 
+    quotation_items: QuotationItem[], 
+    customers: any
+  }; // More specific typing
+
+  // Add creator info to the quotation object
+  const quotationWithCreator = {
+    ...quotation,
+    creator: creatorInfo
+  };
 
   // Use the same QuotationDetails component for both organization and non-organization members,
   // but pass the isOrganizationMember flag to control permissions and actions
@@ -131,7 +158,7 @@ export default async function QuotationDetailsPage({ params: awaitedParams }: Pr
     <div className="space-y-6">
       <Suspense fallback={<LoadingSpinner />}>
         <QuotationDetails 
-          quotation={quotation}
+          quotation={quotationWithCreator}
           isOrganizationMember={isOrganizationMember}
         />
       </Suspense>

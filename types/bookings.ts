@@ -14,6 +14,7 @@ export interface Booking {
   customer_id?: string
   driver_id?: string
   vehicle_id?: string;
+  created_by?: string; // UUID of the admin user who created this booking
   
   // Direct customer fields for consistency with DB and forms
   customer_name?: string; 

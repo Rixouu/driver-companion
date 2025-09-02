@@ -9,48 +9,33 @@ export async function GET(
     const { id } = await context.params
     const supabase = createServiceClient()
 
-    // Get pricing category for this vehicle through direct relationship
-    const { data: vehicle, error: vehicleError } = await supabase
-      .from('vehicles')
+    // Get pricing category for this vehicle through junction table (same as booking system)
+    const { data: vehicleCategories, error: vehicleError } = await supabase
+      .from('pricing_category_vehicles')
       .select(`
-        vehicle_category_id,
-        pricing_categories (
+        category_id,
+        pricing_categories!inner(
           id,
           name,
           description
         )
       `)
-      .eq('id', id)
-      .single()
+      .eq('vehicle_id', id)
 
     if (vehicleError) {
-      console.error('[API] Error fetching vehicle:', vehicleError)
+      console.error('[API] Error fetching vehicle categories:', vehicleError)
       return NextResponse.json(
-        { error: 'Failed to fetch vehicle' },
+        { error: 'Failed to fetch vehicle categories' },
         { status: 500 }
       )
     }
 
-    if (!vehicle || !vehicle.vehicle_category_id) {
+    if (!vehicleCategories || vehicleCategories.length === 0) {
       return NextResponse.json({ categories: [] })
     }
 
-    // Get the pricing category details
-    const { data: pricingCategory, error: categoryError } = await supabase
-      .from('pricing_categories')
-      .select('id, name, description')
-      .eq('id', vehicle.vehicle_category_id)
-      .single()
-
-    if (categoryError) {
-      console.error('[API] Error fetching pricing category:', categoryError)
-      return NextResponse.json(
-        { error: 'Failed to fetch pricing category' },
-        { status: 500 }
-      )
-    }
-
-    const categories = pricingCategory ? [pricingCategory] : []
+    // Extract categories from junction table data
+    const categories = vehicleCategories.map(vc => vc.pricing_categories)
 
     return NextResponse.json({ categories })
   } catch (error) {
@@ -88,16 +73,33 @@ export async function PUT(
       )
     }
 
-    // Update the vehicle's category
-    const { error: updateError } = await supabase
-      .from('vehicles')
-      .update({ vehicle_category_id: categoryId })
-      .eq('id', vehicleId)
+    // Update the vehicle's category using junction table
+    // First, remove existing category associations
+    const { error: deleteError } = await supabase
+      .from('pricing_category_vehicles')
+      .delete()
+      .eq('vehicle_id', vehicleId)
 
-    if (updateError) {
-      console.error('Error updating vehicle pricing category:', updateError)
+    if (deleteError) {
+      console.error('Error removing existing vehicle categories:', deleteError)
       return NextResponse.json(
-        { error: 'Failed to update pricing category' },
+        { error: 'Failed to remove existing categories' },
+        { status: 500 }
+      )
+    }
+
+    // Then add the new category association
+    const { error: insertError } = await supabase
+      .from('pricing_category_vehicles')
+      .insert({
+        vehicle_id: vehicleId,
+        category_id: categoryId
+      })
+
+    if (insertError) {
+      console.error('Error adding vehicle pricing category:', insertError)
+      return NextResponse.json(
+        { error: 'Failed to add pricing category' },
         { status: 500 }
       )
     }

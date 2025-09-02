@@ -166,18 +166,29 @@ export default function EditBookingPage() {
         const extractBaseServiceType = (fullServiceName: string) => {
           if (!fullServiceName) return '';
           
-          // Check if it matches any of the available service types
-          const exactMatch = availableServices.find(service => service.name === fullServiceName);
-          if (exactMatch) return fullServiceName;
-          
           // Extract base service type by removing everything after " - "
           const baseName = fullServiceName.split(' - ')[0];
-          const matchingService = availableServices.find(service => service.name === baseName);
-          return matchingService ? baseName : fullServiceName;
+          
+          // Known service types that we expect to find
+          const knownServiceTypes = [
+            'Airport Transfer Haneda',
+            'Airport Transfer Narita', 
+            'Charter Services'
+          ];
+          
+          // Check if the extracted base name matches any known service type
+          const matchingService = knownServiceTypes.find(service => service === baseName);
+          return matchingService || fullServiceName;
         };
         
+        const extractedServiceName = extractBaseServiceType(loadedBooking.service_name || '');
+        console.log('🔧 [EDIT] Service name extraction:', {
+          original: loadedBooking.service_name,
+          extracted: extractedServiceName
+        });
+        
         const initialFormData = {
-          service_name: extractBaseServiceType(loadedBooking.service_name || ''),
+          service_name: extractedServiceName,
           service_type: loadedBooking.service_type || loadedBooking.meta?.chbs_service_type || '',
           date: loadedBooking.date,
           time: loadedBooking.time,
@@ -1116,19 +1127,28 @@ export default function EditBookingPage() {
                       <div>
                         <Label className="text-sm font-medium">Service Type</Label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-                          {availableServices.map((service) => (
+                          {availableServices.map((service) => {
+                            const isSelected = formData.service_name === service.name;
+                            console.log('🔧 [EDIT] Service button comparison:', {
+                              serviceName: service.name,
+                              formDataServiceName: formData.service_name,
+                              isSelected
+                            });
+                            
+                            return (
                             <div 
                               key={service.id}
                               className={`
                                 border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
-                                ${formData.service_name === service.name ? 'border-2 ring-2 border-primary ring-primary/20 bg-primary/5' : 'hover:border-primary'}
+                                ${isSelected ? 'border-2 ring-2 border-primary ring-primary/20 bg-primary/5' : 'hover:border-primary'}
                               `}
                               onClick={() => handleSelectChange('service_name', service.name)}
                             >
-                              <Car className={`h-5 w-5 mb-1 ${formData.service_name === service.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <Car className={`h-5 w-5 mb-1 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
                               <span className="font-medium text-sm text-center">{service.name}</span>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                       

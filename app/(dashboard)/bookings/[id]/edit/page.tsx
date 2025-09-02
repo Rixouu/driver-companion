@@ -38,6 +38,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area'
 // Fetch drivers via a server action to keep service client server-side
 import { getDriversAction } from '@/app/actions/drivers'
+import { getServiceTypesAction, getPricingCategoriesAction, getVehiclesWithCategoriesAction } from '@/app/actions/services'
+import type { ServiceType, PricingCategory, VehicleWithCategory } from '@/app/actions/services'
 import { getVehicles } from '@/lib/services/vehicles'
 import type { Driver } from '@/types/drivers'
 import type { Vehicle } from '@/types/vehicles'
@@ -66,12 +68,65 @@ export default function EditBookingPage() {
     vehicle_category?: string;
   }>>({})
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeTab, setActiveTab] = useState('route')
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
+  // New state for services, categories, and vehicles with categories
+  const [availableServices, setAvailableServices] = useState<ServiceType[]>([])
+  const [availableCategories, setAvailableCategories] = useState<PricingCategory[]>([])
+  const [vehiclesWithCategories, setVehiclesWithCategories] = useState<VehicleWithCategory[]>([])
+  const [vehicleFilters, setVehicleFilters] = useState({
+    category: '',
+    brand: '',
+    model: '',
+    minPassengers: '',
+    minLuggage: ''
+  })
   const { t } = useI18n()
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Filter vehicles based on selected filters
+  const filteredVehicles = vehiclesWithCategories.filter(vehicle => {
+    if (vehicleFilters.category && vehicle.category_name?.trim() !== vehicleFilters.category) {
+      return false
+    }
+    if (vehicleFilters.brand && !vehicle.brand?.trim().toLowerCase().includes(vehicleFilters.brand.toLowerCase())) {
+      return false
+    }
+    if (vehicleFilters.model && !vehicle.model?.trim().toLowerCase().includes(vehicleFilters.model.toLowerCase())) {
+      return false
+    }
+    if (vehicleFilters.minPassengers && vehicle.passenger_capacity && vehicle.passenger_capacity < parseInt(vehicleFilters.minPassengers)) {
+      return false
+    }
+    if (vehicleFilters.minLuggage && vehicle.luggage_capacity && vehicle.luggage_capacity < parseInt(vehicleFilters.minLuggage)) {
+      return false
+    }
+    
+    return true
+  })
+
+  // Get unique values for filter options - memoized to prevent multiple calls
+  const getFilterOptions = useMemo(() => {
+    // Trim whitespace and filter out empty values, then get unique values
+    const brands = [...new Set(vehiclesWithCategories
+      .map(v => v.brand?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    const models = [...new Set(vehiclesWithCategories
+      .map(v => v.model?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    const categories = [...new Set(vehiclesWithCategories
+      .map(v => v.category_name?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    return { brands, models, categories }
+  }, [vehiclesWithCategories])
 
   // Fetch booking data AND driver/vehicle lists
   useEffect(() => {
@@ -146,10 +201,26 @@ export default function EditBookingPage() {
         const drivers = await getDriversAction(); 
         setAvailableDrivers(drivers);
 
-        // Fetch Vehicles
+        // Fetch Vehicles (legacy)
         const vehiclesResult = await getVehicles({}); 
         // vehiclesResult is DbVehicle[], cast to Vehicle[] for state
         setAvailableVehicles(vehiclesResult as Vehicle[]);
+
+        // Fetch Services, Categories, and Vehicles with Categories (new)
+        const servicesResult = await getServiceTypesAction()
+        if (servicesResult && servicesResult.length > 0) {
+          setAvailableServices(servicesResult)
+        }
+
+        const categoriesResult = await getPricingCategoriesAction()
+        if (categoriesResult && categoriesResult.length > 0) {
+          setAvailableCategories(categoriesResult)
+        }
+
+        const vehiclesWithCategoriesResult = await getVehiclesWithCategoriesAction()
+        if (vehiclesWithCategoriesResult && vehiclesWithCategoriesResult.length > 0) {
+          setVehiclesWithCategories(vehiclesWithCategoriesResult)
+        }
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data')
@@ -412,18 +483,18 @@ export default function EditBookingPage() {
             <div className="hidden md:block w-full bg-black border-b">
               <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
-                  value="summary" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <Calendar className="h-4 w-4" />
-                  <span>Booking Summary</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="route" 
                   className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
                 >
                   <MapPin className="h-4 w-4" />
-                  <span>Route Information</span>
+                  <span>Route & Services</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="vehicles" 
+                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+                >
+                  <Car className="h-4 w-4" />
+                  <span>Vehicles</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="client" 
@@ -446,18 +517,18 @@ export default function EditBookingPage() {
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t z-50">
               <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
-                  value="summary" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <Calendar className="h-5 w-5" />
-                  <span className="text-xs">Summary</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="route" 
                   className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
                 >
                   <MapPin className="h-5 w-5" />
                   <span className="text-xs">Route</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="vehicles" 
+                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+                >
+                  <Car className="h-5 w-5" />
+                  <span className="text-xs">Vehicles</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="client" 
@@ -582,6 +653,217 @@ export default function EditBookingPage() {
                 </Card>
               </TabsContent>
               
+              <TabsContent value="vehicles" className="mt-0 space-y-6">
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b bg-muted/30 px-6 py-4">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <Car className="mr-2 h-5 w-5" />
+                      Select Your Vehicle
+                    </h2>
+                  </div>
+                  
+                  {/* Vehicle Filters */}
+                  <div className="border-b bg-muted/30 px-6 py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-sm font-medium">Filters</h3>
+                      {Object.values(vehicleFilters).some(filter => filter) && (
+                        <button
+                          onClick={() => setVehicleFilters({ category: '', brand: '', model: '', minPassengers: '', minLuggage: '' })}
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {/* Category Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Category</Label>
+                        <Select 
+                          value={vehicleFilters.category || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, category: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilterOptions.categories.filter(Boolean).map((category) => (
+                              <SelectItem key={category} value={category as string}>{category}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Brand Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Brand</Label>
+                        <Select 
+                          value={vehicleFilters.brand || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, brand: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilterOptions.brands.filter(Boolean).map((brand) => (
+                              <SelectItem key={brand} value={brand as string}>{brand}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Model Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Model</Label>
+                        <Input
+                          placeholder="Search model..."
+                          value={vehicleFilters.model}
+                          onChange={(e) => setVehicleFilters(prev => ({ ...prev, model: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      
+                      {/* Passengers Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Min. Passengers</Label>
+                        <Select 
+                          value={vehicleFilters.minPassengers || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minPassengers: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Any" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Luggage Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Min. Luggage</Label>
+                        <Select 
+                          value={vehicleFilters.minLuggage || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minLuggage: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Any" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    {/* Filter Results Count */}
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Showing {filteredVehicles.length} of {vehiclesWithCategories.length} vehicles
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    {availableCategories.length > 0 ? (
+                      <div className="space-y-8">
+                        {availableCategories
+                          .filter(category => {
+                            const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
+                            return categoryVehicles.length > 0
+                          })
+                          .map((category) => {
+                          const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
+                          
+                          return (
+                            <div key={category.id} className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold">{category.name}</h3>
+                                <Badge variant="secondary" className="text-xs">
+                                  {categoryVehicles.length} vehicle{categoryVehicles.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {categoryVehicles.map((vehicle) => (
+                                  <div
+                                    key={vehicle.id}
+                                    className={`
+                                      border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md
+                                      ${formData.vehicle_id === vehicle.id ? 'border-2 border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:border-primary/50'}
+                                    `}
+                                    onClick={() => handleSelectChange('vehicle_id', vehicle.id)}
+                                  >
+                                    <div className="space-y-3">
+                                      {/* Vehicle Image */}
+                                      <div className="aspect-video bg-muted rounded-md overflow-hidden">
+                                        {vehicle.image_url ? (
+                                          <Image
+                                            src={vehicle.image_url}
+                                            alt={`${vehicle.brand} ${vehicle.model}`}
+                                            width={300}
+                                            height={200}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center">
+                                            <Car className="h-12 w-12 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Vehicle Details */}
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="font-semibold text-sm">{vehicle.brand?.trim()} {vehicle.model?.trim()}</h4>
+                                          {formData.vehicle_id === vehicle.id && (
+                                            <CheckCircle className="h-4 w-4 text-primary" />
+                                          )}
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                          <span>{vehicle.passenger_capacity} passengers</span>
+                                          <span>{vehicle.luggage_capacity} luggage</span>
+                                        </div>
+                                        
+                                        <div className="text-xs text-muted-foreground">
+                                          {vehicle.name}
+                                        </div>
+                                        
+                                        {/* Select Button */}
+                                        <Button
+                                          variant={formData.vehicle_id === vehicle.id ? "default" : "outline"}
+                                          size="sm"
+                                          className="w-full mt-3"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleSelectChange('vehicle_id', vehicle.id)
+                                          }}
+                                        >
+                                          {formData.vehicle_id === vehicle.id ? 'Selected' : 'Select'}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Car className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No vehicles available</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="client" className="mt-0 space-y-6">
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
                   <div className="border-b py-4 px-6">
@@ -806,6 +1088,66 @@ export default function EditBookingPage() {
               </TabsContent>
               
               <TabsContent value="route" className="mt-0 space-y-6">
+                {/* Service Selection Card */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b bg-muted/30 px-6 py-4">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <Car className="mr-2 h-5 w-5" />
+                      Service Selection
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">Service Type</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                          {availableServices.map((service) => (
+                            <div 
+                              key={service.id}
+                              className={`
+                                border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
+                                ${formData.service_name === service.name ? 'border-2 ring-2 border-primary ring-primary/20 bg-primary/5' : 'hover:border-primary'}
+                              `}
+                              onClick={() => handleSelectChange('service_name', service.name)}
+                            >
+                              <Car className={`h-5 w-5 mb-1 ${formData.service_name === service.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                              <span className="font-medium text-sm text-center">{service.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Date and Time */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium">Pickup Date</Label>
+                          <Input
+                            id="date"
+                            name="date"
+                            type="date"
+                            value={formData.date || ''}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label className="text-sm font-medium">Pickup Time</Label>
+                          <Input
+                            id="time"
+                            name="time"
+                            type="time"
+                            value={formData.time || ''}
+                            onChange={handleInputChange}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
                 {!isGoogleMapsKeyConfigured && (
                   <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
                     <AlertTitle className="text-yellow-800 dark:text-yellow-300">{t('bookings.details.googleMapsApiKeyMissing')}</AlertTitle>

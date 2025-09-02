@@ -29,7 +29,7 @@ import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 
 import { 
   ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
-  CheckCircle, AlertTriangle, X, Info, Plane, CreditCard, Route, Timer, Calculator, ExternalLink
+  CheckCircle, AlertTriangle, X, Info, Plane, CreditCard, Route, Timer, Calculator, ExternalLink, Settings
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -39,9 +39,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 // Fetch drivers via a server action to keep service client server-side
 import { getDriversAction } from '@/app/actions/drivers'
 import { getVehicles } from '@/lib/services/vehicles'
+import { getServiceTypesAction, getPricingCategoriesAction, getVehiclesWithCategoriesAction, ServiceType, PricingCategory, VehicleWithCategory } from '@/app/actions/services'
 import type { Driver } from '@/types/drivers'
 import type { Vehicle } from '@/types/vehicles'
 import type { DbVehicle } from '@/types'
+
 import { useI18n } from '@/lib/i18n/context'
 import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { format, parseISO } from "date-fns";
@@ -55,8 +57,12 @@ export default function NewBookingPage() {
   const [formData, setFormData] = useState<Partial<Booking & { 
     flight_number?: string; 
     terminal?: string; 
+    hours_per_day?: number;
+    duration_hours?: number;
+    service_days?: number;
     driver_id?: string | null; 
     vehicle_id?: string | null; 
+    selectedVehicle?: VehicleWithCategory;
     customer_name?: string;
     customer_email?: string;
     customer_phone?: string;
@@ -83,14 +89,74 @@ export default function NewBookingPage() {
     duration: ''
   })
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeTab, setActiveTab] = useState('route')
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
+  const [availableServices, setAvailableServices] = useState<ServiceType[]>([])
+  const [availableCategories, setAvailableCategories] = useState<PricingCategory[]>([])
+  const [vehiclesWithCategories, setVehiclesWithCategories] = useState<VehicleWithCategory[]>([])
+  
+  // Vehicle filters state
+  const [vehicleFilters, setVehicleFilters] = useState({
+    category: '',
+    brand: '',
+    model: '',
+    minPassengers: '',
+    minLuggage: ''
+  })
   const { t } = useI18n()
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Fetch driver and vehicle lists
+  // Filter vehicles based on selected filters
+  const filteredVehicles = vehiclesWithCategories.filter(vehicle => {
+    if (vehicleFilters.category && vehicle.category_name?.trim() !== vehicleFilters.category) {
+      return false
+    }
+    if (vehicleFilters.brand && !vehicle.brand?.trim().toLowerCase().includes(vehicleFilters.brand.toLowerCase())) {
+      return false
+    }
+    if (vehicleFilters.model && !vehicle.model?.trim().toLowerCase().includes(vehicleFilters.model.toLowerCase())) {
+      return false
+    }
+    if (vehicleFilters.minPassengers && vehicle.passenger_capacity && vehicle.passenger_capacity < parseInt(vehicleFilters.minPassengers)) {
+      return false
+    }
+    if (vehicleFilters.minLuggage && vehicle.luggage_capacity && vehicle.luggage_capacity < parseInt(vehicleFilters.minLuggage)) {
+      return false
+    }
+    
+    return true
+  })
+  
+  console.log('🔍 [FILTER] Total vehicles after filtering:', filteredVehicles.length, 'out of', vehiclesWithCategories.length)
+
+  // Get unique values for filter options - memoized to prevent multiple calls
+  const getFilterOptions = useMemo(() => {
+    console.log('🔧 [FILTER_OPTIONS] Processing vehicles for filter options:', vehiclesWithCategories.length, 'vehicles')
+    // Trim whitespace and filter out empty values, then get unique values
+    const brands = [...new Set(vehiclesWithCategories
+      .map(v => v.brand?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    const models = [...new Set(vehiclesWithCategories
+      .map(v => v.model?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    const categories = [...new Set(vehiclesWithCategories
+      .map(v => v.category_name?.trim())
+      .filter(Boolean)
+    )].sort()
+    
+    console.log('🔧 [FILTER_OPTIONS] Cleaned Brands:', brands)
+    console.log('🔧 [FILTER_OPTIONS] Cleaned Models:', models)
+    console.log('🔧 [FILTER_OPTIONS] Cleaned Categories:', categories)
+    return { brands, models, categories }
+  }, [vehiclesWithCategories])
+
+  // Fetch driver, vehicle, service, and category lists
   useEffect(() => {
     async function loadLists() {
       setIsLoading(true)
@@ -107,9 +173,33 @@ export default function NewBookingPage() {
           // Use the vehicles directly as they should be compatible
           setAvailableVehicles(vehiclesResult as any)
         }
+
+        // Fetch Services
+        const servicesResult = await getServiceTypesAction()
+        if (servicesResult && servicesResult.length > 0) {
+          setAvailableServices(servicesResult)
+        }
+
+        // Fetch Pricing Categories
+        const categoriesResult = await getPricingCategoriesAction()
+        if (categoriesResult && categoriesResult.length > 0) {
+          setAvailableCategories(categoriesResult)
+        }
+
+        // Fetch Vehicles with Categories
+        console.log('🚗 [BOOKING] Fetching vehicles with categories...')
+        const vehiclesWithCategoriesResult = await getVehiclesWithCategoriesAction()
+        console.log('🚗 [BOOKING] Raw vehicles result:', vehiclesWithCategoriesResult)
+        if (vehiclesWithCategoriesResult && vehiclesWithCategoriesResult.length > 0) {
+          console.log('🚗 [BOOKING] Setting vehicles with categories:', vehiclesWithCategoriesResult.length, 'vehicles')
+          console.log('🚗 [BOOKING] First vehicle sample:', vehiclesWithCategoriesResult[0])
+          setVehiclesWithCategories(vehiclesWithCategoriesResult)
+        } else {
+          console.log('❌ [BOOKING] No vehicles found or empty result')
+        }
       } catch (error) {
-        console.error('Error loading drivers/vehicles:', error)
-        setError('Failed to load drivers and vehicles')
+        console.error('Error loading data:', error)
+        setError('Failed to load services and vehicles')
       } finally {
         setIsLoading(false)
       }
@@ -120,10 +210,35 @@ export default function NewBookingPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
+    setFormData(prev => {
+      const newData = {
       ...prev,
       [name]: value
-    }))
+      }
+      
+      // Auto-fill duration for airport transfer services
+      if (name === 'service_name') {
+        if (value === 'Airport Transfer Haneda' || value === 'Airport Transfer Narita') {
+          newData.duration_hours = 1
+          newData.hours_per_day = 1
+          newData.service_days = 1
+        } else if (value === 'Charter Services') {
+          // Reset to allow manual input for charter services
+          newData.duration_hours = undefined
+          newData.hours_per_day = undefined
+          newData.service_days = undefined
+        }
+      }
+      
+      // Calculate total duration for charter services
+      if (name === 'service_days' || name === 'hours_per_day') {
+        if (newData.service_name === 'Charter Services' && newData.service_days && newData.hours_per_day) {
+          newData.duration_hours = newData.service_days * newData.hours_per_day
+        }
+      }
+      
+      return newData
+    })
   }
 
   const handleSelectChange = (field: string, value: any) => {
@@ -305,18 +420,18 @@ export default function NewBookingPage() {
             <div className="hidden md:block w-full bg-black border-b">
               <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
-                  value="summary" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <Calendar className="h-4 w-4" />
-                  <span>Booking Summary</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="route" 
                   className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
                 >
                   <MapPin className="h-4 w-4" />
-                  <span>Route Information</span>
+                  <span>Route & Services</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="services" 
+                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
+                >
+                  <Car className="h-4 w-4" />
+                  <span>Vehicles</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="client" 
@@ -339,18 +454,18 @@ export default function NewBookingPage() {
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t z-50">
               <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
                 <TabsTrigger 
-                  value="summary" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <Calendar className="h-5 w-5" />
-                  <span className="text-xs">Summary</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="route" 
                   className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
                 >
                   <MapPin className="h-5 w-5" />
                   <span className="text-xs">Route</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="services" 
+                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
+                >
+                  <Car className="h-5 w-5" />
+                  <span className="text-xs">Vehicles</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="client" 
@@ -370,82 +485,155 @@ export default function NewBookingPage() {
             </div>
             
             <div className="p-3 sm:p-6 pb-2 space-y-6">
-              {/* Summary Tab */}
-              <TabsContent value="summary" className="mt-0 space-y-4">
+              {/* Client Details Tab - First */}
+              <TabsContent value="client" className="mt-0 space-y-6">
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-3 sm:py-4 px-4 sm:px-6">
-                    <h2 className="text-base sm:text-lg font-semibold flex items-center">
-                      <Calendar className="mr-2 h-5 w-5" />
-                      Booking Summary
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <User className="mr-2 h-5 w-5" />
+                      Client Details
                     </h2>
                   </div>
                   
-                  <div className="p-4 sm:p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+                  <div className="p-6">
+                    <div className="space-y-6">
                       <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                          {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
-                            <div 
-                              key={status}
-                              className={`
-                                border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
-                                ${formData.status === status ? `border-2 ring-2 ${
-                                  status === 'pending' ? 'border-yellow-500 ring-yellow-200' :
-                                  status === 'confirmed' ? 'border-green-500 ring-green-200' :
-                                  status === 'completed' ? 'border-blue-500 ring-blue-200' :
-                                  'border-red-500 ring-red-200'
-                                }` : 'hover:border-primary'}
-                              `}
-                              onClick={() => handleSelectChange('status', status)}
-                            >
-                              {status === 'pending' && <AlertTriangle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-yellow-500' : 'text-muted-foreground'}`} />}
-                              {status === 'confirmed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-green-500' : 'text-muted-foreground'}`} />}
-                              {status === 'completed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-blue-500' : 'text-muted-foreground'}`} />}
-                              {status === 'cancelled' && <X className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-red-500' : 'text-muted-foreground'}`} />}
-                              <span className="capitalize font-medium text-sm">{status}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Date</h3>
-                        <div className="mt-1">
-                          <Input
-                            id="date"
-                            name="date"
-                            type="date"
-                            value={formData.date || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Time</h3>
-                        <div className="mt-1">
-                          <Input
-                            id="time"
-                            name="time"
-                            type="time"
-                            value={formData.time || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Service Name</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground">Customer Name</h3>
                         <Input
-                          id="service_name"
-                          name="service_name"
-                          value={formData.service_name || ''}
+                          id="customer_name"
+                          name="customer_name"
+                          value={formData.customer_name || ''}
                           onChange={handleInputChange}
                           className="transition-all focus:ring-2 focus:border-primary"
-                          placeholder="e.g. Airport to Hotel"
+                        />
+                            </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Email *</h3>
+                        <Input
+                          id="customer_email"
+                          name="customer_email"
+                          type="email"
+                          required
+                          value={formData.customer_email || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                        <Input
+                          id="customer_phone"
+                          name="customer_phone"
+                          type="tel"
+                          value={formData.customer_phone || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                        </div>
+                      </div>
+                      
+                    {/* Billing Information Section */}
+                    <Separator className="my-6" />
+                    
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <CreditCard className="mr-2 h-5 w-5" />
+                        Billing Information
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">Company Name</h3>
+                          <Input
+                            id="billing_company_name"
+                            name="billing_company_name"
+                            value={formData.billing_company_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">Tax Number / VAT ID</h3>
+                          <Input
+                            id="billing_tax_number"
+                            name="billing_tax_number"
+                            value={formData.billing_tax_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">Street Name</h3>
+                          <Input
+                            id="billing_street_name"
+                            name="billing_street_name"
+                            value={formData.billing_street_name || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">Street Number / Building</h3>
+                          <Input
+                            id="billing_street_number"
+                            name="billing_street_number"
+                            value={formData.billing_street_number || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">City</h3>
+                        <Input
+                            id="billing_city"
+                            name="billing_city"
+                            value={formData.billing_city || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">State / Province</h3>
+                          <Input
+                            id="billing_state"
+                            name="billing_state"
+                            value={formData.billing_state || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-muted-foreground">Postal / ZIP Code</h3>
+                          <Input
+                            id="billing_postal_code"
+                            name="billing_postal_code"
+                            value={formData.billing_postal_code || ''}
+                            onChange={handleInputChange}
+                            className="transition-all focus:ring-2 focus:border-primary"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Country</h3>
+                        <Input
+                          id="billing_country"
+                          name="billing_country"
+                          value={formData.billing_country || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
                         />
                       </div>
                     </div>
@@ -453,8 +641,415 @@ export default function NewBookingPage() {
                 </Card>
               </TabsContent>
               
-              {/* Route Tab */}
+              {/* Vehicle Selection Tab - Second */}
+              <TabsContent value="services" className="mt-0 space-y-6">
+
+                {/* Vehicle Selection by Category */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <Car className="mr-2 h-5 w-5" />
+                      Select Your Vehicle
+                    </h2>
+                  </div>
+                  
+                  {/* Vehicle Filters */}
+                  <div className="border-b bg-muted/30 px-6 py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-sm font-medium">Filters</h3>
+                      {Object.values(vehicleFilters).some(filter => filter) && (
+                        <button
+                          onClick={() => setVehicleFilters({ category: '', brand: '', model: '', minPassengers: '', minLuggage: '' })}
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {/* Category Filter */}
+                                  <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Category</Label>
+              <Select 
+                value={vehicleFilters.category || undefined} 
+                onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, category: value || '' }))}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getFilterOptions.categories.filter(Boolean).map((category) => (
+                    <SelectItem key={category} value={category as string}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+                      
+                      {/* Brand Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Brand</Label>
+                        <Select 
+                          value={vehicleFilters.brand || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, brand: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="All" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilterOptions.brands.filter(Boolean).map((brand) => (
+                              <SelectItem key={brand} value={brand as string}>{brand}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Model Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Model</Label>
+                        <Input
+                          placeholder="Search model..."
+                          value={vehicleFilters.model}
+                          onChange={(e) => setVehicleFilters(prev => ({ ...prev, model: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      
+                      {/* Passengers Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Min. Passengers</Label>
+                        <Select 
+                          value={vehicleFilters.minPassengers || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minPassengers: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Any" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {/* Luggage Filter */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Min. Luggage</Label>
+                        <Select 
+                          value={vehicleFilters.minLuggage || undefined} 
+                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minLuggage: value || '' }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Any" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    {/* Filter Results Count */}
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Showing {filteredVehicles.length} of {vehiclesWithCategories.length} vehicles
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    {availableCategories.length > 0 ? (
+                      <div className="space-y-8">
+                        {availableCategories
+                          .filter(category => {
+                            const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
+                            return categoryVehicles.length > 0
+                          })
+                          .map((category) => {
+                          const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
+                          console.log('📂 [CATEGORY] Rendering category:', category.name, 'with', categoryVehicles.length, 'vehicles')
+                          
+                          return (
+                            <div key={category.id} className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold">{category.name}</h3>
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryVehicles.length} vehicle{categoryVehicles.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {categoryVehicles.map((vehicle) => (
+                                  <div
+                                    key={vehicle.id}
+                                    className={`
+                                      border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md
+                                      ${formData.vehicle_id === vehicle.id ? 'border-2 border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:border-primary/50'}
+                                    `}
+                                    onClick={() => {
+                                      console.log('🎯 [SELECTION] Vehicle selected:', vehicle.brand?.trim(), vehicle.model?.trim(), `(${vehicle.category_name?.trim()})`)
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        vehicle_id: vehicle.id,
+                                        selectedVehicle: vehicle
+                                      }))
+                                    }}
+                                  >
+                                    <div className="space-y-3">
+                                      {/* Vehicle Image */}
+                                      <div className="aspect-video bg-muted rounded-md overflow-hidden">
+                                        {vehicle.image_url ? (
+                                          <Image
+                                            src={vehicle.image_url}
+                                            alt={`${vehicle.brand} ${vehicle.model}`}
+                                            width={300}
+                                            height={200}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center">
+                                            <Car className="h-12 w-12 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Vehicle Details */}
+                                      <div className="space-y-2">
+                                        <h4 className="font-semibold text-sm">
+                                          {vehicle.brand} {vehicle.model}
+                                        </h4>
+                                        <p className="text-xs text-muted-foreground">
+                                          {vehicle.year} • {vehicle.name}
+                                        </p>
+                                        
+                                        {/* Capacity Info */}
+                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                          <div className="flex items-center gap-1">
+                                            <User className="h-3 w-3" />
+                                            <span>{vehicle.passenger_capacity || 0} passengers</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <FileText className="h-3 w-3" />
+                                            <span>{vehicle.luggage_capacity || 0} luggage</span>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Select Button */}
+                                        <Button
+                                          variant={formData.vehicle_id === vehicle.id ? "default" : "outline"}
+                                          size="sm"
+                                          className="w-full mt-3"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            console.log('🎯 [SELECTION] Vehicle selected via button:', vehicle.brand?.trim(), vehicle.model?.trim())
+                                            setFormData(prev => ({
+                                              ...prev,
+                                              vehicle_id: vehicle.id,
+                                              selectedVehicle: vehicle
+                                            }))
+                                          }}
+                                        >
+                                          {formData.vehicle_id === vehicle.id ? 'Selected' : 'Select'}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-8 border rounded-lg bg-muted/30 text-center">
+                        <Car className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">No vehicle categories available. Please add vehicles and categories first.</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+              
+              {/* Route Information Tab - Third */}
               <TabsContent value="route" className="mt-0 space-y-6">
+                {/* Service Selection - First in Route Tab */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <Car className="mr-2 h-5 w-5" />
+                      Service Selection
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-6">
+                      {/* Service Type Selection */}
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Service Type *</h3>
+                        {availableServices.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {availableServices.map((service) => (
+                              <div 
+                                key={service.id}
+                              className={`
+                                border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
+                                  ${formData.service_name === service.name ? 'border-2 ring-2 border-primary ring-primary/20 bg-primary/5' : 'hover:border-primary'}
+                                `}
+                                onClick={() => handleSelectChange('service_name', service.name)}
+                              >
+                                <Car className={`h-5 w-5 mb-1 ${formData.service_name === service.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <span className="font-medium text-sm text-center">{service.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                        ) : (
+                          <div className="p-4 border rounded-lg bg-muted/30">
+                            <p className="text-sm text-muted-foreground">No services available. Please add services first.</p>
+                      </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Service Duration - Show when service type is selected */}
+                {formData.service_name && (
+                  <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                    <div className="border-b py-4 px-6">
+                      <h2 className="text-lg font-semibold flex items-center">
+                        <Timer className="mr-2 h-5 w-5" />
+                        Service Duration
+                      </h2>
+                    </div>
+                    
+                    <div className="p-6">
+                      {/* Show different fields based on service type */}
+                      {formData.service_name === 'Airport Transfer Haneda' || formData.service_name === 'Airport Transfer Narita' ? (
+                        <div className="space-y-4">
+                          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Airport Transfer Service</span>
+                            </div>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                              Duration is automatically set to 1 hour for airport transfer services.
+                            </p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="hours_per_day" className="flex items-center gap-2">
+                                <Timer className="h-4 w-4 text-muted-foreground" />
+                                Hours Per Day
+                              </Label>
+                          <Input
+                                id="hours_per_day"
+                                name="hours_per_day"
+                                type="number"
+                                min="1"
+                                max="24"
+                                value={formData.hours_per_day || ''}
+                            onChange={handleInputChange}
+                                placeholder="1"
+                                className="transition-all focus:ring-2 focus:border-primary bg-gray-50 dark:bg-gray-800"
+                                readOnly
+                          />
+                      </div>
+                      
+                            <div className="space-y-2">
+                              <Label htmlFor="duration_hours" className="flex items-center gap-2">
+                                <Calculator className="h-4 w-4 text-muted-foreground" />
+                                Duration (Hours)
+                              </Label>
+                          <Input
+                                id="duration_hours"
+                                name="duration_hours"
+                                type="number"
+                                min="1"
+                                value={formData.duration_hours || ''}
+                            onChange={handleInputChange}
+                                placeholder="1"
+                                className="transition-all focus:ring-2 focus:border-primary bg-gray-50 dark:bg-gray-800"
+                                readOnly
+                          />
+                        </div>
+                      </div>
+                        </div>
+                      ) : formData.service_name === 'Charter Services' ? (
+                        <div className="space-y-4">
+                          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <span className="text-sm font-medium text-green-800 dark:text-green-200">Charter Service</span>
+                            </div>
+                            <p className="text-sm text-green-700 dark:text-green-300">
+                              Please specify the number of days and hours per day for your charter service.
+                            </p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                              <Label htmlFor="service_days" className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                Number of Days
+                              </Label>
+                        <Input
+                                id="service_days"
+                                name="service_days"
+                                type="number"
+                                min="1"
+                                max="30"
+                                value={formData.service_days || ''}
+                          onChange={handleInputChange}
+                                placeholder="e.g. 3"
+                          className="transition-all focus:ring-2 focus:border-primary"
+                        />
+                      </div>
+                            
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-2">
+                                <Timer className="h-4 w-4 text-muted-foreground" />
+                                Hours Per Day
+                              </Label>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((hours) => (
+                                  <button
+                                    key={hours}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, hours_per_day: hours }))}
+                                    className={`
+                                      h-auto py-2 px-2 flex flex-col items-center justify-center text-center transition-all text-xs border rounded
+                                      ${formData.hours_per_day === hours 
+                                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary' 
+                                        : 'bg-background border-input hover:bg-accent hover:text-accent-foreground'
+                                      }
+                                    `}
+                                  >
+                                    <span className="font-medium">{hours}h</span>
+                                  </button>
+                                ))}
+                    </div>
+                            </div>
+                          </div>
+                          
+                          {formData.service_days && formData.hours_per_day && (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                                <Calculator className="h-4 w-4" />
+                                <span className="text-sm font-medium">
+                                  Total Duration: {formData.service_days} days × {formData.hours_per_day} hours = {formData.service_days * formData.hours_per_day} total hours
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                  </div>
+                </Card>
+                )}
+              
                 {!isGoogleMapsKeyConfigured && (
                   <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
                     <AlertTitle className="text-yellow-800 dark:text-yellow-300">Google Maps API Key Missing</AlertTitle>
@@ -473,6 +1068,36 @@ export default function NewBookingPage() {
                   </div>
                   
                   <div className="p-6">
+                    {/* Date and Time Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Date *</h3>
+                        <Input
+                          id="date"
+                          name="date"
+                          type="date"
+                          value={formData.date || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Time *</h3>
+                        <Input
+                          id="time"
+                          name="time"
+                          type="time"
+                          value={formData.time || ''}
+                          onChange={handleInputChange}
+                          className="transition-all focus:ring-2 focus:border-primary"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <GooglePlaceAutocomplete
                         id="pickup_location"
@@ -505,6 +1130,7 @@ export default function NewBookingPage() {
                               style={{border: 0}}
                               loading="lazy"
                               allowFullScreen
+                              title="Route map from pickup to dropoff location"
                               src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(formData.pickup_location)}&destination=${encodeURIComponent(formData.dropoff_location)}&mode=driving`}
                             />
                             <div className="absolute bottom-3 left-3 z-10">
@@ -605,164 +1231,49 @@ export default function NewBookingPage() {
                 </Card>
               </TabsContent>
               
-              {/* Client Tab */}
-              <TabsContent value="client" className="mt-0 space-y-6">
+
+              
+              {/* Additional Info Tab */}
+              <TabsContent value="additional" className="mt-0 space-y-6">
+                {/* Booking Status */}
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
                   <div className="border-b py-4 px-6">
                     <h2 className="text-lg font-semibold flex items-center">
-                      <User className="mr-2 h-5 w-5" />
-                      Client Details
+                      <CheckCircle className="mr-2 h-5 w-5" />
+                      Booking Status
                     </h2>
                   </div>
                   
                   <div className="p-6">
-                    <div className="space-y-6">
                       <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Customer Name</h3>
-                        <Input
-                          id="customer_name"
-                          name="customer_name"
-                          value={formData.customer_name || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
+                      <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
+                          <div 
+                            key={status}
+                            className={`
+                              border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
+                              ${formData.status === status ? `border-2 ring-2 ${
+                                status === 'pending' ? 'border-yellow-500 ring-yellow-200' :
+                                status === 'confirmed' ? 'border-green-500 ring-green-200' :
+                                status === 'completed' ? 'border-blue-500 ring-blue-200' :
+                                'border-red-500 ring-red-200'
+                              }` : 'hover:border-primary'}
+                            `}
+                            onClick={() => handleSelectChange('status', status)}
+                          >
+                            {status === 'pending' && <AlertTriangle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-yellow-500' : 'text-muted-foreground'}`} />}
+                            {status === 'confirmed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-green-500' : 'text-muted-foreground'}`} />}
+                            {status === 'completed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-blue-500' : 'text-muted-foreground'}`} />}
+                            {status === 'cancelled' && <X className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-red-500' : 'text-muted-foreground'}`} />}
+                            <span className="capitalize font-medium text-sm">{status}</span>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Email *</h3>
-                        <Input
-                          id="customer_email"
-                          name="customer_email"
-                          type="email"
-                          required
-                          value={formData.customer_email || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
-                        <Input
-                          id="customer_phone"
-                          name="customer_phone"
-                          type="tel"
-                          value={formData.customer_phone || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Billing Information Section */}
-                    <Separator className="my-6" />
-                    
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold flex items-center">
-                        <CreditCard className="mr-2 h-5 w-5" />
-                        Billing Information
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Company Name</h3>
-                          <Input
-                            id="billing_company_name"
-                            name="billing_company_name"
-                            value={formData.billing_company_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Tax Number / VAT ID</h3>
-                          <Input
-                            id="billing_tax_number"
-                            name="billing_tax_number"
-                            value={formData.billing_tax_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Street Name</h3>
-                          <Input
-                            id="billing_street_name"
-                            name="billing_street_name"
-                            value={formData.billing_street_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Street Number / Building</h3>
-                          <Input
-                            id="billing_street_number"
-                            name="billing_street_number"
-                            value={formData.billing_street_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">City</h3>
-                          <Input
-                            id="billing_city"
-                            name="billing_city"
-                            value={formData.billing_city || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">State / Province</h3>
-                          <Input
-                            id="billing_state"
-                            name="billing_state"
-                            value={formData.billing_state || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Postal / ZIP Code</h3>
-                          <Input
-                            id="billing_postal_code"
-                            name="billing_postal_code"
-                            value={formData.billing_postal_code || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Country</h3>
-                        <Input
-                          id="billing_country"
-                          name="billing_country"
-                          value={formData.billing_country || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
+                        ))}
                       </div>
                     </div>
                   </div>
                 </Card>
-              </TabsContent>
               
-              {/* Additional Info Tab */}
-              <TabsContent value="additional" className="mt-0 space-y-6">
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
                   <div className="border-b py-4 px-6">
                     <h2 className="text-lg font-semibold flex items-center">
@@ -799,6 +1310,7 @@ export default function NewBookingPage() {
                     </div>
                   </div>
                 </Card>
+
                 
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
                   <div className="border-b py-4 px-6">
@@ -843,12 +1355,12 @@ export default function NewBookingPage() {
               <Button 
                 variant="outline"
                 onClick={() => {
-                  const tabs = ['summary', 'route', 'client', 'additional']
+                  const tabs = ['route', 'services', 'client', 'additional']
                   const currentIndex = tabs.indexOf(activeTab)
                   const previousTab = tabs[currentIndex - 1] || tabs[tabs.length - 1]
                   setActiveTab(previousTab)
                 }}
-                disabled={activeTab === 'summary'}
+                disabled={activeTab === 'route'}
                 className="gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -858,7 +1370,7 @@ export default function NewBookingPage() {
               <Button 
                 variant="outline"
                 onClick={() => {
-                  const tabs = ['summary', 'route', 'client', 'additional']
+                  const tabs = ['route', 'services', 'client', 'additional']
                   const currentIndex = tabs.indexOf(activeTab)
                   const nextTab = tabs[currentIndex + 1] || tabs[0]
                   setActiveTab(nextTab)

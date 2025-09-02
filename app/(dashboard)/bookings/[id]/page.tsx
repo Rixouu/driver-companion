@@ -240,8 +240,8 @@ export default function BookingPage() {
                                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
                     <p className="mt-1">
-                      {/* Get service_type_name from the first quotation item */}
-                      {booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                      {/* Use direct booking service_type field first, then fall back to meta */}
+                      {booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
                     </p>
                   </div>
                 
@@ -277,29 +277,47 @@ export default function BookingPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
                     <p className="mt-1">
-                      {/* Use vehicle_type from meta (which comes directly from quotations table) */}
-                      {booking.meta?.vehicle_type || 'Toyota Hiace Grand Cabin'}
+                      {/* Use direct booking fields first, then fall back to meta */}
+                      {booking.vehicle_make && booking.vehicle_model 
+                        ? `${booking.vehicle_make} ${booking.vehicle_model}${booking.vehicle_year ? ` (${booking.vehicle_year})` : ''}`
+                        : booking.meta?.vehicle_type || 'Toyota Hiace Grand Cabin'}
                     </p>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
                     <p className="mt-1">
+                      {/* Show actual category name from meta or fallback */}
                       {booking.meta?.vehicle_category_name || booking.meta?.vehicle_category || 'Not specified'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Passenger Capacity</h3>
+                    <p className="mt-1">
+                      {booking.vehicle_capacity 
+                        ? `${booking.vehicle_capacity} passengers`
+                        : 'Not specified'}
                     </p>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.hoursPerDay')}</h3>
                     <p className="mt-1">
-                      {booking.meta?.hours_per_day || 'Not specified'}
+                      {booking.hours_per_day || booking.meta?.hours_per_day || 'Not specified'}
+                      {(booking.service_name === 'Airport Transfer Haneda' || booking.service_name === 'Airport Transfer Narita') && (
+                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Auto-set for airport transfer)</span>
+                      )}
                     </p>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.durationHours')}</h3>
                     <p className="mt-1">
-                      {booking.meta?.duration_hours || 'Not specified'}
+                      {booking.duration_hours || booking.meta?.duration_hours || 'Not specified'}
+                      {(booking.service_name === 'Airport Transfer Haneda' || booking.service_name === 'Airport Transfer Narita') && (
+                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Auto-set for airport transfer)</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -501,7 +519,7 @@ export default function BookingPage() {
                           );
                           if (flightField?.value) return flightField.value;
                         }
-                        return booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided');
+                        return booking.flight_number || booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided');
                       })()}
                     </p>
                   </div>
@@ -518,7 +536,7 @@ export default function BookingPage() {
                           );
                           if (terminalField?.value) return terminalField.value;
                         }
-                        return booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided');
+                        return booking.terminal || booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided');
                       })()}
                     </p>
                   </div>

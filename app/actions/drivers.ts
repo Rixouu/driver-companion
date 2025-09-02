@@ -3,6 +3,46 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import type { Driver } from '@/types/drivers'
 
+export async function getDriversAction() {
+  const supabase = await getSupabaseServerClient()
+  
+  try {
+    // Get current user ID
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    
+    if (userError) {
+      console.error('Error getting user:', JSON.stringify(userError))
+      throw userError
+    }
+    
+    const userId = userData.user?.id
+    
+    if (!userId) {
+      throw new Error('User not authenticated')
+    }
+    
+    // Fetch drivers for the current user
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('*')
+      .eq('user_id', userId)
+      .order('first_name', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching drivers:', JSON.stringify(error))
+      throw error
+    }
+    
+    return data?.map(driver => ({
+      ...driver,
+      full_name: `${driver.first_name} ${driver.last_name}`
+    })) as Driver[] || []
+  } catch (error) {
+    console.error('Detailed error fetching drivers:', error)
+    throw error
+  }
+}
+
 export async function createDriverAction(driver: Partial<Driver>) {
   const supabase = await getSupabaseServerClient()
   

@@ -1538,9 +1538,49 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       }
     }
 
+    // Get vehicle information if vehicle_id is provided
+    let vehicleInfo = null;
+    if (bookingData.vehicle_id) {
+      // Get vehicle info from junction table to include correct category
+      const { data: vehicleWithCategory, error: vehicleError } = await supabase
+        .from('pricing_category_vehicles')
+        .select(`
+          category_id,
+          vehicles!inner(
+            id,
+            name,
+            brand,
+            model,
+            year,
+            plate_number,
+            passenger_capacity,
+            luggage_capacity,
+            image_url
+          ),
+          pricing_categories!inner(
+            name
+          )
+        `)
+        .eq('vehicles.id', bookingData.vehicle_id)
+        .single();
+
+      if (!vehicleError && vehicleWithCategory) {
+        vehicleInfo = {
+          ...vehicleWithCategory.vehicles,
+          category_name: vehicleWithCategory.pricing_categories.name
+        };
+      }
+    }
+
+    // Get current user for created_by field
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError) {
+      console.error('Error getting current user:', userError)
+    }
+
     // Create the booking
     const bookingInsertData = {
-      wp_id: `manual_${Date.now()}`, // Generate a unique WordPress ID for manual bookings
+      wp_id: `BOO-${Date.now()}`, // Generate a unique booking ID with BOO prefix
       customer_id: customerId,
       vehicle_id: bookingData.vehicle_id || null,
       service_name: bookingData.service_name,
@@ -1555,6 +1595,9 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       dropoff_location: bookingData.dropoff_location || null,
       distance: bookingData.distance ? String(bookingData.distance) : null,
       duration: bookingData.duration ? String(bookingData.duration) : null,
+      hours_per_day: bookingData.hours_per_day || null,
+      duration_hours: bookingData.duration_hours || null,
+      service_days: bookingData.service_days || null,
       price_amount: bookingData.price?.amount || null,
       price_currency: bookingData.price?.currency || null,
       price_formatted: bookingData.price?.formatted || null,
@@ -1563,10 +1606,12 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       payment_link: bookingData.payment_link || null,
       notes: bookingData.notes || null,
       driver_id: bookingData.driver_id || null,
-      service_type: bookingData.service_type || null,
-      vehicle_make: bookingData.vehicle_make || null,
-      vehicle_model: bookingData.vehicle_model || null,
-      created_by: bookingData.created_by || null, // Will be set from user session
+      service_type: bookingData.service_name || null, // Use service_name as service_type
+      vehicle_make: vehicleInfo?.brand || null,
+      vehicle_model: vehicleInfo?.model || null,
+      vehicle_capacity: vehicleInfo?.passenger_capacity || null,
+      vehicle_year: vehicleInfo?.year || null,
+      created_by: user?.id || null, // Set with current user ID
 
       billing_company_name: bookingData.billing_company_name || null,
       billing_tax_number: bookingData.billing_tax_number || null,
@@ -1578,6 +1623,18 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       billing_country: bookingData.billing_country || null,
       coupon_code: bookingData.coupon_code || null,
       coupon_discount_percentage: bookingData.coupon_discount_percentage ? parseFloat(bookingData.coupon_discount_percentage) : null,
+      meta: {
+        chbs_flight_number: bookingData.flight_number || null,
+        chbs_terminal: bookingData.terminal || null,
+        vehicle_category_name: vehicleInfo?.category_name || null,
+        vehicle_category: vehicleInfo?.category_name || null,
+        creator_info: user ? {
+          id: user.id,
+          email: user.email,
+          created_at: new Date().toISOString()
+        } : null
+      },
+      created_by: user?.id || null, // Set created_by to current user
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       synced_at: new Date().toISOString()

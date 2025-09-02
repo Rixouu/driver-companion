@@ -462,7 +462,21 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     vehicleInfo.id = booking.vehicle_id;
   }
   
-  // 2. Try to extract vehicle data from wp_meta
+  // 2. Use direct database fields if available (prioritize these over wp_meta)
+  if (booking.vehicle_make) {
+    vehicleInfo.make = booking.vehicle_make;
+  }
+  if (booking.vehicle_model) {
+    vehicleInfo.model = booking.vehicle_model;
+  }
+  if (booking.vehicle_year) {
+    vehicleInfo.year = booking.vehicle_year;
+  }
+  if (booking.vehicle_capacity) {
+    vehicleInfo.capacity = booking.vehicle_capacity;
+  }
+  
+  // 3. Try to extract vehicle data from wp_meta (fallback if direct fields not available)
   if (booking.wp_meta && typeof booking.wp_meta === 'object') {
     const meta = booking.wp_meta as Record<string, any>;
     
@@ -471,8 +485,8 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
       vehicleInfo.id = String(meta.chbs_vehicle_id);
     }
     
-    // Extract vehicle name and parse for make/model
-    if (meta.chbs_vehicle_name) {
+    // Extract vehicle name and parse for make/model (only if not already set from direct fields)
+    if (!vehicleInfo.make && !vehicleInfo.model && meta.chbs_vehicle_name) {
       const vehicleName = String(meta.chbs_vehicle_name);
       
       // Common vehicle makes
@@ -496,8 +510,8 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
       }
     }
     
-    // Extract capacity
-    if (meta.chbs_vehicle_passenger_count) {
+    // Extract capacity (only if not already set from direct fields)
+    if (!vehicleInfo.capacity && meta.chbs_vehicle_passenger_count) {
       const passengerCount = parseInt(String(meta.chbs_vehicle_passenger_count), 10);
       if (!isNaN(passengerCount)) {
         vehicleInfo.capacity = passengerCount;
@@ -557,12 +571,24 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     time: booking.time,
     status: booking.status,
     service_name: booking.service_name,
+    service_type: booking.service_type || undefined, // Map direct service_type field
     service_id: booking.service_id || undefined,
     customer_id: booking.customer_id || undefined,
     customer_name: booking.customer_name || undefined,
     customer_email: booking.customer_email || undefined,
     customer_phone: booking.customer_phone || undefined,
     driver_id: booking.driver_id || undefined,
+    
+    // Direct vehicle fields from database
+    vehicle_make: booking.vehicle_make || undefined,
+    vehicle_model: booking.vehicle_model || undefined,
+    vehicle_capacity: booking.vehicle_capacity || undefined,
+    vehicle_year: booking.vehicle_year || undefined,
+    
+    // Service duration fields (from meta if not in direct fields)
+    hours_per_day: (booking as any).hours_per_day || booking.meta?.hours_per_day || undefined,
+    duration_hours: (booking as any).duration_hours || booking.meta?.duration_hours || undefined,
+    service_days: (booking as any).service_days || booking.meta?.service_days || undefined,
     
     // Billing address fields
     billing_company_name: booking.billing_company_name || undefined,
@@ -615,6 +641,11 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     notes: booking.notes || undefined,
     meta: booking.meta ? (typeof booking.meta === 'object' ? booking.meta as Record<string, any> : undefined) : 
           booking.wp_meta ? (typeof booking.wp_meta === 'object' ? booking.wp_meta as Record<string, any> : undefined) : undefined,
+    
+    // Flight information from meta
+    flight_number: (booking.meta as any)?.chbs_flight_number || (booking.wp_meta as any)?.chbs_flight_number || undefined,
+    terminal: (booking.meta as any)?.chbs_terminal || (booking.wp_meta as any)?.chbs_terminal || undefined,
+    
     created_at: booking.created_at || undefined,
     updated_at: booking.updated_at || undefined,
   }
@@ -1399,14 +1430,8 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
       }
     }
     
-    // For direct bookings, use the created_by field directly
-    if (!creatorInfo && bookingData.created_by) {
-      creatorInfo = {
-        id: bookingData.created_by,
-        role: 'Admin', // Default role for direct booking creators
-        created_at: bookingData.created_at
-      };
-    }
+    // For direct bookings, we don't have created_by field in the schema
+    // So we'll leave creatorInfo as null for now
     
     console.log(`[DB] Raw booking data from database:`, {
       id: bookingData.id,

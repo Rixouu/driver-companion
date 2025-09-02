@@ -49,6 +49,8 @@ export interface Booking {
   vehicle?: Vehicle
   vehicle_make?: string   // Direct vehicle make information
   vehicle_model?: string  // Direct vehicle model information
+  vehicle_capacity?: number // Direct vehicle capacity information
+  vehicle_year?: string   // Direct vehicle year information
   
   // Service details
   service?: {
@@ -80,4 +82,13 @@ export interface Booking {
   created_at?: string
   updated_at?: string
   booking_status?: string
+  
+  // Service duration fields
+  hours_per_day?: number
+  duration_hours?: number
+  service_days?: number
+  
+  // Flight information (stored in meta)
+  flight_number?: string
+  terminal?: string
 } 

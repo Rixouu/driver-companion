@@ -1628,6 +1628,8 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
         chbs_terminal: bookingData.terminal || null,
         vehicle_category_name: vehicleInfo?.category_name || null,
         vehicle_category: vehicleInfo?.category_name || null,
+        vehicle_passenger_capacity: vehicleInfo?.passenger_capacity || null,
+        vehicle_luggage_capacity: vehicleInfo?.luggage_capacity || null,
         creator_info: user ? {
           id: user.id,
           email: user.email,

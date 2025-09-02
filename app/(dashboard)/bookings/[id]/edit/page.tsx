@@ -177,7 +177,7 @@ export default function EditBookingPage() {
           duration: loadedBooking.duration?.toString() || '',
           notes: loadedBooking.notes,
           driver_id: loadedBooking.driver_id,
-          vehicle_id: loadedBooking.vehicle?.id || undefined,
+          vehicle_id: loadedBooking.vehicle?.id || loadedBooking.vehicle_id || undefined,
           vehicle_category: loadedBooking.meta?.vehicle_category || '',
           flight_number: flightNumber,
           terminal: terminal,
@@ -437,7 +437,7 @@ export default function EditBookingPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 p-3 sm:p-4 rounded-lg shadow-sm">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div>
-              <h1 className="text-xl font-semibold">{t('bookings.edit.title', { id })}</h1>
+              <h1 className="text-xl font-semibold">Edit Booking #{booking?.wp_id || id}</h1>
               <p className="text-xs text-muted-foreground">
                 {t('bookings.details.lastUpdated', { date: new Date(booking.updated_at || '').toLocaleDateString() || 'N/A' })}
               </p>

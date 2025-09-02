@@ -297,6 +297,17 @@ export default function BookingPage() {
                     <p className="mt-1">
                       {booking.vehicle_capacity 
                         ? `${booking.vehicle_capacity} passengers`
+                        : booking.meta?.vehicle_passenger_capacity 
+                        ? `${booking.meta.vehicle_passenger_capacity} passengers`
+                        : 'Not specified'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Luggage Capacity</h3>
+                    <p className="mt-1">
+                      {booking.meta?.vehicle_luggage_capacity 
+                        ? `${booking.meta.vehicle_luggage_capacity} pieces`
                         : 'Not specified'}
                     </p>
                   </div>

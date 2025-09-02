@@ -1348,7 +1348,7 @@ export default function EditBookingPage() {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium">Status</Label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                        <div className="grid grid-cols-2 gap-3 mt-2">
                           {[
                             { value: 'pending', label: 'Pending', icon: AlertTriangle, color: 'border-yellow-500 text-yellow-600' },
                             { value: 'confirmed', label: 'Confirmed', icon: CheckCircle, color: 'border-green-500 text-green-600' },

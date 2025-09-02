@@ -987,8 +987,8 @@ export default function NewBookingPage() {
                             <p className="text-sm text-green-700 dark:text-green-300">
                               Please specify the number of days and hours per day for your charter service.
                             </p>
-                          </div>
-                          
+                      </div>
+                      
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                               <Label htmlFor="service_days" className="flex items-center gap-2">

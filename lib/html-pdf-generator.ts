@@ -568,10 +568,11 @@ export function generateQuotationHtml(
           <p style="margin: 0 0 5px 0; font-weight: normal; font-size: 13px;">
             ${quotationT.quotationNumber} ${formattedQuotationId}
           </p>
-          ${quotation.status === 'approved' || quotation.status === 'rejected' || quotation.status === 'paid' ? `
-            <div style="background: ${quotation.status === 'approved' ? '#10b981' : quotation.status === 'paid' ? '#10b981' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
+          ${quotation.status === 'approved' || quotation.status === 'rejected' || quotation.status === 'paid' || quotation.status === 'converted' ? `
+            <div style="background: ${quotation.status === 'approved' ? '#10b981' : quotation.status === 'paid' ? '#10b981' : quotation.status === 'converted' ? '#8b5cf6' : '#ef4444'}; color: white; padding: 8px 12px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 14px; display: inline-block;">
                               ${quotation.status === 'approved' ? (isJapanese ? `${getStatusSymbol(quotation.status)} 承認済み` : `${getStatusSymbol(quotation.status)} APPROVED`) :
                 quotation.status === 'paid' ? (isJapanese ? `${getStatusSymbol(quotation.status)} 支払い済み` : `${getStatusSymbol(quotation.status)} PAID`) :
+                quotation.status === 'converted' ? (isJapanese ? `${getStatusSymbol(quotation.status)} 予約済み` : `${getStatusSymbol(quotation.status)} CONVERTED`) :
                 (isJapanese ? `${getStatusSymbol(quotation.status)} 却下済み` : `${getStatusSymbol(quotation.status)} REJECTED`)}
             </div>
             <p style="margin: 5px 0 0 0; font-size: 13px;">
@@ -585,6 +586,10 @@ export function generateQuotationHtml(
                     quotation.payment_completed_at ? 
                       `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                       `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${quotationDate}`) :
+                quotation.status === 'converted' ?
+                  (quotation.updated_at ? 
+                    `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                    `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${quotationDate}`) :
                 (quotation.rejected_at ?
                   `${isJapanese ? '却下日時:' : 'Rejected on:'} ${new Date(quotation.rejected_at).toLocaleDateString(localeCode)} ${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                   `${isJapanese ? '却下日時:' : 'Rejected on:'} ${quotationDate}`)}
@@ -653,8 +658,8 @@ export function generateQuotationHtml(
         ` : ''}
       </div>
       
-      <!-- Payment Information section for paid quotations -->
-      ${quotation.status === 'paid' ? `
+      <!-- Payment Information section for paid or converted quotations -->
+      ${quotation.status === 'paid' || quotation.status === 'converted' ? `
         <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
           <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
             ${isJapanese ? '支払い情報' : 'Payment Information'}
@@ -839,7 +844,7 @@ export function generateQuotationHtml(
       <div style="page-break-before: always; margin-top: 20px;"></div>
       
       <!-- Signature Section on second page above Terms and Conditions -->
-      ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || quotation.status === 'paid' || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
+      ${showSignature && ((quotation.status === 'approved' && quotation.approval_signature) || quotation.status === 'paid' || quotation.status === 'converted' || (quotation.status === 'rejected' && quotation.rejection_signature)) ? `
         <div style="margin-bottom: 30px; margin-top: 20px;">
           <!-- Customer Signature Section -->
           <div style="margin-bottom: 20px;">        
@@ -861,6 +866,8 @@ export function generateQuotationHtml(
                     <div class="status-symbol" style="color: #10b981; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
                   ` : quotation.status === 'paid' ? `
                     <div class="status-symbol" style="color: #10b981; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
+                  ` : quotation.status === 'converted' ? `
+                    <div class="status-symbol" style="color: #8b5cf6; font-size: 48px;">${getStatusSymbol(quotation.status)}</div>
                   ` : quotation.status === 'rejected' && quotation.rejection_signature ? `
                     <img src="${quotation.rejection_signature}" alt="Customer Signature" style="max-width: 100%; max-height: 100px; object-fit: contain;">
                   ` : quotation.status === 'rejected' ? `
@@ -886,6 +893,10 @@ export function generateQuotationHtml(
                             quotation.payment_completed_at ? 
                               `${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)}` :
                               quotationDate) :
+                        quotation.status === 'converted' ?
+                          (quotation.updated_at ? 
+                            `${new Date(quotation.updated_at).toLocaleDateString(localeCode)}` :
+                            quotationDate) :
                           (quotation.rejected_at ?
                             `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}` :
                             quotationDate)}
@@ -898,6 +909,10 @@ export function generateQuotationHtml(
                         quotation.status === 'paid' ?
                           (quotation.payment_completed_at ? 
                             `${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                            '') :
+                        quotation.status === 'converted' ?
+                          (quotation.updated_at ? 
+                            `${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                             '') :
                           (quotation.rejected_at ?
                             `${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
@@ -931,6 +946,17 @@ export function generateQuotationHtml(
                     ${quotation.payment_method ? `
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.3;">
                       <strong>Method:</strong> ${quotation.payment_method}
+                    </p>
+                    ` : ''}
+                  </div>
+                ` : quotation.status === 'converted' ? `
+                  <div style="margin-top: 15px; padding: 10px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 12px; color: #374151; line-height: 1.3;">
+                      <strong>Status:</strong> ${getStatusSymbol(quotation.status)} CONVERTED TO BOOKING
+                    </p>
+                    ${quotation.updated_at ? `
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #374151; line-height: 1.3;">
+                      <strong>Converted on:</strong> ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     ` : ''}
                   </div>

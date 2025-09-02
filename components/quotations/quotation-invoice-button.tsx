@@ -281,7 +281,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       >
         <FileText className="h-4 w-4" />
         {isGenerating ? (t('invoices.actions.generating') || 'Generating...') : 
-          quotation.status === 'paid' ? 'Download Invoice (Paid)' : 
+          (quotation.status === 'paid' || quotation.status === 'converted') ? 'Download Invoice (Paid)' : 
           (t('invoices.actions.downloadPdf') || 'Download Invoice')}
       </Button>
       

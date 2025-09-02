@@ -109,19 +109,28 @@ function generateInvoiceHtml(
             ${isJapanese ? '見積参照:' : 'Quotation Ref:'} QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}
           </p>
           
-          <!-- Status Badge for Paid Quotations -->
-          ${quotation.status === 'paid' ? `
-            <div style="background: #10b981; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
-              ${isJapanese ? '✓ 支払い済み' : '✓ PAID'}
-            </div>
-            <p style="margin: 5px 0 0 0; font-size: 13px;">
-              ${quotation.payment_date ? 
-                `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${new Date(quotation.payment_date).toLocaleDateString(localeCode)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
-                quotation.payment_completed_at ? 
-                  `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
-                  `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${invoiceDate}`}
-            </p>
-          ` : ''}
+                     <!-- Status Badge for Paid and Converted Quotations -->
+           ${quotation.status === 'paid' ? `
+             <div style="background: #10b981; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+               ${isJapanese ? '✓ 支払い済み' : '✓ PAID'}
+             </div>
+             <p style="margin: 5px 0 0 0; font-size: 13px;">
+               ${quotation.payment_date ? 
+                 `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${new Date(quotation.payment_date).toLocaleDateString(localeCode)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
+                 quotation.payment_completed_at ? 
+                   `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                   `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${invoiceDate}`}
+             </p>
+           ` : quotation.status === 'converted' ? `
+             <div style="background: #8b5cf6; color: white; padding: 8px 12px; border-radius: 5px; margin-top: 10px; font-weight: bold; font-size: 14px; display: inline-block;">
+               ${isJapanese ? '✓ 予約済み' : '✓ CONVERTED'}
+             </div>
+             <p style="margin: 5px 0 0 0; font-size: 13px;">
+               ${quotation.updated_at ? 
+                 `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                 `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${invoiceDate}`}
+             </p>
+           ` : ''}
         </div>
         
         <div style="text-align: right;">
@@ -274,9 +283,75 @@ function generateInvoiceHtml(
           </tr>
         </table>
       </div>
+    </div>
+    
+    <!-- Page break before information blocks -->
+    <div style="page-break-before: always; margin-top: 20px;"></div>
+    
+    <!-- Information blocks on second page -->
+    ${quotation.status === 'paid' ? `
+      <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+        <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
+          ${isJapanese ? '支払い情報' : 'Payment Information'}
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+          ${quotation.payment_date ? `
+            <div>
+              <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
+              <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
+            </div>
+          ` : ''}
+          ${quotation.payment_completed_at ? `
+            <div>
+              <strong style="color: #166534;">${isJapanese ? '完了時刻:' : 'Completed at:'}</strong>
+              <span style="color: #374151;"> ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          ` : ''}
+          ${quotation.payment_amount ? `
+            <div>
+              <strong style="color: #166534;">${isJapanese ? '支払い金額:' : 'Payment Amount:'}</strong>
+              <span style="color: #374151;"> ${quotation.currency || 'JPY'} ${quotation.payment_amount.toLocaleString()}</span>
+            </div>
+          ` : ''}
+          ${quotation.payment_method ? `
+            <div>
+              <strong style="color: #166534;">${isJapanese ? '支払い方法:' : 'Payment Method:'}</strong>
+              <span style="color: #374151;"> ${quotation.payment_method}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    ` : quotation.status === 'converted' ? `
+      <div style="margin-bottom: 20px; padding: 15px; background: #faf5ff; border: 1px solid #8b5cf6; border-radius: 6px;">
+        <h3 style="margin: 0 0 10px 0; color: #7c3aed; font-size: 14px; font-weight: bold;">
+          ${isJapanese ? '予約変換情報' : 'Booking Conversion Information'}
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+          ${quotation.updated_at ? `
+            <div>
+              <strong style="color: #7c3aed;">${isJapanese ? '変換日:' : 'Converted on:'}</strong>
+              <span style="color: #374151;"> ${new Date(quotation.updated_at).toLocaleDateString(localeCode)}</span>
+            </div>
+          ` : ''}
+          ${quotation.updated_at ? `
+            <div>
+              <strong style="color: #7c3aed;">${isJapanese ? '変換時刻:' : 'Converted at:'}</strong>
+              <span style="color: #374151;"> ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          ` : ''}
+          <div>
+            <strong style="color: #7c3aed;">${isJapanese ? '状態:' : 'Status:'}</strong>
+            <span style="color: #374151;"> ${isJapanese ? '予約済み' : 'Converted to Booking'}</span>
+          </div>
+          <div>
+            <strong style="color: #7c3aed;">${isJapanese ? '総額:' : 'Total Amount:'}</strong>
+            <span style="color: #374151;"> ${formatCurrency(totals.finalTotal)}</span>
+          </div>
+        </div>
+      </div>
       
-      <!-- Payment Information section for paid quotations - moved above footer -->
-      ${quotation.status === 'paid' ? `
+      <!-- Show payment information for converted quotations if they have payment data -->
+      ${(quotation.payment_date || quotation.payment_completed_at || quotation.payment_amount || quotation.payment_method) ? `
         <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
           <h3 style="margin: 0 0 10px 0; color: #166534; font-size: 14px; font-weight: bold;">
             ${isJapanese ? '支払い情報' : 'Payment Information'}
@@ -309,11 +384,11 @@ function generateInvoiceHtml(
           </div>
         </div>
       ` : ''}
-      
-      <!-- Footer -->
-      <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; margin-bottom: 30px;">
-        ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
-      </div>
+    ` : ''}
+    
+    <!-- Footer on second page -->
+    <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+      ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
     </div>
   `;
 }
@@ -352,10 +427,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Only allow invoice generation for approved or paid quotations
-    if (!['approved', 'paid'].includes(quotation.status)) {
+    // Only allow invoice generation for approved, paid, or converted quotations
+    if (!['approved', 'paid', 'converted'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: 'Can only generate invoices for approved or paid quotations' },
+        { error: 'Can only generate invoices for approved, paid, or converted quotations' },
         { status: 400 }
       )
     }

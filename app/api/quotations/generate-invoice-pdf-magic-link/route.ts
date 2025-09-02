@@ -371,10 +371,10 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Only allow invoice generation for approved or paid quotations
-    if (!['approved', 'paid'].includes(quotation.status)) {
+    // Only allow invoice generation for approved, paid, or converted quotations
+    if (!['approved', 'paid', 'converted'].includes(quotation.status)) {
       return NextResponse.json(
-        { error: 'Can only generate invoices for approved or paid quotations' },
+        { error: 'Can only generate invoices for approved, paid, or converted quotations' },
         { status: 400 }
       )
     }

@@ -162,8 +162,22 @@ export default function EditBookingPage() {
         terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
         
         // Initialize form data including driver/vehicle IDs
+        // Extract base service type from full service name (e.g., "Airport Transfer Haneda - Toyota..." -> "Airport Transfer Haneda")
+        const extractBaseServiceType = (fullServiceName: string) => {
+          if (!fullServiceName) return '';
+          
+          // Check if it matches any of the available service types
+          const exactMatch = availableServices.find(service => service.name === fullServiceName);
+          if (exactMatch) return fullServiceName;
+          
+          // Extract base service type by removing everything after " - "
+          const baseName = fullServiceName.split(' - ')[0];
+          const matchingService = availableServices.find(service => service.name === baseName);
+          return matchingService ? baseName : fullServiceName;
+        };
+        
         const initialFormData = {
-          service_name: loadedBooking.service_name,
+          service_name: extractBaseServiceType(loadedBooking.service_name || ''),
           service_type: loadedBooking.service_type || loadedBooking.meta?.chbs_service_type || '',
           date: loadedBooking.date,
           time: loadedBooking.time,

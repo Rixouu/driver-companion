@@ -18,11 +18,6 @@ export function DriverAvailabilityManager({ driver }: DriverAvailabilityManagerP
   
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold tracking-tight">{t("drivers.availability.title")}</h2>
-      <p className="text-muted-foreground">
-        {t("drivers.availability.description", { defaultValue: "Manage availability periods for this driver. Set when they are available, on leave, or in training." })}
-      </p>
-      
       <Tabs
         defaultValue="calendar"
         value={activeTab}

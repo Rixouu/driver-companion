@@ -82,37 +82,36 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
       {/* Mobile-optimized card view */}
       <div className="sm:hidden space-y-3">
         {bookings.map((booking) => (
-          <div key={booking.supabase_id || booking.id} className="border rounded-lg p-3 bg-card hover:bg-muted/30 transition-colors">
+          <div key={booking.supabase_id || booking.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="text-sm font-medium">
-                    {format(new Date(booking.date), "PPP")}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {booking.time}
-                  </div>
-                </div>
                 <h4 className="font-medium text-sm mb-1 truncate">
                   {booking.service_name || 'No service name'}
                 </h4>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                  <span>{format(new Date(booking.date), "MMM d, yyyy")}</span>
+                  <span>•</span>
+                  <span>{booking.time || 'TBD'}</span>
+                </div>
                 {booking.customer_name && (
                   <p className="text-xs text-muted-foreground truncate">
                     Customer: {booking.customer_name}
                   </p>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-2 ml-3">
-                <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize text-xs")}>
-                  {booking.status}
-                </Badge>
-                <Button asChild variant="outline" size="sm" className="h-7 w-7 p-0">
-                  <Link href={`/bookings/${booking.id}`}>
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
+              <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize text-xs flex-shrink-0")}>
+                {booking.status}
+              </Badge>
+            </div>
+            
+            {/* Bottom Action Buttons - 50/50 Layout */}
+            <div className="flex gap-2 w-full">
+              <Button asChild variant="ghost" size="sm" className="h-8 flex-1">
+                <Link href={`/bookings/${booking.id}`}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                  View Details
+                </Link>
+              </Button>
             </div>
           </div>
         ))}
@@ -120,58 +119,50 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
 
       {/* Desktop table view */}
       <div className="hidden sm:block">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("drivers.bookingHistory.title")}</CardTitle>
-            <CardDescription>{t("drivers.bookingHistory.description")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="border rounded-md overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.dateTime")}</TableHead>
-                    <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.service")}</TableHead>
-                    <TableHead className="hidden md:table-cell text-xs sm:text-sm">{t("drivers.bookingHistory.table.customer")}</TableHead>
-                    <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.status")}</TableHead>
-                    <TableHead className="text-right text-xs sm:text-sm">{t("drivers.bookingHistory.table.actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bookings.map((booking) => (
-                    <TableRow key={booking.supabase_id || booking.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium text-xs sm:text-sm">
-                        <div className="flex flex-col">
-                          <span>{format(new Date(booking.date), "PPP")}</span>
-                          <span className="text-muted-foreground text-xs">{booking.time}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-xs sm:text-sm">
-                        {booking.service_name || 'No service name'}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-xs sm:text-sm">
-                        {booking.customer_name || 'No customer name'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize text-xs sm:text-sm")}>
-                          {booking.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
-                          <Link href={`/bookings/${booking.id}`}>
-                            {t("drivers.bookingHistory.viewButton")}
-                            <ExternalLink className="ml-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border rounded-md overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.dateTime")}</TableHead>
+                <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.service")}</TableHead>
+                <TableHead className="hidden md:table-cell text-xs sm:text-sm">{t("drivers.bookingHistory.table.customer")}</TableHead>
+                <TableHead className="text-xs sm:text-sm">{t("drivers.bookingHistory.table.status")}</TableHead>
+                <TableHead className="text-right text-xs sm:text-sm">{t("drivers.bookingHistory.table.actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bookings.map((booking) => (
+                <TableRow key={booking.supabase_id || booking.id} className="hover:bg-muted/30">
+                  <TableCell className="font-medium text-xs sm:text-sm">
+                    <div className="flex flex-col">
+                      <span>{format(new Date(booking.date), "PPP")}</span>
+                      <span className="text-muted-foreground text-xs">{booking.time}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate text-xs sm:text-sm">
+                    {booking.service_name || 'No service name'}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-xs sm:text-sm">
+                    {booking.customer_name || 'No customer name'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn(getStatusBadgeClasses(booking.status), "capitalize text-xs sm:text-sm")}>
+                      {booking.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
+                      <Link href={`/bookings/${booking.id}`}>
+                        {t("drivers.bookingHistory.viewButton")}
+                        <ExternalLink className="ml-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )

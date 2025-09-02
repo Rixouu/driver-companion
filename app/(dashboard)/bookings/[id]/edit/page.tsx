@@ -28,8 +28,8 @@ import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-auto
 import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { 
   ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
-  CreditCard, CheckCircle, AlertTriangle, Plane, Route, Timer, Info,
-  ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit
+  CreditCard, CheckCircle, CheckCircle2, AlertTriangle, Plane, Route, Timer, Info,
+  ExternalLink, X, Mail, Phone, MessageSquare, Calculator, Edit, Settings, XCircle
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -1335,6 +1335,52 @@ export default function EditBookingPage() {
               </TabsContent>
               
               <TabsContent value="additional" className="mt-0 space-y-6">
+                {/* Booking Status */}
+                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+                  <div className="border-b py-4 px-6">
+                    <h2 className="text-lg font-semibold flex items-center">
+                      <Settings className="mr-2 h-5 w-5" />
+                      Booking Status
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">Status</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                          {[
+                            { value: 'pending', label: 'Pending', icon: AlertTriangle, color: 'border-yellow-500 text-yellow-600' },
+                            { value: 'confirmed', label: 'Confirmed', icon: CheckCircle, color: 'border-green-500 text-green-600' },
+                            { value: 'completed', label: 'Completed', icon: CheckCircle2, color: 'border-blue-500 text-blue-600' },
+                            { value: 'cancelled', label: 'Cancelled', icon: XCircle, color: 'border-red-500 text-red-600' }
+                          ].map((status) => {
+                            const Icon = status.icon;
+                            const isSelected = formData.status === status.value;
+                            
+                            return (
+                              <div
+                                key={status.value}
+                                className={`
+                                  border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
+                                  ${isSelected 
+                                    ? `border-2 ring-2 ${status.color} ring-opacity-20 bg-opacity-5` 
+                                    : 'hover:border-primary border-gray-200 dark:border-gray-700'
+                                  }
+                                `}
+                                onClick={() => handleSelectChange('status', status.value)}
+                              >
+                                <Icon className={`h-5 w-5 mb-1 ${isSelected ? status.color.split(' ')[1] : 'text-muted-foreground'}`} />
+                                <span className="font-medium text-sm text-center">{status.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
                 <Card className="border rounded-lg shadow-sm dark:border-gray-800">
                   <div className="border-b py-4 px-6">
                     <h2 className="text-lg font-semibold flex items-center">

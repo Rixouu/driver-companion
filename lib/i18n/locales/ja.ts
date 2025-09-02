@@ -74,6 +74,7 @@ export const ja: TranslationValue = {
     list: "リスト",
     submitting: "送信中...",
     notAssigned: "未割り当て",
+    notSet: "未設定",
     noImage: "画像なし",
     minutes: "分",
     call: "電話",
@@ -221,6 +222,7 @@ export const ja: TranslationValue = {
     newDriver: {
       description: "新しいドライバーをチームに追加します。下記の個人情報と職業上の情報を入力してください。",
     },
+
     fields: {
       firstName: "名",
       lastName: "姓",
@@ -398,6 +400,19 @@ export const ja: TranslationValue = {
       consoleLoadError: "サーバーコンポーネントでID {driverId} のドライバーデータの読み込み中にエラーが発生しました："
     },
     messages: {
+      createSuccess: "ドライバーが正常に作成されました",
+      createSuccessDescription: "新しいドライバーがチームに追加されました",
+      createError: "ドライバーの作成に失敗しました",
+      createErrorDescription: "ドライバーの作成中に問題が発生しました。もう一度お試しください。",
+      consoleGenericCreateError: "ドライバー作成エラー",
+      updateSuccess: "ドライバーが正常に更新されました",
+      updateSuccessDescription: "ドライバー情報が更新されました",
+      updateError: "ドライバーの更新に失敗しました",
+      updateErrorDescription: "ドライバーの更新中に問題が発生しました。もう一度お試しください。",
+      deleteSuccess: "ドライバーが正常に削除されました",
+      deleteSuccessDescription: "ドライバーがチームから削除されました",
+      deleteError: "ドライバーの削除に失敗しました",
+      deleteErrorDescription: "ドライバーの削除中に問題が発生しました。もう一度お試しください。",
       refreshError: "ドライバーデータの更新に失敗しました",
       consoleRefreshError: "ドライバーデータの更新中にエラーが発生しました",
       couldNotSaveViewPreference: "表示設定を保存できませんでした",
@@ -419,8 +434,7 @@ export const ja: TranslationValue = {
       noPhoneNumber: "このドライバーの電話番号は利用できません",
       noEmail: "このドライバーのメールアドレスは利用できません",
       noLineId: "このドライバーのLINE IDは利用できません",
-      updateSuccess: "ドライバーが正常に更新されました",
-      updateSuccessDescription: "ドライバー情報が正常に更新されました。"
+
     }
   },
   vehicles: {
@@ -887,10 +901,12 @@ export const ja: TranslationValue = {
       maintenance: "整備点検",
       daily: "日常点検",
       unspecified: "未指定",
-      daily_checklist_toyota: "日常チェックリスト（トヨタ）",
-      "Daily Checklist Toyota": "日常チェックリスト（トヨタ）",
-      daily_checklist_mercedes: "日常チェックリスト（メルセデス）",
-      "Daily Checklist Mercedes": "日常チェックリスト（メルセデス）"
+      "daily_checklist_mercedes": "日常チェックリスト（メルセデス）",
+      "daily_checklist_toyota": "日常チェックリスト（トヨタ）",
+      "daily checklist mercedes": "日常チェックリスト（メルセデス）",
+      "daily checklist toyota": "日常チェックリスト（トヨタ）",
+      "Daily Checklist Mercedes": "日常チェックリスト（メルセデス）",
+      "Daily Checklist Toyota": "日常チェックリスト（トヨタ）"
     },
     statusValues: {
       pass: "合格",

@@ -394,7 +394,7 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
   };
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 print-container">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 print-container">
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 print-content">
         {/* Left Column (Main Content) */}
@@ -406,14 +406,14 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
             <CardContent>
               {inspection.vehicle ? (
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="w-full sm:w-80 h-56 bg-muted rounded-md overflow-hidden relative flex-shrink-0">
+                  <div className="w-full sm:w-80 h-48 sm:h-56 bg-muted rounded-md overflow-hidden relative flex-shrink-0">
                     {inspection.vehicle.image_url ? (
                         <Image 
                           src={inspection.vehicle.image_url} 
                           alt={inspection.vehicle.name || t('vehicles.imageAlt', { name: inspection.vehicle.name || t('common.untitled')})} 
                           fill
                           sizes="(max-width: 640px) 100vw, 320px"
-                          className="object-cover"
+                          className="object-contain sm:object-cover"
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -430,8 +430,10 @@ export function InspectionDetails({ inspection: initialInspection }: InspectionD
                       <Label>{t("vehicles.fields.plateNumber")}</Label>
                       <TextValue>{inspection.vehicle.plate_number || t("common.notAvailable")}</TextValue>
                     </div>
-                    <Link href={`/vehicles/${inspection.vehicle_id}`} className="text-sm text-primary hover:underline mt-2 block">
-                      {t("common.viewDetails")}
+                    <Link href={`/vehicles/${inspection.vehicle_id}`} className="block mt-3">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        {t("common.viewDetails")}
+                      </Button>
                     </Link>
                   </div>
                 </div>

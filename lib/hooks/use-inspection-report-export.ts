@@ -303,7 +303,11 @@ export function useInspectionReportExport({
       summaryGrid.style.display = 'grid';
       summaryGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
       summaryGrid.style.gap = '10px 30px';
-      summaryGrid.appendChild(createDetailItem(t('inspections.typeLabel'), inspection.type ? t(`inspections.typeValues.${inspection.type.toLowerCase()}`) : t('common.notAvailable')));
+             // Get proper type translation - same logic as inspection details page
+       const typeTranslation = inspection.type ? 
+         t(`inspections.typeValues.${inspection.type.replace(/ /g, '_').toLowerCase()}`, { defaultValue: inspection.type }) : 
+         t('common.notAvailable');
+       summaryGrid.appendChild(createDetailItem(t('inspections.typeLabel'), typeTranslation));
       summaryGrid.appendChild(createDetailItem(t('inspections.statusLabel'), inspection.status ? t(`inspections.statusValues.${inspection.status.toLowerCase()}`) : t('common.notAvailable')));
       summaryGrid.appendChild(createDetailItem(t('inspections.inspectorLabel'), inspection.inspector?.name || t('common.notAvailable')));
       summaryGrid.appendChild(createDetailItem(t('inspections.inspectorEmailLabel'), inspection.inspector?.email || t('common.notAvailable')));
@@ -330,6 +334,14 @@ export function useInspectionReportExport({
       itemsTitleElement.style.color = '#333';
       itemsTitleContainer.appendChild(itemsTitleElement);
       itemsSection.appendChild(itemsTitleContainer);
+      
+      // Create a two-column container for items
+      const itemsGridContainer = document.createElement('div');
+      itemsGridContainer.style.display = 'grid';
+      itemsGridContainer.style.gridTemplateColumns = '1fr 1fr';
+      itemsGridContainer.style.gap = '15px';
+      itemsGridContainer.style.marginBottom = '20px';
+      
       itemsWithTemplates.forEach((item, index) => {
         const itemCard = document.createElement('div');
         itemCard.className = 'inspection-item-card-pdf';
@@ -385,14 +397,55 @@ export function useInspectionReportExport({
           });
           itemCard.appendChild(photosContainer);
         }
-        itemsSection.appendChild(itemCard);
+        itemsGridContainer.appendChild(itemCard);
       });
+      itemsSection.appendChild(itemsGridContainer);
       pdfContainer.appendChild(itemsSection);
+      // Create footer section with inspector info
+      const footerSection = document.createElement('div');
+      footerSection.style.marginTop = '30px';
+      footerSection.style.padding = '20px';
+      footerSection.style.borderTop = '2px solid #e0e0e0';
+      footerSection.style.backgroundColor = '#f8f9fa';
+      footerSection.style.textAlign = 'center';
+      
+      const inspectorInfo = document.createElement('div');
+      inspectorInfo.style.fontSize = '14px';
+      inspectorInfo.style.color = '#333';
+      inspectorInfo.style.marginBottom = '10px';
+      
+      // Get inspector name - same logic as inspection details page
+      const inspectorName = inspection.inspector?.name || t('common.notAssigned');
+      const inspectionDateFormatted = new Date(inspection.created_at || inspection.updated_at || new Date()).toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US');
+      
+      inspectorInfo.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">Inspector: ${inspectorName}</div>
+        <div>Inspection Date: ${inspectionDateFormatted}</div>
+      `;
+      
+      footerSection.appendChild(inspectorInfo);
+      pdfContainer.appendChild(footerSection);
+      
       const footerText = `${t('inspections.details.pdfFooter.generatedOn')} ${new Date().toLocaleDateString(currentLanguage === 'ja' ? 'ja-JP' : 'en-US')} | ${t('inspections.details.pdfFooter.vehicleName')}: ${inspection.vehicle?.name || 'N/A'}`;
       document.body.appendChild(pdfContainer);
-      const vehicleNameForFile = inspection.vehicle?.name || 'vehicle';
-      const sanitizedVehicleName = vehicleNameForFile.replace(/[^a-z0-9]/gi, '-').toLowerCase();
-      const filename = `inspection-report-${inspection.id.substring(0,8)}-${sanitizedVehicleName}.pdf`;
+      // Generate filename in format: inspection-report-{date}-{brand}-{model}-{inspector-name}
+      const inspectionDateForFilename = new Date(inspection.created_at || inspection.updated_at || new Date());
+      const dateFormatted = inspectionDateForFilename.toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      }).replace(/\//g, '-');
+      
+      const brand = (inspection.vehicle as any)?.make || (inspection.vehicle as any)?.brand || 'unknown-brand';
+      const model = (inspection.vehicle as any)?.model || 'unknown-model';
+      const inspectorNameForFilename = inspection.inspector?.name || 'unknown-inspector';
+      
+      // Sanitize all parts for filename
+      const sanitizedBrand = brand.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const sanitizedModel = model.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const sanitizedInspector = inspectorNameForFilename.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      
+      const filename = `inspection-report-${dateFormatted}-${sanitizedBrand}-${sanitizedModel}-${sanitizedInspector}.pdf`;
       const opt = {
         margin: [5, 5, 15, 5],
         filename: filename,

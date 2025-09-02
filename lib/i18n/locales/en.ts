@@ -81,6 +81,7 @@ export const en: TranslationValue = {
     list: "List",
     submitting: "Submitting...",
     notAssigned: "Not Assigned",
+    notSet: "Not Set",
     noImage: "No image",
     minutes: "Minutes",
     call: "Call",
@@ -236,6 +237,7 @@ export const en: TranslationValue = {
     newDriver: {
       description: "Add a new driver to your team. Fill in the personal and professional information below.",
     },
+
     fields: {
       firstName: "First Name",
       lastName: "Last Name",
@@ -410,6 +412,19 @@ export const en: TranslationValue = {
       consoleLoadError: "Error loading driver data for ID {driverId} in server component:"
     },
     messages: {
+      createSuccess: "Driver created successfully",
+      createSuccessDescription: "The new driver has been added to your team",
+      createError: "Failed to create driver",
+      createErrorDescription: "There was a problem creating the driver. Please try again.",
+      consoleGenericCreateError: "Error creating driver",
+      updateSuccess: "Driver updated successfully",
+      updateSuccessDescription: "The driver information has been updated",
+      updateError: "Failed to update driver",
+      updateErrorDescription: "There was a problem updating the driver. Please try again.",
+      deleteSuccess: "Driver deleted successfully",
+      deleteSuccessDescription: "The driver has been removed from your team",
+      deleteError: "Failed to delete driver",
+      deleteErrorDescription: "There was a problem deleting the driver. Please try again.",
       refreshError: "Failed to refresh driver data",
       consoleRefreshError: "Error refreshing driver data",
       couldNotSaveViewPreference: "Could not save view preference",
@@ -431,8 +446,7 @@ export const en: TranslationValue = {
       noPhoneNumber: "No phone number available for this driver",
       noEmail: "No email available for this driver",
       noLineId: "No LINE ID available for this driver",
-      updateSuccess: "Driver updated successfully",
-      updateSuccessDescription: "The driver information has been updated successfully."
+
     }
   },
   customers: {
@@ -900,16 +914,18 @@ export const en: TranslationValue = {
         test: "Test inspection template for development and training purposes."
       }
     },
-          typeValues: {
-        routine: "Routine",
-        safety: "Safety",
-        maintenance: "Maintenance",
-        daily: "Daily",
-        unspecified: "Unspecified",
-        daily_checklist_toyota: "Daily Checklist (Toyota)",
-        "Daily Checklist Toyota": "Daily Checklist (Toyota)",
-        daily_checklist_mercedes: "Daily Checklist (Mercedes)",
-        "Daily Checklist Mercedes": "Daily Checklist (Mercedes)"
+              typeValues: {
+      routine: "Routine",
+      safety: "Safety",
+      maintenance: "Maintenance",
+      daily: "Daily",
+      unspecified: "Unspecified",
+      "daily_checklist_mercedes": "Daily Checklist (Mercedes)",
+      "daily_checklist_toyota": "Daily Checklist (Toyota)",
+      "daily checklist mercedes": "Daily Checklist (Mercedes)",
+      "daily checklist toyota": "Daily Checklist (Toyota)",
+      "Daily Checklist Mercedes": "Daily Checklist (Mercedes)",
+      "Daily Checklist Toyota": "Daily Checklist (Toyota)"
       },
     statusValues: {
       pass: "Pass",

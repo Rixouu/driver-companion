@@ -6,7 +6,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useI18n } from "@/lib/i18n/context"
 import { DriverForm } from "@/components/drivers/driver-form"
-import { createDriver } from "@/lib/services/drivers"
+import { createDriverAction } from "@/app/actions/drivers"
 import { toast } from "@/components/ui/use-toast"
 import type { DriverFormData } from "@/types"
 
@@ -18,7 +18,7 @@ export default function NewDriverPage() {
   async function onSubmit(data: DriverFormData) {
     try {
       setIsSubmitting(true)
-      const driver = await createDriver(data)
+      const driver = await createDriverAction(data)
       
       toast({
         title: t("drivers.messages.createSuccess"),

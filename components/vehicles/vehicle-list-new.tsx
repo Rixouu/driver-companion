@@ -354,7 +354,7 @@ export function VehicleList({
         </div>
 
         {/* Select All Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
+        <div className="flex flex-col gap-3 px-4 py-3 bg-muted/20 rounded-lg border border-border/40 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -373,31 +373,36 @@ export function VehicleList({
 
           {/* Multi-select Actions */}
           {selectedVehicles.size > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleDeleteSelected}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-1 sm:flex-none"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete ({selectedVehicles.size})
+                <span className="hidden xs:inline">Delete</span>
+                <span className="xs:hidden">Del</span>
+                <span className="ml-1">({selectedVehicles.size})</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportCSV}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-1 sm:flex-none"
               >
                 <Download className="h-4 w-4" />
-                Export CSV
+                <span className="hidden xs:inline">Export CSV</span>
+                <span className="xs:hidden">Export</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedVehicles(new Set())}
+                className="flex-1 sm:flex-none"
               >
-                Clear Selection
+                <span className="hidden xs:inline">Clear Selection</span>
+                <span className="xs:hidden">Clear</span>
               </Button>
             </div>
           )}

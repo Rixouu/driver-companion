@@ -231,7 +231,7 @@ export function DriverList({
             </div>
 
             {/* Select All Bar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
+            <div className="flex flex-col gap-3 px-4 py-3 bg-muted/20 rounded-lg border border-border/40 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <Checkbox
                   checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
@@ -248,7 +248,7 @@ export function DriverList({
 
               {/* Multi-select Actions */}
               {selectedDrivers.size > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                   <Button
                     variant="destructive"
                     size="sm"
@@ -256,10 +256,12 @@ export function DriverList({
                       // TODO: Implement bulk delete for drivers
                       console.log('Deleting drivers:', Array.from(selectedDrivers));
                     }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 sm:flex-none"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Delete ({selectedDrivers.size})
+                    <span className="hidden xs:inline">Delete</span>
+                    <span className="xs:hidden">Del</span>
+                    <span className="ml-1">({selectedDrivers.size})</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -267,17 +269,20 @@ export function DriverList({
                     onClick={() => {
                       setSelectedDrivers(new Set());
                     }}
+                    className="flex-1 sm:flex-none"
                   >
-                    Clear Selection
+                    <span className="hidden xs:inline">Clear Selection</span>
+                    <span className="xs:hidden">Clear</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleExport}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-1 sm:flex-none"
                   >
                     <Download className="h-4 w-4" />
-                    Export CSV
+                    <span className="hidden xs:inline">Export CSV</span>
+                    <span className="xs:hidden">Export</span>
                   </Button>
                 </div>
               )}
@@ -532,19 +537,62 @@ export function DriverList({
           </div>
 
           {/* Grid View Selection Header */}
-          <div className="flex items-center gap-3 mb-4 p-3 bg-muted/30 rounded-lg border">
-            <Checkbox
-              checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
-              onCheckedChange={handleSelectAll}
-              aria-label="Select all drivers"
-            />
-            <span className="text-sm font-medium text-muted-foreground">
-              Select All
-            </span>
+          <div className="flex flex-col gap-3 mb-4 p-3 bg-muted/30 rounded-lg border sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={selectedDrivers.size === paginatedDrivers.length && paginatedDrivers.length > 0}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all drivers"
+              />
+              <span className="text-sm font-medium text-muted-foreground">
+                Select All
+              </span>
+              {selectedDrivers.size > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  ({selectedDrivers.size} of {paginatedDrivers.length} selected)
+                </span>
+              )}
+            </div>
+
+            {/* Multi-select Actions */}
             {selectedDrivers.size > 0 && (
-              <Badge variant="secondary" className="ml-auto">
-                {selectedDrivers.size} selected
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    // TODO: Implement bulk delete for drivers
+                    console.log('Deleting drivers:', Array.from(selectedDrivers));
+                  }}
+                  className="flex items-center gap-2 flex-1 sm:flex-none"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden xs:inline">Delete</span>
+                  <span className="xs:hidden">Del</span>
+                  <span className="ml-1">({selectedDrivers.size})</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedDrivers(new Set());
+                  }}
+                  className="flex-1 sm:flex-none"
+                >
+                  <span className="hidden xs:inline">Clear Selection</span>
+                  <span className="xs:hidden">Clear</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  className="flex items-center gap-2 flex-1 sm:flex-none"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden xs:inline">Export CSV</span>
+                  <span className="xs:hidden">Export</span>
+                </Button>
+              </div>
             )}
           </div>
 
@@ -648,7 +696,7 @@ export function DriverList({
                   onClick={(e) => {
                     e.preventDefault();
                     if (currentPage > 1) {
-                      const params = new URLSearchParams(searchParams.toString())
+                      const params = new URLSearchParams(searchParams?.toString() || '')
                       params.set('page', (currentPage - 1).toString())
                       router.push(`?${params.toString()}`)
                     }

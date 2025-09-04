@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +24,9 @@ import {
   Edit,
   Download,
   Trash2,
-  Check
+  Check,
+  List,
+  LayoutGrid
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -55,6 +57,7 @@ export function CustomersPageContent({
   const [loading, setLoading] = useState(false)
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
 
   // Enhanced filter states
   const [filterOptions, setFilterOptions] = useState<CustomerFilterOptions>({
@@ -176,7 +179,7 @@ export function CustomersPageContent({
 
   // Update URL with enhanced filters
   const updateFilters = (newFilters: Partial<CustomerFilterOptions>) => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() || '')
     
     // Update parameters
     Object.entries(newFilters).forEach(([key, value]) => {
@@ -311,7 +314,7 @@ export function CustomersPageContent({
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams?.toString() || '')
     params.set('page', page.toString())
     router.push(`/customers?${params.toString()}`)
   }
@@ -390,28 +393,29 @@ export function CustomersPageContent({
             Showing {filteredCustomers.length} customers
           </div>
           <div className="touch-manipulation">
-            {/* TODO: Add ViewToggle component for customers */}
-            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 w-fit">
               <button 
-                className="p-2 rounded bg-background shadow-sm"
+                className={`p-2 rounded ${viewMode === "list" ? "bg-background shadow-sm" : ""}`}
+                onClick={() => setViewMode("list")}
                 title="List view"
                 aria-label="List view"
               >
-                <Users className="h-4 w-4" />
+                <List className={`h-4 w-4 ${viewMode === "list" ? "" : "text-muted-foreground"}`} />
               </button>
               <button 
-                className="p-2 rounded"
+                className={`p-2 rounded ${viewMode === "grid" ? "bg-background shadow-sm" : ""}`}
+                onClick={() => setViewMode("grid")}
                 title="Grid view"
                 aria-label="Grid view"
               >
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <LayoutGrid className={`h-4 w-4 ${viewMode === "grid" ? "" : "text-muted-foreground"}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Select All Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
+        <div className="flex flex-col gap-3 px-4 py-3 bg-muted/20 rounded-lg border border-border/40 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -431,16 +435,18 @@ export function CustomersPageContent({
 
           {/* Multi-select Actions */}
           {selectedCustomers.size > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={deleteSelectedCustomers}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-1 sm:flex-none"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete ({selectedCustomers.size})
+                <span className="hidden xs:inline">Delete</span>
+                <span className="xs:hidden">Del</span>
+                <span className="ml-1">({selectedCustomers.size})</span>
               </Button>
               <Button
                 variant="outline"
@@ -449,25 +455,30 @@ export function CustomersPageContent({
                   setSelectedCustomers(new Set())
                   setSelectAll(false)
                 }}
+                className="flex-1 sm:flex-none"
               >
-                Clear Selection
+                <span className="hidden xs:inline">Clear Selection</span>
+                <span className="xs:hidden">Clear</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={exportToCSV}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-1 sm:flex-none"
               >
                 <Download className="h-4 w-4" />
-                Export CSV
+                <span className="hidden xs:inline">Export CSV</span>
+                <span className="xs:hidden">Export</span>
               </Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Desktop Table View with Headers */}
-      <div className="hidden sm:block space-y-3">
+      {viewMode === "list" ? (
+        <>
+          {/* Desktop List View with Headers */}
+          <div className="hidden sm:block space-y-3">
         {/* Column Headers */}
         <div className="grid grid-cols-12 items-center gap-4 px-4 py-3 bg-muted/20 rounded-lg border border-border/40">
           <div className="col-span-1">
@@ -572,7 +583,7 @@ export function CustomersPageContent({
                 >
                   <Link href={`/customers/${customer.id}`}>
                     <Eye className="h-4 w-4" />
-                    View
+                    View Details
                   </Link>
                 </Button>
                 <Button 
@@ -731,6 +742,103 @@ export function CustomersPageContent({
           </Card>
         )}
       </div>
+        </>
+      ) : (
+        <>
+          {/* Grid View */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredCustomers.map((customer) => (
+              <Card key={customer.id} className="overflow-hidden hover:shadow-md transition-shadow h-full cursor-pointer active:bg-muted/50">
+                <div className="h-full flex flex-col">
+                  <CardContent className="p-6 pt-5 flex-grow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedCustomers.has(customer.id)}
+                          onChange={() => handleSelectCustomer(customer.id)}
+                          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                          aria-label={`Select ${customer.name || 'customer'}`}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                      {customer.segment_name && (
+                        <Badge 
+                          variant="outline"
+                          className={cn(
+                            "text-xs",
+                            customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                            customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                            customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                            customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                          )}
+                        >
+                          {customer.segment_name}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mb-3">
+                      <h3 className="font-medium text-lg">{customer.name || 'Unnamed Customer'}</h3>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <span className="truncate">{customer.email}</span>
+                      </div>
+                      
+                      {customer.phone && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-4 w-4" />
+                          <span>{customer.phone}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <TrendingUp className="h-4 w-4" />
+                        <span>{formatCurrency(customer.total_spent, 'JPY')} spent</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-0">
+                    <div className="flex gap-2 w-full pt-3 border-t border-border/40">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        asChild
+                        className="flex-1 flex items-center gap-2 justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Link href={`/customers/${customer.id}`}>
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        asChild
+                        className="flex-1 flex items-center gap-2 justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Link href={`/customers/${customer.id}/edit`}>
+                          <Edit className="h-4 w-4" />
+                          Edit
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

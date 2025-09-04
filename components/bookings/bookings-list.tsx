@@ -134,7 +134,7 @@ export function BookingsList({
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<BookingStatus>(
     externalStatus as BookingStatus || 
-    (searchParams.get('status') as BookingStatus) || 
+    (searchParams?.get('status') as BookingStatus) || 
     'all'
   )
   const [showConfigHelper, setShowConfigHelper] = useState(false)
@@ -175,7 +175,7 @@ export function BookingsList({
   const handleStatusChange = (newStatus: BookingStatus) => {
     setStatus(newStatus)
     
-    const params = new URLSearchParams(searchParams)
+    const params = new URLSearchParams(searchParams?.toString() || '')
     if (newStatus !== 'all') {
       params.set('status', newStatus)
     } else {
@@ -711,7 +711,7 @@ export function BookingsList({
       </div>
 
       {/* Select All Bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/20 rounded-lg">
+      <div className="flex flex-col gap-3 px-4 py-3 bg-muted/20 rounded-lg sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
@@ -729,11 +729,17 @@ export function BookingsList({
         </div>
         {/* Multi-select Actions */}
         {selectedBookings.size > 0 && (
-          <div className="flex items-center gap-2">
-            <Button variant="destructive" size="sm" onClick={handleDeleteSelected} className="flex items-center gap-2">
-              <Trash className="h-4 w-4" /> Delete ({selectedBookings.size})
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <Button variant="destructive" size="sm" onClick={handleDeleteSelected} className="flex items-center gap-2 flex-1 sm:flex-none">
+              <Trash className="h-4 w-4" />
+              <span className="hidden xs:inline">Delete</span>
+              <span className="xs:hidden">Del</span>
+              <span className="ml-1">({selectedBookings.size})</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleClearSelection}>Clear Selection</Button>
+            <Button variant="outline" size="sm" onClick={handleClearSelection} className="flex-1 sm:flex-none">
+              <span className="hidden xs:inline">Clear Selection</span>
+              <span className="xs:hidden">Clear</span>
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -741,11 +747,15 @@ export function BookingsList({
                 console.log('Current selections:', Array.from(selectedBookings));
                 console.log('Current bookings:', bookings.map(b => ({ id: b.id, wp_id: b.wp_id })));
               }}
+              className="flex-1 sm:flex-none"
             >
-              Debug Selection
+              <span className="hidden xs:inline">Debug Selection</span>
+              <span className="xs:hidden">Debug</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportSelected} className="flex items-center gap-2">
-              <Download className="h-4 w-4" /> Export CSV
+            <Button variant="outline" size="sm" onClick={handleExportSelected} className="flex items-center gap-2 flex-1 sm:flex-none">
+              <Download className="h-4 w-4" />
+              <span className="hidden xs:inline">Export CSV</span>
+              <span className="xs:hidden">Export</span>
             </Button>
           </div>
         )}

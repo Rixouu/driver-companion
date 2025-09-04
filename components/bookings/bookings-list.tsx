@@ -911,7 +911,7 @@ export function BookingsList({
               </div>
               
               {/* Action Buttons */}
-              <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t">
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -919,7 +919,7 @@ export function BookingsList({
                   className="flex items-center gap-2 w-full justify-center"
                 >
                   <Icons.eye className="h-4 w-4" />
-                  View
+                  View Details
                 </Button>
                 
                 <Button 
@@ -930,16 +930,6 @@ export function BookingsList({
                 >
                   <Edit className="h-4 w-4" />
                   Edit
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleCancelBooking(booking.id.toString()); }}
-                  className="flex items-center gap-2 w-full justify-center text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                >
-                  <Trash className="h-4 w-4" />
-                  Cancel
                 </Button>
               </div>
             </div>

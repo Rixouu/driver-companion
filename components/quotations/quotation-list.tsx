@@ -876,9 +876,11 @@ export default function QuotationList({
                 
                 {/* Footer with Date, Amount, and Actions */}
                 <div className="flex items-center justify-between pt-3 border-t">
-                  <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                    <div>
                       <span>{quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}</span>
+                    </div>
+                    <div>
                       <span>Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}</span>
                     </div>
                     {needsReminder(quotation) && (
@@ -904,7 +906,7 @@ export default function QuotationList({
                 </div>
                 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t">
+                <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t">
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -912,7 +914,7 @@ export default function QuotationList({
                     className="flex items-center gap-2 w-full justify-center"
                   >
                     <EyeIcon className="h-4 w-4" />
-                    View
+                    View Details
                   </Button>
                   
                   <Button 
@@ -924,22 +926,6 @@ export default function QuotationList({
                     <CopyIcon className="h-4 w-4" />
                     Copy
                   </Button>
-                  
-                  {quotation.status === 'sent' && !isExpired(quotation) && onRemind ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleRemindClick(e, quotation.id); }}
-                      className="flex items-center gap-2 w-full justify-center"
-                    >
-                      <BellIcon className="h-4 w-4" />
-                      Remind
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2 w-full justify-center">
-                      <span className="text-xs text-muted-foreground">—</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </Card>

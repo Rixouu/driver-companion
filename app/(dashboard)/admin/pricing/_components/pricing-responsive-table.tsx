@@ -227,15 +227,6 @@ export function PricingMobileCard({
               <Edit className="h-4 w-4 mr-2" />
               {t('common.edit')}
             </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0 hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => onDelete?.(category.id)}
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardContent>

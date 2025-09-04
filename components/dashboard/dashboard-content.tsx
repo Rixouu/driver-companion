@@ -144,7 +144,7 @@ function getMaintenanceStatusBadge(status: string, t: (key: string, options?: an
         return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`maintenance.status.${status}`)}</Badge>;
       case 'scheduled':
       case 'pending':
-        return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20">{t(`maintenance.status.${status}`)}</Badge>;
       case 'cancelled':
         return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">{t(`maintenance.status.${status}`)}</Badge>;
       default:
@@ -162,7 +162,7 @@ function getInspectionStatusBadge(status: string, t: (key: string, options?: any
         return <Badge variant="outline" className="text-red-500 border-red-200 bg-red-50 dark:bg-red-900/20">{t(`inspections.status.${status}`)}</Badge>;
       case 'scheduled':
       case 'pending':
-        return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50 dark:bg-blue-900/20">{t(`inspections.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20">{t(`inspections.status.${status}`)}</Badge>;
       default:
         return <Badge variant="outline" className="text-gray-500">{t(`inspections.status.${status}`)}</Badge>;
     }
@@ -384,24 +384,24 @@ export function DashboardContent({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/vehicles/new" className="col-span-1">
+            <Link href="/bookings/new" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors"
               >
-                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                  <Car className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
+                  <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.addVehicle")}</span>
+                <span className="text-center text-sm font-medium">Create Booking</span>
               </Button>
             </Link>
             <Link href="/maintenance/schedule" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 dark:hover:border-amber-800 transition-colors"
               >
-                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <Wrench className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                  <Wrench className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleMaintenance")}</span>
               </Button>
@@ -409,10 +409,10 @@ export function DashboardContent({
             <Link href="/inspections/create" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 dark:hover:bg-purple-900/20 dark:hover:text-purple-400 dark:hover:border-purple-800 transition-colors"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-900/20 dark:hover:text-green-400 dark:hover:border-green-800 transition-colors"
               >
-                <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
-                  <ClipboardCheck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
+                  <ClipboardCheck className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <span className="text-center text-sm font-medium">{t("dashboard.quickActions.scheduleInspection")}</span>
               </Button>
@@ -420,10 +420,10 @@ export function DashboardContent({
             <Link href="/quotations/create" className="col-span-1">
               <Button
                 variant="outline"
-                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 dark:hover:bg-orange-900/20 dark:hover:text-orange-400 dark:hover:border-orange-800 transition-colors"
+                className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-colors"
               >
-                <div className="p-2 rounded-full bg-orange-100 dark:bg-orange-900/30">
-                  <FileText className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                  <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <span className="text-center text-sm font-medium">{t("dashboard.quickActions.createQuotation")}</span>
               </Button>
@@ -1027,34 +1027,39 @@ function QuotationCard({ quotation }: { quotation: any }) {
   return (
     <Link href={`/quotations/${quotation.id}`} className="block">
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
-              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
-                  QUOTATION
-                </span>
-                <h4 className="font-semibold text-sm text-foreground truncate">
-                  {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
-                </h4>
-              </div>
-              <p className="text-xs text-muted-foreground mb-2 truncate">
-                {quotation.customer_name || t('bookings.unnamed')}
-              </p>
-              {quotation.total_amount && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                    {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </div>
+        <div className="flex items-start gap-3">
+          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+            <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="flex-shrink-0">
-            {getQuotationStatusBadge(quotation.status, t)}
+          <div className="flex-1 min-w-0">
+            {/* Top row: Status badge and quotation type */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
+                QUOTATION
+              </span>
+              <div className="flex-shrink-0">
+                {getQuotationStatusBadge(quotation.status, t)}
+              </div>
+            </div>
+            
+            {/* Quotation title */}
+            <h4 className="font-semibold text-sm text-foreground truncate mb-1">
+              {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
+            </h4>
+            
+            {/* Customer name */}
+            <p className="text-xs text-muted-foreground mb-2 truncate">
+              {quotation.customer_name || t('bookings.unnamed')}
+            </p>
+            
+            {/* Amount */}
+            {quotation.total_amount && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                  {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

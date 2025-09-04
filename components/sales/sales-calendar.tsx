@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { EventsFilter, EventsFilterOptions } from "./events-filter"
+import { useAutoScroll } from "@/lib/hooks/use-auto-scroll"
 
 interface SalesEvent {
   id: string
@@ -87,6 +88,12 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   const [weeklyRevenueFilter, setWeeklyRevenueFilter] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
+  
+  // Auto-scroll hook for sidebar
+  const { targetRef: sidebarRef, scrollToTarget } = useAutoScroll(
+    (date: Date) => getEventsForDate(date).length > 0,
+    { scrollDelay: 100 }
+  )
 
   // Update URL params when filters change
   useEffect(() => {
@@ -495,6 +502,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   const handleDayClick = (date: Date) => {
     setSelectedDate(date)
     setSidebarPage(1)
+    scrollToTarget(date)
   }
 
   // Render calendar day
@@ -923,7 +931,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
 
           {/* Sidebar - Details Panel */}
           {selectedDate && (
-            <div className="lg:col-span-1">
+            <div ref={sidebarRef} className="lg:col-span-1">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">

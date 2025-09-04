@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAutoScroll } from "@/lib/hooks/use-auto-scroll";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,18 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
   const [selectedDate, setSelectedDate] = useState<Date>(externalCurrentDate || new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [showDetailsPanel, setShowDetailsPanel] = useState<boolean>(false);
+  
+  // Auto-scroll hook for details panel
+  const { targetRef: detailsPanelRef, scrollToTarget } = useAutoScroll(
+    (date: Date) => {
+      const entriesForDate = entries.filter(entry => {
+        const entryDate = parseISO(entry.start_time);
+        return isSameDay(entryDate, date);
+      });
+      return entriesForDate.length > 0;
+    },
+    { scrollDelay: 100 }
+  );
   
   // Use external or internal state for current date
   const currentDate = externalCurrentDate || internalCurrentDate;
@@ -61,6 +74,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
         onClick={() => {
           onClick?.();
           setSelectedDate(date);
+          scrollToTarget(date);
         }}
         disabled={disabled}
         type="button"
@@ -648,7 +662,7 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
 
         {/* Right column - Details panel - Now this works as a modal on mobile */}
         {showDetailsPanel && (
-          <div className={cn(
+          <div ref={detailsPanelRef} className={cn(
             "lg:col-span-5 h-full overflow-hidden",
             "lg:static lg:z-auto lg:bg-transparent lg:block lg:h-full",
             "fixed inset-0 z-50 bg-background/95 md:relative md:inset-auto md:z-auto md:bg-transparent"

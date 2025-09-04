@@ -144,6 +144,8 @@ export function Header() {
               <>
                 {/* Mobile Actions */}
                 <div className="flex md:hidden items-center gap-2">
+                  <LanguageSwitcher />
+                  <ThemeToggle />
                   {user && <UserNav user={user} />}
                 </div>
                 

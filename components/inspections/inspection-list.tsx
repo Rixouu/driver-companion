@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { InspectionFilter, InspectionFilterOptions } from "./inspection-filter"
+import { useAutoScroll } from "@/lib/hooks/use-auto-scroll"
 
 // Extended inspection type for this component
 interface ExtendedInspection extends Omit<OptimizedInspection, 'type'> {
@@ -110,6 +111,12 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const [isLoading, setIsLoading] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
+  
+  // Auto-scroll hook for sidebar
+  const { targetRef: sidebarRef, scrollToTarget } = useAutoScroll(
+    (date: Date) => getInspectionsForDate(date).length > 0,
+    { scrollDelay: 100 }
+  )
 
   // Simple inspector loading function
   const loadInspectorData = async (inspectorId: string) => {
@@ -457,7 +464,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const listTotalPages = totalPages
 
   const goToPage = (page: number) => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    const params = new URLSearchParams(Array.from(searchParams?.entries() || []))
     if (page <= 1) params.delete('page')
     else params.set('page', String(page))
     router.replace(`?${params.toString()}` as any, { scroll: false })
@@ -749,6 +756,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
   const handleDayClick = (date: Date) => {
     setSelectedDate(date)
     setSidebarPage(1)
+    scrollToTarget(date)
   }
 
   // Render calendar day
@@ -1262,7 +1270,7 @@ export function InspectionList({ inspections = [], allInspections = [], vehicles
 
           {/* Sidebar - Details Panel */}
           {selectedDate && (
-            <div className="lg:col-span-1">
+            <div ref={sidebarRef} className="lg:col-span-1">
               <Card className="sticky top-6">
                 <CardHeader>
                   <CardTitle className="text-base">

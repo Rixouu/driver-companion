@@ -481,7 +481,7 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
         </div>
         
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-border/50">
+        <div className="flex flex-col gap-4 pt-6 border-t border-border/50 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span>All changes will be saved when you submit the form</span>
@@ -492,11 +492,11 @@ export function VehicleForm({ vehicle }: VehicleFormProps) {
               variant="outline" 
               onClick={() => router.back()} 
               disabled={isSubmitting}
-              className="min-w-[100px]"
+              className="flex-1"
             >
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg hover:shadow-xl transition-all duration-200">
+            <Button type="submit" disabled={isSubmitting} className="flex-1 shadow-lg hover:shadow-xl transition-all duration-200">
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

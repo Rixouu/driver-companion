@@ -299,24 +299,35 @@ export function DriverForm({ initialData, onSubmit, isSubmitting = false }: Driv
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-border/50">
+        <div className="flex flex-col gap-4 pt-6 border-t border-border/50 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span>All changes will be saved when you submit the form</span>
           </div>
-          <Button type="submit" className="min-w-[140px] shadow-lg hover:shadow-xl transition-all duration-200" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Updating...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                {t("drivers.actions.updateDriver")}
-              </>
-            )}
-          </Button>
+          <div className="flex gap-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => window.history.back()} 
+              disabled={isSubmitting}
+              className="flex-1"
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" className="flex-1 shadow-lg hover:shadow-xl transition-all duration-200" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  {t("drivers.actions.addDriver")}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

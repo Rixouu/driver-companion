@@ -7,8 +7,6 @@ import { CustomerForm } from "@/components/customers/customer-form"
 import LoadingSpinner from "@/components/shared/loading-spinner"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
@@ -48,14 +46,6 @@ export default async function NewCustomerPage() {
             { label: 'Customers', href: '/customers' },
             { label: 'New Customer' }
           ]}
-        >
-          <Button variant="outline" asChild>
-            <Link href="/customers">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
-            </Link>
-          </Button>
-        </PageHeader>
         />
 
         <Suspense fallback={<LoadingSpinner />}>
@@ -75,14 +65,6 @@ export default async function NewCustomerPage() {
             { label: 'Customers', href: '/customers' },
             { label: 'New Customer' }
           ]}
-        >
-          <Button variant="outline" asChild>
-            <Link href="/customers">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
-            </Link>
-          </Button>
-        </PageHeader>
         />
 
         <div className="flex items-center justify-center min-h-[400px]">

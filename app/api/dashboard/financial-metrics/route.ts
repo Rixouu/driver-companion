@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       approvedQuotes: metricsData?.filter(q => q.status === 'approved').length || 0,
       pendingQuotes: metricsData?.filter(q => q.status === 'sent').length || 0,
       draftQuotes: metricsData?.filter(q => q.status === 'draft').length || 0,
-      rejectedQuotes: metricsData?.filter(q => q.status === 'rejected').length || 0
+      rejectedQuotes: metricsData?.filter(q => q.status === 'rejected').length || 0,
+      convertedQuotes: metricsData?.filter(q => q.status === 'converted').length || 0
     }
     
     // 2. Daily revenue data (last 7 days)
@@ -57,7 +58,8 @@ export async function GET(request: NextRequest) {
       { name: 'Approved', value: metrics.approvedQuotes, color: '#10b981' },
       { name: 'Pending', value: metrics.pendingQuotes, color: '#f59e0b' },
       { name: 'Rejected', value: metrics.rejectedQuotes, color: '#ef4444' },
-      { name: 'Draft', value: metrics.draftQuotes, color: '#6b7280' }
+      { name: 'Draft', value: metrics.draftQuotes, color: '#6b7280' },
+      { name: 'Converted', value: metrics.convertedQuotes, color: '#8b5cf6' }
     ].filter(item => item.value > 0)
     
     // 4. Monthly revenue data (last 6 months)

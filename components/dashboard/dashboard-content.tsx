@@ -202,7 +202,8 @@ export function DashboardContent({
     approvedQuotes: 0,
     pendingQuotes: 0,
     draftQuotes: 0,
-    rejectedQuotes: 0
+    rejectedQuotes: 0,
+    convertedQuotes: 0
   })
   
   const [dailyRevenueData, setDailyRevenueData] = useState<any[]>([])
@@ -317,7 +318,8 @@ export function DashboardContent({
           approvedQuotes: 0,
           pendingQuotes: 0,
           draftQuotes: 0,
-          rejectedQuotes: 0
+          rejectedQuotes: 0,
+          convertedQuotes: 0
         })
         setDailyRevenueData([])
         setStatusDistributionData([])
@@ -665,24 +667,42 @@ export function DashboardContent({
                   </div>
                 </div>
                 
-                {/* Status Summary Row */}
-                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 lg:gap-8 p-3 sm:p-4 lg:p-5 bg-muted/10 rounded-lg">
-                   <div className="flex items-center gap-2">
-                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
-                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
-                     <span className="text-xs sm:text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
-                     <span className="text-xs sm:text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
-                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
-                     <span className="text-xs sm:text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
-                   </div>
-                 </div>
+                {/* Status Summary Grid */}
+                <div className="space-y-4">
+                  {/* Divider with text */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/40"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-background px-3 text-muted-foreground">Quotation Status Overview</span>
+                    </div>
+                  </div>
+                  
+                  {/* 2x2 Grid Layout */}
+                  <div className="grid grid-cols-2 gap-3 p-3 sm:p-4 lg:p-5 bg-muted/10 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
+                      <span className="text-xs sm:text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
+                      <span className="text-xs sm:text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
+                      <span className="text-xs sm:text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs sm:text-sm text-muted-foreground">converted:</span>
+                      <span className="text-xs sm:text-sm font-semibold text-purple-600">{financialData.convertedQuotes || 0}</span>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Action Button */}
                 <div className="pt-2">

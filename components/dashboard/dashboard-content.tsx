@@ -666,23 +666,23 @@ export function DashboardContent({
                 </div>
                 
                 {/* Status Summary Row */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 p-4 sm:p-5 bg-muted/10 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
-                    <span className="text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
-                    <span className="text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
-                    <span className="text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
-                  </div>
-                </div>
+                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 lg:gap-8 p-3 sm:p-4 lg:p-5 bg-muted/10 rounded-lg">
+                   <div className="flex items-center gap-2">
+                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex-shrink-0"></div>
+                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.approved")}:</span>
+                     <span className="text-xs sm:text-sm font-semibold text-green-600">{financialData.approvedQuotes}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.pending")}:</span>
+                     <span className="text-xs sm:text-sm font-semibold text-yellow-600">{financialData.pendingQuotes}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full flex-shrink-0"></div>
+                     <span className="text-xs sm:text-sm text-muted-foreground">{t("dashboard.financial.rejected")}:</span>
+                     <span className="text-xs sm:text-sm font-semibold text-red-600">{financialData.rejectedQuotes}</span>
+                   </div>
+                 </div>
                 
                 {/* Action Button */}
                 <div className="pt-2">
@@ -885,23 +885,23 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
   const { t } = useI18n()
   return (
     <Link href={`/maintenance/${task.id}`} className="block">
-      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between">
+      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
-              <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex-shrink-0">
+              <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded w-fit">
                   MAINTENANCE
                 </span>
-                <h4 className="font-semibold text-sm text-foreground">
+                <h4 className="font-semibold text-sm text-foreground truncate">
                   {task.title}
                 </h4>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {task.vehicle?.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -910,7 +910,7 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
               </div>
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0">
+          <div className="flex-shrink-0">
             {getMaintenanceStatusBadge(task.status, t)}
           </div>
         </div>
@@ -940,23 +940,23 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
   
   return (
     <Link href={`/inspections/${inspection.id}`} className="block">
-      <div className="p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
-        <div className="flex items-start justify-between">
+      <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
-              <ClipboardCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex-shrink-0">
+              <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded w-fit">
                   INSPECTION
                 </span>
-                <h4 className="font-semibold text-sm text-foreground">
+                <h4 className="font-semibold text-sm text-foreground truncate">
                   {getFullTypeName(inspection.type)}
                 </h4>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate">
                   {inspection.vehicle?.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -965,7 +965,7 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
               </div>
             </div>
           </div>
-          <div className="ml-2 flex-shrink-0">
+          <div className="flex-shrink-0">
             {getInspectionStatusBadge(inspection.status, t)}
           </div>
         </div>
@@ -985,12 +985,12 @@ function BookingCard({ booking }: { booking: Booking }) {
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
-              <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex-shrink-0">
+              <User className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
                   BOOKING
                 </span>
                 <h4 className="font-semibold text-sm text-foreground truncate">
@@ -1029,12 +1029,12 @@ function QuotationCard({ quotation }: { quotation: any }) {
       <div className="p-3 sm:p-4 border rounded-lg hover:border-primary/50 hover:shadow-sm transition-all">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
-              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded w-fit">
                   QUOTATION
                 </span>
                 <h4 className="font-semibold text-sm text-foreground truncate">

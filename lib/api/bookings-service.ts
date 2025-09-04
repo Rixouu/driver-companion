@@ -444,7 +444,7 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
 /**
  * Maps a Supabase booking to the Booking type
  */
-export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row']): Booking {
+export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row'] & { vehicle?: any }): Booking {
   // Extract vehicle information
   let vehicleInfo: {
     id?: string;
@@ -457,26 +457,36 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
   
   // Process vehicle data from various sources
   
-  // 1. First check if vehicle_id exists
-  if (booking.vehicle_id) {
+  // 1. First check if we have joined vehicle data (highest priority)
+  if (booking.vehicle) {
+    vehicleInfo.id = booking.vehicle.id;
+    vehicleInfo.make = booking.vehicle.brand || booking.vehicle.make;
+    vehicleInfo.model = booking.vehicle.model;
+    vehicleInfo.year = booking.vehicle.year;
+    vehicleInfo.registration = booking.vehicle.plate_number;
+    vehicleInfo.capacity = booking.vehicle.passenger_capacity;
+  }
+  
+  // 2. Check if vehicle_id exists (fallback)
+  if (!vehicleInfo.id && booking.vehicle_id) {
     vehicleInfo.id = booking.vehicle_id;
   }
   
-  // 2. Use direct database fields if available (prioritize these over wp_meta)
-  if (booking.vehicle_make) {
+  // 3. Use direct database fields if available (fallback if no joined data)
+  if (!vehicleInfo.make && booking.vehicle_make) {
     vehicleInfo.make = booking.vehicle_make;
   }
-  if (booking.vehicle_model) {
+  if (!vehicleInfo.model && booking.vehicle_model) {
     vehicleInfo.model = booking.vehicle_model;
   }
-  if (booking.vehicle_year) {
+  if (!vehicleInfo.year && booking.vehicle_year) {
     vehicleInfo.year = booking.vehicle_year;
   }
-  if (booking.vehicle_capacity) {
+  if (!vehicleInfo.capacity && booking.vehicle_capacity) {
     vehicleInfo.capacity = booking.vehicle_capacity;
   }
   
-  // 3. Try to extract vehicle data from wp_meta (fallback if direct fields not available)
+  // 4. Try to extract vehicle data from wp_meta (fallback if direct fields not available)
   if (booking.wp_meta && typeof booking.wp_meta === 'object') {
     const meta = booking.wp_meta as Record<string, any>;
     
@@ -544,7 +554,7 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     }
   }
   
-  // 3. If we didn't extract any vehicle info and have a service_name, try to get make/model from it
+  // 5. If we didn't extract any vehicle info and have a service_name, try to get make/model from it
   if (!vehicleInfo.make && booking.service_name) {
     const serviceName = booking.service_name;
     const commonMakes = ['Toyota', 'Honda', 'Nissan', 'Lexus', 'Mercedes', 'BMW'];
@@ -586,9 +596,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     vehicle_year: booking.vehicle_year || undefined,
     
     // Service duration fields (from meta if not in direct fields)
-    hours_per_day: (booking as any).hours_per_day || booking.meta?.hours_per_day || undefined,
-    duration_hours: (booking as any).duration_hours || booking.meta?.duration_hours || undefined,
-    service_days: (booking as any).service_days || booking.meta?.service_days || undefined,
+    hours_per_day: (booking as any).hours_per_day || (booking.meta as any)?.hours_per_day || undefined,
+    duration_hours: (booking as any).duration_hours || (booking.meta as any)?.duration_hours || undefined,
+    service_days: (booking as any).service_days || (booking.meta as any)?.service_days || undefined,
     
     // Billing address fields
     billing_company_name: booking.billing_company_name || undefined,
@@ -1525,10 +1535,21 @@ export async function getBookingsByDriverId(driverId: string, options: {
       return { bookings: [] };
     }
 
-    // Now fetch all booking details for these IDs
+    // Now fetch all booking details for these IDs with vehicle information
     let query = supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        vehicle:vehicles (
+          id,
+          name,
+          brand,
+          model,
+          year,
+          plate_number,
+          passenger_capacity
+        )
+      `)
       .in('id', allBookingIds)
       .order('date', { ascending: upcoming === true })
       .limit(limit);

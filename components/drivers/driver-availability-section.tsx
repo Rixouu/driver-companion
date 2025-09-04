@@ -231,7 +231,7 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
                     r.notes?.includes('Assigned to booking') &&
                     new Date(r.start_date) <= new Date() && 
                     new Date(r.end_date) >= new Date()
-                  ) ? 'booking' : currentStatus || 'available'
+                  ) && currentStatus !== 'completed' ? 'booking' : currentStatus || 'available'
                 )
               )}
             >
@@ -240,7 +240,7 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
                 r.notes?.includes('Assigned to booking') &&
                 new Date(r.start_date) <= new Date() && 
                 new Date(r.end_date) >= new Date()
-              ) 
+              ) && currentStatus !== 'completed'
                 ? t("common.booking", { defaultValue: "Booking" })
                 : getStatusLabel(currentStatus || "available")
               }
@@ -265,11 +265,11 @@ export function DriverAvailabilitySection({ driverId, onViewFullSchedule }: Driv
                     <Badge
                       variant="outline"
                       className={cn(
-                        getStatusBadgeClasses(isBooking ? 'booking' : record.status),
+                        getStatusBadgeClasses(isBooking && record.status !== 'completed' ? 'booking' : record.status),
                         "self-start sm:self-auto"
                       )}
                     >
-                      {isBooking 
+                      {isBooking && record.status !== 'completed'
                         ? t("common.booking", { defaultValue: "Booking" })
                         : getStatusLabel(record.status)
                       }

@@ -12,6 +12,8 @@ import { useI18n } from "@/lib/i18n/context"
 import type { Session } from '@supabase/supabase-js'
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { SettingsTabsList } from "@/components/settings/settings-tabs-list"
 import {
   Gauge,
   Truck,
@@ -39,7 +41,9 @@ export default function SettingsPage() {
   const { t, locale, setLanguage } = useI18n()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const activeTab = searchParams.get('tab') || 'account'
+  const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || 'profile')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [menuSettings, setMenuSettings] = useState({
     dashboard: { desktop: true, mobile: true },
     vehicles: { desktop: true, mobile: true },
@@ -49,10 +53,8 @@ export default function SettingsPage() {
     inspections: { desktop: true, mobile: true },
     templates: { desktop: true, mobile: true },
     reporting: { desktop: true, mobile: true },
-    settings: { desktop: true, mobile: true }
+    settings: { desktop: true, mobile: true },
   })
-  const [isSaving, setIsSaving] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function getSessionAndSettings() {
@@ -262,39 +264,39 @@ export default function SettingsPage() {
   )
 
   const renderMenuTab = () => (
-    <div className="space-y-6">
-      <div className="border-b border-border pb-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Navigation Settings</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="border-b border-border pb-3 sm:pb-4">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Navigation Settings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Customize which menu items appear on desktop and mobile.
         </p>
       </div>
 
       <Card>
-        <CardHeader className="pb-4 sm:pb-6">
-          <CardTitle className="text-lg sm:text-xl">{t("settings.menu.title")}</CardTitle>
-          <p className="text-sm text-muted-foreground">
+        <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
+          <CardTitle className="text-base sm:text-lg lg:text-xl">{t("settings.menu.title")}</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {t("settings.menu.description")}
           </p>
         </CardHeader>
-        <CardContent className="px-4 sm:px-8 pb-6">
-          <div className="space-y-4">
-            <p className="text-sm text-amber-500 dark:text-amber-400 hidden md:block">
+        <CardContent className="px-3 sm:px-4 lg:px-8 pb-4 sm:pb-6">
+          <div className="space-y-4 sm:space-y-6">
+            <p className="text-xs sm:text-sm text-amber-500 dark:text-amber-400 hidden md:block">
               {t("settings.menu.desktopSettingsHidden")}
             </p>
 
-            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6">
               <div className="relative overflow-x-auto">
-                <table className="w-full text-sm text-left">
+                <table className="w-full text-xs sm:text-sm text-left">
                   <thead className="text-xs uppercase bg-muted/50">
                     <tr>
-                      <th scope="col" className="px-4 py-3 w-1/3">
+                      <th scope="col" className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 w-1/3">
                         {t("settings.menu.menuItem")}
                       </th>
-                      <th scope="col" className="px-4 py-3 text-center">
+                      <th scope="col" className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center">
                         {t("settings.menu.mobile")}
                       </th>
-                      <th scope="col" className="px-4 py-3 text-center hidden md:table-cell">
+                      <th scope="col" className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center hidden md:table-cell">
                         {t("settings.menu.desktop")}
                       </th>
                     </tr>
@@ -302,18 +304,18 @@ export default function SettingsPage() {
                   <tbody>
                     {Object.entries(menuSettings).map(([key, value]) => (
                       <tr key={key} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3 flex items-center gap-2">
+                        <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 flex items-center gap-2">
                           {getIconForMenuItem(key as keyof typeof menuSettings)}
-                          <span>{t(`settings.menu.${key}`)}</span>
+                          <span className="truncate">{t(`settings.menu.${key}`)}</span>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center">
                           <Switch
                             checked={value.mobile}
                             onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'mobile')}
                             disabled={key === 'bookings' || key === 'settings'}
                           />
                         </td>
-                        <td className="px-4 py-3 text-center hidden md:table-cell">
+                        <td className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3 text-center hidden md:table-cell">
                           <Switch
                             checked={value.desktop}
                             onCheckedChange={() => handleMenuSettingChange(key as keyof typeof menuSettings, 'desktop')}
@@ -327,15 +329,15 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end">
+            <div className="pt-3 sm:pt-4 flex justify-end">
               <Button 
                 onClick={saveMenuSettings} 
                 disabled={isSaving}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm"
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                     Saving...
                   </>
                 ) : (
@@ -366,131 +368,132 @@ export default function SettingsPage() {
     )
   }
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'account':
-        return renderAccountTab()
-      case 'menu':
-        return renderMenuTab()
+  const renderProfileTab = () => (
+    <div className="space-y-6 sm:space-y-8">
+      <div className="border-b border-border pb-3 sm:pb-4">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Profile</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          Manage your profile information and account settings.
+        </p>
+      </div>
 
-      case 'appearance':
-        return (
-          <div className="space-y-8">
-            <div className="border-b border-border pb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Appearance</h1>
-              <p className="text-muted-foreground">
-                Customize the appearance and theme of the application.
+      <Card>
+        <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
+          <CardTitle className="text-base sm:text-lg lg:text-xl">{t("settings.profile.title")}</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t("settings.profile.description")}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-8 pb-4 sm:pb-6">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="name" className="text-sm sm:text-base">
+                {t("settings.profile.name")}
+              </Label>
+              <Input 
+                id="name" 
+                value={session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || ""} 
+                disabled 
+                className="h-9 sm:h-10"
+              />
+            </div>
+            <div className="space-y-2 sm:space-y-3 pt-1 sm:pt-2">
+              <Label htmlFor="email" className="text-sm sm:text-base">
+                {t("settings.profile.email")}
+              </Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={session?.user?.email || ""} 
+                disabled 
+                className="h-9 sm:h-10"
+              />
+              <p className="text-xs sm:text-sm text-muted-foreground pt-1 sm:pt-2">
+                {t("settings.profile.emailDescription")}
               </p>
             </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Theme Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Choose how the application looks on your device.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
+          <CardTitle className="text-base sm:text-lg lg:text-xl">{t("settings.preferences.title")}</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t("settings.preferences.description")}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-4 lg:px-8 pb-4 sm:pb-6">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm sm:text-base">{t("settings.preferences.theme.title")}</Label>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {t("settings.preferences.themeDescription")}
                 </p>
-              </CardHeader>
-              <CardContent>
+              </div>
+              <div className="flex-shrink-0">
                 <ClientThemeSelector />
-              </CardContent>
-            </Card>
-          </div>
-        )
-      case 'notifications':
-        return (
-          <div className="space-y-8">
-            <div className="border-b border-border pb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
-              <p className="text-muted-foreground">
-                Manage your notification preferences.
-              </p>
+              </div>
             </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Configure when and how you receive notifications.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Notification settings coming soon...</p>
-              </CardContent>
-            </Card>
           </div>
-        )
-      case 'security':
-        return (
-          <div className="space-y-8">
-            <div className="border-b border-border pb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
-              <p className="text-muted-foreground">
-                Manage your security settings and authentication.
-              </p>
-            </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Configure your security preferences.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Security settings coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        )
-      case 'localization':
-        return (
-          <div className="space-y-8">
-            <div className="border-b border-border pb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Language & Region</h1>
-              <p className="text-muted-foreground">
-                Configure your language and regional preferences.
-              </p>
-            </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Language Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Choose your preferred language.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <LanguageSelector />
-              </CardContent>
-            </Card>
-          </div>
-        )
-      case 'data':
-        return (
-          <div className="space-y-8">
-            <div className="border-b border-border pb-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Data Management</h1>
-              <p className="text-muted-foreground">
-                Manage your data, exports, and backups.
-              </p>
-            </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Settings</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Configure data management options.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Data management settings coming soon...</p>
-              </CardContent>
-            </Card>
-          </div>
-        )
-      default:
-        return renderAccountTab()
-    }
-  }
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  const renderLanguageTab = () => (
+    <div className="space-y-6 sm:space-y-8">
+      <div className="border-b border-border pb-3 sm:pb-4">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Language</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          Choose your preferred language for the application.
+        </p>
+      </div>
+      <Card>
+        <CardHeader className="pb-3 sm:pb-4 lg:pb-6">
+          <CardTitle className="text-base sm:text-lg lg:text-xl">Language Settings</CardTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Select your preferred language from the available options.
+          </p>
+        </CardHeader>
+        <CardContent className="px-3 sm:px-4 lg:px-8 pb-4 sm:pb-6">
+          <LanguageSelector />
+        </CardContent>
+      </Card>
+    </div>
+  )
 
   return (
-    <div className="max-w-6xl mx-auto py-2 md:py-4">
-      {renderTabContent()}
+    <div className="space-y-6">
+      <div className="border-b border-border/40 pb-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              Manage your profile, menu settings, and language preferences.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <SettingsTabsList value={activeTab} onValueChange={setActiveTab} />
+        
+        <div className="mt-6 sm:mt-8">
+          <TabsContent value="profile">
+            {renderProfileTab()}
+          </TabsContent>
+          
+          <TabsContent value="menu">
+            {renderMenuTab()}
+          </TabsContent>
+          
+          <TabsContent value="language">
+            {renderLanguageTab()}
+          </TabsContent>
+        </div>
+      </Tabs>
     </div>
   )
 }

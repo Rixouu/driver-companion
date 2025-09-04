@@ -1,8 +1,6 @@
 "use client"
 
 import { LayoutGrid, List } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useEffect, useState } from "react"
 
 interface ViewToggleProps {
@@ -40,25 +38,25 @@ export function ViewToggle({ view, onViewChange }: ViewToggleProps) {
   };
 
   return (
-    <div className={`flex rounded-md border ${isMobile ? 'p-1 shadow-sm' : ''}`}>
-      <Button
-        variant="ghost"
-        size={isMobile ? "default" : "sm"}
-        className={`${isMobile ? 'p-3' : 'px-3 py-2'} ${view === "list" ? "bg-muted" : ""}`}
-        onClick={handleListClick}
-        aria-label="List view"
-      >
-        <List className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-      </Button>
-      <Button
-        variant="ghost"
-        size={isMobile ? "default" : "sm"}
-        className={`${isMobile ? 'p-3' : 'px-3 py-2'} ${view === "grid" ? "bg-muted" : ""}`}
-        onClick={handleGridClick}
-        aria-label="Grid view"
-      >
-        <LayoutGrid className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-      </Button>
+    <div className="touch-manipulation">
+      <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 w-fit">
+        <button 
+          className={`p-2 rounded ${view === "list" ? "bg-background shadow-sm" : ""}`}
+          onClick={handleListClick}
+          title="List view"
+          aria-label="List view"
+        >
+          <List className={`h-4 w-4 ${view === "list" ? "" : "text-muted-foreground"}`} />
+        </button>
+        <button 
+          className={`p-2 rounded ${view === "grid" ? "bg-background shadow-sm" : ""}`}
+          onClick={handleGridClick}
+          title="Grid view"
+          aria-label="Grid view"
+        >
+          <LayoutGrid className={`h-4 w-4 ${view === "grid" ? "" : "text-muted-foreground"}`} />
+        </button>
+      </div>
     </div>
   )
 } 

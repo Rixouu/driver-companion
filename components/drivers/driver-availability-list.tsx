@@ -622,7 +622,7 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
                     </div>
                     <Badge 
                       variant="outline" 
-                      className="text-xs bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700 text-purple-800 dark:text-purple-200 flex-shrink-0"
+                      className={cn(getStatusBadgeClasses(booking.status), "text-xs flex-shrink-0")}
                     >
                       {booking.status}
                     </Badge>
@@ -697,7 +697,7 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
                       <TableCell className="py-3 px-3 align-middle">
                         <Badge 
                           variant="outline" 
-                          className="text-xs bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700 text-purple-800 dark:text-purple-200"
+                          className={cn(getStatusBadgeClasses(booking.status), "text-xs")}
                         >
                           {booking.status}
                         </Badge>

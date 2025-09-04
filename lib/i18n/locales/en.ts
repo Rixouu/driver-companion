@@ -2646,6 +2646,11 @@ export const en: TranslationValue = {
     title: "Settings",
     description: "Manage account settings and preferences",
     selectTab: "Select settings tab",
+    tabs: {
+      profile: "Profile",
+      menu: "Menu",
+      language: "Language"
+    },
     profile: {
       title: "Profile",
       description: "Manage your profile information",
@@ -2662,6 +2667,7 @@ export const en: TranslationValue = {
         dark: "Dark",
         system: "System"
       },
+      themeDescription: "Choose your preferred theme for the application",
       language: {
         title: "Language",
         en: "English",
@@ -2689,7 +2695,8 @@ export const en: TranslationValue = {
       dispatch: "Dispatch Board",
       pricing: "Pricing",
       assignments: "Assignments",
-      save: "Save Changes"
+      save: "Save Changes",
+      customers: "Customers"
     },
     templates: {
       title: "Inspection Templates",
@@ -2719,17 +2726,6 @@ export const en: TranslationValue = {
       deleteTemplateConfirm: "Are you sure you want to delete this template? This action cannot be undone.",
       deleteSuccess: "Template deleted successfully",
       deleteError: "Failed to delete template"
-    },
-    tabs: {
-      profile: "Profile",
-      preferences: "Preferences",
-      menu: "Menu",
-      templates: "Templates",
-      account: "Account",
-      notifications: "Notifications",
-      security: "Security",
-      localization: "Language & Region",
-      data: "Data Management"
     },
     selectTemplate: "Select template type",
     inspectionTypes: {

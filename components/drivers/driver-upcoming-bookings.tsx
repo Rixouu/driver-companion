@@ -278,7 +278,7 @@ function BookingCard({ booking }: { booking: Booking }) {
       {/* Mobile-optimized header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{t("bookings.details.bookingNumber", {id: booking.id})}</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{t("bookings.details.bookingNumber", {id: booking.wp_id || booking.booking_id || booking.id})}</p>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 mb-2 sm:mb-3">
             <p className="font-semibold text-sm sm:text-base lg:text-lg">
               {format(new Date(pickupDateTime), "PP")} • {format(new Date(pickupDateTime), "p")} 
@@ -334,7 +334,9 @@ function BookingCard({ booking }: { booking: Booking }) {
               <span className="truncate">Vehicle Information</span>
             </p>
             <p className="text-xs sm:text-sm truncate">
-              {[booking.vehicle_make, booking.vehicle_model].filter(Boolean).join(' ') || 'Not specified'}
+              {[booking.vehicle_make, booking.vehicle_model].filter(Boolean).join(' ') || 
+               (booking.vehicle?.make && booking.vehicle?.model ? `${booking.vehicle.make} ${booking.vehicle.model}` : 
+                booking.vehicle?.name || 'Not specified')}
             </p>
           </div>
           <div>

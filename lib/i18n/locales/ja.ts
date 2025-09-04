@@ -2597,6 +2597,11 @@ export const ja: TranslationValue = {
     title: "設定",
     description: "アカウント設定と個人設定を管理します",
     selectTab: "設定タブを選択",
+    tabs: {
+      profile: "プロフィール",
+      menu: "メニュー",
+      language: "言語"
+    },
     profile: {
       title: "プロフィール",
       description: "プロフィール情報を管理します",
@@ -2613,6 +2618,7 @@ export const ja: TranslationValue = {
         dark: "ダーク",
         system: "システム"
       },
+      themeDescription: "アプリケーションのテーマを選択してください",
       language: {
         title: "言語",
         en: "English",
@@ -2640,7 +2646,8 @@ export const ja: TranslationValue = {
       dispatch: "配車ボード",
       pricing: "価格設定",
       assignments: "割り当て",
-      save: "変更を保存"
+      save: "変更を保存",
+      customers: "顧客"
     },
     templates: {
       title: "点検テンプレート",
@@ -2670,17 +2677,6 @@ export const ja: TranslationValue = {
       deleteTemplateConfirm: "このテンプレートを削除してもよろしいですか？この操作は元に戻せません。",
       deleteSuccess: "テンプレートが正常に削除されました",
       deleteError: "テンプレートの削除に失敗しました"
-    },
-    tabs: {
-      profile: "プロフィール",
-      preferences: "個人設定",
-      menu: "メニュー",
-      templates: "テンプレート",
-      account: "アカウント",
-      notifications: "通知",
-      security: "セキュリティ",
-      localization: "言語と地域",
-      data: "データ管理"
     },
     selectTemplate: "テンプレートタイプを選択",
     inspectionTypes: {

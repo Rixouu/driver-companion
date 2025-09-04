@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Search, FileText } from "lucide-react";
+import { Plus, Search, FileText, Users, User, Car, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ViewToggle } from "@/components/ui/view-toggle";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DriverCard } from "@/components/drivers/driver-card";
 import { DriverListItem } from "@/components/drivers/driver-list-item";
 import { DriverList } from "@/components/drivers/driver-list-new";
@@ -255,21 +256,64 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {/* Driver count and view toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            {t("drivers.showingResults", { 
-              count: filteredDrivers.length, 
-              total: drivers.length 
-            })}
-          </div>
-          <ViewToggle
-            view={viewMode}
-            onViewChange={handleViewChange}
-          />
-        </div>
+      {/* Stats Overview - Mobile Optimized */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {/* Total Drivers - Blue */}
+        <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Total Drivers</CardTitle>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{drivers.length.toLocaleString()}</div>
+          </CardContent>
+        </Card>
 
+        {/* Available Drivers - Green */}
+        <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Available Drivers</CardTitle>
+            <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
+              {drivers.filter(driver => (driver.availability_status || driver.status || "available") === "available").length}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Licensed Drivers - Orange */}
+        <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Licensed Drivers</CardTitle>
+            <Car className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold break-words text-orange-600 dark:text-orange-400">
+              {drivers.filter(driver => {
+                if (!driver.license_expiry) return false;
+                const expiryDate = new Date(driver.license_expiry);
+                return expiryDate > new Date();
+              }).length}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Segments - Purple */}
+        <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Active Segments</CardTitle>
+            <Tag className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {new Set(drivers.map(driver => driver.availability_status || driver.status || "available")).size}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
         <DriverFilter
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -294,6 +338,8 @@ export function DriverClientPage({ initialDrivers }: DriverClientPageProps) {
           currentPage={currentPage}
           totalPages={totalPages}
           isLoading={isLoading}
+          viewMode={viewMode}
+          onViewModeChange={handleViewChange}
           initialFilters={filters}
           availabilityOptions={availabilityStatuses}
         />

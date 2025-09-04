@@ -29,7 +29,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
-import { Car, Tag, Trash2, Download, TrendingUp, Users, EyeIcon, FileEditIcon } from "lucide-react"
+import { Car, Tag, Trash2, Download, TrendingUp, Users, EyeIcon, FileEditIcon, EditIcon } from "lucide-react"
 
 import { VehicleFilter, VehicleFilterOptions } from "./vehicle-filter"
 
@@ -631,9 +631,10 @@ export function VehicleList({
                 {paginatedVehicles.map((vehicle) => (
                   <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer border-border/60 bg-card/95 backdrop-blur">
                     <div className="p-4">
-                      {/* Header Row */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {/* Main Content Row: Image on Left, Info on Right */}
+                      <div className="flex gap-4 mb-4">
+                        {/* Left Side: Checkbox and Vehicle Image */}
+                        <div className="flex flex-col items-start gap-2">
                           {/* Selection Checkbox */}
                           <input
                             type="checkbox"
@@ -645,83 +646,86 @@ export function VehicleList({
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary flex-shrink-0"
                             aria-label={`Select ${vehicle.name}`}
                           />
-                          {/* Enhanced Vehicle Thumbnail */}
-                          <div className="w-20 h-14 relative flex-shrink-0 rounded-lg overflow-hidden border border-border/40">
+                          {/* Vehicle Thumbnail - Bigger with better aspect ratio */}
+                          <div className="w-28 h-20 relative flex-shrink-0 rounded-lg overflow-hidden border border-border/40">
                             {vehicle.image_url ? (
                               <Image
                                 src={vehicle.image_url}
                                 alt={vehicle.name}
                                 fill
-                                className="object-cover"
-                                sizes="80px"
+                                className="object-contain"
+                                sizes="112px"
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center">
-                                <Car className="h-7 w-7 text-muted-foreground/40" />
+                                <Car className="h-8 w-8 text-muted-foreground/40" />
                               </div>
                             )}
                           </div>
-                          
-                          {/* Vehicle Name and Plate */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg text-foreground truncate mb-1">
-                              {vehicle.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground font-mono bg-muted/30 px-2 py-1 rounded-md inline-block">
+                        </div>
+                        
+                        {/* Right Side: Vehicle Information - Aligned with image top */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-start relative pt-0">
+                          {/* Top Row: License Plate and Status Badge */}
+                          <div className="flex items-start justify-between mb-2">
+                            <p className="text-lg font-bold text-foreground font-mono">
                               {vehicle.plate_number}
                             </p>
+                            {/* Status Badge - Top Right with Green Stroke */}
+                            <Badge 
+                              className={cn(
+                                "text-xs font-medium px-2 py-1 h-auto flex-shrink-0",
+                                vehicle.status === 'active' && "bg-green-100 text-green-800 border-2 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600",
+                                vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 border-2 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-600",
+                                vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 border-2 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-600"
+                              )}
+                            >
+                              {t(`vehicles.status.${vehicle.status}`)}
+                            </Badge>
                           </div>
-                        </div>
-                        
-                        {/* Status Badge - Top Right */}
-                        <Badge 
-                          className={cn(
-                            "text-xs font-medium border-0 px-3 py-1.5 h-auto",
-                            vehicle.status === 'active' && "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                            vehicle.status === 'maintenance' && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-                            vehicle.status === 'inactive' && "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                          )}
-                        >
-                          {t(`vehicles.status.${vehicle.status}`)}
-                        </Badge>
-                      </div>
-                      
-                      {/* Details Row */}
-                      <div className="space-y-3">
-                        {/* Brand and Model - Separated for better readability */}
-                        <div className="flex items-center gap-3">
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium text-foreground">
-                              {vehicle.brand}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {vehicle.model}
+                          
+                          {/* Vehicle Make and Model */}
+                          <div className="mb-2">
+                            <div className="text-base font-medium text-foreground">
+                              {vehicle.brand} {vehicle.model}
                             </div>
                           </div>
-                          {vehicle.year && (
-                            <span className="text-sm text-muted-foreground bg-muted/20 px-2 py-1 rounded-md">
-                              {vehicle.year}
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* Pricing Group */}
-                        <div className="flex justify-start">
-                          <VehiclePricingGroupDisplay vehicleId={vehicle.id} />
+                          
+                          {/* Year and Pricing Group Badge */}
+                          <div className="flex items-center gap-2 mb-3">
+                            {vehicle.year && (
+                              <div className="text-sm text-muted-foreground">
+                                {vehicle.year}
+                              </div>
+                            )}
+                            {/* Pricing Group Badge */}
+                            <VehiclePricingGroupDisplay vehicleId={vehicle.id} />
+                          </div>
                         </div>
                       </div>
                       
-                      {/* Action Button - Full Width */}
-                      <div className="mt-4 pt-3 border-t border-border/40">
+                      {/* Action Buttons - Side by Side */}
+                      <div className="flex gap-2 pt-3 border-t border-border/40">
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           asChild 
-                          className="flex items-center gap-2 w-full justify-center"
+                          className="flex items-center gap-2 flex-1 justify-center"
                         >
                           <Link href={`/vehicles/${vehicle.id}`}>
                             <EyeIcon className="h-4 w-4" />
                             View Details
+                          </Link>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild 
+                          className="flex items-center gap-2 flex-1 justify-center"
+                        >
+                          <Link href={`/vehicles/${vehicle.id}/edit`}>
+                            <EditIcon className="h-4 w-4" />
+                            Edit
                           </Link>
                         </Button>
                       </div>

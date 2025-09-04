@@ -596,111 +596,107 @@ export function CustomersPageContent({
       <div className="sm:hidden space-y-4">
         {filteredCustomers.map((customer) => (
           <Card key={customer.id} className="group">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-                {/* Checkbox and Header Row - Mobile Optimized */}
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:flex-1 min-w-0">
-                  {/* Checkbox - Prevent click propagation */}
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      id={`customer-${customer.id}`}
-                      checked={selectedCustomers.has(customer.id)}
-                      onChange={() => handleSelectCustomer(customer.id)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      aria-label={`Select ${customer.name || 'customer'} for bulk operations`}
-                    />
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-3">
+                {/* Top Row: Checkbox, Customer Name, and Badge */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    {/* Checkbox - Prevent click propagation */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        id={`customer-${customer.id}`}
+                        checked={selectedCustomers.has(customer.id)}
+                        onChange={() => handleSelectCustomer(customer.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        aria-label={`Select ${customer.name || 'customer'} for bulk operations`}
+                      />
+                    </div>
+
+                    {/* Customer Name */}
+                    <Link 
+                      href={`/customers/${customer.id}`} 
+                      className="flex-1 min-w-0 cursor-pointer"
+                    >
+                      <h3 className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                        {customer.name || 'Unnamed Customer'}
+                      </h3>
+                    </Link>
                   </div>
 
-                  {/* Main Content - Make clickable */}
-                  <Link 
-                    href={`/customers/${customer.id}`} 
-                    className="flex-1 min-w-0 cursor-pointer"
-                  >
-                    <div className="p-2 sm:p-4 -m-2 sm:-m-4 rounded-lg transition-colors">
-                      {/* Header Row - Mobile Stacked */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 min-w-0">
-                          <h3 className="font-semibold text-base sm:text-lg truncate group-hover:text-primary transition-colors">
-                            {customer.name || 'Unnamed Customer'}
-                          </h3>
-                          {customer.segment_name && (
-                            <Badge 
-                              variant="outline"
-                              className={cn(
-                                "text-xs sm:text-sm",
-                                customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-                                customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-                                customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
-                                customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
-                              )}
-                            >
-                              {customer.segment_name}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Contact Info - Mobile Stacked */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          <span className="truncate">{customer.email}</span>
-                        </div>
-                        {customer.phone && (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            <span className="truncate">{customer.phone}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Stats Row - Mobile Stacked */}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="font-medium">{formatCurrency(customer.total_spent, 'JPY')}</span>
-                            <span className="text-muted-foreground">spent</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <span className="font-medium">{customer.quotation_count}</span>
-                            <span className="text-muted-foreground">quotes</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <span className="font-medium">{customer.booking_count}</span>
-                            <span className="text-muted-foreground">bookings</span>
-                          </div>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground flex-shrink-0">
-                          {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
+                  {/* Badge - Top Right Corner */}
+                  {customer.segment_name && (
+                    <Badge 
+                      variant="outline"
+                      className={cn(
+                        "text-xs flex-shrink-0",
+                        customer.segment_name === 'VIP' && 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+                        customer.segment_name === 'Corporate' && 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+                        customer.segment_name === 'Regular' && 'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-900/20 dark:text-gray-400',
+                        customer.segment_name === 'Occasional' && 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400'
+                      )}
+                    >
+                      {customer.segment_name}
+                    </Badge>
+                  )}
                 </div>
 
-                {/* Action Buttons - Mobile Optimized 2-Column Layout */}
-                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                {/* Contact Info */}
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{customer.email}</span>
+                  </div>
+                  {customer.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{customer.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium text-green-600 dark:text-green-400">{formatCurrency(customer.total_spent, 'JPY')}</span>
+                    <span className="text-muted-foreground">spent</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">{customer.quotation_count}</span>
+                    <span className="text-muted-foreground">quotes</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="font-medium text-purple-600 dark:text-purple-400">{customer.booking_count}</span>
+                    <span className="text-muted-foreground">bookings</span>
+                  </div>
+                </div>
+
+                {/* Last Activity */}
+                <div className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(customer.last_activity_date), { addSuffix: true })}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
                   <Button 
                     variant="ghost" 
                     size="sm"
                     asChild
-                    className="flex items-center gap-2 h-9 px-3 text-xs sm:text-sm w-full justify-center"
+                    className="flex items-center gap-2 flex-1 justify-center"
                   >
                     <Link href={`/customers/${customer.id}`}>
                       <Eye className="h-4 w-4" />
-                      View
+                      View Details
                     </Link>
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm"
                     asChild
-                    className="flex items-center gap-2 h-9 px-3 text-xs sm:text-sm w-full justify-center"
+                    className="flex items-center gap-2 flex-1 justify-center"
                   >
                     <Link href={`/customers/${customer.id}/edit`}>
                       <Edit className="h-4 w-4" />

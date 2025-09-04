@@ -203,7 +203,10 @@ export function DashboardContent({
     pendingQuotes: 0,
     draftQuotes: 0,
     rejectedQuotes: 0,
-    convertedQuotes: 0
+    convertedQuotes: 0,
+    approvalRate: 0,
+    conversionRate: 0,
+    activeBookings: 0
   })
   
   const [dailyRevenueData, setDailyRevenueData] = useState<any[]>([])
@@ -319,7 +322,10 @@ export function DashboardContent({
           pendingQuotes: 0,
           draftQuotes: 0,
           rejectedQuotes: 0,
-          convertedQuotes: 0
+          convertedQuotes: 0,
+          approvalRate: 0,
+          conversionRate: 0,
+          activeBookings: 0
         })
         setDailyRevenueData([])
         setStatusDistributionData([])
@@ -542,7 +548,7 @@ export function DashboardContent({
                   </div>
                   <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800">
                     <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                      {upcomingBookings.length}
+                      {financialData.activeBookings}
                     </div>
                     <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
                       {t("dashboard.financial.activeBookings")}
@@ -622,7 +628,7 @@ export function DashboardContent({
                                 return null;
                               }}
                             />
-                            <Bar dataKey="value" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                            <Bar dataKey="value" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       ) : (
@@ -652,7 +658,7 @@ export function DashboardContent({
                       {t("dashboard.financial.approvalRate")}
                     </div>
                     <div className="text-lg sm:text-xl font-bold text-green-600 dark:text-green-400">
-                      {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
+                      {financialData.approvalRate}%
                     </div>
                   </div>
                   
@@ -662,7 +668,7 @@ export function DashboardContent({
                       {t("dashboard.financial.conversionRate")}
                     </div>
                     <div className="text-lg sm:text-xl font-bold text-purple-600 dark:text-purple-400">
-                      {Math.round((financialData.approvedQuotes / Math.max(financialData.totalQuotations, 1)) * 100)}%
+                      {financialData.conversionRate}%
                     </div>
                   </div>
                 </div>

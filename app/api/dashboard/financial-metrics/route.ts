@@ -19,16 +19,26 @@ export async function GET(request: NextRequest) {
     
     if (metricsError) throw metricsError
     
+    const approvedQuotes = metricsData?.filter(q => q.status === 'approved').length || 0
+    const rejectedQuotes = metricsData?.filter(q => q.status === 'rejected').length || 0
+    const sentQuotes = metricsData?.filter(q => q.status === 'sent').length || 0
+    const convertedQuotes = metricsData?.filter(q => q.status === 'converted').length || 0
+    
     const metrics = {
       totalQuotations: metricsData?.length || 0,
       totalRevenue: metricsData?.reduce((sum, q) => sum + (q.total_amount || 0), 0) || 0,
       avgQuoteValue: metricsData?.length > 0 ? 
         metricsData.reduce((sum, q) => sum + (q.total_amount || 0), 0) / metricsData.length : 0,
-      approvedQuotes: metricsData?.filter(q => q.status === 'approved').length || 0,
-      pendingQuotes: metricsData?.filter(q => q.status === 'sent').length || 0,
+      approvedQuotes,
+      pendingQuotes: sentQuotes,
       draftQuotes: metricsData?.filter(q => q.status === 'draft').length || 0,
-      rejectedQuotes: metricsData?.filter(q => q.status === 'rejected').length || 0,
-      convertedQuotes: metricsData?.filter(q => q.status === 'converted').length || 0
+      rejectedQuotes,
+      convertedQuotes,
+      // Calculate rates properly
+      approvalRate: approvedQuotes + rejectedQuotes > 0 ? 
+        Math.round((approvedQuotes / (approvedQuotes + rejectedQuotes)) * 100) : 0,
+      conversionRate: sentQuotes + approvedQuotes > 0 ? 
+        Math.round((convertedQuotes / (sentQuotes + approvedQuotes)) * 100) : 0
     }
     
     // 2. Daily revenue data (last 7 days)
@@ -62,7 +72,17 @@ export async function GET(request: NextRequest) {
       { name: 'Converted', value: metrics.convertedQuotes, color: '#8b5cf6' }
     ].filter(item => item.value > 0)
     
-    // 4. Monthly revenue data (last 6 months)
+    // 4. Active bookings count
+    const { data: bookingsData, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('status')
+      .in('status', ['pending', 'confirmed'])
+    
+    if (bookingsError) throw bookingsError
+    
+    const activeBookings = bookingsData?.length || 0
+    
+    // 5. Monthly revenue data (last 6 months)
     const { data: monthlyData, error: monthlyError } = await supabase
       .from('quotations')
       .select('created_at, total_amount')
@@ -86,7 +106,10 @@ export async function GET(request: NextRequest) {
     }, [] as any[]) || []
     
     return NextResponse.json({
-      metrics,
+      metrics: {
+        ...metrics,
+        activeBookings
+      },
       dailyRevenue,
       statusDistribution,
       monthlyRevenue

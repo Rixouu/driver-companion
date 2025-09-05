@@ -5,39 +5,17 @@ import { useRouter } from 'next/navigation'
 import { Booking } from '@/types/bookings'
 import { createBookingAction } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete'
 import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 
 import { 
   ArrowLeft, ArrowRight, Save, Loader2, Calendar, User, MapPin, FileText, Car, 
-  CheckCircle, AlertTriangle, X, Info, Plane, CreditCard, Route, Timer, Calculator, ExternalLink, Settings
+  CheckCircle, AlertTriangle, X, Info, Plane, CreditCard, Route, Timer, Calculator, ExternalLink, Settings,
+  Eye, Send, DollarSign
 } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { ScrollArea } from '@/components/ui/scroll-area'
+
 // Fetch drivers via a server action to keep service client server-side
-import { getDriversAction } from '@/app/actions/drivers'
 import { getVehicles } from '@/lib/services/vehicles'
 import { getServiceTypesAction, getPricingCategoriesAction, getVehiclesWithCategoriesAction, ServiceType, PricingCategory, VehicleWithCategory } from '@/app/actions/services'
 import type { Driver } from '@/types/drivers'
@@ -47,7 +25,18 @@ import type { DbVehicle } from '@/types'
 import { useI18n } from '@/lib/i18n/context'
 import { useMediaQuery } from '@/lib/hooks/use-media-query'
 import { format, parseISO } from "date-fns";
-import Image from 'next/image';
+import { cn } from '@/lib/utils'
+import { TeamSwitcher } from '@/components/team-switcher'
+
+// Import all the refactored components
+import { ClientDetailsTab } from '@/components/bookings/new-booking/client-details-tab'
+import { ServiceSelection } from '@/components/bookings/new-booking/service-selection'
+import { ServiceDuration } from '@/components/bookings/new-booking/service-duration'
+import { VehicleSelectionTab } from '@/components/bookings/new-booking/vehicle-selection-tab'
+import { RouteInformationTab } from '@/components/bookings/new-booking/route-information-tab'
+import { AdditionalInfoTab } from '@/components/bookings/new-booking/additional-info-tab'
+import { PreviewTab } from '@/components/bookings/new-booking/preview-tab'
+import { RideSummary } from '@/components/bookings/new-booking/ride-summary'
 
 export default function NewBookingPage() {
   const router = useRouter()
@@ -91,13 +80,27 @@ export default function NewBookingPage() {
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('route')
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
-  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
+  
+  // Mobile detection
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  
+  // Team state
+  const [currentTeam, setCurrentTeam] = useState<'japan' | 'thailand'>('thailand')
+  
+  // Define tabs for mobile navigation
+  const tabs = [
+    { id: 'route', name: 'Route & Services', icon: MapPin },
+    { id: 'services', name: 'Vehicles', icon: Car },
+    { id: 'client', name: 'Client Details', icon: User },
+    { id: 'additional', name: 'Additional Info', icon: FileText },
+    { id: 'preview', name: 'Preview & Create', icon: Eye },
+  ]
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
   const [availableServices, setAvailableServices] = useState<ServiceType[]>([])
   const [availableCategories, setAvailableCategories] = useState<PricingCategory[]>([])
   const [vehiclesWithCategories, setVehiclesWithCategories] = useState<VehicleWithCategory[]>([])
   
-  // Vehicle filters state
+  // Vehicle filtering state
   const [vehicleFilters, setVehicleFilters] = useState({
     category: '',
     brand: '',
@@ -105,135 +108,166 @@ export default function NewBookingPage() {
     minPassengers: '',
     minLuggage: ''
   })
-  const { t } = useI18n()
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Filter vehicles based on selected filters
-  const filteredVehicles = vehiclesWithCategories.filter(vehicle => {
-    if (vehicleFilters.category && vehicle.category_name?.trim() !== vehicleFilters.category) {
-      return false
-    }
-    if (vehicleFilters.brand && !vehicle.brand?.trim().toLowerCase().includes(vehicleFilters.brand.toLowerCase())) {
-      return false
-    }
-    if (vehicleFilters.model && !vehicle.model?.trim().toLowerCase().includes(vehicleFilters.model.toLowerCase())) {
-      return false
-    }
-    if (vehicleFilters.minPassengers && vehicle.passenger_capacity && vehicle.passenger_capacity < parseInt(vehicleFilters.minPassengers)) {
-      return false
-    }
-    if (vehicleFilters.minLuggage && vehicle.luggage_capacity && vehicle.luggage_capacity < parseInt(vehicleFilters.minLuggage)) {
-      return false
-    }
-    
-    return true
+  // Payment options state
+  const [paymentOptions, setPaymentOptions] = useState({
+    requiresPayment: false,
+    paymentMethod: 'client_pay' as 'client_pay' | 'send_payment_link',
+    customPaymentName: ''
   })
-  
-  console.log('🔍 [FILTER] Total vehicles after filtering:', filteredVehicles.length, 'out of', vehiclesWithCategories.length)
 
-  // Get unique values for filter options - memoized to prevent multiple calls
-  const getFilterOptions = useMemo(() => {
-    console.log('🔧 [FILTER_OPTIONS] Processing vehicles for filter options:', vehiclesWithCategories.length, 'vehicles')
-    // Trim whitespace and filter out empty values, then get unique values
-    const brands = [...new Set(vehiclesWithCategories
-      .map(v => v.brand?.trim())
-      .filter(Boolean)
-    )].sort()
-    
-    const models = [...new Set(vehiclesWithCategories
-      .map(v => v.model?.trim())
-      .filter(Boolean)
-    )].sort()
-    
-    const categories = [...new Set(vehiclesWithCategories
-      .map(v => v.category_name?.trim())
-      .filter(Boolean)
-    )].sort()
-    
-    console.log('🔧 [FILTER_OPTIONS] Cleaned Brands:', brands)
-    console.log('🔧 [FILTER_OPTIONS] Cleaned Models:', models)
-    console.log('🔧 [FILTER_OPTIONS] Cleaned Categories:', categories)
-    return { brands, models, categories }
-  }, [vehiclesWithCategories])
+  // Pricing state
+  const [calculatedPrice, setCalculatedPrice] = useState({
+    baseAmount: 0,
+    discountAmount: 0,
+    taxAmount: 0,
+    totalAmount: 0
+  })
 
-  // Fetch driver, vehicle, service, and category lists
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('')
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false)
+
+  // Service data cache for switching between services
+  const [serviceDataCache, setServiceDataCache] = useState<Record<string, any>>({})
+
+  // Route calculation state
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false)
+
+  // Email sending state
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false)
+
+  // Check if API key is configured
+  const isGoogleMapsKeyConfigured = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+  // Load initial data
   useEffect(() => {
-    async function loadLists() {
+    const loadData = async () => {
       setIsLoading(true)
       try {
-        // Fetch Drivers
-        const driversResult = await getDriversAction()
-        if (driversResult && driversResult.length > 0) {
-          setAvailableDrivers(driversResult)
-        }
-        
-        // Fetch Vehicles - pass empty object as searchParams
-        const vehiclesResult = await getVehicles({})
-        if (vehiclesResult && vehiclesResult.length > 0) {
-          // Use the vehicles directly as they should be compatible
-          setAvailableVehicles(vehiclesResult as any)
-        }
-
-        // Fetch Services
-        const servicesResult = await getServiceTypesAction()
-        if (servicesResult && servicesResult.length > 0) {
-          setAvailableServices(servicesResult)
-        }
-
-        // Fetch Pricing Categories
-        const categoriesResult = await getPricingCategoriesAction()
-        if (categoriesResult && categoriesResult.length > 0) {
-          setAvailableCategories(categoriesResult)
-        }
-
-        // Fetch Vehicles with Categories
-        console.log('🚗 [BOOKING] Fetching vehicles with categories...')
-        const vehiclesWithCategoriesResult = await getVehiclesWithCategoriesAction()
-        console.log('🚗 [BOOKING] Raw vehicles result:', vehiclesWithCategoriesResult)
-        if (vehiclesWithCategoriesResult && vehiclesWithCategoriesResult.length > 0) {
-          console.log('🚗 [BOOKING] Setting vehicles with categories:', vehiclesWithCategoriesResult.length, 'vehicles')
-          console.log('🚗 [BOOKING] First vehicle sample:', vehiclesWithCategoriesResult[0])
-          setVehiclesWithCategories(vehiclesWithCategoriesResult)
-        } else {
-          console.log('❌ [BOOKING] No vehicles found or empty result')
-        }
+        const [services, categories, vehicles] = await Promise.all([
+          getServiceTypesAction(),
+          getPricingCategoriesAction(),
+          getVehiclesWithCategoriesAction()
+        ])
+        setAvailableServices(services)
+        setAvailableCategories(categories)
+        setVehiclesWithCategories(vehicles)
       } catch (error) {
         console.error('Error loading data:', error)
-        setError('Failed to load services and vehicles')
+        setError('Failed to load required data')
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadLists()
+    loadData()
   }, [])
 
+  // Filter vehicles based on current filters
+  const filteredVehicles = useMemo(() => {
+    return vehiclesWithCategories.filter(vehicle => {
+      const matchesCategory = !vehicleFilters.category || vehicle.category_name === vehicleFilters.category
+      const matchesBrand = !vehicleFilters.brand || vehicle.brand === vehicleFilters.brand
+      const matchesModel = !vehicleFilters.model || (vehicle.model || '').toLowerCase().includes(vehicleFilters.model.toLowerCase())
+      const matchesPassengers = !vehicleFilters.minPassengers || (vehicle.passenger_capacity || 0) >= parseInt(vehicleFilters.minPassengers)
+      const matchesLuggage = !vehicleFilters.minLuggage || (vehicle.luggage_capacity || 0) >= parseInt(vehicleFilters.minLuggage)
+      
+      return matchesCategory && matchesBrand && matchesModel && matchesPassengers && matchesLuggage
+    })
+  }, [vehiclesWithCategories, vehicleFilters])
+
+  // Get filter options for dropdowns
+  const getFilterOptions = useMemo(() => {
+    const categories = [...new Set(vehiclesWithCategories.map(v => v.category_name).filter(Boolean))]
+    const brands = [...new Set(vehiclesWithCategories.map(v => v.brand).filter(Boolean))]
+    
+    return { categories, brands }
+  }, [vehiclesWithCategories])
+
+  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => {
-      const newData = {
-      ...prev,
-      [name]: value
-      }
+      const newData = { ...prev, [name]: value }
       
-      // Auto-fill duration for airport transfer services
+      // Handle service switching logic
       if (name === 'service_name') {
-        if (value === 'Airport Transfer Haneda' || value === 'Airport Transfer Narita') {
-          newData.duration_hours = 1
-          newData.hours_per_day = 1
-          newData.service_days = 1
-        } else if (value === 'Charter Services') {
-          // Reset to allow manual input for charter services
+        const newService = value
+        
+        // Clear previous service-specific data
           newData.duration_hours = undefined
           newData.hours_per_day = undefined
           newData.service_days = undefined
+        newData.selectedVehicle = undefined
+        newData.vehicle_id = undefined
+        
+          if (newService === 'Airport Transfer Haneda' || newService === 'Airport Transfer Narita') {
+            // Airport Transfer: Set fixed values, clear charter-specific data
+            newData.duration_hours = 1
+            newData.hours_per_day = 1
+            newData.service_days = 1
+            
+            // Force reset to ensure clean state
+            newData.duration_hours = 1
+            newData.hours_per_day = 1
+            newData.service_days = 1
+            
+            // Restore vehicle selection if available
+          const cachedData = serviceDataCache[newService];
+            if (cachedData?.selectedVehicle) {
+            newData.selectedVehicle = cachedData.selectedVehicle;
+            newData.vehicle_id = cachedData.selectedVehicle.id;
+            }
+          } else if (newService === 'Charter Services') {
+            // Charter Services: Restore cached data or set defaults
+          const cachedData = serviceDataCache[newService];
+            if (cachedData) {
+              newData.duration_hours = cachedData.duration_hours || 1
+              newData.hours_per_day = cachedData.hours_per_day || 1
+              newData.service_days = cachedData.service_days || 1
+              newData.selectedVehicle = cachedData.selectedVehicle
+            newData.vehicle_id = cachedData.selectedVehicle?.id
+            } else {
+              newData.duration_hours = 1
+              newData.hours_per_day = 1
+              newData.service_days = 1
+            }
+          }
+        
+        // Update cache for current service
+        if (newService) {
+          setServiceDataCache(prevCache => ({
+            ...prevCache,
+            [newService]: {
+              duration_hours: newData.duration_hours,
+              hours_per_day: newData.hours_per_day,
+              service_days: newData.service_days,
+              selectedVehicle: newData.selectedVehicle
+            }
+          }));
         }
       }
       
-      // Calculate total duration for charter services
-      if (name === 'service_days' || name === 'hours_per_day') {
-        if (newData.service_name === 'Charter Services' && newData.service_days && newData.hours_per_day) {
-          newData.duration_hours = newData.service_days * newData.hours_per_day
+      // Recalculate duration for charter services when days or hours change
+      if (newData.service_name === 'Charter Services' && (name === 'service_days' || name === 'hours_per_day')) {
+        const days = name === 'service_days' ? parseInt(value) || 1 : newData.service_days || 1
+        const hours = name === 'hours_per_day' ? parseInt(value) || 1 : newData.hours_per_day || 1
+        newData.duration_hours = days * hours
+        
+        // Update cache
+      if (newData.service_name) {
+        setServiceDataCache(prevCache => ({
+          ...prevCache,
+          [newData.service_name as string]: {
+            duration_hours: newData.duration_hours,
+            hours_per_day: newData.hours_per_day,
+            service_days: newData.service_days,
+            selectedVehicle: newData.selectedVehicle
+          }
+          }));
         }
       }
       
@@ -241,106 +275,149 @@ export default function NewBookingPage() {
     })
   }
 
-  const handleSelectChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+  // Handle select changes
+  const handleSelectChange = (field: string, value: string) => {
+    // Convert "none" to null for driver_id
+    const processedValue = field === 'driver_id' && value === 'none' ? null : value
+    setFormData(prev => ({ ...prev, [field]: processedValue }))
   }
 
-  const handlePlaceChange = (name: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
-
-  const calculateRoute = () => {
-    if (!formData.pickup_location || !formData.dropoff_location) {
-      alert('Please enter both pickup and dropoff locations first');
-      return;
-    }
+  // Calculate route using Google Maps
+  const calculateRoute = async () => {
+    if (!formData.pickup_location || !formData.dropoff_location) return
     
-    if (window.google && window.google.maps) {
-      const directionsService = new window.google.maps.DirectionsService();
+    setIsCalculatingRoute(true)
+    try {
+      const directionsService = new google.maps.DirectionsService()
+      const results = await directionsService.route({
+        origin: formData.pickup_location,
+        destination: formData.dropoff_location,
+        travelMode: google.maps.TravelMode.DRIVING,
+      })
       
-      directionsService.route(
-        {
-          origin: formData.pickup_location,
-          destination: formData.dropoff_location,
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result: any, status: string) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            // Get the route details
-            const route = result.routes[0].legs[0];
-            
-            // Update distance and duration
-            setFormData(prev => ({
-              ...prev,
-              distance: (route.distance.value / 1000).toFixed(1), // Convert to km
-              duration: Math.round(route.duration.value / 60).toString() // Convert to minutes
-            }));
-          } else {
-            alert(`Could not calculate route: ${status}`);
-          }
-        }
-      );
-    } else {
-      alert('Google Maps is not loaded yet. Please try again in a moment.');
+      if (results.routes[0]) {
+        const route = results.routes[0].legs[0]
+        const distance = route.distance?.text || ''
+        const duration = route.duration?.text || ''
+        
+    setFormData(prev => ({
+      ...prev,
+          distance: distance,
+          duration: duration
+        }))
+        
+        // Generate map preview URL
+        const pickup = encodeURIComponent(formData.pickup_location)
+        const dropoff = encodeURIComponent(formData.dropoff_location)
+        const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:red%7C${pickup}&markers=color:blue%7C${dropoff}&path=color:0x0000ff%7Cweight:5%7C${pickup}%7C${dropoff}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+        setMapPreviewUrl(mapUrl)
+      }
+    } catch (error) {
+      console.error('Error calculating route:', error)
+    } finally {
+      setIsCalculatingRoute(false)
     }
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSaving(true)
-    setError(null)
-    setSaveResult(null)
+  // Calculate booking price
+  const calculateBookingPrice = async () => {
+    if (!formData.service_name || !formData.vehicle_id) return
 
     try {
-      // Validate required fields
-      if (!formData.customer_email || !formData.service_name || !formData.date || !formData.time) {
-        throw new Error('Please fill in all required fields')
+      // Get duration hours for pricing lookup
+      // For Airport Transfer services, use fixed values regardless of form data
+      let durationHours, serviceDays, hoursPerDay;
+      
+      if (formData.service_name === 'Airport Transfer Haneda' || formData.service_name === 'Airport Transfer Narita') {
+        // Airport Transfer: Fixed 1 hour duration
+        durationHours = 1;
+        serviceDays = 1;
+        hoursPerDay = 1;
+          } else {
+        // Charter Services: Use form data
+        durationHours = formData.duration_hours || 1;
+        serviceDays = formData.service_days || 1;
+        hoursPerDay = formData.hours_per_day;
       }
 
-      // Create the booking
-      const result = await createBookingAction(formData)
+      const response = await fetch('/api/bookings/calculate-pricing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service_type_id: availableServices.find(s => s.name === formData.service_name)?.id,
+          vehicle_id: formData.vehicle_id,
+          duration_hours: durationHours,
+          service_days: serviceDays,
+          hours_per_day: hoursPerDay,
+        }),
+      })
+
+      if (response.ok) {
+        const pricing = await response.json()
+        setCalculatedPrice(pricing)
+      }
+    } catch (error) {
+      console.error('Error calculating price:', error)
+    }
+  }
+
+  // Trigger price calculation when relevant data changes
+  useEffect(() => {
+    if (formData.service_name && formData.vehicle_id) {
+      calculateBookingPrice()
+    }
+  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day])
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    if (!formData.customer_email || !formData.service_name || !formData.pickup_location || !formData.dropoff_location) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    setIsSaving(true)
+    setError(null)
+
+    try {
+      const result = await createBookingAction(formData as Booking)
       
       if (result.success) {
         setSaveResult({ success: true, message: 'Booking created successfully!' })
-        // Redirect to the new booking details page
+        // Redirect to bookings list after successful creation
         setTimeout(() => {
-          router.push(`/bookings/${result.bookingId}`)
-        }, 1500)
+          router.push('/bookings')
+        }, 2000)
       } else {
-        throw new Error(result.error || 'Failed to create booking')
+        setError(result.error || 'Failed to create booking')
       }
     } catch (error) {
       console.error('Error creating booking:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create booking')
+      setError('An unexpected error occurred')
     } finally {
       setIsSaving(false)
     }
   }
 
-  // Status badge color helper
+  // Get status color for badges
   const getStatusColor = (status: string) => {
-    switch(status?.toLowerCase()) {
-      case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+      case 'confirmed': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+      case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
     }
-  };
-
-  // Check if API key is configured
-  const isGoogleMapsKeyConfigured = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  }
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading booking form...</span>
+        </div>
       </div>
     )
   }
@@ -350,1040 +427,241 @@ export default function NewBookingPage() {
       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
       libraries={['places']}
     >
-      <div className="space-y-6 w-full mx-auto">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 p-3 sm:p-4 rounded-lg shadow-sm">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div>
-              <h1 className="text-xl font-semibold">Create New Booking</h1>
-              <p className="text-xs text-muted-foreground">
-                Fill in the details below to create a new vehicle booking
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end mt-3 sm:mt-0">
-            <Badge 
-              className={`text-sm px-3 py-1 ${getStatusColor(formData.status || 'pending')}`}
-            >
-              {(formData.status || 'pending').charAt(0).toUpperCase() + (formData.status || 'pending').slice(1)}
-            </Badge>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={isSaving}
-              className="shadow-sm h-9"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create Booking
-                </>
-              )}
-            </Button>
-          </div>
+      <div className="flex flex-col lg:flex-row gap-6 w-full mx-auto">
+        {/* Main Content */}
+        <div className="flex-1 space-y-6">
+        {/* Page Header - Simple title with divider */}
+        <div className="mb-4">
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Create Booking</h1>
+          <div className="w-full h-px bg-border my-6"></div>
         </div>
 
-        {/* Error Alert */}
+          {/* Error Display */}
         {error && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg dark:bg-red-900/20 dark:border-red-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm text-red-800 dark:text-red-300">{error}</span>
+              </div>
+            </div>
+          )}
 
-        {/* Success Alert */}
+          {/* Success Display */}
         {saveResult?.success && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{saveResult.message}</AlertDescription>
-          </Alert>
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/20 dark:border-green-800">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm text-green-800 dark:text-green-300">{saveResult.message}</span>
+              </div>
+            </div>
         )}
 
         {/* Main Form Card */}
-        <Card className="border shadow-md dark:border-gray-800 relative pb-16 md:pb-0">
-          <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 sm:px-6 py-4">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <FileText className="h-5 w-5" />
-              Create new booking information
-            </CardTitle>
-          </CardHeader>
+          <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+            <CardHeader className="bg-muted/30 rounded-t-lg border-b px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base md:text-lg font-semibold">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Create New Booking
+                  </CardTitle>
+                  {!isMobile && (
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Step {tabs.findIndex(tab => tab.id === activeTab) + 1} of {tabs.length}: {tabs.find(tab => tab.id === activeTab)?.name}
+                    </p>
+                  )}
+                </div>
+                <TeamSwitcher
+                  currentTeam={currentTeam}
+                  onTeamChange={setCurrentTeam}
+                  className="ml-4"
+                />
+              </div>
+            </CardHeader>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            {/* Desktop Tabs */}
-            <div className="hidden md:block w-full bg-black border-b">
-              <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
-                <TabsTrigger 
-                  value="route" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <MapPin className="h-4 w-4" />
-                  <span>Route & Services</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="services" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <Car className="h-4 w-4" />
-                  <span>Vehicles</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="client" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Client Details</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="additional" 
-                  className="flex items-center justify-center gap-2 py-3 sm:py-4 px-2 sm:px-3 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-white whitespace-nowrap"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>Additional Info</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            <CardContent className="p-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                {/* Desktop/Tablet Tabs */}
+                <div className="hidden md:block border-b">
+                  <TabsList className="grid w-full grid-cols-5 bg-transparent h-auto p-0">
+                    {tabs.map((tab) => (
+                      <TabsTrigger 
+                        key={tab.id}
+                        value={tab.id} 
+                        className="flex items-center justify-center gap-2 py-4 rounded-none border-b-2 border-transparent data-[state=active]:border-primary text-muted-foreground data-[state=active]:text-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <tab.icon className="h-5 w-5" />
+                        <span className="text-sm font-medium">{tab.name}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
+                
+                {/* Bottom Fixed Mobile Nav */}
+                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-muted/95 dark:bg-muted/95 backdrop-blur-sm border-t z-50">
+                  <TabsList className="w-full grid grid-cols-5 p-0 h-auto bg-transparent">
+                    {tabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.id}
+                        value={tab.id}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-none border-b-2",
+                          "text-muted-foreground data-[state=active]:text-foreground hover:text-foreground hover:bg-muted/50 transition-colors",
+                          activeTab === tab.id 
+                            ? "border-primary data-[state=active]:border-primary" 
+                            : "border-transparent"
+                        )}
+                      >
+                        <tab.icon className="h-4 w-4" />
+                        <span className="text-xs leading-tight">{tab.name.split(' ')[0]}</span>
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
             
-            {/* Bottom Fixed Mobile Nav */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t z-50">
-              <TabsList className="w-full grid grid-cols-4 p-0 h-auto bg-transparent">
-                <TabsTrigger 
-                  value="route" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <MapPin className="h-5 w-5" />
-                  <span className="text-xs">Route</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="services" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <Car className="h-5 w-5" />
-                  <span className="text-xs">Vehicles</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="client" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <User className="h-5 w-5" />
-                  <span className="text-xs">Client</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="additional" 
-                  className="flex flex-col items-center justify-center gap-1 py-2 rounded-none border-t-2 border-transparent data-[state=active]:border-primary text-white"
-                >
-                  <FileText className="h-5 w-5" />
-                  <span className="text-xs">Extra</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <div className="p-3 sm:p-6 pb-2 space-y-6">
-              {/* Client Details Tab - First */}
-              <TabsContent value="client" className="mt-0 space-y-6">
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <User className="mr-2 h-5 w-5" />
-                      Client Details
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Customer Name</h3>
-                        <Input
-                          id="customer_name"
-                          name="customer_name"
-                          value={formData.customer_name || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                            </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Email *</h3>
-                        <Input
-                          id="customer_email"
-                          name="customer_email"
-                          type="email"
-                          required
-                          value={formData.customer_email || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
-                        <Input
-                          id="customer_phone"
-                          name="customer_phone"
-                          type="tel"
-                          value={formData.customer_phone || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                        </div>
-                      </div>
-                      
-                    {/* Billing Information Section */}
-                    <Separator className="my-6" />
-                    
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold flex items-center">
-                        <CreditCard className="mr-2 h-5 w-5" />
-                        Billing Information
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Company Name</h3>
-                          <Input
-                            id="billing_company_name"
-                            name="billing_company_name"
-                            value={formData.billing_company_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Tax Number / VAT ID</h3>
-                          <Input
-                            id="billing_tax_number"
-                            name="billing_tax_number"
-                            value={formData.billing_tax_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Street Name</h3>
-                          <Input
-                            id="billing_street_name"
-                            name="billing_street_name"
-                            value={formData.billing_street_name || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Street Number / Building</h3>
-                          <Input
-                            id="billing_street_number"
-                            name="billing_street_number"
-                            value={formData.billing_street_number || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">City</h3>
-                        <Input
-                            id="billing_city"
-                            name="billing_city"
-                            value={formData.billing_city || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">State / Province</h3>
-                          <Input
-                            id="billing_state"
-                            name="billing_state"
-                            value={formData.billing_state || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-muted-foreground">Postal / ZIP Code</h3>
-                          <Input
-                            id="billing_postal_code"
-                            name="billing_postal_code"
-                            value={formData.billing_postal_code || ''}
-                            onChange={handleInputChange}
-                            className="transition-all focus:ring-2 focus:border-primary"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Country</h3>
-                        <Input
-                          id="billing_country"
-                          name="billing_country"
-                          value={formData.billing_country || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
+            <div className="p-3 sm:p-6 pb-2 md:pb-2 pb-20 space-y-6">
+                  {/* Route Tab */}
+                  <TabsContent value="route" className="mt-0 space-y-6">
+                <ServiceSelection 
+                  formData={formData}
+                      availableServices={availableServices}
+                      handleSelectChange={handleSelectChange}
+                    />
+
+                    <ServiceDuration 
+                      formData={formData}
+                      setFormData={setFormData}
+                      setServiceDataCache={setServiceDataCache}
+                  handleInputChange={handleInputChange}
+                />
+
+                    <RouteInformationTab
+                      formData={formData}
+                      handleInputChange={handleInputChange}
+                      setFormData={setFormData}
+                      isGoogleMapsKeyConfigured={isGoogleMapsKeyConfigured}
+                      isCalculatingRoute={isCalculatingRoute}
+                      calculateRoute={calculateRoute}
+                    />
               </TabsContent>
               
-              {/* Vehicle Selection Tab - Second */}
+                  {/* Services Tab */}
               <TabsContent value="services" className="mt-0 space-y-6">
-
-                {/* Vehicle Selection by Category */}
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <Car className="mr-2 h-5 w-5" />
-                      Select Your Vehicle
-                    </h2>
-                  </div>
-                  
-                  {/* Vehicle Filters */}
-                  <div className="border-b bg-muted/30 px-6 py-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Settings className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-sm font-medium">Filters</h3>
-                      {Object.values(vehicleFilters).some(filter => filter) && (
-                        <button
-                          onClick={() => setVehicleFilters({ category: '', brand: '', model: '', minPassengers: '', minLuggage: '' })}
-                          className="text-xs text-muted-foreground hover:text-foreground underline"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                      {/* Category Filter */}
-                                  <div className="space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">Category</Label>
-              <Select 
-                value={vehicleFilters.category || undefined} 
-                onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, category: value || '' }))}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getFilterOptions.categories.filter(Boolean).map((category) => (
-                    <SelectItem key={category} value={category as string}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-                      
-                      {/* Brand Filter */}
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Brand</Label>
-                        <Select 
-                          value={vehicleFilters.brand || undefined} 
-                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, brand: value || '' }))}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="All" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getFilterOptions.brands.filter(Boolean).map((brand) => (
-                              <SelectItem key={brand} value={brand as string}>{brand}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {/* Model Filter */}
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Model</Label>
-                        <Input
-                          placeholder="Search model..."
-                          value={vehicleFilters.model}
-                          onChange={(e) => setVehicleFilters(prev => ({ ...prev, model: e.target.value }))}
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      
-                      {/* Passengers Filter */}
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Min. Passengers</Label>
-                        <Select 
-                          value={vehicleFilters.minPassengers || undefined} 
-                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minPassengers: value || '' }))}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Any" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {/* Luggage Filter */}
-                      <div className="space-y-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Min. Luggage</Label>
-                        <Select 
-                          value={vehicleFilters.minLuggage || undefined} 
-                          onValueChange={(value) => setVehicleFilters(prev => ({ ...prev, minLuggage: value || '' }))}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Any" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                              <SelectItem key={num} value={num.toString()}>{num}+</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    {/* Filter Results Count */}
-                    <div className="mt-3 text-xs text-muted-foreground">
-                      Showing {filteredVehicles.length} of {vehiclesWithCategories.length} vehicles
-                    </div>
-                  </div>
-                  
-                  <div className="p-6">
-                    {availableCategories.length > 0 ? (
-                      <div className="space-y-8">
-                        {availableCategories
-                          .filter(category => {
-                            const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
-                            return categoryVehicles.length > 0
-                          })
-                          .map((category) => {
-                          const categoryVehicles = filteredVehicles.filter(v => v.category_name?.trim() === category.name?.trim())
-                          console.log('📂 [CATEGORY] Rendering category:', category.name, 'with', categoryVehicles.length, 'vehicles')
-                          
-                          return (
-                            <div key={category.id} className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <h3 className="text-lg font-semibold">{category.name}</h3>
-                                <Badge variant="outline" className="text-xs">
-                                  {categoryVehicles.length} vehicle{categoryVehicles.length !== 1 ? 's' : ''}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {categoryVehicles.map((vehicle) => (
-                                  <div
-                                    key={vehicle.id}
-                                    className={`
-                                      border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md
-                                      ${formData.vehicle_id === vehicle.id ? 'border-2 border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:border-primary/50'}
-                                    `}
-                                    onClick={() => {
-                                      console.log('🎯 [SELECTION] Vehicle selected:', vehicle.brand?.trim(), vehicle.model?.trim(), `(${vehicle.category_name?.trim()})`)
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        vehicle_id: vehicle.id,
-                                        selectedVehicle: vehicle
-                                      }))
-                                    }}
-                                  >
-                                    <div className="space-y-3">
-                                      {/* Vehicle Image */}
-                                      <div className="aspect-video bg-muted rounded-md overflow-hidden">
-                                        {vehicle.image_url ? (
-                                          <Image
-                                            src={vehicle.image_url}
-                                            alt={`${vehicle.brand} ${vehicle.model}`}
-                                            width={300}
-                                            height={200}
-                                            className="w-full h-full object-cover"
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center">
-                                            <Car className="h-12 w-12 text-muted-foreground" />
-                                          </div>
-                                        )}
-                                      </div>
-                                      
-                                      {/* Vehicle Details */}
-                                      <div className="space-y-2">
-                                        <h4 className="font-semibold text-sm">
-                                          {vehicle.brand} {vehicle.model}
-                                        </h4>
-                                        <p className="text-xs text-muted-foreground">
-                                          {vehicle.year} • {vehicle.name}
-                                        </p>
-                                        
-                                        {/* Capacity Info */}
-                                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                          <div className="flex items-center gap-1">
-                                            <User className="h-3 w-3" />
-                                            <span>{vehicle.passenger_capacity || 0} passengers</span>
-                                          </div>
-                                          <div className="flex items-center gap-1">
-                                            <FileText className="h-3 w-3" />
-                                            <span>{vehicle.luggage_capacity || 0} luggage</span>
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Select Button */}
-                                        <Button
-                                          variant={formData.vehicle_id === vehicle.id ? "default" : "outline"}
-                                          size="sm"
-                                          className="w-full mt-3"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            console.log('🎯 [SELECTION] Vehicle selected via button:', vehicle.brand?.trim(), vehicle.model?.trim())
-                                            setFormData(prev => ({
-                                              ...prev,
-                                              vehicle_id: vehicle.id,
-                                              selectedVehicle: vehicle
-                                            }))
-                                          }}
-                                        >
-                                          {formData.vehicle_id === vehicle.id ? 'Selected' : 'Select'}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="p-8 border rounded-lg bg-muted/30 text-center">
-                        <Car className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">No vehicle categories available. Please add vehicles and categories first.</p>
-                      </div>
-                    )}
-                  </div>
-                </Card>
+                    <VehicleSelectionTab 
+                  formData={formData}
+                      setFormData={setFormData}
+                      availableCategories={availableCategories}
+                  vehiclesWithCategories={vehiclesWithCategories}
+                  vehicleFilters={vehicleFilters}
+                  setVehicleFilters={setVehicleFilters}
+                      filteredVehicles={filteredVehicles}
+                      getFilterOptions={getFilterOptions}
+                    />
               </TabsContent>
               
-              {/* Route Information Tab - Third */}
-              <TabsContent value="route" className="mt-0 space-y-6">
-                {/* Service Selection - First in Route Tab */}
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <Car className="mr-2 h-5 w-5" />
-                      Service Selection
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-6">
-                      {/* Service Type Selection */}
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Service Type *</h3>
-                        {availableServices.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {availableServices.map((service) => (
-                              <div 
-                                key={service.id}
-                              className={`
-                                border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
-                                  ${formData.service_name === service.name ? 'border-2 ring-2 border-primary ring-primary/20 bg-primary/5' : 'hover:border-primary'}
-                                `}
-                                onClick={() => handleSelectChange('service_name', service.name)}
-                              >
-                                <Car className={`h-5 w-5 mb-1 ${formData.service_name === service.name ? 'text-primary' : 'text-muted-foreground'}`} />
-                                <span className="font-medium text-sm text-center">{service.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                        ) : (
-                          <div className="p-4 border rounded-lg bg-muted/30">
-                            <p className="text-sm text-muted-foreground">No services available. Please add services first.</p>
-                      </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Service Duration - Show when service type is selected */}
-                {formData.service_name && (
-                  <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                    <div className="border-b py-4 px-6">
-                      <h2 className="text-lg font-semibold flex items-center">
-                        <Timer className="mr-2 h-5 w-5" />
-                        Service Duration
-                      </h2>
-                    </div>
-                    
-                    <div className="p-6">
-                      {/* Show different fields based on service type */}
-                      {formData.service_name === 'Airport Transfer Haneda' || formData.service_name === 'Airport Transfer Narita' ? (
-                        <div className="space-y-4">
-                          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                              <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Airport Transfer Service</span>
-                            </div>
-                            <p className="text-sm text-blue-700 dark:text-blue-300">
-                              Duration is automatically set to 1 hour for airport transfer services.
-                            </p>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="hours_per_day" className="flex items-center gap-2">
-                                <Timer className="h-4 w-4 text-muted-foreground" />
-                                Hours Per Day
-                              </Label>
-                          <Input
-                                id="hours_per_day"
-                                name="hours_per_day"
-                                type="number"
-                                min="1"
-                                max="24"
-                                value={formData.hours_per_day || ''}
-                            onChange={handleInputChange}
-                                placeholder="1"
-                                className="transition-all focus:ring-2 focus:border-primary bg-gray-50 dark:bg-gray-800"
-                                readOnly
-                          />
-                      </div>
-                      
-                            <div className="space-y-2">
-                              <Label htmlFor="duration_hours" className="flex items-center gap-2">
-                                <Calculator className="h-4 w-4 text-muted-foreground" />
-                                Duration (Hours)
-                              </Label>
-                          <Input
-                                id="duration_hours"
-                                name="duration_hours"
-                                type="number"
-                                min="1"
-                                value={formData.duration_hours || ''}
-                            onChange={handleInputChange}
-                                placeholder="1"
-                                className="transition-all focus:ring-2 focus:border-primary bg-gray-50 dark:bg-gray-800"
-                                readOnly
-                          />
-                        </div>
-                      </div>
-                        </div>
-                      ) : formData.service_name === 'Charter Services' ? (
-                        <div className="space-y-4">
-                          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
-                              <span className="text-sm font-medium text-green-800 dark:text-green-200">Charter Service</span>
-                            </div>
-                            <p className="text-sm text-green-700 dark:text-green-300">
-                              Please specify the number of days and hours per day for your charter service.
-                            </p>
-                      </div>
-                      
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                              <Label htmlFor="service_days" className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                Number of Days
-                              </Label>
-                        <Input
-                                id="service_days"
-                                name="service_days"
-                                type="number"
-                                min="1"
-                                max="30"
-                                value={formData.service_days || ''}
-                          onChange={handleInputChange}
-                                placeholder="e.g. 3"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                            
-                            <div className="space-y-2">
-                              <Label className="flex items-center gap-2">
-                                <Timer className="h-4 w-4 text-muted-foreground" />
-                                Hours Per Day
-                              </Label>
-                              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((hours) => (
-                                  <button
-                                    key={hours}
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, hours_per_day: hours }))}
-                                    className={`
-                                      h-auto py-2 px-2 flex flex-col items-center justify-center text-center transition-all text-xs border rounded
-                                      ${formData.hours_per_day === hours 
-                                        ? 'bg-primary text-primary-foreground border-primary ring-2 ring-primary' 
-                                        : 'bg-background border-input hover:bg-accent hover:text-accent-foreground'
-                                      }
-                                    `}
-                                  >
-                                    <span className="font-medium">{hours}h</span>
-                                  </button>
-                                ))}
-                    </div>
-                            </div>
-                          </div>
-                          
-                          {formData.service_days && formData.hours_per_day && (
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                                <Calculator className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                  Total Duration: {formData.service_days} days × {formData.hours_per_day} hours = {formData.service_days * formData.hours_per_day} total hours
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
-                  </div>
-                </Card>
-                )}
-              
-                {!isGoogleMapsKeyConfigured && (
-                  <Alert className="mb-4 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800">
-                    <AlertTitle className="text-yellow-800 dark:text-yellow-300">Google Maps API Key Missing</AlertTitle>
-                    <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                      Please configure your Google Maps API key to enable map functionality.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800 overflow-hidden">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <MapPin className="mr-2 h-5 w-5" />
-                      Route Information
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    {/* Date and Time Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Date *</h3>
-                        <Input
-                          id="date"
-                          name="date"
-                          type="date"
-                          value={formData.date || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Pickup Time *</h3>
-                        <Input
-                          id="time"
-                          name="time"
-                          type="time"
-                          value={formData.time || ''}
-                          onChange={handleInputChange}
-                          className="transition-all focus:ring-2 focus:border-primary"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Location Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <GooglePlaceAutocomplete
-                        id="pickup_location"
-                        name="pickup_location"
-                        label="Pickup Location"
-                        value={formData.pickup_location || ''}
-                        onChange={handlePlaceChange}
-                        placeholder="Enter pickup address"
-                        required
-                      />
-                      
-                      <GooglePlaceAutocomplete
-                        id="dropoff_location"
-                        name="dropoff_location"
-                        label="Dropoff Location"
-                        value={formData.dropoff_location || ''}
-                        onChange={handlePlaceChange}
-                        placeholder="Enter dropoff address"
-                        required
-                      />
-                    </div>
-                    
-                    {(formData.pickup_location && formData.dropoff_location) ? (
-                      <div className="mt-4 rounded-lg overflow-hidden">
-                        {isGoogleMapsKeyConfigured ? (
-                          <div className="relative h-[300px] w-full">
-                            <iframe 
-                              width="100%" 
-                              height="100%" 
-                              style={{border: 0}}
-                              loading="lazy"
-                              allowFullScreen
-                              title="Route map from pickup to dropoff location"
-                              src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(formData.pickup_location)}&destination=${encodeURIComponent(formData.dropoff_location)}&mode=driving`}
-                            />
-                            <div className="absolute bottom-3 left-3 z-10">
-                              <Button 
-                                variant="secondary" 
-                                size="sm" 
-                                className="bg-white text-black hover:bg-gray-100 dark:bg-black dark:text-white dark:hover:bg-gray-800"
-                                onClick={() => {
-                                  const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(formData.pickup_location || '')}&destination=${encodeURIComponent(formData.dropoff_location || '')}&travelmode=driving`;
-                                  window.open(url, '_blank');
-                                }}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                View Larger Map
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            {mapPreviewUrl ? (
-                              <div className="relative aspect-[16/9]">
-                                <Image 
-                                  src={mapPreviewUrl} 
-                                  alt="Route Map" 
-                                  fill
-                                  className="object-contain rounded-md"
-                                />
-                              </div>
-                            ) : (
-                              <div className="h-[200px] flex items-center justify-center bg-muted">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="h-[200px] flex flex-col items-center justify-center border rounded-lg border-dashed mt-4 bg-muted/30">
-                        <MapPin className="h-8 w-8 mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground text-center px-4">Enter both pickup and dropoff locations to see the route</p>
-                      </div>
-                    )}
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="distance" className="flex items-center gap-2">
-                            <Route className="h-4 w-4 text-muted-foreground" />
-                            Distance
-                          </Label>
-                          <span className="text-xs text-muted-foreground">km</span>
-                        </div>
-                        <Input
-                          id="distance"
-                          name="distance"
-                          type="text"
-                          value={formData.distance || ''}
-                          onChange={handleInputChange}
-                          placeholder="e.g. 25"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="duration" className="flex items-center gap-2">
-                            <Timer className="h-4 w-4 text-muted-foreground" />
-                            Duration
-                          </Label>
-                          <span className="text-xs text-muted-foreground">min</span>
-                        </div>
-                        <Input
-                          id="duration"
-                          name="duration"
-                          type="text"
-                          value={formData.duration || ''}
-                          onChange={handleInputChange}
-                          placeholder="e.g. 45"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    
-                    {(formData.pickup_location && formData.dropoff_location) && (
-                      <div className="flex justify-center mt-6">
-                        <Button 
-                          variant="outline" 
-                          type="button" 
-                          onClick={calculateRoute}
-                          className="flex items-center gap-2"
-                        >
-                          <Calculator className="h-4 w-4" />
-                          Calculate Route Distance & Duration
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
+                  {/* Client Tab */}
+                  <TabsContent value="client" className="mt-0 space-y-6">
+                    <ClientDetailsTab 
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                />
               </TabsContent>
               
-
-              
-              {/* Additional Info Tab */}
+                  {/* Additional Tab */}
               <TabsContent value="additional" className="mt-0 space-y-6">
-                {/* Booking Status */}
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <CheckCircle className="mr-2 h-5 w-5" />
-                      Booking Status
-                    </h2>
-                  </div>
+                    <AdditionalInfoTab 
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                      handleSelectChange={handleSelectChange}
+                    />
+                  </TabsContent>
                   
-                  <div className="p-6">
-                      <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        {['pending', 'confirmed', 'completed', 'cancelled'].map((status) => (
-                          <div 
-                            key={status}
-                            className={`
-                              border rounded-md p-3 cursor-pointer transition-all flex flex-col items-center
-                              ${formData.status === status ? `border-2 ring-2 ${
-                                status === 'pending' ? 'border-yellow-500 ring-yellow-200' :
-                                status === 'confirmed' ? 'border-green-500 ring-green-200' :
-                                status === 'completed' ? 'border-blue-500 ring-blue-200' :
-                                'border-red-500 ring-red-200'
-                              }` : 'hover:border-primary'}
-                            `}
-                            onClick={() => handleSelectChange('status', status)}
-                          >
-                            {status === 'pending' && <AlertTriangle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-yellow-500' : 'text-muted-foreground'}`} />}
-                            {status === 'confirmed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-green-500' : 'text-muted-foreground'}`} />}
-                            {status === 'completed' && <CheckCircle className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-blue-500' : 'text-muted-foreground'}`} />}
-                            {status === 'cancelled' && <X className={`h-5 w-5 mb-1 ${formData.status === status ? 'text-red-500' : 'text-muted-foreground'}`} />}
-                            <span className="capitalize font-medium text-sm">{status}</span>
-                      </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <Plane className="mr-2 h-5 w-5" />
-                      Flight Information
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Flight Number</h3>
-                        <Input
-                          id="flight_number"
-                          name="flight_number"
-                          value={formData.flight_number || ''}
-                          onChange={handleInputChange}
-                          placeholder="e.g. TG123"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Terminal</h3>
-                        <Input
-                          id="terminal"
-                          name="terminal"
-                          value={formData.terminal || ''}
-                          onChange={handleInputChange}
-                          placeholder="e.g. Terminal 1"
-                          className="transition-all focus:ring-2 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-
-                
-                <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-                  <div className="border-b py-4 px-6">
-                    <h2 className="text-lg font-semibold flex items-center">
-                      <FileText className="mr-2 h-5 w-5" />
-                      Notes & Instructions
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-muted-foreground">Comment</h3>
-                      <Textarea
-                        id="notes"
-                        name="notes"
-                        rows={6}
-                        value={formData.notes || ''}
-                        onChange={handleInputChange}
-                        placeholder="Enter any additional notes or special instructions for this booking..."
-                        className="transition-all focus:ring-2 focus:border-primary resize-none"
-                      />
-                    </div>
-                  </div>
-                </Card>
-                
-
+                  {/* Preview Tab */}
+                  <TabsContent value="preview" className="mt-0 space-y-6">
+                    <PreviewTab
+                      formData={formData}
+                      calculatedPrice={calculatedPrice}
+                      couponDiscount={couponDiscount}
+                      paymentOptions={paymentOptions}
+                      setPaymentOptions={setPaymentOptions}
+                      getStatusColor={getStatusColor}
+                    />
               </TabsContent>
             </div>
           </Tabs>
-          
-          <CardFooter className="flex justify-between px-4 sm:px-6 pb-6 pt-2">
-            <Button 
-              variant="outline" 
-              onClick={() => router.back()}
-              className="gap-2"
-            >
-              <X className="h-4 w-4" />
-              Cancel
-            </Button>
+            </CardContent>
             
-            <div className="flex gap-3">
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  const tabs = ['route', 'services', 'client', 'additional']
-                  const currentIndex = tabs.indexOf(activeTab)
-                  const previousTab = tabs[currentIndex - 1] || tabs[tabs.length - 1]
-                  setActiveTab(previousTab)
-                }}
-                disabled={activeTab === 'route'}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  const tabs = ['route', 'services', 'client', 'additional']
-                  const currentIndex = tabs.indexOf(activeTab)
-                  const nextTab = tabs[currentIndex + 1] || tabs[0]
-                  setActiveTab(nextTab)
-                }}
-                disabled={activeTab === 'additional'}
-                className="gap-2"
-              >
-                Next
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardFooter className="flex flex-col sm:flex-row justify-between items-center p-4 pb-20 md:pb-4 border-t bg-muted/30 gap-3 sm:gap-4">
+              {activeTab !== 'preview' ? (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const currentIndex = tabs.findIndex(tab => tab.id === activeTab)
+                      const previousTab = tabs[currentIndex - 1] || tabs[tabs.length - 1]
+                      setActiveTab(previousTab.id)
+                    }}
+                    className="w-full sm:w-auto order-2 sm:order-1 gap-2 text-sm"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const currentIndex = tabs.findIndex(tab => tab.id === activeTab)
+                      const nextTab = tabs[currentIndex + 1] || tabs[0]
+                      setActiveTab(nextTab.id)
+                    }}
+                    className="w-full sm:w-auto order-1 sm:order-2 gap-2 text-sm"
+                  >
+                    Next
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setActiveTab('additional')}
+                    className="w-full sm:w-auto order-2 sm:order-1 gap-2 text-sm"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Edit
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleSubmit} 
+                    disabled={isSaving || isGeneratingPayment || isSendingEmail}
+                    className="w-full sm:w-auto order-1 sm:order-2 gap-2 text-sm"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Create Booking
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
           </CardFooter>
         </Card>
+          </div>
+
+          {/* Ride Summary Sidebar */}
+            <RideSummary
+              formData={formData}
+              calculatedPrice={calculatedPrice}
+          couponDiscount={couponDiscount}
+              mapPreviewUrl={mapPreviewUrl}
+          setActiveTab={setActiveTab}
+            />
       </div>
     </GoogleMapsProvider>
   )

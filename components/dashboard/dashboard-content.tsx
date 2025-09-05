@@ -127,6 +127,8 @@ function getBookingStatusBadge(status: string, t: (key: string, options?: any) =
       case 'completed':
       case 'confirmed':
         return <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">{t(`bookings.status.${status}`)}</Badge>;
+      case 'assigned':
+        return <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50 dark:bg-purple-900/20">{t(`bookings.status.${status}`)}</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`bookings.status.${status}`)}</Badge>;
       case 'cancelled':
@@ -225,9 +227,9 @@ export function DashboardContent({
           page: 1
         }, false)
         
-        // Filter for pending and confirmed bookings
+        // Filter for pending, assigned, and confirmed bookings
         const filteredBookings = bookings.filter(
-          booking => booking.status === 'pending' || booking.status === 'confirmed'
+          booking => booking.status === 'pending' || booking.status === 'assigned' || booking.status === 'confirmed'
         )
         
         // Sort by date (most recent first)

@@ -73,6 +73,7 @@ export type Database = {
           coupon_code: string | null
           coupon_discount_percentage: number | null
           created_at: string | null
+          created_by: string | null
           customer_email: string | null
           customer_id: string | null
           customer_name: string | null
@@ -82,6 +83,9 @@ export type Database = {
           driver_id: string | null
           dropoff_location: string | null
           duration: string | null
+          duration_hours: number | null
+          flight_number: string | null
+          hours_per_day: number | null
           id: string
           meta: Json | null
           notes: string | null
@@ -92,11 +96,13 @@ export type Database = {
           price_amount: number | null
           price_currency: string | null
           price_formatted: string | null
+          service_days: number | null
           service_id: string | null
           service_name: string
           service_type: string | null
           status: string
           synced_at: string | null
+          terminal: string | null
           time: string
           updated_at: string | null
           updated_by: string | null
@@ -121,6 +127,7 @@ export type Database = {
           coupon_code?: string | null
           coupon_discount_percentage?: number | null
           created_at?: string | null
+          created_by?: string | null
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string | null
@@ -130,6 +137,9 @@ export type Database = {
           driver_id?: string | null
           dropoff_location?: string | null
           duration?: string | null
+          duration_hours?: number | null
+          flight_number?: string | null
+          hours_per_day?: number | null
           id?: string
           meta?: Json | null
           notes?: string | null
@@ -140,11 +150,13 @@ export type Database = {
           price_amount?: number | null
           price_currency?: string | null
           price_formatted?: string | null
+          service_days?: number | null
           service_id?: string | null
           service_name: string
           service_type?: string | null
           status?: string
           synced_at?: string | null
+          terminal?: string | null
           time: string
           updated_at?: string | null
           updated_by?: string | null
@@ -169,6 +181,7 @@ export type Database = {
           coupon_code?: string | null
           coupon_discount_percentage?: number | null
           created_at?: string | null
+          created_by?: string | null
           customer_email?: string | null
           customer_id?: string | null
           customer_name?: string | null
@@ -178,6 +191,9 @@ export type Database = {
           driver_id?: string | null
           dropoff_location?: string | null
           duration?: string | null
+          duration_hours?: number | null
+          flight_number?: string | null
+          hours_per_day?: number | null
           id?: string
           meta?: Json | null
           notes?: string | null
@@ -188,11 +204,13 @@ export type Database = {
           price_amount?: number | null
           price_currency?: string | null
           price_formatted?: string | null
+          service_days?: number | null
           service_id?: string | null
           service_name?: string
           service_type?: string | null
           status?: string
           synced_at?: string | null
+          terminal?: string | null
           time?: string
           updated_at?: string | null
           updated_by?: string | null
@@ -873,6 +891,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      generated_reports: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          date_range: Json | null
+          download_url: string | null
+          file_size: number | null
+          format: string
+          id: string
+          name: string
+          options: Json | null
+          status: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_range?: Json | null
+          download_url?: string | null
+          file_size?: number | null
+          format: string
+          id?: string
+          name: string
+          options?: Json | null
+          status?: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_range?: Json | null
+          download_url?: string | null
+          file_size?: number | null
+          format?: string
+          id?: string
+          name?: string
+          options?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       inspection_categories: {
         Row: {
@@ -2788,6 +2854,102 @@ export type Database = {
           },
         ]
       }
+      report_schedules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          day_of_month: number | null
+          day_of_week: number | null
+          description: string | null
+          format: string
+          frequency: string
+          id: string
+          is_active: boolean | null
+          last_run: string | null
+          name: string
+          next_run: string | null
+          options: Json | null
+          recipients: Json | null
+          report_type: string
+          time_of_day: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          day_of_month?: number | null
+          day_of_week?: number | null
+          description?: string | null
+          format?: string
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          last_run?: string | null
+          name: string
+          next_run?: string | null
+          options?: Json | null
+          recipients?: Json | null
+          report_type: string
+          time_of_day?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          day_of_month?: number | null
+          day_of_week?: number | null
+          description?: string | null
+          format?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          last_run?: string | null
+          name?: string
+          next_run?: string | null
+          options?: Json | null
+          recipients?: Json | null
+          report_type?: string
+          time_of_day?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      report_settings: {
+        Row: {
+          auto_generate: boolean | null
+          created_at: string | null
+          default_format: string | null
+          default_sections: Json | null
+          email_notifications: boolean | null
+          id: string
+          retention_days: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auto_generate?: boolean | null
+          created_at?: string | null
+          default_format?: string | null
+          default_sections?: Json | null
+          email_notifications?: boolean | null
+          id?: string
+          retention_days?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auto_generate?: boolean | null
+          created_at?: string | null
+          default_format?: string | null
+          default_sections?: Json | null
+          email_notifications?: boolean | null
+          id?: string
+          retention_days?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       service_types: {
         Row: {
           created_at: string
@@ -3312,6 +3474,15 @@ export type Database = {
           | { base_price: number; days_count: number }
           | { base_price: number; days_count: number; quotation_id?: string }
         Returns: number
+      }
+      calculate_next_run: {
+        Args: {
+          day_of_month?: number
+          day_of_week?: number
+          frequency: string
+          time_of_day?: string
+        }
+        Returns: string
       }
       check_quotation_encoding_issues: {
         Args: Record<PropertyKey, never>

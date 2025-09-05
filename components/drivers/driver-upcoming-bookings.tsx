@@ -121,6 +121,7 @@ export function DriverUpcomingBookings({ driverId, limit = 5 }: DriverUpcomingBo
   const renderBookingStatus = (status: string) => {
     const statusMap: Record<string, { label: string, variant: "default" | "outline" | "secondary" | "destructive" | "success" }> = {
       confirmed: { label: t('bookings.status.confirmed'), variant: 'success' },
+      assigned: { label: t('bookings.status.assigned'), variant: 'outline' },
       pending: { label: t('bookings.status.pending'), variant: 'secondary' },
       cancelled: { label: t('bookings.status.cancelled'), variant: 'destructive' },
       completed: { label: t('bookings.status.completed'), variant: 'default' }

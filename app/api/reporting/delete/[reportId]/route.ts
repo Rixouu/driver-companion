@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { reportId: string } }
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
-    const { reportId } = params
+    const { reportId } = await params
+    const supabase = createServiceClient()
 
-    // For now, just return success
-    // In a real implementation, you would:
-    // 1. Look up the report in the database
-    // 2. Delete the report record
-    // 3. Optionally delete the associated file from storage
+    // Delete the report from database
+    const { error } = await supabase
+      .from('generated_reports')
+      .delete()
+      .eq('id', reportId)
 
-    console.log(`Deleting report: ${reportId}`)
+    if (error) {
+      throw error
+    }
+
+    // In a real implementation, you would also:
+    // 1. Delete the associated file from storage
+    // 2. Clean up any related records
 
     return NextResponse.json({
       success: true,

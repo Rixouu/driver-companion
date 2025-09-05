@@ -56,6 +56,8 @@ export function UpcomingBookingsContent({ vehicleId }: VehicleOverviewContentPro
     switch (status?.toLowerCase()) {
       case 'confirmed':
         return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700'
+      case 'assigned':
+        return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'
       case 'completed':

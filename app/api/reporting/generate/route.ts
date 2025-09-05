@@ -64,14 +64,14 @@ export async function POST(request: NextRequest) {
       completed_at: new Date().toISOString()
     }
 
-    // In a real implementation, you would save this to a reports table
-    // const { error } = await supabase
-    //   .from('generated_reports')
-    //   .insert(finalReportData)
+    // Save to database
+    const { error } = await supabase
+      .from('generated_reports')
+      .insert(finalReportData)
 
-    // if (error) {
-    //   throw error
-    // }
+    if (error) {
+      throw error
+    }
 
     return NextResponse.json({
       success: true,

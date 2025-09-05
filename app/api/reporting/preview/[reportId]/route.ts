@@ -24,7 +24,7 @@ export async function GET(
       )
     }
 
-    // Generate the actual report file based on the stored data
+    // Generate the PDF for preview
     if (report.format === 'pdf') {
       try {
         const reportData: ReportData = {
@@ -41,33 +41,37 @@ export async function GET(
         return new NextResponse(pdfBuffer, {
           headers: {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename="${report.name.replace(/[^a-z0-9]/gi, '_')}.pdf"`,
-            'Content-Length': pdfBuffer.length.toString()
+            'Content-Disposition': `inline; filename="${report.name.replace(/[^a-z0-9]/gi, '_')}.pdf"`,
+            'Content-Length': pdfBuffer.length.toString(),
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         })
       } catch (error) {
-        console.error('Error generating PDF:', error)
+        console.error('Error generating PDF preview:', error)
         return NextResponse.json(
-          { error: 'Failed to generate PDF' },
+          { error: 'Failed to generate PDF preview' },
           { status: 500 }
         )
       }
     } else {
-      // For non-PDF formats, return a placeholder
-      const content = `Report ID: ${reportId}\nName: ${report.name}\nType: ${report.type}\nFormat: ${report.format}\nGenerated: ${report.created_at}\n\nThis is a placeholder report. PDF generation is currently supported.`
-      
-      return new NextResponse(content, {
-        headers: {
-          'Content-Type': 'text/plain',
-          'Content-Disposition': `attachment; filename="${report.name.replace(/[^a-z0-9]/gi, '_')}.txt"`
-        }
+      // For non-PDF formats, return a JSON response with report info
+      return NextResponse.json({
+        id: report.id,
+        name: report.name,
+        type: report.type,
+        format: report.format,
+        status: report.status,
+        createdAt: report.created_at,
+        message: 'Preview not available for this format. Please download the file.'
       })
     }
 
   } catch (error) {
-    console.error('Error downloading report:', error)
+    console.error('Error generating preview:', error)
     return NextResponse.json(
-      { error: 'Failed to download report' },
+      { error: 'Failed to generate preview' },
       { status: 500 }
     )
   }

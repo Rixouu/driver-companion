@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   FileText, 
   Download, 
@@ -47,13 +48,15 @@ interface ReportsTabProps {
   onGenerateReport: () => void
   onDownloadReport: (reportId: string) => void
   onDeleteReport: (reportId: string) => void
+  onPreviewReport?: (reportId: string) => void
 }
 
 export function ReportsTab({ 
   generatedReports, 
   onGenerateReport, 
   onDownloadReport, 
-  onDeleteReport 
+  onDeleteReport,
+  onPreviewReport
 }: ReportsTabProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
@@ -167,13 +170,37 @@ export function ReportsTab({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Completed</Badge>
+        return (
+          <Badge 
+            className="font-medium border-2 border-green-300 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:border-green-600"
+          >
+            Completed
+          </Badge>
+        )
       case 'generating':
-        return <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50">Generating</Badge>
+        return (
+          <Badge 
+            className="font-medium border-0 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+          >
+            Generating
+          </Badge>
+        )
       case 'failed':
-        return <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">Failed</Badge>
+        return (
+          <Badge 
+            className="font-medium border-0 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+          >
+            Failed
+          </Badge>
+        )
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return (
+          <Badge 
+            className="font-medium border-0 bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+          >
+            Unknown
+          </Badge>
+        )
     }
   }
 
@@ -187,6 +214,31 @@ export function ReportsTab({
         return <FileText className="h-4 w-4 text-blue-500" />
       default:
         return <FileText className="h-4 w-4" />
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date'
+      }
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch {
+      return 'Invalid Date'
+    }
+  }
+
+  const handlePreviewReport = (reportId: string) => {
+    if (onPreviewReport) {
+      onPreviewReport(reportId)
+    } else {
+      // Fallback: open preview in new tab
+      window.open(`/api/reporting/preview/${reportId}`, '_blank')
     }
   }
 
@@ -358,6 +410,13 @@ export function ReportsTab({
 
         {/* Generated Reports Tab */}
         <TabsContent value="generated" className="space-y-4 sm:space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Generated Reports</h3>
+            <p className="text-sm text-muted-foreground mb-4 sm:mb-6">
+              View and manage your previously generated reports
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -368,81 +427,164 @@ export function ReportsTab({
                 className="pl-10"
               />
             </div>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-2 border border-input bg-background rounded-md text-sm min-w-[120px]"
-              aria-label="Filter reports by type"
-            >
-              <option value="all">All Types</option>
-              <option value="comprehensive">Comprehensive</option>
-              <option value="financial">Financial</option>
-              <option value="vehicle">Vehicle</option>
-              <option value="driver">Driver</option>
-              <option value="inspection">Inspection</option>
-              <option value="maintenance">Maintenance</option>
-            </select>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="min-w-[120px]">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="comprehensive">Comprehensive</SelectItem>
+                <SelectItem value="financial">Financial</SelectItem>
+                <SelectItem value="vehicle">Vehicle</SelectItem>
+                <SelectItem value="driver">Driver</SelectItem>
+                <SelectItem value="inspection">Inspection</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {filteredReports.length > 0 ? (
-            <div className="space-y-4">
-              {filteredReports.map((report) => (
-                <Card key={report.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4 flex-1">
-                        <div className="p-2 bg-muted rounded-lg flex-shrink-0">
+            <>
+              {/* Desktop List View */}
+              <div className="hidden sm:block space-y-3">
+                {filteredReports.map((report) => (
+                  <Card 
+                    key={report.id} 
+                    className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                  >
+                    <div className="flex items-center p-4">
+                      {/* Report Icon - Medium size */}
+                      <div className="w-12 h-12 relative flex-shrink-0 mr-4">
+                        <div className="w-full h-full bg-muted flex items-center justify-center rounded-lg">
                           {getFormatIcon(report.format)}
                         </div>
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <h4 className="font-medium truncate">{report.name}</h4>
-                            {getStatusBadge(report.status || 'completed')}
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
-                            <span className="capitalize">{report.type}</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span>{report.format.toUpperCase()}</span>
-                            <span className="hidden sm:inline">•</span>
-                            <span>{new Date(report.createdAt).toLocaleDateString()}</span>
-                            {report.size && (
-                              <>
-                                <span className="hidden sm:inline">•</span>
-                                <span>{report.size}</span>
-                              </>
-                            )}
-                          </div>
+                      </div>
+                      
+                      {/* Report Info - Flexbox layout */}
+                      <div className="flex-1 grid grid-cols-5 items-center gap-4">
+                        <div className="space-y-1">
+                          <h4 className="font-semibold text-lg">{report.name}</h4>
+                          <p className="text-sm text-muted-foreground capitalize">{report.type}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-sm">
+                            {report.format.toUpperCase()}
+                          </Badge>
+                          {report.size && (
+                            <span className="text-sm text-muted-foreground">{report.size}</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          {getStatusBadge(report.status || 'completed')}
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <span className="text-sm text-muted-foreground">{formatDate(report.createdAt)}</span>
+                        </div>
+                        
+                        <div className="flex gap-2 w-full">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handlePreviewReport(report.id)}
+                            className="flex-1 h-8"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDownloadReport(report.id)}
+                            className="flex-1 h-8"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDeleteReport(report.id)}
+                            className="flex-1 h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                        <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-                          <Eye className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Preview</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onDownloadReport(report.id)}
-                          className="text-xs sm:text-sm"
-                        >
-                          <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Download</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onDeleteReport(report.id)}
-                          className="text-xs sm:text-sm"
-                        >
-                          <Trash2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </Button>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Mobile/Tablet Card View */}
+              <div className="sm:hidden grid gap-4 grid-cols-1">
+                {filteredReports.map((report) => (
+                  <Card key={report.id} className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col space-y-4">
+                        {/* Header with icon and status */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-muted flex items-center justify-center rounded-lg flex-shrink-0">
+                              {getFormatIcon(report.format)}
+                            </div>
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <h4 className="font-semibold text-lg truncate">{report.name}</h4>
+                              <p className="text-sm text-muted-foreground capitalize">{report.type}</p>
+                            </div>
+                          </div>
+                          {getStatusBadge(report.status || 'completed')}
+                        </div>
+
+                        {/* Details row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {report.format.toUpperCase()}
+                            </Badge>
+                            {report.size && (
+                              <span className="text-xs text-muted-foreground">{report.size}</span>
+                            )}
+                          </div>
+                          <span className="text-sm text-muted-foreground">{formatDate(report.createdAt)}</span>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handlePreviewReport(report.id)}
+                            className="flex-1 h-8 text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Preview
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDownloadReport(report.id)}
+                            className="flex-1 h-8 text-xs"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onDeleteReport(report.id)}
+                            className="flex-1 h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : (
             <Card className="bg-muted/30">
               <CardContent className="text-center py-12">

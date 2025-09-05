@@ -85,6 +85,10 @@ export function ReportSettingsDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Loading Report Settings</DialogTitle>
+            <DialogDescription>Please wait while we load your report settings.</DialogDescription>
+          </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>

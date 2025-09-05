@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DateRange } from 'react-day-picker'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,11 @@ export function ComprehensiveReportingPage({ initialDateRange }: ComprehensiveRe
     
     return result
   }
+
+  const previewReport = useCallback((reportId: string) => {
+    // Open preview in new tab
+    window.open(`/api/reporting/preview/${reportId}`, '_blank')
+  }, [])
 
   if (error) {
     return (
@@ -149,6 +154,7 @@ export function ComprehensiveReportingPage({ initialDateRange }: ComprehensiveRe
               onGenerateReport={() => setIsReportDialogOpen(true)}
               onDownloadReport={downloadReport}
               onDeleteReport={deleteReport}
+              onPreviewReport={previewReport}
             />
           </TabsContent>
         </div>

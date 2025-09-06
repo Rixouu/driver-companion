@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { getTeamAddressHtml, getTeamFooterHtml } from '../team-addresses';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -15,6 +16,27 @@ interface BookingPaymentEmailData {
   currency: string;
   paymentLink: string;
   language?: string;
+  pdfAttachment?: Buffer;
+  bccEmails?: string;
+  // Pricing breakdown
+  baseAmount?: number;
+  discountAmount?: number;
+  regularDiscountAmount?: number;
+  couponDiscountAmount?: number;
+  taxAmount?: number;
+  totalAmount?: number;
+  discountPercentage?: number;
+  taxPercentage?: number;
+  couponCode?: string;
+  couponDiscountPercentage?: number;
+  // Service duration details
+  duration_hours?: number;
+  service_days?: number;
+  hours_per_day?: number;
+  // Team location
+  teamLocation?: 'japan' | 'thailand';
+  // Payment status
+  paymentStatus?: 'PENDING PAYMENT' | 'PAID';
 }
 
 export async function sendBookingPaymentEmail(data: BookingPaymentEmailData) {
@@ -31,206 +53,289 @@ export async function sendBookingPaymentEmail(data: BookingPaymentEmailData) {
       amount,
       currency,
       paymentLink,
-      language = 'en'
+      language = 'en',
+      pdfAttachment,
+      bccEmails = 'booking@japandriver.com',
+      // Pricing breakdown
+      baseAmount = amount,
+      discountAmount = 0,
+      regularDiscountAmount = 0,
+      couponDiscountAmount = 0,
+      taxAmount = 0,
+      totalAmount = amount,
+      discountPercentage = 0,
+      taxPercentage = 10,
+      couponCode = '',
+      couponDiscountPercentage = 0,
+      duration_hours = 0,
+      service_days = 0,
+      hours_per_day = 0,
+      teamLocation = 'thailand',
+      paymentStatus = 'PENDING PAYMENT'
     } = data;
 
-    const formatCurrency = (amount: number, currency: string) => {
-      return new Intl.NumberFormat('ja-JP', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
+    const formatCurrency = (amount: number) => {
+      if (amount === undefined || amount === null) return `¥0`;
+      
+      if (currency === 'JPY' || currency === 'CNY') {
+        return currency === 'JPY' 
+          ? `¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          : `CN¥${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      } else if (currency === 'THB') {
+        return `฿${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      } else {
+        try {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(amount);
+        } catch (error) {
+          // Fallback if currency code is invalid
+          return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+      }
     };
 
-    const formatDate = (dateString: string) => {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    };
+    // Use BOO-XXX format for subject
+    const subject = `Payment for ${bookingId}`;
+    
+    // Check if payment link is provided to determine email type
+    const hasPaymentLink = paymentLink && paymentLink.trim().length > 0;
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html lang="${language}">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Payment Required - Booking ${bookingId}</title>
-        <style>
-          body {
-            font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #374151;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f9fafb;
-          }
-          .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-          }
-          .header {
-            background: linear-gradient(135deg, #FF2600 0%, #FF4500 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-          }
-          .content {
-            padding: 30px;
-          }
-          .booking-details {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-          }
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e5e7eb;
-          }
-          .detail-row:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: #6b7280;
-          }
-          .detail-value {
-            color: #111827;
-          }
-          .amount {
-            background: #fef3c7;
-            border: 2px solid #f59e0b;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px 0;
-          }
-          .amount-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #92400e;
-            margin: 0;
-          }
-          .payment-button {
-            display: inline-block;
-            background: #FF2600;
-            color: white;
-            padding: 16px 32px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            margin: 20px 0;
-            transition: background-color 0.2s;
-          }
-          .payment-button:hover {
-            background: #e02200;
-          }
-          .footer {
-            background: #f9fafb;
-            padding: 20px 30px;
-            text-align: center;
-            color: #6b7280;
-            font-size: 14px;
-          }
-          .warning {
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #991b1b;
-          }
-          .warning-icon {
-            display: inline-block;
-            margin-right: 8px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Payment Required</h1>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">Booking #${bookingId}</p>
-          </div>
-          
-          <div class="content">
-            <p>Dear ${customerName},</p>
-            
-            <p>Thank you for your booking! To complete your reservation, please make a payment using the secure link below.</p>
-            
-            <div class="booking-details">
-              <h3 style="margin-top: 0; color: #111827;">Booking Details</h3>
-              <div class="detail-row">
-                <span class="detail-label">Service:</span>
-                <span class="detail-value">${serviceName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Date & Time:</span>
-                <span class="detail-value">${formatDate(date)} at ${time}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Pickup:</span>
-                <span class="detail-value">${pickupLocation}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Dropoff:</span>
-                <span class="detail-value">${dropoffLocation}</span>
-              </div>
-            </div>
-            
-            <div class="amount">
-              <p class="amount-value">${formatCurrency(amount, currency)}</p>
-              <p style="margin: 5px 0 0 0; color: #92400e;">Total Amount Due</p>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="${paymentLink}" class="payment-button">
-                Pay Now Securely
-              </a>
-            </div>
-            
-            <div class="warning">
-              <span class="warning-icon">⚠️</span>
-              <strong>Important:</strong> This payment link will expire in 48 hours. Please complete your payment before the expiry time to secure your booking.
-            </div>
-            
-            <p>If you have any questions or need assistance, please don't hesitate to contact us.</p>
-            
-            <p>Best regards,<br>Driver Japan Team</p>
-          </div>
-          
-          <div class="footer">
-            <p>This is an automated message. Please do not reply to this email.</p>
-            <p>© 2025 Driver Japan. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
+    // Plain text version
+    const text = hasPaymentLink ? `
+      Dear ${customerName},
+      
+      We hope this email finds you well. Your invoice ${bookingId} is ready for payment, with all details and payment information provided below.
+      
+      Your invoice #${bookingId} for ${serviceName} is attached to this email.
+      
+      Amount due: ${typeof amount === 'number' ? amount.toFixed(2) : parseFloat(amount || '0').toFixed(2)} ${currency}
+      
+      To make payment, please use the following link:
+      ${paymentLink}
+      
+      If you have any questions about this invoice, please contact us.
+      
+      Best regards,
+      Japan Driver Team
+    ` : `
+      Dear ${customerName},
+      
+      We hope this email finds you well. Your invoice ${bookingId} is ready for payment, with all details and payment information provided below.
+      
+      Your invoice #${bookingId} for ${serviceName} is attached to this email.
+      
+      Amount due: ${typeof amount === 'number' ? amount.toFixed(2) : parseFloat(amount || '0').toFixed(2)} ${currency}
+      
+      An admin will send you an email with the payment link included very soon.
+      
+      If you have any questions about this invoice, please contact us.
+      
+      Best regards,
+      Japan Driver Team
     `;
+    
+    // HTML version - EXACT COPY from quotation system
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app';
+    const logoUrl = `${appUrl}/img/driver-invoice-logo.png`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+      </head>
+      <body style="margin:0; padding:0; background:#F2F4F6; font-family: Work Sans, Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          <tr>
+            <td align="center" style="padding:24px;">
+              <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                     style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%);">
+                    <table width="100%" role="presentation">
+                      <tr>
+                        <td align="center" style="padding:24px;">
+                          <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                            <tr><td align="center" valign="middle" style="text-align:center;">
+                                <img src="${logoUrl}" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                            </td></tr>
+                          </table>
+                          <h1 style="margin:0; font-size:24px; color:#FFF; font-weight:600;">
+                            Your Invoice
+                          </h1>
+                          <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                            ${bookingId}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <p style="color:#32325D; margin:24px 24px 8px; line-height:1.6; font-size: 14px;">
+                      Hello ${customerName},
+                    </p>
+                    <p style="color:#32325D; margin:0 24px 16px; line-height:1.6; font-size: 14px;">
+                      We hope this email finds you well. Your invoice is ready for payment, with all details and payment information provided below.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 24px 24px;">
+                    <h3 style="margin:0 0 12px; font-size:16px; color:#32325D; text-transform: uppercase;">
+                      Price Details
+                    </h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" class="price-table"
+                          style="background:#F8FAFC; border-radius:8px;">
+                      <tr>
+                        <td style="padding:12px;">
+                          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                            <tr>
+                              <th align="left" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                                Description
+                              </th>
+                              <th align="right" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+                                Price
+                              </th>
+                            </tr>
+                            <tr>
+                              <td style="padding-top: 15px;">${serviceName}${serviceName === 'Charter Services' && duration_hours > 0 && service_days > 0 ? ` (${service_days} day${service_days > 1 ? 's' : ''}, ${hours_per_day} hour${hours_per_day > 1 ? 's' : ''} per day)` : ''}</td>
+                              <td align="right" style="padding-top: 15px;">${formatCurrency(baseAmount)}</td>
+                            </tr>
+                            ${regularDiscountAmount > 0 ? `
+                            <tr>
+                              <td style="padding-top: 15px; color: #e53e3e;">Discount (${discountPercentage}%)</td>
+                              <td align="right" style="padding-top: 15px; color: #e53e3e;">-${formatCurrency(regularDiscountAmount)}</td>
+                            </tr>
+                            ` : ''}
+                            ${couponDiscountAmount > 0 ? `
+                            <tr>
+                              <td style="padding-top: 15px; color: #10b981;">Coupon Discount (${couponCode})${couponDiscountPercentage > 0 ? ` (${couponDiscountPercentage}%)` : ''}</td>
+                              <td align="right" style="padding-top: 15px; color: #10b981;">-${formatCurrency(couponDiscountAmount)}</td>
+                            </tr>
+                            ` : ''}
+                            <tr>
+                              <td style="padding-top: 15px; font-weight: 500;">Subtotal</td>
+                              <td align="right" style="padding-top: 15px; font-weight: 500;">${formatCurrency(baseAmount - regularDiscountAmount - couponDiscountAmount)}</td>
+                            </tr>
+                            ${taxAmount > 0 ? `
+                            <tr>
+                              <td style="padding-top: 15px;">Tax (${taxPercentage}%)</td>
+                              <td align="right" style="padding-top: 15px;">+${formatCurrency(taxAmount)}</td>
+                            </tr>
+                            ` : ''}
+                            <tr>
+                              <td style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">Total Amount Due</td>
+                              <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 15px; font-weight: 700;">${formatCurrency(totalAmount)}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+${paymentStatus === 'PAID' ? `
+                <tr>
+                  <td style="padding:12px 24px 16px; text-align: center;">
+                    <div style="background:#D1FAE5; border:1px solid #10B981; border-radius:8px; padding:16px; margin:0 auto; max-width:400px;">
+                      <p style="margin:0; color:#065F46; font-size:14px; font-weight:600;">
+                        ✅ Payment Received
+                      </p>
+                      <p style="margin:8px 0 0; color:#065F46; font-size:13px;">
+                        Thank you for your payment. Your booking is confirmed.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:6px 24px 16px; text-align:center; color:#32325D; font-size:13px;">
+                    If you have any questions about this invoice, please reply to this email and our team will assist you.
+                  </td>
+                </tr>` : hasPaymentLink ? `
+                <tr>
+                  <td style="padding:12px 24px 6px; text-align: center; color:#32325D; font-size:13px;">
+                    You can pay securely using the link below. If the button does not work, use the plain link further down.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:6px 24px 6px; text-align: center;">
+                    <a href="${paymentLink}" style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF; text-decoration:none; border-radius:4px; font-size:16px; font-weight:600;">
+                      Pay Invoice Now
+                    </a>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:6px 24px 16px; text-align:center; color:#32325D; font-size:13px;">
+                    If you have any questions about this invoice, please reply to this email and our team will assist you.
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 24px 24px; text-align:center;">
+                    <p style="margin:0; font-size:12px; color:#8898AA; word-break:break-all;">${paymentLink}</p>
+                  </td>
+                </tr>` : `
+                <tr>
+                  <td style="padding:12px 24px 16px; text-align: center;">
+                    <div style="background:#FEF3C7; border:1px solid #F59E0B; border-radius:8px; padding:16px; margin:0 auto; max-width:400px;">
+                      <p style="margin:0; color:#92400E; font-size:14px; font-weight:600;">
+                        📧 Payment Link Coming Soon
+                      </p>
+                      <p style="margin:8px 0 0; color:#92400E; font-size:13px;">
+                        An admin will send you an email with the payment link included very soon.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:6px 24px 16px; text-align:center; color:#32325D; font-size:13px;">
+                    If you have any questions about this invoice, please reply to this email and our team will assist you.
+                  </td>
+                </tr>`}
+
+                <tr>
+                  <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-size:12px; color:#8898AA;">
+                    ${getTeamFooterHtml(teamLocation, language === 'ja')}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>`;
+    
+    const attachments = [];
+    
+    if (pdfAttachment) {
+      attachments.push({
+        filename: `Invoice-${bookingId}.pdf`,
+        content: pdfAttachment,
+        contentType: 'application/pdf',
+      });
+    }
+
+    // Parse BCC emails
+    const bccEmailList = bccEmails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
 
     const { data: emailData, error } = await resend.emails.send({
-      from: 'Driver Japan <noreply@driver-japan.com>',
+      from: 'Driver Japan <booking@japandriver.com>',
       to: [to],
-      subject: `Payment Required - Booking #${bookingId}`,
-      html: emailHtml,
+      bcc: bccEmailList,
+      subject: subject,
+      html: html,
+      attachments: attachments
     });
 
     if (error) {

@@ -19,6 +19,8 @@ interface RideSummaryProps {
   calculatedPrice: {
     baseAmount: number
     discountAmount: number
+    regularDiscountAmount?: number
+    couponDiscountAmount?: number
     taxAmount: number
     totalAmount: number
   }
@@ -36,7 +38,7 @@ export function RideSummary({
 }: RideSummaryProps) {
   return (
     <div className="lg:w-80 w-full">
-      <Card className="sticky border rounded-lg shadow-sm dark:border-gray-800" style={{ top: '12rem' }}>
+      <Card className="sticky border rounded-lg shadow-sm dark:border-gray-800" style={{ top: '10.3rem' }}>
         <CardHeader className="bg-muted/30 rounded-t-lg border-b px-4 py-4">
           <CardTitle className="flex items-center justify-between text-base">
             <span className="flex items-center gap-2">
@@ -137,7 +139,7 @@ export function RideSummary({
                 <h4 className="font-medium text-sm">Selected Vehicle</h4>
                 <div className="flex gap-3">
                   {formData.selectedVehicle.image_url && (
-                    <div className="w-16 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div className="w-18 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       <img 
                         src={formData.selectedVehicle.image_url} 
                         alt={`${formData.selectedVehicle.brand} ${formData.selectedVehicle.model}`}
@@ -147,7 +149,7 @@ export function RideSummary({
                   )}
                   <div className="text-sm flex-1">
                     <div className="font-medium">{formData.selectedVehicle.brand} {formData.selectedVehicle.model}</div>
-                    <div className="text-muted-foreground">{formData.selectedVehicle.category_name || 'Standard'}</div>
+                    <div className="text-muted-foreground text-xs">Category: {formData.selectedVehicle.category_name || 'Standard'}</div>
                     <div className="text-muted-foreground text-xs">
                       {formData.selectedVehicle.passenger_capacity} passengers • {formData.selectedVehicle.luggage_capacity} luggage
                     </div>
@@ -195,17 +197,35 @@ export function RideSummary({
                   <span>¥{calculatedPrice.baseAmount.toLocaleString()}</span>
                 </div>
                 
-                {calculatedPrice.discountAmount > 0 && (
+                {/* Regular Discount - only show if > 0 */}
+                {(calculatedPrice.regularDiscountAmount || 0) > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span className="text-muted-foreground">Discount ({couponDiscount}%)</span>
-                    <span>-¥{calculatedPrice.discountAmount.toLocaleString()}</span>
+                    <span className="text-muted-foreground">Discount ({formData.discount_percentage || 0}%)</span>
+                    <span>-¥{(calculatedPrice.regularDiscountAmount || 0).toLocaleString()}</span>
                   </div>
                 )}
                 
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tax (10%)</span>
-                  <span>¥{calculatedPrice.taxAmount.toLocaleString()}</span>
+                {/* Coupon Discount - only show if > 0 */}
+                {(calculatedPrice.couponDiscountAmount || 0) > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span className="text-muted-foreground">Coupon Discount</span>
+                    <span>-¥{(calculatedPrice.couponDiscountAmount || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                
+                {/* Subtotal After Discounts */}
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>¥{(calculatedPrice.baseAmount - (calculatedPrice.regularDiscountAmount || 0) - (calculatedPrice.couponDiscountAmount || 0)).toLocaleString()}</span>
                 </div>
+                
+                {/* Tax - only show if > 0 */}
+                {(calculatedPrice.taxAmount || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tax ({formData.tax_percentage || 10}%)</span>
+                    <span>¥{calculatedPrice.taxAmount.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
 
               <Separator />

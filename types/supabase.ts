@@ -79,6 +79,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           date: string
+          discount_percentage: number | null
           distance: string | null
           driver_id: string | null
           dropoff_location: string | null
@@ -90,6 +91,8 @@ export type Database = {
           meta: Json | null
           notes: string | null
           payment_link: string | null
+          payment_link_expires_at: string | null
+          payment_link_generated_at: string | null
           payment_method: string | null
           payment_status: string | null
           pickup_location: string | null
@@ -102,6 +105,8 @@ export type Database = {
           service_type: string | null
           status: string
           synced_at: string | null
+          tax_percentage: number | null
+          team_location: string | null
           terminal: string | null
           time: string
           updated_at: string | null
@@ -133,6 +138,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           date: string
+          discount_percentage?: number | null
           distance?: string | null
           driver_id?: string | null
           dropoff_location?: string | null
@@ -144,6 +150,8 @@ export type Database = {
           meta?: Json | null
           notes?: string | null
           payment_link?: string | null
+          payment_link_expires_at?: string | null
+          payment_link_generated_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           pickup_location?: string | null
@@ -156,6 +164,8 @@ export type Database = {
           service_type?: string | null
           status?: string
           synced_at?: string | null
+          tax_percentage?: number | null
+          team_location?: string | null
           terminal?: string | null
           time: string
           updated_at?: string | null
@@ -187,6 +197,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           date?: string
+          discount_percentage?: number | null
           distance?: string | null
           driver_id?: string | null
           dropoff_location?: string | null
@@ -198,6 +209,8 @@ export type Database = {
           meta?: Json | null
           notes?: string | null
           payment_link?: string | null
+          payment_link_expires_at?: string | null
+          payment_link_generated_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
           pickup_location?: string | null
@@ -210,6 +223,8 @@ export type Database = {
           service_type?: string | null
           status?: string
           synced_at?: string | null
+          tax_percentage?: number | null
+          team_location?: string | null
           terminal?: string | null
           time?: string
           updated_at?: string | null

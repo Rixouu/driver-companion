@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info } from 'lucide-react'
+import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info, FileText, RefreshCw } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase'
@@ -42,6 +42,18 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
   const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com")
   const [isSendingEmail, setIsSendingEmail] = useState(false)
+  
+  // Invoice and payment link state
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false)
+  const [isRegeneratingPaymentLink, setIsRegeneratingPaymentLink] = useState(false)
+  
+  // Invoice modal state
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+  const [invoiceBccEmails, setInvoiceBccEmails] = useState<string>("booking@japandriver.com")
+  
+  // Payment link modal state
+  const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false)
+  const [paymentLinkBccEmails, setPaymentLinkBccEmails] = useState<string>("booking@japandriver.com")
 
 
 
@@ -132,6 +144,114 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
       })
     } finally {
       setIsSendingEmail(false)
+    }
+  }
+
+  // Send booking invoice
+  const handleSendBookingInvoice = async () => {
+    if (!invoiceBccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSendingInvoice(true)
+    try {
+      const bccEmailList = invoiceBccEmails.split(',').map(email => email.trim()).filter(email => email)
+      
+      const response = await fetch('/api/bookings/send-booking-invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.supabase_id || booking.id || booking.booking_id || bookingId,
+          bccEmails: bccEmailList
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send invoice')
+      }
+
+      const result = await response.json()
+      
+      toast({
+        title: "Success",
+        description: "Booking invoice sent successfully!",
+      })
+
+      // Close modal and reset form
+      setIsInvoiceModalOpen(false)
+      setInvoiceBccEmails("booking@japandriver.com")
+      
+    } catch (error) {
+      console.error('Error sending booking invoice:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invoice",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSendingInvoice(false)
+    }
+  }
+
+  // Regenerate payment link
+  const handleRegeneratePaymentLink = async () => {
+    if (!paymentLinkBccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsRegeneratingPaymentLink(true)
+    try {
+      const bccEmailList = paymentLinkBccEmails.split(',').map(email => email.trim()).filter(email => email)
+      
+      const response = await fetch('/api/bookings/generate-payment-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.supabase_id || booking.id || booking.booking_id || bookingId,
+          bccEmails: bccEmailList
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to regenerate payment link')
+      }
+
+      const result = await response.json()
+      
+      toast({
+        title: "Success",
+        description: "Payment link regenerated and sent to customer!",
+      })
+
+      // Close modal and reset form
+      setIsPaymentLinkModalOpen(false)
+      setPaymentLinkBccEmails("booking@japandriver.com")
+      
+    } catch (error) {
+      console.error('Error regenerating payment link:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate payment link",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRegeneratingPaymentLink(false)
     }
   }
 
@@ -397,6 +517,181 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                         <>
                           <Send className="mr-2 h-4 w-4" />
                           Send Email
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-500 dark:hover:bg-purple-500/20 dark:border-purple-500/30"
+                  >
+                    <FileText className="mr-2 h-5 w-5" />
+                    Send Booking Invoice
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Send Booking Invoice
+                    </DialogTitle>
+                    <DialogDescription>
+                      Send an invoice with payment status to the customer.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="invoice-customer-email">Customer Email</Label>
+                      <Input
+                        id="invoice-customer-email"
+                        value={booking.customer_email || 'Customer email will be automatically filled'}
+                        disabled
+                        className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Invoice will be sent to the customer's registered email address
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="invoice-bcc-emails">BCC Emails</Label>
+                      <Input
+                        id="invoice-bcc-emails"
+                        value={invoiceBccEmails}
+                        onChange={(e) => setInvoiceBccEmails(e.target.value)}
+                        placeholder="Enter email addresses separated by commas"
+                        className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Default: booking@japandriver.com. Add more emails separated by commas.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-md">
+                      <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100 mb-2">
+                        📄 What's included in the invoice:
+                      </h4>
+                      <ul className="text-xs text-purple-800 dark:text-purple-200 space-y-1">
+                        <li>• Complete service details and pricing breakdown</li>
+                        <li>• Payment status (PENDING PAYMENT or PAID)</li>
+                        <li>• Coupon discounts and tax calculations</li>
+                        <li>• Professional invoice PDF attachment</li>
+                        <li>• Payment link (if status is pending)</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsInvoiceModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSendBookingInvoice}
+                      disabled={isSendingInvoice}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {isSendingInvoice ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending Invoice...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Send Invoice
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={isPaymentLinkModalOpen} onOpenChange={setIsPaymentLinkModalOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-500 dark:hover:bg-orange-500/20 dark:border-orange-500/30"
+                  >
+                    <RefreshCw className="mr-2 h-5 w-5" />
+                    Regenerate Payment Link
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <RefreshCw className="h-5 w-5" />
+                      Regenerate Payment Link
+                    </DialogTitle>
+                    <DialogDescription>
+                      Generate a new payment link and send it to the customer.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="payment-customer-email">Customer Email</Label>
+                      <Input
+                        id="payment-customer-email"
+                        value={booking.customer_email || 'Customer email will be automatically filled'}
+                        disabled
+                        className="bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        New payment link will be sent to the customer's registered email address
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="payment-bcc-emails">BCC Emails</Label>
+                      <Input
+                        id="payment-bcc-emails"
+                        value={paymentLinkBccEmails}
+                        onChange={(e) => setPaymentLinkBccEmails(e.target.value)}
+                        placeholder="Enter email addresses separated by commas"
+                        className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Default: booking@japandriver.com. Add more emails separated by commas.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md">
+                      <h4 className="font-medium text-sm text-orange-900 dark:text-orange-100 mb-2">
+                        🔄 What happens when regenerating:
+                      </h4>
+                      <ul className="text-xs text-orange-800 dark:text-orange-200 space-y-1">
+                        <li>• Creates a new payment link with fresh expiration</li>
+                        <li>• Sends payment email with new link to customer</li>
+                        <li>• Updates booking with new payment link details</li>
+                        <li>• Useful when original payment link expired or failed</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsPaymentLinkModalOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleRegeneratePaymentLink}
+                      disabled={isRegeneratingPaymentLink}
+                      className="bg-orange-600 hover:bg-orange-700"
+                    >
+                      {isRegeneratingPaymentLink ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Regenerating...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Regenerate Link
                         </>
                       )}
                     </Button>

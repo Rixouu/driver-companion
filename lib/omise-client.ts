@@ -14,6 +14,7 @@ export interface OmisePaymentLinkData {
   customerEmail: string;
   customerName: string;
   expiryHours?: number;
+  returnUrl?: string;
 }
 
 export interface OmiseResponse {
@@ -43,7 +44,7 @@ export class OmiseClient {
         currency: data.currency.toUpperCase(), // JPY
         amount: amountInSmallestUnit,
         multiple_usage: false, // Single payment
-        returnUrl: process.env.OMISE_RETURN_URL || 'https://your-domain.com/payment-status'
+        returnUrl: data.returnUrl || process.env.OMISE_RETURN_URL || 'https://your-domain.com/payment-status'
       };
 
       console.log('[Omise] Creating payment link with data:', payload);

@@ -312,7 +312,10 @@ export default function BookingDetailsContent({
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.hoursPerDay')}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {booking.meta.hours_per_day} hour(s)
+                      {(booking.service_days && booking.service_days > 0) || (booking.meta?.service_days && booking.meta.service_days > 0)
+                        ? `${booking.service_days || booking.meta?.service_days || 0} day${(booking.service_days || booking.meta?.service_days || 0) > 1 ? 's' : ''}, ${booking.meta.hours_per_day} hour${booking.meta.hours_per_day > 1 ? 's' : ''} per day`
+                        : `${booking.meta.hours_per_day} hour${booking.meta.hours_per_day > 1 ? 's' : ''}`
+                      }
                     </p>
                   </div>
                 )}

@@ -15,6 +15,7 @@ export interface Booking {
   driver_id?: string
   vehicle_id?: string;
   created_by?: string; // UUID of the admin user who created this booking
+  team_location?: 'japan' | 'thailand'; // Team location for the booking
   
   // Direct customer fields for consistency with DB and forms
   customer_name?: string; 
@@ -34,6 +35,10 @@ export interface Booking {
   // Coupon fields
   coupon_code?: string
   coupon_discount_percentage?: string
+  
+  // Pricing fields
+  tax_percentage?: number
+  discount_percentage?: number
   
   // WordPress specific fields
   title?: string  // For WordPress format: "Booking XXXX"

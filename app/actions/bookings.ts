@@ -1572,15 +1572,170 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       }
     }
 
-    // Get current user for created_by field
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError) {
-      console.error('Error getting current user:', userError)
+    // Get current user for created_by field - prefer passed user ID from client
+    let user = null
+    if (bookingData.created_by) {
+      // Use the user ID passed from the client
+      user = { id: bookingData.created_by }
+    } else {
+      // Fallback to server-side auth (for API calls)
+      try {
+        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
+        if (userError) {
+          console.log('No authenticated user found, proceeding without user context')
+        } else {
+          user = currentUser
+        }
+      } catch (error) {
+        console.log('Auth session not available, proceeding without user context')
+      }
+    }
+
+    // Generate sequential booking number using timestamp approach
+    // Get the current count of bookings to create a sequential number
+    const { count: bookingCount } = await supabase
+      .from('bookings')
+      .select('*', { count: 'exact', head: true });
+    
+    const nextBookingNumber = (bookingCount || 0) + 1;
+    const formattedBookingId = `BOO-${nextBookingNumber.toString().padStart(3, '0')}`;
+
+    // Calculate pricing if not provided
+    let calculatedPricing = null;
+    
+    if ((bookingData as any).calculated_pricing) {
+      calculatedPricing = (bookingData as any).calculated_pricing;
+    } else if (bookingData.service_name && bookingData.vehicle_id) {
+      // First, get the service_type_id from the service name
+      let serviceTypeId = null;
+      try {
+        const { data: serviceTypes, error: serviceError } = await supabase
+          .from('service_types')
+          .select('id')
+          .ilike('name', `%${bookingData.service_name}%`)
+          .limit(1);
+        
+        if (!serviceError && serviceTypes && serviceTypes.length > 0) {
+          serviceTypeId = serviceTypes[0].id;
+        }
+      } catch (error) {
+        console.error('Error looking up service type:', error);
+      }
+
+      // Calculate pricing directly using the same logic as the pricing API
+      if (serviceTypeId) {
+        try {
+          // Get vehicle information
+          const { data: vehicleData, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select(`
+              id,
+              brand,
+              model,
+              image_url,
+              passenger_capacity,
+              luggage_capacity,
+              pricing_category_vehicles (
+                category_id,
+                pricing_categories (
+                  name
+                )
+              )
+            `)
+            .eq('id', bookingData.vehicle_id)
+            .single();
+
+          if (vehicleError) {
+            console.error('Error fetching vehicle data:', vehicleError);
+          } else {
+            const vehicleCategory = vehicleData?.pricing_category_vehicles?.[0]?.category_id;
+            
+            // Query pricing directly from database
+            let pricingQuery = supabase
+              .from('pricing_items')
+              .select('price, currency')
+              .eq('service_type_id', serviceTypeId)
+              .eq('vehicle_id', bookingData.vehicle_id)
+              .eq('duration_hours', bookingData.duration_hours || 1)
+              .eq('is_active', true);
+            
+            if (vehicleCategory) {
+              pricingQuery = pricingQuery.eq('category_id', vehicleCategory);
+            }
+            
+            const { data: pricingItems, error: pricingError } = await pricingQuery;
+            
+            if (pricingError) {
+              console.error('Pricing query error:', pricingError);
+            } else if (pricingItems && pricingItems.length > 0) {
+              const baseAmount = Number(pricingItems[0].price);
+              const discountPercentage = bookingData.discount_percentage || 0;
+              const taxPercentage = bookingData.tax_percentage || 10;
+              const couponCode = bookingData.coupon_code || '';
+              
+              // Calculate regular discount
+              const regularDiscountAmount = baseAmount * (discountPercentage / 100);
+              
+              // Calculate coupon discount if provided
+              let couponDiscountAmount = 0;
+              let couponDiscountPercentage = 0;
+              if (couponCode) {
+                const { data: couponData } = await supabase
+                  .from('pricing_promotions')
+                  .select('discount_type, discount_value, is_active, start_date, end_date, maximum_discount, minimum_amount')
+                  .eq('code', couponCode)
+                  .eq('is_active', true)
+                  .single();
+                
+                if (couponData) {
+                  const now = new Date();
+                  const validFrom = couponData.start_date ? new Date(couponData.start_date) : null;
+                  const validUntil = couponData.end_date ? new Date(couponData.end_date) : null;
+                  
+                  if ((!validFrom || now >= validFrom) && (!validUntil || now <= validUntil)) {
+                    if (!couponData.minimum_amount || baseAmount >= couponData.minimum_amount) {
+                      if (couponData.discount_type === 'percentage') {
+                        couponDiscountPercentage = couponData.discount_value;
+                        couponDiscountAmount = baseAmount * (couponData.discount_value / 100);
+                        if (couponData.maximum_discount && couponDiscountAmount > couponData.maximum_discount) {
+                          couponDiscountAmount = couponData.maximum_discount;
+                        }
+                      } else {
+                        couponDiscountAmount = Math.min(couponData.discount_value, baseAmount);
+                        couponDiscountPercentage = (couponDiscountAmount / baseAmount) * 100;
+                      }
+                    }
+                  }
+                }
+              }
+              
+              const amountAfterDiscount = baseAmount - regularDiscountAmount - couponDiscountAmount;
+              const taxAmount = amountAfterDiscount * (taxPercentage / 100);
+              const totalAmount = amountAfterDiscount + taxAmount;
+              
+              calculatedPricing = {
+                baseAmount,
+                regularDiscountAmount,
+                couponDiscountAmount,
+                taxAmount,
+                totalAmount,
+                currency: pricingItems[0].currency || 'JPY',
+                discountPercentage,
+                taxPercentage,
+                couponCode,
+                couponDiscountPercentage
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error calculating pricing:', error);
+        }
+      }
     }
 
     // Create the booking
     const bookingInsertData = {
-      wp_id: `BOO-${Date.now()}`, // Generate a unique booking ID with BOO prefix
+      wp_id: formattedBookingId, // Use formatted booking ID like BOO-001, BOO-002, etc.
       customer_id: customerId,
       vehicle_id: bookingData.vehicle_id || null,
       service_name: bookingData.service_name,
@@ -1598,9 +1753,10 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       hours_per_day: bookingData.hours_per_day || null,
       duration_hours: bookingData.duration_hours || null,
       service_days: bookingData.service_days || null,
-      price_amount: bookingData.price?.amount || null,
-      price_currency: bookingData.price?.currency || null,
-      price_formatted: bookingData.price?.formatted || null,
+      price_amount: calculatedPricing?.totalAmount || bookingData.price?.amount || null,
+      base_amount: calculatedPricing?.baseAmount || bookingData.price?.amount || null,
+      price_currency: bookingData.price?.currency || 'JPY',
+      price_formatted: calculatedPricing ? `¥${calculatedPricing.totalAmount.toLocaleString()}` : bookingData.price?.formatted || null,
       payment_status: bookingData.payment_status || 'pending',
       payment_method: bookingData.payment_method || null,
       payment_link: bookingData.payment_link || null,
@@ -1612,6 +1768,7 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       vehicle_capacity: vehicleInfo?.passenger_capacity || null,
       vehicle_year: vehicleInfo?.year || null,
       created_by: user?.id || null, // Set with current user ID
+      team_location: bookingData.team_location || 'thailand', // Set team location
 
       billing_company_name: bookingData.billing_company_name || null,
       billing_tax_number: bookingData.billing_tax_number || null,
@@ -1622,7 +1779,11 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
       billing_postal_code: bookingData.billing_postal_code || null,
       billing_country: bookingData.billing_country || null,
       coupon_code: bookingData.coupon_code || null,
-      coupon_discount_percentage: bookingData.coupon_discount_percentage ? parseFloat(bookingData.coupon_discount_percentage) : null,
+      coupon_discount_percentage: calculatedPricing?.couponDiscountPercentage || (bookingData.coupon_discount_percentage ? parseFloat(bookingData.coupon_discount_percentage) : null),
+      tax_percentage: bookingData.tax_percentage || 10, // Default 10% Japanese tax
+      discount_percentage: bookingData.discount_percentage || 0,
+      flight_number: bookingData.flight_number || null,
+      terminal: bookingData.terminal || null,
       meta: {
         chbs_flight_number: bookingData.flight_number || null,
         chbs_terminal: bookingData.terminal || null,
@@ -1636,7 +1797,6 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
           created_at: new Date().toISOString()
         } : null
       },
-      created_by: user?.id || null, // Set created_by to current user
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       synced_at: new Date().toISOString()

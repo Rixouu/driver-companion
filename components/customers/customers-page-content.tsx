@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Pagination } from '@/components/pagination'
 import { 
   CustomerWithAnalytics, 
@@ -26,7 +27,9 @@ import {
   Trash2,
   Check,
   List,
-  LayoutGrid
+  LayoutGrid,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
@@ -58,6 +61,8 @@ export function CustomersPageContent({
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Enhanced filter states
   const [filterOptions, setFilterOptions] = useState<CustomerFilterOptions>({
@@ -284,9 +289,7 @@ export function CustomersPageContent({
   const deleteSelectedCustomers = async () => {
     if (selectedCustomers.size === 0) return
     
-    if (!confirm(`Are you sure you want to delete ${selectedCustomers.size} customer(s)?`)) return
-    
-    setLoading(true)
+    setIsDeleting(true)
     try {
       const deletePromises = Array.from(selectedCustomers).map(id => 
         fetch(`/api/customers/${id}`, { method: 'DELETE' })
@@ -299,6 +302,9 @@ export function CustomersPageContent({
       setSelectedCustomers(new Set())
       setSelectAll(false)
       
+      // Close modal
+      setIsDeleteModalOpen(false)
+      
       // Show success message
       console.log(`Successfully deleted ${selectedCustomers.size} customer(s)`)
       
@@ -308,7 +314,7 @@ export function CustomersPageContent({
       console.error('Error deleting customers:', error)
       console.log('Failed to delete some customers')
     } finally {
-      setLoading(false)
+      setIsDeleting(false)
     }
   }
 
@@ -436,18 +442,72 @@ export function CustomersPageContent({
           {/* Multi-select Actions */}
           {selectedCustomers.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={deleteSelectedCustomers}
-                disabled={loading}
-                className="flex items-center gap-2 flex-1 sm:flex-none"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="hidden xs:inline">Delete</span>
-                <span className="xs:hidden">Del</span>
-                <span className="ml-1">({selectedCustomers.size})</span>
-              </Button>
+              <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={loading}
+                    className="flex items-center gap-2 flex-1 sm:flex-none"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="hidden xs:inline">Delete</span>
+                    <span className="xs:hidden">Del</span>
+                    <span className="ml-1">({selectedCustomers.size})</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      Delete Customers
+                    </DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete {selectedCustomers.size} customer{selectedCustomers.size > 1 ? 's' : ''}? This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="py-4">
+                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-md">
+                      <h4 className="font-medium text-sm text-red-900 dark:text-red-100 mb-2">
+                        ⚠️ Warning
+                      </h4>
+                      <ul className="text-xs text-red-800 dark:text-red-200 space-y-1">
+                        <li>• This will permanently delete the selected customer{selectedCustomers.size > 1 ? 's' : ''}</li>
+                        <li>• All associated data will be removed</li>
+                        <li>• This action cannot be undone</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      disabled={isDeleting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={deleteSelectedCustomers}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete {selectedCustomers.size} Customer{selectedCustomers.size > 1 ? 's' : ''}
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Button
                 variant="outline"
                 size="sm"

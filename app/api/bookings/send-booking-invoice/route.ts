@@ -226,39 +226,40 @@ export async function POST(request: NextRequest) {
     const isPaid = booking.status === 'confirmed' || booking.payment_status === 'paid'
     const paymentStatus = isPaid ? 'PAID' : 'PENDING PAYMENT'
 
-    // Generate email HTML
-    const emailHtml = generateInvoiceEmailHtml({
+    // Generate PDF invoice
+    let pdfBuffer: Buffer | undefined;
+    try {
+      console.log('📄 [SEND-BOOKING-INVOICE] Generating PDF invoice...');
+      const pdfResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/bookings/generate-invoice-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: booking.id,
+          language: 'en'
+        })
+      });
+
+      if (pdfResponse.ok) {
+        pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+        console.log('✅ [SEND-BOOKING-INVOICE] PDF generated successfully');
+      } else {
+        console.warn('❌ [SEND-BOOKING-INVOICE] Failed to generate PDF');
+      }
+    } catch (pdfError) {
+      console.error('❌ [SEND-BOOKING-INVOICE] Error generating PDF:', pdfError);
+    }
+
+    // Generate simple email HTML
+    const emailHtml = generateSimpleInvoiceEmailHtml({
       booking,
-      customerEmail,
       customerName,
-      baseAmount,
-      regularDiscount,
-      couponDiscount,
-      couponDiscountPercentage,
-      subtotal,
-      tax,
-      total,
-      discountPercentage,
-      taxPercentage,
-      couponCode,
       paymentStatus
     })
 
     // Generate plain text version
-    const emailText = generateInvoiceEmailText({
+    const emailText = generateSimpleInvoiceEmailText({
       booking,
-      customerEmail,
       customerName,
-      baseAmount,
-      regularDiscount,
-      couponDiscount,
-      couponDiscountPercentage,
-      subtotal,
-      tax,
-      total,
-      discountPercentage,
-      taxPercentage,
-      couponCode,
       paymentStatus
     })
 
@@ -269,6 +270,15 @@ export async function POST(request: NextRequest) {
       subject: `Invoice - Booking ${booking.wp_id}`,
       html: emailHtml,
       text: emailText
+    }
+
+    // Add PDF attachment if generated successfully
+    if (pdfBuffer) {
+      emailPayload.attachments = [{
+        filename: `Invoice-${booking.wp_id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }];
     }
 
     // Add BCC if provided
@@ -314,35 +324,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateInvoiceEmailHtml({
+function generateSimpleInvoiceEmailHtml({
   booking,
-  customerEmail,
   customerName,
-  baseAmount,
-  regularDiscount,
-  couponDiscount,
-  couponDiscountPercentage,
-  subtotal,
-  tax,
-  total,
-  discountPercentage,
-  taxPercentage,
-  couponCode,
   paymentStatus
 }: {
   booking: any
-  customerEmail: string
   customerName: string
-  baseAmount: number
-  regularDiscount: number
-  couponDiscount: number
-  couponDiscountPercentage: number
-  subtotal: number
-  tax: number
-  total: number
-  discountPercentage: number
-  taxPercentage: number
-  couponCode: string
   paymentStatus: string
 }) {
   const formatDate = (dateString: string) => {
@@ -360,13 +348,6 @@ function generateInvoiceEmailHtml({
       minute: '2-digit',
       hour12: true
     })
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY'
-    }).format(amount)
   }
 
   return `
@@ -411,29 +392,6 @@ function generateInvoiceEmailHtml({
           .info-block .flex .flex { flex-direction: column!important; gap: 15px!important; }
           .info-block .flex .flex > div { width: 100%!important; }
         }
-        .invoice-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 20px 0;
-        }
-        .invoice-table th,
-        .invoice-table td {
-          padding: 12px;
-          text-align: left;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .invoice-table th {
-          background-color: #f8f9fa;
-          font-weight: 600;
-          color: #32325D;
-        }
-        .invoice-table .amount {
-          text-align: right;
-        }
-        .invoice-table .total-row {
-          background-color: #f8f9fa;
-          font-weight: 600;
-        }
         .status-badge {
           display: inline-block;
           padding: 4px 12px;
@@ -449,17 +407,6 @@ function generateInvoiceEmailHtml({
         .status-pending {
           background-color: #fef3c7;
           color: #92400e;
-        }
-        .button {
-          background-color: #E03E2D;
-          color: white;
-          padding: 12px 24px;
-          text-decoration: none;
-          border-radius: 6px;
-          display: inline-block;
-          margin: 16px 0;
-          font-weight: 600;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .info-block {
           background:#f8f9fa; 
@@ -477,6 +424,13 @@ function generateInvoiceEmailHtml({
         }
         .info-block strong {
           color: #32325D;
+        }
+        .pdf-notice {
+          background-color: #e0f2fe;
+          border-left: 4px solid #0288d1;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 4px;
         }
       </style>
     </head>
@@ -516,7 +470,7 @@ function generateInvoiceEmailHtml({
                   <div class="greeting">
                     <p>Hello ${customerName || 'there'},</p>
                     
-                    <p>Please find your invoice for the vehicle service booking below.</p>
+                    <p>Please find your invoice for the vehicle service booking attached to this email.</p>
                     
                     <div class="info-block">
                       <h3>Service Details</h3>
@@ -536,53 +490,10 @@ function generateInvoiceEmailHtml({
                       </span>
                     </div>
                     
-                    <h3>Invoice Details</h3>
-                    <table class="invoice-table">
-                      <thead>
-                        <tr>
-                          <th>Description</th>
-                          <th class="amount">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>Service Fee</td>
-                          <td class="amount">${formatCurrency(baseAmount)}</td>
-                        </tr>
-                        ${discountPercentage > 0 ? `
-                        <tr>
-                          <td>Discount (${discountPercentage}%)</td>
-                          <td class="amount">-${formatCurrency(regularDiscount)}</td>
-                        </tr>
-                        ` : ''}
-                        ${couponCode ? `
-                        <tr>
-                          <td>Coupon Discount (${couponCode})</td>
-                          <td class="amount">-${formatCurrency(couponDiscount)}</td>
-                        </tr>
-                        ` : ''}
-                        <tr>
-                          <td>Subtotal</td>
-                          <td class="amount">${formatCurrency(subtotal)}</td>
-                        </tr>
-                        <tr>
-                          <td>Tax (${taxPercentage}%)</td>
-                          <td class="amount">${formatCurrency(tax)}</td>
-                        </tr>
-                        <tr class="total-row">
-                          <td><strong>Total</strong></td>
-                          <td class="amount"><strong>${formatCurrency(total)}</strong></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                    
-                    ${paymentStatus === 'PENDING PAYMENT' && booking.payment_link ? `
-                      <div style="text-align: center; margin: 24px 0;">
-                        <a href="${booking.payment_link}" class="button" style="background-color: #E03E2D; color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                          💳 Pay Now
-                        </a>
-                      </div>
-                    ` : ''}
+                    <div class="pdf-notice">
+                      <strong>📄 Invoice PDF Attached</strong><br>
+                      Please find the detailed invoice PDF attached to this email with complete pricing breakdown and payment information.
+                    </div>
                     
                     <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
                     
@@ -610,35 +521,13 @@ function generateInvoiceEmailHtml({
   `;
 }
 
-function generateInvoiceEmailText({
+function generateSimpleInvoiceEmailText({
   booking,
-  customerEmail,
   customerName,
-  baseAmount,
-  regularDiscount,
-  couponDiscount,
-  couponDiscountPercentage,
-  subtotal,
-  tax,
-  total,
-  discountPercentage,
-  taxPercentage,
-  couponCode,
   paymentStatus
 }: {
   booking: any
-  customerEmail: string
   customerName: string
-  baseAmount: number
-  regularDiscount: number
-  couponDiscount: number
-  couponDiscountPercentage: number
-  subtotal: number
-  tax: number
-  total: number
-  discountPercentage: number
-  taxPercentage: number
-  couponCode: string
   paymentStatus: string
 }) {
   const formatDate = (dateString: string) => {
@@ -658,19 +547,12 @@ function generateInvoiceEmailText({
     })
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY'
-    }).format(amount)
-  }
-
   return `
 Invoice - Booking ${booking.wp_id}
 
 Hello ${customerName || 'there'}!
 
-Please find your invoice for the vehicle service booking below.
+Please find your invoice for the vehicle service booking attached to this email.
 
 SERVICE DETAILS:
 - Service Type: ${booking.service_name}
@@ -681,15 +563,8 @@ SERVICE DETAILS:
 
 PAYMENT STATUS: ${paymentStatus}
 
-INVOICE DETAILS:
-- Service Fee: ${formatCurrency(baseAmount)}
-${discountPercentage > 0 ? `- Discount (${discountPercentage}%): -${formatCurrency(regularDiscount)}` : ''}
-${couponCode ? `- Coupon Discount (${couponCode}): -${formatCurrency(couponDiscount)}` : ''}
-- Subtotal: ${formatCurrency(subtotal)}
-- Tax (${taxPercentage}%): ${formatCurrency(tax)}
-- TOTAL: ${formatCurrency(total)}
-
-${paymentStatus === 'PENDING PAYMENT' && booking.payment_link ? `Pay Now: ${booking.payment_link}` : ''}
+INVOICE PDF ATTACHED:
+Please find the detailed invoice PDF attached to this email with complete pricing breakdown and payment information.
 
 If you have any questions about this invoice, please don't hesitate to contact us.
 

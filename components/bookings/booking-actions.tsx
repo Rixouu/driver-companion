@@ -533,17 +533,17 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                     className="w-full bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-500 dark:hover:bg-purple-500/20 dark:border-purple-500/30"
                   >
                     <FileText className="mr-2 h-5 w-5" />
-                    Send Booking Invoice
+                    Send Booking Invoice PDF
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Send Booking Invoice
+                      Send Booking Invoice PDF
                     </DialogTitle>
                     <DialogDescription>
-                      Send an invoice with payment status to the customer.
+                      Send an invoice PDF with payment status to the customer.
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -577,14 +577,14 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                     
                     <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-md">
                       <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100 mb-2">
-                        📄 What's included in the invoice:
+                        📄 What's included in the invoice PDF:
                       </h4>
                       <ul className="text-xs text-purple-800 dark:text-purple-200 space-y-1">
                         <li>• Complete service details and pricing breakdown</li>
                         <li>• Payment status (PENDING PAYMENT or PAID)</li>
                         <li>• Coupon discounts and tax calculations</li>
                         <li>• Professional invoice PDF attachment</li>
-                        <li>• Payment link (if status is pending)</li>
+                        <li>• No payment buttons - clean invoice format</li>
                       </ul>
                     </div>
                   </div>

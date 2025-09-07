@@ -42,7 +42,7 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       }
 
       const container = document.createElement('div');
-      container.style.fontFamily = 'Work Sans, sans-serif';
+      container.style.fontFamily = "'Noto Sans Thai', 'Noto Sans', sans-serif";
       container.style.backgroundColor = '#fff';
       container.style.color = '#111827';
       container.style.width = '180mm';

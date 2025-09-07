@@ -39,43 +39,6 @@ class CDNAssetManager {
     const fallbackUrl = 'https://fonts.gstatic.com';
 
     return [
-      // Work Sans
-      {
-        family: 'Work Sans',
-        weight: 400,
-        style: 'normal',
-        display: 'swap',
-        url: cdnUrl ? `${cdnUrl}/fonts/worksans-regular.woff2` : `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jow.woff2`,
-        fallbackUrl: `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jow.woff2`,
-        unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
-      },
-      {
-        family: 'Work Sans',
-        weight: 500,
-        style: 'normal',
-        display: 'swap',
-        url: cdnUrl ? `${cdnUrl}/fonts/worksans-medium.woff2` : `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpw.woff2`,
-        fallbackUrl: `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jpw.woff2`,
-        unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
-      },
-      {
-        family: 'Work Sans',
-        weight: 600,
-        style: 'normal',
-        display: 'swap',
-        url: cdnUrl ? `${cdnUrl}/fonts/worksans-semibold.woff2` : `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jqw.woff2`,
-        fallbackUrl: `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jqw.woff2`,
-        unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
-      },
-      {
-        family: 'Work Sans',
-        weight: 700,
-        style: 'normal',
-        display: 'swap',
-        url: cdnUrl ? `${cdnUrl}/fonts/worksans-bold.woff2` : `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jrw.woff2`,
-        fallbackUrl: `${fallbackUrl}/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jrw.woff2`,
-        unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
-      },
 
       // Noto Sans JP
       {
@@ -189,7 +152,7 @@ class CDNAssetManager {
     if (typeof window === 'undefined') return; // Server-side check
 
     const fonts = this.getFontAssets().filter(font => 
-      font.family === 'Work Sans' && [400, 500, 600].includes(font.weight as number)
+      font.family === 'Noto Sans Thai' && [400, 500, 600].includes(font.weight as number)
     );
 
     // Preload critical fonts

@@ -26,7 +26,7 @@ export default async function DispatchPage() {
   const { t } = await getDictionary();
   
   return (
-    <div className="h-[calc(100vh-4rem)] w-full">
+    <div className="w-full">
       <RealTimeDispatchCenter />
     </div>
   );

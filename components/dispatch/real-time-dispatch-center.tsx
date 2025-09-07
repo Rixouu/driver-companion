@@ -296,7 +296,7 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
 
   if (isDesktop) {
     return (
-      <div className="flex h-full">
+      <div className="flex min-h-[calc(100vh-12rem)]">
         {showSidebar && (
           <div className="w-80 border-r bg-background flex flex-col">
             <SidebarContent {...sidebarProps} />
@@ -316,7 +316,7 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
             selectedAssignment={selectedAssignment}
             onAssignmentSelect={onAssignmentSelect}
             onVehicleSelect={onVehicleSelect}
-            className="h-full"
+            className="min-h-[calc(100vh-12rem)]"
           />
         </div>
       </div>
@@ -324,13 +324,13 @@ function MapViewWithSidebar({ assignments, onAssignmentSelect, onVehicleSelect }
   }
 
   return (
-    <div className="h-full relative">
+    <div className="min-h-[calc(100vh-12rem)] relative">
       <DispatchMap
         assignments={assignments}
         selectedAssignment={selectedAssignment}
         onAssignmentSelect={onAssignmentSelect}
         onVehicleSelect={onVehicleSelect}
-        className="h-full"
+        className="min-h-[calc(100vh-12rem)]"
       />
       <Sheet>
         <SheetTrigger asChild>
@@ -720,7 +720,7 @@ export default function RealTimeDispatchCenter() {
   });
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)]">
       {/* Header */}
       <div className="border-b bg-background/95 backdrop-blur p-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-x-4 gap-y-2">
@@ -809,7 +809,7 @@ export default function RealTimeDispatchCenter() {
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeView === 'board' ? (
-          <div className="h-full p-4">
+          <div className="min-h-[calc(100vh-12rem)] p-4">
             <DispatchBoardView
               entries={filteredAssignments}
               onStatusChange={handleUpdateStatus}

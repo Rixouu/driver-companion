@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { getDrivers } from "@/lib/services/drivers";
 import { DriverClientPage } from "@/components/drivers/driver-client-page"; // Import the new client component
 import type { Driver } from "@/types/drivers"; // Ensure consistent Driver type
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Drivers",
+  description: "Manage drivers and driver information"
+};
 
 // export const dynamic = "force-dynamic"; // Commented out to test loop C_L_FIX_LOOP
 // const ITEMS_PER_PAGE = 6; // Moved to client component

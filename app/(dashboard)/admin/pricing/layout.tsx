@@ -1,11 +1,11 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Settings",
-  description: "Application settings and configuration"
+  title: "Pricing",
+  description: "Manage pricing categories, items, and packages"
 }
 
-export default function SettingsLayout({
+export default function PricingLayout({
   children,
 }: {
   children: React.ReactNode
@@ -15,4 +15,4 @@ export default function SettingsLayout({
       {children}
     </div>
   )
-} 
+}

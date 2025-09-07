@@ -78,7 +78,7 @@ function generateClientQuotationHtml(
   }
 
   return `
-    <div style="font-family: 'Work Sans', sans-serif; color: #333; padding: 20px;">
+    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #333; padding: 20px;">
       <div style="border-top: 2px solid #FF2600; margin-bottom: 20px;"></div>
       
       <h1 style="color: #333; margin: 0 0 15px 0; font-size: 24px; font-weight: bold;">

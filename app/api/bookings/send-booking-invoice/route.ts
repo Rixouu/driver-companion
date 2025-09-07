@@ -361,7 +361,7 @@ function generateSimpleInvoiceEmailHtml({
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {

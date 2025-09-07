@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getDictionary()
   return {
-    title: t("dashboard.title"),
+    title: "Driver Fleet Management",
     description: t("dashboard.description")
   }
 }

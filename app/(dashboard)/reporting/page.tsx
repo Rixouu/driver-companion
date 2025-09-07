@@ -2,8 +2,14 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { ComprehensiveReportingPage } from '@/components/reporting/comprehensive-reporting-page';
 import { addMonths, parseISO } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { Metadata } from 'next';
 
 export const dynamic = "force-dynamic"; // Ensure dynamic rendering
+
+export const metadata: Metadata = {
+  title: "Reporting",
+  description: "Comprehensive reporting and analytics"
+};
 
 interface ReportingPageServerProps {
   searchParams: Promise<{

@@ -231,7 +231,7 @@ export async function sendInvoiceEmail(params: InvoiceEmailParams) {
     <head>
       <meta charset="UTF-8" />
     </head>
-    <body style="margin:0; padding:0; background:#F2F4F6; font-family: Work Sans, Arial, sans-serif;">
+    <body style="margin:0; padding:0; background:#F2F4F6; font-family: 'Noto Sans Thai', 'Noto Sans', Arial, sans-serif;">
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
         <tr>
           <td align="center" style="padding:24px;">

@@ -166,7 +166,7 @@ export function useInspectionReportExport({
       const pdfContainer = document.createElement('div');
       pdfContainer.className = 'pdf-export-container';
       pdfContainer.classList.add(`lang-${currentLanguage}`);
-      pdfContainer.style.fontFamily = 'Work Sans, sans-serif';
+      pdfContainer.style.fontFamily = "'Noto Sans Thai', 'Noto Sans', sans-serif";
       pdfContainer.style.margin = '0';
       pdfContainer.style.padding = '0';
       pdfContainer.style.color = '#333';

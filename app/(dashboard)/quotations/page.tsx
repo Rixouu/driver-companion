@@ -161,6 +161,13 @@ interface QuotationsPageProps {
   };
 }
 
+export async function generateMetadata() {
+  return {
+    title: "Quotation",
+    description: "Manage quotations and quotes"
+  };
+}
+
 export default async function QuotationsPage({ searchParams }: QuotationsPageProps) {
   const { t } = await getDictionary();
   

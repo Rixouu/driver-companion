@@ -363,7 +363,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {
@@ -444,7 +444,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               <!-- REMINDER INFO -->
               <tr>
                 <td style="padding:0 24px 24px;">
-                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6;">
+                  <p style="margin:0 0 16px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6;">
                     ${template.followup}
                   </p>
                 </td>
@@ -455,23 +455,23 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
                 <td style="padding:12px 24px 24px; text-align: center;">
                   ${quotationUrl.includes('/quote-access/') ? `
                     <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
-                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.6; text-align: center;">
                         ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
                       </p>
                       <a href="${quotationUrl}"
                          style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
-                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                text-decoration: none; border-radius: 4px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
                                 font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
                         ${template.callToAction}
                       </a>
-                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.4; text-align: center;">
                         ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
                       </p>
                     </div>
                   ` : `
                     <a href="${quotationUrl}"
                        style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                              text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
+                              text-decoration:none; border-radius:4px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
                               font-size:16px; font-weight:600; text-align: center;">
                       ${template.callToAction}
                     </a>
@@ -482,13 +482,13 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               <!-- ADDITIONAL INFO -->
               <tr>
                 <td style="padding:0px 24px 24px;">
-                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.additionalInfo}
                   </p>
-                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.closing}
                   </p>
-                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.regards}<br>
                     ${template.company}
                   </p>
@@ -497,7 +497,7 @@ function generateReminderEmail(template: any, customerName: string, quotationId:
               
               <!-- FOOTER -->
               <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
                   ${getTeamFooterHtml(quotation.team_location || 'thailand', isJapanese)}
                 </td>
               </tr>

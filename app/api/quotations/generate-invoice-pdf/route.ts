@@ -86,7 +86,7 @@ function generateInvoiceHtml(
   const invoiceDate = new Date().toLocaleDateString(localeCode, { year: 'numeric', month: '2-digit', day: '2-digit' });
 
   return `
-    <div style="font-family: 'Work Sans', sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
+    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
       
       <!-- Logo -->
       <div style="text-align: left; margin: 30px 0; margin-bottom: 30px;">

@@ -41,7 +41,7 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       // Create a new element to format as a PDF
       const pdfContainer = document.createElement('div')
       pdfContainer.className = 'pdf-export-container'
-      pdfContainer.style.fontFamily = 'Work Sans, sans-serif'
+      pdfContainer.style.fontFamily = "'Noto Sans Thai', 'Noto Sans', sans-serif"
       pdfContainer.style.color = '#333'
       pdfContainer.style.backgroundColor = '#fff'
       pdfContainer.style.padding = '20px'

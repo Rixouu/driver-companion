@@ -749,7 +749,7 @@ export function generateReportHtml(reportContent: ReportContent, reportData: Rep
         }
         
         body {
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           line-height: 1.6;
           color: #111827;
           background: #fff;

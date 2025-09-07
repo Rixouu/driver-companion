@@ -138,7 +138,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       // Create a new element to format as an invoice PDF
       const pdfContainer = document.createElement('div')
       pdfContainer.className = 'invoice-export-container'
-      pdfContainer.style.fontFamily = 'Work Sans, sans-serif'
+      pdfContainer.style.fontFamily = "'Noto Sans Thai', 'Noto Sans', sans-serif"
       pdfContainer.style.color = '#333'
       pdfContainer.style.backgroundColor = '#fff'
       pdfContainer.style.padding = '10px 0px 0px' // Increase padding for better margins

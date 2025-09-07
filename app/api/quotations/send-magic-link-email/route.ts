@@ -206,7 +206,7 @@ function generateEmailHtml(
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {
@@ -295,10 +295,10 @@ function generateEmailHtml(
               <!-- QUOTATION DETAILS BLOCK -->
               <tr>
                 <td style="padding:12px 24px 12px;">
-                  <h3 style="margin:0 0 12px; font-size:16px; font-family: Work Sans, sans-serif; color:#32325D; text-transform: uppercase;">
+                  <h3 style="margin:0 0 12px; font-size:16px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color:#32325D; text-transform: uppercase;">
                     ${isJapanese ? '見積書詳細' : 'QUOTATION DETAILS'}
                   </h3>
-                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: Work Sans, sans-serif; line-height: 1.6;">
+                  <div style="background:#F8FAFC; border-radius:8px; padding:12px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.6;">
                     <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Quotation ID:</strong> ${formattedQuotationId}</p>
                     <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Service:</strong> ${quotation.title || 'Transportation Service'}</p>
                     <p style="margin: 8px 0; font-size: 14px; color: #32325D;">• <strong>Amount:</strong> ¥${quotation.amount?.toLocaleString() || 'N/A'}</p>
@@ -311,21 +311,21 @@ function generateEmailHtml(
                 <td style="padding:12px 24px 24px; text-align: center;">
                   ${magicLink ? `
                     <div style="padding: 16px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
-                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                      <p style="margin: 0 0 12px; font-size: 14px; color: #64748B; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.6; text-align: center;">
                         ${isJapanese ? '以下のセキュアリンクから見積書を確認してください:' : 'Please view your quotation using this secure link:'}
                       </p>
                       <a href="${magicLink}"
                          style="display: inline-block; padding: 12px 24px; background: #E03E2D; color: #FFF;
-                                text-decoration: none; border-radius: 4px; font-family: Work Sans, sans-serif;
+                                text-decoration: none; border-radius: 4px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
                                 font-size: 16px; font-weight: 600; text-align: center; word-break: break-all;">
                         ${isJapanese ? 'セキュアリンクで見積書を表示' : 'View Quote via Secure Link'}
                       </a>
-                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: Work Sans, sans-serif; line-height: 1.4; text-align: center;">
+                      <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.4; text-align: center;">
                         ${isJapanese ? 'このリンクは7日間有効です' : 'This link is valid for 7 days'}
                       </p>
                     </div>
                   ` : `
-                    <p style="margin: 0 0 16px; font-size: 14px; color: #E53E3E; font-family: Work Sans, sans-serif; line-height: 1.6; text-align: center;">
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #E53E3E; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height: 1.6; text-align: center;">
                       <em>Note: Magic link generation failed. Please contact support for assistance.</em>
                     </p>
                   `}
@@ -335,13 +335,13 @@ function generateEmailHtml(
               <!-- CLOSING -->
               <tr>
                 <td style="padding:0px 24px 24px;">
-                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:20px 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.followup}
                   </p>
-                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:0 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.closing}
                   </p>
-                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: Work Sans, sans-serif; line-height:1.6; text-align:center;">
+                  <p style="margin:16px 0 8px; font-size:14px; color:#32325D; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; line-height:1.6; text-align:center;">
                     ${template.regards}<br>
                     ${template.company}
                   </p>
@@ -350,7 +350,7 @@ function generateEmailHtml(
               
               <!-- FOOTER -->
               <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
                   <p style="margin:0 0 4px;">${template.company}</p>
                   <p style="margin:0;">
                     <a href="https://japandriver.com" style="color:#E03E2D; text-decoration:none;">

@@ -102,10 +102,10 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         /* Use base64 embedded fonts for reliable PDF generation */
         ${generateFontCSS()}
         
-        /* Additional font definitions for Work Sans */
+        /* Additional font definitions for Noto Sans Thai */
         @font-face {
-          font-family: 'Work Sans';
-          src: url('https://fonts.gstatic.com/s/worksans/v18/QGY_z_wNahGAdqQ43RhVcIgYT2Xz5u32K0nXBi8Jow.woff2') format('woff2');
+          font-family: 'Noto Sans Thai';
+          src: url('https://fonts.gstatic.com/s/notosansthai/v25/iJWQBXyIfDnIV7nBrXywgWqV5p5_mhJSZOA-FkuJ0Q.woff2') format('woff2');
           font-weight: 400;
           font-style: normal;
           font-display: swap;
@@ -125,7 +125,7 @@ export async function generatePdfFromHtml(htmlContent: string, options?: {
         
         body {
           /* Use optimized font stack for multi-language support */
-          font-family: 'Noto Sans', 'Noto Sans JP', 'Noto Sans Thai', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
           margin: 0;
           padding: 0;
           color: #333;
@@ -548,7 +548,7 @@ export function generateQuotationHtml(
   
   // Generate the HTML
   const html = `
-    <div style="font-family: 'Work Sans', sans-serif; color: #333; box-sizing: border-box; width: 100%; margin: 0; padding: 0;">
+    <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #333; box-sizing: border-box; width: 100%; margin: 0; padding: 0;">
       <!-- Red line at top -->
       <div style="border-top: 2px solid #FF2600; width: 100%; margin-bottom: 20px;"></div>
       

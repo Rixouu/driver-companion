@@ -1,4 +1,4 @@
-import { Work_Sans } from "next/font/google"
+import { Noto_Sans_Thai } from "next/font/google"
 import { Providers } from "@/components/providers"
 import { FontProvider } from "@/components/providers/font-provider"
 // Toaster is typically rendered by Providers or at a similar top level
@@ -18,16 +18,25 @@ import { SupabaseProvider } from "@/components/providers/supabase-provider"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 
-const workSans = Work_Sans({
-  subsets: ["latin"],
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ["thai", "latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-work-sans",
+  variable: "--font-noto-sans-thai",
 })
 
 export const metadata: Metadata = {
-  title: "Vehicle Inspection",
-  description: "Vehicle inspection app",
+  title: "Driver Fleet Management",
+  description: "Driver Fleet Management System",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.png", type: "image/png" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon.png",
+  },
 }
 
 export const dynamic = 'force-dynamic'
@@ -50,8 +59,8 @@ export default async function RootLayout({
       <head />
       <body 
         className={cn(
-          workSans.className,
-          workSans.variable,
+          notoSansThai.className,
+          notoSansThai.variable,
           "min-h-screen bg-[hsl(var(--background))]"
         )}
         suppressHydrationWarning

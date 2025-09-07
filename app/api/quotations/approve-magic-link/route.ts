@@ -188,7 +188,7 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {
@@ -302,7 +302,7 @@ function generateApprovalEmailHtml(customerName: string, quotation: any, notes?:
               
               <!-- Footer -->
               <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
                   ${getTeamFooterHtml(quotation.team_location || 'thailand', false)}
                 </td>
               </tr>

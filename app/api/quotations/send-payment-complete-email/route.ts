@@ -53,7 +53,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
         body, table, td, a {
           -webkit-text-size-adjust:100%;
           -ms-text-size-adjust:100%;
-          font-family: Work Sans, sans-serif;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
         }
         table, td { mso-table-lspace:0; mso-table-rspace:0; }
         img {
@@ -164,7 +164,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                     <div style="text-align: center; margin:20px 0;">
                       <a href="${appUrl}/quotations/${quotation.id}"
                          style="display:inline-block; padding:12px 24px; background:#E03E2D; color:#FFF;
-                                text-decoration:none; border-radius:4px; font-family: Work Sans, sans-serif;
+                                text-decoration:none; border-radius:4px; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
                                 font-size:16px; font-weight:600; text-align: center;">
                         ${t.viewDetails}
                       </a>
@@ -180,7 +180,7 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
               
               <!-- Footer -->
               <tr>
-                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: Work Sans, sans-serif; font-size:12px; color:#8898AA;">
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
                   ${getTeamFooterHtml(quotation.team_location || 'thailand', language === 'ja')}
                 </td>
               </tr>

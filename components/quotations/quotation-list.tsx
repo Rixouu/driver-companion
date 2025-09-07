@@ -577,12 +577,12 @@ export default function QuotationList({
 
         {/* Pending Quotations - Orange */}
         <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Pending Quotations</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Pending Quotations</CardTitle>
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold break-words text-orange-600 dark:text-orange-400">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400">
               {quotations.filter(q => ['draft', 'sent'].includes(q.status)).length}
             </div>
           </CardContent>
@@ -590,12 +590,12 @@ export default function QuotationList({
 
         {/* Converted Quotations - Purple */}
         <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Converted</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Converted</CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">
               {quotations.filter(q => q.status === 'converted').length}
             </div>
           </CardContent>

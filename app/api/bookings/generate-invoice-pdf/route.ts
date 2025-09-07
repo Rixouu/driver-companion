@@ -193,6 +193,10 @@ async function generateBookingInvoiceHtml(
   const date = booking.date || new Date().toISOString().split('T')[0];
   const time = booking.time || '';
 
+  // Determine payment status
+  const isPaid = booking.status === 'confirmed' || booking.payment_status === 'paid';
+  const paymentStatus = isPaid ? 'PAID' : 'PENDING PAYMENT';
+  const paymentStatusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
   
   const formattedInvoiceId = `INV-${bookingNumber}`;
   const invoiceDate = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -222,9 +226,9 @@ async function generateBookingInvoiceHtml(
           </p>
           <!-- Payment Status Badge -->
           <div style="margin-top: 12px;">
-            <div style="display: inline-block; padding: 6px 12px; background: #f59e0b; border-radius: 4px;">
+            <div style="display: inline-block; padding: 6px 12px; background: ${paymentStatusColor}; border-radius: 4px;">
               <span style="color: white; font-size: 12px; font-weight: bold; text-transform: uppercase;">
-                ${isJapanese ? '未払い' : 'PENDING PAYMENT'}
+                ${isJapanese ? (isPaid ? '支払済み' : '未払い') : paymentStatus}
               </span>
             </div>
           </div>

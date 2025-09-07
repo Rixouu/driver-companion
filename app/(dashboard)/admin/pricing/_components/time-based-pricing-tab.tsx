@@ -64,7 +64,7 @@ interface TimeBasedRule {
   id?: string;
   name: string;
   category_id: string | null;
-  service_type_id: string | null;
+  service_type_ids: string[] | null;
   start_time: string;
   end_time: string;
   days_of_week: string[] | null;
@@ -225,7 +225,7 @@ export default function TimeBasedPricingTab() {
         data: {
           name: "",
           category_id: selectedCategoryId,
-          service_type_id: null,
+          service_type_ids: null,
           start_time: "22:00",
           end_time: "06:00",
           days_of_week: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
@@ -267,6 +267,16 @@ export default function TimeBasedPricingTab() {
       : [...currentDays, day];
     
     handleInputChange("days_of_week", updatedDays.length > 0 ? updatedDays : null);
+  };
+
+  // Toggle service type selection
+  const toggleServiceType = (serviceTypeId: string) => {
+    const currentServiceTypes = dialog.data.service_type_ids || [];
+    const updatedServiceTypes = currentServiceTypes.includes(serviceTypeId)
+      ? currentServiceTypes.filter((id) => id !== serviceTypeId)
+      : [...currentServiceTypes, serviceTypeId];
+    
+    handleInputChange("service_type_ids", updatedServiceTypes.length > 0 ? updatedServiceTypes : null);
   };
 
   // Handle save rule
@@ -433,9 +443,12 @@ export default function TimeBasedPricingTab() {
                 {rule.category_id
                   ? categories.find(c => c.id === rule.category_id)?.name || "-"
                   : t("pricing.items.timeBasedPricing.allCategories")}
-                {rule.service_type_id && (
+                {rule.service_type_ids && rule.service_type_ids.length > 0 && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
+                    {rule.service_type_ids.length === 1 
+                      ? serviceTypes.find(s => s.id === rule.service_type_ids![0])?.name || "-"
+                      : `${rule.service_type_ids.length} service types`
+                    }
                   </div>
                 )}
               </div>
@@ -615,11 +628,14 @@ export default function TimeBasedPricingTab() {
                           {rule.category_id
                             ? categories.find(c => c.id === rule.category_id)?.name || "-"
                             : t("pricing.items.timeBasedPricing.allCategories")}
-                          {rule.service_type_id && (
+                          {rule.service_type_ids && rule.service_type_ids.length > 0 && (
                             <>
                               <br />
                               <span className="text-xs text-muted-foreground">
-                                {serviceTypes.find(s => s.id === rule.service_type_id)?.name || "-"}
+                                {rule.service_type_ids.length === 1 
+                                  ? serviceTypes.find(s => s.id === rule.service_type_ids![0])?.name || "-"
+                                  : `${rule.service_type_ids.length} service types`
+                                }
                               </span>
                             </>
                           )}
@@ -687,49 +703,70 @@ export default function TimeBasedPricingTab() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <Label htmlFor="name">
-                  {t("pricing.items.timeBasedPricing.ruleName")}
-                </Label>
-                <Input
-                  id="name"
-                  value={dialog.data.name || ""}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder={t("pricing.items.timeBasedPricing.ruleNamePlaceholder")}
-                />
+          <div className="space-y-6 py-4">
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="text-lg font-semibold">Basic Information</h3>
+                <p className="text-sm text-muted-foreground">Define the rule name and basic details</p>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="name">
+                    {t("pricing.items.timeBasedPricing.ruleName")}
+                  </Label>
+                  <Input
+                    id="name"
+                    value={dialog.data.name || ""}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    placeholder={t("pricing.items.timeBasedPricing.ruleNamePlaceholder")}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Time Configuration Section */}
+            <div className="space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="text-lg font-semibold">Time Configuration</h3>
+                <p className="text-sm text-muted-foreground">Set when this rule applies</p>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="startTime">
+                    {t("pricing.items.timeBasedPricing.startTime")}
+                  </Label>
+                  <TimeInput
+                    id="startTime"
+                    value={dialog.data.start_time || "22:00"}
+                    onChange={(value) => handleInputChange("start_time", value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="endTime">
+                    {t("pricing.items.timeBasedPricing.endTime")}
+                  </Label>
+                  <TimeInput
+                    id="endTime"
+                    value={dialog.data.end_time || "06:00"}
+                    onChange={(value) => handleInputChange("end_time", value)}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               <div>
-                <Label htmlFor="startTime">
-                  {t("pricing.items.timeBasedPricing.startTime")}
-                </Label>
-                <TimeInput
-                  id="startTime"
-                  value={dialog.data.start_time || "22:00"}
-                  onChange={(value) => handleInputChange("start_time", value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="endTime">
-                  {t("pricing.items.timeBasedPricing.endTime")}
-                </Label>
-                <TimeInput
-                  id="endTime"
-                  value={dialog.data.end_time || "06:00"}
-                  onChange={(value) => handleInputChange("end_time", value)}
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <Label className="mb-2 block">
+                <Label className="mb-3 block">
                   {t("pricing.items.timeBasedPricing.days.all")}
                 </Label>
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-3">
                   {DAYS_OF_WEEK.map((day) => (
-                    <div key={day} className="flex items-center space-x-2">
+                    <div key={day} className="flex flex-col items-center space-y-2">
                       <Checkbox
                         id={`day-${day}`}
                         checked={(dialog.data.days_of_week || []).includes(day)}
@@ -737,7 +774,7 @@ export default function TimeBasedPricingTab() {
                       />
                       <Label
                         htmlFor={`day-${day}`}
-                        className="text-xs cursor-pointer"
+                        className="text-xs cursor-pointer text-center"
                       >
                         {t(`pricing.items.timeBasedPricing.days.${day}`)}
                       </Label>
@@ -745,9 +782,17 @@ export default function TimeBasedPricingTab() {
                   ))}
                 </div>
               </div>
+            </div>
 
-              <div className="sm:col-span-2">
-                <Label htmlFor="adjustment">
+            {/* Pricing Configuration Section */}
+            <div className="space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="text-lg font-semibold">Pricing Configuration</h3>
+                <p className="text-sm text-muted-foreground">Set the price adjustment for this rule</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="adjustment" className="text-base font-medium">
                   {t("pricing.items.timeBasedPricing.adjustmentPercentage")}:{" "}
                   <span className={dialog.data.adjustment_percentage! > 0 ? "text-green-600" : dialog.data.adjustment_percentage! < 0 ? "text-red-600" : ""}>
                     {dialog.data.adjustment_percentage! > 0 ? "+" : ""}
@@ -763,63 +808,55 @@ export default function TimeBasedPricingTab() {
                   onValueChange={([value]) =>
                     handleInputChange("adjustment_percentage", value)
                   }
-                  className="py-4"
+                  className="py-4 mt-2"
                 />
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="category">
-                  {t("pricing.items.timeBasedPricing.categoryLabel")}
-                </Label>
-                <Select
-                  value={dialog.data.category_id || "all"}
-                  onValueChange={(value) =>
-                    handleInputChange(
-                      "category_id",
-                      value === "all" ? null : value
-                    )
-                  }
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue
-                      placeholder={t("pricing.items.timeBasedPricing.allCategories")}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("pricing.items.timeBasedPricing.allCategories")}
-                    </SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Scope Configuration Section */}
+            <div className="space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="text-lg font-semibold">Scope Configuration</h3>
+                <p className="text-sm text-muted-foreground">Define which services this rule applies to</p>
               </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category">
+                    {t("pricing.items.timeBasedPricing.categoryLabel")}
+                  </Label>
+                  <Select
+                    value={dialog.data.category_id || "all"}
+                    onValueChange={(value) =>
+                      handleInputChange(
+                        "category_id",
+                        value === "all" ? null : value
+                      )
+                    }
+                  >
+                    <SelectTrigger id="category" className="mt-1">
+                      <SelectValue
+                        placeholder={t("pricing.items.timeBasedPricing.allCategories")}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("pricing.items.timeBasedPricing.allCategories")}
+                      </SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label htmlFor="serviceType">
-                  {t("pricing.items.timeBasedPricing.serviceTypeLabel")}
-                </Label>
-                <Select
-                  value={dialog.data.service_type_id || "all"}
-                  onValueChange={(value) =>
-                    handleInputChange(
-                      "service_type_id",
-                      value === "all" ? null : value
-                    )
-                  }
-                >
-                  <SelectTrigger id="serviceType">
-                    <SelectValue
-                      placeholder={t("pricing.items.timeBasedPricing.allServiceTypes")}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">
-                      {t("pricing.items.timeBasedPricing.allServiceTypes")}
-                    </SelectItem>
+                <div className="sm:col-span-2">
+                  <Label className="mb-3 block">
+                    {t("pricing.items.timeBasedPricing.serviceTypeLabel")}
+                  </Label>
+                  <div className="space-y-3 max-h-40 overflow-y-auto border rounded-lg p-4 bg-muted/20">
                     {serviceTypes
                       .filter(
                         (st) =>
@@ -832,41 +869,92 @@ export default function TimeBasedPricingTab() {
                             ?.service_type_ids
                       )
                       .map((serviceType) => (
-                        <SelectItem key={serviceType.id} value={serviceType.id}>
-                          {serviceType.name}
-                        </SelectItem>
+                        <div key={serviceType.id} className="flex items-center space-x-3">
+                          <Checkbox
+                            id={`service-${serviceType.id}`}
+                            checked={(dialog.data.service_type_ids || []).includes(serviceType.id)}
+                            onCheckedChange={() => toggleServiceType(serviceType.id)}
+                          />
+                          <Label
+                            htmlFor={`service-${serviceType.id}`}
+                            className="text-sm cursor-pointer flex-1"
+                          >
+                            {serviceType.name}
+                          </Label>
+                        </div>
                       ))}
-                  </SelectContent>
-                </Select>
+                    {serviceTypes.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No service types available
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Select one or more service types. Leave empty to apply to all service types.
+                  </p>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="priority">
-                  {t("pricing.items.timeBasedPricing.priority")}
-                </Label>
-                <Input
-                  id="priority"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={dialog.data.priority || 1}
-                  onChange={(e) =>
-                    handleInputChange("priority", parseInt(e.target.value, 10))
-                  }
-                />
+            {/* Rule Settings Section */}
+            <div className="space-y-4">
+              <div className="border-b pb-2">
+                <h3 className="text-lg font-semibold">Rule Settings</h3>
+                <p className="text-sm text-muted-foreground">Configure priority and activation status</p>
               </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="priority" className="text-sm font-medium mb-3 block">
+                    {t("pricing.items.timeBasedPricing.priority")}
+                  </Label>
+                  <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors">
+                    <div className="mb-3">
+                      <p className="text-sm text-foreground font-medium">
+                        Set rule priority
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Higher numbers have higher priority (1-100)
+                      </p>
+                    </div>
+                    <Input
+                      id="priority"
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={dialog.data.priority || 1}
+                      onChange={(e) =>
+                        handleInputChange("priority", parseInt(e.target.value, 10))
+                      }
+                      className="w-32"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={dialog.data.is_active}
-                  onCheckedChange={(checked) =>
-                    handleInputChange("is_active", checked)
-                  }
-                />
-                <Label htmlFor="is_active">
-                  {t("pricing.items.timeBasedPricing.active")}
-                </Label>
+                <div>
+                  <Label htmlFor="is_active" className="text-sm font-medium mb-3 block">
+                    {t("pricing.items.timeBasedPricing.active")}
+                  </Label>
+                  <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/40 transition-colors">
+                    <div className="mb-3">
+                      <p className="text-sm text-foreground font-medium">
+                        Enable this pricing rule
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        When enabled, this rule will be applied to matching bookings
+                      </p>
+                    </div>
+                    <div className="flex justify-end">
+                      <Switch
+                        id="is_active"
+                        checked={dialog.data.is_active}
+                        onCheckedChange={(checked) =>
+                          handleInputChange("is_active", checked)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

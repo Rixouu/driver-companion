@@ -169,7 +169,8 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
         },
         body: JSON.stringify({
           bookingId: booking.supabase_id || booking.id || booking.booking_id || bookingId,
-          bccEmails: bccEmailList
+          bccEmails: bccEmailList,
+          customer_email: booking.customer_email || booking.customer?.email
         }),
       })
 
@@ -216,14 +217,15 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
     try {
       const bccEmailList = paymentLinkBccEmails.split(',').map(email => email.trim()).filter(email => email)
       
-      const response = await fetch('/api/bookings/generate-payment-link', {
+      const response = await fetch('/api/bookings/regenerate-payment-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           bookingId: booking.supabase_id || booking.id || booking.booking_id || bookingId,
-          bccEmails: bccEmailList
+          bccEmails: bccEmailList,
+          customer_email: booking.customer_email || booking.customer?.email
         }),
       })
 

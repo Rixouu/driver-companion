@@ -616,7 +616,8 @@ export function CustomersPageContent({
                 >
                   <Link href={`/customers/${customer.id}`}>
                     <Eye className="h-4 w-4" />
-                    View Details
+                    <span className="hidden sm:inline">View on Desktop</span>
+                    <span className="sm:hidden">View Details</span>
                   </Link>
                 </Button>
                 <Button 

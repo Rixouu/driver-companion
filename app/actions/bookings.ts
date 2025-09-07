@@ -1112,10 +1112,23 @@ export async function updateBookingAction(
       updated_at: new Date().toISOString()
     };
     
+    console.log('Update data before filtering:', Object.keys(updateData));
+    
     // Remove properties that shouldn't be updated directly
-    delete updateData.id;
-    delete updateData.wp_id;
-    delete updateData.created_at;
+    // These are fields that exist in the Booking type but not in the database schema
+    const fieldsToRemove = [
+      'id', 'wp_id', 'created_at', 'booking_id', 'supabase_id', 
+      'title', 'customer', 'vehicle', 'price', 'selectedVehicle',
+      'synced_at', 'updated_by' // These are managed by the system
+    ];
+    
+    fieldsToRemove.forEach(field => {
+      if (field in updateData) {
+        delete (updateData as any)[field];
+      }
+    });
+    
+    console.log('Update data after filtering:', Object.keys(updateData));
     
     // Update booking in database using the correct internal UUID
     const { data: updatedBooking, error: updateError } = await supabase

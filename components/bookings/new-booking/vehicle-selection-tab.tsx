@@ -191,7 +191,12 @@ export function VehicleSelectionTab({
                           setFormData((prev: any) => ({
                             ...prev,
                             vehicle_id: vehicle.id,
-                            selectedVehicle: vehicle
+                            selectedVehicle: vehicle,
+                            // Update vehicle details fields to match selected vehicle
+                            vehicle_make: vehicle.brand,
+                            vehicle_model: vehicle.model,
+                            vehicle_capacity: vehicle.passenger_capacity,
+                            vehicle_year: vehicle.year?.toString()
                           }))
                         }}
                       >
@@ -244,7 +249,12 @@ export function VehicleSelectionTab({
                                 setFormData((prev: any) => ({
                                   ...prev,
                                   vehicle_id: vehicle.id,
-                                  selectedVehicle: vehicle
+                                  selectedVehicle: vehicle,
+                                  // Update vehicle details fields to match selected vehicle
+                                  vehicle_make: vehicle.brand,
+                                  vehicle_model: vehicle.model,
+                                  vehicle_capacity: vehicle.passenger_capacity,
+                                  vehicle_year: vehicle.year?.toString()
                                 }))
                               }}
                             >

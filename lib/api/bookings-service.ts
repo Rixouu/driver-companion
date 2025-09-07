@@ -588,6 +588,7 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     customer_email: booking.customer_email || undefined,
     customer_phone: booking.customer_phone || undefined,
     driver_id: booking.driver_id || undefined,
+    vehicle_id: booking.vehicle_id || vehicleInfo.id || undefined,
     
     // Direct vehicle fields from database
     vehicle_make: booking.vehicle_make || undefined,
@@ -652,9 +653,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     meta: booking.meta ? (typeof booking.meta === 'object' ? booking.meta as Record<string, any> : undefined) : 
           booking.wp_meta ? (typeof booking.wp_meta === 'object' ? booking.wp_meta as Record<string, any> : undefined) : undefined,
     
-    // Flight information from meta
-    flight_number: (booking.meta as any)?.chbs_flight_number || (booking.wp_meta as any)?.chbs_flight_number || undefined,
-    terminal: (booking.meta as any)?.chbs_terminal || (booking.wp_meta as any)?.chbs_terminal || undefined,
+    // Flight information - prioritize direct fields over meta fields
+    flight_number: booking.flight_number || (booking.meta as any)?.chbs_flight_number || (booking.wp_meta as any)?.chbs_flight_number || undefined,
+    terminal: booking.terminal || (booking.meta as any)?.chbs_terminal || (booking.wp_meta as any)?.chbs_terminal || undefined,
     
     created_at: booking.created_at || undefined,
     updated_at: booking.updated_at || undefined,

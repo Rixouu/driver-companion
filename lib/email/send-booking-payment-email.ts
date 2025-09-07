@@ -319,24 +319,41 @@ ${paymentStatus === 'PAID' ? `
     const attachments = [];
     
     if (pdfAttachment) {
+      console.log('📎 [SEND-BOOKING-PAYMENT-EMAIL] Adding PDF attachment:', {
+        filename: `Invoice-${bookingId}.pdf`,
+        size: pdfAttachment.length,
+        type: 'application/pdf'
+      });
       attachments.push({
         filename: `Invoice-${bookingId}.pdf`,
         content: pdfAttachment,
         contentType: 'application/pdf',
       });
+    } else {
+      console.log('📎 [SEND-BOOKING-PAYMENT-EMAIL] No PDF attachment provided');
     }
 
     // Parse BCC emails
     const bccEmailList = bccEmails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
 
-    const { data: emailData, error } = await resend.emails.send({
+    const emailPayload = {
       from: 'Driver Japan <booking@japandriver.com>',
       to: [to],
       bcc: bccEmailList,
       subject: subject,
       html: html,
       attachments: attachments
+    };
+
+    console.log('📧 [SEND-BOOKING-PAYMENT-EMAIL] Sending email with payload:', {
+      to: emailPayload.to,
+      bcc: emailPayload.bcc,
+      subject: emailPayload.subject,
+      attachmentsCount: emailPayload.attachments.length,
+      hasAttachments: emailPayload.attachments.length > 0
     });
+
+    const { data: emailData, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       console.error('Error sending booking payment email:', error);

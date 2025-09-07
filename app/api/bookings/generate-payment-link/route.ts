@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     console.log(`[Booking Payment] Using ${isTestMode ? 'TEST' : 'PRODUCTION'} credentials`);
 
     // Use provided amount or fallback to booking data
-    const amount = providedAmount || bookingData.price_amount || bookingData.amount || 0;
+    const amount = providedAmount || bookingData.price_amount || (bookingData as any).amount || 0;
     const currency = 'JPY';
 
     // Validate amount
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     // Create payment link data
     const customerName = customer_name || bookingData.customer_name || bookingData.customers?.name || 'Customer';
     const serviceDescription = bookingData.service_name || 'Transportation Service';
-    const bookingNumber = bookingData.wp_id || bookingData.booking_number || bookingData.id;
+    const bookingNumber = bookingData.wp_id || (bookingData as any).booking_number || bookingData.id;
     
     const defaultDescription = `${customerName} - ${serviceDescription} - Booking ${bookingNumber}`;
     
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 
     // Calculate correct pricing for email
     let emailPricing = {
-      baseAmount: bookingData.base_amount || bookingData.price_amount || amount,
+      baseAmount: (bookingData as any).base_amount || bookingData.price_amount || amount,
       regularDiscountAmount: 0,
       couponDiscountAmount: 0,
       taxAmount: 0,
@@ -179,10 +179,10 @@ export async function POST(req: NextRequest) {
     };
 
     // If we don't have proper pricing data, calculate it directly from database
-    if (!bookingData.base_amount && bookingData.service_name && bookingData.vehicle_id) {
+    if (!(bookingData as any).base_amount && bookingData.service_name && bookingData.vehicle_id) {
       try {
-        // First, get the service_type_id from the service name
-        let serviceTypeId = bookingData.service_type_id;
+        // First, get the service_type from the service name
+        let serviceTypeId = bookingData.service_type;
         
         if (!serviceTypeId) {
           const { data: serviceTypes } = await supabase
@@ -297,14 +297,14 @@ export async function POST(req: NextRequest) {
         emailPricing.baseAmount = amount;
         console.warn('Using booking amount as fallback for pricing calculation');
       }
-    } else if (bookingData.base_amount) {
+    } else if ((bookingData as any).base_amount) {
       // Use stored pricing data - calculate coupon discount if coupon code exists
       let couponDiscountAmount = 0;
       let couponDiscountPercentage = 0;
       
       if (bookingData.coupon_code && bookingData.coupon_discount_percentage) {
         // Use stored coupon discount percentage
-        couponDiscountAmount = bookingData.base_amount * (bookingData.coupon_discount_percentage / 100);
+        couponDiscountAmount = (bookingData as any).base_amount * (bookingData.coupon_discount_percentage / 100);
         couponDiscountPercentage = bookingData.coupon_discount_percentage;
       } else if (bookingData.coupon_code) {
         // Calculate coupon discount from coupon code
@@ -322,16 +322,16 @@ export async function POST(req: NextRequest) {
             const validUntil = couponData.end_date ? new Date(couponData.end_date) : null;
             
             if ((!validFrom || now >= validFrom) && (!validUntil || now <= validUntil)) {
-              if (!couponData.minimum_amount || bookingData.base_amount >= couponData.minimum_amount) {
+              if (!couponData.minimum_amount || (bookingData as any).base_amount >= couponData.minimum_amount) {
                 if (couponData.discount_type === 'percentage') {
                   couponDiscountPercentage = couponData.discount_value;
-                  couponDiscountAmount = bookingData.base_amount * (couponData.discount_value / 100);
+                  couponDiscountAmount = (bookingData as any).base_amount * (couponData.discount_value / 100);
                   if (couponData.maximum_discount && couponDiscountAmount > couponData.maximum_discount) {
                     couponDiscountAmount = couponData.maximum_discount;
                   }
                 } else {
-                  couponDiscountAmount = Math.min(couponData.discount_value, bookingData.base_amount);
-                  couponDiscountPercentage = (couponDiscountAmount / bookingData.base_amount) * 100;
+                  couponDiscountAmount = Math.min(couponData.discount_value, (bookingData as any).base_amount);
+                  couponDiscountPercentage = (couponDiscountAmount / (bookingData as any).base_amount) * 100;
                 }
               }
             }
@@ -341,12 +341,12 @@ export async function POST(req: NextRequest) {
         }
       }
       
-      const regularDiscountAmount = bookingData.discount_percentage ? bookingData.base_amount * (bookingData.discount_percentage / 100) : 0;
-      const amountAfterDiscount = bookingData.base_amount - regularDiscountAmount - couponDiscountAmount;
+      const regularDiscountAmount = bookingData.discount_percentage ? (bookingData as any).base_amount * (bookingData.discount_percentage / 100) : 0;
+      const amountAfterDiscount = (bookingData as any).base_amount - regularDiscountAmount - couponDiscountAmount;
       const taxAmount = bookingData.tax_percentage ? (amountAfterDiscount * (bookingData.tax_percentage / 100)) : 0;
       
       emailPricing = {
-        baseAmount: bookingData.base_amount,
+        baseAmount: (bookingData as any).base_amount,
         regularDiscountAmount,
         couponDiscountAmount,
         taxAmount,
@@ -365,8 +365,8 @@ export async function POST(req: NextRequest) {
         customerName: customerName,
         bookingId: bookingNumber,
         serviceName: serviceDescription,
-        pickupLocation: bookingData.pickup_location,
-        dropoffLocation: bookingData.dropoff_location,
+        pickupLocation: bookingData.pickup_location || '',
+        dropoffLocation: bookingData.dropoff_location || '',
         date: bookingData.date,
         time: bookingData.time,
         amount: amount,

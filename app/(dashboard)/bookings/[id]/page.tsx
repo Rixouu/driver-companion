@@ -107,36 +107,9 @@ export default function BookingPage() {
     return `THB ${originalPrice.toLocaleString()}`;
   };
 
-  useEffect(() => {
-    async function fetchBookingData() {
-      try {
-        setLoading(true)
-        const result = await getBookingById(id)
-        
-        if (result.booking) {
-          setBooking(result.booking)
-        } else {
-          setError('Booking not found')
-        }
-      } catch (err) {
-        console.error("Error fetching booking:", err)
-        setError(err instanceof Error ? err.message : 'Failed to load booking')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchBookingData()
-  }, [id])
-
-  const handleAssignmentComplete = () => {
-    // Reload the booking data after assignment is completed
-    router.refresh();
-    fetchBookingData();
-  }
-
   const fetchBookingData = async () => {
     try {
+      setLoading(true)
       const result = await getBookingById(id)
       
       if (result.booking) {
@@ -145,9 +118,44 @@ export default function BookingPage() {
         setError('Booking not found')
       }
     } catch (err) {
+      console.error("Error fetching booking:", err)
       setError(err instanceof Error ? err.message : 'Failed to load booking')
+    } finally {
+      setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchBookingData()
+  }, [id])
+
+  // Refresh booking data when page becomes visible (e.g., returning from edit page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchBookingData()
+      }
+    }
+
+    const handleFocus = () => {
+      fetchBookingData()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [id, fetchBookingData])
+
+  const handleAssignmentComplete = () => {
+    // Reload the booking data after assignment is completed
+    router.refresh();
+    fetchBookingData();
+  }
+
   
   if (loading) {
     return (
@@ -521,34 +529,14 @@ export default function BookingPage() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.flightNumber')}</h3>
                     <p className="mt-1">
-                      {(() => {
-                        // Check if form element fields exist and is an array
-                        if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                          // Find flight number field
-                          const flightField = booking.meta.chbs_form_element_field.find(
-                            (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
-                          );
-                          if (flightField?.value) return flightField.value;
-                        }
-                        return booking.flight_number || booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided');
-                      })()}
+                      {booking.flight_number || booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided')}
                     </p>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.terminal')}</h3>
                     <p className="mt-1">
-                      {(() => {
-                        // Check if form element fields exist and is an array
-                        if (booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                          // Find terminal field
-                          const terminalField = booking.meta.chbs_form_element_field.find(
-                            (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
-                          );
-                          if (terminalField?.value) return terminalField.value;
-                        }
-                        return booking.terminal || booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided');
-                      })()}
+                      {booking.terminal || booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided')}
                     </p>
                   </div>
                   

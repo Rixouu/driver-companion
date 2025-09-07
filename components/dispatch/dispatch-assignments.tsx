@@ -1252,7 +1252,7 @@ export default function DispatchAssignments() {
           variant="outline"
           size="sm"
           onClick={() => router.push('/dispatch')}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto bg-foreground text-background hover:bg-foreground/90 border-foreground"
         >
           <Grid3X3Icon className="h-4 w-4 mr-2" />
           Dispatch Board

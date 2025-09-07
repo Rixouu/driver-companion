@@ -199,8 +199,8 @@ export function Sidebar() {
       label: t("navigation.operations"),
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
-        { icon: Grid3x3, label: t("navigation.dispatch"), href: "/dispatch", key: "dispatch" } as MenuItem,
-        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/dispatch/assignments", key: "assignments" } as MenuItem,
+        { icon: Grid3x3, label: "Dispatch Board", href: "/dispatch", key: "dispatch" } as MenuItem,
+        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
         { icon: FileText, label: t("navigation.templates"), href: "/templates", key: "templates" } as MenuItem,
@@ -297,7 +297,7 @@ export function Sidebar() {
                     </div>
                   )}
                   {visibleItems.map((item) => {
-                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dispatch" && pathname.startsWith(item.href))) : false;
+                    const isActive = pathname ? (pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dispatch" && item.href !== "/assignments" && pathname.startsWith(item.href))) : false;
                     
                     const menuItem = (
                       <Button

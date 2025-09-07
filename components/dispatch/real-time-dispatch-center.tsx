@@ -754,7 +754,7 @@ export default function RealTimeDispatchCenter() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('/dispatch/assignments')}
+                onClick={() => router.push('/assignments')}
                 className="flex-1"
               >
                 <ListIcon className="h-4 w-4 mr-2" />

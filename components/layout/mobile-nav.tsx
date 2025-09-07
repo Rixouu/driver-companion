@@ -63,6 +63,7 @@ export function MobileNav() {
     } else if (
       pathname.startsWith('/bookings') || 
       pathname.startsWith('/dispatch') || 
+      pathname.startsWith('/assignments') ||
       pathname.startsWith('/maintenance') || 
       pathname.startsWith('/inspections') ||
       pathname.startsWith('/reporting')
@@ -139,7 +140,8 @@ export function MobileNav() {
     ],
     operations: [
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
-      { id: 'dispatch', title: t("navigation.dispatch") || "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
+      { id: 'dispatch', title: "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
+      { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' },
       { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
       { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' },
       { id: 'templates', title: t("navigation.templates"), icon: FileText, href: '/templates' },

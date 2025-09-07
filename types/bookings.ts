@@ -15,6 +15,10 @@ export interface Booking {
   driver_id?: string
   vehicle_id?: string;
   created_by?: string; // UUID of the admin user who created this booking
+  creator?: {
+    full_name?: string | null;
+    email?: string | null;
+  }; // Creator profile information
   team_location?: 'japan' | 'thailand'; // Team location for the booking
   
   // Direct customer fields for consistency with DB and forms

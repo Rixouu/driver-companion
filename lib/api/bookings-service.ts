@@ -444,7 +444,7 @@ export const mapWordPressBookingToSupabase = (wpBooking: any): Omit<SupabaseBook
 /**
  * Maps a Supabase booking to the Booking type
  */
-export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row'] & { vehicle?: any }): Booking {
+export function mapSupabaseBookingToBooking(booking: Database['public']['Tables']['bookings']['Row'] & { vehicle?: any; creatorInfo?: { full_name?: string | null; email?: string | null } | null }): Booking {
   // Extract vehicle information
   let vehicleInfo: {
     id?: string;
@@ -659,6 +659,10 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     
     created_at: booking.created_at || undefined,
     updated_at: booking.updated_at || undefined,
+    
+    // Creator information
+    created_by: booking.created_by || undefined,
+    creator: booking.creatorInfo || undefined,
   }
 }
 
@@ -1387,6 +1391,18 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
       bookingData = data
     }
     
+    // Get creator information separately if created_by exists
+    let profileCreatorInfo = null;
+    if (bookingData?.created_by) {
+      const { data: creatorData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', bookingData.created_by)
+        .maybeSingle()
+      
+      profileCreatorInfo = creatorData;
+    }
+    
     if (!bookingData) {
       console.log(`[DB] Booking not found with either ID: ${id}`)
       return { booking: null, error: 'Booking not found' }
@@ -1455,7 +1471,7 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     })
     
     // Map to Booking type
-    const mappedBooking = mapSupabaseBookingToBooking(bookingData)
+    const mappedBooking = mapSupabaseBookingToBooking({ ...bookingData, creatorInfo: profileCreatorInfo })
     
     // Add the additional information to the meta
     if (mappedBooking.meta) {

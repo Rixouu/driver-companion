@@ -213,7 +213,12 @@ export default function BookingPage() {
           <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.wp_id || booking.booking_id || id })}</h1>
           <p className="text-muted-foreground">
             {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
-            {booking.meta?.creator_info && (
+            {booking.creator?.full_name && (
+              <span className="ml-2">
+                • Created by: {booking.creator.full_name}
+              </span>
+            )}
+            {!booking.creator?.full_name && booking.meta?.creator_info && (
               <span className="ml-2">
                 • Created by: {booking.meta.creator_info.name || booking.meta.creator_info.role || 'Unknown User'}
               </span>

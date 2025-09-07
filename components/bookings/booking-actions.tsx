@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal'
+import { ConfirmationModal } from '@/components/shared/confirmation-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info, FileText, RefreshCw } from 'lucide-react'
+import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info, FileText, RefreshCw, X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { toast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase'
@@ -742,11 +742,11 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
               {t('bookings.details.bookingActions.cancelBooking')}
             </Button>
             
-            <DeleteConfirmationModal
+            <ConfirmationModal
               isOpen={isDialogOpen}
               onClose={() => setIsDialogOpen(false)}
               onConfirm={handleCancelBooking}
-              isDeleting={isCancelling}
+              isProcessing={isCancelling}
               title="Cancel Booking"
               description={`Are you sure you want to cancel booking #${booking.wp_id || bookingId}? This action cannot be undone.`}
               itemName="Booking"
@@ -756,6 +756,10 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                 "All associated data will be marked as cancelled",
                 "This action cannot be undone"
               ]}
+              confirmText="Cancel Booking"
+              confirmIcon={<X className="mr-2 h-4 w-4" />}
+              processingText="Cancelling..."
+              variant="destructive"
             />
           </div>
         </CardContent>

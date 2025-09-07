@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal';
 import QuotationList from '@/components/quotations/quotation-list';
 import { useQuotationService } from "@/lib/hooks/useQuotationService";
 import { Quotation, QuotationStatus } from "@/types/quotations";
@@ -145,27 +146,21 @@ export default function QuotationsTableClient({
       />
       
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t('quotations.notifications.deleteConfirmation')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('common.cannotBeUndone')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationModal
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        isDeleting={false}
+        title="Delete Quotation"
+        description={`Are you sure you want to delete this quotation? This action cannot be undone.`}
+        itemName="Quotation"
+        itemCount={1}
+        warningItems={[
+          "This will permanently delete the selected quotation",
+          "All associated data will be removed",
+          "This action cannot be undone"
+        ]}
+      />
       
       {/* Reminder Dialog */}
       {selectedQuotation && (

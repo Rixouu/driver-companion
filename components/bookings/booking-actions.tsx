@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertCircle, CalendarIcon, Edit, Loader2, Trash2, UserIcon, CarIcon, Zap, CheckIcon, CalendarPlus, Mail, Send, Info, FileText, RefreshCw } from 'lucide-react'
@@ -731,51 +732,31 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
               <div className="flex-grow border-t"></div>
             </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="outline"
-                  className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 dark:bg-red-500/10 dark:text-red-500 dark:hover:bg-red-500/20 dark:border-red-500/30"
-                  disabled={status === 'cancelled'}
-                >
-                  <Trash2 className="mr-2 h-5 w-5" />
-                  {t('bookings.details.bookingActions.cancelBooking')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                    {t('bookings.details.actions.confirmCancellation')}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {t('bookings.details.actions.cancellationWarning')}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter className="flex space-x-2 py-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleCancelBooking}
-                    disabled={isCancelling}
-                  >
-                    {isCancelling ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('common.processing')}
-                      </>
-                    ) : (
-                      t('bookings.details.actions.confirmCancel')
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              variant="outline"
+              className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 dark:bg-red-500/10 dark:text-red-500 dark:hover:bg-red-500/20 dark:border-red-500/30"
+              disabled={status === 'cancelled'}
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <Trash2 className="mr-2 h-5 w-5" />
+              {t('bookings.details.bookingActions.cancelBooking')}
+            </Button>
+            
+            <DeleteConfirmationModal
+              isOpen={isDialogOpen}
+              onClose={() => setIsDialogOpen(false)}
+              onConfirm={handleCancelBooking}
+              isDeleting={isCancelling}
+              title="Cancel Booking"
+              description={`Are you sure you want to cancel booking #${booking.wp_id || bookingId}? This action cannot be undone.`}
+              itemName="Booking"
+              itemCount={1}
+              warningItems={[
+                "This will permanently cancel the selected booking",
+                "All associated data will be marked as cancelled",
+                "This action cannot be undone"
+              ]}
+            />
           </div>
         </CardContent>
       </Card>

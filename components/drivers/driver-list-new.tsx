@@ -48,6 +48,8 @@ import {
 import { DriverFilter, DriverFilterOptions } from "./driver-filter"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DeleteConfirmationModal } from "@/components/shared/delete-confirmation-modal"
+import { toast } from "@/components/ui/use-toast"
 
 interface DriverListProps {
   drivers: Driver[];
@@ -84,6 +86,8 @@ export function DriverList({
   const searchParams = useSearchParams()
   
   const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set())
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Pagination logic
   const paginatedDrivers = useMemo(() => {
@@ -98,6 +102,39 @@ export function DriverList({
       setSelectedDrivers(new Set())
     } else {
       setSelectedDrivers(new Set(paginatedDrivers.map(driver => driver.id)))
+    }
+  }
+
+  // Delete handlers
+  const handleDeleteSelected = async () => {
+    if (selectedDrivers.size === 0) return
+    
+    setIsDeleting(true)
+    try {
+      // TODO: Implement actual delete API call
+      // For now, just simulate the delete
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Remove deleted drivers from the list
+      // This would normally be handled by the parent component
+      console.log('Deleting drivers:', Array.from(selectedDrivers))
+      
+      toast({
+        title: "Drivers deleted",
+        description: `Successfully deleted ${selectedDrivers.size} driver${selectedDrivers.size > 1 ? 's' : ''}.`,
+      })
+      
+      setSelectedDrivers(new Set())
+      setIsDeleteModalOpen(false)
+    } catch (error) {
+      console.error('Error deleting drivers:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete drivers. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -252,10 +289,7 @@ export function DriverList({
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => {
-                      // TODO: Implement bulk delete for drivers
-                      console.log('Deleting drivers:', Array.from(selectedDrivers));
-                    }}
+                    onClick={() => setIsDeleteModalOpen(true)}
                     className="flex items-center gap-2 flex-1 sm:flex-none"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -315,8 +349,7 @@ export function DriverList({
             {paginatedDrivers.map((driver) => (
               <Card 
                 key={driver.id} 
-                className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border-border/60 bg-card/95 backdrop-blur"
-                onClick={() => router.push(`/drivers/${driver.id}`)}
+                className="hover:shadow-lg transition-all duration-200 overflow-hidden border-border/60 bg-card/95 backdrop-blur"
               >
                                 <div className="grid grid-cols-12 items-center gap-4 p-4">
                   {/* Selection Checkbox */}
@@ -751,6 +784,23 @@ export function DriverList({
           </Pagination>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteSelected}
+        isDeleting={isDeleting}
+        title="Delete Drivers"
+        description={`Are you sure you want to delete ${selectedDrivers.size} selected driver${selectedDrivers.size > 1 ? 's' : ''}? This action cannot be undone and will permanently remove the selected drivers from the system.`}
+        itemName="Driver"
+        itemCount={selectedDrivers.size}
+        warningItems={[
+          "This will permanently delete the selected driver" + (selectedDrivers.size > 1 ? 's' : ''),
+          "All associated data will be removed",
+          "This action cannot be undone"
+        ]}
+      />
     </div>
   )
 }

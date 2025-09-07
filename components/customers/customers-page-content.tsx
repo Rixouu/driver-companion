@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal'
 import { Pagination } from '@/components/pagination'
 import { 
   CustomerWithAnalytics, 
@@ -442,72 +443,34 @@ export function CustomersPageContent({
           {/* Multi-select Actions */}
           {selectedCustomers.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-              <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={loading}
-                    className="flex items-center gap-2 flex-1 sm:flex-none"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="hidden xs:inline">Delete</span>
-                    <span className="xs:hidden">Del</span>
-                    <span className="ml-1">({selectedCustomers.size})</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-red-500" />
-                      Delete Customers
-                    </DialogTitle>
-                    <DialogDescription>
-                      Are you sure you want to delete {selectedCustomers.size} customer{selectedCustomers.size > 1 ? 's' : ''}? This action cannot be undone.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="py-4">
-                    <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-md">
-                      <h4 className="font-medium text-sm text-red-900 dark:text-red-100 mb-2">
-                        ⚠️ Warning
-                      </h4>
-                      <ul className="text-xs text-red-800 dark:text-red-200 space-y-1">
-                        <li>• This will permanently delete the selected customer{selectedCustomers.size > 1 ? 's' : ''}</li>
-                        <li>• All associated data will be removed</li>
-                        <li>• This action cannot be undone</li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsDeleteModalOpen(false)}
-                      disabled={isDeleting}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={deleteSelectedCustomers}
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete {selectedCustomers.size} Customer{selectedCustomers.size > 1 ? 's' : ''}
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={loading}
+                className="flex items-center gap-2 flex-1 sm:flex-none"
+                onClick={() => setIsDeleteModalOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden xs:inline">Delete</span>
+                <span className="xs:hidden">Del</span>
+                <span className="ml-1">({selectedCustomers.size})</span>
+              </Button>
+              
+              <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={deleteSelectedCustomers}
+                isDeleting={isDeleting}
+                title="Delete Customers"
+                description={`Are you sure you want to delete ${selectedCustomers.size} customer${selectedCustomers.size > 1 ? 's' : ''}? This action cannot be undone.`}
+                itemName="Customer"
+                itemCount={selectedCustomers.size}
+                warningItems={[
+                  "This will permanently delete the selected customer" + (selectedCustomers.size > 1 ? 's' : ''),
+                  "All associated data will be removed",
+                  "This action cannot be undone"
+                ]}
+              />
               <Button
                 variant="outline"
                 size="sm"

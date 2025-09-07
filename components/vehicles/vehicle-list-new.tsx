@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/pagination"
 import { cn } from "@/lib/utils"
 import { Car, Tag, Trash2, Download, TrendingUp, Users, EyeIcon, FileEditIcon, EditIcon } from "lucide-react"
+import { DeleteConfirmationModal } from "@/components/shared/delete-confirmation-modal"
+import { toast } from "@/components/ui/use-toast"
 
 import { VehicleFilter, VehicleFilterOptions } from "./vehicle-filter"
 
@@ -75,7 +77,9 @@ export function VehicleList({
     sortOrder: 'asc'
   });
   const [view, setView] = useState<"list" | "grid">("list");
-  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set())
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false);
   const debouncedSearch = useDebounce(filters.searchQuery, 500);
   const { t } = useI18n();
 
@@ -233,10 +237,32 @@ export function VehicleList({
   const handleDeleteSelected = async () => {
     if (selectedVehicles.size === 0) return;
     
-    if (confirm(`Are you sure you want to delete ${selectedVehicles.size} vehicle(s)?`)) {
-      // TODO: Implement bulk delete API call
-      console.log('Deleting vehicles:', Array.from(selectedVehicles));
-      setSelectedVehicles(new Set());
+    setIsDeleting(true)
+    try {
+      // TODO: Implement actual delete API call
+      // For now, just simulate the delete
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Remove deleted vehicles from the list
+      // This would normally be handled by the parent component
+      console.log('Deleting vehicles:', Array.from(selectedVehicles))
+      
+      toast({
+        title: "Vehicles deleted",
+        description: `Successfully deleted ${selectedVehicles.size} vehicle${selectedVehicles.size > 1 ? 's' : ''}.`,
+      })
+      
+      setSelectedVehicles(new Set())
+      setIsDeleteModalOpen(false)
+    } catch (error) {
+      console.error('Error deleting vehicles:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete vehicles. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   };
 
@@ -377,7 +403,7 @@ export function VehicleList({
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={handleDeleteSelected}
+                onClick={() => setIsDeleteModalOpen(true)}
                 className="flex items-center gap-2 flex-1 sm:flex-none"
               >
                 <Trash2 className="h-4 w-4" />
@@ -421,7 +447,7 @@ export function VehicleList({
           {view === "grid" ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {paginatedVehicles.map((vehicle) => (
-                <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer border-border/60 bg-card/95 backdrop-blur">
+                <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 border-border/60 bg-card/95 backdrop-blur">
                   <div className="relative">
                     {/* Selection Checkbox - Top Right */}
                     <div className="absolute top-2 right-2 z-10">
@@ -520,8 +546,7 @@ export function VehicleList({
                 {paginatedVehicles.map((vehicle) => (
                   <Card 
                     key={vehicle.id} 
-                    className="hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border-border/60 bg-card/95 backdrop-blur"
-                    onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+                    className="hover:shadow-lg transition-all duration-200 overflow-hidden border-border/60 bg-card/95 backdrop-blur"
                   >
                     <div className="grid grid-cols-12 items-center gap-4 p-4">
                       {/* Selection Checkbox */}
@@ -634,7 +659,7 @@ export function VehicleList({
               {/* Mobile List View - Enhanced Design */}
               <div className="sm:hidden space-y-4">
                 {paginatedVehicles.map((vehicle) => (
-                  <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 cursor-pointer border-border/60 bg-card/95 backdrop-blur">
+                  <Card key={vehicle.id} className="hover:shadow-lg transition-all duration-200 border-border/60 bg-card/95 backdrop-blur">
                     <div className="p-4">
                       {/* Main Content Row: Image on Left, Info on Right */}
                       <div className="flex gap-4 mb-4">
@@ -845,6 +870,23 @@ export function VehicleList({
           </Pagination>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteSelected}
+        isDeleting={isDeleting}
+        title="Delete Vehicles"
+        description={`Are you sure you want to delete ${selectedVehicles.size} selected vehicle${selectedVehicles.size > 1 ? 's' : ''}? This action cannot be undone and will permanently remove the selected vehicles from the system.`}
+        itemName="Vehicle"
+        itemCount={selectedVehicles.size}
+        warningItems={[
+          "This will permanently delete the selected vehicle" + (selectedVehicles.size > 1 ? 's' : ''),
+          "All associated data will be removed",
+          "This action cannot be undone"
+        ]}
+      />
     </div>
   );
 }

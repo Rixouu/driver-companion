@@ -44,6 +44,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { DeleteConfirmationModal } from '@/components/shared/delete-confirmation-modal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1052,39 +1053,21 @@ export function BookingsList({
       )}
       
       {/* Delete Confirmation Modal */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedBookings.size} selected booking(s)? 
-              This action cannot be undone and will permanently remove the selected bookings from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteSelected}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash className="h-4 w-4 mr-2" />
-                  Delete {selectedBookings.size} Booking(s)
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteSelected}
+        isDeleting={isDeleting}
+        title="Delete Bookings"
+        description={`Are you sure you want to delete ${selectedBookings.size} selected booking${selectedBookings.size > 1 ? 's' : ''}? This action cannot be undone and will permanently remove the selected bookings from the system.`}
+        itemName="Booking"
+        itemCount={selectedBookings.size}
+        warningItems={[
+          "This will permanently delete the selected booking" + (selectedBookings.size > 1 ? 's' : ''),
+          "All associated data will be removed",
+          "This action cannot be undone"
+        ]}
+      />
     </div>
   )
   } catch (error) {

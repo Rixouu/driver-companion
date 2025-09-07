@@ -400,22 +400,32 @@ export function CustomersPageContent({
             Showing {filteredCustomers.length} customers
           </div>
           <div className="touch-manipulation">
-            <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 w-fit">
+            <div className="flex border rounded-lg">
               <button 
-                className={`p-2 rounded ${viewMode === "list" ? "bg-background shadow-sm" : ""}`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm rounded-l-lg border-r ${
+                  viewMode === "list" 
+                    ? "bg-background text-foreground" 
+                    : "bg-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setViewMode("list")}
                 title="List view"
                 aria-label="List view"
               >
-                <List className={`h-4 w-4 ${viewMode === "list" ? "" : "text-muted-foreground"}`} />
+                <List className="h-4 w-4" />
+                List
               </button>
               <button 
-                className={`p-2 rounded ${viewMode === "grid" ? "bg-background shadow-sm" : ""}`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm rounded-r-lg ${
+                  viewMode === "grid" 
+                    ? "bg-background text-foreground" 
+                    : "bg-transparent text-muted-foreground hover:text-foreground"
+                }`}
                 onClick={() => setViewMode("grid")}
-                title="Grid view"
-                aria-label="Grid view"
+                title="Cards view"
+                aria-label="Cards view"
               >
-                <LayoutGrid className={`h-4 w-4 ${viewMode === "grid" ? "" : "text-muted-foreground"}`} />
+                <LayoutGrid className="h-4 w-4" />
+                Cards
               </button>
             </div>
           </div>

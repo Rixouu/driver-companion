@@ -39,22 +39,32 @@ export function ViewToggle({ view, onViewChange }: ViewToggleProps) {
 
   return (
     <div className="touch-manipulation">
-      <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 w-fit">
+      <div className="flex border rounded-lg">
         <button 
-          className={`p-2 rounded ${view === "list" ? "bg-background shadow-sm" : ""}`}
+          className={`flex items-center gap-2 px-3 py-2 text-sm rounded-l-lg border-r ${
+            view === "list" 
+              ? "bg-background text-foreground" 
+              : "bg-transparent text-muted-foreground hover:text-foreground"
+          }`}
           onClick={handleListClick}
           title="List view"
           aria-label="List view"
         >
-          <List className={`h-4 w-4 ${view === "list" ? "" : "text-muted-foreground"}`} />
+          <List className="h-4 w-4" />
+          List
         </button>
         <button 
-          className={`p-2 rounded ${view === "grid" ? "bg-background shadow-sm" : ""}`}
+          className={`flex items-center gap-2 px-3 py-2 text-sm rounded-r-lg ${
+            view === "grid" 
+              ? "bg-background text-foreground" 
+              : "bg-transparent text-muted-foreground hover:text-foreground"
+          }`}
           onClick={handleGridClick}
-          title="Grid view"
-          aria-label="Grid view"
+          title="Cards view"
+          aria-label="Cards view"
         >
-          <LayoutGrid className={`h-4 w-4 ${view === "grid" ? "" : "text-muted-foreground"}`} />
+          <LayoutGrid className="h-4 w-4" />
+          Cards
         </button>
       </div>
     </div>

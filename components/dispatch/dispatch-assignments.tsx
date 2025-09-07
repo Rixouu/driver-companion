@@ -882,11 +882,11 @@ export default function DispatchAssignments() {
 
   // Initialize filters from URL params if they exist
   useEffect(() => {
-    const searchQuery = searchParams.get('search') || '';
-    const statusFilter = searchParams.get('status') || 'all';
-    const dateFilter = searchParams.get('date') || 'all';
-    const serviceFilter = searchParams.get('service') || 'all';
-    const assignmentFilter = searchParams.get('assignment') || 'all';
+    const searchQuery = searchParams?.get('search') || '';
+    const statusFilter = searchParams?.get('status') || 'all';
+    const dateFilter = searchParams?.get('date') || 'all';
+    const serviceFilter = searchParams?.get('service') || 'all';
+    const assignmentFilter = searchParams?.get('assignment') || 'all';
     
     setFilters({
       searchQuery,
@@ -1237,148 +1237,126 @@ export default function DispatchAssignments() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-card border-b border-border sticky top-0 z-10">
-        <div className="flex h-16 items-center px-6 gap-4 flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <h1 className="text-xl font-semibold text-foreground">
-              {t("dispatch.assignments.title")}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t("dispatch.assignments.description")}
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/dispatch')}
-            className="ml-auto"
-          >
-            <Grid3X3Icon className="h-4 w-4 mr-2" />
-            Dispatch Board
-          </Button>
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-left sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+            {t("dispatch.assignments.title")}
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {t("dispatch.assignments.description")}
+          </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/dispatch')}
+          className="w-full sm:w-auto"
+        >
+          <Grid3X3Icon className="h-4 w-4 mr-2" />
+          Dispatch Board
+        </Button>
       </div>
 
       {/* Availability Dashboard */}
-      <div className="p-6 bg-card border-b border-border">
-        <h2 className="text-lg font-semibold mb-4 text-foreground">
-          {t("dispatch.assignments.resourceAvailability")}
-        </h2>
-        
+      <div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-card border border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg dark:bg-blue-900/20">
-                  <UsersIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{availableDrivers}/{totalDrivers}</p>
-                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.availableDrivers")}</p>
-                </div>
-              </div>
-              <Progress 
-                value={(availableDrivers / totalDrivers) * 100} 
-                className="mt-2"
-              />
+          {/* Available Drivers - Blue */}
+          <Card className="relative overflow-hidden border-l-4 border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Available Drivers</CardTitle>
+              <UsersIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400">{availableDrivers}/{totalDrivers}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-900/20">
-                  <CarIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{availableVehicles}/{totalVehicles}</p>
-                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.availableVehicles")}</p>
-                </div>
-              </div>
-              <Progress 
-                value={(availableVehicles / totalVehicles) * 100} 
-                className="mt-2"
-              />
+          {/* Available Vehicles - Green */}
+          <Card className="relative overflow-hidden border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Available Vehicles</CardTitle>
+              <CarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 dark:text-green-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">{availableVehicles}/{totalVehicles}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 rounded-lg dark:bg-amber-900/20">
-                  <ClockIcon className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{pendingBookings}</p>
-                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.pendingBookings")}</p>
-                </div>
-              </div>
+          {/* Pending Bookings - Orange */}
+          <Card className="relative overflow-hidden border-l-4 border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Pending</CardTitle>
+              <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600 dark:text-orange-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-600 dark:text-orange-400">{pendingBookings}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg dark:bg-green-900/20">
-                  <CheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{assignedBookings}</p>
-                  <p className="text-sm text-muted-foreground">{t("dispatch.assignments.assignedBookings")}</p>
-                </div>
-              </div>
+          {/* Assigned Bookings - Purple */}
+          <Card className="relative overflow-hidden border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300">Assigned</CardTitle>
+              <CheckIcon className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-600 dark:text-purple-400">{assignedBookings}</div>
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="p-6 bg-card border-b border-border">
-        <div className="space-y-4">
-          {/* Filters */}
-          <AssignmentFilter
-            filters={filters}
-            onFiltersChange={setFilters}
-            totalBookings={filteredBookings.length}
-            serviceOptions={[]}
-          />
+      <div className="space-y-4">
+        {/* Filters */}
+        <AssignmentFilter
+          filters={filters}
+          onFiltersChange={setFilters}
+          totalBookings={filteredBookings.length}
+          serviceOptions={[]}
+        />
+        
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''}
+          </div>
           
-          {/* Results Summary and View Toggle */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''}
-            </div>
-            
-            {/* View Toggle */}
-            <div className="flex border rounded-lg">
-              <Button
-                variant={viewMode === "cards" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("cards")}
-                className="rounded-r-none"
-              >
-                <Grid3X3Icon className="h-4 w-4 mr-2" />
-                Cards
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4 mr-2" />
-                List
-              </Button>
-            </div>
+          {/* View Toggle */}
+          <div className="flex border rounded-lg">
+            <button 
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-l-lg border-r ${
+                viewMode === "list" 
+                  ? "bg-background text-foreground" 
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewMode("list")}
+              title="List view"
+              aria-label="List view"
+            >
+              <List className="h-4 w-4" />
+              List
+            </button>
+            <button 
+              className={`flex items-center gap-2 px-3 py-2 text-sm rounded-r-lg ${
+                viewMode === "cards" 
+                  ? "bg-background text-foreground" 
+                  : "bg-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewMode("cards")}
+              title="Cards view"
+              aria-label="Cards view"
+            >
+              <Grid3X3Icon className="h-4 w-4" />
+              Cards
+            </button>
           </div>
         </div>
       </div>
 
       {/* Bookings Display */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1">
         {filteredBookings.length === 0 ? (
           <div className="text-center py-12">
             <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

@@ -143,7 +143,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Processing');
   const [progressLabel, setProgressLabel] = useState('Starting...');
-  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection'>('default');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
   const [progressSteps, setProgressSteps] = useState<Array<{
     label: string;
     value: number;
@@ -1269,6 +1269,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             onSendReminder={async () => {
               setIsLoading(true);
               setProgressOpen(true);
+              setProgressVariant('reminder');
               setProgressTitle('Sending Reminder');
               setProgressLabel('Preparing reminder...');
               setProgressValue(10);
@@ -1323,6 +1324,7 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
             onGenerateInvoice={async () => {
               setIsLoading(true);
               setProgressOpen(true);
+              setProgressVariant('invoice');
               setProgressTitle('Sending Invoice');
               setProgressLabel('Preparing invoice...');
               setProgressValue(10);

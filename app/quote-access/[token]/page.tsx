@@ -193,7 +193,7 @@ export default function QuoteAccessPage() {
   const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Processing');
   const [progressLabel, setProgressLabel] = useState('Starting...');
-  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection'>('default');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
   const [progressSteps, setProgressSteps] = useState<Array<{
     label: string;
     value: number;

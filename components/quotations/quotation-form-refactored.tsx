@@ -457,7 +457,7 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email', {
+            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
@@ -487,7 +487,7 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email', {
+            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
@@ -517,7 +517,7 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email', {
+            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
@@ -545,7 +545,7 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email', {
+            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });

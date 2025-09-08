@@ -352,7 +352,7 @@ export function QuotationPdfButton({ quotation, selectedPackage, selectedPromoti
       
       setProgressLabel('Sending email...')
       setProgressValue(70)
-      const response = await fetch('/api/quotations/send-email', {
+      const response = await fetch('/api/quotations/send-email-optimized', {
         method: 'POST',
         body: formData,
       });

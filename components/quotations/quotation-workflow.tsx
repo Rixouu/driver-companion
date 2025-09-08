@@ -171,7 +171,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 
     setIsSendingQuotation(true);
     try {
-      // Prepare FormData for the send-email endpoint
+      // Prepare FormData for the optimized send-email endpoint
       const formData = new FormData();
       formData.append('email', emailToSend!);
       formData.append('quotation_id', quotation.id);
@@ -179,7 +179,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       formData.append('include_details', 'true');
       formData.append('bcc_emails', sendQuotationBccEmails);
 
-      const response = await fetch('/api/quotations/send-email', {
+      const response = await fetch('/api/quotations/send-email-optimized', {
         method: 'POST',
         body: formData,
       });
@@ -189,10 +189,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         throw new Error(errorData.error || 'Failed to send quotation email');
       }
 
-      toast({
-        title: "Success",
-        description: "Quotation sent successfully!",
-      });
+      // Don't show toast here - let the parent component handle it
 
       setIsSendQuotationDialogOpen(false);
       

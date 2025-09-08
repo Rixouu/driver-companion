@@ -1187,7 +1187,7 @@ export const useQuotationService = () => {
         });
 
       // Call server API to handle conversion to booking
-      const response = await fetch('/api/quotations/approve', {
+      const response = await fetch('/api/quotations/approve-optimized', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1205,10 +1205,7 @@ export const useQuotationService = () => {
         throw new Error('Failed to process quotation approval');
       }
 
-      toast({
-        title: t('quotations.notifications.approveSuccess'),
-        description: '',
-      });
+      // Toast removed - let the component handle its own success toast
       
       return true;
     } catch (err: any) {
@@ -1258,7 +1255,7 @@ export const useQuotationService = () => {
         });
 
       // Call server API to notify about rejection
-      const response = await fetch('/api/quotations/reject', {
+      const response = await fetch('/api/quotations/reject-optimized', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1276,10 +1273,7 @@ export const useQuotationService = () => {
         throw new Error('Failed to process quotation rejection');
       }
 
-      toast({
-        title: t('quotations.notifications.rejectSuccess'),
-        description: '',
-      });
+      // Toast removed - let the component handle its own success toast
       
       return true;
     } catch (err: any) {

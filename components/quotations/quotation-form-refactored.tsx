@@ -466,6 +466,7 @@ export default function QuotationFormRefactored({
             // Set up email progress modal
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressValue(10); // Start at 10% instead of 0%
             setProgressSteps([
               { label: 'Preparing email data', value: 25 },
               { label: 'Generating PDF', value: 50 },
@@ -479,13 +480,15 @@ export default function QuotationFormRefactored({
               body: formData,
             });
             
-            // Simulate progress in parallel
+            // Simulate progress in parallel with more realistic steps
             const progressInterval = setInterval(() => {
               setProgressValue(prev => {
                 if (prev >= 95) return prev;
-                return prev + Math.random() * 10;
+                // More gradual progress with occasional bigger jumps
+                const increment = Math.random() < 0.3 ? Math.random() * 20 : Math.random() * 8;
+                return Math.min(prev + increment, 95);
               });
-            }, 200);
+            }, 400);
             
             try {
               const emailResponse = await emailPromise;
@@ -504,11 +507,7 @@ export default function QuotationFormRefactored({
               clearInterval(progressInterval);
               throw error;
             }
-            // Show success toast after sending
-            toast({ 
-              title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully',
-              variant: 'default'
-            });
+            // Don't show toast here - let the parent component handle it
           }
         } else {
           // If only a package is selected and no serviceItems, still create with empty array
@@ -527,6 +526,7 @@ export default function QuotationFormRefactored({
             // Set up email progress modal
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressValue(10); // Start at 10% instead of 0%
             setProgressSteps([
               { label: 'Preparing email data', value: 25 },
               { label: 'Generating PDF', value: 50 },
@@ -540,13 +540,15 @@ export default function QuotationFormRefactored({
               body: formData,
             });
             
-            // Simulate progress in parallel
+            // Simulate progress in parallel with more realistic steps
             const progressInterval = setInterval(() => {
               setProgressValue(prev => {
                 if (prev >= 95) return prev;
-                return prev + Math.random() * 10;
+                // More gradual progress with occasional bigger jumps
+                const increment = Math.random() < 0.3 ? Math.random() * 20 : Math.random() * 8;
+                return Math.min(prev + increment, 95);
               });
-            }, 200);
+            }, 400);
             
             try {
               const emailResponse = await emailPromise;
@@ -565,11 +567,7 @@ export default function QuotationFormRefactored({
               clearInterval(progressInterval);
               throw error;
             }
-            // Show success toast after sending
-            toast({ 
-              title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-              variant: 'default'
-            });
+            // Don't show toast here - let the parent component handle it
           }
         }
       } else {
@@ -588,6 +586,7 @@ export default function QuotationFormRefactored({
             // Set up email progress modal
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressValue(10); // Start at 10% instead of 0%
             setProgressSteps([
               { label: 'Preparing email data', value: 25 },
               { label: 'Generating PDF', value: 50 },
@@ -601,13 +600,15 @@ export default function QuotationFormRefactored({
               body: formData,
             });
             
-            // Simulate progress in parallel
+            // Simulate progress in parallel with more realistic steps
             const progressInterval = setInterval(() => {
               setProgressValue(prev => {
                 if (prev >= 95) return prev;
-                return prev + Math.random() * 10;
+                // More gradual progress with occasional bigger jumps
+                const increment = Math.random() < 0.3 ? Math.random() * 20 : Math.random() * 8;
+                return Math.min(prev + increment, 95);
               });
-            }, 200);
+            }, 400);
             
             try {
               const emailResponse = await emailPromise;
@@ -626,11 +627,7 @@ export default function QuotationFormRefactored({
               clearInterval(progressInterval);
               throw error;
             }
-            // Show success toast after sending
-            toast({ 
-              title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully',
-              variant: 'default'
-            });
+            // Don't show toast here - let the parent component handle it
           }
         } else {
           result = await createQuotation(input);
@@ -647,6 +644,7 @@ export default function QuotationFormRefactored({
             // Set up email progress modal
             setProgressVariant('email');
             setProgressTitle('Sending Quotation');
+            setProgressValue(10); // Start at 10% instead of 0%
             setProgressSteps([
               { label: 'Preparing email data', value: 25 },
               { label: 'Generating PDF', value: 50 },
@@ -660,13 +658,15 @@ export default function QuotationFormRefactored({
               body: formData,
             });
             
-            // Simulate progress in parallel
+            // Simulate progress in parallel with more realistic steps
             const progressInterval = setInterval(() => {
               setProgressValue(prev => {
                 if (prev >= 95) return prev;
-                return prev + Math.random() * 10;
+                // More gradual progress with occasional bigger jumps
+                const increment = Math.random() < 0.3 ? Math.random() * 20 : Math.random() * 8;
+                return Math.min(prev + increment, 95);
               });
-            }, 200);
+            }, 400);
             
             try {
               const emailResponse = await emailPromise;
@@ -685,11 +685,7 @@ export default function QuotationFormRefactored({
               clearInterval(progressInterval);
               throw error;
             }
-            // Show success toast after sending
-            toast({ 
-              title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
-              variant: 'default'
-            });
+            // Don't show toast here - let the parent component handle it
           }
         }
       }

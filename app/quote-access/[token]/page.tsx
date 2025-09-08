@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import LoadingModal from '@/components/ui/loading-modal';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -192,6 +193,12 @@ export default function QuoteAccessPage() {
   const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Processing');
   const [progressLabel, setProgressLabel] = useState('Starting...');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection'>('default');
+  const [progressSteps, setProgressSteps] = useState<Array<{
+    label: string;
+    value: number;
+    completed?: boolean;
+  }>>([]);
   
   // Theme state removed for customer side
   
@@ -334,32 +341,26 @@ export default function QuoteAccessPage() {
     
     setIsApproving(true);
     setProgressOpen(true);
+    setProgressVariant('approval');
     setProgressTitle('Approving Quotation');
     setProgressLabel('Updating status...');
     setProgressValue(10);
     
+    // Set up progress steps
+    const steps = [
+      { label: 'Updating quotation status...', value: 25 },
+      { label: 'Generating PDF invoice...', value: 50 },
+      { label: 'Preparing email...', value: 75 },
+      { label: 'Sending notification...', value: 90 }
+    ];
+    setProgressSteps(steps);
+    
     try {
-      // Realistic progress simulation based on actual operations
-      const steps = [
-        { label: 'Updating quotation status...', value: 20 },
-        { label: 'Generating PDF invoice...', value: 50 },
-        { label: 'Preparing email...', value: 70 },
-        { label: 'Sending notification...', value: 90 }
-      ];
-      
-      // Simulate realistic timing - faster initial steps, slower for PDF/email
-      const delays = [100, 300, 150, 200]; // ms delays
-      
-      for (let i = 0; i < steps.length; i++) {
-        setProgressLabel(steps[i].label);
-        setProgressValue(steps[i].value);
-        await new Promise(resolve => setTimeout(resolve, delays[i]));
-      }
-      
       // Always use default BCC for customer side
       const defaultBcc = 'booking@japandriver.com';
       
-      const response = await fetch('/api/quotations/approve-magic-link', {
+      // Start API call immediately
+      const apiCall = fetch('/api/quotations/approve-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -372,10 +373,27 @@ export default function QuoteAccessPage() {
         }),
       });
       
+      // Simulate progress steps while API call is running
+      const delays = [300, 400, 300, 200]; // ms delays
+      
+      for (let i = 0; i < steps.length; i++) {
+        setProgressLabel(steps[i].label);
+        setProgressValue(steps[i].value);
+        setProgressSteps(prev => prev.map((step, idx) => ({
+          ...step,
+          completed: idx < i
+        })));
+        await new Promise(resolve => setTimeout(resolve, delays[i]));
+      }
+      
+      // Wait for API call to complete
+      const response = await apiCall;
+      
       if (response.ok) {
         // Add final completion step
         setProgressLabel('Finalizing...');
         setProgressValue(95);
+        setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
         await new Promise(resolve => setTimeout(resolve, 200));
         
         setProgressValue(100);
@@ -412,32 +430,26 @@ export default function QuoteAccessPage() {
     
     setIsRejecting(true);
     setProgressOpen(true);
+    setProgressVariant('rejection');
     setProgressTitle('Rejecting Quotation');
     setProgressLabel('Updating status...');
     setProgressValue(10);
     
+    // Set up progress steps
+    const steps = [
+      { label: 'Updating quotation status...', value: 25 },
+      { label: 'Generating PDF with rejection...', value: 50 },
+      { label: 'Preparing rejection email...', value: 75 },
+      { label: 'Sending notification...', value: 90 }
+    ];
+    setProgressSteps(steps);
+    
     try {
-      // Realistic progress simulation based on actual operations
-      const steps = [
-        { label: 'Updating quotation status...', value: 20 },
-        { label: 'Generating PDF invoice...', value: 50 },
-        { label: 'Preparing email...', value: 70 },
-        { label: 'Sending notification...', value: 90 }
-      ];
-      
-      // Simulate realistic timing - faster initial steps, slower for PDF/email
-      const delays = [100, 300, 150, 200]; // ms delays
-      
-      for (let i = 0; i < steps.length; i++) {
-        setProgressLabel(steps[i].label);
-        setProgressValue(steps[i].value);
-        await new Promise(resolve => setTimeout(resolve, delays[i]));
-      }
-      
       // Always use default BCC for customer side
       const defaultBcc = 'booking@japandriver.com';
       
-      const response = await fetch('/api/quotations/reject-magic-link', {
+      // Start API call immediately
+      const apiCall = fetch('/api/quotations/reject-magic-link-optimized', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -450,10 +462,27 @@ export default function QuoteAccessPage() {
         }),
       });
       
+      // Simulate progress steps while API call is running
+      const delays = [300, 400, 300, 200]; // ms delays
+      
+      for (let i = 0; i < steps.length; i++) {
+        setProgressLabel(steps[i].label);
+        setProgressValue(steps[i].value);
+        setProgressSteps(prev => prev.map((step, idx) => ({
+          ...step,
+          completed: idx < i
+        })));
+        await new Promise(resolve => setTimeout(resolve, delays[i]));
+      }
+      
+      // Wait for API call to complete
+      const response = await apiCall;
+      
       if (response.ok) {
         // Add final completion step
         setProgressLabel('Finalizing...');
         setProgressValue(95);
+        setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
         await new Promise(resolve => setTimeout(resolve, 200));
         
         setProgressValue(100);
@@ -1777,21 +1806,17 @@ export default function QuoteAccessPage() {
 
 
 
-      {/* Progress Modal */}
-      {progressOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border rounded-lg p-6 max-w-md w-full mx-4 shadow-lg">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">{progressTitle}</h3>
-            <div className="space-y-3">
-              <Progress value={progressValue} />
-              <div className="text-sm text-muted-foreground flex items-center justify-between">
-                <span>{progressLabel}</span>
-                <span className="font-medium text-foreground">{progressValue}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Enhanced Progress Modal */}
+      <LoadingModal
+        open={progressOpen}
+        title={progressTitle}
+        label={progressLabel}
+        value={progressValue}
+        variant={progressVariant}
+        showSteps={progressSteps.length > 0}
+        steps={progressSteps}
+        onOpenChange={setProgressOpen}
+      />
     </div>
   );
 }

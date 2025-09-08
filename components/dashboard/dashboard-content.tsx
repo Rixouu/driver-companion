@@ -402,7 +402,7 @@ export function DashboardContent({
                 <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
                   <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className="text-center text-sm font-medium">Create Booking</span>
+                <span className="text-center text-sm font-medium">{t("dashboard.quickActions.createBooking")}</span>
               </Button>
             </Link>
             <Link href="/maintenance/schedule" className="col-span-1">

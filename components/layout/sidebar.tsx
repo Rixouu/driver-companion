@@ -199,7 +199,7 @@ export function Sidebar() {
       label: t("navigation.operations"),
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
-        { icon: Grid3x3, label: "Dispatch Board", href: "/dispatch", key: "dispatch" } as MenuItem,
+        { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,

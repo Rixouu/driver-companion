@@ -140,7 +140,7 @@ export function MobileNav() {
     ],
     operations: [
       { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
-      { id: 'dispatch', title: "Dispatch Board", icon: LayoutDashboard, href: '/dispatch' },
+      { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
       { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' },
       { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
       { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' },

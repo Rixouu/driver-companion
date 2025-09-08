@@ -1409,20 +1409,8 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   setProgressValue(10);
                   
                   try {
-                    // Simulate progress steps
-                    const steps = [
-                      { label: 'Updating status...', value: 30 },
-                      { label: 'Recording activity...', value: 60 },
-                      { label: 'Sending notifications...', value: 80 }
-                    ];
-                    
-                    for (const step of steps) {
-                      setProgressLabel(step.label);
-                      setProgressValue(step.value);
-                      await new Promise(resolve => setTimeout(resolve, 200));
-                    }
-                    
-                    const response = await fetch('/api/quotations/approve', {
+                    // Start the API call immediately
+                    const apiCall = fetch('/api/quotations/approve-optimized', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1434,9 +1422,32 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       }),
                     });
                     
+                    // Simulate progress steps while API call is running
+                    const steps = [
+                      { label: 'Updating quotation status...', value: 25 },
+                      { label: 'Generating PDF invoice...', value: 50 },
+                      { label: 'Preparing email...', value: 75 },
+                      { label: 'Sending notifications...', value: 90 }
+                    ];
+                    
+                    const delays = [300, 400, 300, 200]; // ms delays
+                    
+                    for (let i = 0; i < steps.length; i++) {
+                      setProgressLabel(steps[i].label);
+                      setProgressValue(steps[i].value);
+                      await new Promise(resolve => setTimeout(resolve, delays[i]));
+                    }
+                    
+                    // Wait for API call to complete
+                    const response = await apiCall;
                     const success = response.ok;
                     
                     if (success) {
+                      // Add final completion step
+                      setProgressLabel('Finalizing...');
+                      setProgressValue(95);
+                      await new Promise(resolve => setTimeout(resolve, 200));
+                      
                       setProgressValue(100);
                       setProgressLabel('Completed');
                       toast({

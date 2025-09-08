@@ -373,6 +373,11 @@ export default function QuoteAccessPage() {
       });
       
       if (response.ok) {
+        // Add final completion step
+        setProgressLabel('Finalizing...');
+        setProgressValue(95);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         setProgressValue(100);
         setProgressLabel('Completed');
         toast({
@@ -446,6 +451,11 @@ export default function QuoteAccessPage() {
       });
       
       if (response.ok) {
+        // Add final completion step
+        setProgressLabel('Finalizing...');
+        setProgressValue(95);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         setProgressValue(100);
         setProgressLabel('Completed');
         toast({

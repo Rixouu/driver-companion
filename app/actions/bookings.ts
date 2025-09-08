@@ -1521,7 +1521,7 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
           name: bookingData.customer_name || null,
           email: bookingData.customer_email,
           phone: bookingData.customer_phone || null,
-          notes: `Customer created from booking on ${new Date().toLocaleDateString()}`,
+          notes: null,
           billing_company_name: bookingData.billing_company_name || null,
           billing_tax_number: bookingData.billing_tax_number || null,
           billing_street_name: bookingData.billing_street_name || null,

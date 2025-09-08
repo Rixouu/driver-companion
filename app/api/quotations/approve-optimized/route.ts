@@ -357,59 +357,150 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to generate approval email HTML (consistent with other optimized routes)
+// Helper function to generate approval email HTML (matching the original design)
 function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, teamLocation: 'japan' | 'thailand' = 'thailand') {
   const isJapanese = language === 'ja';
   
-  const translations = {
-    en: {
-      subject: 'Your Quotation has been Approved',
-      greeting: `Dear ${customerName},`,
-      message: 'Great news! Your quotation has been approved.',
-      details: 'Please find your approved quotation attached to this email.',
-      notes: notes ? `Additional Notes: ${notes}` : '',
-      footer: 'Thank you for choosing our services.',
-      regards: 'Best regards,',
-      company: 'Driver (Thailand) Company Limited',
-      team: teamLocation === 'japan' ? 'Japan Team' : 'Thailand Team'
-    },
-    ja: {
-      subject: 'お見積もりが承認されました',
-      greeting: `${customerName}様`,
-      message: 'お見積もりが承認されました。',
-      details: '承認されたお見積もりを添付いたします。',
-      notes: notes ? `追加メモ: ${notes}` : '',
-      footer: 'ご利用いただき、ありがとうございます。',
-      regards: '敬具',
-      company: 'Driver (Thailand) Company Limited',
-      team: teamLocation === 'japan' ? '日本チーム' : 'タイチーム'
-    }
-  };
-
-  const t = translations[isJapanese ? 'ja' : 'en'];
-  
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="${language}">
     <head>
-      <meta charset="utf-8">
-      <title>${t.subject}</title>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Your Quotation has been Approved</title>
+      <style>
+        body, table, td, a {
+          -webkit-text-size-adjust:100%;
+          -ms-text-size-adjust:100%;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
+        }
+        table, td { mso-table-lspace:0; mso-table-rspace:0; }
+        img {
+          border:0;
+          line-height:100%;
+          outline:none;
+          text-decoration:none;
+          -ms-interpolation-mode:bicubic;
+        }
+        table { border-collapse:collapse!important; }
+        body {
+          margin:0;
+          padding:0;
+          width:100%!important;
+          background:#F2F4F6;
+        }
+        .greeting {
+          color:#32325D;
+          margin:24px 24px 16px;
+          line-height:1.4;
+          font-size: 14px;
+        }
+        @media only screen and (max-width:600px) {
+          .container { width:100%!important; }
+          .stack { display:block!important; width:100%!important; text-align:center!important; }
+        }
+        .details-table td, .details-table th {
+          padding: 10px 0;
+          font-size: 14px;
+        }
+        .details-table th {
+           color: #8898AA;
+           text-transform: uppercase;
+           text-align: left;
+        }
+        .button {
+          background-color: #E03E2D;
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 6px;
+          display: inline-block;
+          margin: 16px 0;
+        }
+        .reason {
+          background-color: #f0fdf4;
+          border-left: 4px solid #059669;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 4px;
+        }
+      </style>
     </head>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #2c5aa0;">${t.subject}</h2>
-        <p>${t.greeting}</p>
-        <p>${t.message}</p>
-        <p>${t.details}</p>
-        ${t.notes ? `<p><strong>${t.notes}</strong></p>` : ''}
-        <p>${t.footer}</p>
-        <hr style="margin: 30px 0;">
-        <p style="font-size: 12px; color: #666;">
-          ${t.regards}<br>
-          ${t.team}<br>
-          ${t.company}
-        </p>
-      </div>
+    <body style="background:#F2F4F6; margin:0; padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td align="center" style="padding:24px;">
+            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
+              
+              <!-- Header -->
+              <tr>
+                <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
+                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                    <tr><td align="center" valign="middle" style="text-align:center;">
+                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                    </td></tr>
+                  </table>
+                  <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
+                    ${isJapanese ? '見積書が承認されました' : 'Your Quotation has been Approved'}
+                  </h1>
+                  <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                    Quotation #${formattedQuotationId}
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding:32px 24px;">
+                  <div class="greeting">
+                    <p>Hello ${customerName},</p>
+                    
+                    <p>Great news! Your quotation has been approved.</p>
+                    
+                    <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
+                      <h3 style="margin:0 0 12px 0; color:#32325D;">Quotation Details</h3>
+                      <p style="margin:0; color:#525f7f;">
+                        <strong>Quotation ID:</strong> ${formattedQuotationId}<br>
+                        <strong>Title:</strong> ${quotation.title || 'Untitled'}<br>
+                        <strong>Total Amount:</strong> ${quotation.currency || 'JPY'} ${quotation.total_amount?.toLocaleString() || '0'}<br>
+                        <strong>Status:</strong> <span style="color:#059669; font-weight:600;">Approved</span><br>
+                        <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                      </p>
+                    </div>
+                    
+                    ${notes ? `
+                      <div class="reason">
+                        <h4 style="margin:0 0 8px 0; color:#32325D;">Approved Notes:</h4>
+                        <p style="margin:0; color:#525f7f;">${notes}</p>
+                      </div>
+                    ` : ''}
+                    
+                    <p>You can now proceed with the next steps. If you have any questions or need assistance, please don't hesitate to contact us.</p>
+                    
+                    <p>Thank you for choosing Driver Japan!</p>
+                    
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
+                  <p style="margin:0;">
+                    Best regards,<br>
+                    ${teamLocation === 'japan' ? 'Japan Team' : 'Thailand Team'}<br>
+                    Driver (Thailand) Company Limited
+                  </p>
+                  <p style="margin:8px 0 0 0;">
+                    <a href="https://japandriver.com" style="color:#8898AA; text-decoration:none;">japandriver.com</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;

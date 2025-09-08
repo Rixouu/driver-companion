@@ -752,6 +752,11 @@ export function generateQuotationHtml(
                       <div style="font-size: 11px; margin-top: 5px; padding: 3px 5px; background-color: #fffbeb; border-radius: 3px; color: #d97706;">
                         <div>${quotationT.basePrice}: ${formatCurrency(itemBasePrice)}</div>
                         <div>${quotationT.timeAdjustment} (${(item as any).time_based_adjustment}%): ${timeAdjustment > 0 ? '+' : ''}${formatCurrency(timeAdjustment)}</div>
+                        ${(item as any).time_based_rule_name ? `
+                          <div style="font-size: 10px; color: #92400e; margin-top: 2px;">
+                            ${(item as any).time_based_rule_name}
+                          </div>
+                        ` : ''}
                       </div>
                     `: ''}
                   </div>

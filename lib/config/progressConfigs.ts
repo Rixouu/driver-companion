@@ -1,0 +1,80 @@
+import { ProgressConfig } from '@/lib/hooks/useProgressSteps';
+
+export const progressConfigs: Record<string, ProgressConfig> = {
+  approval: {
+    steps: [
+      { label: 'Validating quotation', value: 20 },
+      { label: 'Updating status', value: 40 },
+      { label: 'Generating invoice', value: 60 },
+      { label: 'Sending email', value: 80 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 2500,
+    stepDelays: [400, 500, 600, 500, 300] // More time for invoice generation
+  },
+  
+  rejection: {
+    steps: [
+      { label: 'Validating quotation', value: 25 },
+      { label: 'Updating status', value: 50 },
+      { label: 'Sending notification', value: 75 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 2000,
+    stepDelays: [400, 500, 400, 300]
+  },
+  
+  sendEmail: {
+    steps: [
+      { label: 'Preparing email data', value: 10 },
+      { label: 'Generating PDF', value: 35 },
+      { label: 'Sending email', value: 70 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 3000, // Shorter duration for faster completion
+    stepDelays: [100, 800, 600, 300] // Faster initial start, more time for PDF/email
+  },
+  
+  sendReminder: {
+    steps: [
+      { label: 'Preparing reminder', value: 30 },
+      { label: 'Sending email', value: 70 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 1500,
+    stepDelays: [400, 500, 300]
+  },
+  
+  sendPaymentLink: {
+    steps: [
+      { label: 'Generating payment link', value: 40 },
+      { label: 'Sending email', value: 80 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 1800,
+    stepDelays: [500, 400, 300]
+  },
+  
+  markAsPaid: {
+    steps: [
+      { label: 'Updating payment status', value: 50 },
+      { label: 'Sending confirmation', value: 80 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 1600,
+    stepDelays: [400, 400, 300]
+  },
+  
+  convertToBooking: {
+    steps: [
+      { label: 'Validating data', value: 25 },
+      { label: 'Creating booking', value: 50 },
+      { label: 'Sending confirmation', value: 80 },
+      { label: 'Finalizing', value: 90 }
+    ],
+    totalDuration: 2000,
+    stepDelays: [400, 500, 400, 300]
+  }
+} as const;
+
+export type ProgressConfigType = keyof typeof progressConfigs;

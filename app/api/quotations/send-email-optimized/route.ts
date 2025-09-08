@@ -655,12 +655,68 @@ function generateEmailHtml(
                             </th>
                           </tr>
                           <tr>
-                            <td style="padding-top: 15px;">${vehicleType}</td>
-                            <td align="right" style="padding-top: 15px;">${formatCurrency(totals.serviceTotal)}</td>
+                            <td style="padding-top: 12px;">${vehicleType}</td>
+                            <td align="right" style="padding-top: 12px;">${formatCurrency(totals.serviceBaseTotal)}</td>
                           </tr>
+                          ${totals.serviceTimeAdjustment !== 0 ? `
+                            <tr>
+                              <td style="padding-top: 4px; color: #64748B; font-size: 13px;">
+                                ${isJapanese ? '時間帯調整' : 'Time-based adjustment'}<br>
+                                ${(() => {
+                                  // Get the time-based rule name from the first item that has it
+                                  const itemWithRule = quotation.quotation_items?.find((item: any) => item.time_based_rule_name);
+                                  return itemWithRule?.time_based_rule_name ? `
+                                    <span style="font-size: 11px; color: #94A3B8;">${itemWithRule.time_based_rule_name}</span>
+                                  ` : `
+                                    <span style="font-size: 11px; color: #94A3B8;">${isJapanese ? '時間帯調整' : 'Time adjustment'}</span>
+                                  `;
+                                })()}
+                              </td>
+                              <td align="right" style="padding-top: 4px; color: #64748B; font-size: 13px;">
+                                ${totals.serviceTimeAdjustment > 0 ? '+' : ''}${formatCurrency(totals.serviceTimeAdjustment)}
+                                ${(() => {
+                                  // Calculate percentage for time-based adjustment
+                                  const percentage = totals.serviceBaseTotal > 0 ? Math.round((totals.serviceTimeAdjustment / totals.serviceBaseTotal) * 100) : 0;
+                                  return percentage !== 0 ? `(${totals.serviceTimeAdjustment > 0 ? '+' : ''}${percentage}%)` : '';
+                                })()}
+                              </td>
+                            </tr>
+                          ` : ''}
+                          ${selectedPackage ? `
+                            <tr>
+                              <td style="padding-top: 4px;">${selectedPackage.name}</td>
+                              <td align="right" style="padding-top: 4px;">${formatCurrency(selectedPackage.base_price)}</td>
+                            </tr>
+                          ` : ''}
                           <tr>
-                            <td style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 700;">${isJapanese ? '合計金額' : 'Total Amount Due'}</td>
-                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-weight: 700;">${formatCurrency(totals?.finalTotal)}</td>
+                            <td style="padding-top: 6px; font-weight: 600;">${isJapanese ? '小計' : 'Subtotal'}</td>
+                            <td align="right" style="padding-top: 6px; font-weight: 600;">${formatCurrency(totals.baseTotal)}</td>
+                          </tr>
+                          ${selectedPromotion ? `
+                            <tr>
+                              <td style="padding-top: 4px; color: #059669;">${isJapanese ? 'プロモーション割引' : 'Promotion Discount'}</td>
+                              <td align="right" style="padding-top: 4px; color: #059669;">-${formatCurrency(totals.promotionDiscount)}</td>
+                            </tr>
+                          ` : ''}
+                          ${quotation.discount_percentage > 0 ? `
+                            <tr>
+                              <td style="padding-top: 4px; color: #059669;">${isJapanese ? '割引' : 'Discount'} (${quotation.discount_percentage}%)</td>
+                              <td align="right" style="padding-top: 4px; color: #059669;">-${formatCurrency(totals.regularDiscount)}</td>
+                            </tr>
+                          ` : ''}
+                          <tr>
+                            <td style="padding-top: 6px; font-weight: 600;">${isJapanese ? '割引後小計' : 'Subtotal after discount'}</td>
+                            <td align="right" style="padding-top: 6px; font-weight: 600;">${formatCurrency(totals.subtotal)}</td>
+                          </tr>
+                          ${quotation.tax_percentage > 0 ? `
+                            <tr>
+                              <td style="padding-top: 4px; color: #64748B;">${isJapanese ? '税金' : 'Tax'} (${quotation.tax_percentage}%)</td>
+                              <td align="right" style="padding-top: 4px; color: #64748B;">${formatCurrency(totals.taxAmount)}</td>
+                            </tr>
+                          ` : ''}
+                          <tr>
+                            <td style="border-top: 1px solid #e2e8f0; padding-top: 8px; font-weight: 700; font-size: 16px;">${isJapanese ? '合計金額' : 'Total Amount Due'}</td>
+                            <td align="right" style="border-top: 1px solid #e2e8f0; padding-top: 8px; font-weight: 700; font-size: 16px;">${formatCurrency(totals?.finalTotal)}</td>
                           </tr>
                         </table>
                       </td>

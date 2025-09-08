@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import LoadingModal from '@/components/ui/loading-modal';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
 import { 
@@ -170,7 +173,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     }
 
     setIsSendingQuotation(true);
+    setProgressOpen(true);
+    setProgressVariant('email');
+    setProgressTitle('Sending Quotation');
+    
     try {
+      // Start progress simulation immediately (runs independently)
+      startProgress(progressConfigs.sendEmail);
+      
       // Prepare FormData for the optimized send-email endpoint
       const formData = new FormData();
       formData.append('email', emailToSend!);
@@ -190,7 +200,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       }
 
       // Don't show toast here - let the parent component handle it
-
+      setProgressOpen(false);
       setIsSendQuotationDialogOpen(false);
       
       // Call the parent's onSendQuotation callback to refresh the workflow
@@ -200,6 +210,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       
     } catch (error) {
       console.error('Error sending quotation:', error);
+      setProgressOpen(false);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send quotation",
@@ -218,9 +229,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Processing');
-  const [progressLabel, setProgressLabel] = useState('Starting...');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
 
   // Handle sending payment link
   const handleSendPaymentLink = async () => {
@@ -259,9 +270,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     
     setIsSendingPaymentLink(true);
     setProgressOpen(true);
+    setProgressVariant('invoice');
     setProgressTitle('Sending Payment Link');
-    setProgressLabel('Preparing email...');
-    setProgressValue(15);
     
     try {
       console.log('Starting payment link sending process...');
@@ -269,6 +279,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       console.log('Language:', emailLanguage);
       console.log('Payment Link:', paymentLink);
       console.log('Include Details: true');
+      
+      // Start progress simulation
+      const progressPromise = startProgress(progressConfigs.sendPaymentLink);
       
       // Generate the PDF using server-side generation for proper discount calculations
       const pdfResponse = await fetch('/api/quotations/generate-invoice-pdf', {
@@ -295,8 +308,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       }
       
       console.log('PDF blob size:', pdfBlob.size, 'bytes');
-      setProgressValue(50);
-      setProgressLabel('Sending payment link email...');
 
       // Create form data for the payment link email API
       const formData = new FormData();
@@ -337,9 +348,8 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         throw new Error(errorData.error || `Failed to send payment link email: ${emailResponse.status} ${emailResponse.statusText}`);
       }
 
-      setProgressValue(100);
-      setProgressLabel('Payment link sent successfully!');
-      setTimeout(() => setProgressOpen(false), 400);
+      // Wait for progress to complete
+      await progressPromise;
       
       // Update the quotation status to mark payment link as sent
       try {
@@ -443,11 +453,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
 
     setIsMarkingAsPaid(true);
     setProgressOpen(true);
+    setProgressVariant('approval');
     setProgressTitle('Marking as Paid');
-    setProgressLabel('Updating quotation status...');
-    setProgressValue(25);
 
     try {
+      // Start progress simulation
+      const progressPromise = startProgress(progressConfigs.markAsPaid);
+      
       // Update the quotation status to mark as paid
       const updateResponse = await fetch(`/api/quotations/${quotation.id}`, {
         method: 'PATCH',
@@ -464,9 +476,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       if (!updateResponse.ok) {
         throw new Error('Failed to update quotation status');
       }
-
-      setProgressValue(75);
-      setProgressLabel('Processing receipt...');
 
       // If there's a receipt file, upload it
       if (receiptFile) {
@@ -499,18 +508,25 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
         }
       }
 
-      setProgressValue(100);
-      setProgressLabel('Payment marked as complete!');
-      setTimeout(() => setProgressOpen(false), 500);
+      // Wait for progress to complete
+      await progressPromise;
 
       // Send payment completion email if requested
       if (sendPaymentCompleteEmail) {
         try {
           setIsSendingPaymentEmail(true);
           setProgressOpen(true);
+          setProgressVariant('email');
           setProgressTitle('Sending Payment Completion Email');
-          setProgressLabel('Preparing email...');
-          setProgressValue(25);
+          
+          // Start progress simulation
+          const progressPromise = startProgress({
+            steps: [
+              { label: 'Preparing email...', value: 50 },
+              { label: 'Sending notification...', value: 90 }
+            ],
+            totalDuration: 1200
+          });
           
           const emailResponse = await fetch('/api/quotations/send-payment-complete-email', {
             method: 'POST',
@@ -522,11 +538,10 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
             })
           });
           
+          // Wait for progress to complete
+          await progressPromise;
+          
           if (emailResponse.ok) {
-            setProgressValue(100);
-            setProgressLabel('Payment completion email sent successfully!');
-            setTimeout(() => setProgressOpen(false), 1000);
-            
             toast({
               title: "Payment Completion Email Sent",
               description: "Customer has been notified of payment completion",
@@ -558,6 +573,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       }
 
       setIsMarkAsPaidDialogOpen(false);
+      setProgressOpen(false);
       
       // Refresh the quotation data to update the workflow
       if (onRefresh) {
@@ -711,6 +727,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                 try {
                   // Create booking from quotation
                   setIsConvertingToBooking(true);
+                  setProgressOpen(true);
+                  setProgressVariant('approval');
+                  setProgressTitle('Converting to Booking');
+                  
+                  // Start progress simulation
+                  const progressPromise = startProgress(progressConfigs.convertToBooking);
+                  
                   const response = await fetch('/api/quotations/convert', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -718,6 +741,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                       quotation_id: quotation.id
                     })
                   });
+                  
+                  // Wait for progress to complete
+                  await progressPromise;
                   
                   if (response.ok) {
                     const result = await response.json();
@@ -1108,9 +1134,17 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                   onClick={async () => {
                     try {
                       setProgressOpen(true);
+                      setProgressVariant('default');
                       setProgressTitle('Generating Payment Link');
-                      setProgressLabel('Creating Omise payment link...');
-                      setProgressValue(25);
+                      
+                      // Start progress simulation
+                      const progressPromise = startProgress({
+                        steps: [
+                          { label: 'Creating Omise payment link...', value: 50 },
+                          { label: 'Finalizing...', value: 90 }
+                        ],
+                        totalDuration: 1500
+                      });
                       
                       const response = await fetch('/api/quotations/generate-omise-payment-link', {
                         method: 'POST',
@@ -1122,11 +1156,12 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                         })
                       });
                       
+                      // Wait for progress to complete
+                      await progressPromise;
+                      
                       if (response.ok) {
                         const data = await response.json();
                         setPaymentLink(data.paymentUrl);
-                        setProgressValue(100);
-                        setProgressLabel('Payment link generated!');
                         toast({
                           title: "Payment Link Generated",
                           description: "New Omise payment link has been created",
@@ -1142,8 +1177,6 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                         description: "Failed to generate payment link",
                         variant: "destructive",
                       });
-                    } finally {
-                      setTimeout(() => setProgressOpen(false), 1000);
                     }
                   }}
                   className="px-3"
@@ -1182,9 +1215,17 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
               onClick={async () => {
                 try {
                   setProgressOpen(true);
+                  setProgressVariant('default');
                   setProgressTitle('Skipping Payment Link');
-                  setProgressLabel('Marking as payment link sent for bank transfer...');
-                  setProgressValue(50);
+                  
+                  // Start progress simulation
+                  const progressPromise = startProgress({
+                    steps: [
+                      { label: 'Updating payment method...', value: 50 },
+                      { label: 'Finalizing...', value: 90 }
+                    ],
+                    totalDuration: 1000
+                  });
                   
                   // Update the quotation status to mark payment link as sent (for bank transfer)
                   const updateResponse = await fetch(`/api/quotations/${quotation.id}`, {
@@ -1196,14 +1237,13 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                     })
                   });
                   
+                  // Wait for progress to complete
+                  await progressPromise;
+                  
                   if (updateResponse.ok) {
                     console.log('Quotation status updated for bank transfer');
                     setPaymentLinkSent(true);
                     setPaymentLinkSentAt(new Date().toISOString());
-                    
-                    setProgressValue(100);
-                    setProgressLabel('Bank transfer payment method selected!');
-                    setTimeout(() => setProgressOpen(false), 1000);
                     
                     toast({
                       title: "Bank Transfer Selected",
@@ -1212,6 +1252,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                     });
                     
                     setIsPaymentLinkDialogOpen(false);
+                    setProgressOpen(false);
                     
                     // Refresh the quotation data to update the workflow status
                     if (onRefresh) {
@@ -1258,18 +1299,16 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       </Dialog>
 
       {/* Progress Modal */}
-      <Dialog open={progressOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{progressTitle}</DialogTitle>
-            <DialogDescription className="sr-only">Processing</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Progress value={progressValue} className="w-full" />
-            <p className="text-sm text-muted-foreground">{progressLabel}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <LoadingModal
+        open={progressOpen}
+        onOpenChange={setProgressOpen}
+        title={progressTitle}
+        variant={progressVariant}
+        value={progressValue}
+        label={progressLabel}
+        steps={progressSteps}
+        showSteps={true}
+      />
 
       {/* Mark As Paid Dialog */}
       <Dialog open={isMarkAsPaidDialogOpen} onOpenChange={setIsMarkAsPaidDialogOpen}>

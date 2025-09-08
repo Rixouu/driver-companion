@@ -10,8 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { progressConfigs } from '@/lib/config/progressConfigs';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -189,16 +190,9 @@ export default function QuoteAccessPage() {
   const [isExpired, setIsExpired] = useState(false);
   
   // Progress modal state
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
   const [progressOpen, setProgressOpen] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
-  const [progressTitle, setProgressTitle] = useState('Processing');
-  const [progressLabel, setProgressLabel] = useState('Starting...');
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
-  const [progressSteps, setProgressSteps] = useState<Array<{
-    label: string;
-    value: number;
-    completed?: boolean;
-  }>>([]);
   
   // Theme state removed for customer side
   
@@ -342,25 +336,13 @@ export default function QuoteAccessPage() {
     setIsApproving(true);
     setProgressOpen(true);
     setProgressVariant('approval');
-    setProgressTitle('Approving Quotation');
-    setProgressLabel('Updating status...');
-    setProgressValue(10);
-    
-    // Set up progress steps
-    const steps = [
-      { label: 'Updating quotation status...', value: 25 },
-      { label: 'Generating PDF invoice...', value: 50 },
-      { label: 'Preparing email...', value: 75 },
-      { label: 'Sending notification...', value: 90 }
-    ];
-    setProgressSteps(steps);
     
     try {
-      // Always use default BCC for customer side
-      const defaultBcc = 'booking@japandriver.com';
-      
-      // Start API call immediately
-      const apiCall = fetch('/api/quotations/approve-magic-link', {
+      // Start progress animation
+      const progressPromise = startProgress(progressConfigs.approval);
+
+      // Start API call in parallel
+      const apiPromise = fetch('/api/quotations/approve-magic-link-optimized', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -369,35 +351,14 @@ export default function QuoteAccessPage() {
           quotation_id: quotation.id,
           notes: notes,
           signature: signature,
-          bcc_emails: defaultBcc
+          bcc_emails: 'booking@japandriver.com'
         }),
       });
-      
-      // Simulate progress steps while API call is running
-      const delays = [300, 400, 300, 200]; // ms delays
-      
-      for (let i = 0; i < steps.length; i++) {
-        setProgressLabel(steps[i].label);
-        setProgressValue(steps[i].value);
-        setProgressSteps(prev => prev.map((step, idx) => ({
-          ...step,
-          completed: idx < i
-        })));
-        await new Promise(resolve => setTimeout(resolve, delays[i]));
-      }
-      
-      // Wait for API call to complete
-      const response = await apiCall;
+
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
       
       if (response.ok) {
-        // Add final completion step
-        setProgressLabel('Finalizing...');
-        setProgressValue(95);
-        setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        setProgressValue(100);
-        setProgressLabel('Completed');
         toast({
           title: 'Quotation approved successfully',
           description: 'Email notification sent to customer and admin',
@@ -407,19 +368,18 @@ export default function QuoteAccessPage() {
           setProgressOpen(false);
           // Refresh the quotation data
           window.location.reload();
-        }, 500);
+        }, 200);
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error approving quotation:', error);
-      setProgressLabel('Failed');
+      setProgressOpen(false);
       toast({
         title: 'Error',
         description: 'Failed to approve quotation. Please try again.',
         variant: 'destructive',
       });
-      setTimeout(() => setProgressOpen(false), 1000);
     } finally {
       setIsApproving(false);
     }
@@ -431,25 +391,13 @@ export default function QuoteAccessPage() {
     setIsRejecting(true);
     setProgressOpen(true);
     setProgressVariant('rejection');
-    setProgressTitle('Rejecting Quotation');
-    setProgressLabel('Updating status...');
-    setProgressValue(10);
-    
-    // Set up progress steps
-    const steps = [
-      { label: 'Updating quotation status...', value: 25 },
-      { label: 'Generating PDF with rejection...', value: 50 },
-      { label: 'Preparing rejection email...', value: 75 },
-      { label: 'Sending notification...', value: 90 }
-    ];
-    setProgressSteps(steps);
     
     try {
-      // Always use default BCC for customer side
-      const defaultBcc = 'booking@japandriver.com';
-      
-      // Start API call immediately
-      const apiCall = fetch('/api/quotations/reject-magic-link-optimized', {
+      // Start progress animation
+      const progressPromise = startProgress(progressConfigs.rejection);
+
+      // Start API call in parallel
+      const apiPromise = fetch('/api/quotations/reject-magic-link-optimized', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -458,35 +406,14 @@ export default function QuoteAccessPage() {
           quotation_id: quotation.id,
           reason: reason,
           signature: signature,
-          bcc_emails: defaultBcc
+          bcc_emails: 'booking@japandriver.com'
         }),
       });
-      
-      // Simulate progress steps while API call is running
-      const delays = [300, 400, 300, 200]; // ms delays
-      
-      for (let i = 0; i < steps.length; i++) {
-        setProgressLabel(steps[i].label);
-        setProgressValue(steps[i].value);
-        setProgressSteps(prev => prev.map((step, idx) => ({
-          ...step,
-          completed: idx < i
-        })));
-        await new Promise(resolve => setTimeout(resolve, delays[i]));
-      }
-      
-      // Wait for API call to complete
-      const response = await apiCall;
+
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
       
       if (response.ok) {
-        // Add final completion step
-        setProgressLabel('Finalizing...');
-        setProgressValue(95);
-        setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        setProgressValue(100);
-        setProgressLabel('Completed');
         toast({
           title: 'Quotation rejected successfully',
           description: 'Email notification sent to customer and admin',
@@ -496,19 +423,18 @@ export default function QuoteAccessPage() {
           setProgressOpen(false);
           // Refresh the quotation data
           window.location.reload();
-        }, 500);
+        }, 200);
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error rejecting quotation:', error);
-      setProgressLabel('Failed');
+      setProgressOpen(false);
       toast({
         title: 'Error',
         description: 'Failed to reject quotation. Please try again.',
         variant: 'destructive',
       });
-      setTimeout(() => setProgressOpen(false), 1000);
     } finally {
       setIsRejecting(false);
     }
@@ -520,25 +446,23 @@ export default function QuoteAccessPage() {
     
     setIsDownloadingQuotation(true);
     setProgressOpen(true);
-    setProgressTitle('Downloading Quotation');
-    setProgressLabel('Generating PDF...');
-    setProgressValue(10);
+    setProgressVariant('default');
     
     try {
-      // Simulate progress steps
-      const steps = [
-        { label: 'Generating PDF...', value: 30 },
-        { label: 'Processing content...', value: 60 },
-        { label: 'Preparing download...', value: 80 }
-      ];
-      
-      for (const step of steps) {
-        setProgressLabel(step.label);
-        setProgressValue(step.value);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      const response = await fetch('/api/quotations/generate-pdf-magic-link', {
+      // Start progress animation
+      const progressPromise = startProgress({
+        steps: [
+          { value: 10, label: 'Preparing...' },
+          { value: 35, label: 'Generating PDF...' },
+          { value: 70, label: 'Processing content...' },
+          { value: 90, label: 'Preparing download...' }
+        ],
+        totalDuration: 3000,
+        stepDelays: [200, 800, 600, 300]
+      });
+
+      // Start API call in parallel
+      const apiPromise = fetch('/api/quotations/generate-pdf-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -549,6 +473,9 @@ export default function QuoteAccessPage() {
           token: token
         }),
       });
+
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
       
       if (response.ok) {
         const blob = await response.blob();
@@ -561,25 +488,22 @@ export default function QuoteAccessPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        setProgressValue(100);
-        setProgressLabel('Completed');
         toast({
           title: 'Quotation downloaded successfully',
           variant: 'default',
         });
-        setTimeout(() => setProgressOpen(false), 500);
+        setTimeout(() => setProgressOpen(false), 200);
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error downloading quotation:', error);
-      setProgressLabel('Failed');
+      setProgressOpen(false);
       toast({
         title: 'Error',
         description: 'Failed to download quotation. Please try again.',
         variant: 'destructive',
       });
-      setTimeout(() => setProgressOpen(false), 1000);
     } finally {
       setIsDownloadingQuotation(false);
     }
@@ -590,25 +514,23 @@ export default function QuoteAccessPage() {
     
     setIsDownloadingInvoice(true);
     setProgressOpen(true);
-    setProgressTitle('Downloading Invoice');
-    setProgressLabel('Generating PDF...');
-    setProgressValue(10);
+    setProgressVariant('invoice');
     
     try {
-      // Simulate progress steps
-      const steps = [
-        { label: 'Generating PDF...', value: 30 },
-        { label: 'Processing content...', value: 60 },
-        { label: 'Preparing download...', value: 80 }
-      ];
-      
-      for (const step of steps) {
-        setProgressLabel(step.label);
-        setProgressValue(step.value);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      const response = await fetch('/api/quotations/generate-invoice-pdf-magic-link', {
+      // Start progress animation
+      const progressPromise = startProgress({
+        steps: [
+          { value: 10, label: 'Preparing...' },
+          { value: 35, label: 'Generating PDF...' },
+          { value: 70, label: 'Processing content...' },
+          { value: 90, label: 'Preparing download...' }
+        ],
+        totalDuration: 3000,
+        stepDelays: [200, 800, 600, 300]
+      });
+
+      // Start API call in parallel
+      const apiPromise = fetch('/api/quotations/generate-invoice-pdf-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -619,6 +541,9 @@ export default function QuoteAccessPage() {
           token: token
         }),
       });
+
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
       
       if (response.ok) {
         const blob = await response.blob();
@@ -631,25 +556,22 @@ export default function QuoteAccessPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        setProgressValue(100);
-        setProgressLabel('Completed');
         toast({
           title: 'Invoice downloaded successfully',
           variant: 'default',
         });
-        setTimeout(() => setProgressOpen(false), 500);
+        setTimeout(() => setProgressOpen(false), 200);
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error downloading invoice:', error);
-      setProgressLabel('Failed');
+      setProgressOpen(false);
       toast({
         title: 'Error',
         description: 'Failed to download invoice. Please try again.',
         variant: 'destructive',
       });
-      setTimeout(() => setProgressOpen(false), 1000);
     } finally {
       setIsDownloadingInvoice(false);
     }
@@ -1809,13 +1731,12 @@ export default function QuoteAccessPage() {
       {/* Enhanced Progress Modal */}
       <LoadingModal
         open={progressOpen}
-        title={progressTitle}
-        label={progressLabel}
-        value={progressValue}
-        variant={progressVariant}
-        showSteps={progressSteps.length > 0}
-        steps={progressSteps}
         onOpenChange={setProgressOpen}
+        variant={progressVariant}
+        value={progressValue}
+        label={progressLabel}
+        steps={progressSteps}
+        title="Processing"
       />
     </div>
   );

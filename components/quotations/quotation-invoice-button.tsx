@@ -5,7 +5,9 @@ import { useI18n } from "@/lib/i18n/context";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+import LoadingModal from "@/components/ui/loading-modal";
+import { useProgressSteps } from "@/lib/hooks/useProgressSteps";
+import { progressConfigs } from "@/lib/config/progressConfigs";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2, FileText, CreditCard } from "lucide-react";
 import { Quotation, QuotationItem } from "@/types/quotations";
@@ -27,11 +29,10 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
   // Check if user is admin (japandriver email)
   const isAdmin = user?.email?.endsWith('@japandriver.com') || false;
 
-  // Progress modal state (align with quotation-details)
+  // Progress modal state
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
   const [progressOpen, setProgressOpen] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
-  const [progressTitle, setProgressTitle] = useState('Processing');
-  const [progressLabel, setProgressLabel] = useState('Starting...');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('invoice');
 
   // Generate invoice using same HTML-to-PDF design as bookings
   const generateInvoice = async (email: boolean = false, invoiceLanguage: 'en' | 'ja' = 'en'): Promise<Blob | null> => {
@@ -217,16 +218,23 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
   const handleGeneratePdf = async () => {
     setIsGenerating(true);
     setProgressOpen(true);
-    setProgressTitle('Generating Invoice PDF');
-    setProgressLabel('Preparing...');
-    setProgressValue(10);
-
+    setProgressVariant('invoice');
+    
     try {
-      setProgressLabel('Generating PDF...');
-      setProgressValue(50);
-      
-      // Use server-side PDF generation with proper discount calculations
-      const response = await fetch('/api/quotations/generate-invoice-pdf', {
+      // Start progress animation
+      const progressPromise = startProgress({
+        steps: [
+          { value: 10, label: 'Preparing...' },
+          { value: 35, label: 'Generating PDF...' },
+          { value: 70, label: 'Processing...' },
+          { value: 90, label: 'Downloading...' }
+        ],
+        totalDuration: 3000,
+        stepDelays: [200, 800, 600, 300]
+      });
+
+      // Start API call in parallel
+      const apiPromise = fetch('/api/quotations/generate-invoice-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -235,14 +243,14 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
         })
       });
 
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiPromise]);
+
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}: ${response.statusText}`);
       }
 
       const blob = await response.blob();
-      setProgressLabel('Downloading...');
-      setProgressValue(80);
-
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -252,9 +260,8 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      setProgressValue(100);
-      setProgressLabel('Completed');
-      setTimeout(() => setProgressOpen(false), 400);
+      // Close modal after successful download
+      setTimeout(() => setProgressOpen(false), 200);
       onSuccess?.();
     } catch (error) {
       console.error('Error downloading invoice:', error);
@@ -302,21 +309,15 @@ export function QuotationInvoiceButton({ quotation, onSuccess, onSendPaymentLink
 
 
       {/* Progress Modal */}
-      <Dialog open={progressOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{progressTitle}</DialogTitle>
-            <DialogDescription className="sr-only">Processing</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Progress value={progressValue} />
-            <div className="text-sm text-muted-foreground flex items-center justify-between">
-              <span>{progressLabel}</span>
-              <span className="font-medium text-foreground">{progressValue}%</span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <LoadingModal
+        open={progressOpen}
+        onOpenChange={setProgressOpen}
+        variant={progressVariant}
+        value={progressValue}
+        label={progressLabel}
+        steps={progressSteps}
+        title="Generating Invoice PDF"
+      />
     </>
   );
 }

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from "@/components/ui/separator";
 import { Progress } from '@/components/ui/progress';
 import LoadingModal from '@/components/ui/loading-modal';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { progressConfigs } from '@/lib/config/progressConfigs';
 import { useCurrency } from '@/lib/services/currency-service';
 import { CurrencySelector } from '@/components/ui/currency-selector';
 import { 
@@ -140,15 +142,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
   
   // Progress modal state
   const [progressOpen, setProgressOpen] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Processing');
-  const [progressLabel, setProgressLabel] = useState('Starting...');
   const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
-  const [progressSteps, setProgressSteps] = useState<Array<{
-    label: string;
-    value: number;
-    completed?: boolean;
-  }>>([]);
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
   
   const { approveQuotation, rejectQuotation, sendQuotation, updateQuotation, getPricingPackages, getPricingPromotions } = useQuotationService();
 
@@ -332,22 +328,17 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     setIsLoading(true);
     setProgressOpen(true);
     setProgressTitle('Regenerating Magic Link');
-    setProgressLabel('Creating new secure link...');
-    setProgressValue(10);
     
     try {
-      // Simulate progress steps
-      const steps = [
-        { label: 'Creating new secure link...', value: 30 },
-        { label: 'Generating token...', value: 60 },
-        { label: 'Sending email to customer...', value: 80 }
-      ];
-      
-      for (const step of steps) {
-        setProgressLabel(step.label);
-        setProgressValue(step.value);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress({
+        steps: [
+          { label: 'Creating new secure link...', value: 30 },
+          { label: 'Generating token...', value: 60 },
+          { label: 'Sending email to customer...', value: 80 }
+        ],
+        totalDuration: 1000
+      });
       
       const response = await fetch('/api/quotations/send-magic-link-email', {
         method: 'POST',
@@ -361,11 +352,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         }),
       });
       
+      // Wait for both to complete
+      await Promise.all([progressPromise, response]);
+      
       if (response.ok) {
-        const data = await response.json();
-        setProgressValue(100);
-        setProgressLabel('Completed');
-        
         toast({
           title: "Magic Link Regenerated & Sent",
           description: `New magic link has been sent to ${quotation.customer_email}`,
@@ -381,7 +371,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       }
     } catch (error) {
       console.error('Error regenerating magic link:', error);
-      setProgressLabel('Failed');
       toast({
         title: "Failed to regenerate magic link",
         description: error instanceof Error ? error.message : "Please try again later",
@@ -399,20 +388,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
     setProgressOpen(true);
     setProgressVariant('email');
     setProgressTitle('Sending Quotation');
-    setProgressLabel('Preparing email...');
-    setProgressValue(10);
-    
-    // Set up progress steps
-    const steps = [
-      { label: 'Preparing email content...', value: 25 },
-      { label: 'Generating PDF attachment...', value: 50 },
-      { label: 'Creating secure link...', value: 75 },
-      { label: 'Sending notification...', value: 90 }
-    ];
-    setProgressSteps(steps);
     
     try {
-      // Start API call immediately
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress(progressConfigs.sendEmail);
+      
       const apiCall = fetch('/api/quotations/send-email-optimized', {
         method: 'POST',
         headers: {
@@ -426,32 +406,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
         }),
       });
       
-      // Simulate progress steps while API call is running
-      const delays = [300, 400, 300, 200]; // ms delays
-      
-      for (let i = 0; i < steps.length; i++) {
-        setProgressLabel(steps[i].label);
-        setProgressValue(steps[i].value);
-        setProgressSteps(prev => prev.map((step, idx) => ({
-          ...step,
-          completed: idx < i
-        })));
-        await new Promise(resolve => setTimeout(resolve, delays[i]));
-      }
-      
-      // Wait for API call to complete
-      const response = await apiCall;
+      // Wait for both to complete
+      const [_, response] = await Promise.all([progressPromise, apiCall]);
       const success = response.ok;
       
       if (success) {
-        // Add final completion step
-        setProgressLabel('Finalizing...');
-        setProgressValue(95);
-        setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        setProgressValue(100);
-        setProgressLabel('Completed');
         toast({
           title: t('quotations.notifications.sendSuccess'),
           variant: 'default',
@@ -465,7 +424,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
       }
     } catch (error) {
       console.error('Error sending quotation:', error);
-      setProgressLabel('Failed');
       toast({
         title: t('quotations.notifications.error'),
         description: 'Failed to send quotation',
@@ -1046,20 +1004,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       setProgressOpen(true);
                       setProgressVariant('approval');
                       setProgressTitle('Approving Quotation');
-                      setProgressLabel('Updating status...');
-                      setProgressValue(10);
-                      
-                      // Set up progress steps
-                      const steps = [
-                        { label: 'Updating quotation status...', value: 25 },
-                        { label: 'Generating PDF invoice...', value: 50 },
-                        { label: 'Preparing email...', value: 75 },
-                        { label: 'Sending notification...', value: 90 }
-                      ];
-                      setProgressSteps(steps);
                       
                       try {
-                        // Start API call immediately
+                        // Start progress simulation and API call in parallel
+                        const progressPromise = startProgress(progressConfigs.approval);
+                        
                         const apiCall = fetch('/api/quotations/approve-optimized', {
                           method: 'POST',
                           headers: {
@@ -1073,32 +1022,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           }),
                         });
                         
-                        // Simulate progress steps while API call is running
-                        const delays = [300, 400, 300, 200]; // ms delays
-                        
-                        for (let i = 0; i < steps.length; i++) {
-                          setProgressLabel(steps[i].label);
-                          setProgressValue(steps[i].value);
-                          setProgressSteps(prev => prev.map((step, idx) => ({
-                            ...step,
-                            completed: idx < i
-                          })));
-                          await new Promise(resolve => setTimeout(resolve, delays[i]));
-                        }
-                        
-                        // Wait for API call to complete
-                        const response = await apiCall;
+                        // Wait for both to complete
+                        const [_, response] = await Promise.all([progressPromise, apiCall]);
                         const success = response.ok;
                         
                         if (success) {
-                          // Add final completion step
-                          setProgressLabel('Finalizing...');
-                          setProgressValue(95);
-                          setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
-                          await new Promise(resolve => setTimeout(resolve, 200));
-                          
-                          setProgressValue(100);
-                          setProgressLabel('Completed');
                           toast({
                             title: t('quotations.notifications.approveSuccess'),
                             variant: 'default',
@@ -1112,7 +1040,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         }
                       } catch (error) {
                         console.error('Error approving quotation:', error);
-                        setProgressLabel('Failed');
                         toast({
                           title: t('quotations.notifications.error'),
                           description: 'Failed to approve quotation',
@@ -1128,20 +1055,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       setProgressOpen(true);
                       setProgressVariant('rejection');
                       setProgressTitle('Rejecting Quotation');
-                      setProgressLabel('Updating status...');
-                      setProgressValue(10);
-                      
-                      // Set up progress steps
-                      const steps = [
-                        { label: 'Updating quotation status...', value: 25 },
-                        { label: 'Generating PDF with rejection...', value: 50 },
-                        { label: 'Preparing rejection email...', value: 75 },
-                        { label: 'Sending notification...', value: 90 }
-                      ];
-                      setProgressSteps(steps);
                       
                       try {
-                        // Start API call immediately
+                        // Start progress simulation and API call in parallel
+                        const progressPromise = startProgress(progressConfigs.rejection);
+                        
                         const apiCall = fetch('/api/quotations/reject-optimized', {
                           method: 'POST',
                           headers: {
@@ -1155,32 +1073,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                           }),
                         });
                         
-                        // Simulate progress steps while API call is running
-                        const delays = [300, 400, 300, 200]; // ms delays
-                        
-                        for (let i = 0; i < steps.length; i++) {
-                          setProgressLabel(steps[i].label);
-                          setProgressValue(steps[i].value);
-                          setProgressSteps(prev => prev.map((step, idx) => ({
-                            ...step,
-                            completed: idx < i
-                          })));
-                          await new Promise(resolve => setTimeout(resolve, delays[i]));
-                        }
-                        
-                        // Wait for API call to complete
-                        const response = await apiCall;
+                        // Wait for both to complete
+                        const [_, response] = await Promise.all([progressPromise, apiCall]);
                         const success = response.ok;
                         
                         if (success) {
-                          // Add final completion step
-                          setProgressLabel('Finalizing...');
-                          setProgressValue(95);
-                          setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
-                          await new Promise(resolve => setTimeout(resolve, 200));
-                          
-                          setProgressValue(100);
-                          setProgressLabel('Completed');
                           toast({
                             title: t('quotations.notifications.rejectSuccess'),
                             variant: 'default',
@@ -1194,7 +1091,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                         }
                       } catch (error) {
                         console.error('Error rejecting quotation:', error);
-                        setProgressLabel('Failed');
                         toast({
                           title: t('quotations.notifications.error'),
                           description: 'Failed to reject quotation',
@@ -1271,21 +1167,10 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               setProgressOpen(true);
               setProgressVariant('reminder');
               setProgressTitle('Sending Reminder');
-              setProgressLabel('Preparing reminder...');
-              setProgressValue(10);
               
               try {
-                const steps = [
-                  { label: 'Preparing reminder...', value: 20 },
-                  { label: 'Generating PDF...', value: 40 },
-                  { label: 'Sending email...', value: 80 }
-                ];
-                
-                for (const step of steps) {
-                  setProgressLabel(step.label);
-                  setProgressValue(step.value);
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                }
+                // Start progress simulation and API call in parallel
+                const progressPromise = startProgress(progressConfigs.sendReminder);
                 
                 const response = await fetch('/api/quotations/send-reminder', {
                   method: 'POST',
@@ -1297,20 +1182,20 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                   })
                 });
                 
+                // Wait for both to complete
+                await Promise.all([progressPromise, response]);
+                
                 if (response.ok) {
-                                      setProgressValue(100);
-                    setProgressLabel('Completed');
-                    // Toast removed - SendReminderDialog handles its own toast
-                    setTimeout(() => {
-                      setProgressOpen(false);
-                      router.refresh();
-                    }, 500);
+                  // Toast removed - SendReminderDialog handles its own toast
+                  setTimeout(() => {
+                    setProgressOpen(false);
+                    router.refresh();
+                  }, 500);
                 } else {
                   throw new Error('Failed to send reminder');
                 }
               } catch (error) {
                 console.error('Error sending reminder:', error);
-                setProgressLabel('Failed');
                 toast({
                   title: "Failed to send reminder",
                   description: "Please try again later",
@@ -1326,21 +1211,17 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               setProgressOpen(true);
               setProgressVariant('invoice');
               setProgressTitle('Sending Invoice');
-              setProgressLabel('Preparing invoice...');
-              setProgressValue(10);
               
               try {
-                const steps = [
-                  { label: 'Preparing invoice...', value: 30 },
-                  { label: 'Generating PDF...', value: 60 },
-                  { label: 'Sending email...', value: 90 }
-                ];
-                
-                for (const step of steps) {
-                  setProgressLabel(step.label);
-                  setProgressValue(step.value);
-                  await new Promise(resolve => setTimeout(resolve, 300));
-                }
+                // Start progress simulation
+                const progressPromise = startProgress({
+                  steps: [
+                    { label: 'Preparing invoice...', value: 30 },
+                    { label: 'Generating PDF...', value: 60 },
+                    { label: 'Sending email...', value: 90 }
+                  ],
+                  totalDuration: 2000
+                });
                 
                 // First generate the invoice PDF
                 const response = await fetch('/api/quotations/generate-invoice-pdf', {
@@ -1354,8 +1235,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 
                 if (response.ok) {
                   const pdfBlob = await response.blob();
-                  setProgressLabel('Sending email...');
-                  setProgressValue(80);
                   
                   // Send the PDF via email using the same logic as QuotationInvoiceButton
                   const formData = new FormData();
@@ -1373,6 +1252,9 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     body: formData,
                   });
                   
+                  // Wait for progress to complete
+                  await progressPromise;
+                  
                   if (emailResponse.ok) {
                     // Update the quotation status to mark invoice as generated
                     try {
@@ -1387,8 +1269,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       console.error('Error updating invoice status:', error);
                     }
                     
-                    setProgressValue(100);
-                    setProgressLabel('Completed');
                     toast({
                       title: "Invoice sent successfully",
                       variant: 'default',
@@ -1405,7 +1285,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 }
               } catch (error) {
                 console.error('Error sending invoice:', error);
-                setProgressLabel('Failed');
                 toast({
                   title: "Failed to send invoice",
                   description: "Please try again later",
@@ -1484,12 +1363,13 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 onApprove={async (notes, signature) => {
                   setIsLoading(true);
                   setProgressOpen(true);
+                  setProgressVariant('approval');
                   setProgressTitle('Approving Quotation');
-                  setProgressLabel('Updating status...');
-                  setProgressValue(10);
                   
                   try {
-                    // Start the API call immediately
+                    // Start progress simulation and API call in parallel
+                    const progressPromise = startProgress(progressConfigs.approval);
+                    
                     const apiCall = fetch('/api/quotations/approve-optimized', {
                       method: 'POST',
                       headers: {
@@ -1502,34 +1382,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       }),
                     });
                     
-                    // Simulate progress steps while API call is running
-                    const steps = [
-                      { label: 'Updating quotation status...', value: 25 },
-                      { label: 'Generating PDF invoice...', value: 50 },
-                      { label: 'Preparing email...', value: 75 },
-                      { label: 'Sending notifications...', value: 90 }
-                    ];
-                    
-                    const delays = [300, 400, 300, 200]; // ms delays
-                    
-                    for (let i = 0; i < steps.length; i++) {
-                      setProgressLabel(steps[i].label);
-                      setProgressValue(steps[i].value);
-                      await new Promise(resolve => setTimeout(resolve, delays[i]));
-                    }
-                    
-                    // Wait for API call to complete
-                    const response = await apiCall;
+                    // Wait for both to complete
+                    const [_, response] = await Promise.all([progressPromise, apiCall]);
                     const success = response.ok;
                     
                     if (success) {
-                      // Add final completion step
-                      setProgressLabel('Finalizing...');
-                      setProgressValue(95);
-                      await new Promise(resolve => setTimeout(resolve, 200));
-                      
-                      setProgressValue(100);
-                      setProgressLabel('Completed');
                       toast({
                         title: t('quotations.notifications.approveSuccess'),
                         variant: 'default',
@@ -1541,7 +1398,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     }
                   } catch (error) {
                     console.error('Error approving quotation:', error);
-                    setProgressLabel('Failed');
                     toast({
                       title: t('quotations.notifications.error'),
                       description: 'Failed to approve quotation',
@@ -1555,23 +1411,12 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                 onReject={async (reason, signature) => {
                   setIsLoading(true);
                   setProgressOpen(true);
+                  setProgressVariant('rejection');
                   setProgressTitle('Rejecting Quotation');
-                  setProgressLabel('Updating status...');
-                  setProgressValue(10);
                   
                   try {
-                    // Simulate progress steps
-                    const steps = [
-                      { label: 'Updating status...', value: 30 },
-                      { label: 'Recording activity...', value: 60 },
-                      { label: 'Sending notifications...', value: 80 }
-                    ];
-                    
-                    for (const step of steps) {
-                      setProgressLabel(step.label);
-                      setProgressValue(step.value);
-                      await new Promise(resolve => setTimeout(resolve, 200));
-                    }
+                    // Start progress simulation and API call in parallel
+                    const progressPromise = startProgress(progressConfigs.rejection);
                     
                     const response = await fetch('/api/quotations/reject', {
                       method: 'POST',
@@ -1585,11 +1430,11 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                       }),
                     });
                     
+                    // Wait for both to complete
+                    await Promise.all([progressPromise, response]);
                     const success = response.ok;
                     
                     if (success) {
-                      setProgressValue(100);
-                      setProgressLabel('Completed');
                       toast({
                         title: t('quotations.notifications.rejectSuccess'),
                         variant: 'default',
@@ -1601,7 +1446,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     }
                   } catch (error) {
                     console.error('Error rejecting quotation:', error);
-                    setProgressLabel('Failed');
                     toast({
                       title: t('quotations.notifications.error'),
                       description: 'Failed to reject quotation',

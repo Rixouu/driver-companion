@@ -50,6 +50,7 @@ export default function QuotationsTableClient({
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [quotationToDelete, setQuotationToDelete] = useState<string | null>(null);
+  const [quotationsToDelete, setQuotationsToDelete] = useState<string[]>([]);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   
@@ -63,36 +64,81 @@ export default function QuotationsTableClient({
   // Delete a quotation
   const handleDelete = useCallback((id: string) => {
     setQuotationToDelete(id);
+    setQuotationsToDelete([]);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  // Delete multiple quotations
+  const handleBulkDelete = useCallback((ids: string[]) => {
+    setQuotationToDelete(null);
+    setQuotationsToDelete(ids);
     setDeleteDialogOpen(true);
   }, []);
 
   // Confirm and execute deletion
   const confirmDelete = useCallback(async () => {
-    if (!quotationToDelete) return;
+    const idsToDelete = quotationToDelete ? [quotationToDelete] : quotationsToDelete;
+    if (idsToDelete.length === 0) return;
     
     setIsLoading(true);
     try {
-      const success = await deleteQuotation(quotationToDelete);
-      if (success) {
-        setQuotations((prev) => prev.filter((q) => q.id !== quotationToDelete));
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Delete quotations one by one
+      for (const id of idsToDelete) {
+        try {
+          const success = await deleteQuotation(id);
+          if (success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          console.error(`Error deleting quotation ${id}:`, error);
+          errorCount++;
+        }
+      }
+      
+      // Update the quotations list
+      setQuotations((prev) => prev.filter((q) => !idsToDelete.includes(q.id)));
+      
+      // Show appropriate toast message
+      if (successCount > 0 && errorCount === 0) {
         toast({
           title: t('quotations.notifications.deleteSuccess'),
+          description: successCount === 1 
+            ? 'Quotation deleted successfully' 
+            : `${successCount} quotations deleted successfully`,
           variant: 'default',
+        });
+      } else if (successCount > 0 && errorCount > 0) {
+        toast({
+          title: 'Partial Success',
+          description: `${successCount} quotations deleted, ${errorCount} failed`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: t('quotations.notifications.error'),
+          description: 'Failed to delete quotations',
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error deleting quotation:', error);
+      console.error('Error deleting quotations:', error);
       toast({
         title: t('quotations.notifications.error'),
-        description: 'Failed to delete quotation',
+        description: 'Failed to delete quotations',
         variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
       setDeleteDialogOpen(false);
       setQuotationToDelete(null);
+      setQuotationsToDelete([]);
     }
-  }, [quotationToDelete, deleteQuotation, t]);
+  }, [quotationToDelete, quotationsToDelete, deleteQuotation, t]);
 
   // Send a quotation to a customer
   const handleSend = useCallback(async (id: string) => {
@@ -136,6 +182,7 @@ export default function QuotationsTableClient({
         quotations={quotations}
         isLoading={isLoading}
         onDelete={isOrganizationMember ? handleDelete : undefined}
+        onBulkDelete={isOrganizationMember ? handleBulkDelete : undefined}
         onSend={isOrganizationMember ? handleSend : undefined}
         onRemind={isOrganizationMember ? handleRemind : undefined}
         isOrganizationMember={isOrganizationMember}
@@ -150,13 +197,19 @@ export default function QuotationsTableClient({
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={confirmDelete}
-        isDeleting={false}
-        title="Delete Quotation"
-        description={`Are you sure you want to delete this quotation? This action cannot be undone.`}
+        isDeleting={isLoading}
+        title={quotationToDelete ? "Delete Quotation" : "Delete Quotations"}
+        description={
+          quotationToDelete 
+            ? "Are you sure you want to delete this quotation? This action cannot be undone."
+            : `Are you sure you want to delete ${quotationsToDelete.length} quotations? This action cannot be undone.`
+        }
         itemName="Quotation"
-        itemCount={1}
+        itemCount={quotationToDelete ? 1 : quotationsToDelete.length}
         warningItems={[
-          "This will permanently delete the selected quotation",
+          quotationToDelete 
+            ? "This will permanently delete the selected quotation"
+            : "This will permanently delete all selected quotations",
           "All associated data will be removed",
           "This action cannot be undone"
         ]}

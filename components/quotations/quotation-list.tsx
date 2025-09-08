@@ -50,6 +50,7 @@ interface QuotationListProps {
   quotations: Quotation[];
   isLoading?: boolean;
   onDelete?: (id: string) => void;
+  onBulkDelete?: (ids: string[]) => void;
   onSend?: (id: string) => void;
   onRemind?: (id: string) => void;
   isOrganizationMember?: boolean;
@@ -70,6 +71,7 @@ export default function QuotationList({
   quotations,
   isLoading = false,
   onDelete,
+  onBulkDelete,
   onSend,
   onRemind,
   isOrganizationMember = true,
@@ -447,8 +449,8 @@ export default function QuotationList({
   };
 
   const handleDeleteSelected = () => {
-    if (onDelete) {
-      selectedQuotations.forEach(id => onDelete(id));
+    if (onBulkDelete && selectedQuotations.size > 0) {
+      onBulkDelete(Array.from(selectedQuotations));
       setSelectedQuotations(new Set());
     }
   };

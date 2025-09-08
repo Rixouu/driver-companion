@@ -485,7 +485,7 @@ export function ServiceSelectionStep({
       form.setValue('pickup_time', '');
       
       toast({
-        title: "Service Updated",
+        title: t('quotations.form.services.serviceUpdated'),
         description: `Service updated${ruleName ? ` with ${ruleName} pricing` : ''} successfully`
       });
     } catch (error) {
@@ -507,8 +507,8 @@ export function ServiceSelectionStep({
     // Don't allow editing packages through the service form
     if (item.is_service_item === false || item.service_type_name?.toLowerCase().includes('package')) {
       toast({
-        title: "Cannot edit packages",
-        description: "Package items cannot be edited. Please remove and add a new package if needed.",
+        title: t('quotations.form.services.cannotEditPackages'),
+        description: t('quotations.form.services.packageItemsCannotBeEdited'),
         variant: "destructive"
       });
       return;
@@ -546,8 +546,8 @@ export function ServiceSelectionStep({
     setServiceItems(updatedItems);
     
     toast({
-      title: "Service Removed",
-      description: `Removed service from quotation`,
+      title: t('quotations.form.services.serviceRemoved'),
+        description: t('quotations.form.services.removedServiceFromQuotation'),
     });
   };
 
@@ -562,8 +562,8 @@ export function ServiceSelectionStep({
     setServiceItems([...serviceItems, duplicate]);
     
     toast({
-      title: "Service Duplicated",
-      description: `Duplicated ${itemToDuplicate.description}`,
+      title: t('quotations.form.services.serviceDuplicated'),
+      description: `${t('quotations.form.services.duplicated')} ${itemToDuplicate.description}`,
     });
   };
 
@@ -709,7 +709,7 @@ export function ServiceSelectionStep({
       return (
         <div className="text-center py-8 text-muted-foreground">
           <Car className="mx-auto h-8 w-8 mb-2 opacity-50" />
-          <p className="text-sm">No services added yet. Add your first service using the form below.</p>
+          <p className="text-sm">{t('quotations.form.services.noServicesAddedYet')}</p>
         </div>
       );
     }
@@ -741,7 +741,7 @@ export function ServiceSelectionStep({
         })}
         
         <div className="pt-2 pb-3 sm:pb-4 flex justify-between items-center font-medium text-sm">
-          <span>Total Amount (before discount/tax):</span>
+          <span>{t('quotations.form.services.totalAmountBeforeDiscountTax')}</span>
           <span>{formatCurrency(serviceItems.reduce((total, item) => total + (item.total_price || item.unit_price), 0))}</span>
         </div>
       </div>
@@ -761,10 +761,10 @@ export function ServiceSelectionStep({
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium flex items-center gap-2">
               <List className="h-4 w-4 text-muted-foreground" />
-              Selected Services
+              {t('quotations.form.services.selectedServices')}
             </h3>
             <Badge variant="outline" className="text-xs">
-              {serviceItems.length} {serviceItems.length === 1 ? 'service' : 'services'}
+              {serviceItems.length} {serviceItems.length === 1 ? t('quotations.form.services.service') : t('quotations.form.services.services')}
             </Badge>
           </div>
           {renderServiceItemsList()}
@@ -779,10 +779,10 @@ export function ServiceSelectionStep({
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium">
             {isEditingService 
-              ? "Edit Service"
+              ? t('quotations.form.services.editService')
               : serviceItems.length > 0 
-                ? "Add Another Service" 
-                : "Configure Service"
+                ? t('quotations.form.services.addAnotherService') 
+                : t('quotations.form.services.configureService')
             }
           </h3>
         </div>
@@ -949,7 +949,7 @@ export function ServiceSelectionStep({
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <Calendar className="mr-2 h-4 w-4" />
-                                      {field.value ? format(field.value, "PPP") : <span>Pick date</span>}
+                                      {field.value ? format(field.value, "PPP") : <span>{t('quotations.form.services.pickDate')}</span>}
                                     </Button>
                                   </FormControl>
                                 </PopoverTrigger>
@@ -975,7 +975,7 @@ export function ServiceSelectionStep({
                           name="pickup_time"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Time</FormLabel>
+                              <FormLabel>{t('quotations.form.services.time')}</FormLabel>
                               <FormControl>
                                 <Input
                                   type="time"
@@ -1007,9 +1007,20 @@ export function ServiceSelectionStep({
                                                 min={1}
                                                 max={30}
                                                 placeholder="1"
+                                                className="text-base h-10"
                                                 {...field}
-                                                onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 1)}
-                                                value={field.value || '1'}
+                                                onChange={(e) => {
+                                                  const value = e.target.value;
+                                                  if (value === '') {
+                                                    field.onChange(1);
+                                                  } else {
+                                                    const numValue = parseInt(value, 10);
+                                                    if (!isNaN(numValue) && numValue >= 1 && numValue <= 30) {
+                                                      field.onChange(numValue);
+                                                    }
+                                                  }
+                                                }}
+                                                value={field.value || ''}
                                               />
                                             </FormControl>
                                             <FormMessage />
@@ -1018,7 +1029,7 @@ export function ServiceSelectionStep({
                                       />
                                       
                                        <div className="flex flex-col">
-                                         <Label className="text-sm font-medium mb-2 block">Hours/Day</Label>
+                                         <Label className="text-sm font-medium mb-2 block">{t('quotations.form.services.hoursPerDay')}</Label>
                                          {renderHoursPerDayButtons('hours_per_day', getDurationsForServiceAndVehicle())}
                                        </div>
                                     </div>
@@ -1032,10 +1043,10 @@ export function ServiceSelectionStep({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Timer className="h-4 w-4 text-green-600" />
-                          <Label className="text-sm font-medium">Apply time-based pricing</Label>
+                          <Label className="text-sm font-medium">{t('quotations.form.services.applyTimeBasedPricing')}</Label>
                           {serviceTimeBasedPricing && (
                             <Badge variant="outline" className="text-xs">
-                              {timeBasedRulesLoading ? 'Loading...' : `${timeBasedRules?.length || 0} rules active`}
+                              {timeBasedRulesLoading ? t('quotations.form.services.loading') : `${timeBasedRules?.length || 0} ${t('quotations.form.services.rulesActive')}`}
                             </Badge>
                           )}
                         </div>
@@ -1046,8 +1057,8 @@ export function ServiceSelectionStep({
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {serviceTimeBasedPricing 
-                          ? "Service pricing will adjust based on pickup time (e.g., overtime surcharges, morning discounts)"
-                          : "Standard pricing will be applied regardless of pickup time"
+                          ? t('quotations.form.services.servicePricingWillAdjust')
+                          : t('quotations.form.services.standardPricingWillBeApplied')
                         }
                       </p>
                     </div>
@@ -1074,7 +1085,7 @@ export function ServiceSelectionStep({
                           }}
                           className="w-full sm:w-auto text-sm"
                         >
-                          Cancel Edit
+                          {t('quotations.form.services.cancelEdit')}
                         </Button>
                         <Button 
                           type="button" 
@@ -1092,7 +1103,7 @@ export function ServiceSelectionStep({
                           disabled={!serviceType || !vehicleType}
                           className="w-full sm:w-auto text-sm"
                         >
-                          Update Service
+                          {t('quotations.form.services.updateService')}
                         </Button>
                       </>
                     ) : (
@@ -1106,7 +1117,7 @@ export function ServiceSelectionStep({
                         className="w-full sm:w-auto text-sm"
                       >
                         <Plus className="h-4 w-4 mr-2" /> 
-                        {serviceItems.length === 0 ? 'Add This Service' : 'Add Another Service'}
+                        {serviceItems.length === 0 ? t('quotations.form.services.addThisService') : t('quotations.form.services.addAnotherService')}
                       </Button>
                     )}
                   </div>
@@ -1119,7 +1130,7 @@ export function ServiceSelectionStep({
           {packages.length > 0 && (
             <div className="flex items-center gap-2 sm:gap-4 my-2 sm:my-4">
               <Separator className="flex-1" />
-              <span className="text-sm text-muted-foreground font-medium">OR</span>
+              <span className="text-sm text-muted-foreground font-medium">{t('quotations.form.services.or')}</span>
               <Separator className="flex-1" />
             </div>
           )}
@@ -1147,10 +1158,10 @@ export function ServiceSelectionStep({
                   </div>
                   <div className="text-left sm:text-right flex-shrink-0">
                     {selectedPackage?.id === pkg.id && (
-                      <Badge variant="default" className="bg-purple-100 text-purple-700 mb-2 text-xs">Active</Badge>
+                      <Badge variant="default" className="bg-purple-100 text-purple-700 mb-2 text-xs">{t('quotations.form.services.active')}</Badge>
                     )}
                     <p className="font-bold text-lg text-purple-600">{formatCurrency(pkg.base_price)}</p>
-                    {pkg.is_featured && <Badge variant="secondary" className="mt-1 text-xs">Featured</Badge>}
+                    {pkg.is_featured && <Badge variant="secondary" className="mt-1 text-xs">{t('quotations.form.services.featured')}</Badge>}
                   </div>
                 </div>
                 
@@ -1158,7 +1169,7 @@ export function ServiceSelectionStep({
                     <div className="space-y-4 p-3 sm:p-4 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                       <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
                         <Package className="h-4 w-4" />
-                        <span className="font-medium text-sm">Package Includes:</span>
+                        <span className="font-medium text-sm">{t('quotations.form.services.packageIncludes')}</span>
                       </div>
                       
                       {pkg.items && pkg.items.length > 0 ? (
@@ -1181,14 +1192,14 @@ export function ServiceSelectionStep({
                             </div>
                           ))}
                           <div className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-                            • Time-based pricing adjustments apply
+                            • {t('quotations.form.services.timeBasedPricingAdjustments')}
                           </div>
                         </div>
                       ) : (
                         <div className="grid gap-1 text-xs sm:text-sm text-purple-600 dark:text-purple-400">
-                          <p>• All services at package rate</p>
-                          <p>• Time-based pricing adjustments</p>
-                          <p>• Contact for detailed service breakdown</p>
+                          <p>• {t('quotations.form.services.allServicesAtPackageRate')}</p>
+                          <p>• {t('quotations.form.services.timeBasedPricingAdjustments')}</p>
+                          <p>• {t('quotations.form.services.contactForDetailedBreakdown')}</p>
                         </div>
                       )}
 
@@ -1199,7 +1210,7 @@ export function ServiceSelectionStep({
                     >
                       <div className="flex items-center gap-2 mb-2 sm:mb-3">
                         <Calendar className="h-4 w-4 text-purple-600" />
-                        <Label className="text-sm font-medium">Package Date & Time</Label>
+                        <Label className="text-sm font-medium">{t('quotations.form.services.packageDateAndTime')}</Label>
                       </div>
                       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 items-end">
                         <FormField
@@ -1207,7 +1218,7 @@ export function ServiceSelectionStep({
                           name="pickup_date"
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
-                              <FormLabel>Date</FormLabel>
+                              <FormLabel>{t('quotations.form.services.date')}</FormLabel>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <FormControl>
@@ -1220,7 +1231,7 @@ export function ServiceSelectionStep({
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <Calendar className="mr-2 h-4 w-4" />
-                                      {field.value ? format(field.value, "PPP") : <span>Pick date</span>}
+                                      {field.value ? format(field.value, "PPP") : <span>{t('quotations.form.services.pickDate')}</span>}
                                     </Button>
                                   </FormControl>
                                 </PopoverTrigger>
@@ -1246,7 +1257,7 @@ export function ServiceSelectionStep({
                           name="pickup_time"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Time</FormLabel>
+                              <FormLabel> {t('quotations.form.services.time')}</FormLabel>
                               <FormControl>
                                 <Input
                                   type="time"
@@ -1275,7 +1286,7 @@ export function ServiceSelectionStep({
                         className="w-full mt-2 sm:mt-3 bg-purple-600 hover:bg-purple-700 text-white"
                       >
                         <Plus className="h-4 w-4 mr-2" /> 
-                        Add This Package
+                        {t('quotations.form.services.addThisPackage')}
                       </Button>
                     </div>
                   </div>

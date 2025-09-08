@@ -1,7 +1,7 @@
 "use client";
 
 import { UseFormReturn } from 'react-hook-form';
-import { Eye, User, Mail, Phone, Building, Car, Calendar, Clock, Package, Gift, DollarSign, FileText, CreditCard } from 'lucide-react';
+import { Eye, User, Mail, Phone, Building, Car, Calendar, Clock, Package, Gift, DollarSign, FileText, CreditCard, Lock, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { useI18n } from '@/lib/i18n/context';
 import { cn } from '@/lib/utils';
@@ -94,11 +94,11 @@ export function PreviewStep({
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <span className="text-muted-foreground font-medium">Title:</span>
+                <span className="text-muted-foreground font-medium">{t('quotations.form.preview.title')}</span>
                 <span className="font-medium">{watchedValues.title || 'Untitled Quotation'}</span>
-                <span className="text-muted-foreground font-medium">Status:</span>
-                <Badge variant="secondary" className="w-fit">Draft</Badge>
-                <span className="text-muted-foreground font-medium">Total Amount:</span>
+                <span className="text-muted-foreground font-medium">{t('quotations.form.preview.status')}</span>
+                <Badge variant="secondary" className="w-fit">{t('quotations.form.preview.draft')}</Badge>
+                <span className="text-muted-foreground font-medium">{t('quotations.form.preview.totalAmount')}</span>
                 <span className="font-bold text-lg text-primary">{formatCurrency(totals.finalTotal)}</span>
               </div>
             </CardContent>
@@ -118,7 +118,7 @@ export function PreviewStep({
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="font-medium">{watchedValues.customer_name || 'Not specified'}</p>
-                    <p className="text-sm text-muted-foreground">Customer Name</p>
+                    <p className="text-sm text-muted-foreground">{t('quotations.form.preview.customerName')}</p>
                   </div>
                 </div>
                 
@@ -126,7 +126,7 @@ export function PreviewStep({
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="font-medium">{watchedValues.customer_email || 'Not specified'}</p>
-                    <p className="text-sm text-muted-foreground">Email Address</p>
+                    <p className="text-sm text-muted-foreground">{t('quotations.form.preview.emailAddress')}</p>
                   </div>
                 </div>
                 
@@ -135,7 +135,7 @@ export function PreviewStep({
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="font-medium">{watchedValues.customer_phone}</p>
-                      <p className="text-sm text-muted-foreground">Phone Number</p>
+                      <p className="text-sm text-muted-foreground">{t('quotations.form.preview.phoneNumber')}</p>
                     </div>
                   </div>
                 )}
@@ -148,14 +148,14 @@ export function PreviewStep({
                   <div>
                     <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                       <Building className="h-4 w-4" />
-                      Billing Address
+                      {t('quotations.form.preview.billingAddress')}
                     </h4>
                     <div className="space-y-1 text-sm text-muted-foreground">
                       {watchedValues.billing_company_name && (
                         <p className="font-medium text-foreground">{watchedValues.billing_company_name}</p>
                       )}
                       {watchedValues.billing_tax_number && (
-                        <p>Tax ID: {watchedValues.billing_tax_number}</p>
+                        <p>{t('quotations.form.preview.taxId')} {watchedValues.billing_tax_number}</p>
                       )}
                       <div>
                         {watchedValues.billing_street_name && (
@@ -183,7 +183,7 @@ export function PreviewStep({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Car className="h-4 w-4" />
-                Service Details
+                {t('quotations.form.preview.serviceDetails')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -240,7 +240,7 @@ export function PreviewStep({
                 <div className="space-y-3">
                   <h4 className="font-medium text-sm flex items-center gap-2">
                     <Car className="h-4 w-4" />
-                    Selected Services ({serviceItems.length})
+                    {t('quotations.form.preview.selectedServices')} ({serviceItems.length})
                   </h4>
                   {serviceItems.map((item, index) => (
                     <ServiceCard
@@ -267,7 +267,7 @@ export function PreviewStep({
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="font-medium text-sm">{format(watchedValues.pickup_date, 'PPP')}</p>
-                          <p className="text-xs text-muted-foreground">Pickup Date</p>
+                          <p className="text-xs text-muted-foreground">{t('quotations.form.preview.pickupDate')}</p>
                         </div>
                       </div>
                     )}
@@ -277,7 +277,7 @@ export function PreviewStep({
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="font-medium text-sm">{watchedValues.pickup_time}</p>
-                          <p className="text-xs text-muted-foreground">Pickup Time</p>
+                          <p className="text-xs text-muted-foreground">{t('quotations.form.preview.pickupTime')}</p>
                         </div>
                       </div>
                     )}
@@ -295,14 +295,17 @@ export function PreviewStep({
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Notes
+                  {t('quotations.form.preview.notes')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {watchedValues.merchant_notes && (
                   <div>
-                    <h4 className="font-medium text-sm mb-1">Internal Notes</h4>
-                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded whitespace-pre-line">
+                    <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-orange-500" />
+                      {t('quotations.form.preview.internalNotes')}
+                    </h4>
+                    <div className="text-sm text-muted-foreground bg-orange-50/30 dark:bg-orange-900/10 p-3 rounded border-l-4 border-l-orange-500 whitespace-pre-line">
                       {watchedValues.merchant_notes}
                     </div>
                   </div>
@@ -310,8 +313,11 @@ export function PreviewStep({
                 
                 {watchedValues.customer_notes && (
                   <div>
-                    <h4 className="font-medium text-sm mb-1">Customer Notes</h4>
-                    <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded whitespace-pre-line">
+                    <h4 className="font-medium text-sm mb-1 flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-blue-500" />
+                      {t('quotations.form.preview.customerNotes')}
+                    </h4>
+                    <div className="text-sm text-muted-foreground bg-blue-50/30 dark:bg-blue-900/10 p-3 rounded border-l-4 border-l-blue-500 whitespace-pre-line">
                       {watchedValues.customer_notes}
                     </div>
                   </div>
@@ -352,7 +358,7 @@ export function PreviewStep({
                 {/* Services */}
                 {serviceItems.length > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span>Services ({serviceItems.length})</span>
+                    <span>{t('quotations.form.preview.services')} ({serviceItems.length})</span>
                     <span>{formatCurrency(totals.serviceTotal)}</span>
                   </div>
                 )}
@@ -360,7 +366,7 @@ export function PreviewStep({
                 {/* Package */}
                 {selectedPackage && (
                   <div className="flex justify-between text-sm text-purple-600">
-                    <span>Package</span>
+                    <span>{t('quotations.form.preview.package')}</span>
                     <span>{formatCurrency(totals.packageTotal)}</span>
                   </div>
                 )}
@@ -368,21 +374,21 @@ export function PreviewStep({
                 <Separator />
 
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Subtotal</span>
+                  <span>{t('quotations.form.preview.subtotal')}</span>
                   <span>{formatCurrency(totals.baseTotal)}</span>
                 </div>
 
                 {/* Discounts */}
                 {totals.promotionDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Promotion Discount</span>
+                    <span>{t('quotations.form.preview.promotionDiscount')}</span>
                     <span>-{formatCurrency(totals.promotionDiscount)}</span>
                   </div>
                 )}
 
                 {totals.regularDiscount > 0 && (
                   <div className="flex justify-between text-sm text-red-600">
-                    <span>Discount ({watchedValues.discount_percentage}%)</span>
+                    <span>{t('quotations.form.preview.discount')} ({watchedValues.discount_percentage}%)</span>
                     <span>-{formatCurrency(totals.regularDiscount)}</span>
                   </div>
                 )}
@@ -400,7 +406,7 @@ export function PreviewStep({
                 {/* Tax */}
                 {watchedValues.tax_percentage > 0 && (
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Tax ({watchedValues.tax_percentage}%)</span>
+                    <span>{t('quotations.form.preview.tax')} ({watchedValues.tax_percentage}%)</span>
                     <span>+{formatCurrency(totals.taxAmount)}</span>
                   </div>
                 )}
@@ -408,7 +414,7 @@ export function PreviewStep({
                 <Separator className="my-3" />
 
                 <div className="flex justify-between font-bold text-lg bg-primary/5 p-3 rounded">
-                  <span>Total Amount</span>
+                  <span>{t('quotations.form.preview.totalAmount')}</span>
                   <span>{formatCurrency(totals.finalTotal)}</span>
                 </div>
               </div>
@@ -417,7 +423,7 @@ export function PreviewStep({
               <div className="pt-3 border-t space-y-2 text-xs text-muted-foreground">
                 <div className="flex justify-between">
                   <span>{t('quotations.form.preview.currency')}:</span>
-                  <span>Japanese Yen (JPY)</span>
+                  <span>{t('quotations.form.preview.japaneseYen')}</span>
                 </div>
                 {totals.totalDiscount > 0 && (
                   <div className="flex justify-between">

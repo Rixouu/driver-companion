@@ -1119,7 +1119,8 @@ export async function updateBookingAction(
     const fieldsToRemove = [
       'id', 'wp_id', 'created_at', 'booking_id', 'supabase_id', 
       'title', 'customer', 'vehicle', 'price', 'selectedVehicle',
-      'synced_at', 'updated_by' // These are managed by the system
+      'synced_at', 'updated_by', 'creator', 'service', 'ipps_payment_link', 'booking_status'
+      // These are managed by the system, computed fields, or joined data
     ];
     
     fieldsToRemove.forEach(field => {

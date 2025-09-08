@@ -142,7 +142,7 @@ interface QuotationItem {
 
 export default function QuoteAccessPage() {
   const params = useParams();
-  const token = params.token as string;
+  const token = params?.token as string;
   
   // Enhanced currency formatter with dynamic conversion
   const [selectedCurrency, setSelectedCurrency] = useState<string>('JPY');
@@ -339,17 +339,21 @@ export default function QuoteAccessPage() {
     setProgressValue(10);
     
     try {
-      // Simulate progress steps
+      // Realistic progress simulation based on actual operations
       const steps = [
-        { label: 'Updating status...', value: 30 },
-        { label: 'Recording activity...', value: 60 },
-        { label: 'Sending notifications...', value: 80 }
+        { label: 'Updating quotation status...', value: 20 },
+        { label: 'Generating PDF invoice...', value: 50 },
+        { label: 'Preparing email...', value: 70 },
+        { label: 'Sending notification...', value: 90 }
       ];
       
-      for (const step of steps) {
-        setProgressLabel(step.label);
-        setProgressValue(step.value);
-        await new Promise(resolve => setTimeout(resolve, 200));
+      // Simulate realistic timing - faster initial steps, slower for PDF/email
+      const delays = [100, 300, 150, 200]; // ms delays
+      
+      for (let i = 0; i < steps.length; i++) {
+        setProgressLabel(steps[i].label);
+        setProgressValue(steps[i].value);
+        await new Promise(resolve => setTimeout(resolve, delays[i]));
       }
       
       // Always use default BCC for customer side
@@ -408,17 +412,21 @@ export default function QuoteAccessPage() {
     setProgressValue(10);
     
     try {
-      // Simulate progress steps
+      // Realistic progress simulation based on actual operations
       const steps = [
-        { label: 'Updating status...', value: 30 },
-        { label: 'Recording activity...', value: 60 },
-        { label: 'Sending notifications...', value: 80 }
+        { label: 'Updating quotation status...', value: 20 },
+        { label: 'Generating PDF invoice...', value: 50 },
+        { label: 'Preparing email...', value: 70 },
+        { label: 'Sending notification...', value: 90 }
       ];
       
-      for (const step of steps) {
-        setProgressLabel(step.label);
-        setProgressValue(step.value);
-        await new Promise(resolve => setTimeout(resolve, 200));
+      // Simulate realistic timing - faster initial steps, slower for PDF/email
+      const delays = [100, 300, 150, 200]; // ms delays
+      
+      for (let i = 0; i < steps.length; i++) {
+        setProgressLabel(steps[i].label);
+        setProgressValue(steps[i].value);
+        await new Promise(resolve => setTimeout(resolve, delays[i]));
       }
       
       // Always use default BCC for customer side

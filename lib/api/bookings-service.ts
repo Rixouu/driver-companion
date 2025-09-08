@@ -1192,6 +1192,21 @@ async function syncSingleBooking(
         // which should be preserved unless explicitly selected
         updateData = { ...bookingData };
         
+        // Remove properties that shouldn't be updated directly
+        // These are fields that exist in the Booking type but not in the database schema
+        const fieldsToRemove = [
+          'id', 'wp_id', 'created_at', 'booking_id', 'supabase_id', 
+          'title', 'customer', 'vehicle', 'price', 'selectedVehicle',
+          'synced_at', 'updated_by', 'creator', 'service', 'ipps_payment_link', 'booking_status'
+          // These are managed by the system, computed fields, or joined data
+        ];
+        
+        fieldsToRemove.forEach(field => {
+          if (field in updateData) {
+            delete (updateData as any)[field];
+          }
+        });
+        
         // NEVER override driver_id (assignment) since that's managed by the app
         updateData.driver_id = existingBooking.driver_id;
         

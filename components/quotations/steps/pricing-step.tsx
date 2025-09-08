@@ -263,7 +263,7 @@ export function PricingStep({
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Calculator className="h-4 w-4 text-primary" />
-                    Pricing Configuration
+                    {t('quotations.form.pricing.configuration')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -293,7 +293,7 @@ export function PricingStep({
                   {/* Enhanced Currency Tooltip - Same as quotation details */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Live Exchange Rates</span>
+                      <span className="text-xs text-muted-foreground">{t('quotations.form.pricing.liveExchangeRates')}</span>
                       {currencyLoading ? (
                         <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
                       ) : currencyData ? (
@@ -399,13 +399,23 @@ export function PricingStep({
                                 max={100}
                                 step={1}
                                 placeholder="0"
-                                className="text-base pr-8"
+                                className="text-base pr-8 h-10"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                                value={field.value || '0'}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    field.onChange(0);
+                                  } else {
+                                    const numValue = parseInt(value, 10);
+                                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                                      field.onChange(numValue);
+                                    }
+                                  }
+                                }}
+                                value={field.value || ''}
                               />
                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <span className="text-muted-foreground text-sm">%</span>
+                                <span className="text-muted-foreground text-sm font-medium">%</span>
                               </div>
                             </div>
                           </FormControl>
@@ -433,13 +443,23 @@ export function PricingStep({
                                 max={100}
                                 step={1}
                                 placeholder="0"
-                                className="text-base pr-8"
+                                className="text-base pr-8 h-10"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                                value={field.value || '0'}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    field.onChange(0);
+                                  } else {
+                                    const numValue = parseInt(value, 10);
+                                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                                      field.onChange(numValue);
+                                    }
+                                  }
+                                }}
+                                value={field.value || ''}
                               />
                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <span className="text-muted-foreground text-sm">%</span>
+                                <span className="text-muted-foreground text-sm font-medium">%</span>
                               </div>
                             </div>
                           </FormControl>
@@ -450,30 +470,30 @@ export function PricingStep({
                                 <div className="space-y-2">
                                   <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
                                     <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                                    Tax Guidelines & Recommendations
+                                    {t('quotations.form.pricing.taxGuidelines')}
                                   </h4>
                                   <div className="space-y-2 text-xs text-blue-800 dark:text-blue-200">
                                     <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-blue-500">
-                                      <p className="font-medium">🇯🇵 Japan Consumption Tax</p>
-                                      <p className="text-xs">Standard rate: <span className="font-semibold">10%</span> (8% reduced for specific goods)</p>
-                                      <p className="text-xs">Transportation services: <span className="font-semibold">10%</span></p>
+                                      <p className="font-medium">🇯🇵 {t('quotations.form.pricing.japanConsumptionTax')}</p>
+                                      <p className="text-xs">{t('quotations.form.pricing.standardRate')}: <span className="font-semibold">10%</span> ({t('quotations.form.pricing.reducedRate')})</p>
+                                      <p className="text-xs">{t('quotations.form.pricing.transportationServices')}: <span className="font-semibold">10%</span></p>
                                     </div>
                                     <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-green-500">
-                                      <p className="font-medium">🇹🇭 Thailand VAT</p>
-                                      <p className="text-xs">Standard rate: <span className="font-semibold">7%</span></p>
-                                      <p className="text-xs">Tourism services: <span className="font-semibold">7%</span></p>
+                                      <p className="font-medium">🇹🇭 {t('quotations.form.pricing.thailandVAT')}</p>
+                                      <p className="text-xs">{t('quotations.form.pricing.standardRate')}: <span className="font-semibold">7%</span></p>
+                                      <p className="text-xs">{t('quotations.form.pricing.tourismServices')}: <span className="font-semibold">7%</span></p>
                                     </div>
                                     <div className="p-2 bg-white/60 dark:bg-blue-900/20 rounded border-l-4 border-l-purple-500">
-                                      <p className="font-medium">🌍 International Services</p>
-                                      <p className="text-xs">Cross-border services may have different tax implications</p>
-                                      <p className="text-xs">Consult with tax professionals for specific cases</p>
+                                      <p className="font-medium">🌍 {t('quotations.form.pricing.internationalServices')}</p>
+                                      <p className="text-xs">{t('quotations.form.pricing.crossBorderServices')}</p>
+                                      <p className="text-xs">{t('quotations.form.pricing.consultTaxProfessionals')}</p>
                                     </div>
                                   </div>
                                 </div>
                                 
                                 <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
                                   <p className="text-xs text-blue-700 dark:text-blue-300 mb-2 font-medium">
-                                    Quick Apply:
+                                    {t('quotations.form.pricing.quickApply')}
                                   </p>
                                   <div className="flex flex-wrap gap-2">
                                     <Button 
@@ -483,7 +503,7 @@ export function PricingStep({
                                       onClick={() => field.onChange(10)}
                                       className="text-xs h-7 px-3 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900/30"
                                     >
-                                      Apply 10% (Japan)
+                                      {t('quotations.form.pricing.applyJapanTax')}
                                     </Button>
                                     <Button 
                                       type="button" 
@@ -492,7 +512,7 @@ export function PricingStep({
                                       onClick={() => field.onChange(7)}
                                       className="text-xs h-7 px-3 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-600 dark:text-green-300 dark:hover:bg-green-900/30"
                                     >
-                                      Apply 7% (Thailand)
+                                      {t('quotations.form.pricing.applyThailandTax')}
                                     </Button>
                                     <Button 
                                       type="button" 
@@ -501,7 +521,7 @@ export function PricingStep({
                                       onClick={() => field.onChange(0)}
                                       className="text-xs h-7 px-3 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-900/30"
                                     >
-                                      No Tax (0%)
+                                      {t('quotations.form.pricing.noTax')}
                                     </Button>
                                   </div>
                                 </div>
@@ -543,7 +563,7 @@ export function PricingStep({
                     
                     {selectedPackage.items && selectedPackage.items.length > 0 && (
                       <div className="mt-2">
-                        <p className="text-xs font-medium text-purple-600 mb-1">Included Services:</p>
+                        <p className="text-xs font-medium text-purple-600 mb-1">{t('quotations.form.pricing.includedServices')}</p>
                         <div className="grid gap-1">
                           {selectedPackage.items.map((item, index) => (
                             <div key={index} className="text-xs text-purple-600">
@@ -652,12 +672,12 @@ export function PricingStep({
                                 </div>
                                 <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
                                   <div className="flex justify-between text-sm text-purple-600 mb-2">
-                                    <span>Package Base Price</span>
+                                    <span>{t('quotations.form.pricing.packageBasePrice')}</span>
                                     <span className="font-medium">{formatCurrency(selectedPackage.base_price)}</span>
                                   </div>
                                   {selectedPackage.items && selectedPackage.items.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-purple-600 mb-2">Included Services:</p>
+                                      <p className="text-xs font-medium text-purple-600 mb-2">{t('quotations.form.pricing.includedServices')}</p>
                                       <div className="space-y-1">
                                         {selectedPackage.items.map((item, index) => (
                                           <div key={index} className="text-xs text-purple-600 flex justify-between">
@@ -708,7 +728,7 @@ export function PricingStep({
                               <>
                                 <Separator />
                                 <div className="flex justify-between text-sm font-medium">
-                                  <span>After Discounts</span>
+                                  <span>{t('quotations.form.pricing.afterDiscounts')}</span>
                                   <span>{formatCurrency(subtotal)}</span>
                                 </div>
                               </>
@@ -730,7 +750,7 @@ export function PricingStep({
                             {totalDiscountAmount > 0 && (
                               <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                                 <div className="flex justify-between items-center mb-2">
-                                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Total Savings</span>
+                                  <span className="text-sm font-medium text-green-700 dark:text-green-300">{t('quotations.form.pricing.totalSavings')}</span>
                                   <span className="text-sm font-bold text-green-700 dark:text-green-300">{formatCurrency(totalDiscountAmount)}</span>
                                 </div>
                                 <Progress 
@@ -738,7 +758,7 @@ export function PricingStep({
                                   className="h-2"
                                 />
                                 <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                  {((totalDiscountAmount / baseTotal) * 100).toFixed(1)}% savings
+                                  {((totalDiscountAmount / baseTotal) * 100).toFixed(1)}% {t('quotations.form.pricing.savings')}
                                 </div>
                               </div>
                             )}
@@ -918,7 +938,7 @@ export function PricingStep({
                       {t('quotations.form.timePricing.title')}
                     </CardTitle>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">Enable</span>
+                      <span className="text-sm text-muted-foreground">{t('quotations.form.pricing.enable')}</span>
                       <Switch
                         checked={timeBasedPricingEnabled}
                         onCheckedChange={setTimeBasedPricingEnabled}
@@ -933,33 +953,33 @@ export function PricingStep({
                       timeBasedPricingEnabled ? "bg-green-600" : "bg-gray-400"
                     )} />
                     <span className="text-sm font-medium">
-                      {timeBasedPricingEnabled ? "Time-based pricing is active" : "Time-based pricing is disabled"}
+                      {timeBasedPricingEnabled ? t('quotations.form.pricing.timeBasedActive') : t('quotations.form.pricing.timeBasedDisabled')}
                     </span>
                   </div>
                   
                   <p className="text-sm text-muted-foreground">
                     {timeBasedPricingEnabled 
-                      ? "Pricing will automatically adjust based on pickup time and date according to predefined rules."
-                      : "Standard pricing will be applied regardless of pickup time. Time-based adjustments are disabled."
+                      ? t('quotations.form.pricing.timeBasedDescriptionActive')
+                      : t('quotations.form.pricing.timeBasedDescriptionDisabled')
                     }
                   </p>
                   
                   <div className="pt-3 border-t">
                     <div className="text-sm">
-                      <strong>Current Status:</strong> {' '}
+                      <strong>{t('quotations.form.pricing.currentStatus')}</strong> {' '}
                       {timeBasedPricingEnabled ? (
                         form.watch('pickup_date') && form.watch('pickup_time') ? (
                           <Badge variant="default" className="bg-green-600">
-                            Active - adjustments will be applied
+                            {t('quotations.form.pricing.activeAdjustments')}
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="border-amber-500 text-amber-600">
-                            Ready - awaiting pickup date/time
+                            {t('quotations.form.pricing.readyAwaiting')}
                           </Badge>
                         )
                       ) : (
                         <Badge variant="secondary">
-                          Disabled - no time adjustments
+                          {t('quotations.form.pricing.disabledNoTime')}
                         </Badge>
                       )}
                     </div>
@@ -974,7 +994,7 @@ export function PricingStep({
                 <CardHeader className="pb-4">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
-                    Pricing Rules
+                    {t('quotations.form.pricing.pricingRules')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -983,42 +1003,42 @@ export function PricingStep({
                       <div className="p-3 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-900/20">
                         <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300 font-medium text-sm">
                           <TrendingUp className="h-4 w-4" />
-                          Peak Hour Surcharges
+                          {t('quotations.form.pricing.peakHourSurcharges')}
                         </div>
                         <ul className="text-xs text-orange-600 dark:text-orange-400 mt-2 space-y-1">
-                          <li>• Morning Rush (07:00-09:00): +20%</li>
-                          <li>• Evening Rush (17:00-19:00): +25%</li>
-                          <li>• Night Service (22:00-06:00): +25%</li>
+                          <li>• {t('quotations.form.pricing.morningRush')}</li>
+                          <li>• {t('quotations.form.pricing.eveningRush')}</li>
+                          <li>• {t('quotations.form.pricing.nightService')}</li>
                         </ul>
                       </div>
 
                       <div className="p-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20">
                         <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-medium text-sm">
                           <Tag className="h-4 w-4" />
-                          Discount Periods
+                          {t('quotations.form.pricing.discountPeriods')}
                         </div>
                         <ul className="text-xs text-green-600 dark:text-green-400 mt-2 space-y-1">
-                          <li>• Early Morning (06:00-08:00 weekdays): -25%</li>
-                          <li>• Off-peak hours (10:00-16:00): -10%</li>
+                          <li>• {t('quotations.form.pricing.earlyMorning')}</li>
+                          <li>• {t('quotations.form.pricing.offPeakHours')}</li>
                         </ul>
                       </div>
 
                       <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/20">
                         <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium text-sm">
                           <Package className="h-4 w-4" />
-                          Special Adjustments
+                          {t('quotations.form.pricing.specialAdjustments')}
                         </div>
                         <ul className="text-xs text-blue-600 dark:text-blue-400 mt-2 space-y-1">
-                          <li>• Weekend pricing adjustments</li>
-                          <li>• Holiday special pricing</li>
-                          <li>• Seasonal rate variations</li>
+                          <li>• {t('quotations.form.pricing.weekendPricing')}</li>
+                          <li>• {t('quotations.form.pricing.holidaySpecial')}</li>
+                          <li>• {t('quotations.form.pricing.seasonalRate')}</li>
                         </ul>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">Enable time-based pricing to see active rules</p>
+                      <p className="text-sm">{t('quotations.form.pricing.enableTimeBased')}</p>
                     </div>
                   )}
                 </CardContent>
@@ -1029,10 +1049,9 @@ export function PricingStep({
                   <div className="flex items-start gap-3">
                     <Timer className="h-5 w-5 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-foreground mb-2">How Time-based Pricing Works</p>
+                      <p className="text-sm font-medium text-foreground mb-2">{t('quotations.form.pricing.howTimeBasedWorks')}</p>
                       <p className="text-sm text-muted-foreground">
-                        When enabled, the system automatically applies pricing adjustments based on your selected pickup time and date. 
-                        These adjustments are calculated in real-time and displayed in your service breakdown.
+                        {t('quotations.form.pricing.timeBasedDescription')}
                       </p>
                     </div>
                   </div>

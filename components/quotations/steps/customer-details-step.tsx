@@ -106,103 +106,103 @@ const countries = [
 ];
 
 // Address field configurations based on country
-const getAddressConfig = (country: string) => {
+const getAddressConfig = (country: string, t: any) => {
   switch (country) {
     case 'Japan':
       return {
-        postalCodeLabel: 'Postal Code (〒)',
+        postalCodeLabel: t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: '100-0001',
-        stateLabel: 'Prefecture',
+        stateLabel: t('quotations.form.billing.prefecture'),
         statePlaceholder: 'Tokyo',
-        cityLabel: 'City/Ward',
+        cityLabel: t('quotations.form.billing.cityWard'),
         cityPlaceholder: 'Chiyoda-ku',
-        streetLabel: 'Street Address',
-        streetNumberLabel: 'Building/Apartment',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.buildingNumber'),
         addressOrder: ['postal', 'state', 'city', 'street', 'number']
       };
     case 'United States':
     case 'Canada':
       return {
-        postalCodeLabel: country === 'United States' ? 'ZIP Code' : 'Postal Code',
+        postalCodeLabel: country === 'United States' ? t('quotations.form.billing.zipCode') : t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: country === 'United States' ? '90210' : 'K1A 0A6',
-        stateLabel: country === 'United States' ? 'State' : 'Province',
+        stateLabel: country === 'United States' ? t('quotations.form.billing.provinceState') : t('quotations.form.billing.provinceState'),
         statePlaceholder: country === 'United States' ? 'California' : 'Ontario',
-        cityLabel: 'City',
+        cityLabel: t('quotations.form.billing.districtCity'),
         cityPlaceholder: 'Los Angeles',
-        streetLabel: 'Street Address',
-        streetNumberLabel: 'Apt/Suite',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.unitApt'),
         addressOrder: ['street', 'number', 'city', 'state', 'postal']
       };
     case 'United Kingdom':
       return {
-        postalCodeLabel: 'Postcode',
+        postalCodeLabel: t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: 'SW1A 1AA',
-        stateLabel: 'County',
+        stateLabel: t('quotations.form.billing.county'),
         statePlaceholder: 'London',
-        cityLabel: 'City/Town',
+        cityLabel: t('quotations.form.billing.cityTown'),
         cityPlaceholder: 'Westminster',
-        streetLabel: 'Street Address',
-        streetNumberLabel: 'Building Number',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.buildingNumber'),
         addressOrder: ['number', 'street', 'city', 'state', 'postal']
       };
     case 'Germany':
       return {
-        postalCodeLabel: 'Postleitzahl (PLZ)',
+        postalCodeLabel: t('quotations.form.billing.postleitzahl'),
         postalCodePlaceholder: '10115',
-        stateLabel: 'State (Bundesland)',
+        stateLabel: t('quotations.form.billing.stateBundesland'),
         statePlaceholder: 'Berlin',
-        cityLabel: 'City',
+        cityLabel: t('quotations.form.billing.districtCity'),
         cityPlaceholder: 'Berlin',
-        streetLabel: 'Street',
-        streetNumberLabel: 'House Number',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.houseNumber'),
         addressOrder: ['street', 'number', 'postal', 'city', 'state']
       };
     case 'Hong Kong':
       return {
-        postalCodeLabel: 'Postal Code',
+        postalCodeLabel: t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: '000000',
-        stateLabel: 'District',
+        stateLabel: t('quotations.form.billing.district'),
         statePlaceholder: 'Central and Western',
-        cityLabel: 'Area',
+        cityLabel: t('quotations.form.billing.area'),
         cityPlaceholder: 'Central',
-        streetLabel: 'Street',
-        streetNumberLabel: 'Building',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.building'),
         addressOrder: ['street', 'number', 'city', 'state', 'postal']
       };
     case 'China':
       return {
-        postalCodeLabel: 'Postal Code (邮编)',
+        postalCodeLabel: t('quotations.form.billing.postalCodeChinese'),
         postalCodePlaceholder: '100000',
-        stateLabel: 'Province (省)',
+        stateLabel: t('quotations.form.billing.provinceChinese'),
         statePlaceholder: 'Beijing',
-        cityLabel: 'City (市)',
+        cityLabel: t('quotations.form.billing.cityChinese'),
         cityPlaceholder: 'Beijing',
-        streetLabel: 'Street (街道)',
-        streetNumberLabel: 'Building (楼)',
+        streetLabel: t('quotations.form.billing.streetChinese'),
+        streetNumberLabel: t('quotations.form.billing.buildingChinese'),
         addressOrder: ['state', 'city', 'street', 'number', 'postal']
       };
     case 'Australia':
       return {
-        postalCodeLabel: 'Postcode',
+        postalCodeLabel: t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: '2000',
-        stateLabel: 'State/Territory',
+        stateLabel: t('quotations.form.billing.stateTerritory'),
         statePlaceholder: 'NSW',
-        cityLabel: 'Suburb',
+        cityLabel: t('quotations.form.billing.suburb'),
         cityPlaceholder: 'Sydney',
-        streetLabel: 'Street Address',
-        streetNumberLabel: 'Unit/Apt',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.unitApt'),
         addressOrder: ['number', 'street', 'city', 'state', 'postal']
       };
     default: // Thailand and others
       return {
-        postalCodeLabel: 'Postal Code',
+        postalCodeLabel: t('quotations.form.billing.postalCode'),
         postalCodePlaceholder: '10100',
-        stateLabel: 'Province/State',
+        stateLabel: t('quotations.form.billing.provinceState'),
         statePlaceholder: 'Bangkok',
-        cityLabel: 'District/City',
+        cityLabel: t('quotations.form.billing.districtCity'),
         cityPlaceholder: 'Pathumwan',
-        streetLabel: 'Street Name',
-        streetNumberLabel: 'House/Building Number',
+        streetLabel: t('quotations.form.billing.streetName'),
+        streetNumberLabel: t('quotations.form.billing.houseBuildingNumber'),
         addressOrder: ['number', 'street', 'city', 'state', 'postal']
       };
   }
@@ -217,7 +217,7 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
   
   // Watch the selected country to adapt address fields
   const selectedCountry = form.watch('billing_country') || 'Thailand';
-  const addressConfig = getAddressConfig(selectedCountry);
+  const addressConfig = getAddressConfig(selectedCountry, t);
 
   return (
     <div className="space-y-6">
@@ -469,7 +469,7 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
                     className="w-full justify-between"
                   >
                     <span className={field.value ? 'font-medium' : 'text-muted-foreground'}>
-                      {field.value ? `${getCountryFlag(field.value)} ${field.value}` : 'Select country...'}
+                      {field.value ? `${getCountryFlag(field.value)} ${field.value}` : t('quotations.form.billing.selectCountry')}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -480,7 +480,7 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
                   <div className="flex items-center border-b px-3">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     <CommandInput 
-                      placeholder="Search countries or type custom name..." 
+                      placeholder={t('quotations.form.billing.searchCountries')} 
                       value={searchValue}
                       onValueChange={setSearchValue}
                       className="border-0 focus:ring-0 px-0"
@@ -500,7 +500,7 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
                     <CommandEmpty>
                       <div className="p-4 text-center">
                         <p className="text-sm text-muted-foreground mb-2">
-                          No country found. You can type a custom country name.
+                          {t('quotations.form.billing.noCountryFound')}
                         </p>
                         <Button
                           variant="outline"
@@ -515,17 +515,17 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
                           }}
                           disabled={!searchValue.trim()}
                         >
-                          Use "{searchValue.trim() || 'Custom Country'}"
+                          {t('quotations.form.billing.useCustomCountry', { country: searchValue.trim() || t('quotations.form.billing.customCountry') })}
                         </Button>
                         <p className="text-xs text-muted-foreground mt-2">
-                          This will be saved as a custom country entry.
+                          {t('quotations.form.billing.customCountrySaved')}
                         </p>
                       </div>
                     </CommandEmpty>
                     
                     {/* Recently used countries */}
                     {!searchValue && (
-                      <CommandGroup heading="Recently Used">
+                      <CommandGroup heading={t('quotations.form.billing.recentlyUsed')}>
                         {recentlyUsedCountries
                           .filter(country => countries.some(c => c.value === country))
                           .map((countryValue) => {
@@ -556,7 +556,7 @@ export function CustomerDetailsStep({ form }: CustomerDetailsStepProps) {
                     )}
                     
                     {/* All countries */}
-                    <CommandGroup heading={searchValue ? "Search Results" : "All Countries"}>
+                    <CommandGroup heading={searchValue ? t('quotations.form.billing.searchResults') : t('quotations.form.billing.allCountries')}>
                       {countries
                         .filter(country => 
                           country.label.toLowerCase().includes(searchValue.toLowerCase()) ||

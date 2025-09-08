@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
-import { getDictionary } from '@/lib/dictionaries';
+import { getDictionary } from '@/lib/i18n/server';
 import { Resend } from 'resend';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
-import { generateEmailHtml } from '@/lib/email-templates';
-import type { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
+import { getTeamFooterHtml } from '@/lib/team-addresses';
+
+// Force dynamic rendering to avoid cookie issues
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   console.log('==================== OPTIMIZED APPROVE ROUTE START ====================');
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
       // Get basic quotation for status check
       supabase
         .from('quotations')
-        .select('id, status, last_email_sent_at')
+        .select('id, status')
         .eq('id', id)
         .single(),
       
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
         .select('selected_package_id, package_id, pricing_package_id')
         .eq('id', id)
         .single()
-        .then(async (result) => {
+        .then(async (result: any) => {
           if (result.data) {
             const packageId = result.data.selected_package_id || result.data.package_id || result.data.pricing_package_id;
             if (packageId) {
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
         .select('selected_promotion_code, promotion_code')
         .eq('id', id)
         .single()
-        .then(async (result) => {
+        .then(async (result: any) => {
           if (result.data) {
             const promotionCode = result.data.selected_promotion_code || result.data.promotion_code;
             if (promotionCode) {
@@ -123,23 +126,12 @@ export async function POST(request: NextRequest) {
     console.log('Optimized approve route - Parallel data fetching complete');
 
     // Check if quotation is already approved
-    if (quotation.status === 'approved' && !skipStatusCheck) {
+    if (quotation && quotation.status === 'approved' && !skipStatusCheck) {
       console.log('Optimized approve route - Quotation already approved');
       return NextResponse.json(
         { error: 'Quotation is already approved' },
         { status: 400 }
       );
-    }
-    
-    // Check for recent email to avoid duplicates
-    const lastEmailSent = new Date((quotation as any).last_email_sent_at || 0);
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    
-    if (quotation.status === 'approved' && lastEmailSent > fiveMinutesAgo) {
-      console.log('Optimized approve route - Skipping duplicate email, one was sent recently');
-      return NextResponse.json({ 
-        message: 'Quotation already approved, avoiding duplicate email notification'
-      }, { status: 200 });
     }
     
     // Ensure we have a valid email address
@@ -235,15 +227,24 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const [updatedQuotation, emailConfig] = emailPreparation.value;
+    const [updatedQuotation, emailConfig] = emailPreparation.status === 'fulfilled' ? emailPreparation.value : [null, null];
     console.log('Optimized approve route - Parallel processing complete');
+
+    // Validate email config
+    if (!emailConfig) {
+      console.error('Optimized approve route - Email configuration failed');
+      return NextResponse.json({ 
+        message: 'Quotation approved, but failed to prepare email configuration',
+        error: 'Email configuration failed'
+      }, { status: 200 });
+    }
 
     // OPTIMIZATION 3: Parallel PDF generation and email preparation
     console.log('Optimized approve route - Starting PDF generation and email preparation');
     const [pdfResult, emailHtmlResult] = await Promise.allSettled([
       // Generate PDF
       generateOptimizedQuotationPDF(
-        updatedQuotation.data || fullQuotation, 
+        updatedQuotation?.data || fullQuotation, 
         'en', 
         selectedPackage, 
         selectedPromotion
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
           fullQuotation, 
           emailConfig.appUrl, 
           notes, 
-          fullQuotation.team_location || 'thailand'
+          (fullQuotation.team_location as 'japan' | 'thailand') || 'thailand'
         )
       )
     ]);
@@ -272,8 +273,8 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    const pdfBuffer = pdfResult.value;
-    const emailHtml = emailHtmlResult.value;
+    const pdfBuffer = pdfResult.status === 'fulfilled' ? pdfResult.value : null;
+    const emailHtml = emailHtmlResult.status === 'fulfilled' ? emailHtmlResult.value : '';
 
     console.log('Optimized approve route - PDF and email preparation complete');
 
@@ -326,15 +327,8 @@ export async function POST(request: NextRequest) {
       const emailId = emailData?.id || 'unknown';
       console.log(`Optimized approve route - Email sent successfully! ID: ${emailId}`);
       
-      // Update last_email_sent_at (non-blocking)
-      supabase
-        .from('quotations')
-        .update({ 
-          last_email_sent_at: new Date().toISOString() 
-        } as any)
-        .eq('id', id)
-        .then(() => console.log('Optimized approve route - Email timestamp updated'))
-        .catch(err => console.error('Optimized approve route - Error updating email timestamp:', err));
+      // Email sent successfully - no need to update timestamp as column doesn't exist
+      console.log('Optimized approve route - Email sent successfully');
       
       clearTimeout(timeoutId);
       return NextResponse.json({ 
@@ -361,4 +355,62 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to generate approval email HTML (consistent with other optimized routes)
+function generateEmailHtml(language: string, customerName: string, formattedQuotationId: string, quotation: any, appUrl: string, notes?: string, teamLocation: 'japan' | 'thailand' = 'thailand') {
+  const isJapanese = language === 'ja';
+  
+  const translations = {
+    en: {
+      subject: 'Your Quotation has been Approved',
+      greeting: `Dear ${customerName},`,
+      message: 'Great news! Your quotation has been approved.',
+      details: 'Please find your approved quotation attached to this email.',
+      notes: notes ? `Additional Notes: ${notes}` : '',
+      footer: 'Thank you for choosing our services.',
+      regards: 'Best regards,',
+      company: 'Driver (Thailand) Company Limited',
+      team: teamLocation === 'japan' ? 'Japan Team' : 'Thailand Team'
+    },
+    ja: {
+      subject: 'お見積もりが承認されました',
+      greeting: `${customerName}様`,
+      message: 'お見積もりが承認されました。',
+      details: '承認されたお見積もりを添付いたします。',
+      notes: notes ? `追加メモ: ${notes}` : '',
+      footer: 'ご利用いただき、ありがとうございます。',
+      regards: '敬具',
+      company: 'Driver (Thailand) Company Limited',
+      team: teamLocation === 'japan' ? '日本チーム' : 'タイチーム'
+    }
+  };
+
+  const t = translations[isJapanese ? 'ja' : 'en'];
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${t.subject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2c5aa0;">${t.subject}</h2>
+        <p>${t.greeting}</p>
+        <p>${t.message}</p>
+        <p>${t.details}</p>
+        ${t.notes ? `<p><strong>${t.notes}</strong></p>` : ''}
+        <p>${t.footer}</p>
+        <hr style="margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          ${t.regards}<br>
+          ${t.team}<br>
+          ${t.company}
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
 }

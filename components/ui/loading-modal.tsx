@@ -157,17 +157,16 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
               <Progress 
                 value={value} 
                 className="h-3 bg-muted/50"
-                // @ts-ignore - custom className for progress bar color
-                style={{
-                  '--progress-background': `hsl(var(--${config.progressColor.replace('bg-', '')}))`
-                }}
               />
               {/* Progress glow effect */}
               {value > 0 && (
-                <div className={cn(
-                  "absolute top-0 left-0 h-3 rounded-full opacity-30 blur-sm",
-                  config.progressColor
-                )} style={{ width: `${value}%` }} />
+                <div 
+                  className={cn(
+                    "absolute top-0 left-0 h-3 rounded-full opacity-30 blur-sm",
+                    config.progressColor
+                  )} 
+                  style={{ width: `${value}%` }} 
+                />
               )}
             </div>
           </div>

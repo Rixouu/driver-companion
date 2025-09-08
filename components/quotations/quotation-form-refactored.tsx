@@ -24,6 +24,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useMediaQuery } from '@/lib/hooks/use-media-query';
 import LoadingSpinner from '@/components/shared/loading-spinner';
 import { TeamSwitcher } from '@/components/team-switcher';
+import LoadingModal from '@/components/ui/loading-modal';
 
 // Import step components
 import { CustomerDetailsStep } from './steps/customer-details-step';
@@ -421,6 +422,11 @@ export default function QuotationFormRefactored({
         const pct = Math.min(95, Math.round((completedSteps / totalSteps) * 100));
         setProgressValue(pct);
         setProgressLabel(label);
+        
+        // Update steps
+        setProgressSteps(prev => prev.map(step => 
+          step.label === label ? { ...step, completed: true } : step
+        ));
       };
 
       if (serviceItems.length > 0) {
@@ -457,16 +463,47 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            // Set up email progress modal
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps([
+              { label: 'Preparing email data', value: 25 },
+              { label: 'Generating PDF', value: 50 },
+              { label: 'Sending email', value: 75 },
+              { label: 'Finalizing', value: 95 }
+            ]);
+            
+            // Start API call immediately
+            const emailPromise = fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
             
-            if (!emailResponse.ok) {
-              throw new Error('Failed to send quotation email');
-            }
+            // Simulate progress in parallel
+            const progressInterval = setInterval(() => {
+              setProgressValue(prev => {
+                if (prev >= 95) return prev;
+                return prev + Math.random() * 10;
+              });
+            }, 200);
             
-            advance('Emailing customer');
+            try {
+              const emailResponse = await emailPromise;
+              
+              if (!emailResponse.ok) {
+                throw new Error('Failed to send quotation email');
+              }
+              
+              // Complete progress
+              clearInterval(progressInterval);
+              setProgressValue(100);
+              setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
+              
+              advance('Emailing customer');
+            } catch (error) {
+              clearInterval(progressInterval);
+              throw error;
+            }
             // Show success toast after sending
             toast({ 
               title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully',
@@ -487,16 +524,47 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            // Set up email progress modal
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps([
+              { label: 'Preparing email data', value: 25 },
+              { label: 'Generating PDF', value: 50 },
+              { label: 'Sending email', value: 75 },
+              { label: 'Finalizing', value: 95 }
+            ]);
+            
+            // Start API call immediately
+            const emailPromise = fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
             
-            if (!emailResponse.ok) {
-              throw new Error('Failed to send quotation email');
-            }
+            // Simulate progress in parallel
+            const progressInterval = setInterval(() => {
+              setProgressValue(prev => {
+                if (prev >= 95) return prev;
+                return prev + Math.random() * 10;
+              });
+            }, 200);
             
-            advance('Emailing customer');
+            try {
+              const emailResponse = await emailPromise;
+              
+              if (!emailResponse.ok) {
+                throw new Error('Failed to send quotation email');
+              }
+              
+              // Complete progress
+              clearInterval(progressInterval);
+              setProgressValue(100);
+              setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
+              
+              advance('Emailing customer');
+            } catch (error) {
+              clearInterval(progressInterval);
+              throw error;
+            }
             // Show success toast after sending
             toast({ 
               title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
@@ -517,16 +585,47 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            // Set up email progress modal
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps([
+              { label: 'Preparing email data', value: 25 },
+              { label: 'Generating PDF', value: 50 },
+              { label: 'Sending email', value: 75 },
+              { label: 'Finalizing', value: 95 }
+            ]);
+            
+            // Start API call immediately
+            const emailPromise = fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
             
-            if (!emailResponse.ok) {
-              throw new Error('Failed to send quotation email');
-            }
+            // Simulate progress in parallel
+            const progressInterval = setInterval(() => {
+              setProgressValue(prev => {
+                if (prev >= 95) return prev;
+                return prev + Math.random() * 10;
+              });
+            }, 200);
             
-            advance('Emailing customer');
+            try {
+              const emailResponse = await emailPromise;
+              
+              if (!emailResponse.ok) {
+                throw new Error('Failed to send quotation email');
+              }
+              
+              // Complete progress
+              clearInterval(progressInterval);
+              setProgressValue(100);
+              setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
+              
+              advance('Emailing customer');
+            } catch (error) {
+              clearInterval(progressInterval);
+              throw error;
+            }
             // Show success toast after sending
             toast({ 
               title: t('quotations.notifications.updateAndSendSuccess') || 'Updated and sent successfully',
@@ -545,16 +644,47 @@ export default function QuotationFormRefactored({
             formData.append('include_details', 'true');
             formData.append('bcc_emails', bccEmails);
             
-            const emailResponse = await fetch('/api/quotations/send-email-optimized', {
+            // Set up email progress modal
+            setProgressVariant('email');
+            setProgressTitle('Sending Quotation');
+            setProgressSteps([
+              { label: 'Preparing email data', value: 25 },
+              { label: 'Generating PDF', value: 50 },
+              { label: 'Sending email', value: 75 },
+              { label: 'Finalizing', value: 95 }
+            ]);
+            
+            // Start API call immediately
+            const emailPromise = fetch('/api/quotations/send-email-optimized', {
               method: 'POST',
               body: formData,
             });
             
-            if (!emailResponse.ok) {
-              throw new Error('Failed to send quotation email');
-            }
+            // Simulate progress in parallel
+            const progressInterval = setInterval(() => {
+              setProgressValue(prev => {
+                if (prev >= 95) return prev;
+                return prev + Math.random() * 10;
+              });
+            }, 200);
             
-            advance('Emailing customer');
+            try {
+              const emailResponse = await emailPromise;
+              
+              if (!emailResponse.ok) {
+                throw new Error('Failed to send quotation email');
+              }
+              
+              // Complete progress
+              clearInterval(progressInterval);
+              setProgressValue(100);
+              setProgressSteps(prev => prev.map(step => ({ ...step, completed: true })));
+              
+              advance('Emailing customer');
+            } catch (error) {
+              clearInterval(progressInterval);
+              throw error;
+            }
             // Show success toast after sending
             toast({ 
               title: t('quotations.notifications.sendSuccess') || 'Quotation sent successfully',
@@ -611,6 +741,12 @@ export default function QuotationFormRefactored({
   const [progressValue, setProgressValue] = useState(0);
   const [progressTitle, setProgressTitle] = useState('Saving');
   const [progressLabel, setProgressLabel] = useState('Starting...');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
+  const [progressSteps, setProgressSteps] = useState<Array<{
+    label: string;
+    value: number;
+    completed?: boolean;
+  }>>([]);
   
   // Team selection state
   const [currentTeam, setCurrentTeam] = useState<'japan' | 'thailand'>(
@@ -823,22 +959,17 @@ export default function QuotationFormRefactored({
         </form>
       </Form>
 
-      {/* Progress Modal */}
-      <Dialog open={progressOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{progressTitle}</DialogTitle>
-            <DialogDescription className="sr-only">Saving quotation</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Progress value={progressValue} />
-            <div className="text-sm text-muted-foreground flex items-center justify-between">
-              <span>{progressLabel}</span>
-              <span className="font-medium text-foreground">{progressValue}%</span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Progress Modal */}
+      <LoadingModal
+        open={progressOpen}
+        title={progressTitle}
+        label={progressLabel}
+        value={progressValue}
+        variant={progressVariant}
+        showSteps={progressVariant === 'email'}
+        steps={progressSteps}
+        onOpenChange={setProgressOpen}
+      />
 
       {/* BCC Dialog */}
       <Dialog open={isBccDialogOpen} onOpenChange={setIsBccDialogOpen}>

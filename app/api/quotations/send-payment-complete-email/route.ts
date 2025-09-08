@@ -139,6 +139,8 @@ function generateEmailHtml(language: string, customerName: string, formattedQuot
                     
                     <p>${isJapanese ? 'お支払いが正常に完了いたしました。' : 'Your payment has been completed successfully.'}</p>
                     
+                    <p>${isJapanese ? '請求書と領収書を添付いたします。' : 'Please find the invoice and receipt attached to this email.'}</p>
+                    
                     <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
                       <h3 style="margin:0 0 12px 0; color:#32325D;">${isJapanese ? '請求書詳細' : 'Invoice Details'}</h3>
                       <p style="margin:0; color:#525f7f;">
@@ -377,6 +379,43 @@ export async function POST(request: NextRequest) {
       // Parse BCC emails
       const bccEmailList = bcc_emails.split(',').map((email: string) => email.trim()).filter((email: string) => email);
       
+      // Prepare attachments (invoice + receipt if available)
+      const attachments = [];
+      
+      // Add invoice PDF
+      if (pdfBuffer) {
+        attachments.push({
+          filename: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}-payment-complete.pdf`,
+          content: pdfBuffer.toString('base64')
+        });
+      }
+      
+      // Add receipt if available
+      if (quotation.receipt_url) {
+        try {
+          console.log('🔄 [PAYMENT COMPLETE EMAIL ROUTE] Fetching receipt from URL:', quotation.receipt_url);
+          const receiptResponse = await fetch(quotation.receipt_url);
+          if (receiptResponse.ok) {
+            const receiptBuffer = await receiptResponse.arrayBuffer();
+            const receiptBase64 = Buffer.from(receiptBuffer).toString('base64');
+            
+            // Extract filename from URL or use default
+            const urlParts = quotation.receipt_url.split('/');
+            const filename = urlParts[urlParts.length - 1] || `receipt-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}.pdf`;
+            
+            attachments.push({
+              filename: filename,
+              content: receiptBase64
+            });
+            console.log('✅ [PAYMENT COMPLETE EMAIL ROUTE] Receipt added to attachments');
+          } else {
+            console.log('⚠️ [PAYMENT COMPLETE EMAIL ROUTE] Could not fetch receipt, skipping attachment');
+          }
+        } catch (receiptError) {
+          console.log('⚠️ [PAYMENT COMPLETE EMAIL ROUTE] Error fetching receipt:', receiptError);
+        }
+      }
+
       // Send email with timeout
       console.log('🔄 [PAYMENT COMPLETE EMAIL ROUTE] Sending payment completion email via Resend...');
       const emailSendPromise = resend.emails.send({
@@ -385,12 +424,7 @@ export async function POST(request: NextRequest) {
         bcc: bccEmailList,
         subject: emailSubject,
         html: emailHtml,
-        attachments: pdfBuffer ? [
-          {
-            filename: `INV-JPDR-${quotation.quote_number?.toString().padStart(6, '0') || 'N/A'}-payment-complete.pdf`,
-            content: pdfBuffer.toString('base64')
-          }
-        ] : undefined
+        attachments: attachments.length > 0 ? attachments : undefined
       });
 
       // Add timeout for email sending (30 seconds)

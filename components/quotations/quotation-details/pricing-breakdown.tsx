@@ -171,28 +171,29 @@ export function PricingBreakdown({
                   
                   {/* Time-based adjustment matching pricing-step.tsx */}
                   {timeAdjustment && timeAdjustment.adjustmentAmount !== 0 && (
-                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-2">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-orange-700 dark:text-orange-300">
-                          Time-based adjustment ({timeAdjustment.adjustmentPercentage > 0 ? '+' : ''}{timeAdjustment.adjustmentPercentage}%)
-                                                     {timeAdjustment.ruleName && (
-                             <span className="text-muted-foreground ml-1">- {String(timeAdjustment.ruleName)}</span>
-                           )}
-                        </span>
-                        <div className="text-right">
-                          <div className={cn(
-                            "font-bold text-sm",
-                            timeAdjustment.adjustmentAmount > 0 ? "text-orange-600" : "text-green-600"
-                          )}>
-                            {timeAdjustment.adjustmentAmount > 0 ? '+' : ''}{formatCurrency(Math.abs(timeAdjustment.adjustmentAmount))}
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded p-3 border border-orange-200 dark:border-orange-800">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="text-orange-700 dark:text-orange-300">
+                            <div className="font-medium text-sm">Time-based Adjustment</div>
+                            <div className="text-xs">
+                              ({timeAdjustment.adjustmentPercentage > 0 ? '+' : ''}{timeAdjustment.adjustmentPercentage}%)
+                            </div>
                           </div>
-                          <div className={cn(
-                            "text-xs font-medium",
-                            timeAdjustment.adjustmentAmount > 0 ? "text-orange-600" : "text-green-600"
-                          )}>
-                            ({timeAdjustment.adjustmentPercentage > 0 ? '+' : ''}{timeAdjustment.adjustmentPercentage}%) - {timeAdjustment.adjustmentPercentage > 0 ? t('quotations.details.overtime') : t('quotations.details.discount')}
+                          <div className="text-right">
+                            <div className={cn(
+                              "font-bold text-sm",
+                              timeAdjustment.adjustmentAmount > 0 ? "text-orange-600" : "text-green-600"
+                            )}>
+                              {timeAdjustment.adjustmentAmount > 0 ? '+' : ''}{formatCurrency(Math.abs(timeAdjustment.adjustmentAmount))}
+                            </div>
                           </div>
                         </div>
+                        {timeAdjustment.ruleName && (
+                          <div className="text-xs text-orange-600 dark:text-orange-400 font-medium bg-orange-100 dark:bg-orange-900/40 px-2 py-1 rounded">
+                            Rule: {String(timeAdjustment.ruleName)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -374,4 +375,4 @@ export function PricingBreakdown({
       </Card>
     </div>
   );
-} 
+}

@@ -146,9 +146,14 @@ export function PricingSummary({
                       )}
                       {(item as any).time_based_adjustment && (
                         <div className="text-xs mt-1 p-2 bg-orange-50 dark:bg-orange-900/30 rounded border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200">
-                          Base Price: {formatCurrency(item.unit_price * (item.quantity || 1) * (item.service_days || 1))}
-                          <br />
-                          Time Adjustment ({(item as any).time_based_adjustment}%): {(item as any).time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.quantity || 1) * (item.service_days || 1)) * ((item as any).time_based_adjustment / 100)))}
+                          <div className="font-medium mb-1">Time-based Adjustment Details:</div>
+                          <div>Base Price: {formatCurrency(item.unit_price * (item.quantity || 1) * (item.service_days || 1))}</div>
+                          <div>Time Adjustment ({(item as any).time_based_adjustment}%): {(item as any).time_based_adjustment > 0 ? '+' : ''}{formatCurrency(Math.abs((item.unit_price * (item.quantity || 1) * (item.service_days || 1)) * ((item as any).time_based_adjustment / 100)))}</div>
+                          {(item as any).time_based_rule_name && (
+                            <div className="mt-1 text-orange-700 dark:text-orange-300 font-medium">
+                              Rule: {(item as any).time_based_rule_name}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

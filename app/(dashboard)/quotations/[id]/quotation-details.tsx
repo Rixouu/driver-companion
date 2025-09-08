@@ -525,37 +525,6 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
               </div>
             </div>
             
-            {/* Download buttons for paid status */}
-            {quotation.status === 'paid' && (
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
-                {quotation.receipt_url && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => window.open(quotation.receipt_url!, '_blank')}
-                    className="w-full sm:w-auto gap-2"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    Download Receipt
-                  </Button>
-                )}
-              </div>
-            )}
-            
-            {/* Download buttons for converted status */}
-            {quotation.status === 'converted' && (
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
-                {quotation.receipt_url && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => window.open(quotation.receipt_url!, '_blank')}
-                    className="w-full sm:w-auto gap-2"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    Download Receipt
-                  </Button>
-                )}
-              </div>
-            )}
             
             {/* Next Step Indicator */}
           {(() => {
@@ -609,6 +578,16 @@ export function QuotationDetails({ quotation, isOrganizationMember = true }: Quo
                     onSuccess={() => router.refresh()} 
                     onSendPaymentLink={() => workflowRef.current?.openPaymentLinkDialog()}
                   />
+                  {quotation.receipt_url && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => window.open(quotation.receipt_url!, '_blank')}
+                      className="w-full sm:w-auto gap-2"
+                    >
+                      <Receipt className="h-4 w-4" />
+                      Download Receipt
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>

@@ -607,7 +607,7 @@ export function VehicleBookings({ vehicle }: VehicleBookingsProps) {
                     {booking.service_name || 'Airport Transfer Haneda - Toyota Alphard Executive Lounge'}
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/bookings/${booking.id}`}>
+                    <Link href={`/bookings/${booking.wp_id || booking.id}`}>
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Link>

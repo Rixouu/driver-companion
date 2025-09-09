@@ -751,8 +751,9 @@ export default function DispatchCalendarView({ entries, currentDate: externalCur
                                   className="h-8 px-2"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Open booking details page
-                                    window.location.href = `/bookings/${entry.booking_id}`;
+                                    // Open booking details page - use wp_id if available, otherwise booking_id
+                                    const bookingId = entry.wp_id || entry.booking_id;
+                                    window.location.href = `/bookings/${bookingId}`;
                                   }}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">

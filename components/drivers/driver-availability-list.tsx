@@ -713,7 +713,7 @@ export function DriverAvailabilityList({ driver }: DriverAvailabilityListProps) 
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7"
-                            onClick={() => window.open(`/bookings/${booking.id}`, '_blank')}
+                            onClick={() => window.open(`/bookings/${booking.wp_id || booking.id}`, '_blank')}
                             title="View Booking Details"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />

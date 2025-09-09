@@ -588,6 +588,9 @@ export async function getBookingByWpId(
       coupon_discount_percentage: booking.coupon_discount_percentage?.toString() || undefined,
       created_at: booking.created_at || undefined,
       updated_at: booking.updated_at || undefined,
+      // Flight information
+      flight_number: booking.flight_number || undefined,
+      terminal: booking.terminal || undefined,
       // Add vehicle details if available
       vehicle: booking.vehicles && !('code' in booking.vehicles) ? {
         id: booking.vehicles.id,

@@ -346,24 +346,28 @@ export default function BookingDetailsContent({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Flight Number and Terminal if available */}
                   {(() => {
-                    let flightNumber = 'N/A';
-                    let terminal = 'N/A';
+                    // Use direct database fields first, then fallback to meta fields
+                    let flightNumber = booking?.flight_number || booking?.meta?.chbs_flight_number || '';
+                    let terminal = booking?.terminal || booking?.meta?.chbs_terminal || '';
                     
-                    // Try to extract flight number and terminal from meta data
-                    if (booking?.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
+                    // If no data found, try to extract from form element fields as last resort
+                    if (!flightNumber && booking?.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
                       const flightField = booking.meta.chbs_form_element_field.find(
                         (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
                       );
                       if (flightField?.value) flightNumber = flightField.value;
-                      
+                    }
+                    
+                    if (!terminal && booking?.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
                       const terminalField = booking.meta.chbs_form_element_field.find(
                         (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
                       );
                       if (terminalField?.value) terminal = terminalField.value;
                     }
                     
-                    flightNumber = flightNumber || booking?.meta?.chbs_flight_number || 'N/A';
-                    terminal = terminal || booking?.meta?.chbs_terminal || 'N/A';
+                    // Set final values with fallback to 'N/A'
+                    flightNumber = flightNumber || 'N/A';
+                    terminal = terminal || 'N/A';
                     
                     return (
                       <>

@@ -81,7 +81,7 @@ function getStatusBadgeClasses(status: string): string {
     case 'confirmed':
       return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700';
     case 'pending':
-      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-green-700';
+      return 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-500';
     case 'cancelled':
     case 'canceled':
     case 'trash':
@@ -162,13 +162,19 @@ export function BookingsList({
   }, [initialView]);
 
   // Function to view booking details
-  const handleViewBooking = (bookingId: string | number) => {
+  const handleViewBooking = (booking: any) => {
+    if (!booking) {
+      console.warn('Cannot navigate to booking: booking is undefined or null')
+      return
+    }
+    
+    // Use wp_id (booking number) if available, otherwise fall back to id
+    const bookingId = booking.wp_id || booking.id
     if (!bookingId) {
-      console.warn('Cannot navigate to booking: bookingId is undefined or null')
+      console.error('No valid booking ID found:', booking)
       return
     }
     const formattedId = String(bookingId).trim()
-    console.log(`Navigating to booking details: ${formattedId}`)
     router.push(`/bookings/${formattedId}`)
   }
 
@@ -848,7 +854,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); if (booking.id) handleViewBooking(booking.id); }}
+                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking); }}
                   className="flex items-center gap-2"
                 >
                   <Icons.eye className="h-4 w-4" />
@@ -916,7 +922,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); if (booking.id) handleViewBooking(booking.id); }}
+                  onClick={(e) => { e.stopPropagation(); handleViewBooking(booking); }}
                   className="flex items-center gap-2 w-full justify-center"
                 >
                   <Icons.eye className="h-4 w-4" />
@@ -926,7 +932,7 @@ export function BookingsList({
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={(e) => { e.stopPropagation(); if (booking.id) router.push(`/bookings/${booking.id}/edit`); }}
+                  onClick={(e) => { e.stopPropagation(); const bookingId = booking.wp_id || booking.id; router.push(`/bookings/${bookingId}/edit`); }}
                   className="flex items-center gap-2 w-full justify-center"
                 >
                   <Edit className="h-4 w-4" />

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { CheckIcon, UserIcon, CarIcon, SearchIcon, SortAscIcon, SortDescIcon, UserX } from 'lucide-react';
+import { CheckIcon, UserIcon, CarIcon, Car, SearchIcon, SortAscIcon, SortDescIcon, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils/styles';
 import {
   Select,
@@ -37,6 +37,12 @@ interface Vehicle {
   image_url?: string;
   status?: string;
   is_available?: boolean;
+  category_name?: string;
+  pricing_category_vehicles?: Array<{
+    pricing_categories: {
+      name: string;
+    };
+  }>;
 }
 
 interface Booking {
@@ -57,6 +63,9 @@ interface SmartAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAssign: (driverId: string, vehicleId: string) => void;
+  onUnassignDriver?: () => void;
+  onUnassignVehicle?: () => void;
+  onUnassignAll?: () => void;
   drivers: Driver[];
   vehicles: Vehicle[];
   title?: string;
@@ -68,6 +77,9 @@ export default function SmartAssignmentModal({
   isOpen,
   onClose,
   onAssign,
+  onUnassignDriver,
+  onUnassignVehicle,
+  onUnassignAll,
   drivers,
   vehicles,
   title,
@@ -251,7 +263,7 @@ export default function SmartAssignmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {title || `Smart Assignment for #${booking.wp_id || booking.id}`}
@@ -263,111 +275,163 @@ export default function SmartAssignmentModal({
 
         {/* Current Assignment Status */}
         {(booking.driver_id || booking.vehicle_id) && (
-          <div className="mb-6 p-4 bg-muted/50 border rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium flex items-center gap-2">
-                <CheckIcon className="h-4 w-4" />
-                Current Assignment
-              </h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  // Call onAssign with empty strings to unassign all
-                  onAssign("", "");
-                }}
-                className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-              >
-                <UserX className="h-4 w-4 mr-1" />
-                Unassign All
-              </Button>
+          <div className="mb-6 p-4 bg-muted/30 border rounded-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <CheckIcon className={`h-4 w-4 ${booking.driver_id && booking.vehicle_id ? 'text-green-600' : 'text-muted-foreground'}`} />
+              <h4 className="font-semibold text-foreground">Current Assignment</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Current Driver */}
-              <div className="flex items-center gap-3 p-3 bg-background rounded-md border">
-                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                  <UserIcon className="h-4 w-4" />
+              {booking.driver_id && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
+                    </div>
+                    {onUnassignDriver && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onUnassignDriver}
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                      >
+                        <UserX className="h-3 w-3 mr-1" />
+                        Unassign
+                      </Button>
+                    )}
+                  </div>
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                        <UserIcon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">
+                          {(() => {
+                            if (booking.driver_id) {
+                              const driver = drivers.find(d => d.id === booking.driver_id);
+                              if (driver && driver.first_name && driver.last_name) {
+                                return `${driver.first_name} ${driver.last_name}`;
+                              }
+                            }
+                            if (booking.driver && typeof booking.driver === 'object') {
+                              if (booking.driver.first_name && booking.driver.last_name) {
+                                return `${booking.driver.first_name} ${booking.driver.last_name}`;
+                              }
+                              return `Driver assigned (ID: ${booking.driver.id || 'Unknown'})`;
+                            }
+                            if (booking.driver_id) {
+                              return 'Loading driver details...';
+                            }
+                            return 'No driver assigned';
+                          })()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            if (booking.driver_id) {
+                              const driver = drivers.find(d => d.id === booking.driver_id);
+                              return driver?.email || 'No email';
+                            }
+                            return booking.driver?.email || 'No email';
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {(() => {
+                            if (booking.driver_id) {
+                              const driver = drivers.find(d => d.id === booking.driver_id);
+                              return driver?.phone || 'No phone';
+                            }
+                            return booking.driver?.phone || 'No phone';
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Current Driver</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(() => {
-                      // First try to get driver from the drivers array if we have driver_id
-                      if (booking.driver_id) {
-                        const driver = drivers.find(d => d.id === booking.driver_id);
-                        if (driver && driver.first_name && driver.last_name) {
-                          return `${driver.first_name} ${driver.last_name}`;
-                        }
-                      }
-                      
-                      // Fallback to booking.driver object
-                      if (booking.driver && typeof booking.driver === 'object') {
-                        if (booking.driver.first_name && booking.driver.last_name) {
-                          return `${booking.driver.first_name} ${booking.driver.last_name}`;
-                        }
-                        return `Driver assigned (ID: ${booking.driver.id || 'Unknown'})`;
-                      }
-                      
-                      // Final fallback
-                      if (booking.driver_id) {
-                        return 'Loading driver details...';
-                      }
-                      
-                      return 'No driver assigned';
-                    })()}
-                  </p>
-                </div>
-              </div>
+              )}
               {/* Current Vehicle */}
-              <div className="flex items-center gap-3 p-3 bg-background rounded-md border">
-                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                  <CarIcon className="h-4 w-4" />
+              {booking.vehicle_id && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CarIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
+                    </div>
+                    {onUnassignVehicle && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onUnassignVehicle}
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                      >
+                        <Car className="h-3 w-3 mr-1" />
+                        Unassign
+                      </Button>
+                    )}
+                  </div>
+                  <div className="p-3 bg-background rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                        <CarIcon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-semibold truncate">
+                          {(() => {
+                            if (booking.vehicle_id) {
+                              const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
+                              if (vehicle && vehicle.brand && vehicle.model) {
+                                return `${vehicle.brand} ${vehicle.model}`;
+                              }
+                            }
+                            if (booking.vehicle && typeof booking.vehicle === 'object') {
+                              if (booking.vehicle?.brand && booking.vehicle?.model) {
+                                return `${booking.vehicle?.brand} ${booking.vehicle?.model}`;
+                              }
+                              if (booking.vehicle?.id) {
+                                const vehicle = vehicles.find(v => v.id === booking.vehicle?.id);
+                                if (vehicle && vehicle.brand && vehicle.model) {
+                                  return `${vehicle.brand} ${vehicle.model}`;
+                                }
+                              }
+                              return `Vehicle assigned (ID: ${booking.vehicle?.id || 'Unknown'})`;
+                            }
+                            if (booking.vehicle_id) {
+                              return 'Loading vehicle details...';
+                            }
+                            return 'No vehicle assigned';
+                          })()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            if (booking.vehicle_id) {
+                              const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
+                              return vehicle?.plate_number || 'No plate';
+                            }
+                            return booking.vehicle?.plate_number || 'No plate';
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {(() => {
+                            if (booking.vehicle_id) {
+                              const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
+                              return vehicle?.category_name || vehicle?.pricing_category_vehicles?.[0]?.pricing_categories?.name || 'Not specified';
+                            }
+                            return booking.vehicle?.category_name || booking.vehicle?.pricing_category_vehicles?.[0]?.pricing_categories?.name || 'Not specified';
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Current Vehicle</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(() => {
-                      // First try to get vehicle from the vehicles array if we have vehicle_id
-                      if (booking.vehicle_id) {
-                        const vehicle = vehicles.find(v => v.id === booking.vehicle_id);
-                        if (vehicle && vehicle.brand && vehicle.model) {
-                          return `${vehicle.brand} ${vehicle.model} (${vehicle.plate_number})`;
-                        }
-                      }
-                      
-                      // Fallback to booking.vehicle object
-                      if (booking.vehicle && typeof booking.vehicle === 'object') {
-                        if (booking.vehicle?.brand && booking.vehicle?.model) {
-                          const plate = booking.vehicle.plate_number ? ` (${booking.vehicle.plate_number})` : '';
-                          return `${booking.vehicle?.brand} ${booking.vehicle?.model}${plate}`;
-                        }
-                        // If we have an ID but no brand/model, try to find it in vehicles array
-                        if (booking.vehicle?.id) {
-                          const vehicle = vehicles.find(v => v.id === booking.vehicle?.id);
-                          if (vehicle && vehicle.brand && vehicle.model) {
-                            return `${vehicle.brand} ${vehicle.model} (${vehicle.plate_number})`;
-                          }
-                        }
-                        return `Vehicle assigned (ID: ${booking.vehicle?.id || 'Unknown'})`;
-                      }
-                      
-                      // Final fallback
-                      if (booking.vehicle_id) {
-                        return 'Loading vehicle details...';
-                      }
-                      
-                      return 'No vehicle assigned';
-                    })()}
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
           {/* Available Drivers */}
-          <div className="space-y-4">
+          <div className="space-y-4 flex flex-col min-h-0">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-lg flex items-center gap-2">
                 <UserIcon className="h-5 w-5" />
@@ -413,7 +477,7 @@ export default function SmartAssignmentModal({
                 <p>{driverSearch ? 'No drivers match your search' : 'No drivers available'}</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
                 {filteredAndSortedDrivers.map((driver) => (
                   <div 
                     key={driver.id}
@@ -453,7 +517,7 @@ export default function SmartAssignmentModal({
           </div>
 
           {/* Available Vehicles with Smart Matching */}
-          <div className="space-y-4">
+          <div className="space-y-4 flex flex-col min-h-0">
             <div className="flex items-center justify-between">
               <h3 className="font-medium text-lg flex items-center gap-2">
                 <CarIcon className="h-5 w-5" />
@@ -500,7 +564,7 @@ export default function SmartAssignmentModal({
                 <p>{vehicleSearch ? 'No vehicles match your search' : 'No vehicles available'}</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
                 {filteredAndSortedVehicles.map(({ vehicle, matchPercentage }) => (
                   <div 
                     key={vehicle.id}
@@ -540,6 +604,9 @@ export default function SmartAssignmentModal({
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {vehicle.brand} {vehicle.model}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {vehicle.category_name || vehicle.pricing_category_vehicles?.[0]?.pricing_categories?.name || 'Not specified'}
                         </p>
                       </div>
                       

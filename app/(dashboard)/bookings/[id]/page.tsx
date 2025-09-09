@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
-import { getBookingById } from '@/app/actions/bookings';
+import { getBookingById, updateBookingAction } from '@/app/actions/bookings';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,10 +13,11 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import LoadingModal from '@/components/ui/loading-modal';
 import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
 import { progressConfigs } from '@/lib/config/progressConfigs';
-import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck, Car, Tag, Package, Timer, Building, CheckIcon, UserX, RefreshCw, StickyNote } from 'lucide-react';
+import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck, Car, Tag, Package, Timer, Building, CheckIcon, CheckCircle, UserX, RefreshCw, StickyNote } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from '@/components/ui/use-toast';
 import { Booking } from '@/types/bookings';
@@ -32,8 +33,8 @@ import SmartAssignmentModal from '@/components/shared/smart-assignment-modal';
 function getStatusBadge(status: string) {
   const statusConfig = {
     pending: { label: 'Pending', className: 'text-yellow-600 border-yellow-300 bg-yellow-100 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/20' },
-    confirmed: { label: 'Confirmed', className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' },
-    assigned: { label: 'Assigned', className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' },
+    confirmed: { label: 'Confirmed', className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' },
+    assigned: { label: 'Assigned', className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' },
     completed: { label: 'Completed', className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' },
     cancelled: { label: 'Cancelled', className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' }
   };
@@ -110,13 +111,6 @@ export default function BookingDetailsPage() {
         const bookingData = await getBookingById(id);
         setBooking(bookingData.booking);
         
-        // If we loaded a booking with a wp_id and the current URL uses UUID, redirect to booking number URL
-        if (bookingData.booking?.wp_id && bookingData.booking.wp_id.startsWith('QUO-') && !id.startsWith('QUO-')) {
-          const newUrl = `/bookings/${bookingData.booking.wp_id}` as const;
-          router.replace(newUrl);
-          return;
-        }
-        
         // Load assigned driver and vehicle if they exist
         if (bookingData.booking?.driver_id || bookingData.booking?.vehicle_id) {
           await loadAssignedResources(bookingData.booking);
@@ -185,9 +179,55 @@ export default function BookingDetailsPage() {
   };
 
   // Handle status change
-  const handleStatusChange = () => {
-    // Refresh the page to update the booking data
-    window.location.reload();
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      setLoading(true);
+      
+      // If changing to pending, clear assignment data
+      const updateData: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (newStatus === 'pending') {
+        // Clear assignment data when changing to pending
+        updateData.driver_id = null;
+        updateData.vehicle_id = null;
+        updateData.assigned_at = null;
+        updateData.completed_at = null;
+        
+        // Clear assignment data from meta
+        updateData.meta = {
+          ...booking?.meta,
+          assigned_at: null,
+          completed_at: null,
+          assignment_cleared_at: new Date().toISOString()
+        };
+      }
+      
+      const result = await updateBookingAction(id, updateData);
+      
+      if (result.success) {
+        // Update local state
+        setBooking(prev => prev ? { ...prev, ...updateData } : null);
+        
+        toast({
+          title: "Status Updated",
+          description: `Booking status changed to ${newStatus}`,
+        });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update booking status",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Load available drivers and vehicles
@@ -203,10 +243,17 @@ export default function BookingDetailsPage() {
 
       if (driversError) throw driversError;
 
-      // Load vehicles
+      // Load vehicles with category information
       const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
-        .select('*')
+        .select(`
+          *,
+          pricing_category_vehicles(
+            pricing_categories(
+              name
+            )
+          )
+        `)
         .eq('status', 'active');
 
       if (vehiclesError) throw vehiclesError;
@@ -246,6 +293,18 @@ export default function BookingDetailsPage() {
         updateData.vehicle_id = null;
       }
       
+      // Determine status based on assignments
+      const hasDriver = driverId && driverId !== '';
+      const hasVehicle = vehicleId && vehicleId !== '';
+      
+      if (hasDriver && hasVehicle) {
+        // Both assigned - set to assigned
+        updateData.status = 'assigned';
+      } else if (booking?.status === 'assigned' && (!hasDriver || !hasVehicle)) {
+        // Was assigned but now missing driver or vehicle - revert to confirmed
+        updateData.status = 'confirmed';
+      }
+      
       // Update the booking
       const { error } = await supabase
         .from('bookings')
@@ -268,6 +327,11 @@ export default function BookingDetailsPage() {
           title: "Success",
           description: "All assignments have been removed",
         });
+      } else if (hasDriver && hasVehicle) {
+        toast({
+          title: "Success",
+          description: "Driver and vehicle assigned successfully. Status updated to assigned.",
+        });
       } else {
         toast({
           title: "Success",
@@ -286,6 +350,19 @@ export default function BookingDetailsPage() {
         variant: "destructive",
       });
     }
+  };
+
+  // Individual unassign functions
+  const handleUnassignDriver = async () => {
+    await handleAssign('', booking?.vehicle_id || '');
+  };
+
+  const handleUnassignVehicle = async () => {
+    await handleAssign(booking?.driver_id || '', '');
+  };
+
+  const handleUnassignAll = async () => {
+    await handleAssign('', '');
   };
 
   // Send booking details email
@@ -595,9 +672,7 @@ export default function BookingDetailsPage() {
                           </span>
                         )}
                       </p>
-                      <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20">
-                        Assigned
-                      </Badge>
+                      {getStatusBadge(booking.status || 'pending')}
                     </div>
                   </div>
                 </div>
@@ -727,29 +802,14 @@ export default function BookingDetailsPage() {
                         <div className="p-3 bg-muted/30 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">Flight Number & Terminal</div>
                           <div className="font-medium text-foreground">
-                            {(() => {
-                              let flightNumber = booking.flight_number || booking.meta?.chbs_flight_number || '';
-                              let terminal = booking.terminal || booking.meta?.chbs_terminal || '';
-                              
-                              // Try to extract from form element fields
-                              if (!flightNumber && booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                                const flightField = booking.meta.chbs_form_element_field.find(
-                                  (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
-                                );
-                                if (flightField?.value) flightNumber = flightField.value;
-                              }
-                              
-                              if (!terminal && booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
-                                const terminalField = booking.meta.chbs_form_element_field.find(
-                                  (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
-                                );
-                                if (terminalField?.value) terminal = terminalField.value;
-                              }
-                              
-                              const flight = flightNumber || 'Not provided';
-                              const term = terminal || 'Not provided';
-                              return `${flight} - ${term}`;
-                            })()}
+                            {booking?.flight_number && booking?.terminal 
+                              ? `${booking.flight_number} - ${booking.terminal}`
+                              : booking?.flight_number 
+                                ? `${booking.flight_number} - Not provided`
+                                : booking?.terminal 
+                                  ? `Not provided - ${booking.terminal}`
+                                  : 'Not provided - Not provided'
+                            }
                           </div>
                         </div>
                       </div>
@@ -777,46 +837,47 @@ export default function BookingDetailsPage() {
                   
                   {/* Current Assignment Status */}
                   <div className="p-4 bg-muted/50 border rounded-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium flex items-center gap-2">
-                        <CheckIcon className="h-4 w-4" />
-                        Current Assignment
-                      </h4>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        onClick={() => {
-                          // Call the handleAssign function with empty strings to unassign all
-                          handleAssign("", "");
-                        }}
-                      >
-                        <UserX className="h-4 w-4 mr-1" />
-                        Unassign All
-                      </Button>
+                    <div className="flex items-center gap-2 mb-4">
+                      <CheckIcon className={`h-4 w-4 ${assignedDriver && assignedVehicle ? 'text-green-600' : 'text-muted-foreground'}`} />
+                      <h4 className="font-medium">Current Assignment</h4>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Current Driver */}
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
+                          </div>
+                          {assignedDriver && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleUnassignDriver}
+                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                            >
+                              <UserX className="h-3 w-3 mr-1" />
+                              Unassign
+                            </Button>
+                          )}
                         </div>
                         {assignedDriver ? (
-                          <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                              <User className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-semibold">
-                                {`${assignedDriver.first_name} ${assignedDriver.last_name}`}
+                          <div className="p-3 bg-background rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                <User className="h-5 w-5 text-muted-foreground" />
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {assignedDriver.email || 'No contact info'}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {assignedDriver.phone || 'No phone'}
+                              <div>
+                                <div className="font-semibold">
+                                  {`${assignedDriver.first_name} ${assignedDriver.last_name}`}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {assignedDriver.email || 'No contact info'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {assignedDriver.phone || 'No phone'}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -830,29 +891,39 @@ export default function BookingDetailsPage() {
 
                       {/* Current Vehicle */}
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Car className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Car className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
+                          </div>
+                          {assignedVehicle && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleUnassignVehicle}
+                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                            >
+                              <Car className="h-3 w-3 mr-1" />
+                              Unassign
+                            </Button>
+                          )}
                         </div>
                         {assignedVehicle ? (
-                          <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-                            {/* Vehicle Image */}
-                            <div className="flex-shrink-0">
-                              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                                <Car className="h-6 w-6 text-muted-foreground" />
+                          <div className="p-3 bg-background rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                                <Car className="h-5 w-5 text-muted-foreground" />
                               </div>
-                            </div>
-                            
-                            {/* Vehicle Details */}
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold truncate">
-                                {`${assignedVehicle.brand} ${assignedVehicle.model}${assignedVehicle.year ? ` (${assignedVehicle.year})` : ''}`}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {assignedVehicle.plate_number || 'Plate not available'}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {vehicleCategory || 'Not specified'}
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">
+                                  {`${assignedVehicle.brand} ${assignedVehicle.model}${assignedVehicle.year ? ` (${assignedVehicle.year})` : ''}`}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {assignedVehicle.plate_number || 'Plate not available'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {vehicleCategory || 'Not specified'}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -997,8 +1068,126 @@ export default function BookingDetailsPage() {
             </Card>
           </div>
         
-          {/* Right Column: Booking Workflow and Actions */}
+          {/* Right Column: Booking Status, Workflow and Actions */}
           <div className="space-y-4 xl:space-y-6">
+            {/* Booking Status Block */}
+            <Card className="border rounded-lg shadow-sm dark:border-gray-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-foreground">Booking Status</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    className="h-8 w-8 p-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* Status Section */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const status = booking.status || 'pending';
+                          switch (status) {
+                            case 'pending':
+                              return <CheckCircle className="h-5 w-5 text-amber-500" />;
+                            case 'confirmed':
+                              return <CheckCircle className="h-5 w-5 text-green-500" />;
+                            case 'assigned':
+                              return <CheckCircle className="h-5 w-5 text-blue-500" />;
+                            case 'completed':
+                              return <CheckCircle className="h-5 w-5 text-green-500" />;
+                            case 'cancelled':
+                              return <CheckCircle className="h-5 w-5 text-red-500" />;
+                            default:
+                              return <CheckCircle className="h-5 w-5 text-amber-500" />;
+                          }
+                        })()}
+                        <span className="text-sm font-medium text-muted-foreground">Status</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select value={booking.status || 'pending'} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-36 h-8 bg-background border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                              Pending
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="confirmed">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              Confirmed
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="assigned">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                              Assigned
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="completed">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              Completed
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="cancelled">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                              Cancelled
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Creation Date Section */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Created</span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {booking.created_at ? new Date(booking.created_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      }) : 'N/A'}
+                    </div>
+                  </div>
+                  
+                  {/* Last Updated Section */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Last Updated</span>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {booking.updated_at ? new Date(booking.updated_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      }) : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Booking Workflow */}
             <BookingWorkflow 
               booking={{
@@ -1109,12 +1298,17 @@ export default function BookingDetailsPage() {
             year: typeof booking.vehicle?.year === 'string' ? parseInt(booking.vehicle.year) : booking.vehicle?.year,
             image_url: booking.vehicle?.image_url,
             status: 'active',
-            is_available: true
+            is_available: true,
+            category_name: assignedVehicle?.pricing_category_vehicles?.[0]?.pricing_categories?.name || vehicleCategory,
+            pricing_category_vehicles: assignedVehicle?.pricing_category_vehicles
           } : undefined
         } : null}
         isOpen={isSmartModalOpen}
         onClose={() => setIsSmartModalOpen(false)}
         onAssign={handleAssign}
+        onUnassignDriver={handleUnassignDriver}
+        onUnassignVehicle={handleUnassignVehicle}
+        onUnassignAll={handleUnassignAll}
         drivers={drivers}
         vehicles={vehicles}
         title={`Smart Assignment for #${booking?.wp_id || id}`}

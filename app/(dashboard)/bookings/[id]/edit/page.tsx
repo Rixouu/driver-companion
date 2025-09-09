@@ -164,24 +164,34 @@ export default function EditBookingPage() {
         } else {
           setBooking(loadedBooking)
           
-          // Extract flight number and terminal from meta data if available
-          let flightNumber = '';
-          let terminal = '';
+          // Extract flight number and terminal - prioritize direct database fields first
+          let flightNumber = loadedBooking.flight_number || '';
+          let terminal = loadedBooking.terminal || '';
           
-          if (loadedBooking.meta?.chbs_form_element_field && Array.isArray(loadedBooking.meta.chbs_form_element_field)) {
-            const flightField = loadedBooking.meta.chbs_form_element_field.find(
-              (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
-            );
-            if (flightField?.value) flightNumber = flightField.value;
+          // If not found in direct fields, check meta data
+          if (!flightNumber) {
+            flightNumber = loadedBooking.meta?.chbs_flight_number || '';
             
-            const terminalField = loadedBooking.meta.chbs_form_element_field.find(
-              (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
-            );
-            if (terminalField?.value) terminal = terminalField.value;
+            // If still not found, check form element fields
+            if (!flightNumber && loadedBooking.meta?.chbs_form_element_field && Array.isArray(loadedBooking.meta.chbs_form_element_field)) {
+              const flightField = loadedBooking.meta.chbs_form_element_field.find(
+                (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
+              );
+              if (flightField?.value) flightNumber = flightField.value;
+            }
           }
           
-          flightNumber = flightNumber || loadedBooking.meta?.chbs_flight_number || '';
-          terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
+          if (!terminal) {
+            terminal = loadedBooking.meta?.chbs_terminal || '';
+            
+            // If still not found, check form element fields
+            if (!terminal && loadedBooking.meta?.chbs_form_element_field && Array.isArray(loadedBooking.meta.chbs_form_element_field)) {
+              const terminalField = loadedBooking.meta.chbs_form_element_field.find(
+                (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
+              );
+              if (terminalField?.value) terminal = terminalField.value;
+            }
+          }
           
           // Extract basic service type from complex service name
           let extractedServiceName = loadedBooking.service_name || '';

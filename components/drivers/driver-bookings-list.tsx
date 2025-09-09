@@ -152,7 +152,7 @@ export function DriverBookingsList({ driverId }: DriverBookingsListProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="outline" size="sm" className="h-8 sm:h-9 text-xs sm:text-sm">
-                      <Link href={`/bookings/${booking.id}`}>
+                      <Link href={`/bookings/${booking.wp_id || booking.id}`}>
                         {t("drivers.bookingHistory.viewButton")}
                         <ExternalLink className="ml-1.5 h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       </Link>

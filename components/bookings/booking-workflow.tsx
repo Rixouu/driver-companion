@@ -301,7 +301,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         title: 'Confirmed',
         description: 'Booking confirmed and payment received',
         icon: <CheckCircle className="h-4 w-4" />,
-        status: ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'completed' : 
+        status: booking.status === 'pending' ? 'pending' : 
+                ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'completed' : 
                 booking.payment_status === 'paid' ? 'current' : 'pending',
         date: booking.payment_completed_at || (['confirmed', 'assigned', 'completed'].includes(booking.status) ? booking.created_at : undefined),
         ...(booking.payment_status === 'paid' && booking.status === 'pending' && isOrganizationMember ? {
@@ -318,7 +319,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         title: 'Assigned',
         description: 'Driver and vehicle assigned to booking',
         icon: <User className="h-4 w-4" />,
-        status: booking.driver_id && booking.vehicle_id ? 'completed' : 
+        status: booking.status === 'pending' ? 'pending' :
+                booking.driver_id && booking.vehicle_id ? 'completed' : 
                 ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'current' : 'pending',
         date: booking.assigned_at || (booking.driver_id && booking.vehicle_id ? booking.created_at : undefined),
         ...(booking.status === 'confirmed' && (!booking.driver_id || !booking.vehicle_id) && isOrganizationMember ? {
@@ -335,7 +337,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         title: 'Completed',
         description: 'Booking service completed',
         icon: <CheckCircle2 className="h-4 w-4" />,
-        status: booking.status === 'completed' ? 'completed' : 
+        status: booking.status === 'pending' ? 'pending' :
+                booking.status === 'completed' ? 'completed' : 
                 shouldAutoComplete() ? 'current' : 'pending',
         date: booking.completed_at || (booking.status === 'completed' ? booking.created_at : undefined),
         ...(booking.status === 'assigned' && isOrganizationMember ? {
@@ -484,8 +487,8 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
                 <span className="text-muted-foreground">Status:</span>
                 <Badge variant="outline" className={
                   booking.status === 'pending' ? 'text-amber-600 border-amber-300 bg-amber-100 dark:text-amber-400 dark:border-amber-600 dark:bg-amber-900/20' :
-                  booking.status === 'confirmed' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
-                  booking.status === 'assigned' ? 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' :
+                  booking.status === 'confirmed' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
+                  booking.status === 'assigned' ? 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' :
                   booking.status === 'completed' ? 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' :
                   booking.status === 'cancelled' ? 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' :
                   'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'

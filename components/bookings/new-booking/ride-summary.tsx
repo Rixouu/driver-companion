@@ -18,6 +18,16 @@ interface RideSummaryProps {
   }>
   calculatedPrice: {
     baseAmount: number
+    timeBasedAdjustment: number
+    adjustedBaseAmount: number
+    appliedTimeBasedRule: {
+      name: string
+      adjustment_percentage: number
+      description?: string | null
+      start_time: string
+      end_time: string
+      days_of_week: string[] | null
+    } | null
     discountAmount: number
     regularDiscountAmount?: number
     couponDiscountAmount?: number
@@ -197,6 +207,21 @@ export function RideSummary({
                   <span>¥{calculatedPrice.baseAmount.toLocaleString()}</span>
                 </div>
                 
+                {/* Time-based adjustment - only show if > 0 */}
+                {(calculatedPrice.timeBasedAdjustment || 0) > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span className="text-muted-foreground">
+                      {calculatedPrice.appliedTimeBasedRule?.name || 'Time-based adjustment'}
+                      {calculatedPrice.appliedTimeBasedRule?.start_time && calculatedPrice.appliedTimeBasedRule?.end_time && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({calculatedPrice.appliedTimeBasedRule.start_time.split(':').slice(0, 2).join(':')}-{calculatedPrice.appliedTimeBasedRule.end_time.split(':').slice(0, 2).join(':')})
+                        </span>
+                      )}
+                    </span>
+                    <span>+¥{(calculatedPrice.timeBasedAdjustment || 0).toLocaleString()}</span>
+                  </div>
+                )}
+                
                 {/* Regular Discount - only show if > 0 */}
                 {(calculatedPrice.regularDiscountAmount || 0) > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -216,7 +241,7 @@ export function RideSummary({
                 {/* Subtotal After Discounts */}
                 <div className="flex justify-between font-medium">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>¥{(calculatedPrice.baseAmount - (calculatedPrice.regularDiscountAmount || 0) - (calculatedPrice.couponDiscountAmount || 0)).toLocaleString()}</span>
+                  <span>¥{((calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount) - (calculatedPrice.regularDiscountAmount || 0) - (calculatedPrice.couponDiscountAmount || 0)).toLocaleString()}</span>
                 </div>
                 
                 {/* Tax - only show if > 0 */}

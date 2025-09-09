@@ -453,6 +453,7 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     year?: string;
     registration?: string;
     capacity?: number;
+    luggage_capacity?: number;
   } = {};
   
   // Process vehicle data from various sources
@@ -465,6 +466,7 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     vehicleInfo.year = booking.vehicle.year;
     vehicleInfo.registration = booking.vehicle.plate_number;
     vehicleInfo.capacity = booking.vehicle.passenger_capacity;
+    vehicleInfo.luggage_capacity = booking.vehicle.luggage_capacity;
   }
   
   // 2. Check if vehicle_id exists (fallback)
@@ -493,6 +495,11 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     // Extract vehicle ID from meta if not already set
     if (!vehicleInfo.id && meta.chbs_vehicle_id) {
       vehicleInfo.id = String(meta.chbs_vehicle_id);
+    }
+    
+    // Extract luggage capacity from meta if not already set
+    if (!vehicleInfo.luggage_capacity && meta.vehicle_luggage_capacity) {
+      vehicleInfo.luggage_capacity = meta.vehicle_luggage_capacity;
     }
     
     // Extract vehicle name and parse for make/model (only if not already set from direct fields)
@@ -624,7 +631,9 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
         model: vehicleInfo.model || '',
         year: vehicleInfo.year || '',
         license_plate: vehicleInfo.registration || '',
-        name: `${vehicleInfo.make || ''} ${vehicleInfo.model || ''}`.trim()
+        name: `${vehicleInfo.make || ''} ${vehicleInfo.model || ''}`.trim(),
+        passenger_capacity: vehicleInfo.capacity,
+        luggage_capacity: vehicleInfo.luggage_capacity
       }
     }),
     
@@ -1387,19 +1396,43 @@ export async function getBookingByIdFromDatabase(id: string): Promise<{
     // Create service client for admin-level operations
     const supabase = createServiceClient()
     
-    // First try to find by internal UUID
+    // First try to find by internal UUID with vehicle data
     let { data: bookingData } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        vehicle:vehicles (
+          id,
+          name,
+          brand,
+          model,
+          year,
+          plate_number,
+          passenger_capacity,
+          luggage_capacity
+        )
+      `)
       .eq('id', id)
       .maybeSingle()
     
-    // If not found, try to find by WordPress ID
+    // If not found, try to find by WordPress ID with vehicle data
     if (!bookingData) {
       console.log(`[DB] No booking found with internal UUID ${id}, trying WordPress ID`)
       const { data } = await supabase
         .from('bookings')
-        .select('*')
+        .select(`
+          *,
+          vehicle:vehicles (
+            id,
+            name,
+            brand,
+            model,
+            year,
+            plate_number,
+            passenger_capacity,
+            luggage_capacity
+          )
+        `)
         .eq('wp_id', id)
         .maybeSingle()
       

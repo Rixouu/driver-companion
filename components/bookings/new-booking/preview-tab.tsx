@@ -22,6 +22,16 @@ interface PreviewTabProps {
   }>
   calculatedPrice: {
     baseAmount: number
+    timeBasedAdjustment: number
+    adjustedBaseAmount: number
+    appliedTimeBasedRule: {
+      name: string
+      adjustment_percentage: number
+      description?: string | null
+      start_time: string
+      end_time: string
+      days_of_week: string[] | null
+    } | null
     discountAmount: number
     taxAmount: number
     totalAmount: number

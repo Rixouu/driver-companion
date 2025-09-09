@@ -24,6 +24,8 @@ export interface Vehicle {
   brand?: string
   mileage?: number | null
   last_inspection_date?: string | null
+  passenger_capacity?: number | null
+  luggage_capacity?: number | null
 }
 
 export interface Driver {

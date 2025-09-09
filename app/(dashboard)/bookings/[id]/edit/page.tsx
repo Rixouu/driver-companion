@@ -87,6 +87,9 @@ export default function EditBookingPage() {
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false)
   const [calculatedPrice, setCalculatedPrice] = useState({
     baseAmount: 0,
+    timeBasedAdjustment: 0,
+    adjustedBaseAmount: 0,
+    appliedTimeBasedRule: null,
     discountAmount: 0,
     taxAmount: 0,
     totalAmount: 0
@@ -180,9 +183,20 @@ export default function EditBookingPage() {
           flightNumber = flightNumber || loadedBooking.meta?.chbs_flight_number || '';
           terminal = terminal || loadedBooking.meta?.chbs_terminal || '';
           
+          // Extract basic service type from complex service name
+          let extractedServiceName = loadedBooking.service_name || '';
+          if (extractedServiceName.includes('Airport Transfer Haneda')) {
+            extractedServiceName = 'Airport Transfer Haneda';
+          } else if (extractedServiceName.includes('Airport Transfer Narita')) {
+            extractedServiceName = 'Airport Transfer Narita';
+          } else if (extractedServiceName.includes('Charter Services') || extractedServiceName.includes('Charter')) {
+            extractedServiceName = 'Charter Services';
+          }
+          
           // Initialize form data with existing booking data
           const initialFormData = {
             ...loadedBooking,
+            service_name: extractedServiceName,
             customer_name: loadedBooking.customer_name || loadedBooking.customer?.name || '',
             customer_email: loadedBooking.customer_email || loadedBooking.customer?.email || '',
             customer_phone: loadedBooking.customer_phone || loadedBooking.customer?.phone || '',
@@ -418,6 +432,8 @@ export default function EditBookingPage() {
           tax_percentage: formData.tax_percentage || 10,
           discount_percentage: formData.discount_percentage || 0,
           coupon_code: formData.coupon_code || '',
+          pickup_date: formData.date,
+          pickup_time: formData.time,
         }),
       })
 
@@ -435,7 +451,7 @@ export default function EditBookingPage() {
     if (formData.service_name && formData.vehicle_id) {
       calculateBookingPrice()
     }
-  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code])
+  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code, formData.date, formData.time])
 
   // Save changes
   const handleSave = async (sendPaymentLink = false) => {

@@ -136,6 +136,9 @@ export default function NewBookingPage() {
   // Pricing state
   const [calculatedPrice, setCalculatedPrice] = useState({
     baseAmount: 0,
+    timeBasedAdjustment: 0,
+    adjustedBaseAmount: 0,
+    appliedTimeBasedRule: null,
     discountAmount: 0,
     taxAmount: 0,
     totalAmount: 0
@@ -393,6 +396,8 @@ export default function NewBookingPage() {
           tax_percentage: formData.tax_percentage || 10,
           discount_percentage: formData.discount_percentage || 0,
           coupon_code: formData.coupon_code || '',
+          pickup_date: formData.date,
+          pickup_time: formData.time,
         }),
       })
 
@@ -410,7 +415,7 @@ export default function NewBookingPage() {
     if (formData.service_name && formData.vehicle_id) {
       calculateBookingPrice()
     }
-  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code])
+  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code, formData.date, formData.time])
 
   // Handle form submission
   const handleSubmit = async (sendPaymentLink = false) => {

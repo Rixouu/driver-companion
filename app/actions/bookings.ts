@@ -1687,8 +1687,90 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
               const taxPercentage = bookingData.tax_percentage || 10;
               const couponCode = bookingData.coupon_code || '';
               
+              // Apply time-based pricing adjustment if pickup date and time are provided
+              let timeBasedAdjustment = 0;
+              let appliedTimeBasedRule = null;
+              
+              if (bookingData.date && bookingData.time) {
+                try {
+                  // Create a date object from pickup_date and pickup_time
+                  const pickupDateTime = new Date(`${bookingData.date}T${bookingData.time}`);
+                  
+                  // Get the day of week (0 = Sunday, 6 = Saturday)
+                  const dayOfWeek = pickupDateTime.getDay();
+                  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                  const day = dayNames[dayOfWeek];
+                  
+                  // Fetch active time-based pricing rules
+                  const { data: timeBasedRules, error: timeBasedError } = await supabase
+                    .from('pricing_time_based_rules')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('priority', { ascending: false });
+                  
+                  if (!timeBasedError && timeBasedRules && timeBasedRules.length > 0) {
+                    // Find applicable rules
+                    const applicableRules = timeBasedRules.filter(rule => {
+                      // Check if rule applies to this category/service type
+                      if (rule.category_id && vehicleCategory && rule.category_id !== vehicleCategory) {
+                        return false;
+                      }
+                      if (rule.service_type_id && rule.service_type_id !== serviceTypeId) {
+                        return false;
+                      }
+                      
+                      // Check if rule applies to this day
+                      const applicableDays = rule.days_of_week || [];
+                      if (applicableDays.length > 0 && !applicableDays.includes(day)) {
+                        return false;
+                      }
+                      
+                      // Check if rule applies to this time
+                      if (rule.start_time && rule.end_time) {
+                        const [startHours, startMinutes] = rule.start_time.split(':').map(Number);
+                        const [endHours, endMinutes] = rule.end_time.split(':').map(Number);
+                        
+                        const startTime = startHours * 60 + startMinutes;
+                        const endTime = endHours * 60 + endMinutes;
+                        const timeInMinutes = pickupDateTime.getHours() * 60 + pickupDateTime.getMinutes();
+                        
+                        // Handle overnight time ranges (e.g., 22:00-06:00)
+                        if (startTime > endTime) {
+                          return timeInMinutes >= startTime || timeInMinutes <= endTime;
+                        } else {
+                          return timeInMinutes >= startTime && timeInMinutes <= endTime;
+                        }
+                      }
+                      
+                      return true;
+                    });
+                    
+                    // Apply the highest priority rule
+                    if (applicableRules.length > 0) {
+                      const rule = applicableRules[0];
+                      timeBasedAdjustment = baseAmount * (rule.adjustment_percentage / 100);
+                      appliedTimeBasedRule = {
+                        name: rule.name,
+                        adjustment_percentage: rule.adjustment_percentage,
+                        description: rule.description,
+                        start_time: rule.start_time,
+                        end_time: rule.end_time,
+                        days_of_week: rule.days_of_week
+                      };
+                      
+                      console.log(`🕐 [TIME-BASED] Applied rule: ${rule.name} (${rule.adjustment_percentage}%)`);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error applying time-based pricing:', error);
+                }
+              }
+              
+              // Apply time-based adjustment to base amount
+              const adjustedBaseAmount = baseAmount + timeBasedAdjustment;
+              
               // Calculate regular discount
-              const regularDiscountAmount = baseAmount * (discountPercentage / 100);
+              const regularDiscountAmount = adjustedBaseAmount * (discountPercentage / 100);
               
               // Calculate coupon discount if provided
               let couponDiscountAmount = 0;
@@ -1707,28 +1789,31 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
                   const validUntil = couponData.end_date ? new Date(couponData.end_date) : null;
                   
                   if ((!validFrom || now >= validFrom) && (!validUntil || now <= validUntil)) {
-                    if (!couponData.minimum_amount || baseAmount >= couponData.minimum_amount) {
+                    if (!couponData.minimum_amount || adjustedBaseAmount >= couponData.minimum_amount) {
                       if (couponData.discount_type === 'percentage') {
                         couponDiscountPercentage = couponData.discount_value;
-                        couponDiscountAmount = baseAmount * (couponData.discount_value / 100);
+                        couponDiscountAmount = adjustedBaseAmount * (couponData.discount_value / 100);
                         if (couponData.maximum_discount && couponDiscountAmount > couponData.maximum_discount) {
                           couponDiscountAmount = couponData.maximum_discount;
                         }
                       } else {
-                        couponDiscountAmount = Math.min(couponData.discount_value, baseAmount);
-                        couponDiscountPercentage = (couponDiscountAmount / baseAmount) * 100;
+                        couponDiscountAmount = Math.min(couponData.discount_value, adjustedBaseAmount);
+                        couponDiscountPercentage = (couponDiscountAmount / adjustedBaseAmount) * 100;
                       }
                     }
                   }
                 }
               }
               
-              const amountAfterDiscount = baseAmount - regularDiscountAmount - couponDiscountAmount;
+              const amountAfterDiscount = adjustedBaseAmount - regularDiscountAmount - couponDiscountAmount;
               const taxAmount = amountAfterDiscount * (taxPercentage / 100);
               const totalAmount = amountAfterDiscount + taxAmount;
               
               calculatedPricing = {
                 baseAmount,
+                timeBasedAdjustment,
+                adjustedBaseAmount,
+                appliedTimeBasedRule,
                 regularDiscountAmount,
                 couponDiscountAmount,
                 taxAmount,

@@ -410,31 +410,43 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{t('bookings.details.bookingActions.title')}</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Zap className="h-4 w-4 text-primary" />
+            {t('bookings.details.bookingActions.title')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Quick Actions */}
           <div>
-            <h3 className="text-sm font-medium mb-3">{t('bookings.details.bookingActions.quickActions')}</h3>
+            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+              <CheckIcon className="h-4 w-4 text-muted-foreground" />
+              {t('bookings.details.bookingActions.quickActions')}
+            </h3>
             
             <div className="grid grid-cols-1 gap-3">
               <Link href={`/bookings/${booking.wp_id || bookingId}/edit`}>
                 <Button 
                   variant="outline" 
-                  className="w-full bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-500 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
+                  className="w-full justify-start h-12 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20 dark:border-yellow-500/30"
                 >
-                  <Edit className="mr-2 h-5 w-5" />
-                  {t('bookings.details.bookingActions.editBooking')}
+                  <Edit className="mr-3 h-5 w-5" />
+                  <div className="text-left">
+                    <div className="font-medium">{t('bookings.details.bookingActions.editBooking')}</div>
+                    <div className="text-xs text-muted-foreground">Modify booking details</div>
+                  </div>
                 </Button>
               </Link>
               
               <Link href={`/bookings/${booking.wp_id || bookingId}/reschedule`}>
                 <Button 
                   variant="outline" 
-                  className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-500 dark:hover:bg-blue-500/20 dark:border-blue-500/30"
+                  className="w-full justify-start h-12 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 dark:border-blue-500/30"
                 >
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  {t('bookings.details.bookingActions.rescheduleBooking')}
+                  <CalendarIcon className="mr-3 h-5 w-5" />
+                  <div className="text-left">
+                    <div className="font-medium">{t('bookings.details.bookingActions.rescheduleBooking')}</div>
+                    <div className="text-xs text-muted-foreground">Change date and time</div>
+                  </div>
                 </Button>
               </Link>
               
@@ -442,10 +454,13 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                 <DialogTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="w-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500/20 dark:border-green-500/30"
+                    className="w-full justify-start h-12 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 dark:border-green-500/30"
                   >
-                    <Mail className="mr-2 h-5 w-5" />
-                    Send Booking Details
+                    <Mail className="mr-3 h-5 w-5" />
+                    <div className="text-left">
+                      <div className="font-medium">Send Booking Details</div>
+                      <div className="text-xs text-muted-foreground">Email with calendar integration</div>
+                    </div>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
@@ -531,10 +546,13 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                 <DialogTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="w-full bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-500 dark:hover:bg-purple-500/20 dark:border-purple-500/30"
+                    className="w-full justify-start h-12 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:hover:bg-purple-500/20 dark:border-purple-500/30"
                   >
-                    <FileText className="mr-2 h-5 w-5" />
-                    Send Booking Invoice PDF
+                    <FileText className="mr-3 h-5 w-5" />
+                    <div className="text-left">
+                      <div className="font-medium">Send Booking Invoice PDF</div>
+                      <div className="text-xs text-muted-foreground">Professional invoice document</div>
+                    </div>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
@@ -619,10 +637,13 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
                 <DialogTrigger asChild>
                   <Button 
                     variant="outline" 
-                    className="w-full bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-500 dark:hover:bg-orange-500/20 dark:border-orange-500/30"
+                    className="w-full justify-start h-12 bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:hover:bg-orange-500/20 dark:border-orange-500/30"
                   >
-                    <RefreshCw className="mr-2 h-5 w-5" />
-                    Regenerate Payment Link
+                    <RefreshCw className="mr-3 h-5 w-5" />
+                    <div className="text-left">
+                      <div className="font-medium">Regenerate Payment Link</div>
+                      <div className="text-xs text-muted-foreground">Create new payment link</div>
+                    </div>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
@@ -706,40 +727,52 @@ export default function BookingActions({ booking, bookingId, status }: BookingAc
 
           {/* Driver Assignment */}
           <div>
-            <h3 className="text-sm font-medium mb-3">Driver Assignment</h3>
+            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+              <UserIcon className="h-4 w-4 text-muted-foreground" />
+              Driver Assignment
+            </h3>
             
             <div className="grid grid-cols-1 gap-3">
               <Button 
                 variant="outline" 
-                className="w-full bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 dark:bg-green-500/10 dark:text-green-500 dark:hover:bg-green-500/20 dark:border-green-500/30"
+                className="w-full justify-start h-12 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 dark:border-emerald-500/30"
                 onClick={() => {
                   loadAvailableResources();
                   setIsAssignModalOpen(true);
                 }}
                 disabled={status === 'cancelled' || status === 'completed'}
               >
-                <UserIcon className="mr-2 h-5 w-5" />
-                {booking.driver_id ? 'Reassign Driver' : 'Assign Driver'}
+                <UserIcon className="mr-3 h-5 w-5" />
+                <div className="text-left">
+                  <div className="font-medium">{booking.driver_id ? 'Reassign Driver' : 'Assign Driver'}</div>
+                  <div className="text-xs text-muted-foreground">Smart assignment system</div>
+                </div>
               </Button>
             </div>
           </div>
 
           {/* Danger Zone */}
           <div>
-            <div className="relative flex items-center py-2 mb-3">
-              <div className="flex-grow border-t"></div>
-              <span className="flex-shrink mx-4 text-muted-foreground text-sm">{t('bookings.details.bookingActions.dangerZone')}</span>
-              <div className="flex-grow border-t"></div>
+            <div className="relative flex items-center py-2 mb-4">
+              <div className="flex-grow border-t border-red-200 dark:border-red-800"></div>
+              <span className="flex-shrink mx-4 text-red-600 dark:text-red-400 text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t('bookings.details.bookingActions.dangerZone')}
+              </span>
+              <div className="flex-grow border-t border-red-200 dark:border-red-800"></div>
             </div>
 
             <Button 
               variant="outline"
-              className="w-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 dark:bg-red-500/10 dark:text-red-500 dark:hover:bg-red-500/20 dark:border-red-500/30"
+              className="w-full justify-start h-12 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:border-red-500/30"
               disabled={status === 'cancelled'}
               onClick={() => setIsDialogOpen(true)}
             >
-              <Trash2 className="mr-2 h-5 w-5" />
-              {t('bookings.details.bookingActions.cancelBooking')}
+              <Trash2 className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-medium">{t('bookings.details.bookingActions.cancelBooking')}</div>
+                <div className="text-xs text-muted-foreground">Permanently cancel this booking</div>
+              </div>
             </Button>
             
             <ConfirmationModal

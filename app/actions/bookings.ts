@@ -478,6 +478,139 @@ export async function getBookings(filters: BookingFilters = {}, useFallback: boo
 }
 
 /**
+ * Get a specific booking by wp_id from the database
+ */
+export async function getBookingByWpId(
+  wpId: string
+): Promise<{ booking: Booking | null; error?: string }> {
+  try {
+    const supabase = createServiceClient();
+    
+    const { data: booking, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        customers:customer_id (
+          id,
+          name,
+          email,
+          phone
+        ),
+        drivers:driver_id (
+          id,
+          first_name,
+          last_name,
+          email,
+          phone
+        ),
+        vehicles:vehicle_id (
+          id,
+          brand,
+          model,
+          year,
+          passenger_capacity,
+          pricing_category_vehicles (
+            pricing_categories (
+              name
+            )
+          )
+        )
+      `)
+      .eq('wp_id', wpId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching booking by wp_id:', error);
+      return { booking: null, error: error.message };
+    }
+
+    if (!booking) {
+      return { booking: null, error: 'Booking not found' };
+    }
+
+    // Get creator information if available
+    let creatorInfo = null;
+    if (booking.created_by) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', booking.created_by)
+        .single();
+      
+      if (profileData) {
+        creatorInfo = {
+          full_name: profileData.full_name,
+          email: profileData.email
+        };
+      }
+    }
+
+    // Transform the booking data to match our Booking interface
+    const transformedBooking: Booking = {
+      id: booking.id,
+      supabase_id: booking.id,
+      booking_id: booking.wp_id,
+      date: booking.date,
+      time: booking.time,
+      status: booking.status,
+      service_name: booking.service_name,
+      service_id: booking.service_id || undefined,
+      customer_id: booking.customer_id || undefined,
+      customer_name: booking.customer_name || booking.customers?.name || undefined,
+      customer_email: booking.customer_email || booking.customers?.email || undefined,
+      customer_phone: booking.customer_phone || booking.customers?.phone || undefined,
+      driver_id: booking.driver_id || undefined,
+      vehicle_id: booking.vehicle_id || undefined,
+      pickup_location: booking.pickup_location || undefined,
+      dropoff_location: booking.dropoff_location || undefined,
+      distance: booking.distance || undefined,
+      duration: booking.duration || undefined,
+      price: booking.price_amount ? {
+        amount: booking.price_amount,
+        currency: booking.price_currency || 'JPY',
+        formatted: booking.price_formatted || `${booking.price_currency || 'JPY'} ${booking.price_amount}`
+      } : undefined,
+      payment_status: booking.payment_status || undefined,
+      payment_method: booking.payment_method || undefined,
+      payment_link: booking.payment_link || undefined,
+      notes: booking.notes || undefined,
+      wp_id: booking.wp_id,
+      created_by: booking.created_by || undefined,
+      billing_company_name: booking.billing_company_name || undefined,
+      billing_tax_number: booking.billing_tax_number || undefined,
+      billing_street_name: booking.billing_street_name || undefined,
+      billing_street_number: booking.billing_street_number || undefined,
+      billing_city: booking.billing_city || undefined,
+      billing_state: booking.billing_state || undefined,
+      billing_postal_code: booking.billing_postal_code || undefined,
+      billing_country: booking.billing_country || undefined,
+      coupon_code: booking.coupon_code || undefined,
+      coupon_discount_percentage: booking.coupon_discount_percentage?.toString() || undefined,
+      created_at: booking.created_at || undefined,
+      updated_at: booking.updated_at || undefined,
+      // Add vehicle details if available
+      vehicle: booking.vehicles && !('code' in booking.vehicles) ? {
+        id: booking.vehicles.id,
+        make: booking.vehicles.brand || '',
+        model: booking.vehicles.model || '',
+        year: booking.vehicles.year || '',
+        created_at: new Date().toISOString()
+      } : undefined,
+      // Add creator details if available
+      creator: creatorInfo || undefined
+    };
+
+    return { booking: transformedBooking };
+  } catch (error) {
+    console.error('Error in getBookingByWpId:', error);
+    return { 
+      booking: null, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+/**
  * Get a specific booking by ID from the database
  * Falls back to WordPress API if not found in database or if useFallback is true
  */
@@ -486,8 +619,17 @@ export async function getBookingById(
   useFallback: boolean = false
 ): Promise<{ booking: Booking | null; debugInfo?: DebugAttemptInfo[] }> {
   try {
-    // First try to get from database
-    const dbResult = await getBookingByIdFromDatabase(id)
+    // Check if the ID is a booking number (like QUO-316-1) or a UUID
+    const isBookingNumber = /^QUO-\d+-\d+$/.test(id);
+    
+    let dbResult;
+    if (isBookingNumber) {
+      // Search by wp_id field for booking numbers
+      dbResult = await getBookingByWpId(id);
+    } else {
+      // Search by UUID for regular IDs
+      dbResult = await getBookingByIdFromDatabase(id);
+    }
     
     // Use database booking if available and not explicitly using fallback
     if (!useFallback && dbResult.booking) {

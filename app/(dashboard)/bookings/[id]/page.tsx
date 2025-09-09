@@ -1,577 +1,1458 @@
-'use client'
+              
+"use client";
 
-import { Metadata } from 'next'
-import { getBookingById } from '@/app/actions/bookings'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck } from 'lucide-react'
-import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
-import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
-import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown'
-import { ContactButtons } from '@/components/bookings/contact-buttons'
-import BookingActions from '@/components/bookings/booking-actions'
-import { PageHeader } from '@/components/ui/page-header'
-import { WeatherForecast } from '@/components/bookings/weather-forecast'
-import { useI18n } from '@/lib/i18n/context'
-import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { QuotationMessageContainer } from '@/components/quotations/quotation-containers'
-import { getStatusBadgeClasses, getPaymentStatusBadgeClasses } from '@/lib/utils/styles'
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n/context';
+import { getBookingById } from '@/app/actions/bookings';
+import { createClient } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import LoadingModal from '@/components/ui/loading-modal';
+import { useProgressSteps } from '@/lib/hooks/useProgressSteps';
+import { progressConfigs } from '@/lib/config/progressConfigs';
+import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, User, X, Mail, Phone, Navigation, CloudSun, CalendarPlus, FileX, Loader2, ArrowLeft, Truck, Car, Tag, Package, Timer, Building, CheckIcon, UserX, RefreshCw, StickyNote } from 'lucide-react';
+import Image from 'next/image';
+import { toast } from '@/components/ui/use-toast';
+import { Booking } from '@/types/bookings';
+import { BookingShareButtons } from '@/components/bookings/booking-share-buttons';
+import { WeatherForecast } from '@/components/bookings/weather-forecast';
+import { GoogleMapsProvider } from '@/components/providers/google-maps-provider';
+import BookingActions from '@/components/bookings/booking-actions';
+import { BookingWorkflow } from '@/components/bookings/booking-workflow';
+import { DriverActionsDropdown } from '@/components/bookings/driver-actions-dropdown';
+import SmartAssignmentModal from '@/components/shared/smart-assignment-modal';
 
-function BookingNotFound({ bookingId }: { bookingId: string }) {
-  const { t } = useI18n()
-  return (
-    <div className="border rounded-lg p-8 shadow">
-      <h1 className="text-2xl font-bold text-red-500 mb-4">{t('bookings.details.notFound')}</h1>
-      <p className="text-muted-foreground mb-4">
-        {t('bookings.details.notFoundDescription')}
-      </p>
-    </div>
-  );
-}
-
-// Avatar component for client display
-function AvatarInitials({ name }: { name: string }) {
-  const getInitials = (name: string) => {
-    // Check if name is undefined, null, or empty
-    if (!name || typeof name !== 'string') {
-      return 'U'; // Return 'U' for unknown if no valid name
-    }
-    
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2 && parts[0] && parts[1]) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
+// Helper function to get status badge
+function getStatusBadge(status: string) {
+  const statusConfig = {
+    pending: { label: 'Pending', className: 'text-yellow-600 border-yellow-300 bg-yellow-100 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/20' },
+    confirmed: { label: 'Confirmed', className: 'text-blue-600 border-blue-300 bg-blue-100 dark:text-blue-400 dark:border-blue-600 dark:bg-blue-900/20' },
+    assigned: { label: 'Assigned', className: 'text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20' },
+    completed: { label: 'Completed', className: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20' },
+    cancelled: { label: 'Cancelled', className: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20' }
   };
   
-  const initials = getInitials(name);
+  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
   
   return (
-    <div className="w-16 h-16 rounded-full bg-purple-600 flex items-center justify-center text-white text-xl font-semibold">
-      {initials}
-    </div>
+    <Badge variant="outline" className={config.className}>
+      {config.label}
+    </Badge>
   );
 }
 
-// Google Maps Component
-function GoogleMap({ pickupLocation, dropoffLocation }: { pickupLocation: string, dropoffLocation: string }) {
-  return (
-    <div className="relative w-full h-[300px] rounded overflow-hidden">
-        <iframe 
-          width="100%" 
-          height="100%" 
-          style={{border: 0}}
-          loading="lazy"
-          allowFullScreen
-          src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(dropoffLocation)}&mode=driving`}
-        />
-        <div className="absolute bottom-3 left-3 z-10">
-          <a 
-            href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pickupLocation)}&destination=${encodeURIComponent(dropoffLocation)}&travelmode=driving`} 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs bg-white text-black py-2 px-3 rounded shadow-md hover:bg-gray-100"
-          >
-            View larger map
-          </a>
-        </div>
-      </div>
-  );
-}
-
-// Convert to client component with loading state
-export default function BookingPage() {
-  const { t } = useI18n()
-  const params = useParams()
-  const router = useRouter()
-  const id = params?.id as string
-  const [booking, setBooking] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Helper function to calculate original price from final price and discount percentage
-  const calculateOriginalPrice = (finalAmount?: string | number, discountPercentage?: string | number) => {
-    if (!finalAmount || !discountPercentage) return 'N/A';
-    
-    const finalPrice = typeof finalAmount === 'string' ? parseFloat(finalAmount.replace(/[^0-9.]/g, '')) : finalAmount;
-    const discount = typeof discountPercentage === 'string' ? parseFloat(discountPercentage) : discountPercentage;
-    
-    if (isNaN(finalPrice) || isNaN(discount) || discount <= 0 || discount >= 100) {
-      return 'THB ' + finalPrice;
-    }
-    
-    const originalPrice = Math.round(finalPrice / (1 - discount/100));
-    return `THB ${originalPrice.toLocaleString()}`;
+// Helper function to get payment status badge
+function getPaymentStatusBadgeClasses(status: string) {
+  const statusConfig = {
+    pending: 'text-yellow-600 border-yellow-300 bg-yellow-100 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-900/20',
+    paid: 'text-green-600 border-green-300 bg-green-100 dark:text-green-400 dark:border-green-600 dark:bg-green-900/20',
+    failed: 'text-red-600 border-red-300 bg-red-100 dark:text-red-400 dark:border-red-600 dark:bg-red-900/20',
+    refunded: 'text-gray-600 border-gray-300 bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-900/20'
   };
+  
+  return statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+}
 
-  const fetchBookingData = async () => {
+export default function BookingDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const { t } = useI18n();
+  const id = params?.id as string;
+  
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSmartModalOpen, setIsSmartModalOpen] = useState(false);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [assignedDriver, setAssignedDriver] = useState<any>(null);
+  const [assignedVehicle, setAssignedVehicle] = useState<any>(null);
+  const [vehicleCategory, setVehicleCategory] = useState<string>('');
+  
+  // Email dialog state
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [bccEmails, setBccEmails] = useState<string>("booking@japandriver.com");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  
+  // Invoice dialog state
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceBccEmails, setInvoiceBccEmails] = useState<string>("booking@japandriver.com");
+  const [isSendingInvoice, setIsSendingInvoice] = useState(false);
+  
+  // Payment link state
+  const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false);
+  const [paymentLinkBccEmails, setPaymentLinkBccEmails] = useState<string>("booking@japandriver.com");
+  const [isRegeneratingPaymentLink, setIsRegeneratingPaymentLink] = useState(false);
+  
+  // Reschedule state
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
+  
+  // Progress modal state
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressTitle, setProgressTitle] = useState('Processing');
+  const [progressVariant, setProgressVariant] = useState<'default' | 'email' | 'approval' | 'rejection' | 'reminder' | 'invoice'>('default');
+  const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
+
+  // Load booking data
+  useEffect(() => {
+    const loadBooking = async () => {
+      try {
+        setLoading(true);
+        const bookingData = await getBookingById(id);
+        setBooking(bookingData.booking);
+        
+        // If we loaded a booking with a wp_id and the current URL uses UUID, redirect to booking number URL
+        if (bookingData.booking?.wp_id && bookingData.booking.wp_id.startsWith('QUO-') && !id.startsWith('QUO-')) {
+          const newUrl = `/bookings/${bookingData.booking.wp_id}` as const;
+          router.replace(newUrl);
+          return;
+        }
+        
+        // Load assigned driver and vehicle if they exist
+        if (bookingData.booking?.driver_id || bookingData.booking?.vehicle_id) {
+          await loadAssignedResources(bookingData.booking);
+        }
+      } catch (err) {
+        console.error('Error loading booking:', err);
+        setError('Failed to load booking details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      loadBooking();
+    }
+  }, [id, router]);
+
+  // Load assigned driver and vehicle data
+  const loadAssignedResources = async (bookingData: Booking) => {
     try {
-      setLoading(true)
-      const result = await getBookingById(id)
+      const supabase = createClient();
       
-      if (result.booking) {
-        setBooking(result.booking)
+      // Load assigned driver
+      if (bookingData.driver_id) {
+        const { data: driverData, error: driverError } = await supabase
+          .from('drivers')
+          .select('*')
+          .eq('id', bookingData.driver_id)
+          .single();
+        
+        if (!driverError && driverData) {
+          setAssignedDriver(driverData);
+        }
+      }
+      
+      // Load assigned vehicle with category
+      if (bookingData.vehicle_id) {
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select(`
+            *,
+            pricing_category_vehicles!inner(
+              pricing_categories!inner(
+                name
+              )
+            )
+          `)
+          .eq('id', bookingData.vehicle_id)
+          .single();
+        
+        if (!vehicleError && vehicleData) {
+          setAssignedVehicle(vehicleData);
+          // Extract category name
+          if (vehicleData.pricing_category_vehicles && Array.isArray(vehicleData.pricing_category_vehicles) && vehicleData.pricing_category_vehicles.length > 0) {
+            setVehicleCategory(vehicleData.pricing_category_vehicles[0].pricing_categories.name);
+          } else if (bookingData.meta?.vehicle_category_name) {
+            setVehicleCategory(bookingData.meta.vehicle_category_name);
+          } else if (bookingData.meta?.vehicle_category) {
+            setVehicleCategory(bookingData.meta.vehicle_category);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading assigned resources:', error);
+    }
+  };
+
+  // Handle status change
+  const handleStatusChange = () => {
+    // Refresh the page to update the booking data
+    window.location.reload();
+  };
+
+  // Load available drivers and vehicles
+  const loadAvailableResources = async () => {
+    try {
+      const supabase = createClient();
+      
+      // Load drivers
+      const { data: driversData, error: driversError } = await supabase
+        .from('drivers')
+        .select('*')
+        .is('deleted_at', null);
+
+      if (driversError) throw driversError;
+
+      // Load vehicles
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('status', 'active');
+
+      if (vehiclesError) throw vehiclesError;
+
+      setDrivers(driversData || []);
+      setVehicles(vehiclesData || []);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+    }
+  };
+
+  // Handle smart assignment
+  const handleSmartAssignment = () => {
+    loadAvailableResources();
+    setIsSmartModalOpen(true);
+  };
+
+  // Handle assignment
+  const handleAssign = async (driverId: string, vehicleId: string) => {
+    try {
+      const supabase = createClient();
+      
+      // Prepare update data
+      const updateData: any = {};
+      
+      if (driverId) {
+        updateData.driver_id = driverId;
+      } else if (driverId === '') {
+        // Unassign driver
+        updateData.driver_id = null;
+      }
+      
+      if (vehicleId) {
+        updateData.vehicle_id = vehicleId;
+      } else if (vehicleId === '') {
+        // Unassign vehicle
+        updateData.vehicle_id = null;
+      }
+      
+      // Update the booking
+      const { error } = await supabase
+        .from('bookings')
+        .update(updateData)
+        .eq('id', booking?.id || '');
+      
+      if (error) {
+        console.error('Error updating booking:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update assignment",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Show success message
+      if (driverId === '' && vehicleId === '') {
+        toast({
+          title: "Success",
+          description: "All assignments have been removed",
+        });
       } else {
-        setError('Booking not found')
+        toast({
+          title: "Success",
+          description: "Assignment updated successfully",
+        });
       }
-    } catch (err) {
-      console.error("Error fetching booking:", err)
-      setError(err instanceof Error ? err.message : 'Failed to load booking')
+      
+      setIsSmartModalOpen(false);
+      // Refresh the page to update the booking data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error in handleAssign:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while updating the assignment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Send booking details email
+  const handleSendBookingDetails = async () => {
+    if (!bccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    setProgressOpen(true);
+    setProgressVariant('email');
+    setProgressTitle('Sending Booking Details');
+    
+    try {
+      const bccEmailList = bccEmails.split(',').map(email => email.trim()).filter(email => email);
+      
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress(progressConfigs.sendEmail);
+      
+      const response = await fetch('/api/bookings/send-booking-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking?.id || id,
+          bccEmails: bccEmailList
+        }),
+      });
+
+      // Wait for both to complete
+      await Promise.all([progressPromise, response]);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
+      }
+
+      toast({
+        title: "Success",
+        description: "Booking details email sent successfully!",
+      });
+
+      setTimeout(() => {
+        setProgressOpen(false);
+        setIsEmailModalOpen(false);
+        setBccEmails("booking@japandriver.com");
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error sending booking details email:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send email",
+        variant: "destructive",
+      });
+      setTimeout(() => setProgressOpen(false), 1000);
     } finally {
-      setLoading(false)
+      setIsSendingEmail(false);
     }
-  }
+  };
 
-  useEffect(() => {
-    fetchBookingData()
-  }, [id])
+  // Send booking invoice
+  const handleSendBookingInvoice = async () => {
+    if (!invoiceBccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Refresh booking data when page becomes visible (e.g., returning from edit page)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchBookingData()
+    setIsSendingInvoice(true);
+    setProgressOpen(true);
+    setProgressVariant('invoice');
+    setProgressTitle('Sending Booking Invoice');
+    
+    try {
+      const bccEmailList = invoiceBccEmails.split(',').map(email => email.trim()).filter(email => email);
+      
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress(progressConfigs.sendEmail);
+      
+      const response = await fetch('/api/bookings/send-booking-invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking?.id || id,
+          bccEmails: bccEmailList,
+          customer_email: booking?.customer_email
+        }),
+      });
+
+      // Wait for both to complete
+      await Promise.all([progressPromise, response]);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send invoice');
       }
+
+      toast({
+        title: "Success",
+        description: "Booking invoice sent successfully!",
+      });
+
+      setTimeout(() => {
+        setProgressOpen(false);
+        setIsInvoiceModalOpen(false);
+        setInvoiceBccEmails("booking@japandriver.com");
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error sending booking invoice:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invoice",
+        variant: "destructive",
+      });
+      setTimeout(() => setProgressOpen(false), 1000);
+    } finally {
+      setIsSendingInvoice(false);
+    }
+  };
+
+
+  // Regenerate payment link
+  const handleRegeneratePaymentLink = async () => {
+    if (!paymentLinkBccEmails.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter at least one BCC email address",
+        variant: "destructive",
+      });
+      return;
     }
 
-    const handleFocus = () => {
-      fetchBookingData()
+    setIsRegeneratingPaymentLink(true);
+    setProgressOpen(true);
+    setProgressVariant('invoice');
+    setProgressTitle('Regenerating Payment Link');
+    
+    try {
+      const bccEmailList = paymentLinkBccEmails.split(',').map(email => email.trim()).filter(email => email);
+      
+      // Start progress simulation and API call in parallel
+      const progressPromise = startProgress(progressConfigs.sendPaymentLink);
+      
+      const response = await fetch('/api/bookings/regenerate-payment-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking?.id || id,
+          bccEmails: bccEmailList,
+          customer_email: booking?.customer_email
+        }),
+      });
+
+      // Wait for both to complete
+      await Promise.all([progressPromise, response]);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to regenerate payment link');
+      }
+
+      toast({
+        title: "Success",
+        description: "Payment link regenerated and sent to customer!",
+      });
+
+      setTimeout(() => {
+        setProgressOpen(false);
+        setIsPaymentLinkModalOpen(false);
+        setPaymentLinkBccEmails("booking@japandriver.com");
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error regenerating payment link:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate payment link",
+        variant: "destructive",
+      });
+      setTimeout(() => setProgressOpen(false), 1000);
+    } finally {
+      setIsRegeneratingPaymentLink(false);
+    }
+  };
+
+  // Reschedule booking
+  const handleRescheduleBooking = async () => {
+    if (!newDate || !newTime) {
+      toast({
+        title: "Error",
+        description: "Please select both new date and time",
+        variant: "destructive",
+      });
+      return;
     }
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
+    setIsRescheduling(true);
+    
+    try {
+      const response = await fetch('/api/bookings/reschedule-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking?.id || id,
+          newDate: newDate,
+          newTime: newTime
+        }),
+      });
 
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reschedule booking');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Success",
+        description: result.message || "Booking rescheduled successfully!",
+      });
+
+      // Close modal and reset form
+      setIsRescheduleModalOpen(false);
+      setNewDate('');
+      setNewTime('');
+      
+      // Reload the page to show updated booking
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error rescheduling booking:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reschedule booking",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRescheduling(false);
     }
-  }, [id, fetchBookingData])
+  };
 
-  const handleAssignmentComplete = () => {
-    // Reload the booking data after assignment is completed
-    router.refresh();
-    fetchBookingData();
-  }
 
-  
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">{t('common.loading')}</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading booking details...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !booking) {
     return (
-      <div className="container mx-auto py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <PageHeader
-            title={t('bookings.details.notFound')}
-            description={t('bookings.details.notFoundDescription')}
-          />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <FileX className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Booking Not Found</h3>
+          <p className="text-muted-foreground mb-4">{error || 'The booking you are looking for does not exist.'}</p>
+          <Button onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go Back
+          </Button>
         </div>
-        <Card className="min-h-[300px] flex items-center justify-center">
-          <div className="text-center">
-            <FileX className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">{t('bookings.details.notFound')}</h3>
-            <p className="text-muted-foreground">
-              {t('bookings.details.notFoundDescription')}
-            </p>
-          </div>
-        </Card>
       </div>
     );
   }
-  
-  const getStatusBadge = (status: string) => {
-    const statusKey = status?.toLowerCase() || 'unknown'
-    const statusText = t(`bookings.details.status.${statusKey}`, {
-      defaultValue: statusKey.charAt(0).toUpperCase() + statusKey.slice(1),
-    })
-    return (
-      <Badge className={getStatusBadgeClasses(status)}>
-        {statusText}
-      </Badge>
-    )
-  }
-  
+
   return (
-    <GoogleMapsProvider 
-      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''} 
-      libraries={['places']}
-    >
+    <GoogleMapsProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
       <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.wp_id || booking.booking_id || id })}</h1>
-          <p className="text-muted-foreground">
-            {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
-            {booking.creator?.full_name && (
-              <span className="ml-2">
-                • Created by: {booking.creator.full_name}
-              </span>
-            )}
-            {!booking.creator?.full_name && booking.meta?.creator_info && (
-              <span className="ml-2">
-                • Created by: {booking.meta.creator_info.name || booking.meta.creator_info.role || 'Unknown User'}
-              </span>
-            )}
-          </p>
-        </div>
-        
-        <div className="flex gap-3 mt-4 md:mt-0">
-          {getStatusBadge(booking.status)}
-          <DriverActionsDropdown booking={booking} />
-        </div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Booking Summary Section with Vehicle Information */}
-          <Card>
-            <div className="border-b py-4 px-6">
-              <h2 className="text-lg font-semibold flex items-center">
-                <Calendar className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.summary')}
-              </h2>
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-y-6">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.bookingId')}</h3>
-                  <p className="mt-1">#{booking.wp_id || booking.booking_id || 'N/A'}</p>
+        {/* Enhanced Header with New Layout - Following Quotation Details Pattern */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Top Row - Title and Status */}
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl font-bold mb-2 break-words">
+                      Booking Number #{booking.wp_id || booking.booking_id || 'N/A'}
+                    </h1>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <p className="text-muted-foreground">
+                        Created on: {booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'}
+                        {booking.creator && (
+                          <span className="ml-2">
+                            • Created by: {booking.creator.full_name || 'Unknown User'}
+                          </span>
+                        )}
+                      </p>
+                      <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-100 dark:text-purple-400 dark:border-purple-600 dark:bg-purple-900/20">
+                        Assigned
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
                 
-                                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
-                    <p className="mt-1">
-                      {/* Use direct booking service_type field first, then fall back to meta */}
-                      {booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
-                    </p>
+                {/* Share and Edit buttons moved to top right */}
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
+                  <div className="w-full sm:w-auto">
+                    <BookingShareButtons booking={booking} />
                   </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupDate')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.date || '2025-04-30'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupTime')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.time || '06:30'}
-                  </p>
-                </div>
-                
-                {/* Removed Payment Method and Payment Status fields as requested */}
-              </div>
-              
-              {/* Vehicle Information Section */}
-              <div className="mt-8 pt-6 border-t">
-                <h2 className="text-lg font-semibold flex items-center mb-4">
-                  <Truck className="mr-2 h-5 w-5" />
-                  {t('bookings.details.sections.vehicle')}
-                </h2>
-                
-
-                
-                <div className="grid grid-cols-2 gap-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicle')}</h3>
-                    <p className="mt-1">
-                      {/* Use direct booking fields first, then fall back to meta */}
-                      {booking.vehicle_make && booking.vehicle_model 
-                        ? `${booking.vehicle_make} ${booking.vehicle_model}${booking.vehicle_year ? ` (${booking.vehicle_year})` : ''}`
-                        : booking.meta?.vehicle_type || 'Toyota Hiace Grand Cabin'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.vehicleCategory')}</h3>
-                    <p className="mt-1">
-                      {/* Show actual category name from meta or fallback */}
-                      {booking.meta?.vehicle_category_name || booking.meta?.vehicle_category || 'Not specified'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Passenger Capacity</h3>
-                    <p className="mt-1">
-                      {booking.vehicle_capacity 
-                        ? `${booking.vehicle_capacity} passengers`
-                        : booking.meta?.vehicle_passenger_capacity 
-                        ? `${booking.meta.vehicle_passenger_capacity} passengers`
-                        : 'Not specified'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Luggage Capacity</h3>
-                    <p className="mt-1">
-                      {booking.vehicle?.luggage_capacity 
-                        ? `${booking.vehicle.luggage_capacity} pieces`
-                        : booking.meta?.vehicle_luggage_capacity 
-                        ? `${booking.meta.vehicle_luggage_capacity} pieces`
-                        : 'Not specified'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.hoursPerDay')}</h3>
-                    <p className="mt-1">
-                      {booking.hours_per_day || booking.meta?.hours_per_day || 'Not specified'}
-                      {(booking.service_name === 'Airport Transfer Haneda' || booking.service_name === 'Airport Transfer Narita') && (
-                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Auto-set for airport transfer)</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.durationHours')}</h3>
-                    <p className="mt-1">
-                      {booking.duration_hours || booking.meta?.duration_hours || 'Not specified'}
-                      {(booking.service_name === 'Airport Transfer Haneda' || booking.service_name === 'Airport Transfer Narita') && (
-                        <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Auto-set for airport transfer)</span>
-                      )}
-                    </p>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full sm:w-auto gap-2 h-9"
+                    onClick={() => router.push(`/bookings/${id}/edit`)}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
                 </div>
               </div>
-            </div>
-          </Card>
-          
-          {/* Route Information Section */}
-          <Card>
-            <div className="border-b py-4 px-6">
-              <h2 className="text-lg font-semibold flex items-center">
-                <MapPin className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.route')}
-              </h2>
-            </div>
-            
-            <div className="p-6">
-
               
-              {booking.pickup_location || booking.dropoff_location ? (
+              {/* Action Buttons Row - Show for all statuses */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2 border-t">
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto gap-2"
+                  onClick={() => setIsEmailModalOpen(true)}
+                >
+                  <Mail className="h-4 w-4" />
+                  Send Booking Details
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto gap-2"
+                  onClick={() => setIsRescheduleModalOpen(true)}
+                >
+                  <CalendarPlus className="h-4 w-4" />
+                  Reschedule Booking
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto gap-2"
+                  onClick={() => setIsInvoiceModalOpen(true)}
+                >
+                  <FileText className="h-4 w-4" />
+                  Send Booking Invoice PDF
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto gap-2"
+                  onClick={() => setIsPaymentLinkModalOpen(true)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Regenerate Payment Link
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6">
+          {/* Main Content - 2 columns on XL screens, full width on smaller */}
+          <div className="xl:col-span-2 space-y-4 xl:space-y-6">
+            {/* Customer Information */}
+            <Card>
+              <CardContent className="pt-6">
                 <div className="space-y-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">A</span>
-                      </div>
+                  {/* Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-medium">{t('bookings.details.fields.pickupLocation')}</h3>
-                      <p className="text-muted-foreground mt-1">
-                        {booking.pickup_location || 'Suvarnabhumi Airport, Bangkok'}
-                      </p>
+                      <h2 className="text-xl font-semibold">Customer Information</h2>
+                      <p className="text-sm text-muted-foreground">Contact details and customer information</p>
                     </div>
                   </div>
                   
-                  {/* Add Navigate to Pickup button */}
-                  <div className="ml-9 mt-2">
-                    <a 
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.pickup_location || '')}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
-                    >
-                      <Navigation className="mr-2 h-4 w-4" />
-                      {t('bookings.details.actions.navigateToPickup')}
-                    </a>
-                  </div>
-                  
-                  {/* Only show dropoff location for non-Charter Services */}
-                  {booking.dropoff_location && !booking.service_name?.toLowerCase().includes('charter') && (
-                    <>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">B</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Contact Details - 3 elements */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium text-base">Contact Details</h3>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Customer Name</div>
+                          <div className="font-medium">{booking.customer_name || 'Aroon Muangkaew'}</div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Email Address</div>
+                          <div className="font-medium">{booking.customer_email || 'aroon.m@example.com'}</div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Phone Number</div>
+                          <div className="font-medium">{booking.customer_phone || '+66 98 765 4321'}</div>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Service & Flight Information - 3 elements */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium text-base">Service & Flight Information</h3>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Service Type</div>
+                          <div className="font-medium text-foreground">
+                            {booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Pickup Date & Time</div>
+                          <div className="font-medium text-foreground">
+                            {booking.date && booking.time ? `${new Date(booking.date).toLocaleDateString()} at ${booking.time}` : 'Not provided'}
+                          </div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/30 rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1">Flight Number & Terminal</div>
+                          <div className="font-medium text-foreground">
+                            {(() => {
+                              let flightNumber = booking.flight_number || booking.meta?.chbs_flight_number || '';
+                              let terminal = booking.terminal || booking.meta?.chbs_terminal || '';
+                              
+                              // Try to extract from form element fields
+                              if (!flightNumber && booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
+                                const flightField = booking.meta.chbs_form_element_field.find(
+                                  (field: any) => field.label?.toLowerCase().includes('flight') || field.name?.toLowerCase().includes('flight')
+                                );
+                                if (flightField?.value) flightNumber = flightField.value;
+                              }
+                              
+                              if (!terminal && booking.meta?.chbs_form_element_field && Array.isArray(booking.meta.chbs_form_element_field)) {
+                                const terminalField = booking.meta.chbs_form_element_field.find(
+                                  (field: any) => field.label?.toLowerCase().includes('terminal') || field.name?.toLowerCase().includes('terminal')
+                                );
+                                if (terminalField?.value) terminal = terminalField.value;
+                              }
+                              
+                              const flight = flightNumber || 'Not provided';
+                              const term = terminal || 'Not provided';
+                              return `${flight} - ${term}`;
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+
+            {/* Vehicle & Driver Assignment */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Truck className="h-5 w-5 text-primary" />
+                    </div>
                     <div>
-                      <h3 className="font-medium">{t('bookings.details.fields.dropoffLocation')}</h3>
-                          <p className="text-muted-foreground mt-1">
-                            {booking.dropoff_location || 'The Sukhothai Bangkok, South Sathorn Road'}
-                          </p>
+                      <h2 className="text-xl font-semibold">Vehicle & Driver Assignment</h2>
+                      <p className="text-sm text-muted-foreground">Vehicle details and driver assignment</p>
                     </div>
                   </div>
                   
-                  {/* Add Navigate to Drop-off button */}
-                  <div className="ml-9 mt-2">
-                    <a 
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.dropoff_location || '')}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="inline-flex items-center px-3 py-2 text-sm bg-primary-100 text-primary-700 border border-primary-200 rounded-md hover:bg-primary-200 dark:bg-black dark:text-white dark:hover:bg-gray-800 dark:border-gray-700"
+                  {/* Current Assignment Status */}
+                  <div className="p-4 bg-muted/50 border rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <CheckIcon className="h-4 w-4" />
+                        Current Assignment
+                      </h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => {
+                          // Call the handleAssign function with empty strings to unassign all
+                          handleAssign("", "");
+                        }}
+                      >
+                        <UserX className="h-4 w-4 mr-1" />
+                        Unassign All
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Current Driver */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
+                        </div>
+                        {assignedDriver ? (
+                          <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-semibold">
+                                {`${assignedDriver.first_name} ${assignedDriver.last_name}`}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {assignedDriver.email || 'No contact info'}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {assignedDriver.phone || 'No phone'}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center p-4 bg-background rounded-lg border-2 border-dashed border-muted-foreground/20">
+                            <User className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No driver assigned</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Current Vehicle */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
+                        </div>
+                        {assignedVehicle ? (
+                          <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                            {/* Vehicle Image */}
+                            <div className="flex-shrink-0">
+                              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                                <Car className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            </div>
+                            
+                            {/* Vehicle Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold truncate">
+                                {`${assignedVehicle.brand} ${assignedVehicle.model}${assignedVehicle.year ? ` (${assignedVehicle.year})` : ''}`}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {assignedVehicle.plate_number || 'Plate not available'}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {vehicleCategory || 'Not specified'}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center p-4 bg-background rounded-lg border-2 border-dashed border-muted-foreground/20">
+                            <Car className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No vehicle assigned</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assignment Actions */}
+                  <div className="flex justify-center">
+                    <Button 
+                      size="lg" 
+                      className="w-full sm:w-auto"
+                      onClick={handleSmartAssignment}
                     >
-                      <Navigation className="mr-2 h-4 w-4" />
-                      {t('bookings.details.actions.navigateToDropoff')}
-                    </a>
+                      <Truck className="h-4 w-4 mr-2" />
+                      Smart Assignment
+                    </Button>
                   </div>
-                    </>
-                  )}
-                  
-                  {/* Show message for Charter Services */}
-                  {booking.service_name?.toLowerCase().includes('charter') && (
-                    <div className="ml-9 mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/10 dark:border-blue-800">
-                      <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Charter Service:</strong> This is a charter service with pickup location only. 
-                        Dropoff location will be determined during the service.
-                      </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Separator className="my-6" />
+
+            {/* Route Information */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <MapPin className="h-5 w-5 text-primary" />
                     </div>
-                  )}
+                    <div>
+                      <h2 className="text-xl font-semibold">{t('bookings.details.sections.route')}</h2>
+                      <p className="text-sm text-muted-foreground">Pickup and dropoff locations with navigation</p>
+                    </div>
+                  </div>
                   
-                  {booking.pickup_location && booking.dropoff_location && !booking.service_name?.toLowerCase().includes('charter') && (
-                    <div className="mt-6">
-                      <GoogleMap
-                        pickupLocation={booking.pickup_location}
-                        dropoffLocation={booking.dropoff_location}
+                  {booking.pickup_location || booking.dropoff_location ? (
+                    <div className="space-y-6">
+                      {/* Pickup and Dropoff in 2-column layout */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Pickup Location */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">A</span>
+                            </div>
+                            <h3 className="font-semibold text-lg">{t('bookings.details.fields.pickupLocation')}</h3>
+                          </div>
+                          <div className="p-4 bg-muted/30 rounded-lg border min-h-[140px] flex flex-col justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.pickup_location || 'Not specified'}</p>
+                            </div>
+                            <Button size="sm" variant="outline" className="mt-3 w-full">
+                              <Navigation className="h-4 w-4 mr-2" />
+                              Navigate to Pickup
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Dropoff Location */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">B</span>
+                            </div>
+                            <h3 className="font-semibold text-lg">{t('bookings.details.fields.dropoffLocation')}</h3>
+                          </div>
+                          <div className="p-4 bg-muted/30 rounded-lg border min-h-[140px] flex flex-col justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium leading-relaxed text-foreground">{booking.dropoff_location || 'Not specified'}</p>
+                            </div>
+                            <Button size="sm" variant="outline" className="mt-3 w-full">
+                              <Navigation className="h-4 w-4 mr-2" />
+                              Navigate to Dropoff
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Route Map */}
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-lg">Route Map</h3>
+                        <div className="w-full h-64 rounded-lg overflow-hidden border">
+                          {booking.pickup_location && booking.dropoff_location ? (
+                            <iframe 
+                              width="100%" 
+                              height="100%" 
+                              className="border-0"
+                              loading="lazy"
+                              allowFullScreen
+                              title="Route Map"
+                              src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&origin=${encodeURIComponent(booking.pickup_location)}&destination=${encodeURIComponent(booking.dropoff_location)}&mode=driving&language=ja&region=JP`}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <div className="text-center">
+                                <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-sm text-muted-foreground">Map will be displayed when locations are available</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Distance and Duration */}
+                      {(booking.distance || booking.duration) && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-sm text-muted-foreground">Distance</div>
+                            <div className="font-semibold">{booking.distance || 'N/A'}</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted/50 rounded-lg">
+                            <div className="text-sm text-muted-foreground">Duration</div>
+                            <div className="font-semibold">{booking.duration || 'N/A'}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Weather Forecast */}
+                      <WeatherForecast 
+                        location={booking.pickup_location || ''}
+                        date={booking.date || ''}
                       />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">{t('bookings.details.placeholders.noRouteInfo')}</p>
-              )}
-              
-              {/* Add Weather Forecast Section */}
-              {booking.date && booking.pickup_location && (
-                <div className="mt-6 pt-6 border-t">
-                  <WeatherForecast 
-                    date={booking.date}
-                    location={booking.pickup_location}
-                  />
-                </div>
-              )}
-              
-              {/* Add distance and duration */}
-              {(booking.distance || booking.duration) && (
-                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
-                  {booking.distance && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.distance')}</h3>
-                      <p className="mt-1">{booking.distance} km</p>
-                    </div>
-                  )}
-                  
-                  {booking.duration && (
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.duration')}</h3>
-                      <p className="mt-1">{booking.duration} min</p>
+                  ) : (
+                    <div className="text-center p-8 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
+                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Route Information</h3>
+                      <p className="text-muted-foreground">Pickup and dropoff locations are not specified for this booking.</p>
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </Card>
-          
-          {/* Removed Billing Address and Payment Link sections as requested */}
-        </div>
+              </CardContent>
+            </Card>
+          </div>
         
-        {/* Right Column: Combined Client Details & Additional Information, and Booking Actions */}
-        <div className="space-y-6">
-          {/* Combined Client Details and Additional Information Section */}
-          <Card>
-            <div className="border-b py-4 px-6">
-              <h2 className="text-lg font-semibold flex items-center">
-                <User className="mr-2 h-5 w-5" />
-                {t('bookings.details.sections.client')}
-              </h2>
-            </div>
-            
-            <div className="p-6">
-              <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 mb-4">
-                <AvatarInitials name={booking.customer_name || 'Aroon Muangkaew'} />
-                
-                <div className="text-center sm:text-left">
-                  <h3 className="font-medium text-lg">{booking.customer_name || 'Aroon Muangkaew'}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('bookings.details.customerSince', {
-                      date: (booking as any).customer_since || 
-                        (booking.created_at ? 
-                          new Date(booking.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
-                          'January 2023')
-                    })}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-4 mt-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.email')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Mail className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.customer_email || 'aroon.m@example.com'}
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.phone')}</h3>
-                  <p className="mt-1 flex items-center">
-                    <Phone className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.customer_phone || '+66 98 765 4321'}
-                  </p>
-                  
-                  <ContactButtons phoneNumber={booking.customer_phone || '+66 98 765 4321'} />
-                </div>
-              </div>
-              
-              {/* Additional Information Section - Combined with client details */}
-              <div className="pt-6 mt-6 border-t">
-                <h3 className="font-medium mb-4">{t('bookings.details.sections.additional')}</h3>
+          {/* Right Column: Booking Workflow and Actions */}
+          <div className="space-y-4 xl:space-y-6">
+            {/* Booking Workflow */}
+            <BookingWorkflow 
+              booking={{
+                id: booking.id || id,
+                status: booking.status || 'pending',
+                created_at: booking.created_at || new Date().toISOString(),
+                payment_status: booking.payment_status,
+                payment_completed_at: booking.meta?.payment_completed_at,
+                driver_id: booking.driver_id,
+                vehicle_id: booking.vehicle_id,
+                assigned_at: booking.meta?.assigned_at,
+                completed_at: booking.meta?.completed_at,
+                date: booking.date || '',
+                time: booking.time || '',
+                customer_email: booking.customer_email,
+                customer_name: booking.customer_name,
+                price: booking.price,
+                payment_link: booking.payment_link,
+                payment_link_generated_at: booking.meta?.payment_link_generated_at,
+                payment_link_expires_at: booking.meta?.payment_link_expires_at,
+                receipt_url: booking.meta?.receipt_url
+              }}
+              onMarkAsPaid={() => {
+                // Refresh the page to update the booking data
+                window.location.reload();
+              }}
+              onAssignDriver={() => {
+                // This could open a driver assignment dialog
+                console.log('Assign driver clicked');
+              }}
+              onMarkAsComplete={() => {
+                // Refresh the page to update the booking data
+                window.location.reload();
+              }}
+              onRefresh={() => {
+                // Refresh the page to update the booking data
+                window.location.reload();
+              }}
+              isOrganizationMember={true} // You might want to check user permissions here
+            />
+
+
+          {/* Notes & Comments Section - Following Quotation Details Pattern */}
+          {(booking.notes || booking.meta?.chbs_comment) && (
+            <Card>
+              <CardContent className="pt-6">
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.flightNumber')}</h3>
-                    <p className="mt-1">
-                      {booking.flight_number || booking.meta?.chbs_flight_number || t('bookings.details.placeholders.notProvided')}
-                    </p>
+                  {/* Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Notes & Comments</h2>
+                      <p className="text-sm text-muted-foreground">Internal notes and communication</p>
+                    </div>
                   </div>
                   
+                  {/* Internal Notes Section */}
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.terminal')}</h3>
-                    <p className="mt-1">
-                      {booking.terminal || booking.meta?.chbs_terminal || t('bookings.details.placeholders.notProvided')}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.comment')}</h3>
-                    <p className="mt-1 whitespace-pre-wrap">
-                      {booking.notes || booking.meta?.chbs_comment || t('bookings.details.placeholders.noComments')}
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <StickyNote className="h-3 w-3 text-muted-foreground" />
+                      Internal Notes
+                    </h4>
+                    <div 
+                      className="text-sm leading-relaxed bg-muted/30 rounded-md p-3 border-l-4 border-l-orange-500 whitespace-pre-wrap break-words"
+                    >
+                      {booking.notes || booking.meta?.chbs_comment || 'No internal notes available'}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Internal notes, not visible to the customer
                     </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          </Card>
-          
-          {/* Booking Actions */}
-          <BookingActions 
-            bookingId={(booking.wp_id || booking.booking_id || id)}
-            status={booking.status || 'Pending'}
-            date={booking.date || '2023-04-30'}
-            time={booking.time || '06:30'}
-            booking={booking}
-          />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* Notes Section */}
-    </div>
-      </GoogleMapsProvider>
-  );
-} 
+      {/* Smart Assignment Modal */}
+      <SmartAssignmentModal
+        booking={booking ? {
+          id: booking.id || id,
+          wp_id: booking.wp_id,
+          service_name: booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name,
+          date: booking.date || '',
+          time: booking.time || '',
+          customer_name: booking.customer_name,
+          driver_id: booking.driver_id,
+          vehicle_id: booking.vehicle_id,
+          driver: booking.driver_id ? {
+            id: booking.driver_id,
+            first_name: booking.meta?.driver_name?.split(' ')[0] || '',
+            last_name: booking.meta?.driver_name?.split(' ').slice(1).join(' ') || '',
+            email: booking.meta?.driver_email || '',
+            phone: booking.meta?.driver_phone || '',
+            profile_image_url: undefined,
+            status: 'available',
+            is_available: true
+          } : undefined,
+          vehicle: booking.vehicle_id ? {
+            id: booking.vehicle_id,
+            name: booking.vehicle?.name || booking.meta?.vehicle_name || '',
+            plate_number: booking.vehicle?.plate_number || booking.meta?.vehicle_plate_number || '',
+            brand: booking.vehicle?.brand || '',
+            model: booking.vehicle?.model || '',
+            year: typeof booking.vehicle?.year === 'string' ? parseInt(booking.vehicle.year) : booking.vehicle?.year,
+            image_url: booking.vehicle?.image_url,
+            status: 'active',
+            is_available: true
+          } : undefined
+        } : null}
+        isOpen={isSmartModalOpen}
+        onClose={() => setIsSmartModalOpen(false)}
+        onAssign={handleAssign}
+        drivers={drivers}
+        vehicles={vehicles}
+        title={`Smart Assignment for #${booking?.wp_id || id}`}
+        subtitle="Select a driver and vehicle for this booking. The system will suggest the best matches based on the service type."
+        />
 
+        {/* Send Booking Details Modal */}
+        <Dialog open={isEmailModalOpen} onOpenChange={setIsEmailModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Send Booking Details Email
+              </DialogTitle>
+              <DialogDescription>
+                Send an email with booking details and Google Calendar integration to the customer.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="customer-email">Customer Email</Label>
+                <Input
+                  id="customer-email"
+                  type="email"
+                  value={booking?.customer_email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email will be sent to the customer's registered email address
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="bcc-emails">BCC Emails</Label>
+                <Input
+                  id="bcc-emails"
+                  value={bccEmails}
+                  onChange={(e) => setBccEmails(e.target.value)}
+                  placeholder="Enter email addresses separated by commas"
+                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default: booking@japandriver.com. Add more emails separated by commas.
+                </p>
+              </div>
+              
+              <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md">
+                <h4 className="font-medium text-sm text-green-900 dark:text-green-100 mb-2">
+                  📧 What's included in the email:
+                </h4>
+                <ul className="text-xs text-green-800 dark:text-green-200 space-y-1">
+                  <li>• Complete booking details and service information</li>
+                  <li>• Pickup and dropoff locations with times</li>
+                  <li>• Driver and vehicle information</li>
+                  <li>• Pricing breakdown and total amount</li>
+                  <li>• Google Calendar integration button</li>
+                  <li>• Contact information for changes</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEmailModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSendBookingDetails} 
+                disabled={isSendingEmail}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
+        {/* Regenerate Payment Link Modal */}
+        <Dialog open={isPaymentLinkModalOpen} onOpenChange={setIsPaymentLinkModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                Regenerate Payment Link
+              </DialogTitle>
+              <DialogDescription>
+                Generate a new payment link and send it to the customer.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="payment-customer-email">Customer Email</Label>
+                <Input
+                  id="payment-customer-email"
+                  type="email"
+                  value={booking?.customer_email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email will be sent to the customer's registered email address
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="payment-bcc-emails">BCC Emails</Label>
+                <Input
+                  id="payment-bcc-emails"
+                  value={paymentLinkBccEmails}
+                  onChange={(e) => setPaymentLinkBccEmails(e.target.value)}
+                  placeholder="Enter email addresses separated by commas"
+                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default: booking@japandriver.com. Add more emails separated by commas.
+                </p>
+              </div>
+              
+              <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-md">
+                <h4 className="font-medium text-sm text-orange-900 dark:text-orange-100 mb-2">
+                  🔗 What's included in the payment link:
+                </h4>
+                <ul className="text-xs text-orange-800 dark:text-orange-200 space-y-1">
+                  <li>• Secure payment processing via Omise</li>
+                  <li>• Multiple payment methods (credit card, etc.)</li>
+                  <li>• Real-time payment status updates</li>
+                  <li>• Automatic booking confirmation upon payment</li>
+                  <li>• Email notifications for payment status</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsPaymentLinkModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleRegeneratePaymentLink} 
+                disabled={isRegeneratingPaymentLink}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                {isRegeneratingPaymentLink ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Regenerate Link
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Send Booking Invoice PDF Modal */}
+        <Dialog open={isInvoiceModalOpen} onOpenChange={setIsInvoiceModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Send Booking Invoice PDF
+              </DialogTitle>
+              <DialogDescription>
+                Send an invoice PDF with payment status to the customer.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="invoice-customer-email">Customer Email</Label>
+                <Input
+                  id="invoice-customer-email"
+                  type="email"
+                  value={booking?.customer_email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Invoice will be sent to the customer's registered email address
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="invoice-bcc-emails">BCC Emails</Label>
+                <Input
+                  id="invoice-bcc-emails"
+                  value={invoiceBccEmails}
+                  onChange={(e) => setInvoiceBccEmails(e.target.value)}
+                  placeholder="Enter email addresses separated by commas"
+                  className="font-mono text-sm bg-white border-gray-300 text-gray-900 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Default: booking@japandriver.com. Add more emails separated by commas.
+                </p>
+              </div>
+              
+              <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-md">
+                <h4 className="font-medium text-sm text-purple-900 dark:text-purple-100 mb-2">
+                  📄 What's included in the invoice PDF:
+                </h4>
+                <ul className="text-xs text-purple-800 dark:text-purple-200 space-y-1">
+                  <li>• Complete service details and pricing breakdown</li>
+                  <li>• Payment status (PENDING PAYMENT or PAID)</li>
+                  <li>• Coupon discounts and tax calculations</li>
+                  <li>• Professional invoice PDF attachment</li>
+                  <li>• No payment buttons - clean invoice format</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsInvoiceModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSendBookingInvoice} 
+                disabled={isSendingInvoice}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                {isSendingInvoice ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Send Invoice
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reschedule Booking Modal */}
+        <Dialog open={isRescheduleModalOpen} onOpenChange={setIsRescheduleModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Reschedule Booking</DialogTitle>
+              <DialogDescription>
+                Change the date and time for booking #{booking?.wp_id || id}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Date and Time Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-date">New Date</Label>
+                  <Input
+                    id="new-date"
+                    type="date"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-time">New Time</Label>
+                  <Input
+                    id="new-time"
+                    type="time"
+                    value={newTime}
+                    onChange={(e) => setNewTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Current Booking Information */}
+              <div className="bg-muted/50 p-4 rounded-md">
+                <h3 className="text-sm font-medium mb-2">Booking Information</h3>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {booking?.service_name || 'Unnamed Service'}
+                </p>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Current Date: {booking?.date || 'Not set'} at {booking?.time || 'Not set'}
+                </p>
+                {booking?.customer_name && (
+                  <p className="text-sm text-muted-foreground">
+                    Customer: {booking.customer_name}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRescheduleModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleRescheduleBooking} 
+                disabled={isRescheduling || !newDate || !newTime}
+              >
+                {isRescheduling ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Rescheduling...
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Reschedule
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Enhanced Progress Modal */}
+        <LoadingModal
+          open={progressOpen}
+          title={progressTitle}
+          label={progressLabel}
+          value={progressValue}
+          variant={progressVariant}
+          showSteps={progressSteps.length > 0}
+          steps={progressSteps}
+          onOpenChange={setProgressOpen}
+        />
+      </div>
+        </GoogleMapsProvider>
+  );
+}

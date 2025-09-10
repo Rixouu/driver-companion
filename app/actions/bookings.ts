@@ -1264,7 +1264,8 @@ export async function updateBookingAction(
     const fieldsToRemove = [
       'id', 'wp_id', 'created_at', 'booking_id', 'supabase_id', 
       'title', 'customer', 'vehicle', 'price', 'selectedVehicle',
-      'synced_at', 'updated_by', 'creator', 'service', 'ipps_payment_link', 'booking_status'
+      'synced_at', 'updated_by', 'creator', 'service', 'ipps_payment_link', 'booking_status',
+      'assigned_at', 'completed_at' // These are stored in meta field, not as direct columns
       // These are managed by the system, computed fields, or joined data
     ];
     

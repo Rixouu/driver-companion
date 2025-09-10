@@ -193,8 +193,6 @@ export default function BookingDetailsPage() {
         // Clear assignment data when changing to pending
         updateData.driver_id = null;
         updateData.vehicle_id = null;
-        updateData.assigned_at = null;
-        updateData.completed_at = null;
         
         // Clear assignment data from meta
         updateData.meta = {

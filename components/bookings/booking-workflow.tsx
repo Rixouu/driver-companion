@@ -504,7 +504,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         status: booking.status === 'pending' ? 'pending' :
                 booking.driver_id && booking.vehicle_id ? 'completed' : 
                 ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'current' : 'pending',
-        date: booking.assigned_at || (booking.driver_id && booking.vehicle_id ? booking.created_at : undefined),
+        date: booking.meta?.assigned_at || (booking.driver_id && booking.vehicle_id ? booking.created_at : undefined),
         ...(booking.status === 'confirmed' && (!booking.driver_id || !booking.vehicle_id) && isOrganizationMember ? {
           action: {
             label: 'Assign Driver & Vehicle',

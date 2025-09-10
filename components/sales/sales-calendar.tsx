@@ -46,11 +46,22 @@ interface SalesEvent {
   vehicle_type?: string
   service_type?: string
   notes?: string
+  created_by?: string
+  created_by_user?: {
+    id: string
+    name: string
+    email: string
+  }
 }
 
 interface SalesCalendarProps {
   quotations?: any[]
   bookings?: any[]
+  users?: Array<{
+    id: string
+    name: string
+    email: string
+  }>
 }
 
 type CalendarView = "month" | "week"
@@ -65,7 +76,7 @@ interface QuickStat {
   description: string
 }
 
-export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarProps) {
+export function SalesCalendar({ quotations = [], bookings = [], users = [] }: SalesCalendarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useI18n()
@@ -87,6 +98,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
   })
   const [weeklyRevenueFilter, setWeeklyRevenueFilter] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [selectedPersonId, setSelectedPersonId] = useState<string>('all')
   const debouncedSearch = useDebounce(filters.searchQuery, 500)
   
   // Auto-scroll hook for sidebar
@@ -127,7 +139,9 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         currency: quotation.currency || 'JPY',
         vehicle_type: quotation.vehicle_type,
         service_type: quotation.service_type,
-        notes: quotation.merchant_notes
+        notes: quotation.merchant_notes,
+        created_by: quotation.created_by,
+        created_by_user: quotation.created_by ? users.find(u => u.id === quotation.created_by) : undefined
       })
     })
 
@@ -147,7 +161,9 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         currency: booking.price_currency || 'JPY',
         vehicle_type: booking.vehicle_make && booking.vehicle_model ? `${booking.vehicle_make} ${booking.vehicle_model}` : 'Vehicle',
         service_type: booking.service_name || booking.service_type,
-        notes: booking.notes
+        notes: booking.notes,
+        created_by: booking.created_by,
+        created_by_user: booking.created_by ? users.find(u => u.id === booking.created_by) : undefined
       })
     })
 
@@ -157,7 +173,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     )
 
     setSalesEvents(sortedEvents)
-  }, [quotations, bookings])
+  }, [quotations, bookings, users])
 
   // Filter events based on search, status, and type
   const filteredEvents = useMemo(() => {
@@ -170,6 +186,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
       
       const matchesStatus = filters.statusFilter === "all" || event.status === filters.statusFilter
       const matchesType = filters.typeFilter === "all" || event.type === filters.typeFilter
+      const matchesPerson = selectedPersonId === "all" || event.created_by === selectedPersonId
       
       // Apply weekly revenue filter if active
       let matchesWeeklyRevenue = true
@@ -191,7 +208,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
         matchesWeeklyRevenue = Boolean(isInWeek && countsAsRevenue && (event.total_amount ?? 0) > 0)
       }
       
-      return matchesSearch && matchesStatus && matchesType && matchesWeeklyRevenue
+      return matchesSearch && matchesStatus && matchesType && matchesPerson && matchesWeeklyRevenue
     })
 
     // Sort the filtered events
@@ -227,7 +244,7 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
     })
 
     return filtered
-  }, [salesEvents, debouncedSearch, filters.statusFilter, filters.typeFilter, filters.sortBy, filters.sortOrder, weeklyRevenueFilter])
+  }, [salesEvents, debouncedSearch, filters.statusFilter, filters.typeFilter, filters.sortBy, filters.sortOrder, weeklyRevenueFilter, selectedPersonId])
 
   // Calculate quick stats with enhanced data
   const quickStats = useMemo((): QuickStat[] => {
@@ -628,6 +645,12 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                   <span>{event.vehicle_type || 'N/A'}</span>
                   <span>{format(parseISO(event.date), "MMM d, yyyy")}</span>
                 </div>
+                
+                {event.created_by_user && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Created by: {event.created_by_user.name || event.created_by_user.email}
+                  </div>
+                )}
 
                 <div className="flex justify-between items-center mt-3">
                   <p className="text-sm text-muted-foreground">
@@ -904,7 +927,26 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                     </div>
                   </div>
                 </div>
-                <div className="text-lg font-semibold">{getCalendarTitle()}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-semibold">{getCalendarTitle()}</div>
+                  {/* Person Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Filter by:</span>
+                    <Select value={selectedPersonId} onValueChange={setSelectedPersonId}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="All People" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All People</SelectItem>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name || user.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-7 gap-0 border border-border rounded-lg overflow-hidden">
@@ -986,6 +1028,11 @@ export function SalesCalendar({ quotations = [], bookings = [] }: SalesCalendarP
                             {event.total_amount && (
                               <div className="text-xs font-medium text-white">
                                 {event.currency} {event.total_amount.toLocaleString()}
+                              </div>
+                            )}
+                            {event.created_by_user && (
+                              <div className="text-xs text-muted-foreground">
+                                Created by: {event.created_by_user.name || event.created_by_user.email}
                               </div>
                             )}
                           </div>

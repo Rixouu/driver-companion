@@ -31,7 +31,8 @@ import {
   User,
   Car,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Download
 } from 'lucide-react';
 import { format, parseISO, addDays, differenceInDays, isAfter, isBefore } from 'date-fns';
 import { Booking } from '@/types/bookings';
@@ -79,6 +80,7 @@ interface BookingWorkflowProps {
     payment_link_generated_at?: string;
     payment_link_expires_at?: string;
     receipt_url?: string;
+    meta?: Record<string, any>;
   };
   onMarkAsPaid?: () => void;
   onAssignDriver?: () => void;
@@ -102,8 +104,31 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
   const [isMarkingAsPaid, setIsMarkingAsPaid] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [paymentNotes, setPaymentNotes] = useState<string>('');
+  
+  // Omise Payment Checking State
+  const [isCheckingPayment, setIsCheckingPayment] = useState<boolean>(false);
+  const [receiptInfo, setReceiptInfo] = useState<any>(null);
+  
+  // Payment Completion Email State
+  const [sendPaymentCompleteEmail, setSendPaymentCompleteEmail] = useState(true);
+  const [paymentEmailLanguage, setPaymentEmailLanguage] = useState<'en' | 'ja'>('en');
+  const [paymentEmailBcc, setPaymentEmailBcc] = useState<string>("booking@japandriver.com");
+  const [isSendingPaymentEmail, setIsSendingPaymentEmail] = useState(false);
+
+  // Auto-fill payment amount when booking changes
+  React.useEffect(() => {
+    console.log('Booking price:', booking.price, 'Type:', typeof booking.price);
+    if (booking.price?.amount) {
+      const amount = typeof booking.price.amount === 'string' 
+        ? booking.price.amount 
+        : booking.price.amount.toString();
+      console.log('Setting payment amount to:', amount);
+      setPaymentAmount(amount);
+    }
+  }, [booking.price?.amount]);
 
   // Mark As Complete Dialog State
   const [isMarkAsCompleteDialogOpen, setIsMarkAsCompleteDialogOpen] = useState(false);
@@ -171,8 +196,9 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       const updateData: Partial<Booking> = {
         payment_status: 'paid',
         meta: {
-          ...(booking.meta as unknown as Record<string, any>),
-          payment_completed_at: new Date().toISOString() as unknown as string
+          ...(booking.meta || {}),
+          payment_completed_at: new Date().toISOString(),
+          payment_amount: paymentAmount ? parseFloat(paymentAmount) : undefined
         },
         payment_method: paymentMethod,
         status: 'confirmed' // Mark as confirmed when paid
@@ -182,15 +208,15 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       if (receiptFile) {
         // In a real implementation, you'd upload the file and get a URL
         updateData.meta = {
-          ...(booking.meta as unknown as Record<string, any>),
-          receipt_url: `receipt_${booking.id}_${Date.now()}.pdf` as unknown as string
+          ...(booking.meta || {}),
+          receipt_url: `receipt_${booking.id}_${Date.now()}.pdf`
         };
       }
 
       // Add payment notes to meta
       if (paymentNotes) {
         updateData.meta = {
-          ...(booking.meta as unknown as Record<string, any>),
+          ...(booking.meta || {}),
           payment_notes: paymentNotes
         };
       }
@@ -198,7 +224,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       // Add payment method to meta
       if (paymentNotes) {
         updateData.meta = {
-          ...(booking.meta as unknown as Record<string, any>),
+          ...(booking.meta || {}),
           payment_method: paymentMethod
         };
       }
@@ -206,10 +232,51 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       const result = await updateBookingAction(booking.id, updateData);
       
       if (result.success) {
-        toast({
-          title: "Payment Marked as Complete",
-          description: "The booking has been marked as paid and confirmed.",
-        });
+        // Send payment completion email if requested
+        if (sendPaymentCompleteEmail) {
+          try {
+            setIsSendingPaymentEmail(true);
+            
+            const emailResponse = await fetch('/api/bookings/send-payment-complete-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                booking_id: booking.id,
+                language: paymentEmailLanguage,
+                bcc_emails: paymentEmailBcc
+              })
+            });
+            
+            if (emailResponse.ok) {
+              toast({
+                title: "Payment Completion Email Sent",
+                description: "Customer has been notified of payment completion",
+                variant: "default",
+              });
+            } else {
+              const errorData = await emailResponse.json().catch(() => ({ error: 'Unknown error' }));
+              toast({
+                title: "Email Send Failed",
+                description: `Payment was marked as complete, but email failed: ${errorData.error || 'Unknown error'}`,
+                variant: "destructive",
+              });
+            }
+          } catch (emailError) {
+            console.error('Error sending payment completion email:', emailError);
+            toast({
+              title: "Payment Completion Email Failed",
+              description: "Payment was marked as complete, but email failed",
+              variant: "destructive",
+            });
+          } finally {
+            setIsSendingPaymentEmail(false);
+          }
+        } else {
+          toast({
+            title: "Payment Marked as Complete",
+            description: "The booking has been marked as paid and confirmed.",
+          });
+        }
         
         setIsMarkAsPaidDialogOpen(false);
         onMarkAsPaid?.();
@@ -229,6 +296,128 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
     }
   };
 
+  // Handle checking Omise payment status
+  const handleCheckPaymentStatus = async () => {
+    if (!booking.id) return;
+    
+    setIsCheckingPayment(true);
+    try {
+      const response = await fetch('/api/quotations/check-omise-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotation_id: booking.id })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const { payment, receipt } = result;
+        
+        if (payment.isPaid) {
+          toast({
+            title: "Payment Confirmed",
+            description: `Payment of ${payment.currency} ${(payment.amount / 100).toLocaleString()} completed on ${new Date(payment.paidAt).toLocaleDateString()}`,
+            variant: "default",
+          });
+          
+          // Auto-fill payment details if payment is confirmed
+          setPaymentAmount((payment.amount / 100).toString());
+          setPaymentMethod('omise');
+          setPaymentDate(new Date(payment.paidAt).toISOString().split('T')[0]);
+          
+          // If receipt is available, show receipt information and auto-download
+          if (receipt) {
+            setReceiptInfo(receipt);
+            toast({
+              title: "Receipt Available",
+              description: `Receipt #${receipt.receiptId} generated. Total: ${receipt.currency} ${(receipt.total / 100).toLocaleString()}`,
+              variant: "default",
+            });
+
+            // Update booking with receipt URL for email attachment
+            try {
+              const updateResponse = await fetch(`/api/bookings/${booking.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  receipt_url: receipt.receiptUrl
+                })
+              });
+              
+              if (updateResponse.ok) {
+                console.log('Receipt URL saved to booking for email attachment');
+              }
+            } catch (error) {
+              console.error('Error saving receipt URL:', error);
+            }
+            
+            // Automatically download the receipt
+            try {
+              // Use server-side download endpoint to avoid CORS issues
+              const downloadResponse = await fetch('/api/quotations/download-receipt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receipt_url: receipt.receiptUrl })
+              });
+
+              if (downloadResponse.ok) {
+                // Create blob and download
+                const blob = await downloadResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `receipt-${receipt.receiptId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                toast({
+                  title: "Receipt Downloaded",
+                  description: "Receipt PDF has been automatically downloaded to your device.",
+                  variant: "default",
+                });
+              } else {
+                throw new Error('Download failed');
+              }
+            } catch (downloadError) {
+              console.error('Error auto-downloading receipt:', downloadError);
+              toast({
+                title: "Download Failed",
+                description: "Receipt information is available, but automatic download failed. Please use the download button.",
+                variant: "destructive",
+              });
+            }
+          }
+          
+          // Refresh the booking data
+          onRefresh?.();
+        } else {
+          toast({
+            title: "Payment Pending",
+            description: "Payment has not been completed yet.",
+            variant: "default",
+          });
+        }
+      } else {
+        toast({
+          title: "Payment Check Failed",
+          description: result.error || "Could not retrieve payment status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check payment status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
   const handleMarkAsComplete = async () => {
     if (!isOrganizationMember) return;
     
@@ -238,15 +427,15 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
       const updateData: Partial<Booking> = {
         status: 'completed',
         meta: {
-          ...(booking.meta as unknown as Record<string, any>),
-          completed_at: new Date().toISOString() as unknown as string
+          ...(booking.meta || {}),
+          completed_at: new Date().toISOString()
         }
       };
 
       // Add completion notes to meta
       if (completionNotes) {
         updateData.meta = {
-          ...(booking.meta as unknown as Record<string, any>),
+          ...(booking.meta || {}),
           completion_notes: completionNotes
         };
       }
@@ -305,14 +494,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
                 ['confirmed', 'assigned', 'completed'].includes(booking.status) ? 'completed' : 
                 booking.payment_status === 'paid' ? 'current' : 'pending',
         date: booking.payment_completed_at || (['confirmed', 'assigned', 'completed'].includes(booking.status) ? booking.created_at : undefined),
-        ...(booking.payment_status === 'paid' && booking.status === 'pending' && isOrganizationMember ? {
-          action: {
-            label: 'Confirm Booking',
-            onClick: () => handleMarkAsPaid(),
-            disabled: false,
-            icon: <CheckCircle2 className="h-4 w-4" />
-          }
-        } : {})
+        // No action needed - once paid, booking is automatically confirmed
       },
       {
         id: 'assigned',
@@ -508,42 +690,72 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
 
       {/* Mark As Paid Dialog */}
       <Dialog open={isMarkAsPaidDialogOpen} onOpenChange={setIsMarkAsPaidDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Mark Booking as Paid</DialogTitle>
             <DialogDescription>
-              Confirm that payment has been received for this booking.
+              Mark this booking as paid and optionally upload a receipt.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="payment-date">Payment Date</Label>
-              <Input
-                id="payment-date"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="payment-date">Payment Date</Label>
+                <Input
+                  id="payment-date"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="omise">Omise</SelectItem>
+                    <SelectItem value="online">Online Payment</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="online">Online Payment</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid gap-2">
+              <Label htmlFor="payment-amount">Payment Amount</Label>
+              <div className="relative">
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  step="0.01"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="pr-12"
+                  required
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <span className="text-gray-500 text-sm">
+                    {booking.price?.currency || 'JPY'}
+                  </span>
+                </div>
+              </div>
+              {booking.price?.amount && (
+                <p className="text-xs text-muted-foreground">
+                  Auto-filled from booking price: {booking.price.currency || 'JPY'} {booking.price.amount.toLocaleString()}
+                </p>
+              )}
             </div>
             
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="payment-notes">Payment Notes (Optional)</Label>
               <Input
                 id="payment-notes"
@@ -552,33 +764,206 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
                 onChange={(e) => setPaymentNotes(e.target.value)}
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="receipt">Receipt Upload (Optional)</Label>
-              <Input
-                id="receipt"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-              />
+
+            <div className="grid gap-2">
+              <Label htmlFor="receipt-upload">Receipt</Label>
+              <div className="space-y-3">
+                {/* Check Omise Payment Status */}
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleCheckPaymentStatus}
+                  disabled={isCheckingPayment}
+                  className="w-full"
+                >
+                  {isCheckingPayment ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Check Omise Payment Status
+                    </>
+                  )}
+                </Button>
+                
+                {/* Receipt Information */}
+                {receiptInfo && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-green-800 dark:text-green-200">Omise Receipt Available</h4>
+                        <p className="text-sm text-green-600 dark:text-green-300">
+                          Receipt #{receiptInfo.receiptId} - {receiptInfo.currency} {(receiptInfo.total / 100).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-green-500 dark:text-green-400">
+                          Issued: {new Date(receiptInfo.issuedOn).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const downloadResponse = await fetch('/api/quotations/download-receipt', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ receipt_url: receiptInfo.receiptUrl })
+                            });
+
+                            if (downloadResponse.ok) {
+                              const blob = await downloadResponse.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `receipt-${receiptInfo.receiptId}.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            } else {
+                              throw new Error('Download failed');
+                            }
+                          } catch (error) {
+                            console.error('Error downloading receipt:', error);
+                            toast({
+                              title: "Download Failed",
+                              description: "Failed to download receipt. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/30"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Upload Receipt */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+                  <Input
+                    id="receipt-upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Accepted formats: PDF, JPG, PNG, DOC, DOCX
+                  </p>
+                </div>
+                
+                {/* Show existing receipt if available */}
+                {booking.receipt_url && (
+                  <div className="mt-2 p-3 bg-muted rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Receipt uploaded</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(booking.receipt_url, '_blank')}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Payment Completion Email Configuration */}
+          <Separator className="my-4" />
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="send-payment-email"
+                checked={sendPaymentCompleteEmail}
+                onCheckedChange={(checked) => setSendPaymentCompleteEmail(checked as boolean)}
+              />
+              <Label htmlFor="send-payment-email" className="text-sm font-medium">
+                Send Payment Completion Email
+              </Label>
+            </div>
+            
+            {sendPaymentCompleteEmail && (
+              <div className="space-y-4 pl-6 border-l-2 border-gray-200">
+                <div>
+                  <Label htmlFor="payment-email-language">Language</Label>
+                  <Select value={paymentEmailLanguage} onValueChange={(value: 'en' | 'ja') => setPaymentEmailLanguage(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="ja">日本語</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="payment-email-bcc">BCC Emails</Label>
+                  <Input
+                    id="payment-email-bcc"
+                    value={paymentEmailBcc}
+                    onChange={(e) => setPaymentEmailBcc(e.target.value)}
+                    placeholder="Enter email addresses separated by commas"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Default: booking@japandriver.com. Add more emails separated by commas.
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">What's included in the email:</h4>
+                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                    <li>• Payment completion confirmation</li>
+                    <li>• Booking details and service information</li>
+                    <li>• Payment method and amount details</li>
+                    <li>• Next steps and contact information</li>
+                    <li>• Company branding and contact information</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setIsMarkAsPaidDialogOpen(false)}
-              disabled={isMarkingAsPaid}
+              disabled={isMarkingAsPaid || isSendingPaymentEmail}
             >
               Cancel
             </Button>
             <Button
               onClick={handleMarkAsPaid}
-              disabled={isMarkingAsPaid}
+              disabled={isMarkingAsPaid || isSendingPaymentEmail}
               className="flex items-center gap-2"
             >
-              {isMarkingAsPaid && <Loader2 className="h-4 w-4 animate-spin" />}
-              Mark as Paid
+              {(isMarkingAsPaid || isSendingPaymentEmail) && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isSendingPaymentEmail ? (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Sending Email...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {sendPaymentCompleteEmail ? 'Mark as Paid & Send Email' : 'Mark as Paid'}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

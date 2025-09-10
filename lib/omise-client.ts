@@ -27,8 +27,14 @@ export interface OmiseResponse {
 export class OmiseClient {
   private config: OmiseConfig;
 
-  constructor(config: OmiseConfig) {
-    this.config = config;
+  constructor(publicKey: string, secretKey: string) {
+    this.config = {
+      publicKey,
+      secretKey,
+      baseUrl: process.env.NODE_ENV === 'development' || process.env.OMISE_TEST_MODE === 'true' 
+        ? 'https://api.omise.co' 
+        : 'https://api.omise.co'
+    };
   }
 
   async createPaymentLink(data: OmisePaymentLinkData): Promise<OmiseResponse> {
@@ -189,6 +195,93 @@ export class OmiseClient {
       return {
         error: true,
         message: 'Failed to get charge status'
+      };
+    }
+  }
+
+  async getPaymentLink(linkId: string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `https://linksplus-api.omise.co/external/links/${linkId}`,
+        {
+          headers: {
+            'Authorization': process.env.OMISE_PAYMENT_LINKS_API_KEY || this.config.secretKey,
+            'Accept': 'application/json'
+          },
+          timeout: 15000
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Omise] Error getting payment link:', error);
+      return {
+        error: true,
+        message: 'Failed to get payment link'
+      };
+    }
+  }
+
+  async getCharge(chargeId: string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.config.baseUrl}/charges/${chargeId}`,
+        {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(this.config.secretKey + ':').toString('base64')}`,
+            'Accept': 'application/json'
+          },
+          timeout: 15000
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('[Omise] Error getting charge:', error);
+      return {
+        error: true,
+        message: 'Failed to get charge details'
+      };
+    }
+  }
+
+  async getReceipt(chargeId: string): Promise<any> {
+    try {
+      // First get the charge to find the receipt ID
+      const charge = await this.getCharge(chargeId);
+      if (charge.error) {
+        return charge;
+      }
+
+      // Get receipts for the charge
+      const response = await axios.get(
+        `${this.config.baseUrl}/receipts`,
+        {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(this.config.secretKey + ':').toString('base64')}`,
+            'Accept': 'application/json'
+          },
+          params: {
+            charge: chargeId
+          },
+          timeout: 15000
+        }
+      );
+
+      // Return the first receipt if available
+      if (response.data.data && response.data.data.length > 0) {
+        return response.data.data[0];
+      } else {
+        return {
+          error: true,
+          message: 'No receipt found for this charge'
+        };
+      }
+    } catch (error) {
+      console.error('[Omise] Error getting receipt:', error);
+      return {
+        error: true,
+        message: 'Failed to get receipt'
       };
     }
   }

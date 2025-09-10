@@ -62,6 +62,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          base_amount: number | null
           billing_city: string | null
           billing_company_name: string | null
           billing_country: string | null
@@ -121,6 +122,7 @@ export type Database = {
           wp_vehicle_id: string | null
         }
         Insert: {
+          base_amount?: number | null
           billing_city?: string | null
           billing_company_name?: string | null
           billing_country?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           wp_vehicle_id?: string | null
         }
         Update: {
+          base_amount?: number | null
           billing_city?: string | null
           billing_company_name?: string | null
           billing_country?: string | null
@@ -2616,6 +2619,7 @@ export type Database = {
           billing_street_number: string | null
           billing_tax_number: string | null
           booking_created_at: string | null
+          charge_id: string | null
           converted_to_booking_id: string | null
           created_at: string
           created_by: string | null
@@ -2695,6 +2699,7 @@ export type Database = {
           billing_street_number?: string | null
           billing_tax_number?: string | null
           booking_created_at?: string | null
+          charge_id?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -2774,6 +2779,7 @@ export type Database = {
           billing_street_number?: string | null
           billing_tax_number?: string | null
           booking_created_at?: string | null
+          charge_id?: string | null
           converted_to_booking_id?: string | null
           created_at?: string
           created_by?: string | null

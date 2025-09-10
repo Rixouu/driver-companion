@@ -30,7 +30,8 @@ import {
   Loader2,
   Link2,
   RefreshCw,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 import { format, parseISO, addDays, differenceInDays, isAfter } from 'date-fns';
 import { QuotationStatus } from '@/types/quotations';
@@ -136,6 +137,9 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
   const [paymentEmailLanguage, setPaymentEmailLanguage] = useState<'en' | 'ja'>(language as 'en' | 'ja');
   const [paymentEmailBcc, setPaymentEmailBcc] = useState<string>("booking@japandriver.com");
   const [isSendingPaymentEmail, setIsSendingPaymentEmail] = useState(false);
+  
+  // Receipt information state
+  const [receiptInfo, setReceiptInfo] = useState<any>(null);
   
   // Update payment amount when quotation changes
   React.useEffect(() => {
@@ -407,7 +411,7 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
     
     setIsCheckingPayment(true);
     try {
-      const response = await fetch('/api/quotations/download-omise-receipt', {
+      const response = await fetch('/api/quotations/check-omise-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quotation_id: quotation.id })
@@ -416,11 +420,77 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       const result = await response.json();
       
       if (result.success) {
-        toast({
-          title: "Payment Status Retrieved",
-          description: result.message,
-          variant: "default",
-        });
+        const { payment, receipt } = result;
+        
+        if (payment.isPaid) {
+          toast({
+            title: "Payment Confirmed",
+            description: `Payment of ${payment.currency} ${(payment.amount / 100).toLocaleString()} completed on ${new Date(payment.paidAt).toLocaleDateString()}`,
+            variant: "default",
+          });
+          
+          // Auto-fill payment details if payment is confirmed
+          setPaymentAmount((payment.amount / 100).toString());
+          setPaymentMethod('omise');
+          setPaymentDate(new Date(payment.paidAt).toISOString().split('T')[0]);
+          
+          // If receipt is available, show receipt information and auto-download
+          if (receipt) {
+            setReceiptInfo(receipt);
+            toast({
+              title: "Receipt Available",
+              description: `Receipt #${receipt.receiptId} generated. Total: ${receipt.currency} ${(receipt.total / 100).toLocaleString()}`,
+              variant: "default",
+            });
+            
+            // Automatically download the receipt
+            try {
+              // Use server-side download endpoint to avoid CORS issues
+              const downloadResponse = await fetch('/api/quotations/download-receipt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ receipt_url: receipt.receiptUrl })
+              });
+
+              if (downloadResponse.ok) {
+                // Create blob and download
+                const blob = await downloadResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `receipt-${receipt.receiptId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                toast({
+                  title: "Receipt Downloaded",
+                  description: "Receipt PDF has been automatically downloaded to your device.",
+                  variant: "default",
+                });
+              } else {
+                throw new Error('Download failed');
+              }
+            } catch (downloadError) {
+              console.error('Error auto-downloading receipt:', downloadError);
+              toast({
+                title: "Download Failed",
+                description: "Receipt information is available, but automatic download failed. Please use the download button.",
+                variant: "destructive",
+              });
+            }
+          }
+          
+          // Refresh the quotation data
+          onRefresh?.();
+        } else {
+          toast({
+            title: "Payment Pending",
+            description: "Payment has not been completed yet.",
+            variant: "default",
+          });
+        }
       } else {
         toast({
           title: "Payment Check Failed",
@@ -1386,6 +1456,62 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
                     </>
                   )}
                 </Button>
+                
+                {/* Receipt Information */}
+                {receiptInfo && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium text-green-800 dark:text-green-200">Omise Receipt Available</h4>
+                        <p className="text-sm text-green-600 dark:text-green-300">
+                          Receipt #{receiptInfo.receiptId} - {receiptInfo.currency} {(receiptInfo.total / 100).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-green-500 dark:text-green-400">
+                          Issued: {new Date(receiptInfo.issuedOn).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const downloadResponse = await fetch('/api/quotations/download-receipt', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ receipt_url: receiptInfo.receiptUrl })
+                            });
+
+                            if (downloadResponse.ok) {
+                              const blob = await downloadResponse.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `receipt-${receiptInfo.receiptId}.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            } else {
+                              throw new Error('Download failed');
+                            }
+                          } catch (error) {
+                            console.error('Error downloading receipt:', error);
+                            toast({
+                              title: "Download Failed",
+                              description: "Failed to download receipt. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900/30"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Upload Receipt */}
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">

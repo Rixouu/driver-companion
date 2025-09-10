@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Loader2, Mail, FileText, Clock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -100,6 +100,10 @@ const LoadingModal: React.FC<LoadingModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-0 shadow-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{label}</DialogDescription>
+        </DialogHeader>
         <div className="flex flex-col items-center space-y-6 p-8">
           {/* Header with enhanced animated icon */}
           <div className="relative">

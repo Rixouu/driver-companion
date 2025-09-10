@@ -356,6 +356,13 @@ export default function BookingDetailsPage() {
   };
 
   const handleUnassignVehicle = async () => {
+    // Check if this is the original vehicle chosen for the booking
+    // If so, we should not allow unassigning, only updating/upgrading/downgrading
+    if (booking?.meta?.original_vehicle_id === booking?.vehicle_id) {
+      alert('Cannot unassign the original vehicle chosen for this booking. Use Smart Assignment to change to a different vehicle.');
+      return;
+    }
+    
     await handleAssign(booking?.driver_id || '', '');
   };
 
@@ -899,7 +906,11 @@ export default function BookingDetailsPage() {
                               variant="outline"
                               size="sm"
                               onClick={handleUnassignVehicle}
-                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
+                              disabled={booking?.meta?.original_vehicle_id === booking?.vehicle_id}
+                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={booking?.meta?.original_vehicle_id === booking?.vehicle_id ? 
+                                "Cannot unassign original vehicle. Use Smart Assignment to change vehicle." : 
+                                "Unassign vehicle"}
                             >
                               <Car className="h-3 w-3 mr-1" />
                               Unassign

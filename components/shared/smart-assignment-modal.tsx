@@ -40,7 +40,9 @@ interface Vehicle {
   category_name?: string;
   pricing_category_vehicles?: Array<{
     pricing_categories: {
+      id: string;
       name: string;
+      sort_order: number;
     };
   }>;
 }
@@ -96,6 +98,11 @@ export default function SmartAssignmentModal({
   const [driverSortOrder, setDriverSortOrder] = useState<"asc" | "desc">("asc");
   const [vehicleSortOrder, setVehicleSortOrder] = useState<"asc" | "desc">("desc");
 
+  // Assignment type and pricing state
+  const [assignmentType, setAssignmentType] = useState<'update' | 'upgrade' | 'downgrade'>('update');
+  const [priceDifference, setPriceDifference] = useState<number>(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // Reset selections when modal opens/closes or booking changes
   useEffect(() => {
     if (isOpen && booking) {
@@ -120,8 +127,41 @@ export default function SmartAssignmentModal({
       setSelectedVehicle("");
       setDriverSearch("");
       setVehicleSearch("");
+      setAssignmentType('update');
+      setPriceDifference(0);
     }
   }, [isOpen, booking]);
+
+  // Calculate assignment type and price difference when vehicle changes
+  useEffect(() => {
+    if (selectedVehicle && booking?.vehicle_id && selectedVehicle !== booking.vehicle_id) {
+      const currentVehicle = vehicles.find(v => v.id === booking.vehicle_id);
+      const newVehicle = vehicles.find(v => v.id === selectedVehicle);
+      
+      if (currentVehicle && newVehicle) {
+        const currentCategory = currentVehicle.pricing_category_vehicles?.[0]?.pricing_categories;
+        const newCategory = newVehicle.pricing_category_vehicles?.[0]?.pricing_categories;
+        
+        if (currentCategory && newCategory) {
+          if (newCategory.sort_order < currentCategory.sort_order) {
+            setAssignmentType('upgrade');
+          } else if (newCategory.sort_order > currentCategory.sort_order) {
+            setAssignmentType('downgrade');
+          } else {
+            setAssignmentType('update');
+          }
+          
+          // For now, we'll set a placeholder price difference
+          // In a real implementation, you'd calculate this based on actual pricing
+          const priceDiff = (newCategory.sort_order - currentCategory.sort_order) * 10000;
+          setPriceDifference(priceDiff);
+        }
+      }
+    } else {
+      setAssignmentType('update');
+      setPriceDifference(0);
+    }
+  }, [selectedVehicle, booking?.vehicle_id, vehicles]);
 
   // Enhanced vehicle matching logic based on service name and pricing categories
   const getVehicleMatches = () => {
@@ -252,10 +292,48 @@ export default function SmartAssignmentModal({
     return filtered;
   }, [vehicles, vehicleSearch, vehicleSortBy, vehicleSortOrder, booking?.service_name]);
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (selectedDriver && selectedVehicle) {
-      onAssign(selectedDriver, selectedVehicle);
-      onClose();
+      setIsProcessing(true);
+      try {
+        // Call the new assignment API
+        const response = await fetch(`/api/bookings/${booking?.id}/assign-vehicle`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            vehicleId: selectedVehicle,
+            driverId: selectedDriver
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Handle different assignment types
+          if (result.assignmentType === 'upgrade' && result.paymentRequired) {
+            // Show upgrade payment dialog
+            alert(`Vehicle upgraded! Additional payment of ¥${result.paymentAmount?.toLocaleString()} required. Payment link will be generated.`);
+          } else if (result.assignmentType === 'downgrade' && result.couponGenerated) {
+            // Show downgrade coupon dialog
+            alert(`Vehicle downgraded! Coupon code ${result.couponCode} generated for ¥${result.refundAmount?.toLocaleString()} refund. Email sent to customer.`);
+          } else {
+            // Regular update
+            alert('Vehicle assigned successfully!');
+          }
+          
+          onAssign(selectedDriver, selectedVehicle);
+          onClose();
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error assigning vehicle:', error);
+        alert('Error assigning vehicle. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -608,6 +686,34 @@ export default function SmartAssignmentModal({
                         <p className="text-xs text-muted-foreground">
                           {vehicle.category_name || vehicle.pricing_category_vehicles?.[0]?.pricing_categories?.name || 'Not specified'}
                         </p>
+                        
+                        {/* Assignment type and pricing info */}
+                        {selectedVehicle === vehicle.id && selectedVehicle !== booking?.vehicle_id && (
+                          <div className="mt-2">
+                            {assignmentType === 'upgrade' && (
+                              <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                                <span className="font-medium">↑ Upgrade</span>
+                                {priceDifference > 0 && (
+                                  <span>+¥{priceDifference.toLocaleString()}</span>
+                                )}
+                              </div>
+                            )}
+                            {assignmentType === 'downgrade' && (
+                              <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                                <span className="font-medium">↓ Downgrade</span>
+                                {priceDifference < 0 && (
+                                  <span>¥{Math.abs(priceDifference).toLocaleString()} refund</span>
+                                )}
+                              </div>
+                            )}
+                            {assignmentType === 'update' && (
+                              <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
+                                <span className="font-medium">↔ Update</span>
+                                <span>Same category</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       {selectedVehicle === vehicle.id && (
@@ -623,17 +729,51 @@ export default function SmartAssignmentModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleAssign}
-            disabled={!selectedDriver || !selectedVehicle}
-          >
-            <CheckIcon className="h-4 w-4 mr-2" />
-            Assign
-          </Button>
+        <div className="flex justify-between items-center pt-4 border-t">
+          {/* Assignment type info */}
+          {selectedVehicle && selectedVehicle !== booking?.vehicle_id && (
+            <div className="text-sm text-muted-foreground">
+              {assignmentType === 'upgrade' && (
+                <span className="text-orange-600 dark:text-orange-400">
+                  ↑ Upgrade: +¥{priceDifference.toLocaleString()} additional payment required
+                </span>
+              )}
+              {assignmentType === 'downgrade' && (
+                <span className="text-green-600 dark:text-green-400">
+                  ↓ Downgrade: ¥{Math.abs(priceDifference).toLocaleString()} refund coupon will be generated
+                </span>
+              )}
+              {assignmentType === 'update' && (
+                <span className="text-blue-600 dark:text-blue-400">
+                  ↔ Update: Same pricing category, no payment changes
+                </span>
+              )}
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssign}
+              disabled={!selectedDriver || !selectedVehicle || isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CheckIcon className="h-4 w-4 mr-2" />
+                  {assignmentType === 'upgrade' ? 'Upgrade & Pay' : 
+                   assignmentType === 'downgrade' ? 'Downgrade & Refund' : 
+                   'Assign'}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

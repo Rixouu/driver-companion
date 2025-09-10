@@ -248,7 +248,9 @@ export default function BookingDetailsPage() {
           *,
           pricing_category_vehicles(
             pricing_categories(
-              name
+              id,
+              name,
+              sort_order
             )
           )
         `)
@@ -850,22 +852,9 @@ export default function BookingDetailsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Current Driver */}
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
-                          </div>
-                          {assignedDriver && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleUnassignDriver}
-                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2"
-                            >
-                              <UserX className="h-3 w-3 mr-1" />
-                              Unassign
-                            </Button>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">Current Driver</span>
                         </div>
                         {assignedDriver ? (
                           <div className="p-3 bg-background rounded-lg border">
@@ -896,26 +885,9 @@ export default function BookingDetailsPage() {
 
                       {/* Current Vehicle */}
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Car className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
-                          </div>
-                          {assignedVehicle && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleUnassignVehicle}
-                              disabled={booking?.meta?.original_vehicle_id === booking?.vehicle_id}
-                              className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground h-7 px-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={booking?.meta?.original_vehicle_id === booking?.vehicle_id ? 
-                                "Cannot unassign original vehicle. Use Smart Assignment to change vehicle." : 
-                                "Unassign vehicle"}
-                            >
-                              <Car className="h-3 w-3 mr-1" />
-                              Unassign
-                            </Button>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground">Current Vehicle</span>
                         </div>
                         {assignedVehicle ? (
                           <div className="p-3 bg-background rounded-lg border">
@@ -954,7 +926,7 @@ export default function BookingDetailsPage() {
                       onClick={handleSmartAssignment}
                     >
                       <Truck className="h-4 w-4 mr-2" />
-                      Smart Assignment
+                      {assignedDriver && assignedVehicle ? 'Reassign' : 'Assign Driver & Vehicle'}
                     </Button>
                   </div>
                 </div>
@@ -1224,8 +1196,8 @@ export default function BookingDetailsPage() {
                 window.location.reload();
               }}
               onAssignDriver={() => {
-                // This could open a driver assignment dialog
-                console.log('Assign driver clicked');
+                // Open the smart assignment modal
+                handleSmartAssignment();
               }}
               onMarkAsComplete={() => {
                 // Refresh the page to update the booking data

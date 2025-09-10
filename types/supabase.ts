@@ -3072,6 +3072,124 @@ export type Database = {
           },
         ]
       }
+      vehicle_assignment_operations: {
+        Row: {
+          bcc_email: string | null
+          booking_id: string
+          coupon_code: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string | null
+          driver_id: string
+          email_sent_at: string | null
+          id: string
+          metadata: Json | null
+          new_category_name: string | null
+          new_vehicle_id: string
+          operation_type: string
+          payment_amount: number | null
+          payment_link_id: string | null
+          payment_url: string | null
+          previous_category_name: string | null
+          previous_vehicle_id: string | null
+          price_difference: number
+          refund_amount: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bcc_email?: string | null
+          booking_id: string
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          driver_id: string
+          email_sent_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_category_name?: string | null
+          new_vehicle_id: string
+          operation_type: string
+          payment_amount?: number | null
+          payment_link_id?: string | null
+          payment_url?: string | null
+          previous_category_name?: string | null
+          previous_vehicle_id?: string | null
+          price_difference?: number
+          refund_amount?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bcc_email?: string | null
+          booking_id?: string
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string | null
+          driver_id?: string
+          email_sent_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_category_name?: string | null
+          new_vehicle_id?: string
+          operation_type?: string
+          payment_amount?: number | null
+          payment_link_id?: string | null
+          payment_url?: string | null
+          previous_category_name?: string | null
+          previous_vehicle_id?: string | null
+          price_difference?: number
+          refund_amount?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_assignment_operations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["driver_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_details"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_new_vehicle_id_fkey"
+            columns: ["new_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_assignment_operations_previous_vehicle_id_fkey"
+            columns: ["previous_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_assignments: {
         Row: {
           created_at: string | null

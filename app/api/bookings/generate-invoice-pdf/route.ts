@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service-client";
 import { generateOptimizedPdfFromHtml } from "@/lib/optimized-html-pdf-generator";
 import { getTeamAddressHtml, getTeamFooterHtml } from "@/lib/team-addresses";
 
 async function generateBookingInvoiceHtml(
   booking: any, 
-  language: 'en' | 'ja' = 'en'
+  language: 'en' | 'ja' = 'en',
+  operation_type?: string,
+  previous_vehicle_name?: string,
+  new_vehicle_name?: string,
+  coupon_code?: string,
+  refund_amount?: number,
+  payment_amount?: number,
+  previousVehicleInfo?: any,
+  newVehicleInfo?: any
 ): Promise<string> {
   const isJapanese = language === 'ja';
   const localeCode = isJapanese ? 'ja-JP' : 'en-US';
@@ -46,6 +55,34 @@ async function generateBookingInvoiceHtml(
 
   // Calculate totals using the same logic as quotation system
   const calculateTotals = async () => {
+    // For upgrades and downgrades, use the price difference amount without tax/discounts
+    if (operation_type === 'upgrade' && payment_amount) {
+      return {
+        baseAmount: payment_amount,
+        regularDiscount: 0,
+        couponDiscount: 0,
+        couponDiscountPercentage: 0,
+        totalDiscount: 0,
+        subtotal: payment_amount,
+        taxAmount: 0,
+        finalTotal: payment_amount
+      };
+    }
+    
+    if (operation_type === 'downgrade' && refund_amount) {
+      return {
+        baseAmount: refund_amount,
+        regularDiscount: 0,
+        couponDiscount: 0,
+        couponDiscountPercentage: 0,
+        totalDiscount: 0,
+        subtotal: refund_amount,
+        taxAmount: 0,
+        finalTotal: refund_amount
+      };
+    }
+
+    // For regular invoices, use the original pricing logic
     // Try to get pricing from the calculated pricing data first
     let baseAmount = 0;
 
@@ -187,16 +224,31 @@ async function generateBookingInvoiceHtml(
   const bookingNumber = booking.wp_id || booking.id;
   const customerName = booking.customer_name || booking.customers?.name || 'Customer';
   const customerEmail = booking.customer_email || booking.customers?.email || '';
-  const serviceName = booking.service_name || 'Transportation Service';
+  // Update service name based on operation type
+  let serviceName = booking.service_name || 'Transportation Service';
+  if (operation_type === 'upgrade') {
+    serviceName = `${serviceName} - Vehicle Upgrade`;
+  } else if (operation_type === 'downgrade') {
+    serviceName = `${serviceName} - Vehicle Refund`;
+  }
   const pickupLocation = booking.pickup_location || '';
   const dropoffLocation = booking.dropoff_location || '';
   const date = booking.date || new Date().toISOString().split('T')[0];
   const time = booking.time || '';
 
-  // Determine payment status
+  // Determine payment status and operation type
   const isPaid = booking.status === 'confirmed' || booking.payment_status === 'paid';
-  const paymentStatus = isPaid ? 'PAID' : 'PENDING PAYMENT';
-  const paymentStatusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
+  let statusText = isPaid ? 'PAID' : 'PENDING PAYMENT';
+  let statusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
+  
+  // Override status for upgrade/downgrade operations
+  if (operation_type === 'upgrade') {
+    statusText = 'UPGRADE';
+    statusColor = '#f59e0b'; // Orange for upgrade
+  } else if (operation_type === 'downgrade') {
+    statusText = 'DOWNGRADE';
+    statusColor = '#10b981'; // Green for downgrade
+  }
   
   const formattedInvoiceId = `INV-${bookingNumber}`;
   const invoiceDate = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -226,9 +278,9 @@ async function generateBookingInvoiceHtml(
           </p>
           <!-- Payment Status Badge -->
           <div style="margin-top: 12px;">
-            <div style="display: inline-block; padding: 6px 12px; background: ${paymentStatusColor}; border-radius: 4px;">
+            <div style="display: inline-block; padding: 6px 12px; background: ${statusColor}; border-radius: 4px;">
               <span style="color: white; font-size: 12px; font-weight: bold; text-transform: uppercase;">
-                ${isJapanese ? (isPaid ? '支払済み' : '未払い') : paymentStatus}
+                ${isJapanese ? (isPaid ? '支払済み' : '未払い') : statusText}
               </span>
             </div>
           </div>
@@ -326,10 +378,11 @@ async function generateBookingInvoiceHtml(
         </table>
       </div>
       
+      
       <!-- Totals -->
       <div style="display: flex; justify-content: flex-end; margin-bottom: 35px;">
         <table style="width: 300px; border-collapse: collapse;">
-          ${totals.regularDiscount > 0 ? `
+          ${!operation_type && totals.regularDiscount > 0 ? `
             <tr>
               <td style="padding: 5px 15px 5px 0; text-align: right; font-size: 13px; color: #e53e3e;">
                 ${isJapanese ? `割引 (${booking.discount_percentage || 0}%):` : `Discount (${booking.discount_percentage || 0}%):`}
@@ -339,7 +392,7 @@ async function generateBookingInvoiceHtml(
               </td>
             </tr>
           ` : ''}
-          ${totals.couponDiscount > 0 ? `
+          ${!operation_type && totals.couponDiscount > 0 ? `
             <tr>
               <td style="padding: 5px 15px 5px 0; text-align: right; font-size: 13px; color: #10b981; white-space: nowrap;">
                 ${isJapanese ? `クーポン割引 (${booking.coupon_code || ''})${totals.couponDiscountPercentage > 0 ? ` (${totals.couponDiscountPercentage}%)` : ''}:` : `Coupon Discount (${booking.coupon_code || ''})${totals.couponDiscountPercentage > 0 ? ` (${totals.couponDiscountPercentage}%)` : ''}:`}
@@ -349,6 +402,7 @@ async function generateBookingInvoiceHtml(
               </td>
             </tr>
           ` : ''}
+          ${!operation_type ? `
           <tr>
             <td style="padding: 5px 15px 5px 0; text-align: right; font-size: 13px; color: #111827; font-weight: 500;">
               ${isJapanese ? '小計:' : 'Subtotal:'}
@@ -357,7 +411,8 @@ async function generateBookingInvoiceHtml(
               ${formatCurrency(totals.subtotal)}
             </td>
           </tr>
-          ${totals.taxAmount > 0 ? `
+          ` : ''}
+          ${!operation_type && totals.taxAmount > 0 ? `
             <tr>
               <td style="padding: 5px 15px 5px 0; text-align: right; font-size: 13px; color: #111827;">
                 ${isJapanese ? `税金 (${booking.tax_percentage || 10}%):` : `Tax (${booking.tax_percentage || 10}%):`}
@@ -369,7 +424,9 @@ async function generateBookingInvoiceHtml(
           ` : ''}
           <tr style="background-color: #f3f3f3;">
             <td style="padding: 8px 15px 8px 0; text-align: right; font-weight: bold; font-size: 14px; color: #111827;">
-              ${isJapanese ? '合計:' : 'TOTAL:'}
+              ${operation_type === 'upgrade' ? (isJapanese ? '追加料金:' : 'Additional Payment:') : 
+                operation_type === 'downgrade' ? (isJapanese ? '払い戻し金額:' : 'Refund Amount:') : 
+                (isJapanese ? '合計:' : 'TOTAL:')}
             </td>
             <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 14px; color: #111827;">
               ${formatCurrency(totals.finalTotal)}
@@ -382,6 +439,62 @@ async function generateBookingInvoiceHtml(
     <!-- Page break before information blocks -->
     <div style="page-break-before: always; margin-top: 20px;"></div>
     
+    ${operation_type ? `
+    <!-- Vehicle Assignment Details (Second Page) -->
+    <div style="margin-bottom: 25px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid ${statusColor};">
+      <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #111827;">
+        ${isJapanese ? '車両変更詳細:' : 'VEHICLE ASSIGNMENT DETAILS:'}
+      </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div>
+            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
+              ${isJapanese ? '前の車両:' : 'Previous Vehicle:'}
+            </p>
+            <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
+              ${previous_vehicle_name || 'N/A'}
+            </p>
+            ${previousVehicleInfo && previousVehicleInfo.brand && previousVehicleInfo.model ? `
+            <p style="margin: 0; font-size: 12px; color: #6b7280;">
+              ${previousVehicleInfo.brand} ${previousVehicleInfo.model}
+            </p>
+            ` : ''}
+          </div>
+          <div>
+            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
+              ${isJapanese ? '新しい車両:' : 'New Vehicle:'}
+            </p>
+            <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
+              ${new_vehicle_name || 'N/A'}
+            </p>
+            ${newVehicleInfo && newVehicleInfo.brand && newVehicleInfo.model ? `
+            <p style="margin: 0; font-size: 12px; color: #6b7280;">
+              ${newVehicleInfo.brand} ${newVehicleInfo.model}
+            </p>
+            ` : ''}
+          </div>
+        </div>
+      ${operation_type === 'upgrade' && payment_amount ? `
+      <div style="padding: 10px; background-color: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
+        <p style="margin: 0; font-size: 13px; color: #92400e; font-weight: bold;">
+          ${isJapanese ? '追加料金が必要:' : 'Additional Payment Required:'} ${formatCurrency(payment_amount)}
+        </p>
+      </div>
+      ` : ''}
+      ${operation_type === 'downgrade' && coupon_code ? `
+      <div style="padding: 10px; background-color: #d1fae5; border-radius: 6px; border: 1px solid #10b981;">
+        <p style="margin: 0 0 5px 0; font-size: 13px; color: #065f46; font-weight: bold;">
+          ${isJapanese ? 'クーポンコード:' : 'Coupon Code:'} ${coupon_code}
+        </p>
+        ${refund_amount ? `
+        <p style="margin: 0; font-size: 12px; color: #065f46;">
+          ${isJapanese ? '払い戻し金額:' : 'Refund Amount:'} ${formatCurrency(refund_amount)}
+        </p>
+        ` : ''}
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
+    
     <!-- Footer -->
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #666; font-size: 12px;">
       ${getTeamFooterHtml(booking.team_location || 'thailand', isJapanese)}
@@ -391,7 +504,16 @@ async function generateBookingInvoiceHtml(
 
 export async function POST(request: NextRequest) {
   try {
-    const { booking_id, language = 'en' } = await request.json();
+    const { 
+      booking_id, 
+      language = 'en',
+      operation_type,
+      previous_vehicle_name,
+      new_vehicle_name,
+      coupon_code,
+      refund_amount,
+      payment_amount
+    } = await request.json();
     
     if (!booking_id) {
       return NextResponse.json(
@@ -400,8 +522,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create server client
-    const supabase = await getSupabaseServerClient();
+    // Create service client to bypass RLS policies
+    const supabase = createServiceClient();
     
     // For internal API calls, skip auth check (called from payment link generation)
     // Authentication is handled by the calling API
@@ -426,8 +548,73 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Fetch vehicle information for upgrades/downgrades
+    let previousVehicleInfo = null;
+    let newVehicleInfo = null;
+    
+    if (operation_type && (previous_vehicle_name || new_vehicle_name)) {
+      try {
+      // Get vehicle information using direct queries
+      console.log('Fetching vehicle assignment operation for booking_id:', booking_id);
+      const { data: assignmentOperations, error: assignmentError } = await supabase
+        .from('vehicle_assignment_operations')
+        .select('previous_vehicle_id, new_vehicle_id')
+        .eq('booking_id', booking_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const assignmentOperation = assignmentOperations?.[0] || null;
+      
+      console.log('Assignment operation query result:', { assignmentOperation, assignmentError });
+      
+      if (assignmentOperation) {
+        console.log('Assignment operation found:', assignmentOperation);
+        
+        // Fetch previous vehicle details
+        if (assignmentOperation.previous_vehicle_id) {
+          console.log('Fetching previous vehicle with ID:', assignmentOperation.previous_vehicle_id);
+          const { data: previousVehicle, error: previousError } = await supabase
+            .from('vehicles')
+            .select('name, model, brand')
+            .eq('id', assignmentOperation.previous_vehicle_id)
+            .single();
+          console.log('Previous vehicle query result:', { previousVehicle, previousError });
+          previousVehicleInfo = previousVehicle;
+        }
+        
+        // Fetch new vehicle details
+        if (assignmentOperation.new_vehicle_id) {
+          console.log('Fetching new vehicle with ID:', assignmentOperation.new_vehicle_id);
+          const { data: newVehicle, error: newError } = await supabase
+            .from('vehicles')
+            .select('name, model, brand')
+            .eq('id', assignmentOperation.new_vehicle_id)
+            .single();
+          console.log('New vehicle query result:', { newVehicle, newError });
+          newVehicleInfo = newVehicle;
+        }
+      } else {
+        console.log('No assignment operation found for booking_id:', booking_id);
+      }
+      } catch (error) {
+        console.error('Error fetching vehicle information:', error);
+        // Continue without vehicle info
+      }
+    }
+    
     // Generate HTML content for invoice
-    const htmlContent = await generateBookingInvoiceHtml(booking, language as 'en' | 'ja');
+    const htmlContent = await generateBookingInvoiceHtml(
+      booking, 
+      language as 'en' | 'ja',
+      operation_type,
+      previous_vehicle_name,
+      new_vehicle_name,
+      coupon_code,
+      refund_amount,
+      payment_amount,
+      previousVehicleInfo,
+      newVehicleInfo
+    );
     
     // Convert to PDF using optimized generator
     const pdfBuffer = await generateOptimizedPdfFromHtml(htmlContent, {

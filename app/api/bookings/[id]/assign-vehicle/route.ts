@@ -4,11 +4,11 @@ import { createServiceClient } from "@/lib/supabase/client";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { vehicleId, driverId } = await request.json();
-    const bookingId = params.id;
+    const { id: bookingId } = await params;
 
     if (!vehicleId) {
       return NextResponse.json(
@@ -133,6 +133,7 @@ export async function POST(
           assigned_at: new Date().toISOString(),
           vehicle_assignment_type: assignmentType,
           previous_vehicle_id: booking.vehicle_id,
+          new_vehicle_id: vehicleId,
           previous_vehicle_category: currentCategory.name,
           new_vehicle_category: newCategory.name,
           price_difference: priceDifference

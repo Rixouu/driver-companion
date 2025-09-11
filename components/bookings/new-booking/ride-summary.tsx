@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { 
-  Calculator, Eye, Calendar, Timer, Route, CheckCircle, Users, Package
+  Calculator, Eye, Calendar, Timer, Route, CheckCircle, Users, Briefcase
 } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 import { VehicleWithCategory } from '@/app/actions/services'
@@ -140,7 +140,7 @@ export function RideSummary({
                 )}
                 {formData.number_of_bags && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Bags:</span>
                     <span>{formData.number_of_bags}</span>
                   </div>

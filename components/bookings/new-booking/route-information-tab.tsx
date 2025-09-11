@@ -106,6 +106,33 @@ export function RouteInformationTab({
               </div>
             </div>
             
+            {/* Flight Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="flight_number">Flight Number</Label>
+                <Input
+                  id="flight_number"
+                  name="flight_number"
+                  value={formData.flight_number || ''}
+                  onChange={handleInputChange}
+                  placeholder="e.g., JL123"
+                  className="transition-all focus:ring-2 focus:border-primary"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="terminal">Terminal</Label>
+                <Input
+                  id="terminal"
+                  name="terminal"
+                  value={formData.terminal || ''}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Terminal 1"
+                  className="transition-all focus:ring-2 focus:border-primary"
+                />
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pickup_location">Pickup Location *</Label>

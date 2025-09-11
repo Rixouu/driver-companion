@@ -88,7 +88,7 @@ export function ServiceCard({
       <div className={cn(
         "absolute top-0 left-0 h-full w-1",
         isPackage ? 'bg-purple-500' :
-        isCharter ? 'bg-green-500' : 'bg-blue-500'
+        isCharter ? 'bg-blue-500' : 'bg-green-500'
       )} />
       
       <CardContent className="p-3 sm:p-4">

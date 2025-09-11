@@ -38,12 +38,12 @@ export function ServiceDuration({
         {/* Show different fields based on service type */}
         {formData.service_name === 'Airport Transfer Haneda' || formData.service_name === 'Airport Transfer Narita' ? (
           <div className="space-y-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 mb-2">
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Airport Transfer Service</span>
+                <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-800 dark:text-green-200">Airport Transfer Service</span>
               </div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
+              <p className="text-sm text-green-700 dark:text-green-300">
                 Duration is automatically set to 1 hour for airport transfer services.
               </p>
             </div>
@@ -72,12 +72,12 @@ export function ServiceDuration({
           </div>
         ) : formData.service_name === 'Charter Services' ? (
           <div className="space-y-4">
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-2">
-                <Info className="h-4 w-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm font-medium text-green-800 dark:text-green-200">Charter Service</span>
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Charter Service</span>
               </div>
-              <p className="text-sm text-green-700 dark:text-green-300">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
                 Please specify the number of days and hours per day for your charter service.
               </p>
             </div>

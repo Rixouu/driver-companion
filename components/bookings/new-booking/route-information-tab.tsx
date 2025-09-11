@@ -75,6 +75,37 @@ export function RouteInformationTab({
               </div>
             </div>
             
+            {/* Passenger and Bag Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="number_of_passengers">Number of Passengers</Label>
+                <Input
+                  id="number_of_passengers"
+                  name="number_of_passengers"
+                  type="number"
+                  min="1"
+                  value={formData.number_of_passengers || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter number of passengers"
+                  className="transition-all focus:ring-2 focus:border-primary"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="number_of_bags">Number of Bags</Label>
+                <Input
+                  id="number_of_bags"
+                  name="number_of_bags"
+                  type="number"
+                  min="0"
+                  value={formData.number_of_bags || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter number of bags"
+                  className="transition-all focus:ring-2 focus:border-primary"
+                />
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pickup_location">Pickup Location *</Label>

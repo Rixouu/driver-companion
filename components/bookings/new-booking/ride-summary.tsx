@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { 
-  Calculator, Eye, Calendar, Timer, Route, CheckCircle 
+  Calculator, Eye, Calendar, Timer, Route, CheckCircle, Users, Package
 } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 import { VehicleWithCategory } from '@/app/actions/services'
@@ -133,14 +133,14 @@ export function RideSummary({
               <div className="space-y-2">
                 {formData.number_of_passengers && (
                   <div className="flex items-center gap-2 text-sm">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">👥</div>
+                    <Users className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Passengers:</span>
                     <span>{formData.number_of_passengers}</span>
                   </div>
                 )}
                 {formData.number_of_bags && (
                   <div className="flex items-center gap-2 text-sm">
-                    <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">🧳</div>
+                    <Package className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Bags:</span>
                     <span>{formData.number_of_bags}</span>
                   </div>
@@ -188,7 +188,7 @@ export function RideSummary({
                     <div className="font-medium">{formData.selectedVehicle.brand} {formData.selectedVehicle.model}</div>
                     <div className="text-muted-foreground text-xs">Category: {formData.selectedVehicle.category_name || 'Standard'}</div>
                     <div className="text-muted-foreground text-xs">
-                      {formData.selectedVehicle.passenger_capacity} passengers • {formData.selectedVehicle.luggage_capacity} luggage
+                      {formData.selectedVehicle.passenger_capacity} passengers • {formData.selectedVehicle.luggage_capacity} bags
                     </div>
                   </div>
                 </div>

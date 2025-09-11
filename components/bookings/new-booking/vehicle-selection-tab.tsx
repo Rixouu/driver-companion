@@ -121,10 +121,17 @@ export function VehicleSelectionTab({
   return (
     <Card className="border rounded-lg shadow-sm dark:border-gray-800">
       <div className="border-b py-4 px-6">
-        <h2 className="text-lg font-semibold flex items-center">
-          <Car className="mr-2 h-5 w-5" />
-          Select Your Vehicle
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center">
+            <Car className="mr-2 h-5 w-5" />
+            Select Your Vehicle
+          </h2>
+          {(vehicleFilters.minPassengers || vehicleFilters.minLuggage) && (
+            <div className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full">
+              Smart Filter Active
+            </div>
+          )}
+        </div>
       </div>
       
       {/* Vehicle Filters */}
@@ -208,9 +215,9 @@ export function VehicleSelectionTab({
             </Select>
           </div>
           
-          {/* Luggage Filter */}
+          {/* Bags Filter */}
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-muted-foreground">Min. Luggage</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Min. Bags</Label>
             <Select 
               value={vehicleFilters.minLuggage || undefined} 
               onValueChange={(value) => setVehicleFilters((prev: any) => ({ ...prev, minLuggage: value || '' }))}
@@ -323,7 +330,7 @@ export function VehicleSelectionTab({
                               </div>
                               <div className="flex items-center gap-1">
                                 <FileText className="h-3 w-3" />
-                                <span>{vehicle.luggage_capacity || 0} luggage</span>
+                                <span>{vehicle.luggage_capacity || 0} bags</span>
                               </div>
                             </div>
 

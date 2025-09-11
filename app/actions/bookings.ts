@@ -1265,7 +1265,9 @@ export async function updateBookingAction(
       'id', 'wp_id', 'created_at', 'booking_id', 'supabase_id', 
       'title', 'customer', 'vehicle', 'price', 'selectedVehicle',
       'synced_at', 'updated_by', 'creator', 'service', 'ipps_payment_link', 'booking_status',
-      'assigned_at', 'completed_at' // These are stored in meta field, not as direct columns
+      'assigned_at', 'completed_at', 'originalVehicleId', // These are stored in meta field, not as direct columns
+      'upgradeDowngradeData', 'upgradeDowngradeConfirmed', 'upgradeDowngradeAction', 
+      'upgradeDowngradeCouponCode', 'isFreeUpgrade' // Frontend-only fields for upgrade/downgrade logic
       // These are managed by the system, computed fields, or joined data
     ];
     

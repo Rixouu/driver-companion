@@ -110,14 +110,14 @@ export function PaymentOptions({
                 <p className="text-sm text-muted-foreground mb-3">
                   {upgradeAmount > 0 
                     ? 'Send payment link for the upgrade amount only'
-                    : 'Generate refund coupon for the downgrade amount'
+                    : 'Generate refund coupon for the downgrade amount only'
                   }
                 </p>
                 <Button 
                   onClick={() => handlePaymentClick('upgrade-only')}
                   disabled={isLoading}
                   className="w-full"
-                  variant={upgradeAmount > 0 ? 'default' : 'secondary'}
+                  variant="default"
                 >
                   {upgradeAmount > 0 ? 'Send Upgrade Payment' : 'Generate Refund Coupon'}
                 </Button>

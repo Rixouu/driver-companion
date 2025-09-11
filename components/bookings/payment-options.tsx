@@ -66,18 +66,27 @@ export function PaymentOptions({
         <CardContent className="space-y-4">
           {/* Vehicle Upgrade/Downgrade Alert */}
           {hasUpgradeDowngrade && (
-            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+            <div className={upgradeAmount > 0 
+              ? "bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4"
+              : "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4"
+            }>
               <div className="flex items-center gap-2 mb-2">
                 {upgradeAmount > 0 ? (
                   <ArrowUp className="h-4 w-4 text-orange-500" />
                 ) : (
                   <ArrowDown className="h-4 w-4 text-green-500" />
                 )}
-                <span className="font-medium text-orange-900 dark:text-orange-100">
+                <span className={`font-medium ${upgradeAmount > 0 
+                  ? "text-orange-900 dark:text-orange-100" 
+                  : "text-green-900 dark:text-green-100"
+                }`}>
                   Vehicle {upgradeAmount > 0 ? 'Upgrade' : 'Downgrade'} Detected
                 </span>
               </div>
-              <p className="text-sm text-orange-800 dark:text-orange-200">
+              <p className={`text-sm ${upgradeAmount > 0 
+                ? "text-orange-800 dark:text-orange-200" 
+                : "text-green-800 dark:text-green-200"
+              }`}>
                 {upgradeAmount > 0 
                   ? `Additional payment required: ¥${upgradeAmount.toLocaleString()}`
                   : `Refund amount: ¥${Math.abs(upgradeAmount).toLocaleString()}`

@@ -128,7 +128,7 @@ function getBookingStatusBadge(status: string, t: (key: string, options?: any) =
       case 'confirmed':
         return <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-900/20">{t(`bookings.status.${status}`)}</Badge>;
       case 'assigned':
-        return <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50 dark:bg-purple-900/20">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 dark:bg-blue-900/20">{t(`bookings.status.${status}`)}</Badge>;
       case 'pending':
         return <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20">{t(`bookings.status.${status}`)}</Badge>;
       case 'cancelled':

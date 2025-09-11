@@ -3,8 +3,9 @@
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { User, CreditCard } from 'lucide-react'
+import { User, CreditCard, FileText } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 
 interface ClientDetailsTabProps {
@@ -164,6 +165,28 @@ export function ClientDetailsTab({ formData, handleInputChange }: ClientDetailsT
                 value={formData.billing_country || ''}
                 onChange={handleInputChange}
                 className="transition-all focus:ring-2 focus:border-primary"
+              />
+            </div>
+          </div>
+          
+          {/* Additional Information Section */}
+          <Separator className="my-6" />
+          
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold flex items-center">
+              <FileText className="mr-2 h-5 w-5" />
+              Additional Information
+            </h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Special Instructions or Notes</Label>
+              <Textarea
+                id="notes"
+                name="notes"
+                value={formData.notes || ''}
+                onChange={handleInputChange}
+                placeholder="Any special requirements, pickup instructions, or additional information..."
+                className="min-h-[100px] transition-all focus:ring-2 focus:border-primary"
               />
             </div>
           </div>

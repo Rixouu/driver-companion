@@ -4,10 +4,9 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, AlertTriangle, X, FileText, User, RefreshCw } from 'lucide-react'
+import { CheckCircle, AlertTriangle, X, User, RefreshCw } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 import { Driver } from '@/types/drivers'
 import { useDrivers } from '@/lib/hooks/use-drivers'
@@ -191,31 +190,6 @@ export function AdditionalInfoTab({
         </div>
       </Card>
 
-      {/* Additional Notes */}
-      <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-        <div className="border-b py-4 px-6">
-          <h2 className="text-lg font-semibold flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            Additional Information
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="notes">Special Instructions or Notes</Label>
-              <Textarea
-                id="notes"
-                name="notes"
-                value={formData.notes || ''}
-                onChange={handleInputChange}
-                placeholder="Any special requirements, pickup instructions, or additional information..."
-                className="min-h-[100px] transition-all focus:ring-2 focus:border-primary"
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
     </div>
   )
 }

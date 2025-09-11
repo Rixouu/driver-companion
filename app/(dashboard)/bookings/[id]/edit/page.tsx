@@ -486,7 +486,19 @@ export default function EditBookingPage() {
 
   // Calculate booking price
   const calculateBookingPrice = async () => {
-    if (!formData.service_name || !formData.vehicle_id) return
+    if (!formData.service_name || !formData.vehicle_id) {
+      console.log('❌ Price calculation skipped - missing required data:', {
+        service_name: formData.service_name,
+        vehicle_id: formData.vehicle_id
+      });
+      return;
+    }
+
+    console.log('💰 Calculating price for edit booking:', {
+      service_name: formData.service_name,
+      vehicle_id: formData.vehicle_id,
+      availableServices: availableServices.length
+    });
 
     try {
       // Get duration hours for pricing lookup
@@ -525,7 +537,10 @@ export default function EditBookingPage() {
 
       if (response.ok) {
         const pricing = await response.json()
+        console.log('✅ Price calculated successfully for edit booking:', pricing);
         setCalculatedPrice(pricing)
+      } else {
+        console.error('❌ Price calculation failed:', await response.text());
       }
     } catch (error) {
       console.error('Error calculating price:', error)
@@ -534,10 +549,25 @@ export default function EditBookingPage() {
 
   // Trigger price calculation when relevant data changes
   useEffect(() => {
-    if (formData.service_name && formData.vehicle_id) {
+    if (formData.service_name && formData.vehicle_id && availableServices.length > 0) {
+      console.log('🔄 Triggering price calculation for edit booking:', {
+        service_name: formData.service_name,
+        vehicle_id: formData.vehicle_id,
+        availableServices: availableServices.length
+      });
       calculateBookingPrice()
     }
-  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code, formData.date, formData.time])
+  }, [formData.service_name, formData.vehicle_id, formData.duration_hours, formData.service_days, formData.hours_per_day, formData.tax_percentage, formData.discount_percentage, formData.coupon_code, formData.date, formData.time, availableServices])
+
+  // Auto-generate map preview when booking is loaded with existing locations
+  useEffect(() => {
+    if (formData.pickup_location && formData.dropoff_location && !mapPreviewUrl) {
+      const pickup = encodeURIComponent(formData.pickup_location)
+      const dropoff = encodeURIComponent(formData.dropoff_location)
+      const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?size=400x200&markers=color:red%7C${pickup}&markers=color:blue%7C${dropoff}&path=color:0x0000ff%7Cweight:5%7C${pickup}%7C${dropoff}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      setMapPreviewUrl(mapUrl)
+    }
+  }, [formData.pickup_location, formData.dropoff_location, mapPreviewUrl])
 
   // Save changes
   const handleSave = async (sendPaymentLink = false) => {

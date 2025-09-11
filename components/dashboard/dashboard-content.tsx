@@ -1083,7 +1083,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             {/* Amount */}
             {quotation.total_amount && (
               <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-medium text-muted-foreground">
                   {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
                 </span>
               </div>

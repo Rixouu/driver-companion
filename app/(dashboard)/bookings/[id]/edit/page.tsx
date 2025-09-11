@@ -43,6 +43,7 @@ import { RouteInformationTab } from '@/components/bookings/new-booking/route-inf
 import { AdditionalInfoTab } from '@/components/bookings/new-booking/additional-info-tab'
 import { PreviewTab } from '@/components/bookings/new-booking/preview-tab'
 import { RideSummary } from '@/components/bookings/new-booking/ride-summary'
+import { UpgradeDowngradeModal } from '@/components/bookings/upgrade-downgrade-modal'
 
 export default function EditBookingPage() {
   const router = useRouter()
@@ -61,15 +62,25 @@ export default function EditBookingPage() {
     service_days?: number;
     driver_id?: string | null; 
     vehicle_id?: string | null; 
+    originalVehicleId?: string | null;
     selectedVehicle?: VehicleWithCategory;
     customer_name?: string;
     customer_email?: string;
     customer_phone?: string;
     coupon_code?: string;
     created_by?: string | null;
+    upgradeDowngradeData?: any;
+    upgradeDowngradeConfirmed?: boolean;
+    upgradeDowngradeAction?: 'upgrade' | 'downgrade';
+    upgradeDowngradeCouponCode?: string;
+    isFreeUpgrade?: boolean;
+    refundCouponDiscount?: number;
   }>>({})
+  const [upgradeDowngradeData, setUpgradeDowngradeData] = useState<any>(null)
+  const [showUpgradeDowngradeModal, setShowUpgradeDowngradeModal] = useState(false)
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('route')
+  const [refundCouponDiscount, setRefundCouponDiscount] = useState(0)
   const [mapPreviewUrl, setMapPreviewUrl] = useState<string | null>(null)
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([])
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
@@ -217,6 +228,7 @@ export default function EditBookingPage() {
             service_days: loadedBooking.service_days || 1,
             driver_id: loadedBooking.driver_id || undefined,
             vehicle_id: loadedBooking.vehicle_id || undefined,
+            originalVehicleId: loadedBooking.vehicle_id || undefined, // Store original vehicle ID
             coupon_code: loadedBooking.coupon_code || '',
             status: loadedBooking.status || 'pending',
             team_location: loadedBooking.team_location || 'thailand'
@@ -362,6 +374,48 @@ export default function EditBookingPage() {
       
       return newData
     })
+  }
+
+  // Handle vehicle change with upgrade/downgrade detection
+  const handleVehicleChange = (pricingData: any) => {
+    console.log('Vehicle change detected:', pricingData);
+    setUpgradeDowngradeData(pricingData);
+    
+    // Update form data with new pricing
+    setFormData(prev => ({
+      ...prev,
+      upgradeDowngradeData: pricingData
+    }));
+    
+    // Show modal if there's a price difference
+    if (pricingData.priceDifference !== 0) {
+      setShowUpgradeDowngradeModal(true);
+    }
+  }
+
+  // Handle upgrade/downgrade confirmation
+  const handleUpgradeDowngradeConfirm = async (action: 'upgrade' | 'downgrade', couponCode?: string) => {
+    if (!upgradeDowngradeData) return;
+
+    // Just close the modal and keep the pricing data
+    // The actual payment/coupon generation will happen in the preview tab
+    setShowUpgradeDowngradeModal(false);
+    setUpgradeDowngradeData(null);
+    
+    // Update the form data to mark this as confirmed
+    setFormData(prev => ({
+      ...prev,
+      upgradeDowngradeConfirmed: true,
+      upgradeDowngradeAction: action,
+      upgradeDowngradeCouponCode: couponCode,
+      isFreeUpgrade: couponCode === 'free'
+    }));
+  }
+
+  // Handle payment actions from preview tab - now handled directly in PaymentModal
+  const handlePaymentAction = async (action: 'upgrade-only' | 'full-quote', emailData?: any) => {
+    // This is now handled directly in the PaymentModal component
+    console.log('Payment action triggered:', action, emailData)
   }
 
   // Handle select changes
@@ -739,6 +793,8 @@ export default function EditBookingPage() {
                       setVehicleFilters={setVehicleFilters}
                       filteredVehicles={filteredVehicles}
                       getFilterOptions={getFilterOptions}
+                      bookingId={id}
+                      onVehicleChange={handleVehicleChange}
                     />
                   </TabsContent>
                   
@@ -768,6 +824,11 @@ export default function EditBookingPage() {
                       paymentOptions={paymentOptions}
                       setPaymentOptions={setPaymentOptions}
                       getStatusColor={getStatusColor}
+                      onPaymentAction={handlePaymentAction}
+                      isProcessingPayment={isSaving}
+                      handleInputChange={handleInputChange}
+                      refundCouponDiscount={refundCouponDiscount}
+                      setRefundCouponDiscount={setRefundCouponDiscount}
                     />
                   </TabsContent>
                 </div>
@@ -852,13 +913,14 @@ export default function EditBookingPage() {
         </div>
 
         {/* Ride Summary Sidebar */}
-        <RideSummary
-          formData={formData}
-          calculatedPrice={calculatedPrice}
-          couponDiscount={couponDiscount}
-          mapPreviewUrl={mapPreviewUrl}
-          setActiveTab={setActiveTab}
-        />
+                <RideSummary
+                  formData={formData}
+                  calculatedPrice={calculatedPrice}
+                  couponDiscount={couponDiscount}
+                  mapPreviewUrl={mapPreviewUrl}
+                  setActiveTab={setActiveTab}
+                  refundCouponDiscount={refundCouponDiscount}
+                />
       </div>
 
       {/* Payment Modal */}
@@ -975,6 +1037,26 @@ export default function EditBookingPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade/Downgrade Modal */}
+      <UpgradeDowngradeModal
+        isOpen={showUpgradeDowngradeModal}
+        onClose={() => {
+          setShowUpgradeDowngradeModal(false)
+          setUpgradeDowngradeData(null)
+        }}
+        pricingData={upgradeDowngradeData || {
+          currentPrice: 0,
+          newPrice: 0,
+          priceDifference: 0,
+          currency: 'JPY'
+        }}
+        currentVehicle={vehiclesWithCategories.find(v => v.id === formData.originalVehicleId) || null}
+        newVehicle={formData.selectedVehicle || null}
+        onConfirm={handleUpgradeDowngradeConfirm}
+        isLoading={isSaving}
+        bookingId={id}
+      />
     </GoogleMapsProvider>
   )
 }

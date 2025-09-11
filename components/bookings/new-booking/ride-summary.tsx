@@ -15,6 +15,8 @@ interface RideSummaryProps {
     duration_hours?: number;
     service_days?: number;
     selectedVehicle?: VehicleWithCategory;
+    upgradeDowngradeData?: any;
+    isFreeUpgrade?: boolean;
   }>
   calculatedPrice: {
     baseAmount: number
@@ -37,6 +39,7 @@ interface RideSummaryProps {
   couponDiscount: number
   mapPreviewUrl: string | null
   setActiveTab: (tab: string) => void
+  refundCouponDiscount?: number
 }
 
 export function RideSummary({ 
@@ -44,7 +47,8 @@ export function RideSummary({
   calculatedPrice, 
   couponDiscount, 
   mapPreviewUrl, 
-  setActiveTab 
+  setActiveTab,
+  refundCouponDiscount = 0
 }: RideSummaryProps) {
   return (
     <div className="lg:w-80 w-full">
@@ -202,11 +206,38 @@ export function RideSummary({
               <h4 className="font-medium text-sm">Pricing Breakdown</h4>
               
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Service</span>
-                  <span>¥{calculatedPrice.baseAmount.toLocaleString()}</span>
+                {/* Previous Service - only show if there's an upgrade/downgrade */}
+                {formData.upgradeDowngradeData && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Previous Service</span>
+                    <span className="text-muted-foreground line-through">¥{formData.upgradeDowngradeData.currentPrice.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Upgrade/Downgrade Amount - only show if there's an upgrade/downgrade */}
+                {formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {formData.upgradeDowngradeData.priceDifference > 0 ? 'Upgrade Amount' : 'Downgrade Amount'}
+                    </span>
+                    <span className={formData.upgradeDowngradeData.priceDifference > 0 ? 'text-orange-600' : 'text-green-600'}>
+                      {formData.isFreeUpgrade ? 'FREE' : 
+                        `${formData.upgradeDowngradeData.priceDifference > 0 ? '+' : ''}¥${formData.upgradeDowngradeData.priceDifference.toLocaleString()}`}
+                    </span>
+                  </div>
+                )}
+
+                {/* New Service Price */}
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">New Service Price</span>
+                  <span>¥{formData.upgradeDowngradeData ? 
+                    (formData.isFreeUpgrade ? 
+                      formData.upgradeDowngradeData.currentPrice : 
+                      formData.upgradeDowngradeData.newPrice
+                    ).toLocaleString() : 
+                    calculatedPrice.baseAmount.toLocaleString()}</span>
                 </div>
-                
+
                 {/* Time-based adjustment - only show if > 0 */}
                 {(calculatedPrice.timeBasedAdjustment || 0) > 0 && (
                   <div className="flex justify-between text-orange-600">
@@ -222,10 +253,10 @@ export function RideSummary({
                   </div>
                 )}
                 
-                {/* Regular Discount - only show if > 0 */}
+                {/* Discount (30%) - only show if > 0 */}
                 {(calculatedPrice.regularDiscountAmount || 0) > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span className="text-muted-foreground">Discount ({formData.discount_percentage || 0}%)</span>
+                    <span className="text-muted-foreground">Discount (30%)</span>
                     <span>-¥{(calculatedPrice.regularDiscountAmount || 0).toLocaleString()}</span>
                   </div>
                 )}
@@ -237,27 +268,94 @@ export function RideSummary({
                     <span>-¥{(calculatedPrice.couponDiscountAmount || 0).toLocaleString()}</span>
                   </div>
                 )}
-                
-                {/* Subtotal After Discounts */}
+
+                {/* Refund Code - only show if > 0 */}
+                {refundCouponDiscount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Refund Code</span>
+                    <span className="text-green-600">-¥{refundCouponDiscount.toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Subtotal */}
                 <div className="flex justify-between font-medium">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>¥{((calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount) - (calculatedPrice.regularDiscountAmount || 0) - (calculatedPrice.couponDiscountAmount || 0)).toLocaleString()}</span>
+                  <span>¥{(() => {
+                    // For upgrades/downgrades, use the effective service price as base for discount calculation
+                    const baseAmount = formData.upgradeDowngradeData ? 
+                      (formData.isFreeUpgrade ? 
+                        formData.upgradeDowngradeData.currentPrice : 
+                        formData.upgradeDowngradeData.newPrice
+                      ) :
+                      (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                    
+                    const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
+                    const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
+                    const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
+                    const refundDiscount = refundCouponDiscount || 0;
+                    
+                    // Apply discounts to the effective service price
+                    const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                    return Math.max(0, subtotal).toLocaleString();
+                  })()}</span>
                 </div>
                 
                 {/* Tax - only show if > 0 */}
-                {(calculatedPrice.taxAmount || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tax ({formData.tax_percentage || 10}%)</span>
-                    <span>¥{calculatedPrice.taxAmount.toLocaleString()}</span>
-                  </div>
-                )}
+                {(() => {
+                  // For upgrades/downgrades, use the effective service price as base for discount calculation
+                  const baseAmount = formData.upgradeDowngradeData ? 
+                    (formData.isFreeUpgrade ? 
+                      formData.upgradeDowngradeData.currentPrice : 
+                      formData.upgradeDowngradeData.newPrice
+                    ) :
+                    (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                  
+                  const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
+                  const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
+                  const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
+                  const refundDiscount = refundCouponDiscount || 0;
+                  
+                  // Apply discounts to the effective service price
+                  const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                  const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100);
+                  
+                  return taxAmount > 0 ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Tax ({formData.tax_percentage || 10}%)</span>
+                      <span>¥{taxAmount.toLocaleString()}</span>
+                    </div>
+                  ) : null;
+                })()}
+                
               </div>
 
               <Separator />
 
               <div className="flex justify-between items-center font-semibold text-lg">
                 <span>Total</span>
-                <span className="text-primary">¥{calculatedPrice.totalAmount.toLocaleString()}</span>
+                <span className="text-primary">
+                  ¥{(() => {
+                    // For upgrades/downgrades, use the effective service price as base for discount calculation
+                    const baseAmount = formData.upgradeDowngradeData ? 
+                      (formData.isFreeUpgrade ? 
+                        formData.upgradeDowngradeData.currentPrice : 
+                        formData.upgradeDowngradeData.newPrice
+                      ) :
+                      (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                    
+                    const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
+                    const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
+                    const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
+                    const refundDiscount = refundCouponDiscount || 0;
+                    
+                    // Apply discounts to the effective service price
+                    const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                    const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100);
+                    const total = subtotal + taxAmount;
+                    
+                    return Math.max(0, total).toLocaleString();
+                  })()}
+                </span>
               </div>
             </div>
           )}

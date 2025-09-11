@@ -18,6 +18,8 @@ interface AdditionalInfoTabProps {
     flight_number?: string;
     terminal?: string;
     driver_id?: string | null;
+    upgradeDowngradeData?: any;
+    upgradeDowngradeCouponCode?: string;
   }>
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   handleSelectChange: (field: string, value: string) => void
@@ -230,81 +232,6 @@ export function AdditionalInfoTab({
         </div>
       </Card>
 
-      {/* Pricing Configuration */}
-      <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-        <div className="border-b py-4 px-6">
-          <h2 className="text-lg font-semibold flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            Pricing Configuration
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tax_percentage">Tax Percentage (%)</Label>
-              <Input
-                id="tax_percentage"
-                name="tax_percentage"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={formData.tax_percentage || 10}
-                onChange={handleInputChange}
-                placeholder="10"
-                className="transition-all focus:ring-2 focus:border-primary"
-              />
-              <p className="text-xs text-muted-foreground">Default: 10% (Japanese tax rate)</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="discount_percentage">Discount Percentage (%)</Label>
-              <Input
-                id="discount_percentage"
-                name="discount_percentage"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={formData.discount_percentage || 0}
-                onChange={handleInputChange}
-                placeholder="0"
-                className="transition-all focus:ring-2 focus:border-primary"
-              />
-              <p className="text-xs text-muted-foreground">Optional discount to apply</p>
-            </div>
-          </div>
-          
-          {/* Coupon Code Field */}
-          <div className="mt-4">
-            <Label htmlFor="coupon_code">Coupon Code</Label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                id="coupon_code"
-                name="coupon_code"
-                value={formData.coupon_code || ''}
-                onChange={handleInputChange}
-                placeholder="Enter coupon code"
-                className="flex-1 transition-all focus:ring-2 focus:border-primary"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  // TODO: Implement coupon validation
-                  console.log('Validate coupon:', formData.coupon_code);
-                }}
-                disabled={!formData.coupon_code}
-                className="px-4"
-              >
-                Apply
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Enter a valid coupon code to apply discounts</p>
-          </div>
-        </div>
-      </Card>
 
       {/* Additional Notes */}
       <Card className="border rounded-lg shadow-sm dark:border-gray-800">

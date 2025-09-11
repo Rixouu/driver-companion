@@ -15,6 +15,8 @@ interface VehicleSelectionTabProps {
   formData: Partial<Booking & { 
     vehicle_id?: string | null;
     selectedVehicle?: VehicleWithCategory;
+    originalVehicleId?: string | null;
+    upgradeDowngradeData?: any;
   }>
   setFormData: React.Dispatch<React.SetStateAction<any>>
   availableCategories: PricingCategory[]
@@ -32,6 +34,8 @@ interface VehicleSelectionTabProps {
     categories: (string | undefined)[]
     brands: (string | undefined)[]
   }
+  bookingId?: string
+  onVehicleChange?: (pricingData: any) => void
 }
 
 export function VehicleSelectionTab({
@@ -42,8 +46,59 @@ export function VehicleSelectionTab({
   vehicleFilters,
   setVehicleFilters,
   filteredVehicles,
-  getFilterOptions
+  getFilterOptions,
+  bookingId,
+  onVehicleChange
 }: VehicleSelectionTabProps) {
+  
+  // Function to handle vehicle selection with upgrade/downgrade detection
+  const handleVehicleSelection = async (vehicle: VehicleWithCategory) => {
+    const currentVehicleId = formData.originalVehicleId || formData.vehicle_id;
+    const newVehicleId = vehicle.id;
+    
+    // Update form data immediately
+    setFormData((prev: any) => ({
+      ...prev,
+      vehicle_id: vehicle.id,
+      selectedVehicle: vehicle,
+      // Update vehicle details fields to match selected vehicle
+      vehicle_make: vehicle.brand,
+      vehicle_model: vehicle.model,
+      vehicle_capacity: vehicle.passenger_capacity,
+      vehicle_year: vehicle.year?.toString()
+    }));
+    
+    // If this is an edit and we have a different vehicle, check for upgrade/downgrade
+    if (bookingId && currentVehicleId && currentVehicleId !== newVehicleId) {
+      try {
+        const response = await fetch(`/api/bookings/${bookingId}/get-vehicle-pricing`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            currentVehicleId,
+            newVehicleId,
+            serviceType: formData.service_name || 'Airport Transfer'
+          }),
+        });
+        
+        if (response.ok) {
+          const pricingData = await response.json();
+          console.log('Vehicle pricing data:', pricingData);
+          
+          // Call the parent component's handler if provided
+          if (onVehicleChange) {
+            onVehicleChange(pricingData);
+          }
+        } else {
+          console.error('Failed to get vehicle pricing:', await response.text());
+        }
+      } catch (error) {
+        console.error('Error getting vehicle pricing:', error);
+      }
+    }
+  };
   return (
     <Card className="border rounded-lg shadow-sm dark:border-gray-800">
       <div className="border-b py-4 px-6">
@@ -177,6 +232,31 @@ export function VehicleSelectionTab({
                     <Badge variant="outline" className="text-xs">
                       {categoryVehicles.length} vehicle{categoryVehicles.length !== 1 ? 's' : ''}
                     </Badge>
+                    {/* Show status for each vehicle in this category */}
+                    {formData.originalVehicleId && (
+                      <div className="flex gap-1 flex-wrap">
+                        {categoryVehicles.map((vehicle) => {
+                          if (vehicle.id === formData.originalVehicleId) {
+                            return <Badge key={vehicle.id} variant="secondary" className="text-xs">CURRENT</Badge>
+                          }
+                          // Show upgrade/downgrade status based on current selection vs original
+                          if (formData.selectedVehicle && formData.selectedVehicle.id === vehicle.id) {
+                            if (formData.upgradeDowngradeData) {
+                              const priceDiff = formData.upgradeDowngradeData.priceDifference
+                              if (priceDiff > 0) {
+                                return <Badge key={vehicle.id} variant="destructive" className="text-xs">UPGRADE +¥{priceDiff.toLocaleString()}</Badge>
+                              } else if (priceDiff < 0) {
+                                return <Badge key={vehicle.id} variant="default" className="text-xs bg-green-600">DOWNGRADE -¥{Math.abs(priceDiff).toLocaleString()}</Badge>
+                              } else {
+                                return <Badge key={vehicle.id} variant="outline" className="text-xs">SAME PRICE</Badge>
+                              }
+                            }
+                            return <Badge key={vehicle.id} variant="outline" className="text-xs">SELECTED</Badge>
+                          }
+                          return <Badge key={vehicle.id} variant="outline" className="text-xs">SELECT</Badge>
+                        })}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -187,18 +267,7 @@ export function VehicleSelectionTab({
                           border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md
                           ${formData.vehicle_id === vehicle.id ? 'border-2 border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:border-primary/50'}
                         `}
-                        onClick={() => {
-                          setFormData((prev: any) => ({
-                            ...prev,
-                            vehicle_id: vehicle.id,
-                            selectedVehicle: vehicle,
-                            // Update vehicle details fields to match selected vehicle
-                            vehicle_make: vehicle.brand,
-                            vehicle_model: vehicle.model,
-                            vehicle_capacity: vehicle.passenger_capacity,
-                            vehicle_year: vehicle.year?.toString()
-                          }))
-                        }}
+                        onClick={() => handleVehicleSelection(vehicle)}
                       >
                         <div className="space-y-3">
                           {/* Vehicle Image */}
@@ -238,6 +307,30 @@ export function VehicleSelectionTab({
                                 <span>{vehicle.luggage_capacity || 0} luggage</span>
                               </div>
                             </div>
+
+                            {/* Upgrade/Downgrade Status */}
+                            {formData.originalVehicleId && vehicle.id !== formData.originalVehicleId && (
+                              <div className="mt-2">
+                                {vehicle.id === formData.selectedVehicle?.id && formData.upgradeDowngradeData ? (
+                                  <>
+                                    {formData.upgradeDowngradeData.priceDifference > 0 ? (
+                                      <Badge variant="destructive" className="text-xs w-full justify-center">UPGRADE +¥{formData.upgradeDowngradeData.priceDifference.toLocaleString()}</Badge>
+                                    ) : formData.upgradeDowngradeData.priceDifference < 0 ? (
+                                      <Badge variant="default" className="text-xs w-full justify-center bg-green-600">DOWNGRADE -¥{Math.abs(formData.upgradeDowngradeData.priceDifference).toLocaleString()}</Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs w-full justify-center">SAME PRICE</Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs w-full justify-center">SELECT</Badge>
+                                )}
+                              </div>
+                            )}
+                            {formData.originalVehicleId && vehicle.id === formData.originalVehicleId && (
+                              <div className="mt-2">
+                                <Badge variant="secondary" className="text-xs w-full justify-center">CURRENT</Badge>
+                              </div>
+                            )}
                             
                             {/* Select Button */}
                             <Button
@@ -246,16 +339,7 @@ export function VehicleSelectionTab({
                               className="w-full mt-3"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setFormData((prev: any) => ({
-                                  ...prev,
-                                  vehicle_id: vehicle.id,
-                                  selectedVehicle: vehicle,
-                                  // Update vehicle details fields to match selected vehicle
-                                  vehicle_make: vehicle.brand,
-                                  vehicle_model: vehicle.model,
-                                  vehicle_capacity: vehicle.passenger_capacity,
-                                  vehicle_year: vehicle.year?.toString()
-                                }))
+                                handleVehicleSelection(vehicle)
                               }}
                             >
                               {formData.vehicle_id === vehicle.id ? 'Selected' : 'Select'}

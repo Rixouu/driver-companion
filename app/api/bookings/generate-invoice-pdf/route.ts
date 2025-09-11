@@ -3,6 +3,10 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { generateOptimizedPdfFromHtml } from "@/lib/optimized-html-pdf-generator";
 import { getTeamAddressHtml, getTeamFooterHtml } from "@/lib/team-addresses";
+import { Resend } from "resend";
+import { OmiseClient } from "@/lib/omise-client";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function generateBookingInvoiceHtml(
   booking: any, 
@@ -55,8 +59,29 @@ async function generateBookingInvoiceHtml(
 
   // Calculate totals using the same logic as quotation system
   const calculateTotals = async () => {
-    // For upgrades and downgrades, use the price difference amount without tax/discounts
-    if (operation_type === 'upgrade' && payment_amount) {
+    // For full quote, use the payment_amount as the total amount
+    if (!operation_type && payment_amount) {
+      // For full quote, payment_amount is the final total after all calculations
+      // We need to work backwards to show the proper breakdown
+      const refundDiscount = refund_amount || 0;
+      const totalBeforeRefund = payment_amount + refundDiscount;
+      const taxAmount = Math.round(totalBeforeRefund * 0.1 / 1.1); // Tax is 10% of the subtotal
+      const baseAmount = totalBeforeRefund - taxAmount;
+      
+      return {
+        baseAmount: baseAmount,
+        regularDiscount: 0,
+        couponDiscount: refundDiscount,
+        couponDiscountPercentage: 0,
+        totalDiscount: refundDiscount,
+        subtotal: baseAmount,
+        taxAmount: taxAmount,
+        finalTotal: payment_amount
+      };
+    }
+    
+    // For upgrade-only, downgrade-only, and update-only, use the amount WITHOUT tax
+    if ((operation_type === 'upgrade' || operation_type === 'update') && payment_amount) {
       return {
         baseAmount: payment_amount,
         regularDiscount: 0,
@@ -70,6 +95,7 @@ async function generateBookingInvoiceHtml(
     }
     
     if (operation_type === 'downgrade' && refund_amount) {
+      // For downgrade-only payments, use the downgrade amount WITHOUT tax (same as upgrade-only)
       return {
         baseAmount: refund_amount,
         regularDiscount: 0,
@@ -79,6 +105,44 @@ async function generateBookingInvoiceHtml(
         subtotal: refund_amount,
         taxAmount: 0,
         finalTotal: refund_amount
+      };
+    }
+
+    // For full quotes with upgrades/downgrades, show complete breakdown
+    if (!operation_type && (payment_amount || refund_amount)) {
+      // This is a full quote with upgrade/downgrade
+      const upgradeDowngradeAmount = payment_amount || refund_amount || 0;
+      const isDowngrade = refund_amount && !payment_amount;
+      
+      // Get the base service amount (previous service)
+      let baseServiceAmount = 0;
+      if (booking.calculated_pricing) {
+        baseServiceAmount = booking.calculated_pricing.baseAmount || 0;
+      } else {
+        baseServiceAmount = booking.base_amount || booking.price_amount || booking.amount || 0;
+      }
+      
+      // Calculate tax on the base service amount
+      const taxPercentage = booking.tax_percentage || 10;
+      const baseTaxAmount = Math.round(baseServiceAmount * taxPercentage / 100);
+      const baseSubtotal = baseServiceAmount;
+      
+      // Calculate totals
+      const subtotal = baseSubtotal + upgradeDowngradeAmount;
+      const taxAmount = Math.round(subtotal * taxPercentage / 100);
+      const finalTotal = subtotal + taxAmount;
+      
+      return {
+        baseAmount: baseServiceAmount,
+        regularDiscount: 0,
+        couponDiscount: 0,
+        couponDiscountPercentage: 0,
+        totalDiscount: 0,
+        subtotal: subtotal,
+        taxAmount: taxAmount,
+        finalTotal: finalTotal,
+        upgradeDowngradeAmount: upgradeDowngradeAmount,
+        isDowngrade: isDowngrade
       };
     }
 
@@ -230,6 +294,11 @@ async function generateBookingInvoiceHtml(
     serviceName = `${serviceName} - Vehicle Upgrade`;
   } else if (operation_type === 'downgrade') {
     serviceName = `${serviceName} - Vehicle Refund`;
+  } else if (operation_type === 'update') {
+    serviceName = `${serviceName} - Vehicle Update`;
+  } else if (!operation_type && payment_amount) {
+    // For full quote, keep the original service name without modification
+    serviceName = booking.service_name || 'Transportation Service';
   }
   const pickupLocation = booking.pickup_location || '';
   const dropoffLocation = booking.dropoff_location || '';
@@ -241,13 +310,16 @@ async function generateBookingInvoiceHtml(
   let statusText = isPaid ? 'PAID' : 'PENDING PAYMENT';
   let statusColor = isPaid ? '#10b981' : '#f59e0b'; // Green for paid, orange for pending
   
-  // Override status for upgrade/downgrade operations
+  // Override status for upgrade/downgrade/update operations
   if (operation_type === 'upgrade') {
     statusText = 'UPGRADE';
     statusColor = '#f59e0b'; // Orange for upgrade
   } else if (operation_type === 'downgrade') {
     statusText = 'DOWNGRADE';
     statusColor = '#10b981'; // Green for downgrade
+  } else if (operation_type === 'update') {
+    statusText = 'UPDATE';
+    statusColor = '#0ea5e9'; // Blue for update
   }
   
   const formattedInvoiceId = `INV-${bookingNumber}`;
@@ -374,6 +446,25 @@ async function generateBookingInvoiceHtml(
                 ${formatCurrency(totals.baseAmount)}
               </td>
             </tr>
+            ${totals.upgradeDowngradeAmount ? `
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
+                ${totals.isDowngrade ? 
+                  `${isJapanese ? '車両ダウングレード' : 'Vehicle Downgrade'}` : 
+                  `${isJapanese ? '車両アップグレード' : 'Vehicle Upgrade'}`
+                }
+              </td>
+              <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
+                ${formatDate(date)}
+              </td>
+              <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
+                1
+              </td>
+              <td style="padding: 10px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #111827;">
+                ${totals.isDowngrade ? '-' : '+'}${formatCurrency(totals.upgradeDowngradeAmount)}
+              </td>
+            </tr>
+            ` : ''}
           </tbody>
         </table>
       </div>
@@ -425,7 +516,8 @@ async function generateBookingInvoiceHtml(
           <tr style="background-color: #f3f3f3;">
             <td style="padding: 8px 15px 8px 0; text-align: right; font-weight: bold; font-size: 14px; color: #111827;">
               ${operation_type === 'upgrade' ? (isJapanese ? '追加料金:' : 'Additional Payment:') : 
-                operation_type === 'downgrade' ? (isJapanese ? '払い戻し金額:' : 'Refund Amount:') : 
+                operation_type === 'downgrade' ? (isJapanese ? 'ダウングレード料金:' : 'Downgrade Payment:') : 
+                operation_type === 'update' ? (isJapanese ? '調整金額:' : 'Adjustment Amount:') :
                 (isJapanese ? '合計:' : 'TOTAL:')}
             </td>
             <td style="padding: 8px 0; text-align: right; font-weight: bold; font-size: 14px; color: #111827;">
@@ -439,45 +531,85 @@ async function generateBookingInvoiceHtml(
     <!-- Page break before information blocks -->
     <div style="page-break-before: always; margin-top: 20px;"></div>
     
-    ${operation_type ? `
+    ${(operation_type || (!operation_type && payment_amount)) ? `
     <!-- Vehicle Assignment Details (Second Page) -->
     <div style="margin-bottom: 25px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid ${statusColor};">
       <h3 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #111827;">
-        ${isJapanese ? '車両変更詳細:' : 'VEHICLE ASSIGNMENT DETAILS:'}
+        ${isJapanese ? '車両詳細:' : 'VEHICLE DETAILS:'}
       </h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-          <div>
-            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
-              ${isJapanese ? '前の車両:' : 'Previous Vehicle:'}
-            </p>
-            <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
-              ${previous_vehicle_name || 'N/A'}
-            </p>
-            ${previousVehicleInfo && previousVehicleInfo.brand && previousVehicleInfo.model ? `
-            <p style="margin: 0; font-size: 12px; color: #6b7280;">
-              ${previousVehicleInfo.brand} ${previousVehicleInfo.model}
-            </p>
-            ` : ''}
-          </div>
-          <div>
-            <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
-              ${isJapanese ? '新しい車両:' : 'New Vehicle:'}
-            </p>
-            <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
-              ${new_vehicle_name || 'N/A'}
-            </p>
-            ${newVehicleInfo && newVehicleInfo.brand && newVehicleInfo.model ? `
-            <p style="margin: 0; font-size: 12px; color: #6b7280;">
-              ${newVehicleInfo.brand} ${newVehicleInfo.model}
-            </p>
-            ` : ''}
-          </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+          <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
+            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (isJapanese ? '前の車両:' : 'Previous Vehicle:') : (isJapanese ? '車両:' : 'Vehicle:')}
+          </p>
+          <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
+            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (previousVehicleInfo?.name || previous_vehicle_name || 'N/A') : (booking.vehicle_name || 'N/A')}
+          </p>
+          ${(operation_type || (!operation_type && (payment_amount || refund_amount))) && previousVehicleInfo ? `
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            ${previousVehicleInfo.brand || ''} ${previousVehicleInfo.model || ''}${previousVehicleInfo.year ? ` (${previousVehicleInfo.year})` : ''}
+          </p>
+          ` : ''}
+          ${!operation_type && !payment_amount && !refund_amount && booking.vehicle_brand && booking.vehicle_model ? `
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            ${booking.vehicle_brand} ${booking.vehicle_model}${booking.vehicle_year ? ` (${booking.vehicle_year})` : ''}
+          </p>
+          ` : ''}
         </div>
+        <div>
+          <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
+            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (isJapanese ? '新しい車両:' : 'New Vehicle:') : (isJapanese ? 'サービス詳細:' : 'Service Details:')}
+          </p>
+          <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
+            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (newVehicleInfo?.name || new_vehicle_name || 'N/A') : (booking.service_name || 'N/A')}
+          </p>
+          ${(operation_type || (!operation_type && (payment_amount || refund_amount))) && newVehicleInfo && newVehicleInfo.brand && newVehicleInfo.model ? `
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            ${newVehicleInfo.brand} ${newVehicleInfo.model}${newVehicleInfo.year ? ` (${newVehicleInfo.year})` : ''}
+          </p>
+          ` : ''}
+          ${!operation_type && !payment_amount && !refund_amount && booking.pickup_location ? `
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            ${isJapanese ? '出発地:' : 'From:'} ${booking.pickup_location}
+          </p>
+          ` : ''}
+          ${!operation_type && !payment_amount && !refund_amount && booking.dropoff_location ? `
+          <p style="margin: 0; font-size: 12px; color: #6b7280;">
+            ${isJapanese ? '到着地:' : 'To:'} ${booking.dropoff_location}
+          </p>
+          ` : ''}
+        </div>
+      </div>
+      ${!operation_type && payment_amount ? `
+      <div style="padding: 15px; background-color: #fef2f2; border-radius: 6px; border: 1px solid #dc2626; margin: 15px 0;">
+        <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #dc2626; font-weight: bold;">
+          ${isJapanese ? '完全見積書' : 'Complete Quote'}
+        </h3>
+        <p style="margin: 0; font-size: 14px; color: #dc2626;">
+          ${isJapanese ? '総支払い金額:' : 'Total Payment Amount:'} <span style="font-weight: bold; font-size: 18px;">${formatCurrency(payment_amount)}</span>
+        </p>
+        ${refund_amount ? `
+        <p style="margin: 5px 0 0; font-size: 13px; color: #047857;">
+          ${isJapanese ? '払い戻し割引:' : 'Refund Discount:'} -${formatCurrency(refund_amount)}
+        </p>
+        ` : ''}
+        ${coupon_code ? `
+        <p style="margin: 5px 0 0; font-size: 13px; color: #047857;">
+          ${isJapanese ? 'クーポンコード:' : 'Coupon Code:'} ${coupon_code}
+        </p>
+        ` : ''}
+      </div>
+      ` : ''}
       ${operation_type === 'upgrade' && payment_amount ? `
       <div style="padding: 10px; background-color: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
         <p style="margin: 0; font-size: 13px; color: #92400e; font-weight: bold;">
           ${isJapanese ? '追加料金が必要:' : 'Additional Payment Required:'} ${formatCurrency(payment_amount)}
         </p>
+        ${previousVehicleInfo && newVehicleInfo ? `
+        <p style="margin: 5px 0 0; font-size: 12px; color: #92400e;">
+          ${isJapanese ? '車両アップグレード:' : 'Vehicle Upgrade:'} ${previousVehicleInfo.name} → ${newVehicleInfo.name}
+        </p>
+        ` : ''}
       </div>
       ` : ''}
       ${operation_type === 'downgrade' && coupon_code ? `
@@ -486,8 +618,30 @@ async function generateBookingInvoiceHtml(
           ${isJapanese ? 'クーポンコード:' : 'Coupon Code:'} ${coupon_code}
         </p>
         ${refund_amount ? `
-        <p style="margin: 0; font-size: 12px; color: #065f46;">
+        <p style="margin: 0 0 5px 0; font-size: 12px; color: #065f46;">
           ${isJapanese ? '払い戻し金額:' : 'Refund Amount:'} ${formatCurrency(refund_amount)}
+        </p>
+        ` : ''}
+        ${previousVehicleInfo && newVehicleInfo ? `
+        <p style="margin: 5px 0 0; font-size: 12px; color: #065f46;">
+          ${isJapanese ? '車両ダウングレード:' : 'Vehicle Downgrade:'} ${previousVehicleInfo.name} → ${newVehicleInfo.name}
+        </p>
+        ` : ''}
+      </div>
+      ` : ''}
+      ${operation_type === 'update' ? `
+      <div style="padding: 10px; background-color: #e0f2fe; border-radius: 6px; border: 1px solid #0ea5e9;">
+        <p style="margin: 0; font-size: 13px; color: #0c4a6e; font-weight: bold;">
+          ${isJapanese ? '車両更新:' : 'Vehicle Update'}
+        </p>
+        ${previousVehicleInfo && newVehicleInfo ? `
+        <p style="margin: 5px 0 0; font-size: 12px; color: #0c4a6e;">
+          ${isJapanese ? '車両変更:' : 'Vehicle Change:'} ${previousVehicleInfo.name} → ${newVehicleInfo.name}
+        </p>
+        ` : ''}
+        ${payment_amount ? `
+        <p style="margin: 5px 0 0; font-size: 12px; color: #0c4a6e;">
+          ${isJapanese ? '調整金額:' : 'Adjustment Amount:'} ${formatCurrency(payment_amount)}
         </p>
         ` : ''}
       </div>
@@ -512,7 +666,9 @@ export async function POST(request: NextRequest) {
       new_vehicle_name,
       coupon_code,
       refund_amount,
-      payment_amount
+      payment_amount,
+      customer_email,
+      bcc_email
     } = await request.json();
     
     if (!booking_id) {
@@ -548,60 +704,97 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Fetch vehicle information for upgrades/downgrades
+    // Fetch vehicle information for upgrades/downgrades/updates
     let previousVehicleInfo = null;
     let newVehicleInfo = null;
     
-    if (operation_type && (previous_vehicle_name || new_vehicle_name)) {
+    if (operation_type) {
       try {
-      // Get vehicle information using direct queries
-      console.log('Fetching vehicle assignment operation for booking_id:', booking_id);
-      const { data: assignmentOperations, error: assignmentError } = await supabase
-        .from('vehicle_assignment_operations')
-        .select('previous_vehicle_id, new_vehicle_id')
-        .eq('booking_id', booking_id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      const assignmentOperation = assignmentOperations?.[0] || null;
-      
-      console.log('Assignment operation query result:', { assignmentOperation, assignmentError });
-      
-      if (assignmentOperation) {
-        console.log('Assignment operation found:', assignmentOperation);
+        console.log('🔍 Fetching vehicle info for operation:', operation_type);
         
-        // Fetch previous vehicle details
-        if (assignmentOperation.previous_vehicle_id) {
-          console.log('Fetching previous vehicle with ID:', assignmentOperation.previous_vehicle_id);
-          const { data: previousVehicle, error: previousError } = await supabase
+        // For upgrade/downgrade operations:
+        // - Previous vehicle = the original vehicle assigned to the booking
+        // - New vehicle = the current vehicle assigned to the booking
+        
+        // Get the original vehicle (previous vehicle) from the booking
+        if (booking.vehicle_id) {
+          console.log('🔍 Fetching original vehicle (previous) with ID:', booking.vehicle_id);
+          const { data: originalVehicle, error: originalError } = await supabase
             .from('vehicles')
-            .select('name, model, brand')
-            .eq('id', assignmentOperation.previous_vehicle_id)
+            .select('name, model, brand, year')
+            .eq('id', booking.vehicle_id)
             .single();
-          console.log('Previous vehicle query result:', { previousVehicle, previousError });
-          previousVehicleInfo = previousVehicle;
+          console.log('🔍 Original vehicle query result:', { originalVehicle, originalError });
+          
+          if (originalVehicle && !originalError) {
+            previousVehicleInfo = originalVehicle;
+            console.log('✅ Previous vehicle found:', previousVehicleInfo);
+          }
         }
         
-        // Fetch new vehicle details
-        if (assignmentOperation.new_vehicle_id) {
-          console.log('Fetching new vehicle with ID:', assignmentOperation.new_vehicle_id);
-          const { data: newVehicle, error: newError } = await supabase
-            .from('vehicles')
-            .select('name, model, brand')
-            .eq('id', assignmentOperation.new_vehicle_id)
-            .single();
-          console.log('New vehicle query result:', { newVehicle, newError });
-          newVehicleInfo = newVehicle;
+        // For the new vehicle, we need to find what vehicle was assigned after the upgrade/downgrade
+        // This could be from vehicle assignment operations or from the current booking state
+        try {
+          // Try to get the new vehicle from assignment operations first
+          const { data: assignmentOperations, error: assignmentError } = await supabase
+            .from('vehicle_assignment_operations')
+            .select('new_vehicle_id')
+            .eq('booking_id', booking_id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (assignmentOperations && assignmentOperations.length > 0 && assignmentOperations[0].new_vehicle_id) {
+            console.log('🔍 Fetching new vehicle from assignment operation:', assignmentOperations[0].new_vehicle_id);
+            const { data: newVehicle, error: newError } = await supabase
+              .from('vehicles')
+              .select('name, model, brand, year')
+              .eq('id', assignmentOperations[0].new_vehicle_id)
+              .single();
+            console.log('🔍 New vehicle query result:', { newVehicle, newError });
+            
+            if (newVehicle && !newError) {
+              newVehicleInfo = newVehicle;
+              console.log('✅ New vehicle found from assignment operation:', newVehicleInfo);
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Could not fetch new vehicle from assignment operations:', error);
         }
-      } else {
-        console.log('No assignment operation found for booking_id:', booking_id);
-      }
+        
+        // If we still don't have a new vehicle, use the current booking vehicle as new vehicle
+        if (!newVehicleInfo && booking.vehicle_id) {
+          console.log('🔍 Using current booking vehicle as new vehicle');
+          newVehicleInfo = previousVehicleInfo; // This would be the "new" vehicle in this case
+        }
+        
       } catch (error) {
         console.error('Error fetching vehicle information:', error);
-        // Continue without vehicle info
       }
     }
     
+    // Debug vehicle information
+    console.log('🔍 Vehicle Info Debug:', {
+      operation_type,
+      previous_vehicle_name,
+      new_vehicle_name,
+      previousVehicleInfo,
+      newVehicleInfo,
+      booking_vehicle_id: booking.vehicle_id
+    });
+    
+    // Additional debug for previous vehicle
+    if (operation_type && previousVehicleInfo) {
+      console.log('🔍 Previous Vehicle Debug:', {
+        name: previousVehicleInfo.name,
+        brand: previousVehicleInfo.brand,
+        model: previousVehicleInfo.model,
+        year: previousVehicleInfo.year,
+        hasName: !!previousVehicleInfo.name,
+        hasBrand: !!previousVehicleInfo.brand,
+        hasModel: !!previousVehicleInfo.model
+      });
+    }
+
     // Generate HTML content for invoice
     const htmlContent = await generateBookingInvoiceHtml(
       booking, 
@@ -623,8 +816,262 @@ export async function POST(request: NextRequest) {
       printBackground: true
     });
     
-    // Return PDF as blob
-    return new NextResponse(pdfBuffer, {
+    // Send email if customer_email is provided
+    if (customer_email) {
+      try {
+        const isJapanese = language === 'ja';
+        const subject = isJapanese 
+          ? `完全見積書 - ${booking.wp_id || booking.id}`
+          : `Complete Quote - ${booking.wp_id || booking.id}`;
+        
+        // Generate OMISE payment link for all payment scenarios
+        let paymentUrl = '';
+        if (payment_amount) {
+          try {
+            const omiseClient = new OmiseClient(
+              process.env.OMISE_PUBLIC_KEY || '',
+              process.env.OMISE_SECRET_KEY || ''
+            );
+            
+            // Determine description and reference based on operation type
+            let description = '';
+            let reference = '';
+            
+            if (operation_type === 'upgrade') {
+              description = `Vehicle upgrade payment for ${booking.service_name || 'Transportation Service'}`;
+              reference = `upgrade-${booking.wp_id || booking.id}`;
+            } else if (operation_type === 'downgrade') {
+              description = `Vehicle downgrade refund for ${booking.service_name || 'Transportation Service'}`;
+              reference = `downgrade-${booking.wp_id || booking.id}`;
+            } else if (operation_type === 'update') {
+              description = `Vehicle update payment for ${booking.service_name || 'Transportation Service'}`;
+              reference = `update-${booking.wp_id || booking.id}`;
+            } else {
+              // Full quote
+              description = `Complete quote payment for ${booking.service_name || 'Transportation Service'}`;
+              reference = `full-quote-${booking.wp_id || booking.id}`;
+            }
+            
+            const paymentLinkData = {
+              amount: payment_amount,
+              currency: 'jpy',
+              description: description,
+              reference: reference,
+              customerEmail: customer_email,
+              customerName: booking.customer_name || 'Customer',
+              returnUrl: process.env.OMISE_RETURN_URL || 'https://driver-companion.vercel.app/quotations/[QUOTATION_ID]'
+            };
+            
+            console.log('Creating OMISE payment link:', paymentLinkData);
+            const paymentLink = await omiseClient.createPaymentLink(paymentLinkData);
+            paymentUrl = paymentLink.paymentUrl || '';
+            console.log('OMISE payment link created:', paymentUrl);
+          } catch (omiseError) {
+            console.error('Error creating OMISE payment link:', omiseError);
+            // Fallback to direct URL if OMISE fails
+            paymentUrl = `https://driver-companion.vercel.app/bookings/${booking_id}/payment?amount=${payment_amount}&type=${operation_type || 'full_quote'}`;
+          }
+        }
+        
+        const emailHtml = `
+          <!DOCTYPE html>
+          <html lang="${language}">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>${subject}</title>
+            <style>
+              body, table, td, a {
+                -webkit-text-size-adjust:100%;
+                -ms-text-size-adjust:100%;
+                font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
+              }
+              table, td { mso-table-lspace:0; mso-table-rspace:0; }
+              img {
+                border:0;
+                line-height:100%;
+                outline:none;
+                text-decoration:none;
+                -ms-interpolation-mode:bicubic;
+              }
+              table { border-collapse:collapse!important; }
+              body {
+                margin:0;
+                padding:0;
+                width:100%!important;
+                background:#F2F4F6;
+              }
+              .greeting {
+                color:#32325D;
+                margin:24px 24px 16px;
+                line-height:1.4;
+                font-size: 14px;
+              }
+              @media only screen and (max-width:600px) {
+                .container { width:100%!important; }
+                .stack { display:block!important; width:100%!important; text-align:center!important; }
+              }
+              .details-table td, .details-table th {
+                padding: 10px 0;
+                font-size: 14px;
+              }
+              .details-table th {
+                 color: #8898AA;
+                 text-transform: uppercase;
+                 text-align: left;
+              }
+              .button {
+                background-color: #E03E2D;
+                color: white;
+                padding: 12px 24px;
+                text-decoration: none;
+                border-radius: 6px;
+                display: inline-block;
+                margin: 16px 0;
+              }
+              .payment-info {
+                background-color: #fef2f2;
+                border-left: 4px solid #dc2626;
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 4px;
+              }
+            </style>
+          </head>
+          <body style="background:#F2F4F6; margin:0; padding:0;">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td align="center" style="padding:24px;">
+                  <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                         style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                      <td style="background:linear-gradient(135deg,#E03E2D 0%,#F45C4C 100%); padding:32px 24px; text-align:center;">
+                        <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 12px;">
+                          <tr><td align="center" valign="middle" style="text-align:center;">
+                              <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                          </td></tr>
+                        </table>
+                        <h1 style="color:white; margin:0; font-size:24px; font-weight:600;">
+                          ${isJapanese ? '完全見積書' : 'Complete Quote'}
+                        </h1>
+                        <p style="margin:4px 0 0; font-size:14px; color:rgba(255,255,255,0.85);">
+                          ${isJapanese ? '予約番号' : 'Booking'} #${booking.wp_id || booking.id}
+                        </p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding:32px 24px;">
+                        <div class="greeting">
+                          <p>${isJapanese ? 'こんにちは' : 'Hello'} ${booking.customer_name},</p>
+                          
+                          <p>${isJapanese 
+                            ? `ご予約 ${booking.wp_id || booking.id} の完全見積書をお送りいたします。添付のPDFファイルをご確認ください。`
+                            : `Please find attached the complete quote for your booking ${booking.wp_id || booking.id}. Please review the attached PDF file.`
+                          }</p>
+                          
+                          <div style="background:#f8f9fa; padding:20px; border-radius:8px; margin:20px 0;">
+                            <h3 style="margin:0 0 12px 0; color:#32325D;">${isJapanese ? '予約詳細' : 'Booking Details'}</h3>
+                            <p style="margin:0; color:#525f7f;">
+                              <strong>${isJapanese ? '予約ID' : 'Booking ID'}:</strong> ${booking.wp_id || booking.id}<br>
+                              <strong>${isJapanese ? 'サービス' : 'Service'}:</strong> ${booking.service_name || 'N/A'}<br>
+                              ${previousVehicleInfo ? `<strong>${isJapanese ? '前の車両' : 'Previous Vehicle'}:</strong> ${previousVehicleInfo.name}${previousVehicleInfo.brand && previousVehicleInfo.model ? ` (${previousVehicleInfo.brand} ${previousVehicleInfo.model})` : ''}<br>` : ''}
+                              ${newVehicleInfo ? `<strong>${isJapanese ? '新しい車両' : 'New Vehicle'}:</strong> ${newVehicleInfo.name}${newVehicleInfo.brand && newVehicleInfo.model ? ` (${newVehicleInfo.brand} ${newVehicleInfo.model})` : ''}<br>` : ''}
+                              ${payment_amount ? `<strong>${isJapanese ? '追加支払いが必要' : 'Additional Payment Required'}:</strong> <span style="color:#dc2626; font-weight:bold; font-size:18px;">JPY ${payment_amount.toLocaleString()}</span><br>` : ''}
+                              <strong>${isJapanese ? 'ステータス' : 'Status'}:</strong> <span style="color:#dc2626; font-weight:600;">${isJapanese ? '見積書送信済み' : 'Quote Sent'}</span><br>
+                              <strong>${isJapanese ? '日付' : 'Date'}:</strong> ${new Date().toLocaleDateString()}
+                            </p>
+                          </div>
+                          
+                          <div class="payment-info">
+                            <h4 style="margin:0 0 8px 0; color:#32325D;">${isJapanese ? '支払い詳細' : 'Payment Details'}:</h4>
+                            <p style="margin:0 0 16px; color:#525f7f;">
+                              <strong>${isJapanese ? '支払い方法' : 'Payment Method'}:</strong> ${isJapanese ? 'オンライン支払い' : 'Online Payment'}<br>
+                              <strong>${isJapanese ? '支払い金額' : 'Payment Amount'}:</strong> JPY ${payment_amount ? payment_amount.toLocaleString() : '0'}<br>
+                              <strong>${isJapanese ? '支払い日' : 'Payment Date'}:</strong> ${new Date().toLocaleDateString()}
+                            </p>
+                            <p style="margin:0 0 16px; color:#525f7f;">
+                              ${isJapanese 
+                                ? '添付のPDFファイルをご確認いただき、お支払いをお願いいたします。'
+                                : 'Please review the attached PDF file and proceed with payment.'
+                              }
+                            </p>
+                            ${paymentUrl ? `
+                            <div style="text-align: center; margin: 20px 0;">
+                              <a href="${paymentUrl}" 
+                                 style="background-color: #E03E2D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
+                                ${isJapanese ? 'お支払いを完了する' : 'Complete Payment'}
+                              </a>
+                            </div>
+                            ` : ''}
+                            <p style="margin:16px 0 0; font-size:12px; color:#6b7280; text-align: center;">
+                              ${isJapanese 
+                                ? 'または、上記のリンクをクリックしてお支払いを完了してください。'
+                                : 'Or click the link above to complete your payment.'
+                              }
+                            </p>
+                          </div>
+                          
+                          <p>${isJapanese ? 'ご質問がございましたら、お気軽にお問い合わせください。' : 'If you have any questions, please don\'t hesitate to contact us.'}</p>
+                          <p>${isJapanese ? 'ありがとうございます。' : 'Thank you for your business!'}</p>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="background:#F8FAFC; padding:16px 24px; text-align:center; font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; font-size:12px; color:#8898AA;">
+                        <p style="color: #333; font-weight: bold; margin: 0 0 10px;">${isJapanese ? 'ご利用ありがとうございます！' : 'Thank you for your business!'}</p>
+                        <p style="color: #666; font-size: 14px; margin: 0 0 10px;">
+                          ${isJapanese 
+                            ? 'この見積書についてご質問がございましたら、'
+                            : 'If you have any questions about this quote, please contact us at '
+                          }
+                          <a href="mailto:booking@japandriver.com" style="color: #1e40af; text-decoration: none;">booking@japandriver.com</a>
+                        </p>
+                        <p style="color: #666; font-size: 14px; margin: 0;">
+                          Driver (Thailand) Company Limited • 
+                          <a href="https://www.japandriver.com" style="color: #1e40af; text-decoration: none;">www.japandriver.com</a>
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `;
+        
+        const emailData = {
+          from: 'Driver Japan <booking@japandriver.com>',
+          to: [customer_email],
+          bcc: bcc_email ? [bcc_email] : undefined,
+          subject: subject,
+          html: emailHtml,
+          attachments: [
+            {
+              filename: `quote-${booking.wp_id || booking.id}.pdf`,
+              content: pdfBuffer.toString('base64')
+            }
+          ]
+        };
+        
+        console.log('Sending full quote email to:', customer_email);
+        await resend.emails.send(emailData as any);
+        console.log('Full quote email sent successfully');
+        
+      } catch (emailError) {
+        console.error('Error sending full quote email:', emailError);
+        // Don't fail the entire request if email fails
+      }
+    }
+    
+    // Return PDF as binary
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="INV-${booking.wp_id || booking.id}.pdf"`

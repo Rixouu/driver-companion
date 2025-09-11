@@ -102,8 +102,8 @@ export async function POST(
       currency: 'jpy',
       description: `Vehicle upgrade from ${previousVehicleName} to ${newVehicleName}`,
       reference: `upgrade-${booking.wp_id}`,
-      customerEmail: booking.customer_email,
-      customerName: booking.customer_name,
+      customerEmail: booking.customer_email || '',
+      customerName: booking.customer_name || '',
       returnUrl: process.env.OMISE_RETURN_URL || 'https://driver-companion.vercel.app/quotations/[QUOTATION_ID]'
     };
 
@@ -157,7 +157,7 @@ export async function POST(
     try {
       const emailData = {
         from: 'Driver Japan <booking@japandriver.com>',
-        to: [booking.customer_email],
+        to: [booking.customer_email || ''],
         bcc: bccEmail ? [bccEmail] : undefined,
         subject: `Vehicle Upgrade Payment Required - ${booking.wp_id}`,
         html: `
@@ -272,19 +272,23 @@ export async function POST(
                           
                           <div class="payment-info">
                             <h4 style="margin:0 0 8px 0; color:#32325D;">Payment Details:</h4>
-                            <p style="margin:0; color:#525f7f;">
+                            <p style="margin:0 0 16px; color:#525f7f;">
                               <strong>Payment Method:</strong> Online Payment<br>
                               <strong>Payment Amount:</strong> JPY ${amount.toLocaleString()}<br>
                               <strong>Payment Date:</strong> ${new Date().toLocaleDateString()}
                             </p>
-                          </div>
-                          
-                          <!-- Payment Button -->
-                          <div style="text-align: center; margin: 30px 0;">
-                            <a href="${paymentLink.paymentUrl}" 
-                               style="background-color: #E03E2D; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-size: 16px; font-weight: bold;">
-                              Pay Now
-                            </a>
+                            <p style="margin:0 0 16px; color:#525f7f;">
+                              Please review the attached PDF file and proceed with payment.
+                            </p>
+                            <div style="text-align: center; margin: 20px 0;">
+                              <a href="${paymentLink.paymentUrl}" 
+                                 style="background-color: #E03E2D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
+                                Pay Now
+                              </a>
+                            </div>
+                            <p style="margin:16px 0 0; font-size:12px; color:#6b7280; text-align: center;">
+                              Or click the link above to complete your payment.
+                            </p>
                           </div>
                           
                           <p>Please complete the payment to confirm your vehicle upgrade.</p>
@@ -324,7 +328,7 @@ export async function POST(
             content: invoiceBuffer.toString('base64')
           }
         ] : undefined
-      });
+      } as any);
       console.log('Upgrade payment email sent successfully');
     } catch (emailError) {
       console.error('Error sending upgrade payment email:', emailError);

@@ -70,6 +70,13 @@ export function VehicleSelectionTab({
     
     // If this is an edit and we have a different vehicle, check for upgrade/downgrade
     if (bookingId && currentVehicleId && currentVehicleId !== newVehicleId) {
+      console.log('🚗 Vehicle selection - calling pricing API with:', {
+        currentVehicleId,
+        newVehicleId,
+        serviceType: formData.service_name,
+        bookingId
+      });
+      
       try {
         const response = await fetch(`/api/bookings/${bookingId}/get-vehicle-pricing`, {
           method: 'POST',

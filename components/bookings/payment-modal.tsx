@@ -468,12 +468,12 @@ export function PaymentModal({
             </div>
 
             {/* What will be sent */}
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
-              <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+            <div className={`p-4 rounded-lg ${isUpgrade ? 'bg-orange-50 dark:bg-orange-950/20' : isDowngrade ? 'bg-green-50 dark:bg-green-950/20' : 'bg-blue-50 dark:bg-blue-950/20'}`}>
+              <h4 className={`font-medium text-sm mb-2 flex items-center gap-2 ${isUpgrade ? 'text-orange-900 dark:text-orange-100' : isDowngrade ? 'text-green-900 dark:text-green-100' : 'text-blue-900 dark:text-blue-100'}`}>
                 <Mail className="h-4 w-4" />
                 What will be sent:
               </h4>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+              <ul className={`text-sm space-y-1 ${isUpgrade ? 'text-orange-800 dark:text-orange-200' : isDowngrade ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'}`}>
                 {isUpgrade && (
                   <>
                     <li>• Payment link for ¥{Math.abs(upgradeAmount).toLocaleString()} upgrade amount</li>

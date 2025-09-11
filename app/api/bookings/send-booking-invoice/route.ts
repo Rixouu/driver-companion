@@ -239,20 +239,32 @@ export async function POST(request: NextRequest) {
       
       console.log('🌐 [SEND-BOOKING-INVOICE] Using base URL:', baseUrl);
       
+      const pdfRequestData = {
+        booking_id: booking.id,
+        language: 'en'
+      };
+      
+      console.log('📤 [SEND-BOOKING-INVOICE] PDF request data:', pdfRequestData);
+      console.log('🔗 [SEND-BOOKING-INVOICE] PDF request URL:', `${baseUrl}/api/bookings/generate-invoice-pdf`);
+      
       const pdfResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          booking_id: booking.id,
-          language: 'en'
-        })
+        body: JSON.stringify(pdfRequestData)
       });
+      
+      console.log('📥 [SEND-BOOKING-INVOICE] PDF response status:', pdfResponse.status);
 
       if (pdfResponse.ok) {
         pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
         console.log('✅ [SEND-BOOKING-INVOICE] PDF generated successfully');
       } else {
-        console.warn('❌ [SEND-BOOKING-INVOICE] Failed to generate PDF');
+        const errorText = await pdfResponse.text();
+        console.warn('❌ [SEND-BOOKING-INVOICE] Failed to generate PDF:', {
+          status: pdfResponse.status,
+          statusText: pdfResponse.statusText,
+          error: errorText
+        });
       }
     } catch (pdfError) {
       console.error('❌ [SEND-BOOKING-INVOICE] Error generating PDF:', pdfError);

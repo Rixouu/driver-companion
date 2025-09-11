@@ -145,11 +145,8 @@ export async function POST(req: NextRequest) {
     // Generate PDF invoice
     let pdfBuffer: Buffer | undefined;
     try {
-      // Get the base URL for the current request
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                     process.env.NODE_ENV === 'production' ? 'https://japandriver.com' :
-                     'http://localhost:3000';
+      // Use the same pattern as quotations - use req.nextUrl.origin
+      const baseUrl = req.nextUrl.origin;
       
       const pdfResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
         method: 'POST',

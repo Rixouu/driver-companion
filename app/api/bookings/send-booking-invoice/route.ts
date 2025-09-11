@@ -231,11 +231,8 @@ export async function POST(request: NextRequest) {
     try {
       console.log('📄 [SEND-BOOKING-INVOICE] Generating PDF invoice...');
       
-      // Get the base URL for the current request
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                     process.env.NODE_ENV === 'production' ? 'https://japandriver.com' :
-                     'http://localhost:3000';
+      // Use the same pattern as quotations - use request.nextUrl.origin
+      const baseUrl = request.nextUrl.origin;
       
       console.log('🌐 [SEND-BOOKING-INVOICE] Using base URL:', baseUrl);
       

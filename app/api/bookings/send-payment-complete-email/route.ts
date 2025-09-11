@@ -317,8 +317,14 @@ export async function POST(request: NextRequest) {
       console.log('Booking payment complete email route - Generating invoice PDF for email attachment');
       let pdfBuffer;
       try {
+        // Get the base URL for the current request
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                       process.env.NODE_ENV === 'production' ? 'https://japandriver.com' :
+                       'http://localhost:3000';
+        
         // Call the dedicated booking invoice PDF generator
-        const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/bookings/generate-invoice-pdf`, {
+        const invoiceResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

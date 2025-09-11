@@ -130,7 +130,13 @@ export async function POST(
     // Generate invoice PDF for attachment
     let invoiceBuffer = null;
     try {
-      const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/bookings/generate-invoice-pdf`, {
+      // Get the base URL for the current request
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                     process.env.NODE_ENV === 'production' ? 'https://japandriver.com' :
+                     'http://localhost:3000';
+      
+      const invoiceResponse = await fetch(`${baseUrl}/api/bookings/generate-invoice-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

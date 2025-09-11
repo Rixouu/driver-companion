@@ -138,7 +138,7 @@ export default function EditBookingPage() {
     { id: 'route', name: 'Route & Services', icon: MapPin },
     { id: 'services', name: 'Vehicles', icon: Car },
     { id: 'client', name: 'Client Details', icon: User },
-    { id: 'additional', name: 'Additional Info', icon: FileText },
+    { id: 'additional', name: 'Pricing & Payment', icon: DollarSign },
     { id: 'preview', name: 'Preview & Save', icon: Eye },
   ]
 
@@ -892,7 +892,6 @@ export default function EditBookingPage() {
                       onPaymentAction={handlePaymentAction}
                       isProcessingPayment={isSaving}
                       handleInputChange={handleInputChange}
-                      handleSelectChange={handleSelectChange}
                       refundCouponDiscount={refundCouponDiscount}
                       setRefundCouponDiscount={setRefundCouponDiscount}
                     />

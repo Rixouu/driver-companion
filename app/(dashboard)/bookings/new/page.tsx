@@ -111,7 +111,7 @@ export default function NewBookingPage() {
     { id: 'route', name: 'Route & Services', icon: MapPin },
     { id: 'services', name: 'Vehicles', icon: Car },
     { id: 'client', name: 'Client Details', icon: User },
-    { id: 'additional', name: 'Additional Info', icon: FileText },
+    { id: 'additional', name: 'Pricing & Payment', icon: DollarSign },
     { id: 'preview', name: 'Preview & Create', icon: Eye },
   ]
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([])
@@ -822,7 +822,6 @@ export default function NewBookingPage() {
                   onPaymentAction={() => {}}
                   isProcessingPayment={isSaving || isGeneratingPayment || isSendingEmail}
                   handleInputChange={handleInputChange}
-                      handleSelectChange={handleSelectChange}
                       refundCouponDiscount={0}
                       setRefundCouponDiscount={() => {}}
                     />

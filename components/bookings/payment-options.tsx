@@ -57,7 +57,7 @@ export function PaymentOptions({
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
             <CreditCard className="h-5 w-5" />
             Payment Options
           </CardTitle>
@@ -86,9 +86,11 @@ export function PaymentOptions({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Upgrade/Downgrade Only Payment */}
-            {hasUpgradeDowngrade && (
+          {/* Payment Options Layout */}
+          {hasUpgradeDowngrade ? (
+            // 2-column layout when there's upgrade/downgrade
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Upgrade/Downgrade Only Payment */}
               <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -120,9 +122,33 @@ export function PaymentOptions({
                   {upgradeAmount > 0 ? 'Send Upgrade Payment' : 'Generate Refund Coupon'}
                 </Button>
               </div>
-            )}
 
-            {/* Full Quote Payment */}
+              {/* Full Quote Payment */}
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium">Full Quote Payment</span>
+                  </div>
+                  <Badge variant="outline">
+                    ¥{fullQuoteAmount.toLocaleString()}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Send complete quote with all pricing including upgrade/downgrade
+                </p>
+                <Button 
+                  onClick={() => handlePaymentClick('full-quote')}
+                  disabled={isLoading}
+                  className="w-full"
+                  variant="default"
+                >
+                  Send Full Quote
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // Full width layout when there's no upgrade/downgrade
             <div className="border rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -134,7 +160,7 @@ export function PaymentOptions({
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Send complete quote with all pricing including {hasUpgradeDowngrade ? 'upgrade/downgrade' : 'base service'}
+                Send complete quote with all pricing including base service
               </p>
               <Button 
                 onClick={() => handlePaymentClick('full-quote')}
@@ -145,53 +171,7 @@ export function PaymentOptions({
                 Send Full Quote
               </Button>
             </div>
-          </div>
-
-          {/* Pricing Summary */}
-          <Separator />
-          <div className="space-y-2 text-sm">
-            {/* Previous Service - only show if there's an upgrade/downgrade */}
-            {formData.upgradeDowngradeData && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Previous Service</span>
-                <span className="text-muted-foreground line-through">¥{formData.upgradeDowngradeData.currentPrice.toLocaleString()}</span>
-              </div>
-            )}
-
-            {/* New Service */}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                {formData.upgradeDowngradeData ? 'New Service' : 'Service'}
-              </span>
-              <span>¥{formData.upgradeDowngradeData ? 
-                (formData.isFreeUpgrade ? formData.upgradeDowngradeData.currentPrice : formData.upgradeDowngradeData.newPrice).toLocaleString() :
-                calculatedPrice.baseAmount.toLocaleString()}</span>
-            </div>
-
-            {/* Upgrade/Downgrade Amount - only show if there's a price difference */}
-            {formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {formData.upgradeDowngradeData.priceDifference > 0 ? 'Upgrade Amount' : 'Downgrade Amount'}
-                </span>
-                <span className={formData.upgradeDowngradeData.priceDifference > 0 ? 'text-orange-600' : 'text-green-600'}>
-                  {formData.upgradeDowngradeData.priceDifference > 0 ? '+' : ''}¥{formData.upgradeDowngradeData.priceDifference.toLocaleString()}
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax ({formData.tax_percentage || 10}%)</span>
-              <span>¥{formData.upgradeDowngradeData ? 
-                Math.round((formData.isFreeUpgrade ? formData.upgradeDowngradeData.currentPrice : formData.upgradeDowngradeData.newPrice) * (formData.tax_percentage || 10) / 100).toLocaleString() :
-                calculatedPrice.taxAmount.toLocaleString()}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between font-semibold text-lg">
-              <span>Total</span>
-              <span className="text-primary">¥{fullQuoteAmount.toLocaleString()}</span>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

@@ -109,8 +109,8 @@ export function PaymentOptions({
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
                   {upgradeAmount > 0 
-                    ? 'Send payment link for the upgrade amount only'
-                    : 'Generate refund coupon for the downgrade amount only'
+                    ? 'Send payment link for the upgrade amount only. Quick and secure processing.'
+                    : 'Generate refund coupon for the downgrade amount only. Instant refund processing.'
                   }
                 </p>
                 <Button 
@@ -135,7 +135,7 @@ export function PaymentOptions({
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Send complete quote with all pricing including upgrade/downgrade
+                  Send complete quote with all pricing including upgrade/downgrade. Comprehensive payment solution.
                 </p>
                 <Button 
                   onClick={() => handlePaymentClick('full-quote')}
@@ -160,7 +160,7 @@ export function PaymentOptions({
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Send complete quote with all pricing including base service
+                Send complete quote with all pricing including base service. Comprehensive payment solution.
               </p>
               <Button 
                 onClick={() => handlePaymentClick('full-quote')}

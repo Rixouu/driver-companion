@@ -477,6 +477,7 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
         case 'paid':
           return 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700'
         case 'confirmed':
+        case 'assigned':
           return 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700'
         case 'cancelled':
           return 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700'
@@ -510,6 +511,7 @@ export function SalesCalendar({ quotations = [], bookings = [], users = [] }: Sa
         case "paid":
           return "bg-green-500"
         case "confirmed":
+        case "assigned":
           return "bg-blue-500"
         case "cancelled":
           return "bg-red-500"

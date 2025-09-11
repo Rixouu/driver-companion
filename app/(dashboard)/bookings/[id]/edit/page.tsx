@@ -303,6 +303,27 @@ export default function EditBookingPage() {
     setFormData(prev => {
       const newData = { ...prev, [name]: value }
       
+      // Smart vehicle filtering based on passenger and bag counts
+      if (name === 'number_of_passengers' || name === 'number_of_bags') {
+        const passengers = name === 'number_of_passengers' ? parseInt(value) || 0 : (newData.number_of_passengers || 0)
+        const bags = name === 'number_of_bags' ? parseInt(value) || 0 : (newData.number_of_bags || 0)
+        
+        // Auto-set vehicle filters for smart filtering
+        if (passengers > 0) {
+          setVehicleFilters(prev => ({
+            ...prev,
+            minPassengers: passengers.toString()
+          }))
+        }
+        
+        if (bags > 0) {
+          setVehicleFilters(prev => ({
+            ...prev,
+            minLuggage: bags.toString()
+          }))
+        }
+      }
+      
       // Handle service switching logic
       if (name === 'service_name') {
         const newService = value
@@ -863,15 +884,6 @@ export default function EditBookingPage() {
                   <TabsContent value="additional" className="mt-0 space-y-6">
                     <AdditionalInfoTab 
                       formData={formData}
-                      handleInputChange={handleInputChange}
-                      handleSelectChange={handleSelectChange}
-                    />
-                  </TabsContent>
-                  
-                  {/* Preview Tab */}
-                  <TabsContent value="preview" className="mt-0 space-y-6">
-                    <PreviewTab
-                      formData={formData}
                       calculatedPrice={calculatedPrice}
                       couponDiscount={couponDiscount}
                       paymentOptions={paymentOptions}
@@ -880,8 +892,17 @@ export default function EditBookingPage() {
                       onPaymentAction={handlePaymentAction}
                       isProcessingPayment={isSaving}
                       handleInputChange={handleInputChange}
+                      handleSelectChange={handleSelectChange}
                       refundCouponDiscount={refundCouponDiscount}
                       setRefundCouponDiscount={setRefundCouponDiscount}
+                    />
+                  </TabsContent>
+                  
+                  {/* Preview Tab */}
+                  <TabsContent value="preview" className="mt-0 space-y-6">
+                    <PreviewTab
+                      formData={formData}
+                      getStatusColor={getStatusColor}
                     />
                   </TabsContent>
                 </div>

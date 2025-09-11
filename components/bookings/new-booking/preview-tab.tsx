@@ -1,18 +1,15 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Eye, User, MapPin, Car, Plane, FileText, DollarSign, RefreshCw
+  Eye, User, MapPin, Car, Plane, FileText
 } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 import { VehicleWithCategory } from '@/app/actions/services'
 import { useDrivers } from '@/lib/hooks/use-drivers'
-import { PaymentOptions } from '@/components/bookings/payment-options'
 
 interface PreviewTabProps {
   formData: Partial<Booking & { 
@@ -24,86 +21,15 @@ interface PreviewTabProps {
     upgradeDowngradeConfirmed?: boolean;
     upgradeDowngradeAction?: 'upgrade' | 'downgrade';
     upgradeDowngradeCouponCode?: string;
-    tax_percentage?: number;
-    discount_percentage?: number;
-    coupon_code?: string;
   }>
-  calculatedPrice: {
-    baseAmount: number
-    timeBasedAdjustment: number
-    adjustedBaseAmount: number
-    appliedTimeBasedRule: {
-      name: string
-      adjustment_percentage: number
-      description?: string | null
-      start_time: string
-      end_time: string
-      days_of_week: string[] | null
-    } | null
-    discountAmount: number
-    taxAmount: number
-    totalAmount: number
-  }
-  couponDiscount: number
-  paymentOptions: {
-    requiresPayment: boolean
-    paymentMethod: 'client_pay' | 'send_payment_link'
-    customPaymentName: string
-  }
-  setPaymentOptions: React.Dispatch<React.SetStateAction<any>>
   getStatusColor: (status: string) => string
-  onPaymentAction?: (action: 'upgrade-only' | 'full-quote', emailData?: any) => void
-  isProcessingPayment?: boolean
-  handleInputChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
-  refundCouponDiscount?: number
-  setRefundCouponDiscount?: (amount: number) => void
 }
 
 export function PreviewTab({
   formData,
-  calculatedPrice,
-  couponDiscount,
-  paymentOptions,
-  setPaymentOptions,
-  getStatusColor,
-  onPaymentAction,
-  isProcessingPayment = false,
-  handleInputChange,
-  refundCouponDiscount = 0,
-  setRefundCouponDiscount
+  getStatusColor
 }: PreviewTabProps) {
   const { drivers: availableDrivers } = useDrivers()
-  
-  const handleRefundCouponValidation = async () => {
-    if (!formData.refund_coupon_code || !setRefundCouponDiscount) return
-
-    try {
-      const response = await fetch('/api/bookings/validate-coupon', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          couponCode: formData.refund_coupon_code,
-          bookingId: formData.id
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (response.ok && result.valid) {
-        // Set the refund amount to deduct from subtotal
-        setRefundCouponDiscount(Math.abs(formData.upgradeDowngradeData?.priceDifference || 0));
-        console.log('Refund coupon validated:', result);
-      } else {
-        console.error('Refund coupon validation failed:', result.message);
-        setRefundCouponDiscount(0);
-      }
-    } catch (error) {
-      console.error('Error validating refund coupon:', error);
-      setRefundCouponDiscount(0);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -269,118 +195,6 @@ export function PreviewTab({
             </>
           )}
 
-          {/* Pricing Configuration */}
-          {handleInputChange && (
-            <Card className="border rounded-lg shadow-sm dark:border-gray-800">
-              <div className="border-b py-4 px-6">
-                <h2 className="text-lg font-semibold flex items-center">
-                  <DollarSign className="mr-2 h-5 w-5" />
-                  Pricing Configuration
-                </h2>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="tax_percentage">Tax Percentage (%)</Label>
-                    <Input
-                      id="tax_percentage"
-                      name="tax_percentage"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={formData.tax_percentage || 10}
-                      onChange={handleInputChange}
-                      placeholder="10"
-                      className="transition-all focus:ring-2 focus:border-primary"
-                    />
-                    <p className="text-xs text-muted-foreground">Default: 10% (Japanese tax rate)</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="discount_percentage">Discount Percentage (%)</Label>
-                    <Input
-                      id="discount_percentage"
-                      name="discount_percentage"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={formData.discount_percentage || 0}
-                      onChange={handleInputChange}
-                      placeholder="0"
-                      className="transition-all focus:ring-2 focus:border-primary"
-                    />
-                    <p className="text-xs text-muted-foreground">Optional discount to apply</p>
-                  </div>
-                </div>
-                
-                {/* Coupon Code Field */}
-                <div className="mt-4">
-                  <Label htmlFor="coupon_code">Coupon Code</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      id="coupon_code"
-                      name="coupon_code"
-                      value={formData.coupon_code || ''}
-                      onChange={handleInputChange}
-                      placeholder="Enter coupon code"
-                      className="flex-1 transition-all focus:ring-2 focus:border-primary"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        // TODO: Implement coupon validation
-                        console.log('Validate coupon:', formData.coupon_code);
-                      }}
-                      disabled={!formData.coupon_code}
-                      className="px-4"
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Enter a valid coupon code to apply discounts</p>
-                </div>
-
-                {/* Refund Coupon Code Field */}
-                <div className="mt-4">
-                  <Label htmlFor="refund_coupon_code">Refund Coupon Code</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      id="refund_coupon_code"
-                      name="refund_coupon_code"
-                      value={formData.refund_coupon_code || ''}
-                      onChange={handleInputChange}
-                      placeholder="Enter refund coupon code"
-                      className="flex-1 transition-all focus:ring-2 focus:border-primary"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleRefundCouponValidation}
-                      disabled={!formData.refund_coupon_code}
-                      className="px-4"
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Enter a valid refund coupon code to deduct from subtotal</p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Payment Options */}
-          {onPaymentAction && (
-            <PaymentOptions
-              formData={formData}
-              calculatedPrice={calculatedPrice}
-              onPaymentAction={onPaymentAction}
-              isLoading={isProcessingPayment}
-            />
-          )}
         </div>
       </Card>
 

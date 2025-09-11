@@ -88,7 +88,9 @@ export default function NewBookingPage() {
     tax_percentage: 10, // Default 10% Japanese tax
     discount_percentage: 0,
     coupon_code: '',
-    team_location: 'thailand'
+    team_location: 'thailand',
+    number_of_passengers: undefined,
+    number_of_bags: undefined
   })
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [activeTab, setActiveTab] = useState('route')
@@ -234,6 +236,27 @@ export default function NewBookingPage() {
     const { name, value } = e.target
     setFormData(prev => {
       const newData = { ...prev, [name]: value }
+      
+      // Smart vehicle filtering based on passenger and bag counts
+      if (name === 'number_of_passengers' || name === 'number_of_bags') {
+        const passengers = name === 'number_of_passengers' ? parseInt(value) || 0 : (newData.number_of_passengers || 0)
+        const bags = name === 'number_of_bags' ? parseInt(value) || 0 : (newData.number_of_bags || 0)
+        
+        // Auto-set vehicle filters for smart filtering
+        if (passengers > 0) {
+          setVehicleFilters(prev => ({
+            ...prev,
+            minPassengers: passengers.toString()
+          }))
+        }
+        
+        if (bags > 0) {
+          setVehicleFilters(prev => ({
+            ...prev,
+            minLuggage: bags.toString()
+          }))
+        }
+      }
       
       // Handle service switching logic
       if (name === 'service_name') {
@@ -791,8 +814,17 @@ export default function NewBookingPage() {
               <TabsContent value="additional" className="mt-0 space-y-6">
                     <AdditionalInfoTab 
                   formData={formData}
+                  calculatedPrice={calculatedPrice}
+                  couponDiscount={couponDiscount}
+                  paymentOptions={paymentOptions}
+                  setPaymentOptions={setPaymentOptions}
+                  getStatusColor={getStatusColor}
+                  onPaymentAction={() => {}}
+                  isProcessingPayment={isSaving || isGeneratingPayment || isSendingEmail}
                   handleInputChange={handleInputChange}
                       handleSelectChange={handleSelectChange}
+                      refundCouponDiscount={0}
+                      setRefundCouponDiscount={() => {}}
                     />
                   </TabsContent>
                   
@@ -800,10 +832,6 @@ export default function NewBookingPage() {
                   <TabsContent value="preview" className="mt-0 space-y-6">
                     <PreviewTab
                       formData={formData}
-                      calculatedPrice={calculatedPrice}
-                      couponDiscount={couponDiscount}
-                      paymentOptions={paymentOptions}
-                      setPaymentOptions={setPaymentOptions}
                       getStatusColor={getStatusColor}
                     />
               </TabsContent>

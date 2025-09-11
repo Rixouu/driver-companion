@@ -73,49 +73,49 @@ function getQuotationStatusBadge(status: string, t: (key: string, options?: any)
   switch (status) {
     case 'draft':
       return (
-        <Badge variant="outline" className="text-gray-500 border-gray-400 bg-gray-50 dark:bg-gray-900/20">
+        <Badge variant="outline" className="text-gray-800 border-gray-400 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600">
           {t('quotations.status.draft')}
         </Badge>
       );
     case 'sent':
       return (
-        <Badge variant="outline" className="text-blue-500 border-blue-400 bg-blue-50 dark:bg-blue-900/20">
+        <Badge variant="outline" className="text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">
           {t('quotations.status.sent')}
         </Badge>
       );
     case 'approved':
       return (
-        <Badge variant="outline" className="text-green-500 border-green-400 bg-green-50 dark:bg-green-900/20">
+        <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
           {t('quotations.status.approved')}
         </Badge>
       );
     case 'rejected':
       return (
-        <Badge variant="outline" className="text-red-500 border-red-400 bg-red-50 dark:bg-red-900/20">
+        <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">
           {t('quotations.status.rejected')}
         </Badge>
       );
     case 'converted':
       return (
-        <Badge variant="outline" className="text-purple-500 border-purple-400 bg-purple-50 dark:bg-purple-900/20">
+        <Badge variant="outline" className="text-purple-800 border-purple-400 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700">
           {t('quotations.status.converted')}
         </Badge>
       );
     case 'paid':
       return (
-        <Badge variant="outline" className="text-green-600 border-green-400 bg-green-50 dark:bg-green-900/20">
+        <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">
           {t('quotations.status.paid')}
         </Badge>
       );
     case 'expired':
       return (
-        <Badge variant="outline" className="text-orange-600 border-orange-400 bg-orange-50 dark:bg-orange-900/20">
+        <Badge variant="outline" className="text-amber-800 border-orange-400 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-700">
           {t('quotations.status.expired')}
         </Badge>
       );
     default:
       return (
-        <Badge variant="outline" className="text-gray-500 border-gray-400">
+        <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
           {status}
         </Badge>
       );
@@ -126,47 +126,47 @@ function getBookingStatusBadge(status: string, t: (key: string, options?: any) =
     switch (status) {
       case 'completed':
       case 'confirmed':
-        return <Badge variant="outline" className="text-green-500 border-green-400 bg-green-50 dark:bg-green-900/20">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`bookings.status.${status}`)}</Badge>;
       case 'assigned':
-        return <Badge variant="outline" className="text-blue-600 border-blue-400 bg-blue-50 dark:bg-blue-900/20">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700">{t(`bookings.status.${status}`)}</Badge>;
       case 'pending':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`bookings.status.${status}`)}</Badge>;
       case 'cancelled':
-        return <Badge variant="outline" className="text-red-500 border-red-400 bg-red-50 dark:bg-red-900/20">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`bookings.status.${status}`)}</Badge>;
       default:
-        return <Badge variant="outline" className="text-gray-500 border-gray-400">{t(`bookings.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`bookings.status.${status}`)}</Badge>;
     }
 }
 
 function getMaintenanceStatusBadge(status: string, t: (key: string, options?: any) => string) {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="text-green-500 border-green-400 bg-green-50 dark:bg-green-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`maintenance.status.${status}`)}</Badge>;
       case 'in_progress':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`maintenance.status.${status}`)}</Badge>;
       case 'scheduled':
       case 'pending':
-        return <Badge variant="outline" className="text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-amber-800 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">{t(`maintenance.status.${status}`)}</Badge>;
       case 'cancelled':
-        return <Badge variant="outline" className="text-red-500 border-red-400 bg-red-50 dark:bg-red-900/20">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`maintenance.status.${status}`)}</Badge>;
       default:
-        return <Badge variant="outline" className="text-gray-500 border-gray-400">{t(`maintenance.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`maintenance.status.${status}`)}</Badge>;
     }
 }
 
 function getInspectionStatusBadge(status: string, t: (key: string, options?: any) => string) {
     switch (status) {
       case 'completed':
-        return <Badge variant="outline" className="text-green-500 border-green-400 bg-green-50 dark:bg-green-900/20">{t(`inspections.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700">{t(`inspections.status.${status}`)}</Badge>;
       case 'inProgress':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20">{t(`inspections.status.inProgress`)}</Badge>;
+        return <Badge variant="outline" className="text-yellow-800 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">{t(`inspections.status.inProgress`)}</Badge>;
       case 'failed':
-        return <Badge variant="outline" className="text-red-500 border-red-400 bg-red-50 dark:bg-red-900/20">{t(`inspections.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700">{t(`inspections.status.${status}`)}</Badge>;
       case 'scheduled':
       case 'pending':
-        return <Badge variant="outline" className="text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20">{t(`inspections.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-amber-800 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-700">{t(`inspections.status.${status}`)}</Badge>;
       default:
-        return <Badge variant="outline" className="text-gray-500 border-gray-400">{t(`inspections.status.${status}`)}</Badge>;
+        return <Badge variant="outline" className="text-gray-800 border-gray-400 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">{t(`inspections.status.${status}`)}</Badge>;
     }
 }
 
@@ -924,7 +924,7 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
                 <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded w-fit">
                   MAINTENANCE
                 </span>
-                <h4 className="font-semibold text-sm text-white truncate">
+                <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {task.title}
                 </h4>
               </div>
@@ -979,7 +979,7 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
                 <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded w-fit">
                   INSPECTION
                 </span>
-                <h4 className="font-semibold text-sm text-white truncate">
+                <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {getFullTypeName(inspection.type)}
                 </h4>
               </div>
@@ -1021,7 +1021,7 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
                   BOOKING
                 </span>
-                <h4 className="font-semibold text-sm text-white truncate">
+                <h4 className="font-semibold text-sm text-muted-foreground truncate">
                   {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
                 </h4>
               </div>
@@ -1071,7 +1071,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             </div>
             
             {/* Quotation title */}
-            <h4 className="font-semibold text-sm text-white truncate mb-1">
+            <h4 className="font-semibold text-sm text-muted-foreground truncate mb-1">
               {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
             </h4>
             
@@ -1083,7 +1083,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             {/* Amount */}
             {quotation.total_amount && (
               <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-white">
+                <span className="text-xs font-medium text-muted-foreground">
                   {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
                 </span>
               </div>

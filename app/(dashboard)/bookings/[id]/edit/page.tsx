@@ -95,6 +95,7 @@ export default function EditBookingPage() {
     minLuggage: ''
   })
   const [serviceDataCache, setServiceDataCache] = useState<Record<string, any>>({})
+  const [originalServiceName, setOriginalServiceName] = useState<string>('')
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false)
   const [calculatedPrice, setCalculatedPrice] = useState({
     baseAmount: 0,
@@ -213,6 +214,9 @@ export default function EditBookingPage() {
           } else if (extractedServiceName.includes('Charter Services') || extractedServiceName.includes('Charter')) {
             extractedServiceName = 'Charter Services';
           }
+          
+          // Store the original service name for comparison
+          setOriginalServiceName(extractedServiceName);
           
           // Initialize form data with existing booking data
           const initialFormData = {
@@ -379,6 +383,24 @@ export default function EditBookingPage() {
   // Handle vehicle change with upgrade/downgrade detection
   const handleVehicleChange = (pricingData: any) => {
     console.log('Vehicle change detected:', pricingData);
+    console.log('Original service name:', originalServiceName);
+    console.log('Current service name:', formData.service_name);
+    
+    // Check if service type has changed from original quotation
+    const serviceTypeChanged = originalServiceName && formData.service_name && 
+      originalServiceName !== formData.service_name;
+    
+    if (serviceTypeChanged) {
+      console.log('🚫 Service type changed from original quotation, skipping upgrade/downgrade logic');
+      // Don't show upgrade/downgrade modal when service type has changed
+      // Just update the form data without upgrade/downgrade logic
+      setFormData(prev => ({
+        ...prev,
+        upgradeDowngradeData: null // Clear any existing upgrade/downgrade data
+      }));
+      return;
+    }
+    
     setUpgradeDowngradeData(pricingData);
     
     // Update form data with new pricing
@@ -794,6 +816,7 @@ export default function EditBookingPage() {
                       filteredVehicles={filteredVehicles}
                       getFilterOptions={getFilterOptions}
                       bookingId={id}
+                      originalServiceName={originalServiceName}
                       onVehicleChange={handleVehicleChange}
                     />
                   </TabsContent>

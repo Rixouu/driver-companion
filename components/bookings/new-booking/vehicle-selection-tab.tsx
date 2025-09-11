@@ -35,6 +35,7 @@ interface VehicleSelectionTabProps {
     brands: (string | undefined)[]
   }
   bookingId?: string
+  originalServiceName?: string
   onVehicleChange?: (pricingData: any) => void
 }
 
@@ -48,6 +49,7 @@ export function VehicleSelectionTab({
   filteredVehicles,
   getFilterOptions,
   bookingId,
+  originalServiceName,
   onVehicleChange
 }: VehicleSelectionTabProps) {
   
@@ -70,6 +72,16 @@ export function VehicleSelectionTab({
     
     // If this is an edit and we have a different vehicle, check for upgrade/downgrade
     if (bookingId && currentVehicleId && currentVehicleId !== newVehicleId) {
+      // Check if service type has changed from original quotation
+      const serviceTypeChanged = originalServiceName && formData.service_name && 
+        originalServiceName !== formData.service_name;
+      
+      if (serviceTypeChanged) {
+        console.log('🚫 Service type changed from original quotation, skipping upgrade/downgrade pricing API call');
+        console.log('Original service:', originalServiceName, 'Current service:', formData.service_name);
+        return; // Skip the upgrade/downgrade logic
+      }
+      
       console.log('🚗 Vehicle selection - calling pricing API with:', {
         currentVehicleId,
         newVehicleId,

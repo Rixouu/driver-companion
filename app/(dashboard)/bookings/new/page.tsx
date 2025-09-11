@@ -321,7 +321,74 @@ export default function NewBookingPage() {
   const handleSelectChange = (field: string, value: string) => {
     // Convert "none" to null for driver_id
     const processedValue = field === 'driver_id' && value === 'none' ? null : value
-    setFormData(prev => ({ ...prev, [field]: processedValue }))
+    
+    setFormData(prev => {
+      const newData = { ...prev, [field]: processedValue }
+      
+      // Handle service switching logic
+      if (field === 'service_name') {
+        console.log('🔄 Service changed from', prev.service_name, 'to', value)
+        const newService = value
+        
+        // Clear previous service-specific data
+        newData.duration_hours = undefined
+        newData.hours_per_day = undefined
+        newData.service_days = undefined
+        newData.selectedVehicle = undefined
+        newData.vehicle_id = undefined
+        
+        if (newService === 'Airport Transfer Haneda' || newService === 'Airport Transfer Narita') {
+          // Airport Transfer: Set fixed values, clear charter-specific data
+          newData.duration_hours = 1
+          newData.hours_per_day = 1
+          newData.service_days = 1
+          
+          // Force reset to ensure clean state
+          newData.duration_hours = 1
+          newData.hours_per_day = 1
+          newData.service_days = 1
+          
+          // Restore vehicle selection if available
+          const cachedData = serviceDataCache[newService];
+          if (cachedData?.selectedVehicle) {
+            newData.selectedVehicle = cachedData.selectedVehicle;
+            newData.vehicle_id = cachedData.selectedVehicle.id;
+          }
+        } else if (newService === 'Charter Services') {
+          // Charter Services: Restore cached data or set defaults
+          const cachedData = serviceDataCache[newService];
+          if (cachedData) {
+            newData.duration_hours = cachedData.duration_hours || 1
+            newData.hours_per_day = cachedData.hours_per_day || 1
+            newData.service_days = cachedData.service_days || 1
+            newData.selectedVehicle = cachedData.selectedVehicle
+            if (cachedData.selectedVehicle) {
+              newData.vehicle_id = cachedData.selectedVehicle.id
+            }
+          } else {
+            // Set default values for charter services
+            newData.duration_hours = 1
+            newData.hours_per_day = 1
+            newData.service_days = 1
+          }
+        }
+        
+        // Update cache for current service when service name changes
+        if (newData.service_name) {
+          setServiceDataCache(prevCache => ({
+            ...prevCache,
+            [newData.service_name as string]: {
+              duration_hours: newData.duration_hours,
+              hours_per_day: newData.hours_per_day,
+              service_days: newData.service_days,
+              selectedVehicle: newData.selectedVehicle
+            }
+          }));
+        }
+      }
+      
+      return newData
+    })
   }
 
   // Calculate route using Google Maps
@@ -363,7 +430,21 @@ export default function NewBookingPage() {
 
   // Calculate booking price
   const calculateBookingPrice = async () => {
-    if (!formData.service_name || !formData.vehicle_id) return
+    if (!formData.service_name || !formData.vehicle_id) {
+      console.log('🚫 Price calculation skipped - missing service_name or vehicle_id:', {
+        service_name: formData.service_name,
+        vehicle_id: formData.vehicle_id
+      })
+      return
+    }
+
+    console.log('💰 Calculating price for:', {
+      service_name: formData.service_name,
+      vehicle_id: formData.vehicle_id,
+      duration_hours: formData.duration_hours,
+      service_days: formData.service_days,
+      hours_per_day: formData.hours_per_day
+    })
 
     try {
       // Get duration hours for pricing lookup

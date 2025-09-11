@@ -924,7 +924,7 @@ function MaintenanceTaskCard({ task }: { task: DbMaintenanceTask }) {
                 <span className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded w-fit">
                   MAINTENANCE
                 </span>
-                <h4 className="font-semibold text-sm text-muted-foreground truncate">
+                <h4 className="font-semibold text-sm text-white truncate">
                   {task.title}
                 </h4>
               </div>
@@ -979,7 +979,7 @@ function InspectionCard({ inspection }: { inspection: DbInspection }) {
                 <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded w-fit">
                   INSPECTION
                 </span>
-                <h4 className="font-semibold text-sm text-muted-foreground truncate">
+                <h4 className="font-semibold text-sm text-white truncate">
                   {getFullTypeName(inspection.type)}
                 </h4>
               </div>
@@ -1021,7 +1021,7 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded w-fit">
                   BOOKING
                 </span>
-                <h4 className="font-semibold text-sm text-muted-foreground truncate">
+                <h4 className="font-semibold text-sm text-white truncate">
                   {booking.customer_name || t("bookings.unnamed", { defaultValue: "Unnamed Customer" })}
                 </h4>
               </div>
@@ -1071,7 +1071,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             </div>
             
             {/* Quotation title */}
-            <h4 className="font-semibold text-sm text-muted-foreground truncate mb-1">
+            <h4 className="font-semibold text-sm text-white truncate mb-1">
               {quotation.title || t('quotations.details.untitled', { defaultValue: 'Untitled' })}
             </h4>
             
@@ -1083,7 +1083,7 @@ function QuotationCard({ quotation }: { quotation: any }) {
             {/* Amount */}
             {quotation.total_amount && (
               <div className="flex items-center gap-1">
-                <span className="text-xs font-medium text-muted-foreground">
+                <span className="text-xs font-medium text-white">
                   {quotation.currency || 'JPY'} {Number(quotation.total_amount).toLocaleString()}
                 </span>
               </div>

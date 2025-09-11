@@ -712,11 +712,14 @@ export default function QuotationList({
             <div className="col-span-1">
               <span className="text-sm font-medium text-muted-foreground">ID</span>
             </div>
-            <div className="col-span-4">
+            <div className="col-span-3">
               <span className="text-sm font-medium text-muted-foreground">Customer</span>
             </div>
             <div className="col-span-2">
               <span className="text-sm font-medium text-muted-foreground">Date</span>
+            </div>
+            <div className="col-span-1">
+              <span className="text-sm font-medium text-muted-foreground">Reminder</span>
             </div>
             <div className="col-span-2">
               <span className="text-sm font-medium text-muted-foreground">Amount</span>
@@ -750,7 +753,7 @@ export default function QuotationList({
                 </div>
                 
                 {/* Customer Column - Name and Email */}
-                <div className="col-span-4 flex items-center gap-3">
+                <div className="col-span-3 flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
@@ -775,21 +778,26 @@ export default function QuotationList({
                   <div className="text-xs text-muted-foreground">
                     Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}
                   </div>
-                  {needsReminder(quotation) && (
-                    <div className="mt-1 flex items-center gap-2">
+                </div>
+                
+                {/* Reminder Column */}
+                <div className="col-span-1 flex items-center justify-center">
+                  {needsReminder(quotation) ? (
+                    <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Needs Reminder</span>
                       <button
                         onClick={(e) => { 
                           e.stopPropagation(); 
                           if (onRemind) handleRemindClick(e, quotation.id); 
                         }}
-                        className="ml-1 p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
+                        className="p-1 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-full transition-colors"
                         title="Send reminder"
                       >
-                        <BellIcon className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                        <BellIcon className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                       </button>
                     </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground">—</div>
                   )}
                 </div>
                 

@@ -88,7 +88,7 @@ export function ServiceCard({
       <div className={cn(
         "absolute top-0 left-0 h-full w-1",
         isPackage ? 'bg-purple-500' :
-        isCharter ? 'bg-blue-500' : 'bg-green-500'
+        isCharter ? 'bg-green-500' : 'bg-blue-500'
       )} />
       
       <CardContent className="p-3 sm:p-4">
@@ -103,8 +103,8 @@ export function ServiceCard({
                 } className={cn(
                   "text-xs",
                   isPackage && "bg-purple-100 text-purple-700 border-purple-200",
-                  isCharter && "bg-blue-100 text-blue-700 border-blue-200",
-                  isTransfer && "bg-green-100 text-green-700 border-green-200"
+                  isCharter && "bg-green-100 text-green-700 border-green-200",
+                  isTransfer && "bg-blue-100 text-blue-700 border-blue-200"
                 )}>
                   {isPackage ? 'Package' : isCharter ? 'Charter' : 'Transfer'}
                 </Badge>

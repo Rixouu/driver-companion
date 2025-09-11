@@ -127,6 +127,29 @@ export function RideSummary({
 
           <Separator />
 
+          {/* Passenger & Bag Information */}
+          {(formData.number_of_passengers || formData.number_of_bags) && (
+            <>
+              <div className="space-y-2">
+                {formData.number_of_passengers && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">👥</div>
+                    <span className="text-muted-foreground">Passengers:</span>
+                    <span>{formData.number_of_passengers}</span>
+                  </div>
+                )}
+                {formData.number_of_bags && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">🧳</div>
+                    <span className="text-muted-foreground">Bags:</span>
+                    <span>{formData.number_of_bags}</span>
+                  </div>
+                )}
+              </div>
+              <Separator />
+            </>
+          )}
+
           {/* Distance & Duration */}
           {(formData.distance || formData.duration) && (
             <>

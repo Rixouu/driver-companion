@@ -185,6 +185,18 @@ export function PreviewTab({
                 <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
                 <p className="text-sm">{formData.duration || 'Not calculated'}</p>
               </div>
+              {formData.number_of_passengers && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Passengers</Label>
+                  <p className="text-sm">{formData.number_of_passengers}</p>
+                </div>
+              )}
+              {formData.number_of_bags && (
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Bags</Label>
+                  <p className="text-sm">{formData.number_of_bags}</p>
+                </div>
+              )}
             </div>
           </div>
 

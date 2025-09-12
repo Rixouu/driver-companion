@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { SettingsTabsList } from "@/components/settings/settings-tabs-list"
+import { EnhancedGroupManagement } from "@/components/settings/enhanced-group-management"
+import { UserManagement } from "@/components/settings/user-management"
 import {
   Gauge,
   Truck,
@@ -29,6 +31,8 @@ import {
   ShieldCheck,
   Calendar,
   Plus,
+  Users,
+  Shield,
 } from "lucide-react"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -42,6 +46,7 @@ export default function SettingsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState(searchParams?.get('tab') || 'profile')
+  const [permissionsSubTab, setPermissionsSubTab] = useState('groups')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [menuSettings, setMenuSettings] = useState({
@@ -464,6 +469,57 @@ export default function SettingsPage() {
     </div>
   )
 
+  const renderPermissionsTab = () => (
+    <div className="space-y-6">
+      <div className="border-b border-border/40 pb-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {t('settings.permissions.title', { default: 'Permissions & Access Control' })}
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              {t('settings.permissions.description', { default: 'Manage user groups, permissions, and access control' })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-tabs for permissions */}
+      <div className="flex space-x-1 bg-muted/30 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setPermissionsSubTab('groups')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            permissionsSubTab === 'groups'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            {t('settings.permissions.groups', { default: 'Groups' })}
+          </div>
+        </button>
+        <button
+          onClick={() => setPermissionsSubTab('users')}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            permissionsSubTab === 'users'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            {t('settings.permissions.users', { default: 'Users' })}
+          </div>
+        </button>
+      </div>
+
+      {/* Sub-tab content */}
+      {permissionsSubTab === 'groups' && <EnhancedGroupManagement />}
+      {permissionsSubTab === 'users' && <UserManagement />}
+    </div>
+  )
+
   return (
     <div className="space-y-6">
       <div className="border-b border-border/40 pb-3">
@@ -491,6 +547,10 @@ export default function SettingsPage() {
           
           <TabsContent value="language">
             {renderLanguageTab()}
+          </TabsContent>
+          
+          <TabsContent value="permissions">
+            {renderPermissionsTab()}
           </TabsContent>
         </div>
       </Tabs>

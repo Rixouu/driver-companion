@@ -2620,7 +2620,8 @@ export const ja: TranslationValue = {
     tabs: {
       profile: "プロフィール",
       menu: "メニュー",
-      language: "言語"
+      language: "言語",
+      permissions: "権限"
     },
     profile: {
       title: "プロフィール",
@@ -2669,6 +2670,111 @@ export const ja: TranslationValue = {
       save: "変更を保存",
       customers: "顧客"
     },
+    permissions: {
+      title: "権限とアクセス制御",
+      description: "ユーザーグループ、権限、アクセス制御を管理します",
+      groups: "グループ",
+      users: "ユーザー",
+      categories: {
+        dashboard: "ダッシュボード",
+        bookings: "予約",
+        vehicles: "車両", 
+        drivers: "ドライバー",
+        inspections: "点検",
+        maintenance: "メンテナンス",
+        quotations: "見積",
+        customers: "顧客",
+        dispatch: "配車",
+        pricing: "価格設定",
+        reports: "レポート",
+        settings: "設定",
+        system: "システム管理"
+      }
+    },
+    groups: {
+      title: "グループ管理",
+      description: "ユーザーグループと権限を管理します",
+      create: "グループを作成",
+      edit: "グループを編集",
+      name: "グループ名",
+      namePlaceholder: "グループ名を入力",
+      descriptionLabel: "説明",
+      descriptionPlaceholder: "グループの説明を入力",
+      color: "色",
+      icon: "アイコン",
+      active: "アクティブ",
+      members: "メンバー",
+      permissions: "権限",
+      showPermissions: "権限を表示",
+      hidePermissions: "権限を非表示",
+      success: {
+        created: "グループが作成されました",
+        createdDescription: "ユーザーグループが正常に作成されました",
+        updated: "グループが更新されました",
+        updatedDescription: "ユーザーグループが正常に更新されました",
+        deleted: "グループが削除されました",
+        deletedDescription: "ユーザーグループが正常に削除されました"
+      },
+      error: {
+        loading: "グループの読み込みエラー",
+        loadingDescription: "ユーザーグループの読み込みに失敗しました",
+        creating: "グループ作成エラー",
+        creatingDescription: "ユーザーグループの作成に失敗しました",
+        updating: "グループ更新エラー",
+        updatingDescription: "ユーザーグループの更新に失敗しました",
+        deleting: "グループ削除エラー",
+        deletingDescription: "ユーザーグループの削除に失敗しました",
+        nameRequired: "名前が必要です",
+        nameRequiredDescription: "グループ名を入力してください"
+      },
+      confirm: {
+        delete: "このグループを削除してもよろしいですか？"
+      }
+    },
+    users: {
+      title: "ユーザー管理",
+      description: "ユーザーとそのグループメンバーシップを管理します",
+      create: "ユーザーを作成",
+      edit: "ユーザーを編集",
+      email: "メールアドレス",
+      emailPlaceholder: "メールアドレスを入力",
+      name: "名前",
+      namePlaceholder: "フルネームを入力",
+      teamLocation: "チーム所在地",
+      groups: "グループ",
+      active: "アクティブ",
+      user: "ユーザー",
+      status: "ステータス",
+      lastSignIn: "最終サインイン",
+      searchPlaceholder: "ユーザーを検索...",
+      success: {
+        created: "ユーザーが作成されました",
+        createdDescription: "ユーザーが正常に作成されました",
+        updated: "ユーザーが更新されました",
+        updatedDescription: "ユーザーが正常に更新されました",
+        deleted: "ユーザーが削除されました",
+        deletedDescription: "ユーザーが正常に削除されました",
+        statusUpdated: "ステータスが更新されました",
+        statusUpdatedDescription: "ユーザーステータスが正常に更新されました"
+      },
+      error: {
+        loading: "ユーザー読み込みエラー",
+        loadingDescription: "ユーザーの読み込みに失敗しました",
+        creating: "ユーザー作成エラー",
+        creatingDescription: "ユーザーの作成に失敗しました",
+        updating: "ユーザー更新エラー",
+        updatingDescription: "ユーザーの更新に失敗しました",
+        deleting: "ユーザー削除エラー",
+        deletingDescription: "ユーザーの削除に失敗しました",
+        updatingStatus: "ステータス更新エラー",
+        updatingStatusDescription: "ユーザーステータスの更新に失敗しました",
+        emailRequired: "メールアドレスが必要です",
+        emailRequiredDescription: "メールアドレスを入力してください"
+      },
+      confirm: {
+        delete: "このユーザーを削除してもよろしいですか？"
+      }
+    },
     templates: {
       title: "点検テンプレート",
       description: "点検フォームの構造（セクションと項目）を管理します。",
@@ -2714,13 +2820,6 @@ export const ja: TranslationValue = {
         test: "テスト点検テンプレート"
       }
     }
-  },
-  notifications: {
-    sendSuccess: "項目が正常に送信されました",
-    error: "エラーが発生しました",
-    createSuccess: "項目が正常に作成されました",
-    updateSuccess: "項目が正常に更新されました",
-    deleteSuccess: "項目が正常に削除されました"
   },
   system: {
     notifications: {
@@ -4377,7 +4476,6 @@ export const ja: TranslationValue = {
   },
   notifications: {
     title: "通知",
-    empty: "通知はありません",
     toggle: "通知を切り替え",
     delete: "削除",
     deleteSuccess: "通知を削除しました",

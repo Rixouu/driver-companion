@@ -2669,7 +2669,8 @@ export const en: TranslationValue = {
     tabs: {
       profile: "Profile",
       menu: "Menu",
-      language: "Language"
+      language: "Language",
+      permissions: "Permissions"
     },
     profile: {
       title: "Profile",
@@ -2718,6 +2719,111 @@ export const en: TranslationValue = {
       save: "Save Changes",
       customers: "Customers"
     },
+    permissions: {
+      title: "Permissions & Access Control",
+      description: "Manage user groups, permissions, and access control",
+      groups: "Groups",
+      users: "Users",
+      categories: {
+        dashboard: "Dashboard",
+        bookings: "Bookings",
+        vehicles: "Vehicles", 
+        drivers: "Drivers",
+        inspections: "Inspections",
+        maintenance: "Maintenance",
+        quotations: "Quotations",
+        customers: "Customers",
+        dispatch: "Dispatch",
+        pricing: "Pricing",
+        reports: "Reports",
+        settings: "Settings",
+        system: "System Administration"
+      }
+    },
+    groups: {
+      title: "Group Management",
+      description: "Manage user groups and permissions",
+      create: "Create Group",
+      edit: "Edit Group",
+      name: "Group Name",
+      namePlaceholder: "Enter group name",
+      descriptionLabel: "Description",
+      descriptionPlaceholder: "Enter group description",
+      color: "Color",
+      icon: "Icon",
+      active: "Active",
+      members: "members",
+      permissions: "Permissions",
+      showPermissions: "Show Permissions",
+      hidePermissions: "Hide Permissions",
+      success: {
+        created: "Group created",
+        createdDescription: "User group created successfully",
+        updated: "Group updated",
+        updatedDescription: "User group updated successfully",
+        deleted: "Group deleted",
+        deletedDescription: "User group deleted successfully"
+      },
+      error: {
+        loading: "Error loading groups",
+        loadingDescription: "Failed to load user groups",
+        creating: "Error creating group",
+        creatingDescription: "Failed to create user group",
+        updating: "Error updating group",
+        updatingDescription: "Failed to update user group",
+        deleting: "Error deleting group",
+        deletingDescription: "Failed to delete user group",
+        nameRequired: "Name required",
+        nameRequiredDescription: "Please enter a group name"
+      },
+      confirm: {
+        delete: "Are you sure you want to delete this group?"
+      }
+    },
+    users: {
+      title: "User Management",
+      description: "Manage users and their group memberships",
+      create: "Create User",
+      edit: "Edit User",
+      email: "Email",
+      emailPlaceholder: "Enter email address",
+      name: "Name",
+      namePlaceholder: "Enter full name",
+      teamLocation: "Team Location",
+      groups: "Groups",
+      active: "Active",
+      user: "User",
+      status: "Status",
+      lastSignIn: "Last Sign In",
+      searchPlaceholder: "Search users...",
+      success: {
+        created: "User created",
+        createdDescription: "User created successfully",
+        updated: "User updated",
+        updatedDescription: "User updated successfully",
+        deleted: "User deleted",
+        deletedDescription: "User deleted successfully",
+        statusUpdated: "Status updated",
+        statusUpdatedDescription: "User status updated successfully"
+      },
+      error: {
+        loading: "Error loading users",
+        loadingDescription: "Failed to load users",
+        creating: "Error creating user",
+        creatingDescription: "Failed to create user",
+        updating: "Error updating user",
+        updatingDescription: "Failed to update user",
+        deleting: "Error deleting user",
+        deletingDescription: "Failed to delete user",
+        updatingStatus: "Error updating status",
+        updatingStatusDescription: "Failed to update user status",
+        emailRequired: "Email required",
+        emailRequiredDescription: "Please enter an email address"
+      },
+      confirm: {
+        delete: "Are you sure you want to delete this user?"
+      }
+    },
     templates: {
       title: "Inspection Templates",
       description: "Manage the structure (sections and items) of your inspection forms.",
@@ -2763,13 +2869,6 @@ export const en: TranslationValue = {
         test: "Test inspection template"
       }
     }
-  },
-  notifications: {
-    sendSuccess: "Item sent successfully",
-    error: "An error occurred",
-    createSuccess: "Item created successfully",
-    updateSuccess: "Item updated successfully",
-    deleteSuccess: "Item deleted successfully"
   },
   system: {
     notifications: {
@@ -4488,7 +4587,6 @@ export const en: TranslationValue = {
   },
   notifications: {
     title: "Notifications",
-    empty: "No notifications",
     toggle: "Toggle notifications",
     delete: "Delete",
     deleteSuccess: "Notification deleted",

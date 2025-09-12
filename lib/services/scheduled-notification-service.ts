@@ -19,7 +19,7 @@ export class ScheduledNotificationService {
 
   /**
    * Check and send quotation expiry notifications
-   * Runs every hour via cron job
+   * Runs daily via Vercel cron job (Hobby plan limitation)
    */
   async processQuotationExpiryNotifications() {
     try {
@@ -133,7 +133,7 @@ export class ScheduledNotificationService {
 
   /**
    * Check and send booking reminder notifications
-   * Runs every hour via cron job
+   * Runs daily via Vercel cron job (Hobby plan limitation)
    */
   async processBookingReminderNotifications() {
     try {

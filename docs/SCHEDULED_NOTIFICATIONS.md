@@ -74,11 +74,18 @@ Add to `vercel.json`:
   "crons": [
     {
       "path": "/api/notifications/scheduled",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
 ```
+
+**⚠️ Important Vercel Plan Limitations:**
+- **Hobby Plan**: 2 cron jobs max, triggered **once per day only**
+- **Pro Plan**: 40 cron jobs max, unlimited invocations
+- **Enterprise Plan**: 100 cron jobs max, unlimited invocations
+- **Per Project Limit**: Maximum 20 cron jobs per project
+- **Timezone**: All cron jobs run in UTC
 
 #### **Option B: External Cron Service**
 Set up a cron job to call the API every hour:

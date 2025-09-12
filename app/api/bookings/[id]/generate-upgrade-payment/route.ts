@@ -269,7 +269,7 @@ export async function POST(
                               <strong>New Vehicle:</strong> ${newVehicleName}${newVehicleDetails}<br>
                               <strong>Additional Payment Required:</strong> <span style="color:#dc2626; font-weight:bold; font-size:18px;">JPY ${amount.toLocaleString()}</span><br>
                               <strong>Status:</strong> <span style="color:#dc2626; font-weight:600;">Payment Required</span><br>
-                              <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                              <strong>Date:</strong> ${new Date().toLocaleDateString('en-GB')}
                             </p>
                           </div>
                           
@@ -278,7 +278,7 @@ export async function POST(
                             <p style="margin:0 0 16px; color:#525f7f;">
                               <strong>Payment Method:</strong> Online Payment<br>
                               <strong>Payment Amount:</strong> JPY ${amount.toLocaleString()}<br>
-                              <strong>Payment Date:</strong> ${new Date().toLocaleDateString()}
+                              <strong>Payment Date:</strong> ${new Date().toLocaleDateString('en-GB')}
                             </p>
                             <p style="margin:0 0 16px; color:#525f7f;">
                               Please review the attached PDF file and proceed with payment.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { Resend } from 'resend'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -291,12 +292,7 @@ function generateBookingDetailsEmailHtml({
   calendarLink: string
 }) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    return formatDateDDMMYYYY(dateString)
   }
 
   const formatTime = (timeString: string) => {
@@ -530,12 +526,7 @@ function generateBookingDetailsEmailText({
   calendarLink: string
 }) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    return formatDateDDMMYYYY(dateString)
   }
 
   const formatTime = (timeString: string) => {

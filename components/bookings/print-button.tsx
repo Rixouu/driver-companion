@@ -2,6 +2,7 @@
 
 import { FileText } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 import { useState } from 'react'
 import { BookingButton } from './booking-button'
 import html2pdf from 'html2pdf.js'
@@ -80,8 +81,8 @@ export function PrintButton({ booking }: ExportPdfButtonProps) {
       
       const bookingDate = document.createElement('p')
       bookingDate.textContent = t('bookings.details.createdOn', { 
-        date: booking?.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' 
-      }) || `Created on: ${booking?.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'}`
+        date: booking?.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A' 
+      }) || `Created on: ${booking?.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A'}`
       bookingDate.style.color = '#64748b'
       bookingDate.style.margin = '5px 0'
       

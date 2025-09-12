@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service-client";
 import { Resend } from 'resend';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -197,7 +198,7 @@ export async function POST(
                               <strong>Previous Vehicle:</strong> ${previousVehicleName}${previousVehicleDetails}<br>
                               <strong>New Vehicle:</strong> ${newVehicleName}${newVehicleDetails}<br>
                               <strong>Refund Amount:</strong> <span style="color:#059669; font-weight:bold; font-size:18px;">JPY ${refundAmount.toLocaleString()}</span><br>
-                              <strong>Date:</strong> ${new Date().toLocaleDateString()}
+                              <strong>Date:</strong> ${formatDateDDMMYYYY(new Date())}
                             </p>
                           </div>
                           

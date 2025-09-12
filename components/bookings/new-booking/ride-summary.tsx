@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Booking } from '@/types/bookings'
 import { VehicleWithCategory } from '@/app/actions/services'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 
 interface RideSummaryProps {
   formData: Partial<Booking & { 
@@ -116,7 +117,7 @@ export function RideSummary({
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Date:</span>
-              <span>{formData.date ? new Date(formData.date).toLocaleDateString() : 'Not set'}</span>
+              <span>{formData.date ? formatDateDDMMYYYY(formData.date) : 'Not set'}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Timer className="h-4 w-4 text-muted-foreground" />

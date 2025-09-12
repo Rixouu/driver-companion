@@ -3,6 +3,7 @@ import chromium from '@sparticuz/chromium';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { generateFontCSS } from './base64-fonts';
 import { safeEncodeText } from '@/lib/utils/character-encoding';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { getTeamAddressHtml, getTeamFooterHtml } from '@/lib/team-addresses';
 
 // Helper function to ensure special characters are properly displayed
@@ -578,20 +579,20 @@ export function generateQuotationHtml(
             <p style="margin: 5px 0 0 0; font-size: 13px;">
               ${quotation.status === 'approved' ? 
                 (quotation.approved_at ? 
-                  `${isJapanese ? '承認日時:' : 'Approved on:'} ${new Date(quotation.approved_at).toLocaleDateString(localeCode)} ${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                  `${isJapanese ? '承認日時:' : 'Approved on:'} ${formatDateDDMMYYYY(quotation.approved_at)} ${new Date(quotation.approved_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                   `${isJapanese ? '承認日時:' : 'Approved on:'} ${quotationDate}`) :
                 quotation.status === 'paid' ?
                   (quotation.payment_date ? 
-                    `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${new Date(quotation.payment_date).toLocaleDateString(localeCode)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
+                    `${isJapanese ? '支払い完了日時:' : 'Paid on:'} ${formatDateDDMMYYYY(quotation.payment_date)} ${quotation.payment_completed_at ? new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' }) : ''}` :
                     quotation.payment_completed_at ? 
-                      `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                      `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${formatDateDDMMYYYY(quotation.payment_completed_at)} ${new Date(quotation.payment_completed_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                       `${isJapanese ? '支払い完了日時:' : 'Payment completed on:'} ${quotationDate}`) :
                 quotation.status === 'converted' ?
                   (quotation.updated_at ? 
-                    `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                    `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${formatDateDDMMYYYY(quotation.updated_at)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                     `${isJapanese ? '予約変換日時:' : 'Converted on:'} ${quotationDate}`) :
                 (quotation.rejected_at ?
-                  `${isJapanese ? '却下日時:' : 'Rejected on:'} ${new Date(quotation.rejected_at).toLocaleDateString(localeCode)} ${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
+                  `${isJapanese ? '却下日時:' : 'Rejected on:'} ${formatDateDDMMYYYY(quotation.rejected_at)} ${new Date(quotation.rejected_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}` :
                   `${isJapanese ? '却下日時:' : 'Rejected on:'} ${quotationDate}`)}
             </p>
           ` : `
@@ -668,7 +669,7 @@ export function generateQuotationHtml(
             ${quotation.payment_date ? `
               <div>
                 <strong style="color: #166534;">${isJapanese ? '支払い日:' : 'Payment Date:'}</strong>
-                <span style="color: #374151;"> ${new Date(quotation.payment_date).toLocaleDateString(localeCode)}</span>
+                <span style="color: #374151;"> ${formatDateDDMMYYYY(quotation.payment_date)}</span>
               </div>
             ` : ''}
             ${quotation.payment_completed_at ? `
@@ -736,7 +737,7 @@ export function generateQuotationHtml(
                       </div>
                       ${item.pickup_date ? `
                       <div style="font-size: 12px; color: #666;">
-                        ${quotationT.pickupDate} ${new Date(item.pickup_date).toLocaleDateString(language === 'ja' ? 'ja-JP' : 'en-US')}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
+                        ${quotationT.pickupDate} ${formatDateDDMMYYYY(item.pickup_date)}${item.pickup_time ? `, ${quotationT.pickupTime} ${item.pickup_time}` : ''}
                       </div>` : ''}` : ''
                     }
                     ${selectedPackage && isPackage ? `
@@ -890,20 +891,20 @@ export function generateQuotationHtml(
                     <span>
                       Date: ${quotation.status === 'approved' ? 
                         (quotation.approved_at ? 
-                          `${new Date(quotation.approved_at).toLocaleDateString(localeCode)}` :
+                          `${formatDateDDMMYYYY(quotation.approved_at)}` :
                           quotationDate) : 
                         quotation.status === 'paid' ?
                           (quotation.payment_date ? 
-                            `${new Date(quotation.payment_date).toLocaleDateString(localeCode)}` :
+                            `${formatDateDDMMYYYY(quotation.payment_date)}` :
                             quotation.payment_completed_at ? 
-                              `${new Date(quotation.payment_completed_at).toLocaleDateString(localeCode)}` :
+                              `${formatDateDDMMYYYY(quotation.payment_completed_at)}` :
                               quotationDate) :
                         quotation.status === 'converted' ?
                           (quotation.updated_at ? 
-                            `${new Date(quotation.updated_at).toLocaleDateString(localeCode)}` :
+                            `${formatDateDDMMYYYY(quotation.updated_at)}` :
                             quotationDate) :
                           (quotation.rejected_at ?
-                            `${new Date(quotation.rejected_at).toLocaleDateString(localeCode)}` :
+                            `${formatDateDDMMYYYY(quotation.rejected_at)}` :
                             quotationDate)}
                     </span>
                     <span>
@@ -961,7 +962,7 @@ export function generateQuotationHtml(
                     </p>
                     ${quotation.updated_at ? `
                     <p style="margin: 4px 0 0 0; font-size: 12px; color: #374151; line-height: 1.3;">
-                      <strong>Converted on:</strong> ${new Date(quotation.updated_at).toLocaleDateString(localeCode)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}
+                      <strong>Converted on:</strong> ${formatDateDDMMYYYY(quotation.updated_at)} ${new Date(quotation.updated_at).toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     ` : ''}
                   </div>

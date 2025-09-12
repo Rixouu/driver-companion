@@ -9,6 +9,7 @@ import { Globe, Clock, Timer, Package, Car } from 'lucide-react';
 import { QuotationItem } from '@/types/quotations';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 
 interface TimeBasedRule {
   id: string;
@@ -310,7 +311,7 @@ export function PriceDetails({
                             </span>
                           )}
                           {item.pickup_date && (
-                            <span><strong>Date:</strong> {format(new Date(item.pickup_date), 'MMM d, yyyy')}</span>
+                            <span><strong>Date:</strong> {formatDateDDMMYYYY(item.pickup_date)}</span>
                           )}
                           {item.pickup_time && (
                             <span><strong>Time:</strong> {item.pickup_time}</span>

@@ -2,6 +2,7 @@
 
 import { FileText, Mail } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 import { useState } from 'react'
 import { BookingButton } from './booking-button'
 // Remove html2pdf import to prevent SSR issues
@@ -191,7 +192,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       
       const today = new Date()
       const invoiceDate = document.createElement('p')
-      invoiceDate.textContent = `${invoiceT.invoiceDate} ${today.toLocaleDateString(invoiceLanguage === 'ja' ? 'ja-JP' : 'en-US')}`
+      invoiceDate.textContent = `${invoiceT.invoiceDate} ${formatDateDDMMYYYY(today)}`
       invoiceDate.style.margin = '0 0 5px 0'
       invoiceDate.style.fontSize = '13px'
       
@@ -204,7 +205,7 @@ export function InvoiceButton({ booking }: InvoiceButtonProps) {
       // Due date is 15 days from today
       const due = new Date(today)
       due.setDate(due.getDate() + 15)
-      dueDate.textContent = `${invoiceT.dueDate} ${due.toLocaleDateString(invoiceLanguage === 'ja' ? 'ja-JP' : 'en-US')}`
+      dueDate.textContent = `${invoiceT.dueDate} ${formatDateDDMMYYYY(due)}`
       dueDate.style.margin = '0'
       dueDate.style.fontWeight = 'normal'
       dueDate.style.fontSize = '13px'

@@ -13,6 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import { format, parseISO, differenceInDays, isAfter, addDays } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { QuotationStatus } from '@/types/quotations';
 import { useI18n } from '@/lib/i18n/context';
 
@@ -191,7 +192,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
             </div>
             <div className="text-xs text-muted-foreground mt-1">
               <Calendar className="h-3 w-3 inline mr-1" />
-              Valid until {format(properExpiryDate, 'MMM d, yyyy')} at {format(properExpiryDate, 'h:mm a')}
+              Valid until {formatDateDDMMYYYY(properExpiryDate)} at {format(properExpiryDate, 'h:mm a')}
             </div>
           </div>
         )}
@@ -201,7 +202,7 @@ export function QuotationInfoCard({ quotation, onRefresh }: QuotationInfoCardPro
           <div className="p-3 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-3 w-3" />
-              <span>Created {format(createdDate, 'MMM d, yyyy')}</span>
+              <span>Created {formatDateDDMMYYYY(createdDate)}</span>
             </div>
           </div>
         )}

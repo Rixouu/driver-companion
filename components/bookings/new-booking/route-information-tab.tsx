@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { GooglePlaceAutocomplete } from '@/components/bookings/google-place-autocomplete'
+import { FlightSearch } from '@/components/bookings/flight-search'
 import { MapPin, Route, Timer, Loader2, ExternalLink } from 'lucide-react'
 import { Booking } from '@/types/bookings'
+import { FlightSearchResult } from '@/types/aviation'
 
 interface RouteInformationTabProps {
   formData: Partial<Booking>
@@ -107,21 +109,43 @@ export function RouteInformationTab({
             </div>
             
             {/* Flight Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="flight_number">Flight Number</Label>
-                <Input
-                  id="flight_number"
-                  name="flight_number"
+            <div className="space-y-4">
+              <div>
+                <FlightSearch
                   value={formData.flight_number || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., JL123"
-                  className="transition-all focus:ring-2 focus:border-primary"
+                  onSelect={(flight: FlightSearchResult | null) => {
+                    if (flight) {
+                      setFormData(prev => ({
+                        ...prev,
+                        flight_number: flight.flightNumber,
+                        terminal: flight.arrival.terminal || ''
+                      }))
+                    } else {
+                      setFormData(prev => ({
+                        ...prev,
+                        flight_number: '',
+                        terminal: ''
+                      }))
+                    }
+                  }}
+                  onFlightSelect={(flight: FlightSearchResult) => {
+                    // Auto-populate pickup date and time based on flight arrival
+                    setFormData(prev => ({
+                      ...prev,
+                      flight_number: flight.flightNumber,
+                      terminal: flight.arrival.terminal || '',
+                      date: flight.pickupDate || prev.date,
+                      time: flight.pickupTime || prev.time
+                    }))
+                  }}
+                  placeholder="Search for flights (e.g., JL123, TG456)"
+                  label="Flight Search"
                 />
               </div>
               
+              {/* Manual Terminal Input (as fallback) */}
               <div className="space-y-2">
-                <Label htmlFor="terminal">Terminal</Label>
+                <Label htmlFor="terminal">Terminal (if not auto-filled)</Label>
                 <Input
                   id="terminal"
                   name="terminal"

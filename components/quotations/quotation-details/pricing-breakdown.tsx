@@ -14,6 +14,7 @@ import {
   Car
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n/context';
 import { QuotationItem, PricingPackage, PricingPromotion } from '@/types/quotations';
@@ -162,7 +163,7 @@ export function PricingBreakdown({
                         : `${item.duration_hours || 1} ${t('quotations.details.hours')}`}
                     </span></div>
                                          {item.pickup_date && (
-                       <div><span className="font-medium">{t('quotations.details.date')}:</span> <span className="ml-2">{format(new Date(item.pickup_date), 'MMM d, yyyy')}</span></div>
+                       <div><span className="font-medium">{t('quotations.details.date')}:</span> <span className="ml-2">{formatDateDDMMYYYY(item.pickup_date)}</span></div>
                      )}
                      {item.pickup_time && (
                        <div><span className="font-medium">{t('quotations.details.time')}:</span> <span className="ml-2">{item.pickup_time}</span></div>

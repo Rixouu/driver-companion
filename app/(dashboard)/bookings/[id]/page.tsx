@@ -21,6 +21,7 @@ import { Calendar, Clock, CreditCard, Edit, FileText, Link as LinkIcon, MapPin, 
 import Image from 'next/image';
 import { toast } from '@/components/ui/use-toast';
 import { Booking } from '@/types/bookings';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { BookingShareButtons } from '@/components/bookings/booking-share-buttons';
 import { WeatherForecast } from '@/components/bookings/weather-forecast';
 import { GoogleMapsProvider } from '@/components/providers/google-maps-provider';
@@ -672,7 +673,7 @@ export default function BookingDetailsPage() {
                     </h1>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                       <p className="text-muted-foreground">
-                        Created on: {booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'}
+                        Created on: {booking.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A'}
                         {booking.creator && (
                           <span className="ml-2">
                             • Created by: {booking.creator.full_name || 'Unknown User'}
@@ -802,7 +803,7 @@ export default function BookingDetailsPage() {
                         <div className="p-3 bg-muted/30 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">Pickup Date & Time</div>
                           <div className="font-medium text-foreground">
-                            {booking.date && booking.time ? `${new Date(booking.date).toLocaleDateString()} at ${booking.time}` : 'Not provided'}
+                            {booking.date && booking.time ? `${formatDateDDMMYYYY(booking.date)} at ${booking.time}` : 'Not provided'}
                           </div>
                         </div>
                         

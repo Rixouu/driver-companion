@@ -21,6 +21,7 @@ import { PricingPackage, PricingPromotion, Quotation, QuotationItem } from '@/ty
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { safeEncodeText } from '@/lib/utils/character-encoding';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 
 // Client-side HTML generator (simplified version without Puppeteer dependencies)
 function generateClientQuotationHtml(
@@ -55,7 +56,7 @@ function generateClientQuotationHtml(
   });
   
   const creationDate = quotation?.created_at ? new Date(quotation.created_at) : new Date();
-  const quotationDate = dateFormat.format(creationDate);
+  const quotationDate = formatDateDDMMYYYY(creationDate);
   const formattedQuotationId = `QUO-JPDR-${quotation?.quote_number?.toString().padStart(6, '0') || 'N/A'}`;
   
   const formatCurrency = (value: number): string => {

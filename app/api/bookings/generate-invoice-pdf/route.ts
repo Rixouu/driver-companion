@@ -5,6 +5,7 @@ import { generateOptimizedPdfFromHtml } from "@/lib/optimized-html-pdf-generator
 import { getTeamAddressHtml, getTeamFooterHtml } from "@/lib/team-addresses";
 import { Resend } from "resend";
 import { OmiseClient } from "@/lib/omise-client";
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -323,7 +324,7 @@ async function generateBookingInvoiceHtml(
   }
   
   const formattedInvoiceId = `INV-${bookingNumber}`;
-  const invoiceDate = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const invoiceDate = formatDateDDMMYYYY(new Date());
 
   return `
     <div style="font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif; color: #111827; box-sizing: border-box; width: 100%; margin: 0; padding: 10px 0 0; border-top: 2px solid #FF2600;">
@@ -982,7 +983,7 @@ export async function POST(request: NextRequest) {
                               ${newVehicleInfo ? `<strong>${isJapanese ? '新しい車両' : 'New Vehicle'}:</strong> ${newVehicleInfo.name}${newVehicleInfo.brand && newVehicleInfo.model ? ` (${newVehicleInfo.brand} ${newVehicleInfo.model})` : ''}<br>` : ''}
                               ${payment_amount ? `<strong>${isJapanese ? '追加支払いが必要' : 'Additional Payment Required'}:</strong> <span style="color:#dc2626; font-weight:bold; font-size:18px;">JPY ${payment_amount.toLocaleString()}</span><br>` : ''}
                               <strong>${isJapanese ? 'ステータス' : 'Status'}:</strong> <span style="color:#dc2626; font-weight:600;">${isJapanese ? '見積書送信済み' : 'Quote Sent'}</span><br>
-                              <strong>${isJapanese ? '日付' : 'Date'}:</strong> ${new Date().toLocaleDateString()}
+                              <strong>${isJapanese ? '日付' : 'Date'}:</strong> ${formatDateDDMMYYYY(new Date())}
                             </p>
                           </div>
                           
@@ -991,7 +992,7 @@ export async function POST(request: NextRequest) {
                             <p style="margin:0 0 16px; color:#525f7f;">
                               <strong>${isJapanese ? '支払い方法' : 'Payment Method'}:</strong> ${isJapanese ? 'オンライン支払い' : 'Online Payment'}<br>
                               <strong>${isJapanese ? '支払い金額' : 'Payment Amount'}:</strong> JPY ${payment_amount ? payment_amount.toLocaleString() : '0'}<br>
-                              <strong>${isJapanese ? '支払い日' : 'Payment Date'}:</strong> ${new Date().toLocaleDateString()}
+                              <strong>${isJapanese ? '支払い日' : 'Payment Date'}:</strong> ${formatDateDDMMYYYY(new Date())}
                             </p>
                             <p style="margin:0 0 16px; color:#525f7f;">
                               ${isJapanese 

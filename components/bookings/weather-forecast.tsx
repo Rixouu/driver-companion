@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { CloudSun, Loader2 } from 'lucide-react'
 import Image from 'next/image'
-import { formatDate } from '@/lib/utils/formatting'
+import { formatDate, formatDateDDMMYYYY } from '@/lib/utils/formatting'
 import { useI18n } from '@/lib/i18n/context'
 
 interface WeatherForecastProps {
@@ -103,7 +103,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
         // Skip fetching if the date is in the past or beyond the free forecast range
         if (daysDifference < 0 || daysDifference > FORECAST_RANGE_DAYS) {
           setLoading(false)
-          setError(t('bookings.details.weather.notAvailable', { date: tripDate.toLocaleDateString() }))
+          setError(t('bookings.details.weather.notAvailable', { date: formatDateDDMMYYYY(tripDate) }))
           return
         }
         
@@ -131,7 +131,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           if (!response.ok) {
             if (response.status === 400) {
               console.error('Weather API 400 error - failed to parse location: ', locationQuery)
-              setError(t('bookings.details.weather.notAvailable', { date: tripDate.toLocaleDateString() }))
+              setError(t('bookings.details.weather.notAvailable', { date: formatDateDDMMYYYY(tripDate) }))
             } else if (response.status === 403) {
               console.error('Weather API authentication error')
               setError(t('bookings.details.weather.errorMessage'))
@@ -188,7 +188,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
       <div className={`p-4 text-sm text-muted-foreground ${className}`}>
         <p className="flex items-center">
           <CloudSun className="h-4 w-4 mr-2 text-muted-foreground" />
-          {t('bookings.details.weather.notAvailable', { date: date ? new Date(date).toLocaleDateString() : 'selected date' })}
+          {t('bookings.details.weather.notAvailable', { date: date ? formatDateDDMMYYYY(date) : 'selected date' })}
         </p>
         {error && <p className="mt-1 text-xs">{t('bookings.details.weather.errorMessage')}</p>}
       </div>
@@ -223,7 +223,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
           </div>
           
           <div className="text-right">
-            <p className="font-medium">{new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            <p className="font-medium">{formatDateDDMMYYYY(date)}</p>
             <p className="text-sm text-muted-foreground">
               {location.split(',')[0] || 'Location'}, {location.split(',').pop()?.trim() || 'Region'}
             </p>
@@ -232,7 +232,7 @@ export function WeatherForecast({ date, location, className = '' }: WeatherForec
       ) : (
         <div className="p-4 border rounded-md bg-muted/20">
           <p className="text-center text-muted-foreground">
-            {t('bookings.details.weather.forecastUnavailable', { date: new Date(date).toLocaleDateString() })}
+            {t('bookings.details.weather.forecastUnavailable', { date: formatDateDDMMYYYY(date) })}
           </p>
         </div>
       )}

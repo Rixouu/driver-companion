@@ -10,6 +10,7 @@ import {
 import { Booking } from '@/types/bookings'
 import { VehicleWithCategory } from '@/app/actions/services'
 import { useDrivers } from '@/lib/hooks/use-drivers'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 
 interface PreviewTabProps {
   formData: Partial<Booking & { 
@@ -90,7 +91,7 @@ export function PreviewTab({
                 <Label className="text-sm font-medium text-muted-foreground">Date & Time</Label>
                 <p className="text-sm">
                   {formData.date && formData.time 
-                    ? `${new Date(formData.date).toLocaleDateString()} at ${formData.time}`
+                    ? `${formatDateDDMMYYYY(formData.date)} at ${formData.time}`
                     : 'Not provided'
                   }
                 </p>

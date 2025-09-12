@@ -150,7 +150,7 @@ function generateEmailHtml(language: string, customerName: string, formattedBook
                         <strong>${isJapanese ? 'サービス:' : 'Service:'}</strong> ${booking.service_name || (isJapanese ? '空港送迎' : 'Airport Transfer')}<br>
                          <strong>${isJapanese ? '合計金額:' : 'Total Amount:'}</strong> ${booking.price?.currency || booking.price_currency || 'JPY'} ${(booking.price?.amount || booking.price_amount || 0).toLocaleString()}<br>
                         <strong>${isJapanese ? 'ステータス:' : 'Status:'}</strong> <span style="color:#059669; font-weight:600;">${isJapanese ? '支払い完了' : 'Payment Complete'}</span><br>
-                        <strong>${isJapanese ? '日付:' : 'Date:'}</strong> ${new Date().toLocaleDateString()}
+                        <strong>${isJapanese ? '日付:' : 'Date:'}</strong> ${new Date().toLocaleDateString('en-GB')}
                       </p>
                     </div>
                     
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
     const paymentDetails = {
       amount: booking.meta?.payment_amount || booking.price?.amount,
       method: booking.meta?.payment_method || 'Online Payment',
-      date: booking.meta?.payment_completed_at ? new Date(booking.meta.payment_completed_at).toLocaleDateString() : new Date().toLocaleDateString()
+      date: booking.meta?.payment_completed_at ? new Date(booking.meta.payment_completed_at).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')
     };
 
     // Generate email content

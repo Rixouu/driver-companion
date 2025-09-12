@@ -632,7 +632,7 @@ function DispatchDetailsPanel({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const formattedDate = format(parseISO(booking.date), "MMM d, yyyy");
+  const formattedDate = format(parseISO(booking.date), "d MMM yyyy");
 
   return (
     <div className="space-y-6">

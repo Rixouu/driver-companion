@@ -35,6 +35,7 @@ import {
   Download
 } from 'lucide-react';
 import { format, parseISO, addDays, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { Booking } from '@/types/bookings';
 import { toast } from '@/components/ui/use-toast';
 import { updateBookingAction } from '@/app/actions/bookings';
@@ -316,7 +317,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
         if (payment.isPaid) {
           toast({
             title: "Payment Confirmed",
-            description: `Payment of ${payment.currency} ${(payment.amount / 100).toLocaleString()} completed on ${new Date(payment.paidAt).toLocaleDateString()}`,
+            description: `Payment of ${payment.currency} ${(payment.amount / 100).toLocaleString()} completed on ${formatDateDDMMYYYY(payment.paidAt)}`,
             variant: "default",
           });
           
@@ -799,7 +800,7 @@ export const BookingWorkflow = React.forwardRef<{ openMarkAsPaidDialog: () => vo
                           Receipt #{receiptInfo.receiptId} - {receiptInfo.currency} {(receiptInfo.total / 100).toLocaleString()}
                         </p>
                         <p className="text-xs text-green-500 dark:text-green-400">
-                          Issued: {new Date(receiptInfo.issuedOn).toLocaleDateString()}
+                          Issued: {formatDateDDMMYYYY(receiptInfo.issuedOn)}
                         </p>
                       </div>
                       <Button

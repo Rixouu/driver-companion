@@ -352,7 +352,7 @@ function generateSimpleInvoiceEmailHtml({
   paymentStatus: string
 }) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -549,7 +549,7 @@ function generateSimpleInvoiceEmailText({
   paymentStatus: string
 }) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

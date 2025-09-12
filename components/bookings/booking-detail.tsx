@@ -1,6 +1,6 @@
 import { Suspense, useState } from 'react'
 import { Mail } from 'lucide-react'
-import { formatDate } from '@/lib/utils/formatting'
+import { formatDate, formatDateDDMMYYYY } from '@/lib/utils/formatting'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -108,7 +108,7 @@ export function BookingDetail({ booking }: BookingDetailProps) {
                 </div>
                 <div className="sm:col-span-1">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('bookings.details.fields.pickupDate')}</dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatDate(booking.date)}</dd>
+                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatDateDDMMYYYY(booking.date)}</dd>
                 </div>
                 <div className="sm:col-span-1">
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('bookings.details.fields.pickupTime')}</dt>

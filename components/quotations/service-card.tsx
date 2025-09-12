@@ -103,8 +103,8 @@ export function ServiceCard({
                 } className={cn(
                   "text-xs",
                   isPackage && "bg-purple-100 text-purple-700 border-purple-200",
-                  isCharter && "bg-green-100 text-green-700 border-green-200",
-                  isTransfer && "bg-blue-100 text-blue-700 border-blue-200"
+                  isCharter && "bg-blue-100 text-blue-700 border-blue-200",
+                  isTransfer && "bg-green-100 text-green-700 border-green-200"
                 )}>
                   {isPackage ? 'Package' : isCharter ? 'Charter' : 'Transfer'}
                 </Badge>

@@ -12,6 +12,7 @@ import { GoogleMapsProvider } from '@/components/providers/google-maps-provider'
 import { WeatherForecast } from '@/components/bookings/weather-forecast'
 import { useI18n } from '@/lib/i18n/context'
 import { Booking } from '@/types/bookings'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
 import { PageHeader } from '@/components/ui/page-header'
 import { BookingInspections } from "@/components/bookings/booking-inspections"
 import { useState, useEffect, useCallback } from 'react'
@@ -205,7 +206,7 @@ export default function BookingDetailsContent({
         <div>
           <h1 className="text-3xl font-bold">{t('bookings.details.bookingNumber', { id: booking.id || booking.booking_id })}</h1>
           <p className="text-muted-foreground">
-            {t('bookings.details.createdOn', { date: booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A' })}
+            {t('bookings.details.createdOn', { date: booking.created_at ? formatDateDDMMYYYY(booking.created_at) : 'N/A' })}
           </p>
         </div>
         
@@ -275,7 +276,7 @@ export default function BookingDetailsContent({
                   <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.pickupDate')}</h3>
                   <p className="mt-1 flex items-center">
                     <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
-                    {booking.date ? new Date(booking.date).toLocaleDateString() : 'Not specified'}
+                    {booking.date ? formatDateDDMMYYYY(booking.date) : 'Not specified'}
                   </p>
                 </div>
                 

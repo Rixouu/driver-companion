@@ -97,6 +97,10 @@ export interface Booking {
   duration_hours?: number
   service_days?: number
   
+  // Passenger and luggage information
+  number_of_passengers?: number
+  number_of_bags?: number
+  
   // Flight information (stored in meta)
   flight_number?: string
   terminal?: string

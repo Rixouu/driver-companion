@@ -116,6 +116,8 @@ export type Database = {
           vehicle_id: string | null
           vehicle_make: string | null
           vehicle_model: string | null
+          number_of_passengers: number | null
+          number_of_bags: number | null
           vehicle_year: string | null
           wp_id: string
           wp_meta: Json | null

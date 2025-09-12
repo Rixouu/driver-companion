@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format, parseISO, addDays, isAfter } from 'date-fns';
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting';
 import { Quotation, QuotationStatus } from '@/types/quotations';
 import { 
   CalendarIcon, 
@@ -773,10 +774,10 @@ export default function QuotationList({
                 {/* Date Column */}
                 <div className="col-span-2 space-y-1 flex flex-col items-start justify-start">
                   <div className="text-sm text-foreground">
-                    {quotation.created_at && format(parseISO(quotation.created_at), 'MMM d, yyyy')}
+                    {quotation.created_at && formatDateDDMMYYYY(quotation.created_at)}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Expires: {getExpiryDate(quotation) ? format(getExpiryDate(quotation)!, 'MMM d, yyyy') : '—'}
+                    Expires: {getExpiryDate(quotation) ? formatDateDDMMYYYY(getExpiryDate(quotation)!) : '—'}
                   </div>
                 </div>
                 

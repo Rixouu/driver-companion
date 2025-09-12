@@ -4497,7 +4497,9 @@ export const ja: TranslationValue = {
       created: "新しい予約が作成されました",
       confirmed: "予約が確定しました",
       cancelled: "予約がキャンセルされました",
-      completed: "予約が完了しました"
+      completed: "予約が完了しました",
+      reminder_24h: "予約リマインダー - 24時間前",
+      reminder_2h: "予約開始間近 - 2時間前"
     },
     quotation: {
       created: "新しい見積もりが作成されました",
@@ -4505,6 +4507,8 @@ export const ja: TranslationValue = {
       approved: "見積もりが顧客に承認されました",
       rejected: "見積もりが顧客に拒否されました",
       expired: "見積もりが期限切れになりました",
+      expiring_24h: "見積もり期限間近 - 24時間前",
+      expiring_2h: "緊急：見積もり期限間近 - 2時間前",
       converted: "見積もりが予約に変換されました"
     },
     payment: {

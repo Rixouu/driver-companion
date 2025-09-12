@@ -29,8 +29,8 @@
   },
   "crons": [
     {
-      "path": "/api/bookings/sync?key=${API_SYNC_SECRET_KEY}",
-      "schedule": "0 0 * * *"
+      "path": "/api/notifications/scheduled",
+      "schedule": "0 * * * *"
     }
   ]
 } 

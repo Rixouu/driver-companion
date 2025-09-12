@@ -4608,7 +4608,9 @@ export const en: TranslationValue = {
       created: "New booking created",
       confirmed: "Booking confirmed",
       cancelled: "Booking cancelled",
-      completed: "Booking completed"
+      completed: "Booking completed",
+      reminder_24h: "Booking reminder - 24 hours",
+      reminder_2h: "Booking starting soon - 2 hours"
     },
     quotation: {
       created: "New quotation created",
@@ -4616,6 +4618,8 @@ export const en: TranslationValue = {
       approved: "Quotation approved by customer",
       rejected: "Quotation rejected by customer",
       expired: "Quotation expired",
+      expiring_24h: "Quotation expiring soon - 24 hours",
+      expiring_2h: "Urgent: Quotation expiring in 2 hours",
       converted: "Quotation converted to booking"
     },
     payment: {

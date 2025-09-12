@@ -37,6 +37,16 @@ const notificationTemplates: Record<NotificationType, (data: any) => Notificatio
     message: `Booking ${data.bookingId || data.id?.slice(-8)} has been completed successfully.`
   }),
 
+  booking_reminder_24h: (data) => ({
+    title: 'Booking Reminder - 24 Hours',
+    message: `Reminder: Booking ${data.bookingId || data.id?.slice(-8)} starts tomorrow at ${data.time || 'scheduled time'}.`
+  }),
+
+  booking_reminder_2h: (data) => ({
+    title: 'Urgent: Booking Starting Soon',
+    message: `Urgent reminder: Booking ${data.bookingId || data.id?.slice(-8)} starts in 2 hours at ${data.time || 'scheduled time'}.`
+  }),
+
   // Quotation notifications
   quotation_created: (data) => ({
     title: 'New Quotation Created',
@@ -61,6 +71,16 @@ const notificationTemplates: Record<NotificationType, (data: any) => Notificatio
   quotation_expired: (data) => ({
     title: 'Quotation Expired',
     message: `Quotation #${data.quoteNumber || data.id?.slice(-8)} has expired and is no longer valid.`
+  }),
+
+  quotation_expiring_24h: (data) => ({
+    title: 'Quotation Expiring Soon - 24 Hours',
+    message: `Reminder: Quotation #${data.quoteNumber || data.id?.slice(-8)} expires tomorrow. Please follow up with customer.`
+  }),
+
+  quotation_expiring_2h: (data) => ({
+    title: 'Urgent: Quotation Expiring in 2 Hours',
+    message: `Urgent: Quotation #${data.quoteNumber || data.id?.slice(-8)} expires in 2 hours. Immediate action required.`
   }),
   
   quotation_converted: (data) => ({

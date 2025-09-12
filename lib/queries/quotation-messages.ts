@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/index';
 import { QuotationMessage } from '@/types/quotations';
 
 export async function getQuotationMessages(quotationId: string): Promise<QuotationMessage[]> {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('quotation_messages')
     .select(`
@@ -41,6 +42,7 @@ export async function sendQuotationMessage(
   message: string,
   isFromCustomer: boolean = false
 ): Promise<QuotationMessage | null> {
+  const supabase = createClient();
   // Insert the message
   const { data, error } = await supabase
     .from('quotation_messages')
@@ -94,6 +96,7 @@ export async function markMessagesAsRead(
   quotationId: string,
   userId: string
 ): Promise<void> {
+  const supabase = createClient();
   const { error } = await supabase
     .from('quotation_messages')
     .update({ is_read: true })

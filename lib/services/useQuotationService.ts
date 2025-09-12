@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/index";
 import { 
   CreateQuotationInput, 
   QuotationResponse, 
@@ -109,6 +109,7 @@ export const useQuotationService = () => {
       
       // Insert the record
       try {
+        const supabase = createClient();
         const { data, error } = await supabase
           .from("quotations")
           .insert(quotationData)

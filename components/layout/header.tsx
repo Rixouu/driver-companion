@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { ArrowLeft } from "lucide-react"
 
 import { useRouter } from "next/navigation"
@@ -146,11 +147,17 @@ export function Header() {
                 <div className="flex md:hidden items-center gap-2">
                   <LanguageSwitcher />
                   <ThemeToggle />
-                  {user && <UserNav user={user} />}
+                  {user && (
+                    <>
+                      <NotificationBell />
+                      <UserNav user={user} />
+                    </>
+                  )}
                 </div>
                 
                 {/* Desktop User Nav */}
-                <div className="hidden md:flex">
+                <div className="hidden md:flex items-center gap-2">
+                  {user && <NotificationBell />}
                   {user && <UserNav user={user} />}
                 </div>
               </>

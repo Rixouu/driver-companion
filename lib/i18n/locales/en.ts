@@ -4485,6 +4485,56 @@ export const en: TranslationValue = {
     japanDescription: "Tokyo Office",
     selectTeam: "Select Team",
     current: "Current"
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "No notifications",
+    toggle: "Toggle notifications",
+    delete: "Delete",
+    deleteSuccess: "Notification deleted",
+    deleteError: "Failed to delete notification",
+    markAllAsRead: "Mark all as read",
+    markAsRead: "Mark as read",
+    markAsReadSuccess: "Notification marked as read",
+    markAsReadError: "Failed to mark notification as read",
+    unread: "unread",
+    loading: "Loading notifications...",
+    error: "Failed to load notifications",
+    total: "{{count}} total notifications",
+    view: "View",
+    empty: {
+      title: "No notifications",
+      description: "You're all caught up!"
+    },
+    booking: {
+      created: "New booking created",
+      confirmed: "Booking confirmed",
+      cancelled: "Booking cancelled",
+      completed: "Booking completed"
+    },
+    quotation: {
+      created: "New quotation created",
+      sent: "Quotation sent to customer",
+      approved: "Quotation approved by customer",
+      rejected: "Quotation rejected by customer",
+      expired: "Quotation expired",
+      converted: "Quotation converted to booking"
+    },
+    payment: {
+      received: "Payment received",
+      failed: "Payment failed"
+    },
+    dispatch: {
+      assigned: "Dispatch assignment created",
+      completed: "Dispatch completed"
+    },
+    maintenance: {
+      due: "Maintenance due"
+    },
+    inspection: {
+      due: "Inspection due",
+      completed: "Inspection completed"
+    }
   }
 }
 

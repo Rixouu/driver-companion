@@ -4374,6 +4374,56 @@ export const ja: TranslationValue = {
     japanDescription: "東京オフィス",
     selectTeam: "チームを選択",
     current: "現在"
+  },
+  notifications: {
+    title: "通知",
+    empty: "通知はありません",
+    toggle: "通知を切り替え",
+    delete: "削除",
+    deleteSuccess: "通知を削除しました",
+    deleteError: "通知の削除に失敗しました",
+    markAllAsRead: "すべて既読にする",
+    markAsRead: "既読にする",
+    markAsReadSuccess: "通知を既読にしました",
+    markAsReadError: "通知の既読処理に失敗しました",
+    unread: "未読",
+    loading: "通知を読み込み中...",
+    error: "通知の読み込みに失敗しました",
+    total: "合計{{count}}件の通知",
+    view: "表示",
+    empty: {
+      title: "通知はありません",
+      description: "すべて確認済みです！"
+    },
+    booking: {
+      created: "新しい予約が作成されました",
+      confirmed: "予約が確定しました",
+      cancelled: "予約がキャンセルされました",
+      completed: "予約が完了しました"
+    },
+    quotation: {
+      created: "新しい見積もりが作成されました",
+      sent: "見積もりを顧客に送信しました",
+      approved: "見積もりが顧客に承認されました",
+      rejected: "見積もりが顧客に拒否されました",
+      expired: "見積もりが期限切れになりました",
+      converted: "見積もりが予約に変換されました"
+    },
+    payment: {
+      received: "支払いを受領しました",
+      failed: "支払いに失敗しました"
+    },
+    dispatch: {
+      assigned: "配車割り当てが作成されました",
+      completed: "配車が完了しました"
+    },
+    maintenance: {
+      due: "メンテナンス期限です"
+    },
+    inspection: {
+      due: "点検期限です",
+      completed: "点検が完了しました"
+    }
   }
 }
 

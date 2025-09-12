@@ -5,6 +5,7 @@ import { Resend } from 'resend';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { getTeamFooterHtml } from '@/lib/team-addresses';
+import { notificationService } from '@/lib/services/notification-service';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -307,6 +308,26 @@ export async function POST(request: NextRequest) {
             approved_by_staff_id: authUser.id
           }
         });
+
+      // Create notification for quotation approval
+      try {
+        await notificationService.createAdminNotification(
+          'quotation_approved',
+          {
+            id: id,
+            quoteNumber: quotation.quote_number,
+            customerName: quotation.customer_name || quotation.customer_email,
+            title: quotation.title,
+            amount: quotation.total_amount,
+            currency: quotation.currency,
+            approvedBy: authUser.id
+          },
+          id
+        );
+      } catch (notificationError) {
+        console.error('Error creating quotation approval notification:', notificationError);
+        // Don't fail the approval if notification fails
+      }
     }
     
     // Skip email if explicitly requested

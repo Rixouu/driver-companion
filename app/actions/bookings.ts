@@ -11,6 +11,7 @@ import {
 } from '@/lib/api/bookings-service'
 import { createServiceClient } from '@/lib/supabase/service-client'
 import { Database } from '@/types/supabase'
+import { notificationService } from '@/lib/services/notification-service'
 
 type BookingFilters = {
   status?: string
@@ -2061,6 +2062,25 @@ export async function createBookingAction(bookingData: Partial<Booking>): Promis
         success: false,
         message: 'Error creating booking'
       };
+    }
+
+    // Create notification for booking creation
+    try {
+      await notificationService.createAdminNotification(
+        'booking_created',
+        {
+          id: newBooking.id,
+          bookingId: newBooking.id,
+          customerName: bookingData.customer_name || bookingData.customer_email,
+          serviceName: bookingData.service_name,
+          date: bookingData.date,
+          time: bookingData.time
+        },
+        newBooking.id
+      );
+    } catch (notificationError) {
+      console.error('Error creating booking notification:', notificationError);
+      // Don't fail the booking creation if notification fails
     }
 
     // Revalidate relevant paths

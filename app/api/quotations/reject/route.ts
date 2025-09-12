@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
+import { notificationService } from '@/lib/services/notification-service';
 import { generateOptimizedQuotationPDF } from '@/lib/optimized-html-pdf-generator';
 import { Quotation, PricingPackage, PricingPromotion } from '@/types/quotations';
 import { getTeamFooterHtml } from '@/lib/team-addresses';
@@ -304,6 +305,27 @@ export async function POST(request: NextRequest) {
             rejected_by_staff_id: authUser.id
           }
         });
+
+      // Create notification for quotation rejection
+      try {
+        await notificationService.createAdminNotification(
+          'quotation_rejected',
+          {
+            id: id,
+            quoteNumber: quotation.quote_number,
+            customerName: quotation.customer_name || quotation.customer_email,
+            title: quotation.title,
+            amount: quotation.total_amount,
+            currency: quotation.currency,
+            reason: reason,
+            rejectedBy: authUser.id
+          },
+          id
+        );
+      } catch (notificationError) {
+        console.error('Error creating quotation rejection notification:', notificationError);
+        // Don't fail the rejection if notification fails
+      }
     }
     
     // Skip email if explicitly requested

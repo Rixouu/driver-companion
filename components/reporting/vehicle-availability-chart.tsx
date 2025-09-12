@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/index"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useTheme } from "next-themes"
 import { DateRange } from "react-day-picker"
@@ -28,7 +28,7 @@ const COLORS = {
 export function VehicleAvailabilityChart({ dateRange, initialData }: VehicleAvailabilityChartProps) {
   const [data, setData] = useState<AvailabilityDataPoint[]>(initialData || [])
   const { theme } = useTheme()
-  const supabase = useMemo(() => getSupabaseClient(), [])
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function fetchAvailabilityData() {

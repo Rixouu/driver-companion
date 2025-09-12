@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDictionary } from '@/lib/i18n/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { notificationService } from '@/lib/services/notification-service';
 
 // Force dynamic rendering to avoid cookie issues
 export const dynamic = "force-dynamic";
@@ -157,6 +158,25 @@ export async function POST(request: NextRequest) {
         action: 'created',
         details: { status: quotation.status }
       });
+
+    // Create notification for quotation creation
+    try {
+      await notificationService.createAdminNotification(
+        'quotation_created',
+        {
+          id: quotation.id,
+          quoteNumber: quotation.quote_number,
+          customerName: quotation.customer_name || quotation.customer_email,
+          title: quotation.title,
+          amount: quotation.total_amount,
+          currency: quotation.currency
+        },
+        quotation.id
+      );
+    } catch (notificationError) {
+      console.error('Error creating quotation notification:', notificationError);
+      // Don't fail the quotation creation if notification fails
+    }
 
     return NextResponse.json(quotation);
   } catch (error) {

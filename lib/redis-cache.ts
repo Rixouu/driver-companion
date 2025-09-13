@@ -26,13 +26,36 @@ class RedisPDFCache {
   }
 
   private async initializeRedis() {
-    // Temporarily disable Redis to avoid connection issues
-    console.log('⚠️  Redis temporarily disabled - using local cache only');
-    this.redis = null;
-    this.useLocalCache = true;
-    
-    // TODO: Fix Redis connection when Upstash configuration is resolved
-    // The current Upstash setup is causing connection timeouts
+    // Check if Upstash Redis credentials are available
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      console.log('✅ Upstash Redis credentials found - initializing connection...');
+      try {
+        // Test the connection first
+        const testResponse = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/ping`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
+          }
+        });
+        
+        if (testResponse.ok) {
+          console.log('✅ Upstash Redis connection successful');
+          this.redis = null; // We'll use REST API instead of ioredis
+          this.useLocalCache = false;
+          return;
+        } else {
+          throw new Error('Upstash Redis ping failed');
+        }
+      } catch (error) {
+        console.warn('⚠️  Upstash Redis connection failed, falling back to local cache:', error);
+        this.redis = null;
+        this.useLocalCache = true;
+      }
+    } else {
+      console.log('⚠️  Upstash Redis credentials not found - using local cache only');
+      this.redis = null;
+      this.useLocalCache = true;
+    }
   }
 
   /**
@@ -83,31 +106,63 @@ class RedisPDFCache {
    */
   async getCachedPDF(hash: string): Promise<Buffer | null> {
     try {
-      if (!this.redis || this.useLocalCache) {
-        console.log('📄 Redis not available, using local cache for hash:', hash.substring(0, 8));
+      if (this.useLocalCache) {
+        console.log('📄 Using local cache for hash:', hash.substring(0, 8));
         return null;
       }
 
-      // Get PDF data
-      const pdfData = await this.redis.getBuffer(`${this.keyPrefix}${hash}`);
-      if (!pdfData) {
+      // Use Upstash REST API
+      const baseUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      if (!baseUrl || !token) {
+        console.log('📄 Upstash Redis not configured, using local cache for hash:', hash.substring(0, 8));
+        return null;
+      }
+
+      // Get PDF data using GET command
+      const pdfResponse = await fetch(`${baseUrl}/get/${this.keyPrefix}${hash}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!pdfResponse.ok) {
         console.log('📄 Redis Cache miss - no entry found for hash:', hash.substring(0, 8));
         return null;
       }
 
+      const pdfResult = await pdfResponse.json();
+      if (!pdfResult.result) {
+        console.log('📄 Redis Cache miss - empty result for hash:', hash.substring(0, 8));
+        return null;
+      }
+
       // Get metadata
-      const metaData = await this.redis.get(`${this.metaPrefix}${hash}`);
-      if (metaData) {
-        const meta: CacheEntry = JSON.parse(metaData);
-        if (Date.now() > meta.expiresAt) {
-          console.log('📄 Redis Cache expired for hash:', hash.substring(0, 8));
-          await this.removeFromCache(hash);
-          return null;
+      const metaResponse = await fetch(`${baseUrl}/get/${this.metaPrefix}${hash}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (metaResponse.ok) {
+        const metaResult = await metaResponse.json();
+        if (metaResult.result) {
+          const meta: CacheEntry = JSON.parse(metaResult.result);
+          if (Date.now() > meta.expiresAt) {
+            console.log('📄 Redis Cache expired for hash:', hash.substring(0, 8));
+            await this.removeFromCache(hash);
+            return null;
+          }
         }
       }
 
-      console.log('✅ Redis PDF Cache hit for hash:', hash.substring(0, 8));
-      return pdfData;
+      // Convert base64 string back to Buffer
+      const pdfBuffer = Buffer.from(pdfResult.result, 'base64');
+      console.log('✅ Upstash Redis PDF Cache hit for hash:', hash.substring(0, 8));
+      return pdfBuffer;
     } catch (error) {
       console.warn('⚠️  Failed to read cached PDF from Redis:', error);
       return null;
@@ -119,16 +174,42 @@ class RedisPDFCache {
    */
   async cachePDF(hash: string, buffer: Buffer): Promise<void> {
     try {
-      if (!this.redis || this.useLocalCache) {
-        console.log('📄 Redis not available, skipping Redis cache for hash:', hash.substring(0, 8));
+      if (this.useLocalCache) {
+        console.log('📄 Using local cache, skipping Redis cache for hash:', hash.substring(0, 8));
+        return;
+      }
+
+      const baseUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      if (!baseUrl || !token) {
+        console.log('📄 Upstash Redis not configured, skipping Redis cache for hash:', hash.substring(0, 8));
         return;
       }
 
       const now = Date.now();
       const expiresAt = now + (this.cacheExpiry * 1000);
 
-      // Store PDF data
-      await this.redis.setex(`${this.keyPrefix}${hash}`, this.cacheExpiry, buffer);
+      // Convert Buffer to base64 string for storage
+      const base64Data = buffer.toString('base64');
+
+      // Store PDF data using SET command with expiration
+      const pdfResponse = await fetch(`${baseUrl}/set/${this.keyPrefix}${hash}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          value: base64Data,
+          ex: this.cacheExpiry
+        })
+      });
+
+      if (!pdfResponse.ok) {
+        console.warn('⚠️  Failed to store PDF in Upstash Redis:', await pdfResponse.text());
+        return;
+      }
 
       // Store metadata
       const meta: CacheEntry = {
@@ -137,9 +218,24 @@ class RedisPDFCache {
         expiresAt,
         size: buffer.length
       };
-      await this.redis.setex(`${this.metaPrefix}${hash}`, this.cacheExpiry, JSON.stringify(meta));
 
-      console.log('💾 PDF cached in Redis with hash:', hash.substring(0, 8), `(${(buffer.length / 1024).toFixed(1)}KB)`);
+      const metaResponse = await fetch(`${baseUrl}/set/${this.metaPrefix}${hash}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          value: JSON.stringify(meta),
+          ex: this.cacheExpiry
+        })
+      });
+
+      if (metaResponse.ok) {
+        console.log('💾 PDF cached in Upstash Redis with hash:', hash.substring(0, 8), `(${(buffer.length / 1024).toFixed(1)}KB)`);
+      } else {
+        console.warn('⚠️  Failed to store PDF metadata in Upstash Redis:', await metaResponse.text());
+      }
     } catch (error) {
       console.warn('⚠️  Failed to cache PDF in Redis:', error);
     }
@@ -150,12 +246,32 @@ class RedisPDFCache {
    */
   private async removeFromCache(hash: string): Promise<void> {
     try {
-      if (!this.redis || this.useLocalCache) {
+      if (this.useLocalCache) {
         return;
       }
       
-      await this.redis.del(`${this.keyPrefix}${hash}`);
-      await this.redis.del(`${this.metaPrefix}${hash}`);
+      const baseUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+      if (!baseUrl || !token) {
+        return;
+      }
+      
+      // Delete PDF data
+      await fetch(`${baseUrl}/del/${this.keyPrefix}${hash}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Delete metadata
+      await fetch(`${baseUrl}/del/${this.metaPrefix}${hash}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
     } catch (error) {
       console.warn('⚠️  Failed to remove from Redis cache:', error);
     }

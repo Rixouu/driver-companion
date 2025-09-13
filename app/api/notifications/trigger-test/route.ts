@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { scheduledNotificationService } from '@/lib/services/scheduled-notification-service'
+import { 
+  processQuotationExpiryNotifications,
+  processBookingReminderNotifications,
+  getUpcomingNotifications
+} from '@/lib/services/scheduled-notification-service'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 
 // This endpoint is for testing and manual triggering of notifications
@@ -27,18 +31,18 @@ export async function POST(request: NextRequest) {
 
     if (testType === 'quotations' || testType === 'all') {
       console.log('[Test Notifications] Processing quotation notifications...')
-      await scheduledNotificationService.processQuotationExpiryNotifications()
+      await processQuotationExpiryNotifications()
       results.quotations = 'processed'
     }
 
     if (testType === 'bookings' || testType === 'all') {
       console.log('[Test Notifications] Processing booking notifications...')
-      await scheduledNotificationService.processBookingReminderNotifications()
+      await processBookingReminderNotifications()
       results.bookings = 'processed'
     }
 
     // Get upcoming notifications for monitoring
-    const upcoming = await scheduledNotificationService.getUpcomingNotifications()
+    const upcoming = await getUpcomingNotifications()
     
     // Get recent notifications to see what was created
     const supabase = getSupabaseServerClient()
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
 // GET endpoint for status check
 export async function GET() {
   try {
-    const upcoming = await scheduledNotificationService.getUpcomingNotifications()
+    const upcoming = await getUpcomingNotifications()
     
     return NextResponse.json({
       success: true,

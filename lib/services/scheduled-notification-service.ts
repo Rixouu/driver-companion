@@ -1,6 +1,6 @@
 "use server"
 
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service-client'
 import { notificationService } from './notification-service'
 import { NotificationType } from '@/types/notifications'
 
@@ -14,19 +14,19 @@ interface ScheduledNotificationJob {
   metadata?: Record<string, any>
 }
 
-export class ScheduledNotificationService {
-  private supabase = createServiceClient()
+// Create a single supabase client instance
+const supabase = createServiceClient()
 
-  /**
-   * Check and send quotation expiry notifications
-   * Runs daily via Vercel cron job (Hobby plan limitation)
-   */
-  async processQuotationExpiryNotifications() {
+/**
+ * Check and send quotation expiry notifications
+ * Runs daily via Vercel cron job (Hobby plan limitation)
+ */
+export async function processQuotationExpiryNotifications() {
     try {
       console.log('[Scheduled Notifications] Processing quotation expiry notifications...')
 
       // Get quotations expiring in 24 hours (haven't been notified yet)
-      const { data: expiring24h } = await this.supabase
+      const { data: expiring24h } = await supabase
         .from('quotations')
         .select('*')
         .eq('status', 'sent')
@@ -37,7 +37,7 @@ export class ScheduledNotificationService {
       if (expiring24h && expiring24h.length > 0) {
         for (const quotation of expiring24h) {
           // Check if we already sent 24h notification
-          const { data: existing } = await this.supabase
+          const { data: existing } = await supabase
             .from('notifications')
             .select('id')
             .eq('type', 'quotation_expiring_24h')
@@ -57,7 +57,7 @@ export class ScheduledNotificationService {
       }
 
       // Get quotations expiring in 2 hours (haven't been notified yet)
-      const { data: expiring2h } = await this.supabase
+      const { data: expiring2h } = await supabase
         .from('quotations')
         .select('*')
         .eq('status', 'sent')
@@ -68,7 +68,7 @@ export class ScheduledNotificationService {
       if (expiring2h && expiring2h.length > 0) {
         for (const quotation of expiring2h) {
           // Check if we already sent 2h notification
-          const { data: existing } = await this.supabase
+          const { data: existing } = await supabase
             .from('notifications')
             .select('id')
             .eq('type', 'quotation_expiring_2h')
@@ -88,7 +88,7 @@ export class ScheduledNotificationService {
       }
 
       // Mark expired quotations
-      const { data: expired } = await this.supabase
+      const { data: expired } = await supabase
         .from('quotations')
         .select('*')
         .eq('status', 'sent')
@@ -98,13 +98,13 @@ export class ScheduledNotificationService {
       if (expired && expired.length > 0) {
         for (const quotation of expired) {
           // Update status to expired
-          await this.supabase
+          await supabase
             .from('quotations')
             .update({ status: 'expired' })
             .eq('id', quotation.id)
 
           // Send expired notification
-          const { data: existing } = await this.supabase
+          const { data: existing } = await supabase
             .from('notifications')
             .select('id')
             .eq('type', 'quotation_expired')
@@ -131,11 +131,11 @@ export class ScheduledNotificationService {
     }
   }
 
-  /**
-   * Check and send booking reminder notifications
-   * Runs daily via Vercel cron job (Hobby plan limitation)
-   */
-  async processBookingReminderNotifications() {
+/**
+ * Check and send booking reminder notifications
+ * Runs daily via Vercel cron job (Hobby plan limitation)
+ */
+export async function processBookingReminderNotifications() {
     try {
       console.log('[Scheduled Notifications] Processing booking reminder notifications...')
 
@@ -145,7 +145,7 @@ export class ScheduledNotificationService {
       const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
       const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1)
 
-      const { data: bookings24h } = await this.supabase
+      const { data: bookings24h } = await supabase
         .from('bookings')
         .select('*')
         .in('status', ['confirmed', 'pending'])
@@ -155,7 +155,7 @@ export class ScheduledNotificationService {
       if (bookings24h && bookings24h.length > 0) {
         for (const booking of bookings24h) {
           // Check if we already sent 24h notification
-          const { data: existing } = await this.supabase
+          const { data: existing } = await supabase
             .from('notifications')
             .select('id')
             .eq('type', 'booking_reminder_24h')
@@ -179,7 +179,7 @@ export class ScheduledNotificationService {
       const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000)
       const currentDate = now.toISOString().split('T')[0]
 
-      const { data: bookings2h } = await this.supabase
+      const { data: bookings2h } = await supabase
         .from('bookings')
         .select('*')
         .in('status', ['confirmed', 'pending'])
@@ -197,7 +197,7 @@ export class ScheduledNotificationService {
 
           if (hoursDiff > 1.5 && hoursDiff < 2.5) {
             // Check if we already sent 2h notification
-            const { data: existing } = await this.supabase
+            const { data: existing } = await supabase
               .from('notifications')
               .select('id')
               .eq('type', 'booking_reminder_2h')
@@ -225,16 +225,16 @@ export class ScheduledNotificationService {
     }
   }
 
-  /**
-   * Main scheduler function that runs all notification checks
-   */
-  async processAllScheduledNotifications() {
+/**
+ * Main scheduler function that runs all notification checks
+ */
+export async function processAllScheduledNotifications() {
     console.log('[Scheduled Notifications] Starting scheduled notification processing...')
     
     try {
       await Promise.all([
-        this.processQuotationExpiryNotifications(),
-        this.processBookingReminderNotifications()
+        processQuotationExpiryNotifications(),
+        processBookingReminderNotifications()
       ])
       
       console.log('[Scheduled Notifications] All scheduled notifications processed successfully')
@@ -244,11 +244,11 @@ export class ScheduledNotificationService {
     }
   }
 
-  /**
-   * Get upcoming notifications that will be sent
-   * Useful for debugging and monitoring
-   */
-  async getUpcomingNotifications() {
+/**
+ * Get upcoming notifications that will be sent
+ * Useful for debugging and monitoring
+ */
+export async function getUpcomingNotifications() {
     try {
       const results = {
         quotations_expiring_24h: 0,
@@ -258,7 +258,7 @@ export class ScheduledNotificationService {
       }
 
       // Count quotations expiring in 24h
-      const { count: quotations24h } = await this.supabase
+      const { count: quotations24h } = await supabase
         .from('quotations')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'sent')
@@ -269,7 +269,7 @@ export class ScheduledNotificationService {
       results.quotations_expiring_24h = quotations24h || 0
 
       // Count quotations expiring in 2h
-      const { count: quotations2h } = await this.supabase
+      const { count: quotations2h } = await supabase
         .from('quotations')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'sent')
@@ -285,7 +285,7 @@ export class ScheduledNotificationService {
       const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
       const tomorrowEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1)
 
-      const { count: bookings24h } = await this.supabase
+      const { count: bookings24h } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .in('status', ['confirmed', 'pending'])
@@ -296,7 +296,7 @@ export class ScheduledNotificationService {
 
       // Count bookings starting in 2h (rough estimate)
       const currentDate = new Date().toISOString().split('T')[0]
-      const { count: bookings2h } = await this.supabase
+      const { count: bookings2h } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .in('status', ['confirmed', 'pending'])
@@ -310,7 +310,3 @@ export class ScheduledNotificationService {
       throw error
     }
   }
-}
-
-// Export singleton instance
-export const scheduledNotificationService = new ScheduledNotificationService()

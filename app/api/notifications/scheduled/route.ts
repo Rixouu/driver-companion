@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { scheduledNotificationService } from '@/lib/services/scheduled-notification-service'
+import { 
+  processAllScheduledNotifications,
+  getUpcomingNotifications
+} from '@/lib/services/scheduled-notification-service'
 
 // This endpoint can be called by a cron job service like Vercel Cron or external scheduler
 export async function POST(request: NextRequest) {
@@ -18,10 +21,10 @@ export async function POST(request: NextRequest) {
     console.log('[Scheduled Notifications API] Processing scheduled notifications...')
     
     // Process all scheduled notifications
-    await scheduledNotificationService.processAllScheduledNotifications()
+    await processAllScheduledNotifications()
     
     // Get summary of upcoming notifications for monitoring
-    const upcoming = await scheduledNotificationService.getUpcomingNotifications()
+    const upcoming = await getUpcomingNotifications()
     
     return NextResponse.json({
       success: true,
@@ -57,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get upcoming notifications without processing them
-    const upcoming = await scheduledNotificationService.getUpcomingNotifications()
+    const upcoming = await getUpcomingNotifications()
     
     return NextResponse.json({
       success: true,

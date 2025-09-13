@@ -33,6 +33,15 @@ const nextConfig = {
     if (isServer) {
       config.externals.push('@sparticuz/chromium');
     }
+    
+    // Optimize webpack cache to reduce large string serialization warnings
+    config.cache = {
+      ...config.cache,
+      compression: 'gzip',
+      maxMemoryGenerations: 1,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    };
+    
     return config;
   },
   images: {

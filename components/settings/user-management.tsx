@@ -30,6 +30,7 @@ interface UserProfile {
   team_location: string
   is_active: boolean
   groups?: UserGroup[]
+  permissions?: GroupPermission[]
 }
 
 interface UserGroup {
@@ -53,6 +54,17 @@ interface Permission {
   resource: string
 }
 
+interface GroupPermission {
+  permission_id: string
+  granted: boolean
+  permission?: {
+    id: string
+    name: string
+    description: string
+    category: string
+  }
+}
+
 export function UserManagement() {
   const { t } = useI18n()
   const { toast } = useToast()
@@ -72,77 +84,30 @@ export function UserManagement() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const supabase = createClient()
+      
+      // Fetch users from database
+      const usersResponse = await fetch('/api/admin/users')
+      if (!usersResponse.ok) throw new Error('Failed to fetch users')
+      const usersData = await usersResponse.json()
 
-      // Load users with their group memberships
-      const { data: usersData, error: usersError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('full_name')
+      // Fetch groups from database
+      const groupsResponse = await fetch('/api/admin/groups')
+      if (!groupsResponse.ok) throw new Error('Failed to fetch groups')
+      const groupsData = await groupsResponse.json()
 
-      if (usersError) throw usersError
+      // Fetch permissions from database
+      const permissionsResponse = await fetch('/api/admin/permissions')
+      if (!permissionsResponse.ok) throw new Error('Failed to fetch permissions')
+      const permissionsData = await permissionsResponse.json()
 
-      // Load groups
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('user_groups')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order')
-
-      if (groupsError) throw groupsError
-
-      // Load user group memberships
-      const { data: membershipsData, error: membershipsError } = await supabase
-        .from('user_group_memberships')
-        .select(`
-          id,
-          user_id,
-          group_id,
-          assigned_at,
-          expires_at,
-          is_active,
-          user_groups!inner (
-            id,
-            name,
-            description,
-            color,
-            icon,
-            is_active
-          )
-        `)
-        .eq('is_active', true)
-
-      if (membershipsError) throw membershipsError
-
-      // Load permissions for reference
-      const { data: permissionsData, error: permissionsError } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('category, name')
-
-      if (permissionsError) throw permissionsError
-
-      // Combine users with their groups
-      const usersWithGroups = usersData.map(user => ({
-        ...user,
-        groups: membershipsData
-          .filter(m => m.user_id === user.id)
-          .map(m => ({
-            ...m.user_groups,
-            membership_id: m.id,
-            assigned_at: m.assigned_at,
-            expires_at: m.expires_at
-          }))
-      }))
-
-      setUsers(usersWithGroups)
-      setGroups(groupsData || [])
-      setPermissions(permissionsData || [])
+      setUsers(usersData)
+      setGroups(groupsData)
+      setPermissions(permissionsData)
     } catch (error) {
       console.error('Error loading data:', error)
       toast({
-        title: t('settings.users.error.loading', 'Error loading users'),
-        description: t('settings.users.error.loadingDescription', 'Failed to load users'),
+        title: 'Error loading users',
+        description: 'Failed to load users',
         variant: 'destructive'
       })
     } finally {
@@ -152,44 +117,32 @@ export function UserManagement() {
 
   const updateUserGroupMembership = async (userId: string, groupId: string, shouldAdd: boolean) => {
     try {
-      const supabase = createClient()
-
-      if (shouldAdd) {
-        const { error } = await supabase
-          .from('user_group_memberships')
-          .insert({
-            user_id: userId,
-            group_id: groupId,
-            is_active: true
-          })
-
-        if (error) throw error
-
-        toast({
-          title: t('settings.users.success.updated', 'User updated'),
-          description: t('settings.users.success.updatedDescription', 'User group membership updated successfully')
+      const response = await fetch('/api/admin/user-group-membership', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          group_id: groupId,
+          should_add: shouldAdd
         })
-      } else {
-        const { error } = await supabase
-          .from('user_group_memberships')
-          .update({ is_active: false })
-          .eq('user_id', userId)
-          .eq('group_id', groupId)
+      })
 
-        if (error) throw error
+      if (!response.ok) throw new Error('Failed to update group membership')
 
-        toast({
-          title: t('settings.users.success.updated', 'User updated'),
-          description: t('settings.users.success.updatedDescription', 'User group membership updated successfully')
-        })
-      }
+      toast({
+        title: 'User updated',
+        description: 'User group membership updated successfully'
+      })
 
+      // Reload data to reflect changes
       await loadData()
     } catch (error) {
       console.error('Error updating user group membership:', error)
       toast({
-        title: t('settings.users.error.updating', 'Error updating user'),
-        description: t('settings.users.error.updatingDescription', 'Failed to update user'),
+        title: 'Error updating user',
+        description: 'Failed to update user',
         variant: 'destructive'
       })
     }
@@ -223,6 +176,11 @@ export function UserManagement() {
     }, {} as Record<string, Permission[]>)
   }
 
+  const hasPermission = (user: UserProfile, permissionId: string): boolean => {
+    if (!user.permissions) return false
+    return user.permissions.some(p => p.permission_id === permissionId && p.granted)
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center p-8">Loading...</div>
   }
@@ -231,13 +189,13 @@ export function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">{t('settings.users.title', 'User Management')}</h3>
+          <h3 className="text-lg font-medium">User Management</h3>
           <p className="text-sm text-muted-foreground">
-            {t('settings.users.description', 'Manage users and their group memberships')}
+            Manage users and their group memberships
           </p>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {filteredUsers.length} {t('settings.users.user', 'users')}
+          {filteredUsers.length} users
         </Badge>
       </div>
 
@@ -249,7 +207,7 @@ export function UserManagement() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={t('settings.users.searchPlaceholder', 'Search users...')}
+                  placeholder="Search users..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -270,7 +228,7 @@ export function UserManagement() {
               <Checkbox
                 id="showInactive"
                 checked={showInactive}
-                onCheckedChange={setShowInactive}
+                onCheckedChange={(checked) => setShowInactive(!!checked)}
               />
               <Label htmlFor="showInactive" className="text-sm">
                 Show inactive users
@@ -407,24 +365,101 @@ export function UserManagement() {
                         </ScrollArea>
                       </TabsContent>
                       
-                      <TabsContent value="permissions" className="space-y-4">
-                        <ScrollArea className="h-[400px] pr-4">
-                          <div className="space-y-4">
-                            {Object.entries(getPermissionsByCategory()).map(([category, categoryPermissions]) => (
-                              <div key={category}>
-                                <h4 className="font-medium text-sm mb-2 capitalize">{category}</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {categoryPermissions.map((permission) => (
-                                    <div key={permission.id} className="flex items-center gap-2 p-2 text-xs bg-muted/50 rounded">
-                                      <Shield className="h-3 w-3 text-muted-foreground" />
-                                      <span>{permission.name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
+                      <TabsContent value="permissions" className="flex-1 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">Effective Permissions</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Permissions inherited from user groups
+                            </p>
                           </div>
-                        </ScrollArea>
+                          <div className="text-sm text-muted-foreground">
+                            {permissions.filter(p => hasPermission(user, p.id)).length} permissions enabled
+                          </div>
+                        </div>
+                        
+                        {/* Permission Category Navigation */}
+                        <div className="flex flex-col space-y-4">
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(getPermissionsByCategory()).map(([category, categoryPermissions]) => {
+                              const enabledCount = categoryPermissions.filter(p => hasPermission(user, p.id)).length
+                              const totalCount = categoryPermissions.length
+                              
+                              return (
+                                <Button
+                                  key={category}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() => {
+                                    const element = document.getElementById(`category-${category}`)
+                                    element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                  }}
+                                >
+                                  {category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  <Badge variant="secondary" className="ml-2">
+                                    {enabledCount}/{totalCount}
+                                  </Badge>
+                                </Button>
+                              )
+                            })}
+                          </div>
+                          
+                          <ScrollArea className="h-[500px] pr-4">
+                            <div className="space-y-6">
+                              {Object.entries(getPermissionsByCategory()).map(([category, categoryPermissions]) => {
+                                const enabledCount = categoryPermissions.filter(p => hasPermission(user, p.id)).length
+                                const totalCount = categoryPermissions.length
+                                
+                                return (
+                                  <Card key={category} id={`category-${category}`} className="p-4">
+                                    <div className="space-y-4">
+                                      <div className="flex items-center justify-between">
+                                        <h5 className="font-semibold text-base flex items-center gap-2">
+                                          <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                          {category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </h5>
+                                        <div className="text-sm text-muted-foreground">
+                                          {enabledCount} of {totalCount} permissions enabled
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="grid gap-3">
+                                        {categoryPermissions.map((permission) => {
+                                          const isEnabled = hasPermission(user, permission.id)
+                                          return (
+                                            <div key={permission.id} className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
+                                              isEnabled 
+                                                ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
+                                                : 'bg-muted/30 border-border hover:bg-muted/50'
+                                            }`}>
+                                              <div className="mt-0.5">
+                                                <Shield className={`h-4 w-4 ${isEnabled ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                  <p className="text-sm font-medium">{permission.name}</p>
+                                                  {isEnabled && (
+                                                    <Badge variant="secondary" className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                                                      Enabled
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                                  {permission.description}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  </Card>
+                                )
+                              })}
+                            </div>
+                          </ScrollArea>
+                        </div>
                       </TabsContent>
                     </Tabs>
                   </DialogContent>

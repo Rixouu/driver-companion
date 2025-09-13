@@ -1,0 +1,497 @@
+import { Resend } from 'resend'
+import { formatDateDDMMYYYY } from '@/lib/utils/formatting'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+interface TripReminderEmailData {
+  booking: {
+    id: string
+    wp_id: string
+    service_name: string
+    date: string
+    time: string
+    pickup_location?: string
+    dropoff_location?: string
+    notes?: string
+    drivers?: {
+      first_name: string
+      last_name: string
+      phone: string
+      email: string
+    }
+    vehicles?: {
+      plate_number: string
+      brand: string
+      model: string
+      color?: string
+    }
+  }
+  customer: {
+    email: string
+    name: string
+  }
+  creator: {
+    email: string
+    name: string
+  }
+  driver: {
+    email: string
+    name: string
+  }
+  reminderType: '24h' | '2h'
+}
+
+export async function sendTripReminderEmail(data: TripReminderEmailData) {
+  try {
+    console.log(`📧 [TRIP-REMINDER-${data.reminderType.toUpperCase()}] Sending trip reminder email for booking ${data.booking.wp_id}`)
+    
+    // Generate Google Calendar link
+    const startDate = new Date(data.booking.date + 'T' + data.booking.time)
+    const endDate = new Date(startDate.getTime() + (2 * 60 * 60 * 1000)) // 2 hours duration
+    
+    const calendarLink = generateGoogleCalendarLink({
+      title: `Vehicle Service: ${data.booking.service_name}`,
+      description: `Booking ID: ${data.booking.wp_id}\nService: ${data.booking.service_name}\nPickup: ${data.booking.pickup_location || 'Location TBD'}\nDropoff: ${data.booking.dropoff_location || 'Location TBD'}`,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      location: `${data.booking.pickup_location || 'Location TBD'} to ${data.booking.dropoff_location || 'Location TBD'}`
+    })
+
+    // Generate email HTML
+    const emailHtml = generateTripReminderEmailHtml({
+      ...data,
+      calendarLink
+    })
+
+    // Generate plain text version
+    const emailText = generateTripReminderEmailText({
+      ...data,
+      calendarLink
+    })
+
+    // Determine subject based on reminder type
+    const timeText = data.reminderType === '24h' ? '24 hours' : '2 hours'
+    const urgencyText = data.reminderType === '2h' ? 'URGENT: ' : ''
+    
+    const subject = `${urgencyText}Your Trip is Coming Soon - ${data.booking.wp_id} (${timeText} reminder)`
+
+    // Send to customer
+    await resend.emails.send({
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: [data.customer.email],
+      subject,
+      html: emailHtml,
+      text: emailText
+    })
+
+    // Send to creator (BCC)
+    await resend.emails.send({
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: [data.creator.email],
+      subject: `[Internal] ${subject}`,
+      html: emailHtml,
+      text: emailText
+    })
+
+    // Send to driver (BCC)
+    await resend.emails.send({
+      from: 'Driver Japan <booking@japandriver.com>',
+      to: [data.driver.email],
+      subject: `[Driver] ${subject}`,
+      html: emailHtml,
+      text: emailText
+    })
+
+    console.log(`✅ [TRIP-REMINDER-${data.reminderType.toUpperCase()}] Trip reminder emails sent successfully for booking ${data.booking.wp_id}`)
+    
+    return {
+      success: true,
+      message: 'Trip reminder emails sent successfully',
+      recipients: ['customer', 'creator', 'driver']
+    }
+
+  } catch (error) {
+    console.error(`❌ [TRIP-REMINDER-${data.reminderType.toUpperCase()}] Error sending trip reminder email:`, error)
+    throw error
+  }
+}
+
+function generateGoogleCalendarLink({
+  title,
+  description,
+  startDate,
+  endDate,
+  location
+}: {
+  title: string
+  description: string
+  startDate: string
+  endDate: string
+  location: string
+}) {
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${startDate.replace(/[-:]/g, '').split('.')[0]}Z/${endDate.replace(/[-:]/g, '').split('.')[0]}Z`,
+    details: description,
+    location: location
+  })
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`
+}
+
+function generateTripReminderEmailHtml({
+  booking,
+  customer,
+  reminderType,
+  calendarLink
+}: TripReminderEmailData & { calendarLink: string }) {
+  const formatDate = (dateString: string) => {
+    return formatDateDDMMYYYY(dateString)
+  }
+
+  const formatTime = (timeString: string) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
+  const timeText = reminderType === '24h' ? '24 hours' : '2 hours'
+  const urgencyText = reminderType === '2h' ? 'URGENT: ' : ''
+  const urgencyIcon = reminderType === '2h' ? '🚨' : '⏰'
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Trip Coming Soon - ${timeText} Reminder</title>
+      <style>
+        body, table, td, a {
+          -webkit-text-size-adjust:100%;
+          -ms-text-size-adjust:100%;
+          font-family: 'Noto Sans Thai', 'Noto Sans', sans-serif;
+        }
+        table, td { mso-table-lspace:0; mso-table-rspace:0; }
+        img {
+          border:0;
+          line-height:100%;
+          outline:none;
+          text-decoration:none;
+          -ms-interpolation-mode:bicubic;
+        }
+        table { border-collapse:collapse!important; }
+        body {
+          margin:0;
+          padding:0;
+          width:100%!important;
+          background:#F2F4F6;
+        }
+        .greeting {
+          color:#32325D;
+          margin:24px 24px 16px;
+          line-height:1.4;
+          font-size: 14px;
+        }
+        @media only screen and (max-width:600px) {
+          .container { width:100%!important; }
+          .stack { display:block!important; width:100%!important; text-align:center!important; }
+          .info-block .flex { flex-direction: column!important; gap: 15px!important; }
+          .info-block .flex > div { width: 100%!important; }
+          .info-block .flex .flex { flex-direction: column!important; gap: 15px!important; }
+          .info-block .flex .flex > div { width: 100%!important; }
+        }
+        .details-table td, .details-table th {
+          padding: 10px 0;
+          font-size: 14px;
+        }
+        .details-table th {
+           color: #8898AA;
+           text-transform: uppercase;
+           text-align: left;
+        }
+        .button {
+          background-color: #E03E2D;
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 6px;
+          display: inline-block;
+          margin: 16px 0;
+          font-weight: 600;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .notes {
+          background-color: #f8f9fa;
+          border-left: 4px solid #E03E2D;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 4px;
+        }
+        .info-block {
+          background:#f8f9fa; 
+          padding:20px; 
+          border-radius:8px; 
+          margin:20px 0;
+        }
+        .info-block h3 {
+          margin:0 0 12px 0; 
+          color:#32325D;
+        }
+        .info-block p {
+          margin:0; 
+          color:#525f7f;
+        }
+        .info-block strong {
+          color: #32325D;
+        }
+        .reminder-header {
+          background: linear-gradient(135deg, #E03E2D 0%, #F45C4C 100%);
+          color: white;
+          padding: 24px;
+          text-align: center;
+          position: relative;
+        }
+        .reminder-badge {
+          display: inline-block;
+          background: rgba(255,255,255,0.2);
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        .reminder-title {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+        }
+        .reminder-subtitle {
+          font-size: 16px;
+          opacity: 0.9;
+          margin: 0;
+        }
+        .trip-countdown {
+          background: #ffffff;
+          border: 2px solid #E03E2D;
+          border-radius: 12px;
+          padding: 20px;
+          margin: 20px 24px;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(224, 62, 45, 0.15);
+        }
+        .trip-countdown h2 {
+          color: #E03E2D;
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        .trip-countdown p {
+          color: #525f7f;
+          font-size: 16px;
+          margin: 0;
+          font-weight: 500;
+        }
+        .urgent .trip-countdown {
+          border-color: #DC2626;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+        .urgent .trip-countdown h2 {
+          color: #DC2626;
+        }
+      </style>
+    </head>
+    <body style="background:#F2F4F6; margin:0; padding:0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr>
+          <td align="center" style="padding:24px;">
+            <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation"
+                   style="background:#FFFFFF; border-radius:8px; overflow:hidden; max-width: 600px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+              
+              <!-- Header -->
+              <tr>
+                <td class="reminder-header">
+                  <div class="reminder-badge">
+                    ${urgencyIcon} ${timeText} reminder
+                  </div>
+                  <table cellpadding="0" cellspacing="0" style="background:#FFFFFF; border-radius:50%; width:64px; height:64px; margin:0 auto 16px;">
+                    <tr><td align="center" valign="middle" style="text-align:center;">
+                        <img src="https://japandriver.com/img/driver-invoice-logo.png" width="48" height="48" alt="Driver logo" style="display:block; margin:0 auto;">
+                    </td></tr>
+                  </table>
+                  <h1 class="reminder-title">Your Trip is Coming Soon</h1>
+                  <p class="reminder-subtitle">Booking ID: ${booking.wp_id}</p>
+                </td>
+              </tr>
+              
+              <!-- Trip Countdown -->
+              <tr>
+                <td>
+                  <div class="trip-countdown ${reminderType === '2h' ? 'urgent' : ''}">
+                    <h2>${timeText.toUpperCase()} UNTIL YOUR TRIP</h2>
+                    <p>${formatDate(booking.date)} at ${formatTime(booking.time)}</p>
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding:32px 24px;">
+                  <div class="greeting">
+                    <p>Hello ${customer.name || 'there'}!</p>
+                    
+                    <p>This is a friendly reminder that your vehicle service is scheduled to begin in <strong>${timeText}</strong>.</p>
+                    
+                    <div class="info-block">
+                      <h3>Service Details</h3>
+                      <p>
+                        <strong>Service Type:</strong> ${booking.service_name}<br>
+                        <strong>Date:</strong> ${formatDate(booking.date)}<br>
+                        <strong>Time:</strong> ${formatTime(booking.time)}<br>
+                        <strong>Pickup Location:</strong> ${booking.pickup_location || 'Location TBD'}<br>
+                        <strong>Dropoff Location:</strong> ${booking.dropoff_location || 'Location TBD'}
+                      </p>
+                    </div>
+                    
+                    <div class="info-block">
+                      <h3>Driver & Vehicle Information</h3>
+                      <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 30px; align-items: flex-start;">
+                          <div style="width: 50%; min-width: 0;">
+                            <h4 style="margin: 0 0 16px 0; color: #E03E2D; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">👤 Driver</h4>
+                            <div style="margin-bottom: 16px;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Name:</div>
+                              <div style="color: #525f7f;">${booking.drivers ? `${booking.drivers.first_name} ${booking.drivers.last_name}` : 'To be assigned'}</div>
+                            </div>
+                            <div style="margin-bottom: 0;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Phone:</div>
+                              <div style="color: #525f7f;">${booking.drivers ? booking.drivers.phone : 'To be provided'}</div>
+                            </div>
+                          </div>
+                          <div style="width: 50%; min-width: 0;">
+                            <h4 style="margin: 0 0 16px 0; color: #E03E2D; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">🚗 Vehicle</h4>
+                            <div style="margin-bottom: 16px;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">License Plate:</div>
+                              <div style="color: #525f7f;">${booking.vehicles ? booking.vehicles.plate_number : 'To be assigned'}</div>
+                            </div>
+                            <div style="margin-bottom: 0;">
+                              <div style="font-weight: 600; color: #32325D; margin-bottom: 4px;">Model:</div>
+                              <div style="color: #525f7f;">${booking.vehicles ? `${booking.vehicles.brand} ${booking.vehicles.model}` : 'To be assigned'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    ${booking.notes ? `
+                    <div class="notes">
+                      <h4 style="margin:0 0 8px 0; color:#E03E2D;">Special Notes</h4>
+                      <p style="margin:0; color:#525f7f;">${booking.notes}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="text-align: center; margin: 32px 0;">
+                      <a href="${calendarLink}" class="button" style="background-color: #E03E2D; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(224, 62, 45, 0.3); transition: all 0.3s ease;">
+                        <span style="margin-right: 8px;">📅</span>Add to Google Calendar
+                      </a>
+                    </div>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                      <h4 style="margin:0 0 12px 0; color:#856404; font-size: 16px; font-weight: 600;">Important Reminders</h4>
+                      <ul style="margin:0; padding-left:20px; color:#856404; line-height: 1.6;">
+                        <li style="margin-bottom: 8px;">Please be ready at the pickup location 5 minutes before your scheduled time</li>
+                        <li style="margin-bottom: 8px;">Have your ID ready for verification</li>
+                        <li style="margin-bottom: 8px;">If you need to make changes, contact us immediately</li>
+                        ${reminderType === '2h' ? '<li style="margin-bottom: 0;"><strong>URGENT:</strong> Your trip is starting very soon - please confirm you\'re ready!</li>' : ''}
+                      </ul>
+                    </div>
+                    
+                    <p style="margin: 24px 0 16px 0; color: #525f7f;">If you have any questions or need assistance, please don't hesitate to contact us.</p>
+                    
+                    <p style="margin: 0 0 24px 0; color: #32325D; font-weight: 600;">Thank you for choosing Driver Japan!</p>
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="background: #f8f9fa; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
+                  <p style="margin: 0 0 8px 0; color: #8898AA; font-size: 14px; font-weight: 500;">Driver (Thailand) Company Limited</p>
+                  <p style="margin: 0; color: #8898AA; font-size: 14px;">
+                    <a href="https://japandriver.com" style="color: #E03E2D; text-decoration: none; font-weight: 500;">japandriver.com</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+}
+
+function generateTripReminderEmailText({
+  booking,
+  customer,
+  reminderType,
+  calendarLink
+}: TripReminderEmailData & { calendarLink: string }) {
+  const formatDate = (dateString: string) => {
+    return formatDateDDMMYYYY(dateString)
+  }
+
+  const formatTime = (timeString: string) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
+  const timeText = reminderType === '24h' ? '24 hours' : '2 hours'
+  const urgencyText = reminderType === '2h' ? 'URGENT: ' : ''
+
+  return `
+${urgencyText}Trip Coming Soon - ${timeText} Reminder - ${booking.wp_id}
+
+Hello ${customer.name || 'there'}!
+
+${urgencyText}This is a friendly reminder that your vehicle service is scheduled to begin in ${timeText}.
+
+SERVICE DETAILS:
+- Service Type: ${booking.service_name}
+- Date: ${formatDate(booking.date)}
+- Time: ${formatTime(booking.time)}
+- Pickup Location: ${booking.pickup_location || 'Location TBD'}
+- Dropoff Location: ${booking.dropoff_location || 'Location TBD'}
+
+DRIVER & VEHICLE INFORMATION:
+- Driver Name: ${booking.drivers ? `${booking.drivers.first_name} ${booking.drivers.last_name}` : 'To be assigned'}
+- Driver Phone: ${booking.drivers ? booking.drivers.phone : 'To be provided'}
+- License Plate: ${booking.vehicles ? booking.vehicles.plate_number : 'To be assigned'}
+- Vehicle Model: ${booking.vehicles ? `${booking.vehicles.brand} ${booking.vehicles.model}` : 'To be assigned'}
+${booking.notes ? `- Special Notes: ${booking.notes}` : ''}
+
+Add to Google Calendar: ${calendarLink}
+
+IMPORTANT REMINDERS:
+- Please be ready at the pickup location 5 minutes before your scheduled time
+- Have your ID ready for verification
+- If you need to make changes, contact us immediately
+${reminderType === '2h' ? '- URGENT: Your trip is starting very soon - please confirm you\'re ready!' : ''}
+
+If you have any questions or need assistance, please don't hesitate to contact us.
+
+Thank you for choosing Driver Japan!
+
+Best regards,
+Driver (Thailand) Company Limited
+japandriver.com
+  `
+}

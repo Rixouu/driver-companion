@@ -2623,7 +2623,8 @@ export const ja: TranslationValue = {
       language: "言語",
       permissions: "権限",
       notifications: "通知",
-      branding: "ブランディング"
+      branding: "ブランディング",
+      ui_customization: "UI カスタマイズ"
     },
     profile: {
       title: "プロフィール",

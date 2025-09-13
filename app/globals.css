@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  height: 100%;
+  min-height: 100vh;
+}
+
 body {
   font-family: var(--font-noto-sans-thai), 'Noto Sans Thai', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   @apply bg-background text-foreground;
@@ -76,13 +81,13 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-background: 0 0% 85%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 0 0% 9%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 0 0% 80%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 75%;
     --sidebar-ring: 217.2 91.2% 59.8%;
     --status-success: 142 72% 29%;
     --status-success-fg: 142 76% 97%;
@@ -92,37 +97,37 @@ body {
     --status-error-fg: 0 86% 97%;
   }
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 0 0% 2%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 0 0% 4%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 0 0% 8%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
+    --muted: 0 0% 8%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --accent: 0 0% 8%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 0 0% 8%;
+    --input: 0 0% 8%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 0 0% 3%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-accent: 0 0% 6%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 6%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -165,13 +170,37 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-[hsl(var(--border))];
-  }
   body {
     @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))];
   }
+  
+  /* Make sidebar font bigger to match production */
+  .sidebar {
+    font-size: 1rem !important;
+  }
+  
+  .sidebar button {
+    font-size: 1rem !important;
+  }
+  
+  .sidebar a {
+    font-size: 1rem !important;
+  }
+  
+  .sidebar button[data-variant="ghost"] {
+    font-size: 1rem !important;
+  }
+  
+  .sidebar .font-medium {
+    font-size: 1rem !important;
+  }
+
+  .card {
+    border-width: 1px;
+    border-color: hsl(var(--border));
+  }
 }
+
 
 .status-badge {
   @apply px-2 py-1 rounded-full text-sm font-medium;

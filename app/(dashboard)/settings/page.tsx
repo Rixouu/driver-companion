@@ -18,6 +18,7 @@ import { EnhancedGroupManagement } from "@/components/settings/enhanced-group-ma
 import { UserManagement } from "@/components/settings/user-management"
 import { NotificationManagementImproved as NotificationManagement } from "@/components/settings/notification-management-improved"
 import { BrandingManagement } from "@/components/settings/branding-management"
+import { UICustomizationManagement } from "@/components/settings/ui-customization-management"
 import {
   Gauge,
   Truck,
@@ -472,47 +473,69 @@ export default function SettingsPage() {
   )
 
   const renderPermissionsTab = () => (
-    <div className="space-y-6">
-      <div className="border-b border-border/40 pb-3">
-        <div className="flex items-center gap-3 mb-2">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {t('settings.permissions.title', { default: 'Permissions & Access Control' })}
-            </h2>
-            <p className="text-muted-foreground text-sm sm:text-base mt-1">
-              {t('settings.permissions.description', { default: 'Manage user groups, permissions, and access control' })}
-            </p>
-          </div>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="border-b border-border pb-3 sm:pb-4 flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">
+            {t('settings.permissions.title', { default: 'Permissions & Access Control' })}
+          </h1>
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1">
+            {t('settings.permissions.description', { default: 'Manage user groups, permissions, and access control' })}
+          </p>
+        </div>
+        <div className="hidden sm:flex space-x-1 bg-muted/30 p-1 rounded-lg ml-6">
+          <button
+            onClick={() => setPermissionsSubTab('groups')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              permissionsSubTab === 'groups'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              {t('settings.permissions.groups', { default: 'Groups' })}
+            </div>
+          </button>
+          <button
+            onClick={() => setPermissionsSubTab('users')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              permissionsSubTab === 'users'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {t('settings.permissions.users', { default: 'Users' })}
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Sub-tabs for permissions */}
-      <div className="flex space-x-1 bg-muted/30 p-1 rounded-lg w-fit">
+      {/* Mobile Sub-tabs for permissions */}
+      <div className="grid grid-cols-2 gap-3 sm:hidden">
         <button
           onClick={() => setPermissionsSubTab('groups')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             permissionsSubTab === 'groups'
               ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-muted-foreground hover:text-foreground bg-muted/30'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            {t('settings.permissions.groups', { default: 'Groups' })}
-          </div>
+          <Users className="w-4 h-4" />
+          {t('settings.permissions.groups', { default: 'Groups' })}
         </button>
         <button
           onClick={() => setPermissionsSubTab('users')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             permissionsSubTab === 'users'
               ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-muted-foreground hover:text-foreground bg-muted/30'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            {t('settings.permissions.users', { default: 'Users' })}
-          </div>
+          <User className="w-4 h-4" />
+          {t('settings.permissions.users', { default: 'Users' })}
         </button>
       </div>
 
@@ -561,6 +584,10 @@ export default function SettingsPage() {
           
           <TabsContent value="branding">
             <BrandingManagement />
+          </TabsContent>
+          
+          <TabsContent value="ui-customization">
+            <UICustomizationManagement />
           </TabsContent>
         </div>
       </Tabs>

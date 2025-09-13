@@ -282,26 +282,36 @@ export function BrandingManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium">Email Branding & Templates</h3>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="border-b border-border pb-3 sm:pb-4 flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Email Branding & Templates</h1>
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1">
             Customize your email templates, headers, footers, and styling
           </p>
         </div>
-        
-        {/* Responsive Action Buttons */}
-        <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end sm:gap-2">
-          <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
+        <div className="hidden sm:flex items-center gap-2 ml-6">
+          <Button variant="outline" onClick={handleReset}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Reset
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
+          <Button onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+      </div>
+
+      {/* Mobile Action Buttons */}
+      <div className="grid grid-cols-2 gap-3 sm:hidden">
+        <Button variant="outline" onClick={handleReset} className="w-full">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Reset
+        </Button>
+        <Button onClick={handleSave} disabled={saving} className="w-full">
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
       </div>
 
       {/* Responsive Tab Navigation */}

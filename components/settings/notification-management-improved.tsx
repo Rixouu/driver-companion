@@ -502,20 +502,28 @@ export function NotificationManagementImproved() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-medium">Email Template Management</h3>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex items-center justify-between">
+        <div className="border-b border-border pb-3 sm:pb-4 flex-1">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight">Email Template Management</h1>
+          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground mt-1">
             Manage your fleet management email templates and notifications with team-specific settings
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="hidden sm:flex items-center gap-3 ml-6">
           <TeamSwitcher
             currentTeam={selectedTeam}
             onTeamChange={setSelectedTeam}
           />
         </div>
+      </div>
+
+      {/* Mobile Team Switcher */}
+      <div className="w-full sm:hidden">
+        <TeamSwitcher
+          currentTeam={selectedTeam}
+          onTeamChange={setSelectedTeam}
+        />
       </div>
 
       {/* Search and Controls Bar */}

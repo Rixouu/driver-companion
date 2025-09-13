@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/context"
-import { User, Globe, LayoutList, Shield } from "lucide-react"
+import { User, Globe, LayoutList, Shield, Bell, Palette } from "lucide-react"
 
 interface SettingsTabsListProps {
   value: string
@@ -31,6 +31,8 @@ export function SettingsTabsList({ value, onValueChange }: SettingsTabsListProps
     { value: "menu", label: t('settings.tabs.menu') || "Menu", icon: LayoutList },
     { value: "language", label: t('settings.tabs.language') || "Language", icon: Globe },
     { value: "permissions", label: t('settings.tabs.permissions') || "Permissions", icon: Shield },
+    { value: "notifications", label: t('settings.tabs.notifications') || "Notifications", icon: Bell },
+    { value: "branding", label: t('settings.tabs.branding') || "Branding", icon: Palette },
   ]
 
   const currentTab = tabs.find(tab => tab.value === value)

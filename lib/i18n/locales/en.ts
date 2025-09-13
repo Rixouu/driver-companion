@@ -2670,7 +2670,9 @@ export const en: TranslationValue = {
       profile: "Profile",
       menu: "Menu",
       language: "Language",
-      permissions: "Permissions"
+      permissions: "Permissions",
+      notifications: "Notifications",
+      branding: "Branding"
     },
     profile: {
       title: "Profile",

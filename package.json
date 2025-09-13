@@ -37,6 +37,7 @@
     "@fontsource/work-sans": "^5.2.5",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.9.1",
+    "@monaco-editor/react": "^4.7.0",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@next/bundle-analyzer": "^15.4.0-canary.51",
     "@nivo/bar": "^0.98.0",

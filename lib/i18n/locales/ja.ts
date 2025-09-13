@@ -2621,7 +2621,9 @@ export const ja: TranslationValue = {
       profile: "プロフィール",
       menu: "メニュー",
       language: "言語",
-      permissions: "権限"
+      permissions: "権限",
+      notifications: "通知",
+      branding: "ブランディング"
     },
     profile: {
       title: "プロフィール",

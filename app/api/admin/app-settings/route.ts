@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    console.log('API received body:', JSON.stringify(body, null, 2))
+    console.log('API received body with', Object.keys(body).length, 'settings')
     
     const supabase = createServiceClient()
     console.log('Service client created successfully')
@@ -40,48 +40,38 @@ export async function POST(request: NextRequest) {
     
     console.log('Database connection test successful')
     
-    // Update each setting using proper upsert
-    for (const [key, value] of Object.entries(body)) {
-      console.log(`Updating ${key} = ${value}`)
-      
-      // First try to update existing record
-      const { data: updateData, error: updateError } = await supabase
-        .from('app_settings')
-        .update({ 
-          value: value as string,
-          updated_at: new Date().toISOString()
-        })
-        .eq('key', key)
-        .select()
-      
-      if (updateError) {
-        console.error(`Update failed for ${key}:`, updateError)
-        return NextResponse.json({ error: `Failed to update ${key}: ${updateError.message}` }, { status: 500 })
-      }
-      
-      // If no rows were updated, insert new record
-      if (!updateData || updateData.length === 0) {
-        const { data: insertData, error: insertError } = await supabase
-          .from('app_settings')
-          .insert({ 
-            key,
-            value: value as string,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-        
-        if (insertError) {
-          console.error(`Insert failed for ${key}:`, insertError)
-          return NextResponse.json({ error: `Failed to insert ${key}: ${insertError.message}` }, { status: 500 })
-        }
-        
-        console.log(`Successfully inserted ${key}:`, insertData)
-      } else {
-        console.log(`Successfully updated ${key}:`, updateData)
-      }
+    // Get current timestamp for all updates
+    const now = new Date().toISOString()
+    
+    // Prepare batch data for upsert
+    const settingsData = Object.entries(body).map(([key, value]) => ({
+      key,
+      value: value as string,
+      updated_at: now
+    }))
+    
+    console.log(`Performing batch upsert for ${settingsData.length} settings`)
+    
+    // Use upsert for batch operation - much more efficient!
+    const { data: upsertData, error: upsertError } = await supabase
+      .from('app_settings')
+      .upsert(settingsData, {
+        onConflict: 'key',
+        ignoreDuplicates: false
+      })
+      .select()
+    
+    if (upsertError) {
+      console.error('Batch upsert failed:', upsertError)
+      return NextResponse.json({ error: `Failed to update settings: ${upsertError.message}` }, { status: 500 })
     }
     
-    return NextResponse.json({ success: true })
+    console.log(`Successfully updated ${upsertData?.length || 0} settings in batch operation`)
+    
+    return NextResponse.json({ 
+      success: true, 
+      updatedCount: upsertData?.length || 0 
+    })
   } catch (error) {
     console.error('Error updating app settings:', error)
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })

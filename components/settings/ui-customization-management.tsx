@@ -129,8 +129,8 @@ export function UICustomizationManagement() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      console.log('Saving formData to database:', formData)
-      console.log('Sending to API:', JSON.stringify(formData, null, 2))
+      const settingsCount = Object.keys(formData).length
+      console.log(`Saving ${settingsCount} settings to database using batch operation`)
       
       const response = await fetch('/api/admin/app-settings', {
         method: 'POST',
@@ -139,22 +139,22 @@ export function UICustomizationManagement() {
       })
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API Error:', errorText)
-        throw new Error(`Failed to save settings: ${errorText}`)
+        const errorData = await response.json()
+        console.error('API Error:', errorData)
+        throw new Error(errorData.error || 'Failed to save settings')
       }
 
       const result = await response.json()
-      console.log('API Response:', result)
+      console.log('Batch save result:', result)
 
       // Save to localStorage for global provider
       localStorage.setItem('ui-customization-settings', JSON.stringify(formData))
       
-      console.log('Successfully saved UI settings to database:', formData)
+      console.log(`Successfully saved ${result.updatedCount || settingsCount} UI settings to database`)
 
       toast({
         title: 'Success',
-        description: 'UI settings saved successfully!'
+        description: `Successfully saved ${result.updatedCount || settingsCount} UI customization settings!`
       })
 
       // Apply styles immediately
@@ -163,7 +163,7 @@ export function UICustomizationManagement() {
       console.error('Error saving settings:', error)
       toast({
         title: 'Error',
-        description: 'Failed to save settings',
+        description: `Failed to save settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive'
       })
     } finally {

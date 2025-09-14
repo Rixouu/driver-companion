@@ -185,15 +185,14 @@ export const QuotationWorkflow = React.forwardRef<{ openPaymentLinkDialog: () =>
       // Start progress simulation immediately (runs independently)
       startProgress(progressConfigs.sendEmail);
       
-      // Prepare FormData for the optimized send-email endpoint
+      // Use the new unified email system
       const formData = new FormData();
       formData.append('email', emailToSend!);
       formData.append('quotation_id', quotation.id);
       formData.append('language', sendQuotationLanguage);
-      formData.append('include_details', 'true');
       formData.append('bcc_emails', sendQuotationBccEmails);
 
-      const response = await fetch('/api/quotations/send-email-optimized', {
+      const response = await fetch('/api/quotations/send-email-unified', {
         method: 'POST',
         body: formData,
       });

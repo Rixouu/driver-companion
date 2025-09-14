@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getBookingByIdFromDatabase } from '@/lib/api/bookings-service'
+import { getBookingById } from '@/app/actions/bookings'
 import { handleApiError } from '@/lib/errors/error-handler';
 import { AppError, DatabaseError, NotFoundError, ValidationError } from '@/lib/errors/app-error';
 
@@ -18,7 +18,7 @@ export async function GET(
       throw new ValidationError('Booking ID is required');
     }
     
-    const { booking, error: dbError } = await getBookingByIdFromDatabase(id)
+    const { booking } = await getBookingById(id)
     
     console.log(`[API] Booking data for ID ${id}:`, booking ? 'FOUND' : 'NOT FOUND')
     
@@ -40,14 +40,7 @@ export async function GET(
       })
     }
     
-    if (dbError) {
-      // Create a new Error object to pass as cause, using the message from dbError.
-      const errorMessage = ((dbError as any)?.message && typeof (dbError as any).message === 'string')
-                           ? (dbError as any).message
-                           : 'Unknown database error details.';
-      const cause = new Error(errorMessage);
-      throw new DatabaseError('Failed to fetch booking from database.', { cause });
-    }
+    // Error handling is now done within getBookingById function
 
     if (!booking) {
       throw new NotFoundError('Booking not found');

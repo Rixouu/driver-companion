@@ -261,8 +261,8 @@ export default function BookingDetailsContent({
                                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">{t('bookings.details.fields.serviceType')}</h3>
                     <p className="mt-1 font-medium">
-                      {/* Get service_type_name from the first quotation item */}
-                      {booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                      {/* Get service_name from booking or service_type_name from quotation items */}
+                      {booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
                     </p>
                   {/* Show multi-service information if this is part of a multi-service booking */}
                   {booking.meta?.is_multi_service_booking && (

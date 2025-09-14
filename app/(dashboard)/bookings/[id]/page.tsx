@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/context';
 import { getBookingById, updateBookingAction } from '@/app/actions/bookings';
 import { createClient } from '@/lib/supabase';
@@ -64,6 +64,7 @@ function getPaymentStatusBadgeClasses(status: string) {
 export default function BookingDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const id = params?.id as string;
   
@@ -105,29 +106,67 @@ export default function BookingDetailsPage() {
   const { progressValue, progressLabel, progressSteps, startProgress, resetProgress } = useProgressSteps();
 
   // Load booking data
-  useEffect(() => {
-    const loadBooking = async () => {
-      try {
-        setLoading(true);
-        const bookingData = await getBookingById(id);
-        setBooking(bookingData.booking);
-        
-        // Load assigned driver and vehicle if they exist
-        if (bookingData.booking?.driver_id || bookingData.booking?.vehicle_id) {
-          await loadAssignedResources(bookingData.booking);
-        }
-      } catch (err) {
-        console.error('Error loading booking:', err);
-        setError('Failed to load booking details');
-      } finally {
-        setLoading(false);
+  const loadBooking = async () => {
+    try {
+      setLoading(true);
+      const bookingData = await getBookingById(id);
+      setBooking(bookingData.booking);
+      
+      // Load assigned driver and vehicle if they exist
+      if (bookingData.booking?.driver_id || bookingData.booking?.vehicle_id) {
+        await loadAssignedResources(bookingData.booking);
       }
-    };
+    } catch (err) {
+      console.error('Error loading booking:', err);
+      setError('Failed to load booking details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (id) {
       loadBooking();
     }
   }, [id, router]);
+
+  // Refresh data when page becomes visible (e.g., returning from edit page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && id) {
+        loadBooking();
+      }
+    };
+
+    const handleFocus = () => {
+      if (id) {
+        loadBooking();
+      }
+    };
+
+    // Listen for page visibility changes and focus events
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [id]);
+
+  // Refresh data when refresh parameter is present (e.g., returning from edit page)
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam && id) {
+      loadBooking();
+      // Clean up the URL by removing the refresh parameter
+      const url = new URL(window.location.href);
+      url.searchParams.delete('refresh');
+      router.replace(url.pathname + url.search as any);
+    }
+  }, [searchParams, id, router]);
 
   // Load assigned driver and vehicle data
   const loadAssignedResources = async (bookingData: Booking) => {
@@ -685,7 +724,7 @@ export default function BookingDetailsPage() {
                   </div>
                 </div>
                 
-                {/* Share and Edit buttons moved to top right */}
+                {/* Share, Edit, and Refresh buttons moved to top right */}
                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 flex-shrink-0">
                   <div className="w-full sm:w-auto">
                     <BookingShareButtons booking={booking} />
@@ -697,6 +736,15 @@ export default function BookingDetailsPage() {
                   >
                     <Edit className="h-4 w-4" />
                     Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full sm:w-auto gap-2 h-9"
+                    onClick={() => loadBooking()}
+                    disabled={loading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
                   </Button>
                 </div>
               </div>
@@ -796,7 +844,7 @@ export default function BookingDetailsPage() {
                         <div className="p-3 bg-muted/30 rounded-lg">
                           <div className="text-sm text-muted-foreground mb-1">Service Type</div>
                           <div className="font-medium text-foreground">
-                            {booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
+                            {booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer'}
                           </div>
                         </div>
                         
@@ -1255,7 +1303,7 @@ export default function BookingDetailsPage() {
         booking={booking ? {
           id: booking.id || id,
           wp_id: booking.wp_id,
-          service_name: booking.service_type || booking.meta?.quotation_items?.[0]?.service_type_name,
+          service_name: booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name,
           date: booking.date || '',
           time: booking.time || '',
           customer_name: booking.customer_name,

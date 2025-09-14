@@ -654,7 +654,7 @@ export default function EditBookingPage() {
               // Close progress modal after a short delay
               setTimeout(() => {
                 setIsProgressModalOpen(false)
-                router.push(`/bookings/${id}`)
+                router.push(`/bookings/${id}?refresh=${Date.now()}`)
               }, 1000)
             } else {
               setProgressValue(100)
@@ -666,7 +666,7 @@ export default function EditBookingPage() {
               
               setTimeout(() => {
                 setIsProgressModalOpen(false)
-                router.push(`/bookings/${id}`)
+                router.push(`/bookings/${id}?refresh=${Date.now()}`)
               }, 2000)
             }
           } catch (paymentError) {
@@ -680,14 +680,14 @@ export default function EditBookingPage() {
             
             setTimeout(() => {
               setIsProgressModalOpen(false)
-              router.push(`/bookings/${id}`)
+              router.push(`/bookings/${id}?refresh=${Date.now()}`)
             }, 2000)
           }
         } else {
           setSaveResult({ success: true, message: 'Booking updated successfully!' })
           // Redirect to booking details after successful update
           setTimeout(() => {
-            router.push(`/bookings/${id}`)
+            router.push(`/bookings/${id}?refresh=${Date.now()}`)
           }, 2000)
         }
       } else {

@@ -623,8 +623,8 @@ export async function getBookingById(
   useFallback: boolean = false
 ): Promise<{ booking: Booking | null; debugInfo?: DebugAttemptInfo[] }> {
   try {
-    // Check if the ID is a booking number (like QUO-316-1) or a UUID
-    const isBookingNumber = /^QUO-\d+-\d+$/.test(id);
+    // Check if the ID is a booking number (like QUO-316-1, BOO-006) or a UUID
+    const isBookingNumber = /^(QUO-\d+-\d+|BOO-\d+)$/.test(id);
     
     let dbResult;
     if (isBookingNumber) {

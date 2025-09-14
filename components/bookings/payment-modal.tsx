@@ -45,17 +45,26 @@ export function PaymentModal({
   const hasUpgradeDowngrade = formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== 0
   const upgradeAmount = formData.upgradeDowngradeData?.priceDifference || 0
   
-  // Calculate full quote amount correctly with refund discount
-  const baseAmount = formData.upgradeDowngradeData ? 
+  // Calculate full quote amount correctly with time-based adjustment and refund discount
+  const baseServicePrice = formData.upgradeDowngradeData ? 
     (formData.isFreeUpgrade ? formData.upgradeDowngradeData.currentPrice : formData.upgradeDowngradeData.newPrice) :
     calculatedPrice.baseAmount
     
-  const taxAmount = Math.round(baseAmount * (formData.tax_percentage || 10) / 100)
-  const fullQuoteAmount = baseAmount + taxAmount
+  const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0
+  const regularDiscount = calculatedPrice.regularDiscountAmount || 0
+  const couponDiscount = calculatedPrice.couponDiscountAmount || 0
+  const refundDiscount = formData.refundCouponDiscount || 0
+  
+  // Correct calculation: Service + Time-based adjustment - Discounts = Subtotal
+  const subtotal = baseServicePrice + timeAdjustment - regularDiscount - couponDiscount - refundDiscount
+  const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100)
+  const fullQuoteAmount = subtotal + taxAmount
   
   // Debug logging
   console.log('Payment calculation debug:', {
-    baseAmount,
+    baseServicePrice,
+    timeAdjustment,
+    subtotal,
     taxAmount,
     fullQuoteAmount
   })
@@ -72,6 +81,14 @@ export function PaymentModal({
     setLoadingLabel('Preparing your payment request...')
 
     try {
+      // Debug logging
+      console.log('Payment submit debug:', {
+        paymentType,
+        hasUpgradeDowngrade: !!formData.upgradeDowngradeData,
+        upgradeDowngradeData: formData.upgradeDowngradeData,
+        priceDifference: formData.upgradeDowngradeData?.priceDifference
+      });
+      
       // Simulate progress steps
       const steps = [
         { label: 'Validating payment data...', progress: 20 },
@@ -87,39 +104,41 @@ export function PaymentModal({
         await new Promise(resolve => setTimeout(resolve, 800))
       }
 
-      // Create operation first - EXACT same as smart assignment modal
+      // Create operation first - only for upgrade/downgrade payments
       let operationId = null;
-      try {
-        const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operationType: formData.upgradeDowngradeData.priceDifference > 0 ? 'upgrade' : 'downgrade',
-            previousVehicleId: formData.originalVehicleId,
-            newVehicleId: formData.vehicle_id,
-            driverId: formData.driver_id,
-            priceDifference: formData.upgradeDowngradeData.priceDifference,
-            paymentAmount: formData.upgradeDowngradeData.priceDifference > 0 ? formData.upgradeDowngradeData.priceDifference : 0,
-            couponCode: formData.upgradeDowngradeData.priceDifference < 0 ? `REFUND-${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined,
-            refundAmount: formData.upgradeDowngradeData.priceDifference < 0 ? Math.abs(formData.upgradeDowngradeData.priceDifference) : 0,
-            customerEmail: emailData.customerEmail,
-            bccEmail: emailData.bccEmails || undefined
-          })
-        });
-        
-        const operationResult = await operationResponse.json();
-        
-        if (operationResult.success) {
-          operationId = operationResult.operationId;
-        } else {
-          throw new Error(operationResult.error || 'Failed to create operation');
+      if (formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
+        try {
+          const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              operationType: formData.upgradeDowngradeData.priceDifference > 0 ? 'upgrade' : 'downgrade',
+              previousVehicleId: formData.originalVehicleId,
+              newVehicleId: formData.vehicle_id,
+              driverId: formData.driver_id,
+              priceDifference: formData.upgradeDowngradeData.priceDifference,
+              paymentAmount: formData.upgradeDowngradeData.priceDifference > 0 ? formData.upgradeDowngradeData.priceDifference : 0,
+              couponCode: formData.upgradeDowngradeData.priceDifference < 0 ? `REFUND-${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined,
+              refundAmount: formData.upgradeDowngradeData.priceDifference < 0 ? Math.abs(formData.upgradeDowngradeData.priceDifference) : 0,
+              customerEmail: emailData.customerEmail,
+              bccEmail: emailData.bccEmails || undefined
+            })
+          });
+          
+          const operationResult = await operationResponse.json();
+          
+          if (operationResult.success) {
+            operationId = operationResult.operationId;
+          } else {
+            throw new Error(operationResult.error || 'Failed to create operation');
+          }
+        } catch (error) {
+          throw new Error(`Failed to create operation: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-      } catch (error) {
-        throw new Error(`Failed to create operation: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
       // Use EXACT same API call pattern as smart assignment modal
-      if (paymentType === 'upgrade-only' && formData.upgradeDowngradeData) {
+      if (paymentType === 'upgrade-only' && formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
         if (formData.upgradeDowngradeData.priceDifference > 0) {
           // Upgrade payment - EXACT same as smart assignment
           const response = await fetch(`/api/bookings/${formData.id}/generate-upgrade-payment`, {
@@ -179,7 +198,7 @@ export function PaymentModal({
         }
       } else if (paymentType === 'full-quote') {
         // Full quote - create operation first, then generate PDF
-        if (formData.upgradeDowngradeData) {
+        if (formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
           // Create operation for upgrade/downgrade
           const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
             method: 'POST',
@@ -369,9 +388,50 @@ export function PaymentModal({
                          <span className="text-muted-foreground">
                            {formData.upgradeDowngradeData ? 'New Service' : 'Service'}
                          </span>
-                         <span>¥{formData.upgradeDowngradeData ? 
-                           (formData.isFreeUpgrade ? formData.upgradeDowngradeData.currentPrice : formData.upgradeDowngradeData.newPrice).toLocaleString() :
-                           calculatedPrice.baseAmount.toLocaleString()}</span>
+                         <span>¥{baseServicePrice.toLocaleString()}</span>
+                       </div>
+                       
+                       {/* Time-based adjustment - only show if > 0 */}
+                       {timeAdjustment > 0 && (
+                         <div className="flex justify-between text-orange-600">
+                           <span className="text-muted-foreground">
+                             {calculatedPrice.appliedTimeBasedRule?.name || 'Time-based adjustment'}
+                             {calculatedPrice.appliedTimeBasedRule?.start_time && calculatedPrice.appliedTimeBasedRule?.end_time && (
+                               <span className="text-xs text-muted-foreground ml-1">
+                                 ({calculatedPrice.appliedTimeBasedRule.start_time.split(':').slice(0, 2).join(':')}-{calculatedPrice.appliedTimeBasedRule.end_time.split(':').slice(0, 2).join(':')})
+                               </span>
+                             )}
+                           </span>
+                           <span>+¥{timeAdjustment.toLocaleString()}</span>
+                         </div>
+                       )}
+                       
+                       {/* Discounts - only show if > 0 */}
+                       {regularDiscount > 0 && (
+                         <div className="flex justify-between text-green-600">
+                           <span className="text-muted-foreground">Discount</span>
+                           <span>-¥{regularDiscount.toLocaleString()}</span>
+                         </div>
+                       )}
+                       
+                       {couponDiscount > 0 && (
+                         <div className="flex justify-between text-blue-600">
+                           <span className="text-muted-foreground">Coupon Discount</span>
+                           <span>-¥{couponDiscount.toLocaleString()}</span>
+                         </div>
+                       )}
+                       
+                       {refundDiscount > 0 && (
+                         <div className="flex justify-between text-green-600">
+                           <span className="text-muted-foreground">Refund Code</span>
+                           <span>-¥{refundDiscount.toLocaleString()}</span>
+                         </div>
+                       )}
+                       
+                       {/* Subtotal */}
+                       <div className="flex justify-between font-medium">
+                         <span className="text-muted-foreground">Subtotal</span>
+                         <span>¥{subtotal.toLocaleString()}</span>
                        </div>
                      </>
                    )}

@@ -1,4 +1,4 @@
-// AviationStack API Types
+// AviationStack API Types (Legacy)
 export interface AviationStackFlight {
   flight: {
     number: string
@@ -54,6 +54,56 @@ export interface AviationStackResponse {
   data: AviationStackFlight[]
 }
 
+// AeroDataBox API Types
+export interface AeroDataBoxFlight {
+  flight: {
+    number: string
+    iata: string
+    icao: string
+  }
+  airline: {
+    name: string
+    iata: string
+    icao: string
+  }
+  aircraft?: {
+    registration: string
+    iata: string
+    icao: string
+    icao24: string
+  }
+  departure: {
+    airport: string
+    timezone: string
+    iata: string
+    icao: string
+    terminal?: string
+    gate?: string
+    delay?: number
+    scheduled: string
+    estimated?: string
+    actual?: string
+  }
+  arrival: {
+    airport: string
+    timezone: string
+    iata: string
+    icao: string
+    terminal?: string
+    gate?: string
+    baggage?: string
+    delay?: number
+    scheduled: string
+    estimated?: string
+    actual?: string
+  }
+  flight_status: string
+}
+
+export interface AeroDataBoxResponse {
+  data: AeroDataBoxFlight[]
+}
+
 export interface FlightSearchParams {
   flight_number?: string
   flight_iata?: string
@@ -84,7 +134,12 @@ export interface FlightSearchResult {
     scheduled: string
   }
   status: string
-  aircraft?: string
+  aircraft?: {
+    registration: string
+    model: string
+    iata?: string
+    icao?: string
+  }
   pickupDate?: string
   pickupTime?: string
 }

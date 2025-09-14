@@ -305,42 +305,42 @@ export function RideSummary({
                 <div className="flex justify-between font-medium">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>¥{(() => {
-                    // For upgrades/downgrades, use the effective service price as base for discount calculation
-                    const baseAmount = formData.upgradeDowngradeData ? 
+                    // Get the base service price (without time-based adjustments)
+                    const baseServicePrice = formData.upgradeDowngradeData ? 
                       (formData.isFreeUpgrade ? 
                         formData.upgradeDowngradeData.currentPrice : 
                         formData.upgradeDowngradeData.newPrice
                       ) :
-                      (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                      calculatedPrice.baseAmount; // Use baseAmount, not adjustedBaseAmount
                     
                     const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
                     const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
                     const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
                     const refundDiscount = refundCouponDiscount || 0;
                     
-                    // Apply discounts to the effective service price
-                    const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                    // Correct calculation: Service + Time-based adjustment - Discounts = Subtotal
+                    const subtotal = baseServicePrice + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
                     return Math.max(0, subtotal).toLocaleString();
                   })()}</span>
                 </div>
                 
                 {/* Tax - only show if > 0 */}
                 {(() => {
-                  // For upgrades/downgrades, use the effective service price as base for discount calculation
-                  const baseAmount = formData.upgradeDowngradeData ? 
+                  // Get the base service price (without time-based adjustments)
+                  const baseServicePrice = formData.upgradeDowngradeData ? 
                     (formData.isFreeUpgrade ? 
                       formData.upgradeDowngradeData.currentPrice : 
                       formData.upgradeDowngradeData.newPrice
                     ) :
-                    (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                    calculatedPrice.baseAmount; // Use baseAmount, not adjustedBaseAmount
                   
                   const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
                   const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
                   const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
                   const refundDiscount = refundCouponDiscount || 0;
                   
-                  // Apply discounts to the effective service price
-                  const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                  // Correct calculation: Service + Time-based adjustment - Discounts = Subtotal
+                  const subtotal = baseServicePrice + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
                   const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100);
                   
                   return taxAmount > 0 ? (
@@ -359,21 +359,21 @@ export function RideSummary({
                 <span>Total</span>
                 <span className="text-primary">
                   ¥{(() => {
-                    // For upgrades/downgrades, use the effective service price as base for discount calculation
-                    const baseAmount = formData.upgradeDowngradeData ? 
+                    // Get the base service price (without time-based adjustments)
+                    const baseServicePrice = formData.upgradeDowngradeData ? 
                       (formData.isFreeUpgrade ? 
                         formData.upgradeDowngradeData.currentPrice : 
                         formData.upgradeDowngradeData.newPrice
                       ) :
-                      (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+                      calculatedPrice.baseAmount; // Use baseAmount, not adjustedBaseAmount
                     
                     const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
                     const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
                     const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
                     const refundDiscount = refundCouponDiscount || 0;
                     
-                    // Apply discounts to the effective service price
-                    const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+                    // Correct calculation: Service + Time-based adjustment - Discounts = Subtotal
+                    const subtotal = baseServicePrice + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
                     const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100);
                     const total = subtotal + taxAmount;
                     

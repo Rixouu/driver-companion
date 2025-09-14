@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Search, Plane, Clock, MapPin, X } from 'lucide-react'
-import { aviationStackService } from '@/lib/aviation-stack'
+import { aeroDataBoxService } from '@/lib/aerodatabox'
 import { FlightSearchResult } from '@/types/aviation'
 import { cn } from '@/lib/utils'
 
@@ -84,7 +84,7 @@ export function FlightSearch({
     setError(null)
 
     try {
-      const flights = await aviationStackService.searchFlightsByNumber(term)
+      const flights = await aeroDataBoxService.searchFlightsByNumber(term)
       setResults(flights)
       setIsOpen(true)
     } catch (err) {
@@ -181,17 +181,50 @@ export function FlightSearch({
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'scheduled':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700'
       case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+      case 'enroute':
+      case 'in flight':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700'
       case 'landed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+      case 'arrived':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border-gray-200 dark:border-gray-700'
       case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+      case 'canceled':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-700'
       case 'delayed':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700'
+      case 'expected':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-700'
+      case 'boarding':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-700'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'scheduled':
+        return '📅'
+      case 'active':
+      case 'enroute':
+      case 'in flight':
+        return '✈️'
+      case 'landed':
+      case 'arrived':
+        return '🛬'
+      case 'cancelled':
+      case 'canceled':
+        return '❌'
+      case 'delayed':
+        return '⏰'
+      case 'expected':
+        return '🔮'
+      case 'boarding':
+        return '🚶‍♂️'
+      default:
+        return '📋'
     }
   }
 
@@ -200,15 +233,15 @@ export function FlightSearch({
       <div className="space-y-2">
         <Label htmlFor="flight-search">{label}</Label>
         <div className="relative">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
               id="flight-search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={placeholder}
               required={required}
-              className="pl-10 pr-10"
+              className="pl-10 pr-10 h-11 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
               onFocus={() => {
                 if (results.length > 0) {
                   setIsOpen(true)
@@ -220,81 +253,174 @@ export function FlightSearch({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
                 onClick={handleClear}
               >
                 <X className="h-4 w-4" />
               </Button>
             )}
             {isLoading && (
-              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
             )}
           </div>
 
           {/* Search Results Dropdown */}
           {isOpen && (results.length > 0 || error) && (
-            <Card className="absolute z-50 w-full mt-1 max-h-80 overflow-y-auto border shadow-lg">
+            <Card className="absolute z-50 w-full mt-2 max-h-96 overflow-y-auto border shadow-xl bg-background/95 backdrop-blur-sm">
               {error && (
-                <div className="p-3 text-sm text-red-600 dark:text-red-400">
-                  {error}
+                <div className="p-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    {error}
+                  </div>
                 </div>
               )}
               
               {results.length > 0 ? (
-                <div className="p-2">
+                <div className="p-1">
                   {results.map((flight, index) => (
                     <div
                       key={`${flight.flightNumber}-${index}`}
-                      className="p-3 hover:bg-muted/50 cursor-pointer rounded-md transition-colors"
+                      className="p-4 hover:bg-muted/60 cursor-pointer rounded-lg transition-all duration-200 hover:shadow-sm border-b border-border/50 last:border-b-0 group"
                       onClick={() => handleSelect(flight)}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Plane className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{flight.flightNumber}</span>
-                          <span className="text-sm text-muted-foreground">{flight.airline}</span>
+                      {/* Header with Flight Info and Status */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <Plane className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-foreground text-base">{flight.flightNumber}</div>
+                            <div className="text-sm text-muted-foreground font-medium">{flight.airline}</div>
+                          </div>
                         </div>
-                        <Badge className={getStatusColor(flight.status)}>
+                        <Badge className={`${getStatusColor(flight.status)} font-semibold px-2.5 py-1 rounded-full border text-xs shadow-sm`}>
+                          <span className="mr-1">{getStatusIcon(flight.status)}</span>
                           {flight.status}
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span className="text-xs">Departure</span>
+                      {/* Flight Route Information */}
+                      <div className="flex items-center justify-between py-2">
+                        {/* Departure */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Departure</span>
                           </div>
-                          <div className="font-medium">{flight.departure.airport}</div>
-                          {flight.departure.terminal && (
-                            <div className="text-xs text-muted-foreground">
-                              Terminal {flight.departure.terminal}
+                          <div className="space-y-1.5">
+                            <div className="font-semibold text-foreground text-sm leading-tight truncate">
+                              {flight.departure.airport}
                             </div>
-                          )}
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">
-                              {formatTime(flight.departure.scheduled)}
-                            </span>
+                            {flight.departure.terminal && (
+                              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full inline-block border border-blue-200 dark:border-blue-800">
+                                Terminal {flight.departure.terminal}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className="font-mono font-medium">
+                                {formatTime(flight.departure.scheduled)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            <span className="text-xs">Arrival</span>
-                          </div>
-                          <div className="font-medium">{flight.arrival.airport}</div>
-                          {flight.arrival.terminal && (
-                            <div className="text-xs text-muted-foreground">
-                              Terminal {flight.arrival.terminal}
-                            </div>
-                          )}
+                        {/* Flight Path Visual */}
+                        <div className="flex items-center justify-center px-4 py-2 mx-2">
                           <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-xs">
-                              {formatTime(flight.arrival.scheduled)}
-                            </span>
+                            <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                            <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                            <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                            <div className="w-8 h-px bg-gradient-to-r from-blue-500 to-green-500 mx-1"></div>
+                            <Plane className="h-3 w-3 text-muted-foreground/60" />
+                          </div>
+                        </div>
+                        
+                        {/* Arrival */}
+                        <div className="flex-1 min-w-0 text-right">
+                          <div className="flex items-center justify-end gap-2 mb-2">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Arrival</span>
+                            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="font-semibold text-foreground text-sm leading-tight truncate">
+                              {flight.arrival.airport}
+                            </div>
+                            {flight.arrival.terminal && (
+                              <div className="text-xs text-muted-foreground bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full inline-block border border-green-200 dark:border-green-800">
+                                Terminal {flight.arrival.terminal}
+                              </div>
+                            )}
+                            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-mono font-medium">
+                                {formatTime(flight.arrival.scheduled)}
+                              </span>
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Flight Information */}
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <div className="grid grid-cols-3 gap-3">
+                          {/* Aircraft Information */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aircraft:</span>
+                            </div>
+                            <div className="text-xs">
+                              {flight.aircraft?.model ? (
+                                <div className="text-foreground font-semibold truncate">
+                                  {flight.aircraft.model}
+                                </div>
+                              ) : (
+                                <div className="text-muted-foreground text-xs">
+                                  Not available
+                                </div>
+                              )}
+                              {flight.aircraft?.registration && (
+                                <div className="text-muted-foreground text-xs">
+                                  {flight.aircraft.registration}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Flight Duration */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration:</span>
+                            </div>
+                            <div className="text-xs text-foreground font-semibold">
+                              {flight.departure.scheduled && flight.arrival.scheduled && (
+                                (() => {
+                                  const depTime = new Date(flight.departure.scheduled)
+                                  const arrTime = new Date(flight.arrival.scheduled)
+                                  const duration = arrTime.getTime() - depTime.getTime()
+                                  const hours = Math.floor(duration / (1000 * 60 * 60))
+                                  const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60))
+                                  return `${hours}h ${minutes}m`
+                                })()
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Flight Codes */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details:</span>
+                            </div>
+                            <div className="text-xs">
+                              <div className="text-foreground font-medium">
+                                {flight.flightNumber} ({flight.airline})
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -302,9 +428,12 @@ export function FlightSearch({
                   ))}
                 </div>
               ) : !error && !isLoading && (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  <div className="mb-2">No exact flight match found</div>
-                  <div className="text-xs">
+                <div className="p-6 text-center">
+                  <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Search className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="text-sm font-medium text-foreground mb-1">No flights found</div>
+                  <div className="text-xs text-muted-foreground">
                     Try searching for the airline code (e.g., "TG" for Thai Airways) 
                     or check the flight number format
                   </div>
@@ -316,27 +445,158 @@ export function FlightSearch({
 
         {/* Selected Flight Display */}
         {selectedFlight && (
-          <Card className="p-3 bg-muted/30 border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Plane className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{selectedFlight.flightNumber}</span>
-                <span className="text-sm text-muted-foreground">{selectedFlight.airline}</span>
+          <Card className="p-4 bg-gradient-to-r from-muted/40 to-muted/20 border border-border/50 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Plane className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <div className="font-bold text-foreground text-base">{selectedFlight.flightNumber}</div>
+                  <div className="text-sm text-muted-foreground font-medium">{selectedFlight.airline}</div>
+                </div>
               </div>
-              <Badge className={getStatusColor(selectedFlight.status)}>
+              <Badge className={`${getStatusColor(selectedFlight.status)} font-semibold px-2.5 py-1 rounded-full border text-xs shadow-sm`}>
+                <span className="mr-1">{getStatusIcon(selectedFlight.status)}</span>
                 {selectedFlight.status}
               </Badge>
             </div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              {selectedFlight.departure.airport} → {selectedFlight.arrival.airport}
-              {selectedFlight.arrival.terminal && ` (Terminal ${selectedFlight.arrival.terminal})`}
-            </div>
-            {selectedFlight.pickupDate && selectedFlight.pickupTime && (
-              <div className="mt-2 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Pickup scheduled for {selectedFlight.pickupDate} at {selectedFlight.pickupTime} (30min after arrival)
+            
+            <div className="space-y-3">
+              {/* Flight Route */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Departure</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-semibold text-foreground text-sm truncate">
+                      {selectedFlight.departure.airport}
+                    </div>
+                    {selectedFlight.departure.terminal && (
+                      <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full inline-block border border-blue-200 dark:border-blue-800">
+                        Terminal {selectedFlight.departure.terminal}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      <span className="font-mono font-medium">
+                        {formatTime(selectedFlight.departure.scheduled)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-center px-3 py-1 mx-2">
+                  <div className="flex items-center gap-1">
+                    <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                    <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                    <div className="w-1 h-1 bg-muted-foreground/40 rounded-full"></div>
+                    <div className="w-6 h-px bg-gradient-to-r from-blue-500 to-green-500 mx-1"></div>
+                    <Plane className="h-3 w-3 text-muted-foreground/60" />
+                  </div>
+                </div>
+                
+                <div className="flex-1 min-w-0 text-right">
+                  <div className="flex items-center justify-end gap-2 mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Arrival</span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-semibold text-foreground text-sm truncate">
+                      {selectedFlight.arrival.airport}
+                    </div>
+                    {selectedFlight.arrival.terminal && (
+                      <div className="text-xs text-muted-foreground bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full inline-block border border-green-200 dark:border-green-800">
+                        Terminal {selectedFlight.arrival.terminal}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
+                      <span className="font-mono font-medium">
+                        {formatTime(selectedFlight.arrival.scheduled)}
+                      </span>
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
+
+              {/* Additional Flight Information */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Aircraft Information */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Aircraft:</span>
+                    </div>
+                    <div className="text-xs">
+                      {selectedFlight.aircraft?.model ? (
+                        <div className="text-foreground font-semibold truncate">
+                          {selectedFlight.aircraft.model}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground text-xs">
+                          Not available
+                        </div>
+                      )}
+                      {selectedFlight.aircraft?.registration && (
+                        <div className="text-muted-foreground text-xs">
+                          {selectedFlight.aircraft.registration}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Flight Duration */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration:</span>
+                    </div>
+                    <div className="text-xs text-foreground font-semibold">
+                      {selectedFlight.departure.scheduled && selectedFlight.arrival.scheduled && (
+                        (() => {
+                          const depTime = new Date(selectedFlight.departure.scheduled)
+                          const arrTime = new Date(selectedFlight.arrival.scheduled)
+                          const duration = arrTime.getTime() - depTime.getTime()
+                          const hours = Math.floor(duration / (1000 * 60 * 60))
+                          const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60))
+                          return `${hours}h ${minutes}m`
+                        })()
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Flight Codes */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Details:</span>
+                    </div>
+                    <div className="text-xs">
+                      <div className="text-foreground font-medium">
+                        {selectedFlight.flightNumber} ({selectedFlight.airline})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pickup Information */}
+              {selectedFlight.pickupDate && selectedFlight.pickupTime && (
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">Pickup Scheduled</span>
+                  </div>
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    {selectedFlight.pickupDate} at {selectedFlight.pickupTime} (30min after arrival)
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
         )}
       </div>

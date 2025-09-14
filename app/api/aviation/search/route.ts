@@ -8,49 +8,89 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Flight number is required' }, { status: 400 })
   }
 
-  const apiKey = process.env.AVIATIONSTACK_API_KEY || process.env.NEXT_PUBLIC_AVIATIONSTACK_API_KEY
+  const apiKey = process.env.AERODATABOX_API_KEY || process.env.NEXT_PUBLIC_AERODATABOX_API_KEY
   
   if (!apiKey) {
-    return NextResponse.json({ error: 'AviationStack API key is not configured' }, { status: 500 })
+    return NextResponse.json({ error: 'AeroDataBox API key is not configured' }, { status: 500 })
   }
 
   try {
-    // First, try exact flight number search
-    let url = new URL('http://api.aviationstack.com/v1/flights')
-    url.searchParams.append('access_key', apiKey)
-    url.searchParams.append('flight_number', flightNumber)
-    url.searchParams.append('limit', '10')
+    // AeroDataBox API endpoint for flight status (nearest day)
+    const url = new URL('https://aerodatabox.p.rapidapi.com/flights/number/' + flightNumber)
+    url.searchParams.append('withAircraftImage', 'false')
+    url.searchParams.append('withLocation', 'false')
 
-    console.log('🔍 Making AviationStack API request:', url.toString())
+    console.log('🔍 Making AeroDataBox API request:', url.toString())
 
-    let response = await fetch(url.toString())
-    let data = await response.json()
-    
-    // If no results, try to extract airline code and search by airline
-    if (data.data.length === 0 && flightNumber.length >= 2) {
-      const airlineCode = flightNumber.substring(0, 2).toUpperCase()
-      console.log('🔄 No exact match, trying airline search:', airlineCode)
-      
-      url = new URL('http://api.aviationstack.com/v1/flights')
-      url.searchParams.append('access_key', apiKey)
-      url.searchParams.append('airline_iata', airlineCode)
-      url.searchParams.append('limit', '5')
-      
-      response = await fetch(url.toString())
-      data = await response.json()
-    }
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': apiKey,
+        'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+      }
+    })
+
+    const data = await response.json()
     
     if (!response.ok) {
-      const errorData = await response.json()
-      console.error('❌ AviationStack API error:', errorData)
-      return NextResponse.json({ error: errorData.error?.message || 'API request failed' }, { status: response.status })
+      console.error('❌ AeroDataBox API error:', data)
+      return NextResponse.json({ error: data.message || 'API request failed' }, { status: response.status })
     }
 
-    console.log('✅ AviationStack API response:', data)
+    console.log('✅ AeroDataBox API response:', data)
     
-    return NextResponse.json(data)
+    // Transform AeroDataBox response to match expected format
+    const flights = Array.isArray(data) ? data : [data]
+    
+    const transformedFlights = flights.map(flight => ({
+      flight: {
+        number: flight.number,
+        iata: flight.number,
+        icao: flight.number
+      },
+      airline: {
+        name: flight.airline.name,
+        iata: flight.airline.iata,
+        icao: flight.airline.icao
+      },
+      aircraft: flight.aircraft ? {
+        registration: flight.aircraft.reg || '',
+        model: flight.aircraft.model || '',
+        iata: flight.aircraft.iata || '',
+        icao: flight.aircraft.icao || ''
+      } : undefined,
+      departure: {
+        airport: flight.departure.airport.name,
+        timezone: flight.departure.airport.timeZone,
+        iata: flight.departure.airport.iata,
+        icao: flight.departure.airport.icao,
+        terminal: flight.departure.terminal,
+        gate: flight.departure.gate,
+        scheduled: flight.departure.scheduledTime.utc,
+        estimated: flight.departure.revisedTime?.utc,
+        actual: flight.departure.actualTime?.utc
+      },
+      arrival: {
+        airport: flight.arrival.airport.name,
+        timezone: flight.arrival.airport.timeZone,
+        iata: flight.arrival.airport.iata,
+        icao: flight.arrival.airport.icao,
+        terminal: flight.arrival.terminal,
+        gate: flight.arrival.gate,
+        scheduled: flight.arrival.scheduledTime.utc,
+        estimated: flight.arrival.predictedTime?.utc,
+        actual: flight.arrival.actualTime?.utc
+      },
+      flight_status: flight.status.toLowerCase()
+    }))
+    
+    const transformedData = {
+      data: transformedFlights
+    }
+    
+    return NextResponse.json(transformedData)
   } catch (error) {
-    console.error('❌ AviationStack API request failed:', error)
+    console.error('❌ AeroDataBox API request failed:', error)
     return NextResponse.json({ error: 'Failed to fetch flight data' }, { status: 500 })
   }
 }

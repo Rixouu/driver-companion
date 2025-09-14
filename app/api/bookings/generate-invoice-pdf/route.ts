@@ -541,17 +541,17 @@ async function generateBookingInvoiceHtml(
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
         <div>
           <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
-            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (isJapanese ? '前の車両:' : 'Previous Vehicle:') : (isJapanese ? '車両:' : 'Vehicle:')}
+            ${(previousVehicleInfo || newVehicleInfo) ? (isJapanese ? '前の車両:' : 'Previous Vehicle:') : (isJapanese ? '車両:' : 'Vehicle:')}
           </p>
           <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
-            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (previousVehicleInfo?.name || previous_vehicle_name || 'N/A') : (booking.vehicle_name || 'N/A')}
+            ${previousVehicleInfo?.name || previous_vehicle_name || booking.vehicle_name || 'N/A'}
           </p>
-          ${(operation_type || (!operation_type && (payment_amount || refund_amount))) && previousVehicleInfo ? `
+          ${previousVehicleInfo ? `
           <p style="margin: 0; font-size: 12px; color: #6b7280;">
             ${previousVehicleInfo.brand || ''} ${previousVehicleInfo.model || ''}${previousVehicleInfo.year ? ` (${previousVehicleInfo.year})` : ''}
           </p>
           ` : ''}
-          ${!operation_type && !payment_amount && !refund_amount && booking.vehicle_brand && booking.vehicle_model ? `
+          ${!previousVehicleInfo && !newVehicleInfo && booking.vehicle_brand && booking.vehicle_model ? `
           <p style="margin: 0; font-size: 12px; color: #6b7280;">
             ${booking.vehicle_brand} ${booking.vehicle_model}${booking.vehicle_year ? ` (${booking.vehicle_year})` : ''}
           </p>
@@ -559,22 +559,22 @@ async function generateBookingInvoiceHtml(
         </div>
         <div>
           <p style="margin: 0 0 5px 0; font-size: 12px; color: #6b7280; font-weight: bold;">
-            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (isJapanese ? '新しい車両:' : 'New Vehicle:') : (isJapanese ? 'サービス詳細:' : 'Service Details:')}
+            ${(previousVehicleInfo || newVehicleInfo) ? (isJapanese ? '新しい車両:' : 'New Vehicle:') : (isJapanese ? 'サービス詳細:' : 'Service Details:')}
           </p>
           <p style="margin: 0 0 3px 0; font-size: 13px; color: #111827; font-weight: 500;">
-            ${(operation_type || (!operation_type && (payment_amount || refund_amount))) ? (newVehicleInfo?.name || new_vehicle_name || 'N/A') : (booking.service_name || 'N/A')}
+            ${newVehicleInfo?.name || new_vehicle_name || booking.service_name || 'N/A'}
           </p>
-          ${(operation_type || (!operation_type && (payment_amount || refund_amount))) && newVehicleInfo && newVehicleInfo.brand && newVehicleInfo.model ? `
+          ${newVehicleInfo && newVehicleInfo.brand && newVehicleInfo.model ? `
           <p style="margin: 0; font-size: 12px; color: #6b7280;">
             ${newVehicleInfo.brand} ${newVehicleInfo.model}${newVehicleInfo.year ? ` (${newVehicleInfo.year})` : ''}
           </p>
           ` : ''}
-          ${!operation_type && !payment_amount && !refund_amount && booking.pickup_location ? `
+          ${!previousVehicleInfo && !newVehicleInfo && booking.pickup_location ? `
           <p style="margin: 0; font-size: 12px; color: #6b7280;">
             ${isJapanese ? '出発地:' : 'From:'} ${booking.pickup_location}
           </p>
           ` : ''}
-          ${!operation_type && !payment_amount && !refund_amount && booking.dropoff_location ? `
+          ${!previousVehicleInfo && !newVehicleInfo && booking.dropoff_location ? `
           <p style="margin: 0; font-size: 12px; color: #6b7280;">
             ${isJapanese ? '到着地:' : 'To:'} ${booking.dropoff_location}
           </p>
@@ -709,7 +709,8 @@ export async function POST(request: NextRequest) {
     let previousVehicleInfo = null;
     let newVehicleInfo = null;
     
-    if (operation_type) {
+    // Always fetch vehicle information, even for regular bookings
+    {
       try {
         console.log('🔍 Fetching vehicle info for operation:', operation_type);
         
@@ -770,6 +771,27 @@ export async function POST(request: NextRequest) {
         
       } catch (error) {
         console.error('Error fetching vehicle information:', error);
+      }
+    }
+    
+    // For regular bookings (no operation type), set both vehicles to the same vehicle
+    if (!operation_type && !previousVehicleInfo && !newVehicleInfo && booking.vehicle_id) {
+      try {
+        console.log('🔍 Fetching vehicle info for regular booking with ID:', booking.vehicle_id);
+        const { data: vehicle, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('name, model, brand, year')
+          .eq('id', booking.vehicle_id)
+          .single();
+        
+        if (vehicle && !vehicleError) {
+          // For regular bookings, both previous and new vehicle are the same
+          previousVehicleInfo = vehicle;
+          newVehicleInfo = vehicle;
+          console.log('✅ Regular booking vehicle found:', vehicle);
+        }
+      } catch (error) {
+        console.error('Error fetching vehicle for regular booking:', error);
       }
     }
     

@@ -103,24 +103,26 @@ export function AdditionalInfoTab({
 
   // Calculate pricing breakdown similar to Ride Summary
   const calculatePricingBreakdown = () => {
-    const baseAmount = formData.upgradeDowngradeData ? 
+    // Get the base service price (without time-based adjustments)
+    const baseServicePrice = formData.upgradeDowngradeData ? 
       (formData.isFreeUpgrade ? 
         formData.upgradeDowngradeData.currentPrice : 
         formData.upgradeDowngradeData.newPrice
       ) :
-      (calculatedPrice.adjustedBaseAmount || calculatedPrice.baseAmount);
+      calculatedPrice.baseAmount; // Use baseAmount, not adjustedBaseAmount
     
     const timeAdjustment = calculatedPrice.timeBasedAdjustment || 0;
     const regularDiscount = calculatedPrice.regularDiscountAmount || 0;
     const couponDiscount = calculatedPrice.couponDiscountAmount || 0;
     const refundDiscount = refundCouponDiscount || 0;
     
-    const subtotal = baseAmount + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
+    // Correct calculation: Service + Time-based adjustment - Discounts = Subtotal
+    const subtotal = baseServicePrice + timeAdjustment - regularDiscount - couponDiscount - refundDiscount;
     const taxAmount = Math.round(subtotal * (formData.tax_percentage || 10) / 100);
     const total = subtotal + taxAmount;
     
     return {
-      baseAmount,
+      baseAmount: baseServicePrice, // Show the base service price
       timeAdjustment,
       regularDiscount,
       couponDiscount,
@@ -267,7 +269,12 @@ export function AdditionalInfoTab({
               {/* New Service Price */}
               <div className="flex justify-between font-medium">
                 <span className="text-muted-foreground">New Service Price</span>
-                <span>¥{pricing.baseAmount.toLocaleString()}</span>
+                <span>¥{formData.upgradeDowngradeData ? 
+                  (formData.isFreeUpgrade ? 
+                    formData.upgradeDowngradeData.currentPrice : 
+                    formData.upgradeDowngradeData.newPrice
+                  ).toLocaleString() : 
+                  calculatedPrice.baseAmount.toLocaleString()}</span>
               </div>
 
               {/* Time-based adjustment - only show if > 0 */}

@@ -422,6 +422,21 @@ export default function EditBookingPage() {
       return;
     }
     
+    // If selecting back to original vehicle, reset all upgrade/downgrade data
+    if (pricingData.isOriginalVehicle) {
+      console.log('🔄 Resetting to original vehicle pricing');
+      setUpgradeDowngradeData(null);
+      setFormData(prev => ({
+        ...prev,
+        upgradeDowngradeData: null,
+        upgradeDowngradeConfirmed: false,
+        upgradeDowngradeAction: undefined,
+        upgradeDowngradeCouponCode: undefined,
+        isFreeUpgrade: false
+      }));
+      return;
+    }
+    
     setUpgradeDowngradeData(pricingData);
     
     // Update form data with new pricing

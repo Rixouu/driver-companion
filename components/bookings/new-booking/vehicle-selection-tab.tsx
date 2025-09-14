@@ -70,8 +70,8 @@ export function VehicleSelectionTab({
       vehicle_year: vehicle.year?.toString()
     }));
     
-    // If this is an edit and we have a different vehicle, check for upgrade/downgrade
-    if (bookingId && currentVehicleId && currentVehicleId !== newVehicleId) {
+    // If this is an edit, handle vehicle pricing logic
+    if (bookingId && currentVehicleId) {
       // Check if service type has changed from original quotation
       const serviceTypeChanged = originalServiceName && formData.service_name && 
         originalServiceName !== formData.service_name;
@@ -82,6 +82,20 @@ export function VehicleSelectionTab({
         return; // Skip the upgrade/downgrade logic
       }
       
+      // If selecting back to the original vehicle, reset pricing
+      if (currentVehicleId === newVehicleId) {
+        console.log('🔄 Selected back to original vehicle, resetting pricing');
+        if (onVehicleChange) {
+          onVehicleChange({
+            priceDifference: 0,
+            assignmentType: 'update',
+            isOriginalVehicle: true
+          });
+        }
+        return;
+      }
+      
+      // If selecting a different vehicle, check for upgrade/downgrade
       console.log('🚗 Vehicle selection - calling pricing API with:', {
         currentVehicleId,
         newVehicleId,
@@ -263,7 +277,7 @@ export function VehicleSelectionTab({
                       <div className="flex gap-1 flex-wrap">
                         {categoryVehicles.map((vehicle) => {
                           if (vehicle.id === formData.originalVehicleId) {
-                            return <Badge key={vehicle.id} variant="secondary" className="text-xs">CURRENT</Badge>
+                            return <Badge key={vehicle.id} variant="outline" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-700">CURRENT</Badge>
                           }
                           // Show upgrade/downgrade status based on current selection vs original
                           if (formData.selectedVehicle && formData.selectedVehicle.id === vehicle.id) {
@@ -274,12 +288,12 @@ export function VehicleSelectionTab({
                               } else if (priceDiff < 0) {
                                 return <Badge key={vehicle.id} variant="default" className="text-xs bg-green-600">DOWNGRADE -¥{Math.abs(priceDiff).toLocaleString()}</Badge>
                               } else {
-                                return <Badge key={vehicle.id} variant="outline" className="text-xs">SAME PRICE</Badge>
+                                return <Badge key={vehicle.id} variant="outline" className="text-xs bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600">SAME PRICE</Badge>
                               }
                             }
-                            return <Badge key={vehicle.id} variant="outline" className="text-xs">SELECTED</Badge>
+                            return <Badge key={vehicle.id} variant="outline" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-700">SELECTED</Badge>
                           }
-                          return <Badge key={vehicle.id} variant="outline" className="text-xs">SELECT</Badge>
+                          return <Badge key={vehicle.id} variant="outline" className="text-xs bg-muted text-muted-foreground dark:bg-muted/50 dark:text-muted-foreground border-border">SELECT</Badge>
                         })}
                       </div>
                     )}
@@ -354,7 +368,7 @@ export function VehicleSelectionTab({
                             )}
                             {formData.originalVehicleId && vehicle.id === formData.originalVehicleId && (
                               <div className="mt-2">
-                                <Badge variant="secondary" className="text-xs w-full justify-center">CURRENT</Badge>
+                                <Badge variant="outline" className="text-xs w-full justify-center bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-700">CURRENT</Badge>
                               </div>
                             )}
                             

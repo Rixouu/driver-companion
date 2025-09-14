@@ -326,45 +326,17 @@ const UNIFIED_TEMPLATES = [
     category: 'system',
     subject: '{{subject}} - {{company_name}}',
     html_content: `
-      <!DOCTYPE html>
-      <html lang="{{language}}">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{subject}} - {{company_name}}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, {{primary_color}}, #e53e3e); border-radius: 8px;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">{{company_name}}</h1>
-          <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">{{subject}}</p>
+      <div style="margin-bottom: 25px;">
+        <h2 style="color: #2d3748; margin: 0 0 10px 0;">{{title}}</h2>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; color: #4a5568; white-space: pre-line;">{{message}}</p>
         </div>
-
-        <!-- Content -->
-        <div style="margin-bottom: 25px;">
-          <h2 style="color: #2d3748; margin: 0 0 10px 0;">{{title}}</h2>
-          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; color: #4a5568; white-space: pre-line;">{{message}}</p>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
-          <p style="margin: 0; color: #4a5568;">{{company_name}} System Notification</p>
-        </div>
-
-      </body>
-      </html>
+      </div>
     `,
     text_content: `
-      {{subject}} - {{company_name}}
-
       {{title}}
 
       {{message}}
-
-      {{company_name}} System Notification
     `,
     variables: {
       subject: 'string',

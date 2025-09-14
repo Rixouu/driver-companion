@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useI18n } from '@/lib/i18n/context';
-import { TeamSwitcher } from '@/components/team-switcher';
 import { generateEmailHeader, generateEmailFooter, generateEmailTemplate } from '@/lib/email/email-partials';
 import { Plus, Edit, Trash2, Mail, Bell, Settings, Eye, Copy, Send, FileText, Calendar, CreditCard, Wrench, Globe, Download, RefreshCw, Code, Palette, Clock, ChevronLeft, ChevronRight, MoreHorizontal, Grid, List } from 'lucide-react';
 
@@ -40,6 +39,10 @@ export function NotificationManagementImproved() {
   const [selectedTeam, setSelectedTeam] = useState<'japan' | 'thailand'>('thailand');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ja'>('en');
+  
+  // Modal-specific team and language states for preview
+  const [modalTeam, setModalTeam] = useState<'japan' | 'thailand'>('thailand');
+  const [modalLanguage, setModalLanguage] = useState<'en' | 'ja'>('en');
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
@@ -58,13 +61,21 @@ export function NotificationManagementImproved() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Process language conditionals in template content
+  const processLanguageConditionals = (content: string, language: 'en' | 'ja'): string => {
+    // Replace {{language == "ja" ? "Japanese text" : "English text"}} patterns
+    return content.replace(/\{\{language\s*==\s*"ja"\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"\}\}/g, (match, japaneseText, englishText) => {
+      return language === 'ja' ? japaneseText : englishText;
+    });
+  };
+
   // Generate preview content with sample data
-  const generatePreviewContent = (template: EmailTemplate) => {
+  const generatePreviewContent = (template: EmailTemplate, team: 'japan' | 'thailand' = selectedTeam, language: 'en' | 'ja' = selectedLanguage) => {
     try {
       const sampleData = {
         customer_name: 'John Doe',
         quotation_id: 'Q-2024-001',
-        company_name: selectedTeam === 'japan' ? 'Driver Japan' : 'Driver Thailand',
+        company_name: team === 'japan' ? 'Driver Japan' : 'Driver Thailand',
         greeting_text: 'Thank you for your interest in our services.',
         service_type: 'Airport Transfer',
         vehicle_type: 'Toyota Alphard',
@@ -92,27 +103,31 @@ export function NotificationManagementImproved() {
         ],
         magic_link: 'https://example.com/quote/123',
         primary_color: '#E03E2D',
-        from_name: selectedTeam === 'japan' ? 'Driver Japan Team' : 'Driver Thailand Team',
+        from_name: team === 'japan' ? 'Driver Japan Team' : 'Driver Thailand Team',
         quotation_title: 'Airport Transfer Service',
         total_amount: '15,000',
-        currency: selectedTeam === 'japan' ? 'JPY' : 'THB',
+        currency: team === 'japan' ? 'JPY' : 'THB',
         approval_date: '2024-09-13',
         approval_notes: 'All requirements have been reviewed and approved.',
         formatCurrency: (amount: number) => {
-          const symbol = selectedTeam === 'japan' ? '¥' : '฿';
+          const symbol = team === 'japan' ? '¥' : '฿';
           return `${symbol}${amount.toLocaleString()}`;
         }
       };
 
+      // Process the template content to handle language conditionals
+      const processedContent = processLanguageConditionals(template.html_content, language);
+      const processedSubject = processLanguageConditionals(template.subject, language);
+
       // Use the generateEmailTemplate function from email-partials to create full email
       return generateEmailTemplate({
         customerName: sampleData.customer_name,
-        language: selectedLanguage,
-        team: selectedTeam,
+        language: language,
+        team: team,
         logoUrl: 'https://japandriver.com/img/driver-invoice-logo.png',
-        title: template.subject.replace(/\{\{[^}]+\}\}/g, sampleData.company_name),
+        title: processedSubject.replace(/\{\{[^}]+\}\}/g, sampleData.company_name),
         subtitle: template.name,
-        content: template.html_content
+        content: processedContent
       });
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -277,25 +292,16 @@ export function NotificationManagementImproved() {
         ? `/api/admin/notification-templates/${editingTemplate.id}`
         : '/api/admin/notification-templates';
 
-      // Generate full HTML content with header/footer before saving
-      const fullHtmlContent = generateEmailTemplate({
-        customerName: '{{customer_name}}',
-        language: selectedLanguage,
-        team: selectedTeam,
-        logoUrl: 'https://japandriver.com/img/driver-invoice-logo.png',
-        title: templateForm.subject,
-        content: templateForm.html_content
-      });
-
+      // Save only the content-only HTML (no header/footer)
       const payload = editingTemplate 
         ? { 
             id: editingTemplate.id, 
-            ...templateForm,
-            html_content: fullHtmlContent // Save the full HTML content
+            ...templateForm
+            // html_content is already content-only from templateForm
           }
         : {
-            ...templateForm,
-            html_content: fullHtmlContent // Save the full HTML content
+            ...templateForm
+            // html_content is already content-only from templateForm
           };
 
       const response = await fetch(url, {
@@ -325,22 +331,21 @@ export function NotificationManagementImproved() {
   };
 
   const handleEdit = (template: EmailTemplate) => {
-    // Extract core content from full HTML (remove header/footer)
-    const contentMatch = template.html_content.match(/<td style="padding:32px 24px;">\s*([\s\S]*?)\s*<\/td>/);
-    const coreHtml = contentMatch ? contentMatch[1].trim() : template.html_content;
-
     setTemplateForm({
       name: template.name,
       type: template.type,
       category: template.category,
       subject: template.subject,
-      html_content: coreHtml, // Use core HTML for editing
+      html_content: template.html_content, // Already content-only from database
       text_content: template.text_content,
       variables: template.variables,
       is_active: template.is_active,
       is_default: template.is_default
     });
     setEditingTemplate(template);
+    // Reset modal states to current global states
+    setModalTeam(selectedTeam);
+    setModalLanguage(selectedLanguage);
     setIsTemplateDialogOpen(true);
   };
 
@@ -395,6 +400,9 @@ export function NotificationManagementImproved() {
 
   const handlePreview = (template: EmailTemplate) => {
     setPreviewTemplate(template);
+    // Reset modal states to current global states
+    setModalTeam(selectedTeam);
+    setModalLanguage(selectedLanguage);
   };
 
   const handleTestSend = (template: EmailTemplate) => {
@@ -510,21 +518,8 @@ export function NotificationManagementImproved() {
             Manage your fleet management email templates and notifications with team-specific settings
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-3 ml-6">
-          <TeamSwitcher
-            currentTeam={selectedTeam}
-            onTeamChange={setSelectedTeam}
-          />
-        </div>
       </div>
 
-      {/* Mobile Team Switcher */}
-      <div className="w-full sm:hidden">
-        <TeamSwitcher
-          currentTeam={selectedTeam}
-          onTeamChange={setSelectedTeam}
-        />
-      </div>
 
       {/* Search and Controls Bar */}
       <Card>
@@ -543,7 +538,7 @@ export function NotificationManagementImproved() {
             </div>
 
             {/* Filters and Controls - Responsive Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
               {/* Category Filter */}
               <div className="flex flex-col gap-1">
                 <Label htmlFor="category-filter" className="text-sm">Category</Label>
@@ -582,6 +577,34 @@ export function NotificationManagementImproved() {
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4" />
                         日本語
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Team Filter */}
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="team-filter" className="text-sm">Team</Label>
+                <Select value={selectedTeam} onValueChange={(value: 'japan' | 'thailand') => setSelectedTeam(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="thailand">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">TH</span>
+                        </div>
+                        Thailand
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="japan">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">JP</span>
+                        </div>
+                        Japan
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -710,7 +733,8 @@ export function NotificationManagementImproved() {
                                 position: 'relative'
                               }}>
                                 <iframe
-                                  srcDoc={generatePreviewContent(template)}
+                                  key={`thumbnail-${template.id}-${template.updated_at}-${selectedTeam}-${selectedLanguage}`}
+                                  srcDoc={generatePreviewContent(template, selectedTeam, selectedLanguage)}
                                   className="border-0 thumbnail-iframe"
                                   title="Email Preview Thumbnail"
                                   sandbox="allow-same-origin"
@@ -961,30 +985,35 @@ export function NotificationManagementImproved() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Template Information</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>Last updated: {previewTemplate?.updated_at ? new Date(previewTemplate.updated_at).toLocaleDateString() : 'Unknown'}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className={`text-xs ${
+                      previewTemplate?.category === 'quotation' 
+                        ? "text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700"
+                        : previewTemplate?.category === 'booking'
+                        ? "text-purple-800 border-purple-400 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700"
+                        : "text-gray-800 border-gray-400 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    }`}>
+                      {previewTemplate?.category}
+                    </Badge>
+                    <Badge variant="outline" className={`text-xs ${previewTemplate?.is_active ? "text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700" : "text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"}`}>
+                      {previewTemplate?.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Last updated: {previewTemplate?.updated_at ? new Date(previewTemplate.updated_at).toLocaleDateString() : 'Unknown'}</span>
+                  </div>
                 </div>
               </div>
               
               <div>
                 {/* Template Details Group */}
                 <div className="bg-muted/30 rounded-lg p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Template Name</Label>
-                      <div className="text-sm bg-background p-3 rounded border font-medium">
-                        {previewTemplate?.name}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Category</Label>
-                      <div className="flex gap-2 mt-1">
-                        <Badge>{previewTemplate?.category}</Badge>
-                        <Badge variant={previewTemplate?.is_active ? "default" : "secondary"}>
-                          {previewTemplate?.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Template Name</Label>
+                    <div className="text-sm bg-background p-3 rounded border font-medium">
+                      {previewTemplate?.name}
                     </div>
                   </div>
                   
@@ -1060,30 +1089,53 @@ export function NotificationManagementImproved() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Label className="text-sm font-medium">Live Preview</Label>
-                      <Badge variant="outline" className="text-xs">
-                        {selectedTeam === 'japan' ? 'Japan Team' : 'Thailand Team'}
-                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Scale:</Label>
-                      <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
-                        <button
-                          onClick={() => setModalPreviewScale(Math.max(0.5, modalPreviewScale - 0.1))}
-                          className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
-                          title="Zoom Out"
-                        >
-                          -
-                        </button>
-                        <span className="px-2 py-1 text-xs font-medium min-w-[3rem] text-center">
-                          {Math.round(modalPreviewScale * 100)}%
-                        </span>
-                        <button
-                          onClick={() => setModalPreviewScale(Math.min(1.2, modalPreviewScale + 0.1))}
-                          className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
-                          title="Zoom In"
-                        >
-                          +
-                        </button>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Team:</Label>
+                        <Select value={modalTeam} onValueChange={(value: 'japan' | 'thailand') => setModalTeam(value)}>
+                          <SelectTrigger className="w-24 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="thailand">TH</SelectItem>
+                            <SelectItem value="japan">JP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Lang:</Label>
+                        <Select value={modalLanguage} onValueChange={(value: 'en' | 'ja') => setModalLanguage(value)}>
+                          <SelectTrigger className="w-16 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">EN</SelectItem>
+                            <SelectItem value="ja">JA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Scale:</Label>
+                        <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
+                          <button
+                            onClick={() => setModalPreviewScale(Math.max(0.5, modalPreviewScale - 0.1))}
+                            className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
+                            title="Zoom Out"
+                          >
+                            -
+                          </button>
+                          <span className="px-2 py-1 text-xs font-medium min-w-[3rem] text-center">
+                            {Math.round(modalPreviewScale * 100)}%
+                          </span>
+                          <button
+                            onClick={() => setModalPreviewScale(Math.min(1.2, modalPreviewScale + 0.1))}
+                            className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
+                            title="Zoom In"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1091,11 +1143,12 @@ export function NotificationManagementImproved() {
                   <div className="bg-white border rounded-lg overflow-hidden h-[500px] relative">
                     {previewTemplate?.html_content ? (
                       <iframe
-                        srcDoc={generatePreviewContent(previewTemplate)}
+                        key={`modal-preview-${previewTemplate.id}-${previewTemplate.updated_at}-${modalTeam}-${modalLanguage}`}
+                        srcDoc={generatePreviewContent(previewTemplate, modalTeam, modalLanguage)}
                         className="w-full h-full border-0"
                         title="Email Preview"
                         sandbox="allow-same-origin"
-                        style={{ 
+                        style={{
                           transform: `scale(${modalPreviewScale})`,
                           transformOrigin: 'top left',
                           width: `${100 / modalPreviewScale}%`,
@@ -1165,9 +1218,25 @@ export function NotificationManagementImproved() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Basic Information</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>Last updated: {editingTemplate?.updated_at ? new Date(editingTemplate.updated_at).toLocaleDateString() : 'Unknown'}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className={`text-xs ${
+                      templateForm.category === 'quotation' 
+                        ? "text-blue-800 border-blue-400 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700"
+                        : templateForm.category === 'booking'
+                        ? "text-purple-800 border-purple-400 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700"
+                        : "text-gray-800 border-gray-400 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                    }`}>
+                      {templateForm.category}
+                    </Badge>
+                    <Badge variant="outline" className={`text-xs ${templateForm.is_active ? "text-green-800 border-green-400 bg-green-50 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700" : "text-red-800 border-red-400 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"}`}>
+                      {templateForm.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Last updated: {editingTemplate?.updated_at ? new Date(editingTemplate.updated_at).toLocaleDateString() : 'Unknown'}</span>
+                  </div>
                 </div>
               </div>
               
@@ -1175,35 +1244,15 @@ export function NotificationManagementImproved() {
                 
                 {/* Template Details Group */}
                 <div className="bg-muted/30 rounded-lg p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="template-name" className="text-sm font-medium">Template Name</Label>
-                      <Input
-                        id="template-name"
-                        value={templateForm.name}
-                        onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                        placeholder="Enter template name"
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="template-category" className="text-sm font-medium">Category</Label>
-                      <Select value={templateForm.category} onValueChange={(value) => setTemplateForm({ ...templateForm, category: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.value} value={category.value}>
-                              <div className="flex items-center gap-2">
-                                <category.icon className="h-4 w-4" />
-                                {category.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="template-name" className="text-sm font-medium">Template Name</Label>
+                    <Input
+                      id="template-name"
+                      value={templateForm.name}
+                      onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                      placeholder="Enter template name"
+                      className="w-full"
+                    />
                   </div>
                   
                   <div className="space-y-2">
@@ -1224,7 +1273,26 @@ export function NotificationManagementImproved() {
                 {/* Template Settings Group */}
                 <div className="bg-muted/30 rounded-lg p-6">
                   <h4 className="text-sm font-semibold mb-4 text-foreground">Template Settings</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="template-category" className="text-sm font-medium">Category</Label>
+                      <Select value={templateForm.category} onValueChange={(value) => setTemplateForm({ ...templateForm, category: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              <div className="flex items-center gap-2">
+                                <category.icon className="h-4 w-4" />
+                                {category.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center justify-between p-4 bg-background rounded-lg border">
                       <div className="space-y-1">
                         <Label htmlFor="template-active" className="text-sm font-medium">Active Template</Label>
@@ -1247,6 +1315,7 @@ export function NotificationManagementImproved() {
                         onCheckedChange={(checked) => setTemplateForm({ ...templateForm, is_default: checked })}
                       />
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -1316,30 +1385,53 @@ export function NotificationManagementImproved() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Label className="text-sm font-medium">Live Preview</Label>
-                      <Badge variant="outline" className="text-xs">
-                        {selectedTeam === 'japan' ? 'Japan Team' : 'Thailand Team'}
-                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Scale:</Label>
-                      <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
-                        <button
-                          onClick={() => setPreviewScale(Math.max(0.5, previewScale - 0.1))}
-                          className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
-                          title="Zoom Out"
-                        >
-                          -
-                        </button>
-                        <span className="px-2 py-1 text-xs font-medium min-w-[3rem] text-center">
-                          {Math.round(previewScale * 100)}%
-                        </span>
-                        <button
-                          onClick={() => setPreviewScale(Math.min(1.2, previewScale + 0.1))}
-                          className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
-                          title="Zoom In"
-                        >
-                          +
-                        </button>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Team:</Label>
+                        <Select value={modalTeam} onValueChange={(value: 'japan' | 'thailand') => setModalTeam(value)}>
+                          <SelectTrigger className="w-24 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="thailand">TH</SelectItem>
+                            <SelectItem value="japan">JP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Lang:</Label>
+                        <Select value={modalLanguage} onValueChange={(value: 'en' | 'ja') => setModalLanguage(value)}>
+                          <SelectTrigger className="w-16 h-7 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">EN</SelectItem>
+                            <SelectItem value="ja">JA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Scale:</Label>
+                        <div className="flex items-center space-x-1 bg-muted rounded-md p-1">
+                          <button
+                            onClick={() => setPreviewScale(Math.max(0.5, previewScale - 0.1))}
+                            className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
+                            title="Zoom Out"
+                          >
+                            -
+                          </button>
+                          <span className="px-2 py-1 text-xs font-medium min-w-[3rem] text-center">
+                            {Math.round(previewScale * 100)}%
+                          </span>
+                          <button
+                            onClick={() => setPreviewScale(Math.min(1.2, previewScale + 0.1))}
+                            className="px-2 py-1 rounded text-xs hover:bg-background transition-colors"
+                            title="Zoom In"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1347,14 +1439,14 @@ export function NotificationManagementImproved() {
                   <div className="bg-white border rounded-lg overflow-hidden h-[500px] relative">
                     {templateForm.html_content ? (
                       <iframe
-                        key={previewKey}
+                        key={`edit-preview-${editingTemplate?.id || 'preview'}-${modalTeam}-${modalLanguage}`}
                         srcDoc={generatePreviewContent({
                           ...templateForm,
                           id: editingTemplate?.id || 'preview',
                           variables: editingTemplate?.variables || {},
                           created_at: editingTemplate?.created_at || new Date().toISOString(),
                           updated_at: editingTemplate?.updated_at || new Date().toISOString()
-                        })}
+                        }, modalTeam, modalLanguage)}
                         className="w-full h-full border-0"
                         title="Email Preview"
                         sandbox="allow-same-origin"

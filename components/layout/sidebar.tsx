@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import NextLink from "next/link"
 import { Image } from "@/components/shared/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils/styles"
@@ -22,7 +22,8 @@ import {
   Grid3x3,
   ClipboardList,
   FileText,
-  DollarSign
+  DollarSign,
+  Link
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n/context"
@@ -35,7 +36,7 @@ import { useAuth } from "@/lib/hooks/use-auth"
 const ORGANIZATION_DOMAIN = 'japandriver.com'
 
 // Type for menu item keys
-type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
+type MenuItemKey = 'dashboard' | 'vehicles' | 'drivers' | 'bookings' | 'paylinks' | 'quotations' | 'pricing' | 'dispatch' | 'assignments' | 'maintenance' | 'inspections' | 'templates' | 'reporting' | 'settings' | 'customers'
 
 // Interface for menu items
 interface MenuItem {
@@ -52,6 +53,7 @@ interface MenuSettings {
   vehicles: { desktop: boolean; mobile: boolean };
   drivers: { desktop: boolean; mobile: boolean };
   bookings: { desktop: boolean; mobile: boolean };
+  paylinks: { desktop: boolean; mobile: boolean };
   quotations: { desktop: boolean; mobile: boolean };
   customers: { desktop: boolean; mobile: boolean };
   pricing: { desktop: boolean; mobile: boolean };
@@ -70,6 +72,7 @@ const defaultMenuSettings: MenuSettings = {
   vehicles: { desktop: true, mobile: true },
   drivers: { desktop: true, mobile: true },
   bookings: { desktop: true, mobile: true },
+  paylinks: { desktop: true, mobile: true },
   quotations: { desktop: true, mobile: true },
   customers: { desktop: true, mobile: true },
   pricing: { desktop: true, mobile: true },
@@ -199,6 +202,7 @@ export function Sidebar() {
       label: t("navigation.operations"),
       items: [
         { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
+        { icon: Link, label: t("navigation.paylinks"), href: "/paylinks", key: "paylinks" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
         { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
@@ -318,18 +322,18 @@ export function Sidebar() {
                     return collapsed ? (
                       <Tooltip key={item.href}>
                         <TooltipTrigger asChild>
-                          <Link href={item.href as any}>
+                          <NextLink href={item.href as any}>
                             {menuItem}
-                          </Link>
+                          </NextLink>
                         </TooltipTrigger>
                         <TooltipContent side="right">
                           {item.label}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <Link key={item.href} href={item.href as any}>
+                      <NextLink key={item.href} href={item.href as any}>
                         {menuItem}
-                      </Link>
+                      </NextLink>
                     );
                   })}
                 </div>

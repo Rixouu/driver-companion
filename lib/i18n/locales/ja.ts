@@ -171,6 +171,7 @@ export const ja: TranslationValue = {
     vehicles: "車両",
     drivers: "ドライバー",
     bookings: "予約",
+    paylinks: "支払いリンク",
     quotations: "見積",
     customers: "顧客",
     pricing: "価格設定",

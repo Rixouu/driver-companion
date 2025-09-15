@@ -20,6 +20,11 @@ export const navigation = [
     icon: "calendar",
   },
   {
+    title: "paylinks",
+    href: "/paylinks",
+    icon: "Link",
+  },
+  {
     title: "inspections",
     href: "/inspections",
     icon: "inspections",

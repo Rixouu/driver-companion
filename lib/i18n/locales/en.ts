@@ -181,6 +181,7 @@ export const en: TranslationValue = {
     vehicles: "Vehicles",
     drivers: "Drivers",
     bookings: "Bookings",
+    paylinks: "Payment Links",
     quotations: "Quotations",
     customers: "Customers",
     pricing: "Pricing",

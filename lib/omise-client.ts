@@ -27,13 +27,204 @@ export interface OmiseResponse {
 export class OmiseClient {
   private config: OmiseConfig;
 
-  constructor(publicKey: string, secretKey: string) {
+  constructor(publicKey?: string, secretKey?: string) {
     this.config = {
-      publicKey,
-      secretKey,
+      publicKey: publicKey || process.env.OMISE_PUBLIC_KEY || '',
+      secretKey: secretKey || process.env.OMISE_SECRET_KEY || '',
       baseUrl: process.env.NODE_ENV === 'development' || process.env.OMISE_TEST_MODE === 'true' 
         ? 'https://api.omise.co' 
         : 'https://api.omise.co'
+    };
+  }
+
+  // Omise Links API methods
+  get links() {
+    return {
+      list: async (params?: { limit?: number; offset?: number; order?: 'chronological' | 'reverse_chronological' }) => {
+        try {
+          const queryParams = new URLSearchParams();
+          if (params?.limit) queryParams.append('limit', params.limit.toString());
+          if (params?.offset) queryParams.append('offset', params.offset.toString());
+          if (params?.order) queryParams.append('order', params.order);
+
+          const teamId = process.env.OMISE_TEAM_ID || '2156';
+          const url = `https://linksplus-api.omise.co/external/${teamId}/links?${queryParams.toString()}`;
+
+          console.log('[Omise] Fetching links from Payment Links+ API:', {
+            url,
+            teamId,
+            usingApiKey: !!process.env.OMISE_PAYMENT_LINKS_API_KEY
+          });
+
+          const response = await axios.get(url, {
+            headers: {
+              'Authorization': process.env.OMISE_PAYMENT_LINKS_API_KEY || this.config.secretKey,
+              'Accept': 'application/json'
+            },
+            timeout: 15000
+          });
+
+          console.log('[Omise] Received Payment Links+ response:', {
+            hasData: !!response.data.data,
+            dataLength: response.data.data?.length || 0,
+            total: response.data.total,
+            firstLink: response.data.data?.[0] ? {
+              id: response.data.data[0].id,
+              amount: response.data.data[0].amount,
+              currency: response.data.data[0].currency,
+              name: response.data.data[0].name
+            } : null
+          });
+
+          return response.data;
+        } catch (error) {
+          console.error('[Omise] Error listing Payment Links+ links:', error);
+          throw error;
+        }
+      },
+
+      create: async (data: {
+        amount: number;
+        currency: string;
+        title: string;
+        description?: string;
+        multiple?: boolean;
+        returnUrl?: string;
+      }) => {
+        try {
+          // Convert amount to smallest unit for Payment Links+
+          const amountInSmallestUnit = this.convertToSmallestUnit(data.amount, data.currency);
+          
+          // Truncate title to 45 characters as required by Payment Links+ API
+          const truncatedTitle = data.title.length > 45 ? data.title.substring(0, 42) + '...' : data.title;
+          
+          const requestData = {
+            template_id: process.env.OMISE_TEMPLATE_ID || '3672',
+            team_id: process.env.OMISE_TEAM_ID || '3388',
+            name: truncatedTitle,
+            currency: data.currency.toUpperCase(),
+            amount: amountInSmallestUnit.toString(),
+            multiple_usage: data.multiple ? 'true' : 'false',
+            returnUrl: data.returnUrl || process.env.OMISE_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || 'https://driver-companion.vercel.app'}/payment-status`
+          };
+
+          console.log('[Omise] Creating Payment Links+ link with data:', requestData);
+
+          const response = await axios.post(
+            'https://linksplus-api.omise.co/external/links',
+            requestData,
+            {
+              headers: {
+                'Authorization': process.env.OMISE_PAYMENT_LINKS_API_KEY || this.config.secretKey,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              timeout: 15000
+            }
+          );
+
+          console.log('[Omise] Payment Links+ response:', response.data);
+
+          if (response.data.object === 'link' && response.data.transaction_url) {
+            return {
+              id: response.data.id,
+              object: 'link',
+              livemode: response.data.livemode || false,
+              location: response.data.location || '',
+              amount: amountInSmallestUnit,
+              currency: data.currency.toUpperCase(),
+              title: data.title,
+              description: data.description || '',
+              multiple: data.multiple || false,
+              used: response.data.used || false,
+              created_at: response.data.created_at || new Date().toISOString(),
+              deleted: response.data.deleted || false,
+              deleted_at: response.data.deleted_at || null,
+              payment_uri: response.data.transaction_url,
+              charges: {
+                data: response.data.charges || []
+              }
+            };
+          } else {
+            throw new Error(`Invalid Payment Links+ response: ${JSON.stringify(response.data)}`);
+          }
+        } catch (error) {
+          console.error('[Omise] Error creating Payment Links+ link:', error);
+          throw error;
+        }
+      },
+
+      retrieve: async (id: string) => {
+        try {
+          const response = await axios.get(
+            `https://linksplus-api.omise.co/external/links/${id}`,
+            {
+              headers: {
+                'Authorization': process.env.OMISE_PAYMENT_LINKS_API_KEY || this.config.secretKey,
+                'Accept': 'application/json'
+              },
+              timeout: 15000
+            }
+          );
+
+          return response.data;
+        } catch (error) {
+          console.error('[Omise] Error retrieving Payment Links+ link:', error);
+          throw error;
+        }
+      },
+
+      destroy: async (id: string) => {
+        try {
+          // Try standard Omise Links API first for deletion
+          const standardUrl = `${this.config.baseUrl}/links/${id}`;
+          
+          console.log('[Omise] Attempting to delete link via standard Omise API:', {
+            url: standardUrl,
+            linkId: id
+          });
+
+          const response = await axios.delete(standardUrl, {
+            headers: {
+              'Authorization': `Basic ${Buffer.from(this.config.secretKey + ':').toString('base64')}`,
+              'Accept': 'application/json'
+            },
+            timeout: 15000
+          });
+
+          console.log('[Omise] Standard Omise API delete response:', response.data);
+          return response.data;
+        } catch (error) {
+          console.error('[Omise] Standard API delete failed, trying Payment Links+ API:', error);
+          
+          try {
+            // Fallback to Payment Links+ API
+            const teamId = process.env.OMISE_TEAM_ID || '2156';
+            const url = `https://linksplus-api.omise.co/external/${teamId}/links/${id}`;
+
+            console.log('[Omise] Destroying Payment Links+ link:', {
+              url,
+              teamId,
+              linkId: id,
+              usingApiKey: !!process.env.OMISE_PAYMENT_LINKS_API_KEY
+            });
+
+            const response = await axios.delete(url, {
+              headers: {
+                'Authorization': process.env.OMISE_PAYMENT_LINKS_API_KEY || this.config.secretKey,
+                'Accept': 'application/json'
+              },
+              timeout: 15000
+            });
+
+            console.log('[Omise] Payment Links+ destroy response:', response.data);
+            return response.data;
+          } catch (fallbackError) {
+            console.error('[Omise] Both delete methods failed:', { standardError: error, fallbackError });
+            throw new Error('Unable to delete payment link. Payment Links+ may not support deletion.');
+          }
+        }
+      }
     };
   }
 

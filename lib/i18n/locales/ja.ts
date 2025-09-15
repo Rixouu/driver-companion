@@ -187,6 +187,9 @@ export const ja: TranslationValue = {
     fleet: "フリート",
     sales: "営業",
     operations: "オペレーション",
+    salesCustomers: "営業・顧客",
+    analytics: "分析",
+    configuration: "設定",
     logout: "ログアウト"
   },
   drivers: {

@@ -170,50 +170,52 @@ export function Sidebar() {
     setCollapsed(!collapsed)
   }
 
-  // Menu items with group structure (Corrected Order)
+  // Menu items with group structure - Reorganized
   const menuGroups = [
-    {
-      id: 'dashboard',
-      items: [
-        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" } as MenuItem
-      ]
-    },
-    {
-      id: 'fleet', // Fleet comes before Sales
-      label: t("navigation.fleet"),
-      items: [
-        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" } as MenuItem,
-        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" } as MenuItem
-      ]
-    },
-    {
-      id: 'sales', 
-      label: t("navigation.sales"),
-      items: [
-        // Only show sales calendar to organization members
-        ...(isOrganizationMember ? ([{ icon: Calendar, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : []),
-        { icon: Users, label: t("navigation.customers"), href: "/customers", key: "customers" } as MenuItem,
-        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
-        { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem
-      ]
-    },
     {
       id: 'operations',
       label: t("navigation.operations"),
       items: [
-        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
-        { icon: Link, label: t("navigation.paylinks"), href: "/paylinks", key: "paylinks" } as MenuItem,
+        { icon: LayoutDashboard, label: t("navigation.dashboard"), href: "/dashboard", key: "dashboard" } as MenuItem,
         { icon: Grid3x3, label: t("navigation.dispatchBoard"), href: "/dispatch", key: "dispatch" } as MenuItem,
-        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem,
+        { icon: Calendar, label: t("navigation.bookings"), href: "/bookings", key: "bookings" } as MenuItem,
+        { icon: ClipboardCheck, label: t("navigation.assignments"), href: "/assignments", key: "assignments" } as MenuItem
+      ]
+    },
+    {
+      id: 'sales_customers', 
+      label: t("navigation.salesCustomers"),
+      items: [
+        { icon: ClipboardList, label: t("navigation.quotations"), href: "/quotations", key: "quotations" } as MenuItem,
+        { icon: Users, label: t("navigation.customers"), href: "/customers", key: "customers" } as MenuItem,
+        // Only show sales calendar to organization members
+        ...(isOrganizationMember ? ([{ icon: Calendar, label: t("navigation.salesCalendar"), href: "/sales/calendar", key: "quotations" } as MenuItem]) : [])
+      ]
+    },
+    {
+      id: 'fleet',
+      label: t("navigation.fleet"),
+      items: [
+        { icon: Car, label: t("navigation.vehicles"), href: "/vehicles", key: "vehicles" } as MenuItem,
+        { icon: User, label: t("navigation.drivers"), href: "/drivers", key: "drivers" } as MenuItem,
         { icon: Wrench, label: t("navigation.maintenance"), href: "/maintenance", key: "maintenance" } as MenuItem,
-        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem,
-        { icon: FileText, label: t("navigation.templates"), href: "/templates", key: "templates" } as MenuItem,
+        { icon: ClipboardCheck, label: t("navigation.inspections"), href: "/inspections", key: "inspections" } as MenuItem
+      ]
+    },
+    {
+      id: 'analytics',
+      label: t("navigation.analytics"),
+      items: [
         { icon: BarChart, label: t("navigation.reporting"), href: "/reporting", key: "reporting" } as MenuItem
       ]
     },
     {
-      id: 'settings',
+      id: 'configuration',
+      label: t("navigation.configuration"),
       items: [
+        { icon: FileText, label: t("navigation.templates"), href: "/templates", key: "templates" } as MenuItem,
+        { icon: Link, label: t("navigation.paylinks"), href: "/paylinks", key: "paylinks" } as MenuItem,
+        { icon: DollarSign, label: t("navigation.pricing"), href: "/admin/pricing", key: "pricing", adminOnly: true } as MenuItem,
         { icon: Settings, label: t("navigation.settings"), href: "/settings", key: "settings" } as MenuItem
       ]
     }

@@ -197,6 +197,9 @@ export const en: TranslationValue = {
     fleet: "Fleet",
     sales: "Sales",
     operations: "Operations",
+    salesCustomers: "Sales & Customers",
+    analytics: "Analytics",
+    configuration: "Configuration",
     logout: "Logout"
   },
   drivers: {

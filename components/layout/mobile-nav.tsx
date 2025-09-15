@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { useI18n } from "@/lib/i18n/context"
 import { cn } from "@/lib/utils/styles"
-import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Users, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag } from "lucide-react"
+import { Home, Car, Wrench, ClipboardCheck, BarChart, Settings,  User, Users, Calendar, ChevronUp, Clipboard, FileText, LayoutDashboard, Tag, Link as LinkIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -47,7 +47,7 @@ function SafeLink({ href, className, children, onClick }: {
 export function MobileNav() {
   const pathname = usePathname() ?? ''
   const { t } = useI18n()
-  const [activeGroup, setActiveGroup] = useState('dashboard')
+  const [activeGroup, setActiveGroup] = useState('operations')
   const [sheetOpen, setSheetOpen] = useState(false)
   const { user } = useAuth()
   const isOrganizationMember = !!user?.email?.endsWith('@japandriver.com')
@@ -55,24 +55,24 @@ export function MobileNav() {
   // Update active group based on pathname
   useEffect(() => {
     if (pathname.startsWith('/dashboard')) {
-      setActiveGroup('dashboard')
-    } else if (pathname.startsWith('/vehicles') || pathname.startsWith('/drivers')) {
+      setActiveGroup('operations')
+    } else if (pathname.startsWith('/vehicles') || pathname.startsWith('/drivers') || pathname.startsWith('/maintenance') || pathname.startsWith('/inspections')) {
       setActiveGroup('fleet')
-    } else if (pathname.startsWith('/quotations') || pathname.startsWith('/customers')) {
+    } else if (pathname.startsWith('/quotations') || pathname.startsWith('/customers') || pathname.startsWith('/sales')) {
       setActiveGroup('sales')
     } else if (
       pathname.startsWith('/bookings') || 
       pathname.startsWith('/dispatch') || 
       pathname.startsWith('/assignments') ||
-      pathname.startsWith('/maintenance') || 
-      pathname.startsWith('/inspections') ||
-      pathname.startsWith('/reporting')
+      pathname.startsWith('/reporting') ||
+      pathname.startsWith('/templates') ||
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/settings') ||
+      pathname.startsWith('/paylinks')
     ) {
-      setActiveGroup('operations')
-    } else if (pathname.startsWith('/settings')) {
-      setActiveGroup('settings')
+      setActiveGroup('management')
     } else {
-      setActiveGroup('dashboard')
+      setActiveGroup('operations')
     }
   }, [pathname])
   
@@ -92,10 +92,11 @@ export function MobileNav() {
   // Main menu groups
   const mainGroups: MenuGroup[] = [
     {
-      id: 'dashboard',
-      title: t("navigation.dashboard"),
-      icon: Home,
-      href: '/dashboard'
+      id: 'operations',
+      title: t("navigation.operations"),
+      icon: Clipboard,
+      hasSubmenu: true,
+      href: '#'
     },
     {
       id: 'fleet',
@@ -112,57 +113,58 @@ export function MobileNav() {
       href: '#'
     },
     {
-      id: 'operations',
-      title: t("navigation.operations"),
-      icon: Clipboard,
+      id: 'management',
+      title: t("navigation.management"),
+      icon: Settings,
       hasSubmenu: true,
       href: '#'
-    },
-    {
-      id: 'settings',
-      title: t("navigation.settings"),
-      icon: Settings,
-      href: '/settings'
     }
   ]
   
   // Submenu items for the groups with submenus
   const submenuItems: Record<string, MenuItem[]> = {
+    operations: [
+      { id: 'dashboard', title: t("navigation.dashboard"), icon: LayoutDashboard, href: '/dashboard' },
+      { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
+      { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
+      { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' }
+    ],
     fleet: [
       { id: 'vehicles', title: t("navigation.vehicles"), icon: Car, href: '/vehicles' },
-      { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' }
+      { id: 'drivers', title: t("navigation.drivers"), icon: User, href: '/drivers' },
+      { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
+      { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' }
     ],
     sales: [
-      ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: Calendar, href: '/sales/calendar' }] as MenuItem[]) : []),
-      { id: 'customers', title: t("navigation.customers"), icon: Users, href: '/customers' },
       { id: 'quotations', title: t("navigation.quotations"), icon: FileText, href: '/quotations' },
-      { id: 'pricing', title: t("navigation.pricing"), icon: Tag, href: '/admin/pricing' }
+      { id: 'customers', title: t("navigation.customers"), icon: Users, href: '/customers' },
+      ...(isOrganizationMember ? ([{ id: 'sales-calendar', title: t("navigation.salesCalendar"), icon: Calendar, href: '/sales/calendar' }] as MenuItem[]) : [])
     ],
-    operations: [
-      { id: 'bookings', title: t("navigation.bookings"), icon: Calendar, href: '/bookings' },
-      { id: 'dispatch', title: t("navigation.dispatchBoard"), icon: LayoutDashboard, href: '/dispatch' },
-      { id: 'assignments', title: t("navigation.assignments"), icon: ClipboardCheck, href: '/assignments' },
-      { id: 'maintenance', title: t("navigation.maintenance"), icon: Wrench, href: '/maintenance' },
-      { id: 'inspections', title: t("navigation.inspections"), icon: ClipboardCheck, href: '/inspections' },
+    management: [
+      { id: 'reporting', title: t("navigation.reporting"), icon: BarChart, href: '/reporting' },
       { id: 'templates', title: t("navigation.templates"), icon: FileText, href: '/templates' },
-      { id: 'reporting', title: t("navigation.reporting"), icon: BarChart, href: '/reporting' }
+      { id: 'paylinks', title: t("navigation.paylinks"), icon: LinkIcon, href: '/paylinks' },
+      { id: 'pricing', title: t("navigation.pricing"), icon: Tag, href: '/admin/pricing' },
+      { id: 'settings', title: t("navigation.settings"), icon: Settings, href: '/settings' }
     ]
   }
   
   // Get active submenu items based on current group
   const getActiveSubmenuItems = () => {
+    if (activeGroup === 'operations') return submenuItems.operations;
     if (activeGroup === 'fleet') return submenuItems.fleet;
     if (activeGroup === 'sales') return submenuItems.sales;
-    if (activeGroup === 'operations') return submenuItems.operations;
+    if (activeGroup === 'management') return submenuItems.management;
     return [];
   }
 
   // Function to get the title for the sheet based on active group
   const getSheetTitle = () => {
     switch (activeGroup) {
+      case 'operations': return t("navigation.operations");
       case 'fleet': return t("navigation.fleet");
       case 'sales': return t("navigation.sales");
-      case 'operations': return t("navigation.operations");
+      case 'management': return t("navigation.management");
       default: return '';
     }
   }

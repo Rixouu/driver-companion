@@ -190,6 +190,7 @@ export const ja: TranslationValue = {
     salesCustomers: "営業・顧客",
     analytics: "分析",
     configuration: "設定",
+    management: "管理",
     logout: "ログアウト"
   },
   drivers: {

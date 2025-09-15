@@ -230,6 +230,8 @@ export default function EditBookingPage() {
             hours_per_day: loadedBooking.hours_per_day || 1,
             duration_hours: loadedBooking.duration_hours || 1,
             service_days: loadedBooking.service_days || 1,
+            number_of_passengers: loadedBooking.number_of_passengers || undefined,
+            number_of_bags: loadedBooking.number_of_bags || undefined,
             driver_id: loadedBooking.driver_id || undefined,
             vehicle_id: loadedBooking.vehicle_id || undefined,
             originalVehicleId: loadedBooking.vehicle_id || undefined, // Store original vehicle ID
@@ -238,6 +240,25 @@ export default function EditBookingPage() {
             team_location: loadedBooking.team_location || 'thailand'
           }
           
+          // Cache the service data to prevent it from being reset by service switching logic
+          if (extractedServiceName) {
+            console.log('Loading booking data:', {
+              service_days: loadedBooking.service_days,
+              hours_per_day: loadedBooking.hours_per_day,
+              duration_hours: loadedBooking.duration_hours,
+              service_name: extractedServiceName
+            });
+            
+            setServiceDataCache(prevCache => ({
+              ...prevCache,
+              [extractedServiceName]: {
+                duration_hours: loadedBooking.duration_hours || 1,
+                hours_per_day: loadedBooking.hours_per_day || 1,
+                service_days: loadedBooking.service_days || 1,
+                selectedVehicle: null // Will be set when vehicle is loaded
+              }
+            }));
+          }
           
           setFormData(initialFormData)
           

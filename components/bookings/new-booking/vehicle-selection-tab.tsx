@@ -100,6 +100,9 @@ export function VehicleSelectionTab({
         currentVehicleId,
         newVehicleId,
         serviceType: formData.service_name,
+        serviceDays: formData.service_days,
+        hoursPerDay: formData.hours_per_day,
+        durationHours: formData.duration_hours,
         bookingId
       });
       
@@ -112,7 +115,10 @@ export function VehicleSelectionTab({
           body: JSON.stringify({
             currentVehicleId,
             newVehicleId,
-            serviceType: formData.service_name || 'Airport Transfer'
+            serviceType: formData.service_name || 'Airport Transfer',
+            serviceDays: formData.service_days,
+            hoursPerDay: formData.hours_per_day,
+            durationHours: formData.duration_hours
           }),
         });
         

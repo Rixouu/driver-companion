@@ -86,7 +86,13 @@ export function PaymentModal({
         paymentType,
         hasUpgradeDowngrade: !!formData.upgradeDowngradeData,
         upgradeDowngradeData: formData.upgradeDowngradeData,
-        priceDifference: formData.upgradeDowngradeData?.priceDifference
+        priceDifference: formData.upgradeDowngradeData?.priceDifference,
+        formData: {
+          id: formData.id,
+          vehicle_id: formData.vehicle_id,
+          driver_id: formData.driver_id,
+          originalVehicleId: formData.originalVehicleId
+        }
       });
       
       // Simulate progress steps
@@ -107,6 +113,15 @@ export function PaymentModal({
       // Create operation first - only for upgrade/downgrade payments
       let operationId = null;
       if (formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== undefined && formData.upgradeDowngradeData.priceDifference !== null) {
+        // Validate required fields before creating operation
+        if (!formData.vehicle_id) {
+          throw new Error('Vehicle ID is required for payment processing');
+        }
+        
+        if (!formData.driver_id) {
+          throw new Error('Driver ID is required for payment processing. Please assign a driver first.');
+        }
+
         try {
           const operationResponse = await fetch(`/api/bookings/${formData.id}/store-assignment-operation`, {
             method: 'POST',

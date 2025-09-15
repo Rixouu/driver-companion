@@ -34,6 +34,12 @@ export function PaymentOptions({
   const hasUpgradeDowngrade = formData.upgradeDowngradeData && formData.upgradeDowngradeData.priceDifference !== 0
   const upgradeAmount = formData.upgradeDowngradeData?.priceDifference || 0
   
+  // Check if required fields are present for payment processing
+  const hasRequiredFields = formData.vehicle_id && formData.driver_id
+  const missingFields = []
+  if (!formData.vehicle_id) missingFields.push('Vehicle')
+  if (!formData.driver_id) missingFields.push('Driver')
+  
   // Calculate full quote amount correctly
   const fullQuoteAmount = formData.upgradeDowngradeData ? 
     (formData.isFreeUpgrade ? 
@@ -124,12 +130,17 @@ export function PaymentOptions({
                 </p>
                 <Button 
                   onClick={() => handlePaymentClick('upgrade-only')}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasRequiredFields}
                   className="w-full"
                   variant="default"
                 >
                   {upgradeAmount > 0 ? 'Send Upgrade Payment' : 'Generate Refund Coupon'}
                 </Button>
+                {!hasRequiredFields && (
+                  <p className="text-xs text-red-500 mt-2">
+                    Missing: {missingFields.join(', ')}
+                  </p>
+                )}
               </div>
 
               {/* Full Quote Payment */}
@@ -148,12 +159,17 @@ export function PaymentOptions({
                 </p>
                 <Button 
                   onClick={() => handlePaymentClick('full-quote')}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasRequiredFields}
                   className="w-full"
                   variant="default"
                 >
                   Send Full Quote
                 </Button>
+                {!hasRequiredFields && (
+                  <p className="text-xs text-red-500 mt-2">
+                    Missing: {missingFields.join(', ')}
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -173,12 +189,17 @@ export function PaymentOptions({
               </p>
               <Button 
                 onClick={() => handlePaymentClick('full-quote')}
-                disabled={isLoading}
+                disabled={isLoading || !hasRequiredFields}
                 className="w-full"
                 variant="default"
               >
                 Send Full Quote
               </Button>
+              {!hasRequiredFields && (
+                <p className="text-xs text-red-500 mt-2">
+                  Missing: {missingFields.join(', ')}
+                </p>
+              )}
             </div>
           )}
         </CardContent>

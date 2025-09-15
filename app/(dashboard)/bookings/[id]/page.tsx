@@ -130,43 +130,9 @@ export default function BookingDetailsPage() {
     }
   }, [id, router]);
 
-  // Refresh data when page becomes visible (e.g., returning from edit page)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && id) {
-        loadBooking();
-      }
-    };
+  // Removed automatic refresh on visibility change and focus
 
-    const handleFocus = () => {
-      if (id) {
-        loadBooking();
-      }
-    };
-
-    // Listen for page visibility changes and focus events
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [id]);
-
-  // Refresh data when refresh parameter is present (e.g., returning from edit page)
-  useEffect(() => {
-    if (!searchParams) return;
-    
-    const refreshParam = searchParams.get('refresh');
-    if (refreshParam && id) {
-      loadBooking();
-      // Clean up the URL by removing the refresh parameter
-      const url = new URL(window.location.href);
-      url.searchParams.delete('refresh');
-      router.replace(url.pathname + url.search as any);
-    }
-  }, [searchParams, id, router]);
+  // Removed automatic refresh on URL parameter
 
   // Load assigned driver and vehicle data
   const loadAssignedResources = async (bookingData: Booking) => {
@@ -833,11 +799,11 @@ export default function BookingDetailsPage() {
                       </div>
                     </div>
 
-                    {/* Service & Flight Information - 3 elements */}
+                    {/* Service Details - 3 elements */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="font-medium text-base">Service & Flight Information</h3>
+                        <h3 className="font-medium text-base">Service Details</h3>
                       </div>
                       
                       <div className="space-y-3">
@@ -856,15 +822,21 @@ export default function BookingDetailsPage() {
                         </div>
                         
                         <div className="p-3 bg-muted/30 rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1">Flight Number & Terminal</div>
+                          <div className="text-sm text-muted-foreground mb-1">
+                            {(booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer') === 'Charter Services' 
+                              ? 'Services & Durations' 
+                              : 'Service Type'
+                            }
+                          </div>
                           <div className="font-medium text-foreground">
-                            {booking?.flight_number && booking?.terminal 
-                              ? `${booking.flight_number} - ${booking.terminal}`
-                              : booking?.flight_number 
-                                ? `${booking.flight_number} - Not provided`
-                                : booking?.terminal 
-                                  ? `Not provided - ${booking.terminal}`
-                                  : 'Not provided - Not provided'
+                            {(booking.service_name || booking.meta?.quotation_items?.[0]?.service_type_name || 'Airport Transfer') === 'Charter Services' 
+                              ? (booking.service_days && booking.hours_per_day 
+                                  ? `${booking.service_days} day${booking.service_days > 1 ? 's' : ''} × ${booking.hours_per_day} hour${booking.hours_per_day > 1 ? 's' : ''} = ${booking.duration_hours || (booking.service_days * booking.hours_per_day)} total hour${(booking.duration_hours || (booking.service_days * booking.hours_per_day)) > 1 ? 's' : ''}`
+                                  : booking.duration_hours 
+                                    ? `${booking.duration_hours} hour${booking.duration_hours > 1 ? 's' : ''}`
+                                    : 'Not specified'
+                                )
+                              : 'Fixed Rate Service'
                             }
                           </div>
                         </div>
@@ -875,6 +847,59 @@ export default function BookingDetailsPage() {
               </CardContent>
             </Card>
 
+            {/* Additional Information */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold">Additional Information</h2>
+                      <p className="text-sm text-muted-foreground">Flight details and passenger information</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Flight Information Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Flight Number</div>
+                        <div className="font-medium text-foreground">
+                          {booking.flight_number || 'Not provided'}
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Terminal</div>
+                        <div className="font-medium text-foreground">
+                          {booking.terminal || 'Not provided'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Passenger & Bags Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Passengers</div>
+                        <div className="font-medium text-foreground">
+                          {booking.number_of_passengers || 'Not specified'}
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-muted/30 rounded-lg">
+                        <div className="text-sm text-muted-foreground mb-1">Bags</div>
+                        <div className="font-medium text-foreground">
+                          {booking.number_of_bags || 'Not specified'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Vehicle & Driver Assignment */}
             <Card>

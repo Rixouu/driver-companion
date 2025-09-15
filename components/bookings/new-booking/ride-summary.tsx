@@ -82,8 +82,11 @@ export function RideSummary({
                   <div className="font-medium">{formData.service_name}</div>
                   {formData.service_name === 'Charter Services' && formData.duration_hours && (
                     <div className="text-muted-foreground text-xs">
-                      {formData.duration_hours} hour{formData.duration_hours > 1 ? 's' : ''}
-                      {formData.service_days && formData.service_days > 1 && ` × ${formData.service_days} day${formData.service_days > 1 ? 's' : ''}`}
+                      {formData.service_days && formData.hours_per_day ? (
+                        `${formData.service_days} day${formData.service_days > 1 ? 's' : ''} × ${formData.hours_per_day} hour${formData.hours_per_day > 1 ? 's' : ''} = ${formData.duration_hours} total hour${formData.duration_hours > 1 ? 's' : ''}`
+                      ) : (
+                        `${formData.duration_hours} hour${formData.duration_hours > 1 ? 's' : ''}`
+                      )}
                     </div>
                   )}
                   {(formData.service_name === 'Airport Transfer Haneda' || formData.service_name === 'Airport Transfer Narita') && (
@@ -384,24 +387,6 @@ export function RideSummary({
             </div>
           )}
 
-          {/* Benefits */}
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Benefits</h4>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-3 w-3 text-green-500" />
-                <span>Meet & Greet included</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-3 w-3 text-green-500" />
-                <span>Free waiting time</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-3 w-3 text-green-500" />
-                <span>Safe and secure travel</span>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

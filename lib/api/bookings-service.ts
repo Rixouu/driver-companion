@@ -608,6 +608,10 @@ export function mapSupabaseBookingToBooking(booking: Database['public']['Tables'
     duration_hours: (booking as any).duration_hours || (booking.meta as any)?.duration_hours || undefined,
     service_days: (booking as any).service_days || (booking.meta as any)?.service_days || undefined,
     
+    // Passenger and luggage information
+    number_of_passengers: (booking as any).number_of_passengers || undefined,
+    number_of_bags: (booking as any).number_of_bags || undefined,
+    
     // Billing address fields
     billing_company_name: booking.billing_company_name || undefined,
     billing_tax_number: booking.billing_tax_number || undefined,

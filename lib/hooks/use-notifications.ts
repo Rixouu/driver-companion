@@ -4,7 +4,17 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/index';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Notification, NotificationWithDetails, NotificationType, NotificationCounts } from '@/types/notifications';
-import { subscribeToCollection } from '@/lib/services/realtime';
+import { subscribeToCollection, getConnectionHealth } from '@/lib/services/realtime';
+
+// Singleton Supabase client instance to prevent multiple subscriptions
+let supabaseClientInstance: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseClient() {
+  if (!supabaseClientInstance) {
+    supabaseClientInstance = createClient();
+  }
+  return supabaseClientInstance;
+}
 
 interface UseNotificationsOptions {
   limit?: number;
@@ -21,6 +31,7 @@ interface UseNotificationsReturn {
   markAllAsRead: () => Promise<void>;
   deleteNotification: (notificationId: string) => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  getConnectionStatus: () => any;
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsReturn {
@@ -31,7 +42,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   } = options;
 
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   
   const [notifications, setNotifications] = useState<NotificationWithDetails[]>([]);
   const [counts, setCounts] = useState<NotificationCounts>({
@@ -44,6 +55,10 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
   
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const markAsReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
+  const retryDelay = 5000; // 5 seconds
 
   // Fetch notifications from database
   const fetchNotifications = useCallback(async () => {
@@ -228,82 +243,140 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     await fetchNotifications();
   }, [fetchNotifications]);
 
-  // Set up real-time subscription
-  useEffect(() => {
+  // Create subscription with retry logic
+  const createSubscription = useCallback(() => {
     if (!user?.id) return;
 
     // Clean up existing subscription
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
+      unsubscribeRef.current = null;
     }
 
-    // Set up new subscription
-    unsubscribeRef.current = subscribeToCollection<Notification>(
-      {
-        table: 'notifications',
-        event: '*',
-        filter: `user_id=eq.${user.id}`
-      },
-      // onInsert
-      (newNotification) => {
-        setNotifications(prev => [newNotification as NotificationWithDetails, ...prev]);
-        setCounts(prev => ({
-          total: prev.total + 1,
-          unread: prev.unread + 1,
-          by_type: {
-            ...prev.by_type,
-            [newNotification.type as NotificationType]: 
-              (prev.by_type[newNotification.type as NotificationType] || 0) + 1
-          }
-        }));
-      },
-      // onUpdate
-      (updatedNotification, oldNotification) => {
-        setNotifications(prev => 
-          prev.map(notification => 
-            notification.id === updatedNotification.id 
-              ? updatedNotification as NotificationWithDetails
-              : notification
-          )
-        );
+    // Clear any existing retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
-        // Update counts if read status changed
-        if (oldNotification.is_read !== updatedNotification.is_read) {
+    console.log(`Creating notification subscription for user ${user.id} (attempt ${retryCountRef.current + 1})`);
+
+    try {
+      unsubscribeRef.current = subscribeToCollection<Notification>(
+        {
+          table: 'notifications',
+          event: '*',
+          filter: `user_id=eq.${user.id}`
+        },
+        // onInsert
+        (newNotification) => {
+          console.log('New notification received:', newNotification.id);
+          setNotifications(prev => [newNotification as NotificationWithDetails, ...prev]);
           setCounts(prev => ({
-            ...prev,
-            unread: updatedNotification.is_read 
-              ? Math.max(0, prev.unread - 1)
-              : prev.unread + 1
-          }));
-        }
-      },
-      // onDelete
-      (deletedNotification) => {
-        setNotifications(prev => 
-          prev.filter(notification => notification.id !== deletedNotification.id)
-        );
-        setCounts(prev => {
-          const wasUnread = !deletedNotification.is_read;
-          return {
-            total: prev.total - 1,
-            unread: wasUnread ? Math.max(0, prev.unread - 1) : prev.unread,
+            total: prev.total + 1,
+            unread: prev.unread + 1,
             by_type: {
               ...prev.by_type,
-              [deletedNotification.type as NotificationType]: 
-                Math.max(0, (prev.by_type[deletedNotification.type as NotificationType] || 0) - 1)
+              [newNotification.type as NotificationType]: 
+                (prev.by_type[newNotification.type as NotificationType] || 0) + 1
             }
-          };
-        });
-      },
-      supabase
-    );
+          }));
+          // Reset retry count on successful subscription
+          retryCountRef.current = 0;
+        },
+        // onUpdate
+        (updatedNotification, oldNotification) => {
+          setNotifications(prev => 
+            prev.map(notification => 
+              notification.id === updatedNotification.id 
+                ? updatedNotification as NotificationWithDetails
+                : notification
+            )
+          );
+
+          // Update counts if read status changed
+          if (oldNotification.is_read !== updatedNotification.is_read) {
+            setCounts(prev => ({
+              ...prev,
+              unread: updatedNotification.is_read 
+                ? Math.max(0, prev.unread - 1)
+                : prev.unread + 1
+            }));
+          }
+        },
+        // onDelete
+        (deletedNotification) => {
+          setNotifications(prev => 
+            prev.filter(notification => notification.id !== deletedNotification.id)
+          );
+          setCounts(prev => {
+            const wasUnread = !deletedNotification.is_read;
+            return {
+              total: prev.total - 1,
+              unread: wasUnread ? Math.max(0, prev.unread - 1) : prev.unread,
+              by_type: {
+                ...prev.by_type,
+                [deletedNotification.type as NotificationType]: 
+                  Math.max(0, (prev.by_type[deletedNotification.type as NotificationType] || 0) - 1)
+              }
+            };
+          });
+        },
+        supabase
+      );
+
+      // Reset retry count on successful subscription creation
+      retryCountRef.current = 0;
+    } catch (error) {
+      console.error('Error creating notification subscription:', error);
+      handleSubscriptionError();
+    }
+  }, [user?.id, supabase]);
+
+  // Handle subscription errors with retry logic
+  const handleSubscriptionError = useCallback(() => {
+    if (retryCountRef.current < maxRetries) {
+      retryCountRef.current += 1;
+      console.log(`Subscription failed, retrying in ${retryDelay}ms (attempt ${retryCountRef.current}/${maxRetries})`);
+      
+      retryTimeoutRef.current = setTimeout(() => {
+        createSubscription();
+      }, retryDelay);
+    } else {
+      console.error('Max retry attempts reached for notification subscription');
+      setError(new Error('Failed to establish notification subscription after multiple attempts'));
+    }
+  }, [createSubscription, retryDelay, maxRetries]);
+
+  // Get connection status for debugging
+  const getConnectionStatus = useCallback(() => {
+    return getConnectionHealth(supabase);
+  }, [supabase]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Create subscription with retry logic
+    createSubscription();
 
     return () => {
+      // Clean up subscription
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
+      
+      // Clean up retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      
+      // Reset retry count
+      retryCountRef.current = 0;
     };
-  }, [user?.id, supabase]);
+  }, [user?.id, createSubscription]);
 
   // Initial fetch
   useEffect(() => {
@@ -329,10 +402,25 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
       return () => {
         if (markAsReadTimeoutRef.current) {
           clearTimeout(markAsReadTimeoutRef.current);
+          markAsReadTimeoutRef.current = null;
         }
       };
     }
   }, [autoMarkAsRead, markAsReadDelay, notifications, markAllAsRead]);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (markAsReadTimeoutRef.current) {
+        clearTimeout(markAsReadTimeoutRef.current);
+        markAsReadTimeoutRef.current = null;
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     notifications,
@@ -342,6 +430,7 @@ export function useNotifications(options: UseNotificationsOptions = {}): UseNoti
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    refreshNotifications
+    refreshNotifications,
+    getConnectionStatus
   };
 }

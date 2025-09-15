@@ -25,7 +25,8 @@ export function NotificationBell() {
     markAsRead, 
     markAllAsRead, 
     deleteNotification,
-    refreshNotifications 
+    refreshNotifications,
+    getConnectionStatus
   } = useNotifications({ limit: 20 });
   
   const { t } = useI18n();
@@ -149,6 +150,23 @@ export function NotificationBell() {
             <div className="p-2">
               <div className="text-xs text-muted-foreground text-center">
                 {t('notifications.total', '{{count}} total notifications', { count: counts.total })}
+              </div>
+            </div>
+          </>
+        )}
+        
+        {/* Debug section - only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <Separator />
+            <div className="p-2">
+              <div className="text-xs text-muted-foreground">
+                <div className="font-medium mb-1">Connection Status:</div>
+                <div className="space-y-1">
+                  <div>Connected: {getConnectionStatus().isConnected ? '✅' : '❌'}</div>
+                  <div>Channels: {getConnectionStatus().channelCount}</div>
+                  {error && <div className="text-red-500">Error: {error.message}</div>}
+                </div>
               </div>
             </div>
           </>

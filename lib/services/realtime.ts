@@ -100,10 +100,16 @@ export function subscribeToRecord<T extends Record<string, any>>(
       .subscribe((status: string) => {
         if (status === 'CHANNEL_ERROR') {
           console.error(`Channel error for ${uniqueChannelName}, stopping subscription`);
+          // Don't automatically stop - let the calling code handle retries
         } else if (status === 'TIMED_OUT') {
-          console.error(`Channel timed out for ${uniqueChannelName}, stopping subscription`);
+          console.warn(`Channel timed out for ${uniqueChannelName} - this is normal for idle connections`);
+          // Don't automatically stop - let the calling code handle retries
         } else if (status === 'SUBSCRIBED') {
           console.debug(`Successfully subscribed to channel ${uniqueChannelName}`);
+        } else if (status === 'CLOSED') {
+          console.debug(`Channel ${uniqueChannelName} closed`);
+        } else {
+          console.debug(`Channel ${uniqueChannelName} status: ${status}`);
         }
       });
 
@@ -188,10 +194,16 @@ export function subscribeToCollection<T extends Record<string, any>>(
       .subscribe((status: string) => {
         if (status === 'CHANNEL_ERROR') {
           console.error(`Channel error for ${uniqueChannelName}, stopping subscription`);
+          // Don't automatically stop - let the calling code handle retries
         } else if (status === 'TIMED_OUT') {
-          console.error(`Channel timed out for ${uniqueChannelName}, stopping subscription`);
+          console.warn(`Channel timed out for ${uniqueChannelName} - this is normal for idle connections`);
+          // Don't automatically stop - let the calling code handle retries
         } else if (status === 'SUBSCRIBED') {
           console.debug(`Successfully subscribed to collection channel ${uniqueChannelName}`);
+        } else if (status === 'CLOSED') {
+          console.debug(`Collection channel ${uniqueChannelName} closed`);
+        } else {
+          console.debug(`Collection channel ${uniqueChannelName} status: ${status}`);
         }
       });
 
@@ -225,4 +237,30 @@ export function createFilter(column: string, operator: string, value: string | n
  */
 export function idFilter(id: string) {
   return createFilter("id", "eq", id)
+}
+
+/**
+ * Monitor connection health and provide debugging information
+ */
+export function getConnectionHealth(supabaseClient: SupabaseClient) {
+  try {
+    const channels = supabaseClient.getChannels();
+    return {
+      isConnected: supabaseClient.realtime.isConnected(),
+      channelCount: channels.length,
+      channels: channels.map(channel => ({
+        topic: channel.topic,
+        state: channel.state,
+        joinRef: channel.joinRef
+      }))
+    };
+  } catch (error) {
+    console.error('Error getting connection health:', error);
+    return {
+      isConnected: false,
+      channelCount: 0,
+      channels: [],
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 } 

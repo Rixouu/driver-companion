@@ -25,6 +25,14 @@ export function ServiceDuration({
 }: ServiceDurationProps) {
   if (!formData.service_name) return null
 
+  // Debug logging for service duration values
+  console.log('ServiceDuration component received:', {
+    service_name: formData.service_name,
+    service_days: formData.service_days,
+    hours_per_day: formData.hours_per_day,
+    duration_hours: formData.duration_hours
+  });
+
   return (
     <Card className="border rounded-lg shadow-sm dark:border-gray-800">
       <div className="border-b py-4 px-6">
